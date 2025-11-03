@@ -1,0 +1,34 @@
+{
+  "common": {
+    "save": "Lagre",
+    "cancel": "Avbryt",
+    "delete": "Slett",
+    "edit": "Rediger",
+    "create": "Opprett",
+    "search": "Søk",
+    "loading": "Laster...",
+    "error": "Noe gikk galt",
+    "success": "Vellykket"
+  },
+  "nav": {
+    "dashboard": "Oversikt",
+    "documents": "Dokumenter",
+    "forms": "Skjemaer",
+    "risks": "Risikovurderinger",
+    "incidents": "Avvik",
+    "chemicals": "Stoffkartotek",
+    "training": "Opplæring",
+    "audits": "Revisjoner",
+    "actions": "Tiltak",
+    "goals": "Mål",
+    "settings": "Innstillinger"
+  },
+  "auth": {
+    "login": "Logg inn",
+    "logout": "Logg ut",
+    "email": "E-post",
+    "password": "Passord",
+    "forgotPassword": "Glemt passord?"
+  }
+}
+

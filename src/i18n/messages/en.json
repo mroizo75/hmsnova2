@@ -1,0 +1,34 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "success": "Success"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "documents": "Documents",
+    "forms": "Forms",
+    "risks": "Risk Assessments",
+    "incidents": "Incidents",
+    "chemicals": "Chemical Registry",
+    "training": "Training",
+    "audits": "Audits",
+    "actions": "Actions",
+    "goals": "Goals",
+    "settings": "Settings"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot password?"
+  }
+}
+

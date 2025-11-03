@@ -1,36 +1,126 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# HMS Nova 2.0
 
-## Getting Started
+HMS/HSEQ-system bygget med Next.js 15, Prisma og MySQL.
 
-First, run the development server:
+## Komme i gang
+
+### 1. Installer dependencies
+
+```bash
+npm install
+```
+
+### 2. Sett opp miljøvariabler
+
+Opprett en `.env` fil i root med følgende innhold:
+
+```env
+# Database
+DATABASE_URL="mysql://user:pass@127.0.0.1:3306/hmsnova"
+
+# NextAuth
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=generer-en-sikker-tilfeldig-secret-her
+
+# UploadThing & R2 (valgfritt nå)
+UPLOADTHING_SECRET=
+R2_ENDPOINT=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_BUCKET=hmsnova
+
+# Resend (valgfritt nå)
+RESEND_API_KEY=
+
+# Upstash Redis (valgfritt nå)
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+```
+
+For å generere NEXTAUTH_SECRET:
+```bash
+openssl rand -base64 32
+```
+
+### 3. Sett opp database
+
+Opprett MySQL database:
+```bash
+mysql -u root -p
+CREATE DATABASE hmsnova CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+Kjør Prisma migrasjoner:
+```bash
+npm run db:push
+# eller for produksjon:
+npm run db:migrate
+```
+
+### 4. Start utviklingsserver
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Åpne [http://localhost:3000](http://localhost:3000) i nettleseren.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Kommandoer
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `npm run dev` - Start utviklingsserver
+- `npm run build` - Bygg for produksjon
+- `npm run start` - Start produksjonsserver
+- `npm run db:generate` - Generer Prisma Client
+- `npm run db:push` - Push schema til database (utvikling)
+- `npm run db:migrate` - Kjør migrasjoner (produksjon)
+- `npm run db:studio` - Åpne Prisma Studio
 
-## Learn More
+## Teknologistack
 
-To learn more about Next.js, take a look at the following resources:
+- **Frontend**: Next.js 15 (App Router), React 18, TypeScript
+- **Styling**: Tailwind CSS, shadcn/ui
+- **Database**: MySQL 8, Prisma ORM
+- **Auth**: NextAuth.js v4
+- **State**: TanStack Query
+- **Forms**: React Hook Form + Zod
+- **i18n**: next-intl (nb/nn/en)
+- **Autorisasjon**: CASL
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Mappestruktur
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+src/
+├── app/                  # Next.js App Router
+│   ├── (public)/        # Offentlige sider (login)
+│   ├── (dashboard)/     # Beskyttede sider
+│   └── api/             # API routes
+├── components/          # Gjenbrukbare komponenter
+│   └── ui/              # shadcn/ui komponenter
+├── features/            # Feature-spesifikk kode
+│   ├── documents/
+│   ├── risks/
+│   ├── incidents/
+│   └── ...
+├── lib/                 # Utilities og konfigurasjoner
+│   ├── db.ts           # Prisma client
+│   ├── auth.ts         # NextAuth config
+│   ├── casl.ts         # RBAC/autorisasjon
+│   └── utils.ts        # Generelle utilities
+├── server/              # Server-side kode
+│   ├── actions/        # Server actions
+│   └── jobs/           # BullMQ jobs
+├── types/              # TypeScript types
+└── i18n/               # Oversettelser
+```
 
-## Deploy on Vercel
+## Neste steg
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. **Opprett test-bruker** - Bruk Prisma Studio eller SQL
+2. **Utvikle moduler** - Start med Documents eller Risks
+3. **Sett opp BullMQ** - For påminnelser og jobber
+4. **Konfigurer UploadThing** - For filopplasting
+5. **Deploy** - På VPS eller Vercel
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Lisens
+
+Proprietær - KKS AS
