@@ -1,60 +1,237 @@
-import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { AuditForm } from "@/features/audits/components/audit-form";
-import { ArrowLeft } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
 
-export default async function NewAuditPage() {
-  const session = await getServerSession(authOptions);
+export default function NewAuditPage() {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
 
-  if (!session?.user?.email) {
-    redirect("/login");
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    include: { tenants: true },
+  const [formData, setFormData] = useState({
+    title: "",
+    auditType: "INTERNAL",
+    scope: "",
+    criteria: "",
+    scheduledDate: "",
+    area: "",
+    department: "",
   });
 
-  if (!user || user.tenants.length === 0) {
-    return <div>Ingen tilgang til tenant</div>;
-  }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
-  const tenantId = user.tenants[0].tenantId;
+    try {
+      const response = await fetch("/api/audits", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
 
-  // Hent alle brukere for tenant (for revisorer)
-  const tenantUsers = await prisma.user.findMany({
-    where: {
-      tenants: {
-        some: { tenantId },
-      },
-    },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-    },
-  });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Kunne ikke opprette revisjon");
+      }
+
+      toast({
+        title: "Revisjon opprettet",
+        description: "Revisjonen er nå opprettet og klar for gjennomføring",
+      });
+
+      router.push(`/dashboard/audits/${data.data.audit.id}`);
+    } catch (error: any) {
+      toast({
+        title: "Feil",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
-      <div>
-        <Button variant="ghost" asChild className="mb-4">
-          <Link href="/dashboard/audits">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Tilbake til revisjoner
-          </Link>
-        </Button>
-        <h1 className="text-3xl font-bold">Planlegg revisjon</h1>
-        <p className="text-muted-foreground">
-          ISO 9001 - 9.2: Opprett en ny internrevisjon
-        </p>
+      <div className="flex items-center gap-4">
+        <Link href="/dashboard/audits">
+          <Button variant="ghost" size="icon">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        </Link>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Ny revisjon</h1>
+          <p className="text-muted-foreground">
+            Opprett en ny internrevisjon eller ISO-revisjon
+          </p>
+        </div>
       </div>
 
-      <AuditForm tenantId={tenantId} users={tenantUsers} mode="create" />
+      <Card>
+        <CardHeader>
+          <CardTitle>Revisjonsdetaljer</CardTitle>
+          <CardDescription>
+            Fyll ut informasjonen nedenfor i henhold til ISO 9001 krav
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="title">
+                  Tittel <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) =>
+                    setFormData({ ...formData, title: e.target.value })
+                  }
+                  placeholder="F.eks. Q1 2025 Internrevisjon - Produksjon"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="auditType">
+                  Type revisjon <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={formData.auditType}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, auditType: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="INTERNAL">Internrevisjon</SelectItem>
+                    <SelectItem value="EXTERNAL">Eksternrevisjon</SelectItem>
+                    <SelectItem value="CERTIFICATION">Sertifisering</SelectItem>
+                    <SelectItem value="SUPPLIER">Leverandørrevisjon</SelectItem>
+                    <SelectItem value="FOLLOW_UP">Oppfølging</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="scheduledDate">
+                  Planlagt dato <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="scheduledDate"
+                  type="datetime-local"
+                  value={formData.scheduledDate}
+                  onChange={(e) =>
+                    setFormData({ ...formData, scheduledDate: e.target.value })
+                  }
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="area">
+                  Område <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="area"
+                  value={formData.area}
+                  onChange={(e) =>
+                    setFormData({ ...formData, area: e.target.value })
+                  }
+                  placeholder="F.eks. HMS, Kvalitet, Miljø"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="department">Avdeling</Label>
+                <Input
+                  id="department"
+                  value={formData.department}
+                  onChange={(e) =>
+                    setFormData({ ...formData, department: e.target.value })
+                  }
+                  placeholder="F.eks. Produksjon, Lager"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="scope">
+                Omfang (ISO 9001) <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="scope"
+                value={formData.scope}
+                onChange={(e) =>
+                  setFormData({ ...formData, scope: e.target.value })
+                }
+                placeholder="Beskriv revisjonens omfang..."
+                rows={3}
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Hva skal revideres? Hvilke prosesser/områder?
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="criteria">
+                Kriterier (ISO 9001) <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="criteria"
+                value={formData.criteria}
+                onChange={(e) =>
+                  setFormData({ ...formData, criteria: e.target.value })
+                }
+                placeholder="F.eks. ISO 9001:2015 krav 7.1-7.5..."
+                rows={3}
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Hvilke krav skal vurderes? ISO-klausuler, lover, interne krav?
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-4">
+              <Link href="/dashboard/audits">
+                <Button type="button" variant="outline">
+                  Avbryt
+                </Button>
+              </Link>
+              <Button type="submit" disabled={loading}>
+                <Save className="mr-2 h-4 w-4" />
+                {loading ? "Oppretter..." : "Opprett revisjon"}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
-

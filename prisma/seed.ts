@@ -17,6 +17,7 @@ async function main() {
       name: "Superadmin",
       password: superAdminPassword,
       isSuperAdmin: true,
+      emailVerified: new Date(),
     },
   });
 
@@ -33,6 +34,7 @@ async function main() {
       name: "Support Team",
       password: supportPassword,
       isSupport: true,
+      emailVerified: new Date(),
     },
   });
 
@@ -72,11 +74,16 @@ async function main() {
 
   const adminUser = await prisma.user.upsert({
     where: { email: "admin@test.no" },
-    update: {},
+    update: {
+      emailVerified: new Date(), // FIX: Ensure verification even on update
+      failedLoginAttempts: 0,
+      lockedUntil: null,
+    },
     create: {
       email: "admin@test.no",
       name: "Admin Testesen",
       password: hashedPassword,
+      emailVerified: new Date(),
       tenants: {
         create: {
           tenantId: tenant.id,
@@ -98,6 +105,7 @@ async function main() {
       email: "hms@test.no",
       name: "HMS-ansvarlig Hansen",
       password: hmsPassword,
+      emailVerified: new Date(),
       tenants: {
         create: {
           tenantId: tenant.id,
@@ -119,6 +127,7 @@ async function main() {
       email: "leder@test.no",
       name: "Leder Larsen",
       password: leaderPassword,
+      emailVerified: new Date(),
       tenants: {
         create: {
           tenantId: tenant.id,
@@ -140,6 +149,7 @@ async function main() {
       email: "vern@test.no",
       name: "Verneombud Viken",
       password: vernPassword,
+      emailVerified: new Date(),
       tenants: {
         create: {
           tenantId: tenant.id,
@@ -161,6 +171,7 @@ async function main() {
       email: "ansatt@test.no",
       name: "Ansatt Olsen",
       password: employeePassword,
+      emailVerified: new Date(),
       tenants: {
         create: {
           tenantId: tenant.id,
@@ -182,6 +193,7 @@ async function main() {
       email: "bht@test.no",
       name: "BHT Bruker",
       password: bhtPassword,
+      emailVerified: new Date(),
       tenants: {
         create: {
           tenantId: tenant.id,
@@ -203,6 +215,7 @@ async function main() {
       email: "revisor@test.no",
       name: "Revisor Revidersen",
       password: auditorPassword,
+      emailVerified: new Date(),
       tenants: {
         create: {
           tenantId: tenant.id,

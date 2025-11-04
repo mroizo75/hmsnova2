@@ -3,6 +3,7 @@
 import { Document } from "@prisma/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -11,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { FileText, Download, CheckCircle, Trash2, Upload } from "lucide-react";
+import { FileText, Download, CheckCircle, Trash2, Upload, Calendar } from "lucide-react";
 import Link from "next/link";
 import { deleteDocument, getDocumentDownloadUrl, approveDocument } from "@/server/actions/document.actions";
 import { useRouter } from "next/navigation";
@@ -135,8 +136,10 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
   }
 
   return (
-    <div className="rounded-lg border">
-      <Table>
+    <>
+      {/* Desktop - Tabell */}
+      <div className="hidden md:block rounded-lg border">
+        <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Tittel</TableHead>
@@ -231,6 +234,88 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
           ))}
         </TableBody>
       </Table>
-    </div>
+      </div>
+
+      {/* Mobile - Kort */}
+      <div className="md:hidden space-y-3">
+        {documents.map((doc) => (
+          <Card key={doc.id}>
+            <CardContent className="p-4">
+              <div className="space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start gap-2 flex-1 min-w-0">
+                    <FileText className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <h3 className="font-medium line-clamp-2">{doc.title}</h3>
+                      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                        <span>v{doc.version}</span>
+                        <span>•</span>
+                        <span>{new Date(doc.createdAt).toLocaleDateString("no-NO")}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <Badge variant={statusVariants[doc.status]} className="shrink-0">
+                    {statusLabels[doc.status]}
+                  </Badge>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline">{kindLabels[doc.kind]}</Badge>
+                  {doc.approvedAt && (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      Godkjent {new Date(doc.approvedAt).toLocaleDateString("no-NO")}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-2 pt-2 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDownload(doc.id)}
+                    className="flex-1"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Last ned
+                  </Button>
+                  
+                  {doc.status === "DRAFT" && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => handleApprove(doc.id, doc.title)}
+                      disabled={loading === doc.id}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Godkjenn
+                    </Button>
+                  )}
+
+                  {doc.status === "APPROVED" && (
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/dashboard/documents/${doc.id}/new-version`}>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Ny versjon
+                      </Link>
+                    </Button>
+                  )}
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(doc.id, doc.title)}
+                    disabled={doc.kind === "LAW" || loading === doc.id}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </>
   );
 }

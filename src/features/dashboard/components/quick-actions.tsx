@@ -111,19 +111,19 @@ export function QuickActions({ permissions, userRole }: QuickActionsProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-2 md:grid-cols-2">
-          {availableActions.map((action) => {
+        <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
+          {availableActions.slice(0, 6).map((action) => {
             const Icon = action.icon;
             return (
               <Link key={action.href} href={action.href}>
-                <Button variant="outline" className="w-full justify-start h-auto py-3">
-                  <Icon className="mr-2 h-4 w-4" />
-                  <div className="text-left">
-                    <div className="font-medium">{action.label}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {action.description}
-                    </div>
-                  </div>
+                <Button 
+                  variant="outline" 
+                  className="w-full h-24 flex-col gap-2 hover:bg-primary hover:text-primary-foreground transition-colors"
+                >
+                  <Icon className="h-5 w-5" />
+                  <span className="text-xs font-medium text-center leading-tight">
+                    {action.label}
+                  </span>
                 </Button>
               </Link>
             );

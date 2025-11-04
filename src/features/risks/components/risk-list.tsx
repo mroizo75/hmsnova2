@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -82,8 +83,10 @@ export function RiskList({ risks }: RiskListProps) {
   }
 
   return (
-    <div className="rounded-lg border">
-      <Table>
+    <>
+      {/* Desktop - Tabell */}
+      <div className="hidden md:block rounded-lg border">
+        <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Risiko</TableHead>
@@ -165,7 +168,73 @@ export function RiskList({ risks }: RiskListProps) {
           })}
         </TableBody>
       </Table>
-    </div>
+      </div>
+
+      {/* Mobile - Kort */}
+      <div className="md:hidden space-y-3">
+        {risks.map((risk) => {
+          const { level, bgColor, textColor } = calculateRiskScore(risk.likelihood, risk.consequence);
+          const completedMeasures = risk.measures.filter(m => m.status === "DONE").length;
+          const totalMeasures = risk.measures.length;
+
+          return (
+            <Card key={risk.id}>
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium line-clamp-1">{risk.title}</h3>
+                      <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                        {risk.context}
+                      </p>
+                    </div>
+                    <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-muted font-bold shrink-0">
+                      {risk.score}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <Badge className={`${bgColor} ${textColor}`}>{level}</Badge>
+                    <Badge variant={statusVariants[risk.status]}>
+                      {statusLabels[risk.status]}
+                    </Badge>
+                    <div className="text-xs text-muted-foreground">
+                      S:{risk.likelihood} · K:{risk.consequence}
+                    </div>
+                  </div>
+
+                  {totalMeasures > 0 && (
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span>
+                        Tiltak: {completedMeasures}/{totalMeasures} fullført
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 pt-2 border-t">
+                    <Button variant="outline" size="sm" className="flex-1" asChild>
+                      <Link href={`/dashboard/risks/${risk.id}`}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Rediger
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(risk.id, risk.title)}
+                      disabled={loading === risk.id}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </>
   );
 }
 

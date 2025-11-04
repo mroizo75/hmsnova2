@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -13,7 +14,7 @@ import {
   Target,
 } from "lucide-react";
 import Link from "next/link";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { nb } from "date-fns/locale";
 
 interface ActivityItem {
@@ -31,6 +32,12 @@ interface ActivityFeedProps {
 }
 
 export function ActivityFeed({ activities }: ActivityFeedProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const getIcon = (type: string) => {
     switch (type) {
       case "document":
@@ -206,10 +213,14 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
                       </p>
                     )}
                     <p className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(activity.timestamp), {
-                        addSuffix: true,
-                        locale: nb,
-                      })}
+                      {mounted
+                        ? formatDistanceToNow(new Date(activity.timestamp), {
+                            addSuffix: true,
+                            locale: nb,
+                          })
+                        : format(new Date(activity.timestamp), "d. MMM yyyy HH:mm", {
+                            locale: nb,
+                          })}
                     </p>
                   </div>
                 </div>

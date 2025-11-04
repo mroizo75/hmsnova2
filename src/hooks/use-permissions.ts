@@ -27,6 +27,7 @@ export function usePermissions() {
         forms: false,
         risks: false,
         incidents: false,
+        inspections: false,
         chemicals: false,
         training: false,
         audits: false,

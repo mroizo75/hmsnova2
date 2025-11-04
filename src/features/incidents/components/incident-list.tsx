@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -12,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Eye, Trash2 } from "lucide-react";
+import { Eye, Trash2, Calendar } from "lucide-react";
 import Link from "next/link";
 import { deleteIncident } from "@/server/actions/incident.actions";
 import {
@@ -75,8 +76,10 @@ export function IncidentList({ incidents }: IncidentListProps) {
   }
 
   return (
-    <div className="rounded-lg border">
-      <Table>
+    <>
+      {/* Desktop - Tabell */}
+      <div className="hidden md:block rounded-lg border">
+        <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Avvik</TableHead>
@@ -153,7 +156,75 @@ export function IncidentList({ incidents }: IncidentListProps) {
           })}
         </TableBody>
       </Table>
-    </div>
+      </div>
+
+      {/* Mobile - Kort */}
+      <div className="md:hidden space-y-3">
+        {incidents.map((incident) => {
+          const typeLabel = getIncidentTypeLabel(incident.type);
+          const typeColor = getIncidentTypeColor(incident.type);
+          const { label: severityLabel, bgColor: severityColor, textColor: severityTextColor } = getSeverityInfo(incident.severity);
+          const statusLabel = getIncidentStatusLabel(incident.status);
+          const statusColor = getIncidentStatusColor(incident.status);
+          const completedMeasures = incident.measures.filter(m => m.status === "DONE").length;
+          const totalMeasures = incident.measures.length;
+
+          return (
+            <Card key={incident.id}>
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium line-clamp-1">{incident.title}</h3>
+                      <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                        {incident.description}
+                      </p>
+                    </div>
+                    <Badge className={`${severityColor} ${severityTextColor} shrink-0`}>
+                      {incident.severity}
+                    </Badge>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <Badge className={typeColor}>{typeLabel}</Badge>
+                    <Badge className={statusColor}>{statusLabel}</Badge>
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      {formatDate(incident.occurredAt)}
+                    </div>
+                    {totalMeasures > 0 && (
+                      <span>
+                        Tiltak: {completedMeasures}/{totalMeasures}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2 pt-2 border-t">
+                    <Button variant="outline" size="sm" className="flex-1" asChild>
+                      <Link href={`/dashboard/incidents/${incident.id}`}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        Se detaljer
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(incident.id, incident.title)}
+                      disabled={loading === incident.id}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </>
   );
 }
 

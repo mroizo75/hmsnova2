@@ -60,6 +60,12 @@ export interface RolePermissions {
   canConductAudits: boolean;
   canCloseAudits: boolean;
   
+  // Inspeksjoner/Vernerunde
+  canReadInspections: boolean;
+  canCreateInspections: boolean;
+  canConductInspections: boolean;
+  canCloseInspections: boolean;
+  
   // Mål & KPIer
   canReadGoals: boolean;
   canCreateGoals: boolean;
@@ -122,6 +128,10 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateAudits: true,
     canConductAudits: true,
     canCloseAudits: true,
+    canReadInspections: true,
+    canCreateInspections: true,
+    canConductInspections: true,
+    canCloseInspections: true,
     canReadGoals: true,
     canCreateGoals: true,
     canUpdateGoals: true,
@@ -173,6 +183,10 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateAudits: true,
     canConductAudits: true,
     canCloseAudits: true,
+    canReadInspections: true,
+    canCreateInspections: true,
+    canConductInspections: true,
+    canCloseInspections: true,
     canReadGoals: true,
     canCreateGoals: true,
     canUpdateGoals: true,
@@ -224,6 +238,10 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateAudits: false,
     canConductAudits: false,
     canCloseAudits: false,
+    canReadInspections: true,
+    canCreateInspections: true,
+    canConductInspections: true,
+    canCloseInspections: false,
     canReadGoals: true,
     canCreateGoals: true,
     canUpdateGoals: true,
@@ -275,6 +293,10 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateAudits: false,
     canConductAudits: false,
     canCloseAudits: false,
+    canReadInspections: true,
+    canCreateInspections: true,
+    canConductInspections: true,
+    canCloseInspections: false,
     canReadGoals: true,
     canCreateGoals: false,
     canUpdateGoals: false,
@@ -326,6 +348,10 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateAudits: false,
     canConductAudits: false,
     canCloseAudits: false,
+    canReadInspections: false,
+    canCreateInspections: false,
+    canConductInspections: false,
+    canCloseInspections: false,
     canReadGoals: false,
     canCreateGoals: false,
     canUpdateGoals: false,
@@ -377,6 +403,10 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateAudits: false,
     canConductAudits: false,
     canCloseAudits: false,
+    canReadInspections: true,
+    canCreateInspections: false,
+    canConductInspections: false,
+    canCloseInspections: false,
     canReadGoals: true,
     canCreateGoals: false,
     canUpdateGoals: false,
@@ -428,6 +458,10 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateAudits: false,
     canConductAudits: false,
     canCloseAudits: false,
+    canReadInspections: true,
+    canCreateInspections: false,
+    canConductInspections: false,
+    canCloseInspections: false,
     canReadGoals: true,
     canCreateGoals: false,
     canUpdateGoals: false,
@@ -472,6 +506,7 @@ export function getVisibleNavItems(role: Role) {
     forms: perms.canReadForms,
     risks: perms.canReadRisks,
     incidents: perms.canReadIncidents,
+    inspections: perms.canReadInspections,
     chemicals: perms.canReadChemicals,
     training: perms.canReadOwnTraining || perms.canReadAllTraining,
     audits: perms.canReadAudits,

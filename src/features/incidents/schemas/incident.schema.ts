@@ -100,35 +100,35 @@ export function getSeverityInfo(severity: number): { label: string; color: strin
       label: "Kritisk",
       color: "text-red-900",
       bgColor: "bg-red-100 border-red-300",
-      textColor: "text-white",
+      textColor: "text-red-900",
     };
   } else if (severity >= 4) {
     return {
       label: "Alvorlig",
       color: "text-orange-900",
       bgColor: "bg-orange-100 border-orange-300",
-      textColor: "text-white",
+      textColor: "text-orange-900",
     };
   } else if (severity >= 3) {
     return {
       label: "Moderat",
       color: "text-yellow-900",
       bgColor: "bg-yellow-100 border-yellow-300",
-      textColor: "text-black", // Sort tekst på gul bakgrunn
+      textColor: "text-yellow-900",
     };
   } else if (severity >= 2) {
     return {
       label: "Mindre",
       color: "text-blue-900",
       bgColor: "bg-blue-100 border-blue-300",
-      textColor: "text-white",
+      textColor: "text-blue-900",
     };
   } else {
     return {
       label: "Ubetydelig",
       color: "text-gray-900",
       bgColor: "bg-gray-100 border-gray-300",
-      textColor: "text-black",
+      textColor: "text-gray-900",
     };
   }
 }

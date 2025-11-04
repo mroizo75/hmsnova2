@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Trash2, Eye, Download, CheckCircle, Search, Filter, FileText } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { deleteChemical, downloadSDS, verifyChemical } from "@/server/actions/chemical.actions";
 import { useToast } from "@/hooks/use-toast";
 import type { Chemical } from "@prisma/client";
@@ -191,7 +192,8 @@ export function ChemicalList({ chemicals }: ChemicalListProps) {
               <TableHead>Produkt</TableHead>
               <TableHead>Leverandør</TableHead>
               <TableHead>CAS-nummer</TableHead>
-              <TableHead>Fareklasse</TableHead>
+              <TableHead>Faresymboler</TableHead>
+              <TableHead>PPE-krav</TableHead>
               <TableHead>Datablad</TableHead>
               <TableHead>Neste revisjon</TableHead>
               <TableHead>Status</TableHead>
@@ -201,17 +203,68 @@ export function ChemicalList({ chemicals }: ChemicalListProps) {
           <TableBody>
             {filteredChemicals.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground">
+                <TableCell colSpan={9} className="text-center text-muted-foreground">
                   Ingen kjemikalier funnet
                 </TableCell>
               </TableRow>
             ) : (
-              filteredChemicals.map((chemical) => (
+              filteredChemicals.map((chemical) => {
+                const pictograms = chemical.warningPictograms
+                  ? (() => { try { return JSON.parse(chemical.warningPictograms); } catch { return []; } })()
+                  : [];
+                const ppeList = chemical.requiredPPE
+                  ? (() => { try { return JSON.parse(chemical.requiredPPE); } catch { return []; } })()
+                  : [];
+
+                return (
                 <TableRow key={chemical.id}>
                   <TableCell className="font-medium">{chemical.productName}</TableCell>
                   <TableCell>{chemical.supplier || "-"}</TableCell>
                   <TableCell>{chemical.casNumber || "-"}</TableCell>
-                  <TableCell>{chemical.hazardClass || "-"}</TableCell>
+                  <TableCell>
+                    {pictograms.length > 0 ? (
+                      <div className="flex gap-1">
+                        {pictograms.slice(0, 3).map((file: string, idx: number) => (
+                          <div key={idx} className="relative w-8 h-8 border border-orange-200 rounded p-0.5">
+                            <Image
+                              src={`/faremerker/${file}`}
+                              alt="Faresymbol"
+                              width={32}
+                              height={32}
+                              className="object-contain"
+                            />
+                          </div>
+                        ))}
+                        {pictograms.length > 3 && (
+                          <span className="text-xs text-muted-foreground self-center">+{pictograms.length - 3}</span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {ppeList.length > 0 ? (
+                      <div className="flex gap-1">
+                        {ppeList.slice(0, 3).map((file: string, idx: number) => (
+                          <div key={idx} className="relative w-8 h-8 border border-blue-200 rounded p-0.5 bg-blue-50">
+                            <Image
+                              src={`/ppe/${file}`}
+                              alt="PPE"
+                              width={32}
+                              height={32}
+                              className="object-contain"
+                            />
+                          </div>
+                        ))}
+                        {ppeList.length > 3 && (
+                          <span className="text-xs text-muted-foreground self-center">+{ppeList.length - 3}</span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">-</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     {chemical.sdsKey ? (
                       <Button
@@ -267,7 +320,8 @@ export function ChemicalList({ chemicals }: ChemicalListProps) {
                     </Button>
                   </TableCell>
                 </TableRow>
-              ))
+              );
+              })
             )}
           </TableBody>
         </Table>

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { DashboardNav } from "@/components/dashboard-nav";
+import { MobileNav } from "@/components/mobile-nav";
 import { Toaster } from "@/components/ui/toaster";
 import { SessionUser } from "@/types";
 
@@ -28,9 +29,10 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex flex-col lg:flex-row min-h-screen">
+      <MobileNav />
       <DashboardNav />
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-4 lg:p-8">
         {children}
       </main>
       <Toaster />

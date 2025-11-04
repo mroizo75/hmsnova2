@@ -43,22 +43,22 @@ export function calculateRiskScore(likelihood: number, consequence: number) {
     level = "CRITICAL";
     color = "text-red-900";
     bgColor = "bg-red-100 border-red-300";
-    textColor = "text-white";
+    textColor = "text-red-900";
   } else if (score >= 12) {
     level = "HIGH";
     color = "text-orange-900";
     bgColor = "bg-orange-100 border-orange-300";
-    textColor = "text-white";
+    textColor = "text-orange-900";
   } else if (score >= 6) {
     level = "MEDIUM";
     color = "text-yellow-900";
     bgColor = "bg-yellow-100 border-yellow-300";
-    textColor = "text-black"; // Sort tekst på gul bakgrunn
+    textColor = "text-yellow-900";
   } else {
     level = "LOW";
     color = "text-green-900";
     bgColor = "bg-green-100 border-green-300";
-    textColor = "text-white";
+    textColor = "text-green-900";
   }
   
   return { score, level, color, bgColor, textColor };

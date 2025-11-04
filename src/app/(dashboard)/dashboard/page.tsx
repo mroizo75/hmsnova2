@@ -2,14 +2,12 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { StatsCard } from "@/features/dashboard/components/stats-card";
+import { HeroStats } from "@/features/dashboard/components/hero-stats";
+import { CriticalAlerts } from "@/features/dashboard/components/critical-alerts";
 import { ActivityFeed } from "@/features/dashboard/components/activity-feed";
-import { UpcomingDeadlines } from "@/features/dashboard/components/upcoming-deadlines";
 import { QuickActions } from "@/features/dashboard/components/quick-actions";
 import { MyTasks } from "@/features/dashboard/components/my-tasks";
-import { getPermissions, getRoleDisplayName, getRoleDescription } from "@/lib/permissions";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info } from "lucide-react";
+import { getPermissions } from "@/lib/permissions";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -88,23 +86,102 @@ export default async function DashboardPage() {
       : [],
   ]);
 
-  // Beregn statistikk
+  // Beregn kritisk statistikk
   const now = new Date();
-  const highRisks = risks.filter((r) => r.score && r.score >= 15);
-  const openIncidents = incidents.filter((i) => i.status !== "CLOSED");
-  const overdueMeasures = measures.filter(
-    (m) => m.status !== "DONE" && new Date(m.dueAt) < now
-  );
-  const openFindings = audits.reduce(
-    (sum, a) => sum + a.findings.filter((f) => f.status !== "VERIFIED").length,
-    0
-  );
-  const expiredTrainings = trainings.filter(
-    (t) => t.validUntil && new Date(t.validUntil) < now
-  );
-  const activeGoals = goals.filter((g) => g.status === "ACTIVE");
+  const sevenDaysFromNow = new Date();
+  sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
 
-  // Bygg aktivitetsfeed (siste 10)
+  const criticalRisks = risks.filter((r) => r.score && r.score >= 15);
+  const myOverdueTasks = measures.filter(
+    (m) => m.status !== "DONE" && m.responsibleId === user.id && new Date(m.dueAt) < now
+  );
+  const myTasksThisWeek = measures.filter(
+    (m) =>
+      m.status !== "DONE" &&
+      m.responsibleId === user.id &&
+      new Date(m.dueAt) >= now &&
+      new Date(m.dueAt) <= sevenDaysFromNow
+  );
+  const openIncidents = incidents.filter((i) => i.status === "OPEN" || i.status === "INVESTIGATING");
+
+  // Bygg kritiske varsler
+  const alerts: Array<{
+    id: string;
+    title: string;
+    type: "overdue" | "upcoming" | "critical";
+    link: string;
+    date?: Date;
+    category: string;
+  }> = [];
+
+  // Forfalte tiltak
+  measures
+    .filter((m) => m.status !== "DONE" && new Date(m.dueAt) < now)
+    .slice(0, 3)
+    .forEach((m) => {
+      alerts.push({
+        id: m.id,
+        title: m.title,
+        type: "overdue" as const,
+        link: `/dashboard/actions`,
+        date: m.dueAt,
+        category: "Tiltak",
+      });
+    });
+
+  // Kritiske risikoer
+  criticalRisks.slice(0, 2).forEach((r) => {
+    alerts.push({
+      id: r.id,
+      title: r.title,
+      type: "critical" as const,
+      link: `/dashboard/risks/${r.id}`,
+      category: "Risiko",
+    });
+  });
+
+  // Utgått opplæring
+  trainings
+    .filter((t) => t.validUntil && new Date(t.validUntil) < now && !t.completedAt)
+    .slice(0, 2)
+    .forEach((t) => {
+      alerts.push({
+        id: t.id,
+        title: t.title,
+        type: "overdue" as const,
+        link: `/dashboard/training/${t.id}`,
+        date: t.validUntil!,
+        category: "Opplæring",
+      });
+    });
+
+  // Kommende revisjoner (neste 7 dager)
+  audits
+    .filter(
+      (a) =>
+        a.status !== "COMPLETED" &&
+        new Date(a.scheduledDate) >= now &&
+        new Date(a.scheduledDate) <= sevenDaysFromNow
+    )
+    .slice(0, 2)
+    .forEach((a) => {
+      alerts.push({
+        id: a.id,
+        title: a.title,
+        type: "upcoming" as const,
+        link: `/dashboard/audits/${a.id}`,
+        date: a.scheduledDate,
+        category: "Revisjon",
+      });
+    });
+
+  // Sorter: Kritiske først, så forfalte, så kommende
+  const sortedAlerts = alerts.sort((a, b) => {
+    const priority = { critical: 0, overdue: 1, upcoming: 2 };
+    return priority[a.type] - priority[b.type];
+  });
+
+  // Bygg aktivitetsfeed (siste 5)
   const activities = [
     ...documents.map((d) => ({
       id: d.id,
@@ -164,274 +241,153 @@ export default async function DashboardPage() {
     })),
   ]
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-    .slice(0, 10);
+    .slice(0, 5);
 
-  // Bygg fristliste (neste 30 dager)
-  const thirtyDaysFromNow = new Date();
-  thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
-  const deadlines = [
-    ...measures
-      .filter((m) => m.status !== "DONE" && new Date(m.dueAt) <= thirtyDaysFromNow)
-      .map((m) => ({
-        id: m.id,
-        title: m.title,
-        dueDate: m.dueAt,
-        type: "action" as const,
-        link: `/dashboard/actions/${m.id}`,
-        isOverdue: new Date(m.dueAt) < now,
-      })),
-    ...audits
-      .filter(
-        (a) =>
-          a.status !== "COMPLETED" &&
-          new Date(a.scheduledDate) <= thirtyDaysFromNow
-      )
-      .map((a) => ({
-        id: a.id,
-        title: a.title,
-        dueDate: a.scheduledDate,
-        type: "audit" as const,
-        link: `/dashboard/audits/${a.id}`,
-        isOverdue: new Date(a.scheduledDate) < now,
-      })),
-    ...trainings
-      .filter((t) => t.validUntil && new Date(t.validUntil) <= thirtyDaysFromNow)
-      .map((t) => ({
-        id: t.id,
-        title: t.title,
-        dueDate: t.validUntil!,
-        type: "training" as const,
-        link: `/dashboard/training/${t.id}`,
-        isOverdue: new Date(t.validUntil!) < now,
-      })),
-    ...goals
-      .filter((g) => g.deadline && new Date(g.deadline) <= thirtyDaysFromNow)
-      .map((g) => ({
-        id: g.id,
-        title: g.title,
-        dueDate: g.deadline!,
-        type: "goal" as const,
-        link: `/dashboard/goals/${g.id}`,
-        isOverdue: new Date(g.deadline!) < now && g.status !== "ACHIEVED",
-      })),
-  ]
-    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
-    .slice(0, 10);
+  // Bygg mine oppgaver (maks 6 viktigste)
+  const myTasks: Array<{
+    id: string;
+    title: string;
+    type: "measure" | "training" | "audit";
+    dueDate: Date | undefined;
+    priority: "high" | "medium" | "low";
+    link: string;
+  }> = [];
 
-  // Bygg mine oppgaver (tiltak jeg er ansvarlig for, opplæring jeg må ta, dokumenter jeg må godkjenne)
-  const myTasks = [];
-
-  // Tiltak jeg er ansvarlig for (ikke fullført)
-  const myMeasures = await prisma.measure.findMany({
-    where: {
-      tenantId,
-      responsibleId: user.id,
-      status: { not: "DONE" },
-    },
-    orderBy: { dueAt: "asc" },
-    take: 10,
-  });
-
-  myTasks.push(
-    ...myMeasures.map((m) => ({
+  // Mine forfalte tiltak
+  myOverdueTasks.forEach((m) => {
+    myTasks.push({
       id: m.id,
       title: m.title,
       type: "measure" as const,
       dueDate: m.dueAt,
-      priority: (new Date(m.dueAt) < now
-        ? "high"
-        : new Date(m.dueAt) < thirtyDaysFromNow
-        ? "medium"
-        : "low") as "high" | "medium" | "low",
-      link: `/dashboard/actions/${m.id}`,
-    }))
-  );
-
-  // Opplæring jeg må fullføre (ikke fullført eller utgått)
-  const myPendingTrainings = await prisma.training.findMany({
-    where: {
-      tenantId,
-      userId: user.id,
-      OR: [
-        { completedAt: null },
-        { validUntil: { lte: thirtyDaysFromNow } },
-      ],
-    },
-    orderBy: { validUntil: "asc" },
-    take: 10,
+      priority: "high" as const,
+      link: `/dashboard/actions`,
+    });
   });
 
-  myTasks.push(
-    ...myPendingTrainings.map((t) => ({
-      id: t.id,
-      title: t.title,
-      type: "training" as const,
-      dueDate: t.validUntil || undefined,
-      priority: (t.validUntil && new Date(t.validUntil) < now
-        ? "high"
-        : t.validUntil && new Date(t.validUntil) < thirtyDaysFromNow
-        ? "medium"
-        : "low") as "high" | "medium" | "low",
-      link: `/dashboard/training/${t.id}`,
-    }))
-  );
+  // Mine tiltak denne uken
+  myTasksThisWeek.slice(0, 3).forEach((m) => {
+    myTasks.push({
+      id: m.id,
+      title: m.title,
+      type: "measure" as const,
+      dueDate: m.dueAt,
+      priority: "medium" as const,
+      link: `/dashboard/actions`,
+    });
+  });
 
-  // Revisjoner jeg er ansvarlig for (ikke fullført)
-  if (permissions.canReadAudits) {
-    const myAudits = await prisma.audit.findMany({
-      where: {
-        tenantId,
-        leadAuditorId: user.id,
-        status: { not: "COMPLETED" },
-        scheduledDate: { lte: thirtyDaysFromNow },
-      },
-      orderBy: { scheduledDate: "asc" },
-      take: 5,
+  // Min ventende opplæring
+  trainings
+    .filter((t) => t.userId === user.id && !t.completedAt)
+    .slice(0, 2)
+    .forEach((t) => {
+      const priority: "high" | "medium" | "low" = t.validUntil && new Date(t.validUntil) < now ? "high" : "low";
+      myTasks.push({
+        id: t.id,
+        title: t.title,
+        type: "training",
+        dueDate: t.validUntil || undefined,
+        priority,
+        link: `/dashboard/training/${t.id}`,
+      });
     });
 
-    myTasks.push(
-      ...myAudits.map((a) => ({
-        id: a.id,
-        title: a.title,
-        type: "audit" as const,
-        dueDate: a.scheduledDate,
-        priority: (new Date(a.scheduledDate) < now
-          ? "high"
-          : new Date(a.scheduledDate) < thirtyDaysFromNow
-          ? "medium"
-          : "low") as "high" | "medium" | "low",
-        link: `/dashboard/audits/${a.id}`,
-      }))
-    );
+  const sortedTasks = myTasks.slice(0, 6);
+
+  // Bygg Hero Stats
+  const heroStats = [];
+
+  // Kritiske risikoer (alltid vis hvis tilgang)
+  if (permissions.canReadRisks && criticalRisks.length > 0) {
+    heroStats.push({
+      title: "Kritiske risikoer",
+      value: criticalRisks.length,
+      subtitle: `Av ${risks.length} risikoer totalt`,
+      variant: "danger" as const,
+      icon: "risk" as const,
+    });
   }
 
-  // Sorter etter prioritet og dato
-  const sortedTasks = myTasks
-    .sort((a, b) => {
-      // Først prioritet
-      const priorityOrder = { high: 0, medium: 1, low: 2 };
-      if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
-        return priorityOrder[a.priority] - priorityOrder[b.priority];
-      }
-      // Så dato
-      if (a.dueDate && b.dueDate) {
-        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-      }
-      return 0;
-    })
-    .slice(0, 8);
+  // Mine forfalte oppgaver
+  if (myOverdueTasks.length > 0) {
+    heroStats.push({
+      title: "Forfalte oppgaver",
+      value: myOverdueTasks.length,
+      subtitle: "Krever handling nå",
+      variant: "danger" as const,
+      icon: "todo" as const,
+    });
+  }
+
+  // Mine oppgaver denne uken
+  const weekTaskVariant: "danger" | "warning" | "success" | "info" = myTasksThisWeek.length > 5 ? "warning" : "success";
+  heroStats.push({
+    title: "Oppgaver denne uken",
+    value: myTasksThisWeek.length,
+    subtitle: "Planlagt 7 dager frem",
+    variant: weekTaskVariant,
+    icon: "check" as const,
+  });
+
+  // Åpne hendelser (hvis tilgang)
+  if (permissions.canReadIncidents && openIncidents.length > 0) {
+    heroStats.push({
+      title: "Åpne hendelser",
+      value: openIncidents.length,
+      subtitle: "Må utredes",
+      variant: "warning" as const,
+      icon: "trend" as const,
+    });
+  }
+
+  // Hvis vi har mindre enn 3 stats, legg til HMS compliance eller annen relevant stat
+  if (heroStats.length < 3 && permissions.canViewAnalytics) {
+    const completedMeasures = measures.filter((m) => m.status === "DONE").length;
+    const totalMeasures = measures.length;
+    const complianceRate = totalMeasures > 0 ? Math.round((completedMeasures / totalMeasures) * 100) : 100;
+    const complianceVariant: "danger" | "warning" | "success" | "info" = 
+      complianceRate >= 80 ? "success" : complianceRate >= 60 ? "warning" : "danger";
+
+    heroStats.push({
+      title: "Tiltaksgjennomføring",
+      value: complianceRate,
+      subtitle: `${completedMeasures} av ${totalMeasures} fullført`,
+      variant: complianceVariant,
+      icon: "trend" as const,
+    });
+  }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">
+        <h1 className="text-3xl font-bold tracking-tight">
           Velkommen, {user.name || user.email}
         </h1>
         <p className="text-muted-foreground">
-          HMS Nova – Oversikt over ditt HMS/HSEQ-system
+          Din HMS-oversikt for i dag
         </p>
       </div>
 
-      {/* Role Info */}
-      {!permissions.canViewAnalytics && (
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertTitle>Din rolle: {getRoleDisplayName(userRole)}</AlertTitle>
-          <AlertDescription>{getRoleDescription(userRole)}</AlertDescription>
-        </Alert>
-      )}
+      {/* Hero Stats */}
+      {heroStats.length > 0 && <HeroStats stats={heroStats.slice(0, 4)} />}
 
-      {/* Stats Grid - vis kun det brukeren har tilgang til */}
-      {permissions.canViewAnalytics && (
-        <>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {permissions.canReadDocuments && (
-              <StatsCard
-                title="Dokumenter"
-                value={documents.length}
-                description={`${documents.filter((d) => d.status === "APPROVED").length} godkjente`}
-                icon="FileText"
-                variant="default"
-              />
-            )}
-            {permissions.canReadRisks && (
-              <StatsCard
-                title="Høyrisiko"
-                value={highRisks.length}
-                description={`Av ${risks.length} risikoer`}
-                icon="AlertTriangle"
-                variant={highRisks.length > 0 ? "danger" : "success"}
-              />
-            )}
-            {permissions.canReadIncidents && (
-              <StatsCard
-                title={userRole === "ANSATT" ? "Mine hendelser" : "Åpne hendelser"}
-                value={openIncidents.length}
-                description={`${incidents.length} totalt`}
-                icon="AlertCircle"
-                variant={openIncidents.length > 5 ? "warning" : "success"}
-              />
-            )}
-            {permissions.canReadActions && (
-              <StatsCard
-                title={userRole === "ANSATT" ? "Mine tiltak" : "Forfalte tiltak"}
-                value={overdueMeasures.length}
-                description={`${measures.filter((m) => m.status === "DONE").length} fullført`}
-                icon="ListTodo"
-                variant={overdueMeasures.length > 0 ? "danger" : "success"}
-              />
-            )}
-          </div>
+      {/* Critical Alerts */}
+      {sortedAlerts.length > 0 && <CriticalAlerts alerts={sortedAlerts} />}
 
-          {/* Second Stats Row */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {permissions.canReadAudits && (
-              <StatsCard
-                title="Åpne revisjonsfunn"
-                value={openFindings}
-                description={`Fra ${audits.length} revisjoner`}
-                icon="ClipboardCheck"
-                variant={openFindings > 0 ? "warning" : "success"}
-              />
-            )}
-            {(permissions.canReadOwnTraining || permissions.canReadAllTraining) && (
-              <StatsCard
-                title={permissions.canReadAllTraining ? "Utgåtte kurs" : "Mine kurs"}
-                value={expiredTrainings.length}
-                description={`${trainings.length} opplæringer totalt`}
-                icon="GraduationCap"
-                variant={expiredTrainings.length > 0 ? "warning" : "success"}
-              />
-            )}
-            {permissions.canReadGoals && (
-              <StatsCard
-                title="Aktive mål"
-                value={activeGoals.length}
-                description={`${goals.filter((g) => g.status === "ACHIEVED").length} oppnådd`}
-                icon="Target"
-                variant="default"
-              />
-            )}
-          </div>
-        </>
-      )}
+      {/* Quick Actions */}
+      <QuickActions permissions={permissions} userRole={userRole} />
 
       {/* Main Grid */}
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Activity Feed - alle roller ser aktivitet */}
-        <ActivityFeed activities={activities} />
+        {/* Mine oppgaver */}
+        {sortedTasks.length > 0 && <MyTasks tasks={sortedTasks} />}
 
-        {/* Mine oppgaver - personlige oppgaver */}
-        <MyTasks tasks={sortedTasks} />
+        {/* Activity Feed */}
+        {activities.length > 0 && <ActivityFeed activities={activities} />}
       </div>
-
-      {/* Upcoming Deadlines - full bredde hvis det finnes frister */}
-      {deadlines.length > 0 && <UpcomingDeadlines deadlines={deadlines} />}
-
-      {/* Quick Actions - tilpass basert på tilganger */}
-      <QuickActions permissions={permissions} userRole={userRole} />
     </div>
   );
 }

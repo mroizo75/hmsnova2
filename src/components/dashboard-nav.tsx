@@ -20,6 +20,7 @@ import {
   LogOut,
   ClipboardList,
   Beaker,
+  ShieldCheck,
 } from "lucide-react";
 import { usePermissions } from "@/hooks/use-permissions";
 import { getRoleDisplayName } from "@/lib/permissions";
@@ -31,6 +32,7 @@ const navItems = [
   { href: "/dashboard/forms", label: "nav.forms", icon: ClipboardList, permission: "forms" as const },
   { href: "/dashboard/risks", label: "nav.risks", icon: AlertTriangle, permission: "risks" as const },
   { href: "/dashboard/incidents", label: "nav.incidents", icon: AlertCircle, permission: "incidents" as const },
+  { href: "/dashboard/inspections", label: "nav.inspections", icon: ShieldCheck, permission: "inspections" as const },
   { href: "/dashboard/chemicals", label: "nav.chemicals", icon: Beaker, permission: "chemicals" as const },
   { href: "/dashboard/training", label: "nav.training", icon: GraduationCap, permission: "training" as const },
   { href: "/dashboard/audits", label: "nav.audits", icon: ClipboardCheck, permission: "audits" as const },
@@ -49,7 +51,7 @@ export function DashboardNav() {
   const allowedNavItems = navItems.filter((item) => visibleNavItems[item.permission]);
 
   return (
-    <aside className="w-64 border-r bg-card">
+    <aside className="hidden lg:block w-64 border-r bg-card">
       <div className="flex h-full flex-col">
         <div className="border-b p-6">
           <Image src="/logo-nova.png" alt="HMS Nova" width={155} height={100} />
