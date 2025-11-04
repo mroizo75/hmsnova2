@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,10 +25,21 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
 
+interface TenantUser {
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+  };
+}
+
 export default function NewInspectionPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState<TenantUser[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -35,7 +47,33 @@ export default function NewInspectionPage() {
     type: "VERNERUNDE",
     scheduledDate: "",
     location: "",
+    conductedBy: "",
   });
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (!session?.user?.tenantId) return;
+
+      try {
+        const response = await fetch(`/api/tenants/${session.user.tenantId}/users`);
+        const data = await response.json();
+
+        if (response.ok && data.users) {
+          setUsers(data.users);
+          // Sett current user som default
+          if (session.user.id) {
+            setFormData((prev) => ({ ...prev, conductedBy: session.user.id || "" }));
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch users:", error);
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+
+    fetchUsers();
+  }, [session?.user?.tenantId, session?.user?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,6 +170,30 @@ export default function NewInspectionPage() {
                     <SelectItem value="SHA_PLAN">SHA-plan</SelectItem>
                     <SelectItem value="SIKKERHETSVANDRING">Sikkerhetsvandring</SelectItem>
                     <SelectItem value="ANDRE">Annet</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="conductedBy">
+                  Gjennomført av <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={formData.conductedBy}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, conductedBy: value })
+                  }
+                  disabled={loadingUsers}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={loadingUsers ? "Laster brukere..." : "Velg bruker"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map((u) => (
+                      <SelectItem key={u.user.id} value={u.user.id}>
+                        {u.user.name || u.user.email}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

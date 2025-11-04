@@ -49,3 +49,6 @@ next-env.d.ts
 
 # markdown documentation
 /markdown/
+
+# scripts (internal testing and utilities)
+/scripts/

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,10 +25,21 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
 
+interface TenantUser {
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+  };
+}
+
 export default function NewAuditPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState<TenantUser[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -37,7 +49,33 @@ export default function NewAuditPage() {
     scheduledDate: "",
     area: "",
     department: "",
+    leadAuditorId: "",
   });
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (!session?.user?.tenantId) return;
+
+      try {
+        const response = await fetch(`/api/tenants/${session.user.tenantId}/users`);
+        const data = await response.json();
+
+        if (response.ok && data.users) {
+          setUsers(data.users);
+          // Sett current user som default
+          if (session.user.id) {
+            setFormData((prev) => ({ ...prev, leadAuditorId: session.user.id || "" }));
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch users:", error);
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+
+    fetchUsers();
+  }, [session?.user?.tenantId, session?.user?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,6 +171,30 @@ export default function NewAuditPage() {
                     <SelectItem value="CERTIFICATION">Sertifisering</SelectItem>
                     <SelectItem value="SUPPLIER">Leverandørrevisjon</SelectItem>
                     <SelectItem value="FOLLOW_UP">Oppfølging</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="leadAuditorId">
+                  Hovedrevisor <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={formData.leadAuditorId}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, leadAuditorId: value })
+                  }
+                  disabled={loadingUsers}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={loadingUsers ? "Laster brukere..." : "Velg revisor"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map((u) => (
+                      <SelectItem key={u.user.id} value={u.user.id}>
+                        {u.user.name || u.user.email}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

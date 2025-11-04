@@ -16,9 +16,13 @@
     "forms": "Forms",
     "risks": "Risk Assessments",
     "incidents": "Incidents",
+    "inspections": "Inspections",
     "chemicals": "Chemical Registry",
     "training": "Training",
     "audits": "Audits",
+    "managementReviews": "Management Reviews",
+    "meetings": "Meetings (WEC/SRs)",
+    "whistleblowing": "Whistleblowing",
     "actions": "Actions",
     "goals": "Goals",
     "settings": "Settings"

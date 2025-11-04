@@ -30,11 +30,17 @@ import { validateOrgNumber } from "@/server/actions/brreg.actions";
 interface RegisterDialogProps {
   trigger?: React.ReactNode;
   children?: React.ReactNode;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function RegisterDialog({ trigger, children }: RegisterDialogProps) {
+export function RegisterDialog({ trigger, children, onOpenChange }: RegisterDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    onOpenChange?.(newOpen);
+  };
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isValidatingOrg, setIsValidatingOrg] = useState(false);
   const [orgValidated, setOrgValidated] = useState(false);
@@ -128,23 +134,23 @@ export function RegisterDialog({ trigger, children }: RegisterDialogProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {trigger || children}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] p-0 sm:max-w-[90vw] md:max-w-2xl">
-        <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6">
-          <DialogTitle className="text-xl sm:text-2xl">Registrer bedrift</DialogTitle>
-          <DialogDescription className="text-sm">
+      <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] p-0 overflow-hidden"  aria-describedby="register-description">
+        <DialogHeader className="px-3 sm:px-4 md:px-6 pt-3 sm:pt-4 md:pt-6 border-b pb-3 sm:pb-4">
+          <DialogTitle className="text-lg sm:text-xl md:text-2xl">Registrer bedrift</DialogTitle>
+          <DialogDescription id="register-description" className="text-xs sm:text-sm">
             Fyll ut skjemaet, så setter vi opp din konto innen 24 timer. 14 dagers gratis prøveperiode.
           </DialogDescription>
         </DialogHeader>
         
-        <ScrollArea className="max-h-[calc(90vh-120px)] px-4 sm:px-6 pb-4 sm:pb-6">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        <ScrollArea className="max-h-[calc(90vh-140px)] px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 md:pb-6">
+          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4 md:space-y-5">
             {/* Organisasjonsnummer - FØRST for Brreg-validering */}
-            <div className="space-y-2 px-1">
-              <Label htmlFor="orgNumber" className="text-sm font-medium">
+            <div className="space-y-2">
+              <Label htmlFor="orgNumber" className="text-xs sm:text-sm font-medium">
                 Organisasjonsnummer <span className="text-destructive">*</span>
               </Label>
               <div className="relative">
@@ -172,14 +178,14 @@ export function RegisterDialog({ trigger, children }: RegisterDialogProps) {
                   <CheckCircle2 className="absolute right-3 top-3 h-4 w-4 text-green-500" />
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">
                 Vi sjekker at bedriften er registrert i Brønnøysundregistrene
               </p>
             </div>
 
             {/* Bedriftsnavn - Auto-fylles fra Brreg */}
-            <div className="space-y-2 px-1">
-              <Label htmlFor="companyName" className="text-sm font-medium">
+            <div className="space-y-2">
+              <Label htmlFor="companyName" className="text-xs sm:text-sm font-medium">
                 Bedriftsnavn <span className="text-destructive">*</span>
               </Label>
               <div className="relative">
@@ -197,16 +203,16 @@ export function RegisterDialog({ trigger, children }: RegisterDialogProps) {
                 />
               </div>
               {orgValidated && formData.companyName && (
-                <p className="text-xs text-green-600 dark:text-green-500">
+                <p className="text-[10px] sm:text-xs text-green-600 dark:text-green-500">
                   ✓ Hentet fra Brønnøysundregistrene
                 </p>
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 px-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {/* Antall ansatte */}
               <div className="space-y-2">
-                <Label htmlFor="employeeCount" className="text-sm font-medium">
+                <Label htmlFor="employeeCount" className="text-xs sm:text-sm font-medium">
                   Antall ansatte <span className="text-destructive">*</span>
                 </Label>
                 <Select name="employeeCount" required>
@@ -223,7 +229,7 @@ export function RegisterDialog({ trigger, children }: RegisterDialogProps) {
 
               {/* Bransje */}
               <div className="space-y-2">
-                <Label htmlFor="industry" className="text-sm font-medium">
+                <Label htmlFor="industry" className="text-xs sm:text-sm font-medium">
                   Bransje <span className="text-destructive">*</span>
                 </Label>
                 <Select name="industry" required>
@@ -246,12 +252,12 @@ export function RegisterDialog({ trigger, children }: RegisterDialogProps) {
               </div>
             </div>
 
-            <div className="border-t pt-5 px-1">
-              <h3 className="font-semibold mb-4 text-sm">Kontaktperson</h3>
+            <div className="border-t pt-3 sm:pt-4 md:pt-5">
+              <h3 className="font-semibold mb-3 sm:mb-4 text-xs sm:text-sm">Kontaktperson</h3>
 
               {/* Kontaktperson navn */}
-              <div className="space-y-2 mb-4">
-                <Label htmlFor="contactPerson" className="text-sm font-medium">
+              <div className="space-y-2 mb-3 sm:mb-4">
+                <Label htmlFor="contactPerson" className="text-xs sm:text-sm font-medium">
                   Navn <span className="text-destructive">*</span>
                 </Label>
                 <div className="relative">
@@ -267,10 +273,10 @@ export function RegisterDialog({ trigger, children }: RegisterDialogProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 {/* E-post */}
                 <div className="space-y-2">
-                  <Label htmlFor="contactEmail" className="text-sm font-medium">
+                  <Label htmlFor="contactEmail" className="text-xs sm:text-sm font-medium">
                     E-post <span className="text-destructive">*</span>
                   </Label>
                   <div className="relative">
@@ -288,7 +294,7 @@ export function RegisterDialog({ trigger, children }: RegisterDialogProps) {
 
                 {/* Telefon */}
                 <div className="space-y-2">
-                  <Label htmlFor="contactPhone" className="text-sm font-medium">
+                  <Label htmlFor="contactPhone" className="text-xs sm:text-sm font-medium">
                     Telefon <span className="text-destructive">*</span>
                   </Label>
                   <div className="relative">
@@ -306,8 +312,8 @@ export function RegisterDialog({ trigger, children }: RegisterDialogProps) {
               </div>
             </div>
 
-            <div className="border-t pt-5 px-1">
-              <h3 className="font-semibold mb-4 text-sm">Fakturaadresse</h3>
+            <div className="border-t pt-3 sm:pt-4 md:pt-5">
+              <h3 className="font-semibold mb-3 sm:mb-4 text-xs sm:text-sm">Fakturaadresse</h3>
 
               {/* EHF Toggle */}
               <div className="flex items-center space-x-3 mb-4 p-3 sm:p-4 bg-muted/50 rounded-lg">

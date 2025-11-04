@@ -39,6 +39,12 @@ async function main() {
   await prisma.risk.deleteMany({ where: { tenantId: tenant.id } });
   await prisma.documentVersion.deleteMany({ where: { tenantId: tenant.id } });
   await prisma.document.deleteMany({ where: { tenantId: tenant.id } });
+  await prisma.whistleblowMessage.deleteMany({ where: { whistleblowing: { tenantId: tenant.id } } });
+  await prisma.whistleblowing.deleteMany({ where: { tenantId: tenant.id } });
+  await prisma.meetingDecision.deleteMany({ where: { meeting: { tenantId: tenant.id } } });
+  await prisma.meetingParticipant.deleteMany({ where: { meeting: { tenantId: tenant.id } } });
+  await prisma.meeting.deleteMany({ where: { tenantId: tenant.id } });
+  await prisma.managementReview.deleteMany({ where: { tenantId: tenant.id } });
 
   console.log("✅ Eksisterende data slettet\n");
 
@@ -46,8 +52,11 @@ async function main() {
   const adminUser = await prisma.user.findUnique({ where: { email: "admin@test.no" } });
   const hmsUser = await prisma.user.findUnique({ where: { email: "hms@test.no" } });
   const leaderUser = await prisma.user.findUnique({ where: { email: "leder@test.no" } });
+  const vernUser = await prisma.user.findUnique({ where: { email: "vern@test.no" } });
+  const employeeUser = await prisma.user.findUnique({ where: { email: "ansatt@test.no" } });
+  const auditorUser = await prisma.user.findUnique({ where: { email: "revisor@test.no" } });
 
-  if (!adminUser || !hmsUser || !leaderUser) {
+  if (!adminUser || !hmsUser || !leaderUser || !vernUser || !employeeUser || !auditorUser) {
     console.error("❌ Brukere ikke funnet!");
     process.exit(1);
   }
@@ -639,6 +648,379 @@ async function main() {
   console.log(`   ✅ ${additionalMeasures.length} tiltak opprettet`);
 
   // =====================================================================
+  // 13. LEDELSENS GJENNOMGANG
+  // =====================================================================
+  console.log("📊 Oppretter Ledelsens gjennomgang...");
+
+  const mgmtReview1 = await prisma.managementReview.create({
+    data: {
+      tenantId: tenant.id,
+      title: "Ledelsens gjennomgang Q4 2024",
+      period: "Q4 2024",
+      reviewDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
+      nextReviewDate: new Date(Date.now() + 76 * 24 * 60 * 60 * 1000),
+      conductedBy: adminUser.id,
+      participants: JSON.stringify([
+        { name: adminUser.name, role: "Administrerende direktør", email: adminUser.email },
+        { name: hmsUser.name, role: "HMS-ansvarlig", email: hmsUser.email },
+        { name: leaderUser.name, role: "Avdelingsleder", email: leaderUser.email },
+      ]),
+      hmsGoalsReview: "4 av 4 HMS-mål er på riktig spor. Sykefravær er redusert til 3,2%.",
+      incidentStatistics: "3 hendelser registrert i Q4. Alle er lukket og fulgt opp.",
+      riskReview: "Alle risikovurderinger er oppdaterte. 2 nye risikoer identifisert.",
+      auditResults: "Internrevisjon gjennomført med 2 mindre avvik. Begge er lukket.",
+      trainingStatus: "90% av påkrevd opplæring gjennomført. Mangler brannvern for 3 ansatte.",
+      resourcesReview: "Budsjett for 2025 godkjent. Behov for ekstra HMS-koordinator.",
+      externalChanges: "Nye krav til stoffkartotek fra 01.01.2025.",
+      conclusions: "Systemet fungerer tilfredsstillende. God fremgang på flere områder, men noen forbedringer er nødvendige. Høy rapporteringskultur. Lav fraværsrate. Gode resultater fra brannøvelse.",
+      decisions: "Godkjent budsjett for nytt verneutstyr (kr 50.000). Besluttet å gjennomføre ekstra HMS-opplæring for alle ledere. Oppfølging av åpne avvik innen 30 dager. Implementere digital løsning for stoffkartotek.",
+      actionPlan: JSON.stringify([
+        { title: "Bestille nytt verneutstyr", responsible: "HMS-ansvarlig", deadline: "2025-01-15" },
+        { title: "Planlegge HMS-kurs for ledere", responsible: "HR", deadline: "2025-02-01" },
+        { title: "Følge opp åpne avvik", responsible: "HMS-ansvarlig", deadline: "2025-01-10" },
+      ]),
+      notes: "Kvartalsvis gjennomgang av HMS og kvalitetssystemet. Forslag til forbedringer: digitalisering av prosesser, tverrfaglig samarbeid.",
+      status: "COMPLETED",
+      approvedBy: adminUser.id,
+      approvedAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  const mgmtReview2 = await prisma.managementReview.create({
+    data: {
+      tenantId: tenant.id,
+      title: "Ledelsens gjennomgang Q1 2025 (planlagt)",
+      period: "Q1 2025",
+      reviewDate: new Date(Date.now() + 76 * 24 * 60 * 60 * 1000),
+      nextReviewDate: new Date(Date.now() + 166 * 24 * 60 * 60 * 1000),
+      conductedBy: adminUser.id,
+      participants: JSON.stringify([
+        { name: adminUser.name, role: "Administrerende direktør", email: adminUser.email },
+        { name: hmsUser.name, role: "HMS-ansvarlig", email: hmsUser.email },
+        { name: leaderUser.name, role: "Avdelingsleder", email: leaderUser.email },
+      ]),
+      notes: "Neste kvartalsvise gjennomgang. Agenda: Oppfølging av tiltak fra Q4, analyse av sykefravær, resultater fra arbeidsmiljøundersøkelse, planlegging av revisjoner 2025.",
+      status: "PLANNED",
+    },
+  });
+
+  console.log(`   ✅ 2 ledelsens gjennomganger opprettet`);
+
+  // =====================================================================
+  // 14. AMU/VO MØTER
+  // =====================================================================
+  console.log("🤝 Oppretter AMU/VO møter...");
+
+  const meeting1 = await prisma.meeting.create({
+    data: {
+      tenantId: tenant.id,
+      title: "AMU-møte november 2024",
+      type: "AMU",
+      scheduledDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
+      location: "Møterom A - Hovedkontor",
+      organizer: adminUser.id,
+      agenda: "1. Gjennomgang av sykefravær oktober\n2. Status på HMS-hendelser\n3. Planlegging av kommende vernerunde\n4. Evaluering av brannøvelse\n5. Innkjøp av verneutstyr\n6. Eventuelt",
+      summary: "Møtet ble avholdt med alle tilstede. Sykefraværet har gått ned med 12% sammenlignet med samme periode i fjor.",
+      notes: "Alle HMS-hendelser er fulgt opp. Brannøvelsen ble vellykket gjennomført med 98% deltakelse. Besluttet å kjøpe inn nye ergonomiske stoler til kontorplassene. Neste møte planlagt 15. desember.",
+      status: "COMPLETED",
+      startedAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
+      completedAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000 + 90 * 60 * 1000), // 90 minutter senere
+      minuteTaker: hmsUser.id,
+    },
+  });
+
+  await prisma.meetingParticipant.createMany({
+    data: [
+      {
+        meetingId: meeting1.id,
+        userId: adminUser.id,
+        role: "CHAIR",
+        attended: true,
+      },
+      {
+        meetingId: meeting1.id,
+        userId: hmsUser.id,
+        role: "SECRETARY",
+        attended: true,
+      },
+      {
+        meetingId: meeting1.id,
+        userId: vernUser.id,
+        role: "MEMBER",
+        attended: true,
+      },
+      {
+        meetingId: meeting1.id,
+        userId: leaderUser.id,
+        role: "MEMBER",
+        attended: true,
+      },
+      {
+        meetingId: meeting1.id,
+        userId: employeeUser.id,
+        role: "MEMBER",
+        attended: false,
+        notes: "Meldt forfall - syk",
+      },
+    ],
+  });
+
+  const meeting1Decisions = await Promise.all([
+    prisma.meetingDecision.create({
+      data: {
+        meetingId: meeting1.id,
+        decisionNumber: "AMU-2024-11-01",
+        title: "Anskaffe nye ergonomiske kontorstoler",
+        description: "Vedtak: Anskaffe 15 nye ergonomiske kontorstoler innen 31. januar 2025 for å forbedre arbeidsergonomi.",
+        responsibleId: adminUser.id,
+        dueDate: new Date(Date.now() + 50 * 24 * 60 * 60 * 1000),
+        status: "PENDING",
+      },
+    }),
+    prisma.meetingDecision.create({
+      data: {
+        meetingId: meeting1.id,
+        decisionNumber: "AMU-2024-11-02",
+        title: "Gjennomføre vernerunde i uke 50",
+        description: "Vedtak: Gjennomføre ny vernerunde i uke 50 med fokus på produksjonsområdet.",
+        responsibleId: vernUser.id,
+        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        status: "IN_PROGRESS",
+      },
+    }),
+    prisma.meetingDecision.create({
+      data: {
+        meetingId: meeting1.id,
+        decisionNumber: "AMU-2024-11-03",
+        title: "Oppdatere risikovurdering for ergonomi",
+        description: "Vedtak: Oppdatere risikovurdering for ergonomi på alle kontorarbeidsplasser basert på ny forskning.",
+        responsibleId: hmsUser.id,
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        status: "PENDING",
+      },
+    }),
+  ]);
+
+  const meeting2 = await prisma.meeting.create({
+    data: {
+      tenantId: tenant.id,
+      title: "VO-møte desember 2024 (planlagt)",
+      type: "VO",
+      scheduledDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+      location: "Møterom B",
+      organizer: leaderUser.id,
+      agenda: "1. Oppfølging av tiltak fra forrige møte\n2. Innmeldte HMS-bekymringer\n3. Status verneutstyr\n4. Planlegging vernerunde januar",
+      notes: "Møte med verneombud for oppfølging av HMS-tiltak",
+      status: "PLANNED",
+    },
+  });
+
+  await prisma.meetingParticipant.createMany({
+    data: [
+      {
+        meetingId: meeting2.id,
+        userId: leaderUser.id,
+        role: "CHAIR",
+        attended: false,
+      },
+      {
+        meetingId: meeting2.id,
+        userId: hmsUser.id,
+        role: "MEMBER",
+        attended: false,
+      },
+      {
+        meetingId: meeting2.id,
+        userId: vernUser.id,
+        role: "MEMBER",
+        attended: false,
+      },
+    ],
+  });
+
+  console.log(`   ✅ 2 AMU/VO møter opprettet med ${meeting1Decisions.length} beslutninger`);
+
+  // =====================================================================
+  // 15. ANONYM VARSLING
+  // =====================================================================
+  console.log("🔒 Oppretter varslinger...");
+
+  const whistleblow1 = await prisma.whistleblowing.create({
+    data: {
+      tenantId: tenant.id,
+      caseNumber: "VAR-2024-001",
+      accessCode: "ABC123DEF456GHIJ",
+      category: "WORK_ENVIRONMENT",
+      title: "Bekymring for arbeidsmiljø i produksjon",
+      description: "Det er observert at sikkerhetsprosedyrer ikke alltid følges i produksjonsområdet, spesielt ved skiftebytte. Flere ansatte jobber uten påkrevd verneutstyr (vernebriller og hørselsvern). Dette skjer hovedsakelig på kveldsskift.",
+      occurredAt: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000),
+      location: "Produksjonshall B - Maskinområde",
+      involvedPersons: "3-4 personer observert, navn ukjent",
+      witnesses: "Andre på kveldsskift har sett det samme",
+      isAnonymous: true,
+      status: "CLOSED",
+      severity: "MEDIUM",
+      handledBy: hmsUser.id,
+      assignedTo: hmsUser.id,
+      investigatedAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
+      closedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+      outcome: "Gjennomført HMS-opplæring for alle på kveldsskift. Installert skilting ved alle maskiner. Ekstra kontroller de neste 4 ukene. Ingen nye avvik observert.",
+      closedReason: "RESOLVED",
+    },
+  });
+
+  await prisma.whistleblowMessage.createMany({
+    data: [
+      {
+        whistleblowingId: whistleblow1.id,
+        sender: "SYSTEM",
+        message: `Varsling mottatt med saksnummer ${whistleblow1.caseNumber}. Bruk tilgangskoden din for å følge opp saken.`,
+        createdAt: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000),
+      },
+      {
+        whistleblowingId: whistleblow1.id,
+        sender: "HANDLER",
+        message: "Takk for din varsling. Vi tar dette på alvor og har startet undersøkelse. Du vil få oppdateringer her i løpet av de neste 7 dagene.",
+        createdAt: new Date(Date.now() - 24 * 24 * 60 * 60 * 1000),
+      },
+      {
+        whistleblowingId: whistleblow1.id,
+        sender: "REPORTER",
+        message: "Takk for rask tilbakemelding. Har dere fått gjort noe med dette? Situasjonen er fortsatt uendret per i dag.",
+        createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
+      },
+      {
+        whistleblowingId: whistleblow1.id,
+        sender: "HANDLER",
+        message: "Vi har gjennomført observasjoner og bekrefter dine funn. HMS-opplæring er planlagt for alle på kveldsskift neste uke. Vi vil også installere ekstra sikkerhetsskilting.",
+        createdAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000),
+      },
+      {
+        whistleblowingId: whistleblow1.id,
+        sender: "HANDLER",
+        message: "Oppdatering: HMS-opplæring gjennomført. Alle ansatte har signert på at de har forstått prosedyrene. Skilting er installert. Vi gjennomfører ekstra kontroller de neste ukene.",
+        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+      },
+      {
+        whistleblowingId: whistleblow1.id,
+        sender: "REPORTER",
+        message: "Tusen takk! Jeg har sett at det er satt opp ny skilting og situasjonen er mye bedre nå. Alle bruker verneutstyr.",
+        createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000),
+      },
+      {
+        whistleblowingId: whistleblow1.id,
+        sender: "HANDLER",
+        message: "Flott å høre! Vi lukker denne saken nå, men du kan alltid sende inn en ny varsling hvis noe skulle dukke opp. Takk for at du brydde deg om sikkerheten!",
+        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+      },
+    ],
+  });
+
+  const whistleblow2 = await prisma.whistleblowing.create({
+    data: {
+      tenantId: tenant.id,
+      caseNumber: "VAR-2024-002",
+      accessCode: "XYZ789KLM012NOPQ",
+      category: "HARASSMENT",
+      title: "Upassende kommentarer fra kollega",
+      description: "Jeg har over lengre tid opplevd upassende kommentarer av seksuell karakter fra en mannlig kollega. Dette skjer ofte i pauserommet når vi er alene. Jeg føler meg utrygg på jobb.",
+      occurredAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+      location: "Pauserom, 2. etasje",
+      involvedPersons: "1 mannlig kollega, ca. 40 år",
+      reporterName: "Ønsker å være anonym",
+      isAnonymous: true,
+      status: "UNDER_INVESTIGATION",
+      severity: "HIGH",
+      handledBy: adminUser.id,
+      assignedTo: adminUser.id,
+      acknowledgedAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000),
+      investigatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  await prisma.whistleblowMessage.createMany({
+    data: [
+      {
+        whistleblowingId: whistleblow2.id,
+        sender: "SYSTEM",
+        message: `Varsling mottatt med saksnummer ${whistleblow2.caseNumber}. Bruk tilgangskoden din for å følge opp saken.`,
+        createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+      },
+      {
+        whistleblowingId: whistleblow2.id,
+        sender: "HANDLER",
+        message: "Takk for at du har meldt fra om dette. Vi tar saken svært alvorlig. En uavhengig person vil gjennomføre diskret undersøkelse. Du vil få tilbakemelding innen 5 virkedager. Du er beskyttet mot gjengjeldelse i henhold til arbeidsmiljøloven § 2A.",
+        createdAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000),
+      },
+      {
+        whistleblowingId: whistleblow2.id,
+        sender: "HANDLER",
+        message: "Oppdatering: Vi har startet undersøkelse. Vi trenger litt mer informasjon for å kunne følge opp saken best mulig. Kan du fortelle oss omtrent når disse hendelsene startet, og hvor ofte de forekommer?",
+        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+      },
+      {
+        whistleblowingId: whistleblow2.id,
+        sender: "REPORTER",
+        message: "Dette har pågått i omtrent 3 måneder. Det skjer kanskje 2-3 ganger per uke, oftest på tirsdager og torsdager når det er færre folk på jobb.",
+        createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+      },
+      {
+        whistleblowingId: whistleblow2.id,
+        sender: "HANDLER",
+        message: "Takk for tilleggsinformasjonen. Dette hjelper oss veldig. Vi fortsetter undersøkelsen og vil komme tilbake til deg snart med oppdatering.",
+        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      },
+    ],
+  });
+
+  const whistleblow3 = await prisma.whistleblowing.create({
+    data: {
+      tenantId: tenant.id,
+      caseNumber: "VAR-2024-003",
+      accessCode: "PQR456STU789VWXY",
+      category: "SAFETY",
+      title: "Defekt sikkerhetsutstyr på maskin 7",
+      description: "Nødstopp-knappen på maskin 7 fungerer ikke. Jeg har testet den flere ganger og den reagerer ikke. Dette er en alvorlig sikkerhetsrisiko.",
+      occurredAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      location: "Produksjonshall A, maskin 7",
+      reporterName: "Ole Hansen",
+      reporterEmail: "ole.h.privat@example.com",
+      reporterPhone: "99887766",
+      isAnonymous: false,
+      status: "RECEIVED",
+      severity: "HIGH",
+      handledBy: leaderUser.id,
+      assignedTo: leaderUser.id,
+      acknowledgedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  await prisma.whistleblowMessage.createMany({
+    data: [
+      {
+        whistleblowingId: whistleblow3.id,
+        sender: "SYSTEM",
+        message: `Varsling mottatt med saksnummer ${whistleblow3.caseNumber}. Bruk tilgangskoden din for å følge opp saken.`,
+        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      },
+      {
+        whistleblowingId: whistleblow3.id,
+        sender: "HANDLER",
+        message: "Takk for meldingen, Ole. Vi setter maskin 7 umiddelbart ut av drift inntil nødstoppen er reparert. Vedlikeholdsteamet er varslet og vil sjekke maskinen i dag.",
+        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      },
+      {
+        whistleblowingId: whistleblow3.id,
+        sender: "REPORTER",
+        message: "Takk for rask respons! Bra at maskinen blir tatt ut av drift.",
+        createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+      },
+    ],
+  });
+
+  console.log(`   ✅ 3 varslinger opprettet med til sammen 15 meldinger`);
+
+  // =====================================================================
   // OPPSUMMERING
   // =====================================================================
   console.log("\n" + "=".repeat(80));
@@ -652,9 +1034,19 @@ async function main() {
   console.log(`   📋 2 revisjoner med ${auditFindings.length} funn`);
   console.log(`   🔍 2 inspeksjoner med ${inspectionFindings.length} funn`);
   console.log(`   ⚗️  ${chemicals.length} kjemikalier`);
-  console.log(`   ✅ ${additionalMeasures.length} tiltak`);
+  console.log(`   ✅ ${additionalMeasures.length} ekstra tiltak`);
+  console.log(`   📊 2 ledelsens gjennomganger`);
+  console.log(`   🤝 2 AMU/VO møter med ${meeting1Decisions.length} beslutninger`);
+  console.log(`   🔒 3 varslinger med 15 meldinger`);
   console.log("\n" + "=".repeat(80));
-  console.log("\n✨ Test Bedrift AS er nå klar for demo! ✨\n");
+  console.log("\n✨ Test Bedrift AS er nå klar for demo! ✨");
+  console.log("\n🔗 Tilgang til varslingssystemet:");
+  console.log(`   URL: https://hmsnova.com/varsling/test-bedrift`);
+  console.log(`   Tilgangskoder for sporing:`);
+  console.log(`   - VAR-2024-001: ABC123DEF456GHIJ (Lukket)`);
+  console.log(`   - VAR-2024-002: XYZ789KLM012NOPQ (Under undersøkelse)`);
+  console.log(`   - VAR-2024-003: PQR456STU789VWXY (Åpen - nylig meldt)`);
+  console.log("\n" + "=".repeat(80) + "\n");
 }
 
 main()

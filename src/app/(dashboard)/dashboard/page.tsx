@@ -7,7 +7,10 @@ import { CriticalAlerts } from "@/features/dashboard/components/critical-alerts"
 import { ActivityFeed } from "@/features/dashboard/components/activity-feed";
 import { QuickActions } from "@/features/dashboard/components/quick-actions";
 import { MyTasks } from "@/features/dashboard/components/my-tasks";
+import { HMSScoreChart } from "@/features/dashboard/components/hms-score-chart";
 import { getPermissions } from "@/lib/permissions";
+import { subMonths, format } from "date-fns";
+import { nb } from "date-fns/locale";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -359,6 +362,50 @@ export default async function DashboardPage() {
     });
   }
 
+  // Generer HMS-score data for siste 6 måneder
+  const hmsScoreData = [];
+  for (let i = 5; i >= 0; i--) {
+    const monthDate = subMonths(new Date(), i);
+    const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+    const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+
+    // Beregn score basert på:
+    // - Risikoer lukket (30%)
+    // - Hendelser håndtert (25%)
+    // - Tiltak fullført (25%)
+    // - Dokumenter oppdatert (20%)
+    
+    const monthRisks = risks.filter((r) => 
+      r.createdAt <= monthEnd
+    );
+    const closedRisks = monthRisks.filter((r) => r.status === "CLOSED");
+    const riskScore = monthRisks.length > 0 ? (closedRisks.length / monthRisks.length) * 30 : 30;
+
+    const monthIncidents = incidents.filter((i) =>
+      i.createdAt <= monthEnd
+    );
+    const closedIncidents = monthIncidents.filter((i) => i.status === "CLOSED");
+    const incidentScore = monthIncidents.length > 0 ? (closedIncidents.length / monthIncidents.length) * 25 : 25;
+
+    const monthMeasures = measures.filter((m) =>
+      m.createdAt <= monthEnd
+    );
+    const completedMeasures = monthMeasures.filter((m) => m.status === "DONE");
+    const measureScore = monthMeasures.length > 0 ? (completedMeasures.length / monthMeasures.length) * 25 : 25;
+
+    const monthDocuments = documents.filter((d) =>
+      d.updatedAt >= monthStart && d.updatedAt <= monthEnd
+    );
+    const documentScore = monthDocuments.length > 0 ? Math.min((monthDocuments.length / 5) * 20, 20) : 15;
+
+    const totalScore = Math.round(riskScore + incidentScore + measureScore + documentScore);
+
+    hmsScoreData.push({
+      month: format(monthDate, 'MMM', { locale: nb }),
+      score: Math.min(totalScore, 100),
+    });
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -380,13 +427,22 @@ export default async function DashboardPage() {
       {/* Quick Actions */}
       <QuickActions permissions={permissions} userRole={userRole} />
 
-      {/* Main Grid */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Mine oppgaver */}
-        {sortedTasks.length > 0 && <MyTasks tasks={sortedTasks} />}
+      {/* Main Grid - 2 kolonne layout på desktop */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Venstre kolonne */}
+        <div className="space-y-6">
+          {/* Mine oppgaver */}
+          {sortedTasks.length > 0 && <MyTasks tasks={sortedTasks} />}
+          
+          {/* Activity Feed */}
+          {activities.length > 0 && <ActivityFeed activities={activities} />}
+        </div>
 
-        {/* Activity Feed */}
-        {activities.length > 0 && <ActivityFeed activities={activities} />}
+        {/* Høyre kolonne */}
+        <div className="space-y-6">
+          {/* HMS-score graf */}
+          <HMSScoreChart data={hmsScoreData} />
+        </div>
       </div>
     </div>
   );

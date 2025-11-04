@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,12 +25,23 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import Link from "next/link";
 
+interface TenantUser {
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+  };
+}
+
 export default function EditInspectionPage() {
   const router = useRouter();
   const params = useParams();
   const { toast } = useToast();
+  const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [users, setUsers] = useState<TenantUser[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -39,7 +51,29 @@ export default function EditInspectionPage() {
     scheduledDate: "",
     completedDate: "",
     location: "",
+    conductedBy: "",
   });
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (!session?.user?.tenantId) return;
+
+      try {
+        const response = await fetch(`/api/tenants/${session.user.tenantId}/users`);
+        const data = await response.json();
+
+        if (response.ok && data.users) {
+          setUsers(data.users);
+        }
+      } catch (error) {
+        console.error("Failed to fetch users:", error);
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+
+    fetchUsers();
+  }, [session?.user?.tenantId]);
 
   useEffect(() => {
     const fetchInspection = async () => {
@@ -64,6 +98,7 @@ export default function EditInspectionPage() {
             ? new Date(inspection.completedDate).toISOString().split("T")[0]
             : "",
           location: inspection.location || "",
+          conductedBy: inspection.conductedBy || "",
         });
       } catch (error: any) {
         toast({
@@ -204,6 +239,28 @@ export default function EditInspectionPage() {
                     <SelectItem value="IN_PROGRESS">Pågår</SelectItem>
                     <SelectItem value="COMPLETED">Fullført</SelectItem>
                     <SelectItem value="CANCELLED">Avbrutt</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="conductedBy">Gjennomført av *</Label>
+                <Select
+                  value={formData.conductedBy}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, conductedBy: value })
+                  }
+                  disabled={loadingUsers}
+                >
+                  <SelectTrigger id="conductedBy">
+                    <SelectValue placeholder={loadingUsers ? "Laster brukere..." : "Velg bruker"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map((u) => (
+                      <SelectItem key={u.user.id} value={u.user.id}>
+                        {u.user.name || u.user.email}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

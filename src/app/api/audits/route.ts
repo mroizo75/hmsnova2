@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
         auditType: data.auditType || "INTERNAL",
         scope: data.scope,
         criteria: data.criteria,
-        leadAuditorId: session.user.id,
+        leadAuditorId: data.leadAuditorId || session.user.id,
         teamMemberIds: data.teamMemberIds ? JSON.stringify(data.teamMemberIds) : null,
         scheduledDate: new Date(data.scheduledDate),
         area: data.area,

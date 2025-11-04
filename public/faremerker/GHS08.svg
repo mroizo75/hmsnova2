@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <polygon points="50,5 95,95 5,95" fill="white" stroke="red" stroke-width="3"/>
+  <circle cx="50" cy="35" r="10" fill="red"/>
+  <rect x="40" y="45" width="20" height="30" fill="red"/>
+  <text x="50" y="90" text-anchor="middle" font-size="12" fill="black">GHS08</text>
+</svg>

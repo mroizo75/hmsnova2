@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
         status: "PLANNED",
         scheduledDate: new Date(data.scheduledDate),
         location: data.location,
-        conductedBy: session.user.id,
+        conductedBy: data.conductedBy || session.user.id,
         participants: data.participants ? JSON.stringify(data.participants) : null,
       },
       include: {

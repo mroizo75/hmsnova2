@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { nanoid } from "nanoid";
+import { strictRateLimiter, getClientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -27,12 +28,34 @@ const createWhistleblowSchema = z.object({
   reporterEmail: z.string().email().optional(),
   reporterPhone: z.string().optional(),
   isAnonymous: z.boolean().default(true),
+  _hp: z.string().optional(), // Honeypot
 });
 
 // POST /api/whistleblowing - Submit anonymous report
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting: 3 varslinger per time per IP
+    const ip = getClientIp(req);
+    const rateLimitResult = await strictRateLimiter.limit(`whistleblow:${ip}`);
+    
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: "For mange forsøk. Vennligst vent før du sender en ny varsling." },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
+    
+    // Honeypot sjekk - hvis fylt ut = bot
+    if (body._hp && body._hp.trim() !== "") {
+      console.warn(`[WHISTLEBLOWING] Honeypot triggered from IP: ${ip}`);
+      return NextResponse.json(
+        { error: "Ugyldig innsending" },
+        { status: 400 }
+      );
+    }
+    
     const validatedData = createWhistleblowSchema.parse(body);
 
     // Generate unique case number

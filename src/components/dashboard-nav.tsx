@@ -21,6 +21,9 @@ import {
   ClipboardList,
   Beaker,
   ShieldCheck,
+  FileBarChart,
+  Calendar,
+  Shield,
 } from "lucide-react";
 import { usePermissions } from "@/hooks/use-permissions";
 import { getRoleDisplayName } from "@/lib/permissions";
@@ -36,6 +39,9 @@ const navItems = [
   { href: "/dashboard/chemicals", label: "nav.chemicals", icon: Beaker, permission: "chemicals" as const },
   { href: "/dashboard/training", label: "nav.training", icon: GraduationCap, permission: "training" as const },
   { href: "/dashboard/audits", label: "nav.audits", icon: ClipboardCheck, permission: "audits" as const },
+  { href: "/dashboard/management-reviews", label: "nav.managementReviews", icon: FileBarChart, permission: "managementReviews" as const },
+  { href: "/dashboard/meetings", label: "nav.meetings", icon: Calendar, permission: "meetings" as const },
+  { href: "/dashboard/whistleblowing", label: "nav.whistleblowing", icon: Shield, permission: "whistleblowing" as const },
   { href: "/dashboard/actions", label: "nav.actions", icon: ListTodo, permission: "actions" as const },
   { href: "/dashboard/goals", label: "nav.goals", icon: Target, permission: "goals" as const },
   { href: "/dashboard/settings", label: "nav.settings", icon: Settings, permission: "settings" as const },

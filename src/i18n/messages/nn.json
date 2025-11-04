@@ -16,9 +16,13 @@
     "forms": "Skjema",
     "risks": "Risikovurderingar",
     "incidents": "Avvik",
+    "inspections": "Vernerunde",
     "chemicals": "Stoffkartotek",
     "training": "Opplæring",
     "audits": "Revisjonar",
+    "managementReviews": "Leiinga si gjennomgang",
+    "meetings": "Møte (AMU/VO)",
+    "whistleblowing": "Varslingar",
     "actions": "Tiltak",
     "goals": "Mål",
     "settings": "Innstillingar"

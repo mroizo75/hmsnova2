@@ -132,12 +132,12 @@ export function PublicNav() {
               Gratis HMS-system
             </Link>
             <div className="pt-3 space-y-2">
-              <Link href="/login" className="block">
+              <Link href="/login" className="block" onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="outline" size="sm" className="w-full">
                   Logg inn
                 </Button>
               </Link>
-              <RegisterDialog>
+              <RegisterDialog onOpenChange={() => setMobileMenuOpen(false)}>
                 <Button size="sm" className="w-full bg-primary hover:bg-primary/90">
                   Kom i gang
                 </Button>
