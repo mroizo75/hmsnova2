@@ -17,6 +17,14 @@ import { TableOfContents } from "@/components/blog/table-of-contents";
 export const dynamic = 'force-dynamic';
 export const revalidate = 3600; // Revalidate hver time
 
+// Statisk metadata for å unngå database-kall under bygging
+export const metadata: Metadata = {
+  title: "HMS-artikkel | HMS Nova",
+  description: "Les våre ekspertartikler om HMS, arbeidsmiljø og sikkerhet. Praktiske tips og råd fra HMS Nova - vi bygger trygghet.",
+  keywords: "HMS, arbeidsmiljø, sikkerhet, ISO 9001, risikovurdering",
+  robots: ROBOTS_CONFIG,
+};
+
 interface BlogPost {
   id: string;
   title: string;
@@ -200,78 +208,6 @@ async function getRelatedPosts(slug: string): Promise<BlogPost[]> {
   } catch (error) {
     console.error("Error fetching related posts:", error);
     return [];
-  }
-}
-
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
-  try {
-    const { slug } = await params;
-    
-    // Ikke hent fra database under bygging - returner generisk metadata
-    if (!db || !db.blogPost) {
-      return {
-        title: "HMS-artikkel | HMS Nova",
-        description: "Les mer om HMS, arbeidsmiljø og sikkerhet",
-        alternates: {
-          canonical: getCanonicalUrl(`/blogg/${slug}`),
-        },
-        robots: ROBOTS_CONFIG,
-      };
-    }
-
-    const post = await getBlogPost(slug).catch(() => null);
-
-    if (!post) {
-      return {
-        title: "Artikkel ikke funnet",
-      };
-    }
-
-    return {
-      title: post.metaTitle || post.title,
-      description: post.metaDescription || post.excerpt,
-      keywords: post.keywords || undefined,
-      authors: [{ name: post.author.name }],
-      alternates: {
-        canonical: getCanonicalUrl(`/blogg/${post.slug}`),
-      },
-      robots: ROBOTS_CONFIG,
-      openGraph: {
-        title: post.metaTitle || post.title,
-        description: post.metaDescription || post.excerpt,
-        url: getCanonicalUrl(`/blogg/${post.slug}`),
-        type: "article",
-        publishedTime: post.publishedAt,
-        modifiedTime: post.updatedAt,
-        authors: [post.author.name],
-        images: post.coverImage
-          ? [
-              {
-                url: post.coverImage,
-                width: 1200,
-                height: 630,
-                alt: post.title,
-              },
-            ]
-          : [],
-      },
-      twitter: {
-        card: "summary_large_image",
-        title: post.metaTitle || post.title,
-        description: post.metaDescription || post.excerpt,
-        images: post.coverImage ? [post.coverImage] : [],
-      },
-    };
-  } catch (error) {
-    console.error("Error generating metadata:", error);
-    return {
-      title: "HMS-artikkel | HMS Nova",
-      description: "Les mer om HMS, arbeidsmiljø og sikkerhet",
-    };
   }
 }
 
