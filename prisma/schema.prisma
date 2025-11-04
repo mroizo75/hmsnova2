@@ -65,17 +65,19 @@ model User {
   lockedUntil         DateTime?
   lastLoginAttempt    DateTime?
   
-  accounts      Account[]
-  sessions      Session[]
-  tenants       UserTenant[]
-  blogPosts     BlogPost[]   // Blogg-artikler skrevet av bruker
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  accounts            Account[]
+  sessions            Session[]
+  tenants             UserTenant[]
+  blogPosts           BlogPost[]   // Blogg-artikler skrevet av bruker
+  passwordResetTokens PasswordResetToken[]
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
 
   @@index([email])
   @@index([isSuperAdmin])
   @@index([isSupport])
   @@index([lockedUntil])
+  @@index([emailVerified])
 }
 
 model VerificationToken {
@@ -84,6 +86,23 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expires   DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  ipAddress String?
+  userAgent String?  @db.Text
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([token])
+  @@index([userId])
+  @@index([expires])
 }
 
 model Tenant {
@@ -825,6 +844,7 @@ model AuditLog {
   resource  String?  // Document:abc123
   metadata  String?  @db.Text // JSON med detaljer
   ipAddress String?
+  userAgent String?  @db.Text
   createdAt DateTime @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -833,6 +853,7 @@ model AuditLog {
   @@index([userId])
   @@index([action])
   @@index([createdAt])
+  @@index([ipAddress])
 }
 
 // ============================================================================

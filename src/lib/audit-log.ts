@@ -22,6 +22,8 @@ export class AuditLog {
    * @param resource - Ressurs som ble påvirket (f.eks. "Document:abc123")
    * @param resourceId - ID til ressursen
    * @param metadata - Ekstra informasjon (JSON)
+   * @param ipAddress - IP-adresse (valgfritt)
+   * @param userAgent - User agent string (valgfritt)
    */
   static async log(
     tenantId: string,
@@ -29,7 +31,9 @@ export class AuditLog {
     action: string,
     resource: string,
     resourceId: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
+    ipAddress?: string,
+    userAgent?: string
   ): Promise<void> {
     try {
       await prisma.auditLog.create({
@@ -39,6 +43,8 @@ export class AuditLog {
           action,
           resource: `${resource}:${resourceId}`,
           metadata: metadata ? JSON.stringify(metadata) : null,
+          ipAddress,
+          userAgent,
         },
       });
     } catch (error) {
@@ -50,6 +56,8 @@ export class AuditLog {
         action,
         resource: `${resource}:${resourceId}`,
         metadata,
+        ipAddress,
+        userAgent,
       });
     }
   }

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,17 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [verified, setVerified] = useState(false);
+
+  // Sjekk for success messages fra URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("verified") === "true") {
+      setVerified(true);
+      // Fjern parameter fra URL
+      window.history.replaceState({}, "", "/login");
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,12 +99,26 @@ export default function LoginPage() {
                 disabled={loading}
               />
             </div>
+            {verified && (
+              <div className="rounded-lg bg-green-100 p-3 text-sm text-green-800">
+                ✓ E-postadressen din er verifisert! Du kan nå logge inn.
+              </div>
+            )}
             {error && (
               <p className="text-sm text-destructive">{error}</p>
             )}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? t("common.loading") : t("auth.login")}
             </Button>
+
+            <div className="text-center mt-4">
+              <Link
+                href="/forgot-password"
+                className="text-sm text-muted-foreground hover:text-foreground hover:underline"
+              >
+                Glemt passord?
+              </Link>
+            </div>
           </form>
         </CardContent>
       </Card>

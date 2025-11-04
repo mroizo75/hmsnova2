@@ -7,11 +7,11 @@ const hasUpstashConfig = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTA
 // Fallback in-memory rate limiter for development
 class MemoryRateLimiter {
   private cache: Map<string, { count: number; reset: number }> = new Map();
-  private limit: number;
+  private maxAttempts: number;
   private window: number;
 
   constructor(limit: number, windowSeconds: number) {
-    this.limit = limit;
+    this.maxAttempts = limit;
     this.window = windowSeconds * 1000; // Convert to ms
   }
 
@@ -26,7 +26,7 @@ class MemoryRateLimiter {
       return { success: true, reset: now + this.window };
     }
 
-    if (cached.count >= this.limit) {
+    if (cached.count >= this.maxAttempts) {
       // Rate limit exceeded
       return { success: false, reset: cached.reset };
     }

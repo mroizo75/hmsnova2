@@ -88,6 +88,13 @@ export const authOptions: NextAuthOptions = {
           );
         }
 
+        // SIKKERHET: Krev email verification for ikke-admin brukere
+        if (!user.emailVerified && !user.isSuperAdmin && !user.isSupport) {
+          throw new Error(
+            "E-postadressen din er ikke verifisert. Sjekk innboksen din for en verifikasjonslenke."
+          );
+        }
+
         // SUCCESS: Reset failed attempts og lockout
         if (user.failedLoginAttempts > 0 || user.lockedUntil) {
           await prisma.user.update({
