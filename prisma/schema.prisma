@@ -60,6 +60,11 @@ model User {
   postalCode    String?      // Postnummer
   city          String?      // Poststed
   
+  // Security: Account lockout
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  lastLoginAttempt    DateTime?
+  
   accounts      Account[]
   sessions      Session[]
   tenants       UserTenant[]
@@ -70,6 +75,7 @@ model User {
   @@index([email])
   @@index([isSuperAdmin])
   @@index([isSupport])
+  @@index([lockedUntil])
 }
 
 model VerificationToken {

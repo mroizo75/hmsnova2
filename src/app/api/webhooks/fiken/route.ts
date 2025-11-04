@@ -1,8 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { Resend } from "resend";
+import crypto from "crypto";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+/**
+ * Verify Fiken webhook signature
+ */
+function verifyFikenSignature(
+  payload: string,
+  signature: string,
+  secret: string
+): boolean {
+  try {
+    const expectedSignature = crypto
+      .createHmac("sha256", secret)
+      .update(payload)
+      .digest("hex");
+
+    // Constant-time comparison to prevent timing attacks
+    return crypto.timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(expectedSignature)
+    );
+  } catch (error) {
+    console.error("[Fiken Webhook] Signature verification error:", error);
+    return false;
+  }
+}
 
 /**
  * Webhook fra Fiken når faktura betales
@@ -22,13 +48,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // TODO: Verifiser signatur (implementer når Fiken webhook er satt opp)
-    // const isValid = verifyFikenSignature(body, fikenSignature, webhookSecret);
-    // if (!isValid) {
-    //   return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-    // }
+    // Hent raw body for signature verification
+    const rawBody = await request.text();
+    
+    // Verifiser signatur
+    const isValid = verifyFikenSignature(rawBody, fikenSignature, webhookSecret);
+    if (!isValid) {
+      console.error("[Fiken Webhook] Invalid signature");
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    }
 
-    const body = await request.json();
+    const body = JSON.parse(rawBody);
 
     console.log("[Fiken Webhook] Received event:", body);
 

@@ -42,13 +42,62 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Ugyldig pålogging");
         }
 
+        // SIKKERHET: Sjekk om kontoen er låst
+        const MAX_ATTEMPTS = 5;
+        const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutter
+
+        if (user.lockedUntil && user.lockedUntil > new Date()) {
+          const minutesLeft = Math.ceil(
+            (user.lockedUntil.getTime() - Date.now()) / 60000
+          );
+          throw new Error(
+            `Kontoen er midlertidig låst på grunn av for mange mislykkede påloggingsforsøk. Prøv igjen om ${minutesLeft} minutter.`
+          );
+        }
+
         const isPasswordValid = await bcrypt.compare(
           credentials.password,
           user.password
         );
 
         if (!isPasswordValid) {
-          throw new Error("Ugyldig pålogging");
+          // Inkrementer failed attempts
+          const newFailedAttempts = user.failedLoginAttempts + 1;
+          const shouldLock = newFailedAttempts >= MAX_ATTEMPTS;
+
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              failedLoginAttempts: newFailedAttempts,
+              lastLoginAttempt: new Date(),
+              ...(shouldLock && {
+                lockedUntil: new Date(Date.now() + LOCKOUT_DURATION),
+              }),
+            },
+          });
+
+          if (shouldLock) {
+            throw new Error(
+              "For mange mislykkede påloggingsforsøk. Kontoen er låst i 15 minutter."
+            );
+          }
+
+          const attemptsLeft = MAX_ATTEMPTS - newFailedAttempts;
+          throw new Error(
+            `Ugyldig pålogging. ${attemptsLeft} forsøk gjenstår før kontoen låses.`
+          );
+        }
+
+        // SUCCESS: Reset failed attempts og lockout
+        if (user.failedLoginAttempts > 0 || user.lockedUntil) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              failedLoginAttempts: 0,
+              lockedUntil: null,
+              lastLoginAttempt: new Date(),
+            },
+          });
         }
 
         // SIKKERHET: Sjekk om tenant er suspendert pga ubetalt faktura

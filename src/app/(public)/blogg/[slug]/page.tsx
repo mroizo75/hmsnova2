@@ -8,6 +8,7 @@ import { Calendar, Clock, ArrowLeft, Share2 } from "lucide-react";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
 import { getCanonicalUrl, ROBOTS_CONFIG, getBreadcrumbSchema } from "@/lib/seo-config";
+import { sanitizeHtml } from "@/lib/sanitize-html";
 import Script from "next/script";
 import { db } from "@/lib/db";
 import { TableOfContents } from "@/components/blog/table-of-contents";
@@ -415,7 +416,7 @@ export default async function BlogPostPage({
                         prose-thead:border-b-2 prose-thead:border-border
                         prose-th:text-left prose-th:p-3 prose-th:font-semibold
                         prose-td:p-3 prose-td:border-t prose-td:border-border"
-                      dangerouslySetInnerHTML={{ __html: post.content }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content) }}
                     />
                   </CardContent>
                 </Card>
