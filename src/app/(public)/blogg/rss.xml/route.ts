@@ -2,12 +2,27 @@ import { NextResponse } from "next/server";
 import { SITE_CONFIG } from "@/lib/seo-config";
 import { db } from "@/lib/db";
 
+// Tving route til å være dynamisk (ikke pre-rendret under bygging)
+export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
+
 /**
  * RSS Feed for HMS Nova blogg
  * Tilgjengelig på /blogg/rss.xml
  */
 export async function GET() {
   try {
+    // Sjekk at database er tilgjengelig
+    if (!db || !db.blogPost) {
+      return new NextResponse("RSS feed temporarily unavailable", { 
+        status: 503,
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Retry-After": "3600",
+        }
+      });
+    }
+
     const posts = await db.blogPost.findMany({
       where: {
         status: "PUBLISHED",
