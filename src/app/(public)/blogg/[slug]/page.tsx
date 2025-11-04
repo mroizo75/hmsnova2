@@ -43,6 +43,12 @@ interface BlogPost {
 
 async function getBlogPost(slug: string): Promise<BlogPost | null> {
   try {
+    // Check if db is available
+    if (!db || !db.blogPost) {
+      console.error("Database connection not available");
+      return null;
+    }
+
     const post = await db.blogPost.findUnique({
       where: {
         slug,
@@ -69,6 +75,9 @@ async function getBlogPost(slug: string): Promise<BlogPost | null> {
           },
         },
       },
+    }).catch((err) => {
+      console.error("Prisma query error:", err);
+      return null;
     });
 
     if (!post) {
@@ -76,10 +85,14 @@ async function getBlogPost(slug: string): Promise<BlogPost | null> {
     }
 
     // Increment view count
-    await db.blogPost.update({
-      where: { id: post.id },
-      data: { viewCount: { increment: 1 } },
-    });
+    try {
+      await db.blogPost.update({
+        where: { id: post.id },
+        data: { viewCount: { increment: 1 } },
+      });
+    } catch (err) {
+      console.error("Error updating view count:", err);
+    }
 
     // Content is already in HTML format from TipTap editor
     const contentHtml = post.content;
