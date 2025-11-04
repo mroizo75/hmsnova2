@@ -78,7 +78,7 @@ export default function HomePage() {
           <RegisterDialog>
             <Button size="lg" className="text-lg px-8">
               Kom i gang nå
-              <ArrowRight className="ml-2 h-5 w-5" />
+              <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
             </Button>
           </RegisterDialog>
           <Link href="/gratis-hms-system">
@@ -260,21 +260,21 @@ export default function HomePage() {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
           <Card>
             <CardHeader>
-              <FileText className="h-8 w-8 text-primary mb-2" />
+              <FileText className="h-8 w-8 text-primary mb-2" aria-hidden="true" />
               <CardTitle>Dokumenthåndtering</CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" aria-hidden="true" />
                   <span>Versjonskontroll og sporbarhet</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" aria-hidden="true" />
                   <span>Godkjenningsflyt</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" aria-hidden="true" />
                   <span>Automatisk arkivering</span>
                 </li>
               </ul>
@@ -283,21 +283,21 @@ export default function HomePage() {
 
           <Card>
             <CardHeader>
-              <Shield className="h-8 w-8 text-primary mb-2" />
+              <Shield className="h-8 w-8 text-primary mb-2" aria-hidden="true" />
               <CardTitle>Risikovurdering</CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" aria-hidden="true" />
                   <span>5x5 matrise (ISO 9001)</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" aria-hidden="true" />
                   <span>Tiltaksoppfølging</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" aria-hidden="true" />
                   <span>Revisjonshistorikk</span>
                 </li>
               </ul>
@@ -306,21 +306,21 @@ export default function HomePage() {
 
           <Card>
             <CardHeader>
-              <Users className="h-8 w-8 text-primary mb-2" />
+              <Users className="h-8 w-8 text-primary mb-2" aria-hidden="true" />
               <CardTitle>Hendelsesrapportering</CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" aria-hidden="true" />
                   <span>Mobil app for feltarbeid</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" aria-hidden="true" />
                   <span>5 Whys-analyse</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" aria-hidden="true" />
                   <span>Automatisk oppfølging</span>
                 </li>
               </ul>
@@ -329,21 +329,21 @@ export default function HomePage() {
 
           <Card>
             <CardHeader>
-              <TrendingUp className="h-8 w-8 text-primary mb-2" />
+              <TrendingUp className="h-8 w-8 text-primary mb-2" aria-hidden="true" />
               <CardTitle>Opplæring</CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" aria-hidden="true" />
                   <span>Kompetansematrise</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" aria-hidden="true" />
                   <span>Kurs og sertifikater</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" aria-hidden="true" />
                   <span>Fornyelsespåminnelser</span>
                 </li>
               </ul>
@@ -352,21 +352,21 @@ export default function HomePage() {
 
           <Card>
             <CardHeader>
-              <Lock className="h-8 w-8 text-primary mb-2" />
+              <Lock className="h-8 w-8 text-primary mb-2" aria-hidden="true" />
               <CardTitle>Revisjoner</CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" aria-hidden="true" />
                   <span>Interne revisjoner</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" aria-hidden="true" />
                   <span>Funn og avvik</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" aria-hidden="true" />
                   <span>Korrigerende tiltak</span>
                 </li>
               </ul>
@@ -375,21 +375,21 @@ export default function HomePage() {
 
           <Card>
             <CardHeader>
-              <Zap className="h-8 w-8 text-primary mb-2" />
+              <Zap className="h-8 w-8 text-primary mb-2" aria-hidden="true" />
               <CardTitle>Automatisering</CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" aria-hidden="true" />
                   <span>E-post påminnelser</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" aria-hidden="true" />
                   <span>Rapportgenerering</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" aria-hidden="true" />
                   <span>Workflow-styring</span>
                 </li>
               </ul>
@@ -415,7 +415,7 @@ export default function HomePage() {
           <ScrollReveal delay={100}>
             <div className="text-center">
               <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
-              <Zap className="h-8 w-8 text-primary" />
+              <Zap className="h-8 w-8 text-primary" aria-hidden="true" />
               </div>
               <h3 className="font-semibold mb-2 text-lg">Spar 10 timer per uke</h3>
               <p className="text-sm text-muted-foreground">
@@ -427,7 +427,7 @@ export default function HomePage() {
           <ScrollReveal delay={200}>
             <div className="text-center">
               <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
-                <Shield className="h-8 w-8 text-primary" />
+                <Shield className="h-8 w-8 text-primary" aria-hidden="true" />
               </div>
               <h3 className="font-semibold mb-2 text-lg">Bestå revisjoner første gang</h3>
               <p className="text-sm text-muted-foreground">
@@ -439,7 +439,7 @@ export default function HomePage() {
           <ScrollReveal delay={300}>
             <div className="text-center">
               <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
-                <Users className="h-8 w-8 text-primary" />
+                <Users className="h-8 w-8 text-primary" aria-hidden="true" />
               </div>
               <h3 className="font-semibold mb-2 text-lg">Engasjerte ansatte</h3>
               <p className="text-sm text-muted-foreground">
@@ -466,7 +466,7 @@ export default function HomePage() {
           <div className="grid md:grid-cols-3 gap-6">
             <Card>
               <CardHeader>
-                <Globe className="h-8 w-8 text-primary mb-2 mx-auto" />
+                <Globe className="h-8 w-8 text-primary mb-2 mx-auto" aria-hidden="true" />
                 <CardTitle className="text-center">ISO 9001:2015</CardTitle>
               </CardHeader>
               <CardContent className="text-center text-sm text-muted-foreground">
@@ -486,7 +486,7 @@ export default function HomePage() {
 
             <Card>
               <CardHeader>
-                <HeartHandshake className="h-8 w-8 text-primary mb-2 mx-auto" />
+                <HeartHandshake className="h-8 w-8 text-primary mb-2 mx-auto" aria-hidden="true" />
                 <CardTitle className="text-center">Arbeidsmiljøloven</CardTitle>
               </CardHeader>
               <CardContent className="text-center text-sm text-muted-foreground">
@@ -510,7 +510,7 @@ export default function HomePage() {
               <RegisterDialog>
                 <Button size="lg" variant="secondary" className="text-lg px-8">
                   Kom i gang nå
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                  <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
                 </Button>
               </RegisterDialog>
               <Link href="/gratis-hms-system">
