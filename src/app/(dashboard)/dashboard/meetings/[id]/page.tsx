@@ -87,6 +87,11 @@ interface Meeting {
 interface Participant {
   id: string;
   userId?: string;
+  user?: {
+    id: string;
+    name: string | null;
+    email: string;
+  };
   externalName?: string;
   externalEmail?: string;
   role: ParticipantRole;
@@ -562,7 +567,7 @@ export default function MeetingDetailPage() {
                 {meeting.participants.map((p) => (
                   <TableRow key={p.id}>
                     <TableCell>
-                      {p.userId || p.externalName}
+                      {p.user ? (p.user.name || p.user.email) : p.externalName}
                       {p.externalEmail && (
                         <span className="ml-2 text-xs text-muted-foreground">
                           ({p.externalEmail})

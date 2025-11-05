@@ -70,6 +70,8 @@ model User {
   tenants             UserTenant[]
   blogPosts           BlogPost[]   // Blogg-artikler skrevet av bruker
   passwordResetTokens PasswordResetToken[]
+  meetingParticipants MeetingParticipant[] @relation("MeetingParticipants")
+  meetingDecisions    MeetingDecision[]    @relation("MeetingDecisions")
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
 
@@ -1248,6 +1250,7 @@ model MeetingParticipant {
   notes           String?  @db.Text
   
   meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user    User?   @relation("MeetingParticipants", fields: [userId], references: [id], onDelete: SetNull)
   
   @@index([meetingId])
   @@index([userId])
@@ -1268,7 +1271,8 @@ model MeetingDecision {
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   
-  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  meeting     Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  responsible User?   @relation("MeetingDecisions", fields: [responsibleId], references: [id], onDelete: SetNull)
   
   @@index([meetingId])
   @@index([responsibleId])

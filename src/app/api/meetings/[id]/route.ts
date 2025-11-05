@@ -37,8 +37,27 @@ export async function GET(
         tenantId: session.user.tenantId,
       },
       include: {
-        participants: true,
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
         decisions: {
+          include: {
+            responsible: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
           orderBy: { createdAt: "asc" },
         },
       },
@@ -100,8 +119,28 @@ export async function PATCH(
       where: { id },
       data: updateData,
       include: {
-        participants: true,
-        decisions: true,
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+        decisions: {
+          include: {
+            responsible: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
       },
     });
 
