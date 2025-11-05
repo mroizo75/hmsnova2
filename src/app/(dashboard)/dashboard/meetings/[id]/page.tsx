@@ -104,6 +104,11 @@ interface Decision {
   title: string;
   description: string;
   responsibleId?: string;
+  responsible?: {
+    id: string;
+    name: string | null;
+    email: string;
+  };
   dueDate?: string;
   status: DecisionStatus;
   notes?: string;
@@ -706,8 +711,8 @@ export default function MeetingDetailPage() {
                       </div>
                       <p className="mt-2 text-sm text-muted-foreground">{decision.description}</p>
                       <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
-                        {decision.responsibleId && (
-                          <span>Ansvarlig: {decision.responsibleId}</span>
+                        {decision.responsible && (
+                          <span>Ansvarlig: {decision.responsible.name || decision.responsible.email}</span>
                         )}
                         {decision.dueDate && (
                           <span>
