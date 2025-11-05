@@ -10,24 +10,15 @@ import { nb } from "date-fns/locale";
 import { getCanonicalUrl, ROBOTS_CONFIG, getBreadcrumbSchema } from "@/lib/seo-config";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 import Script from "next/script";
-import { db } from "@/lib/db";
 import { TableOfContents } from "@/components/blog/table-of-contents";
 
-// Tving siden til å være dynamisk (ikke pre-rendret under bygging)
 export const dynamic = 'force-dynamic';
-export const dynamicParams = true;
 export const revalidate = 0;
 
-// Forhindre statisk generering under bygging
-export async function generateStaticParams() {
-  return [];
-}
-
-// Statisk metadata for å unngå database-kall under bygging
 export const metadata: Metadata = {
   title: "HMS-artikkel | HMS Nova",
   description: "Les våre ekspertartikler om HMS, arbeidsmiljø og sikkerhet. Praktiske tips og råd fra HMS Nova - vi bygger trygghet.",
-  keywords: "HMS, arbeidsmiljø, sikkerhet, ISO 9001, risikovurdering",
+  keywords: "HMS, arbeidsmiljø, sikkerhet, ISO 9001, risikovurering",
   robots: ROBOTS_CONFIG,
 };
 
@@ -61,79 +52,19 @@ interface BlogPost {
 
 async function getBlogPost(slug: string): Promise<BlogPost | null> {
   try {
-    if (!db || !db.blogPost) {
-      console.error("Database connection not available");
-      return null;
-    }
-
-    const post = await db.blogPost.findUnique({
-      where: {
-        slug,
-        status: "PUBLISHED",
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const res = await fetch(`${baseUrl}/api/blog/${slug}`, {
+      cache: 'no-store',
+      headers: {
+        'Content-Type': 'application/json',
       },
-      include: {
-        category: {
-          select: {
-            name: true,
-            slug: true,
-            color: true,
-          },
-        },
-        tags: {
-          select: {
-            name: true,
-            slug: true,
-          },
-        },
-        author: {
-          select: {
-            name: true,
-            image: true,
-          },
-        },
-      },
-    }).catch((err) => {
-      console.error("Prisma query error:", err);
-      return null;
     });
 
-    if (!post) {
+    if (!res.ok) {
       return null;
     }
 
-    // Increment view count
-    try {
-      await db.blogPost.update({
-        where: { id: post.id },
-        data: { viewCount: { increment: 1 } },
-      });
-    } catch (err) {
-      console.error("Error updating view count:", err);
-    }
-
-    // Content is already in HTML format from TipTap editor
-    const contentHtml = post.content;
-
-    return {
-      id: post.id,
-      title: post.title,
-      slug: post.slug,
-      excerpt: post.excerpt,
-      content: contentHtml,
-      coverImage: post.coverImage,
-      metaTitle: post.metaTitle,
-      metaDescription: post.metaDescription,
-      keywords: post.keywords,
-      publishedAt: post.publishedAt?.toISOString() || new Date().toISOString(),
-      updatedAt: post.updatedAt.toISOString(),
-      viewCount: post.viewCount,
-      category: post.category,
-      tags: post.tags,
-      author: {
-        name: "HMS Nova",
-        image: "/logo-nova.png",
-      },
-    };
+    return await res.json();
   } catch (error) {
     console.error("Error fetching blog post:", error);
     return null;
@@ -142,79 +73,19 @@ async function getBlogPost(slug: string): Promise<BlogPost | null> {
 
 async function getRelatedPosts(slug: string): Promise<BlogPost[]> {
   try {
-    if (!db || !db.blogPost) {
-      console.error("Database connection not available");
-      return [];
-    }
-
-    const currentPost = await db.blogPost.findUnique({
-      where: { slug },
-      select: {
-        id: true,
-        categoryId: true,
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const res = await fetch(`${baseUrl}/api/blog/${slug}/related`, {
+      cache: 'no-store',
+      headers: {
+        'Content-Type': 'application/json',
       },
     });
 
-    if (!currentPost) {
+    if (!res.ok) {
       return [];
     }
 
-    // Fetch posts in same category
-    const relatedPosts = await db.blogPost.findMany({
-      where: {
-        status: "PUBLISHED",
-        id: {
-          not: currentPost.id,
-        },
-        categoryId: currentPost.categoryId,
-      },
-      include: {
-        category: {
-          select: {
-            name: true,
-            slug: true,
-            color: true,
-          },
-        },
-        tags: {
-          select: {
-            name: true,
-            slug: true,
-          },
-        },
-        author: {
-          select: {
-            name: true,
-            image: true,
-          },
-        },
-      },
-      orderBy: {
-        publishedAt: "desc",
-      },
-      take: 3,
-    });
-
-    return relatedPosts.map((post) => ({
-      id: post.id,
-      title: post.title,
-      slug: post.slug,
-      excerpt: post.excerpt,
-      content: post.content,
-      coverImage: post.coverImage,
-      metaTitle: post.metaTitle,
-      metaDescription: post.metaDescription,
-      keywords: post.keywords,
-      publishedAt: post.publishedAt?.toISOString() || new Date().toISOString(),
-      updatedAt: post.updatedAt.toISOString(),
-      viewCount: post.viewCount,
-      category: post.category,
-      tags: post.tags,
-      author: {
-        name: "HMS Nova",
-        image: "/logo-nova.png",
-      },
-    }));
+    return await res.json();
   } catch (error) {
     console.error("Error fetching related posts:", error);
     return [];
@@ -234,9 +105,8 @@ export default async function BlogPostPage({
   }
 
   const relatedPosts = await getRelatedPosts(slug);
-  const readingTime = Math.ceil(post.content.split(" ").length / 200); // ~200 ord per minutt
+  const readingTime = Math.ceil(post.content.split(" ").length / 200);
 
-  // Article Schema for SEO
   const articleSchema = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -254,7 +124,7 @@ export default async function BlogPostPage({
       name: "HMS Nova",
       logo: {
         "@type": "ImageObject",
-        url: `${process.env.NEXT_PUBLIC_APP_URL}/logo.png`,
+        url: `${process.env.NEXT_PUBLIC_APP_URL}/logo-nova.png`,
       },
     },
     mainEntityOfPage: {
@@ -271,7 +141,6 @@ export default async function BlogPostPage({
 
   return (
     <>
-      {/* JSON-LD Structured Data */}
       <Script
         id="article-schema"
         type="application/ld+json"
@@ -290,7 +159,6 @@ export default async function BlogPostPage({
       />
 
       <article className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-        {/* Hero */}
         <section className="container mx-auto px-4 py-12">
           <div className="max-w-4xl mx-auto">
             <Link href="/blogg">
@@ -368,11 +236,9 @@ export default async function BlogPostPage({
           </div>
         </section>
 
-        {/* Content */}
         <section className="container mx-auto px-4 py-12">
           <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              {/* Main Content */}
               <div className="lg:col-span-8">
                 <Card>
                   <CardContent className="p-8 md:p-12">
@@ -406,7 +272,6 @@ export default async function BlogPostPage({
                 </Card>
               </div>
 
-              {/* Sidebar with TOC */}
               <aside className="lg:col-span-4 hidden lg:block">
                 <TableOfContents />
               </aside>
@@ -414,7 +279,6 @@ export default async function BlogPostPage({
           </div>
         </section>
 
-        {/* Related Posts */}
         {relatedPosts.length > 0 && (
           <section className="container mx-auto px-4 py-20">
             <div className="max-w-7xl mx-auto">
@@ -448,7 +312,6 @@ export default async function BlogPostPage({
           </section>
         )}
 
-        {/* CTA */}
         <section className="container mx-auto px-4 py-20">
           <Card className="max-w-4xl mx-auto bg-primary text-primary-foreground">
             <CardContent className="p-12 text-center">
@@ -470,4 +333,3 @@ export default async function BlogPostPage({
     </>
   );
 }
-

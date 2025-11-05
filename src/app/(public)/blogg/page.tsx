@@ -7,11 +7,9 @@ import { Calendar, Clock, ArrowRight } from "lucide-react";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
 import { getCanonicalUrl, ROBOTS_CONFIG } from "@/lib/seo-config";
-import { db } from "@/lib/db";
 
-// Tving siden til å være dynamisk (ikke pre-rendret under bygging)
 export const dynamic = 'force-dynamic';
-export const revalidate = 3600; // Revalidate hver time
+export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: "HMS-blogg - Artikler om Arbeidsmiljø og Sikkerhet | HMS Nova",
@@ -52,47 +50,19 @@ interface BlogPost {
 
 async function getBlogPosts(): Promise<BlogPost[]> {
   try {
-    if (!db || !db.blogPost) {
-      console.error("Database connection not available");
-      return [];
-    }
-
-    const posts = await db.blogPost.findMany({
-      where: {
-        status: "PUBLISHED",
-      },
-      include: {
-        category: {
-          select: {
-            name: true,
-            slug: true,
-            color: true,
-          },
-        },
-        author: {
-          select: {
-            name: true,
-          },
-        },
-      },
-      orderBy: {
-        publishedAt: "desc",
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const res = await fetch(`${baseUrl}/api/blog`, {
+      cache: 'no-store',
+      headers: {
+        'Content-Type': 'application/json',
       },
     });
 
-    return posts.map((post) => ({
-      id: post.id,
-      title: post.title,
-      slug: post.slug,
-      excerpt: post.excerpt,
-      coverImage: post.coverImage,
-      publishedAt: post.publishedAt?.toISOString() || new Date().toISOString(),
-      category: post.category,
-      author: {
-        name: "HMS Nova",
-      },
-      viewCount: post.viewCount,
-    }));
+    if (!res.ok) {
+      return [];
+    }
+
+    return await res.json();
   } catch (error) {
     console.error("Error fetching blog posts:", error);
     return [];
@@ -106,7 +76,6 @@ export default async function BloggPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-      {/* Hero */}
       <section className="container mx-auto px-4 py-20 text-center">
         <Badge variant="secondary" className="mb-6">
           📚 HMS Kunnskap
@@ -119,7 +88,6 @@ export default async function BloggPage() {
           Vi deler kunnskap som bygger trygghet i norske bedrifter.
         </p>
         
-        {/* Search */}
         <div className="max-w-md mx-auto">
           <Input
             placeholder="Søk artikler..."
@@ -128,7 +96,6 @@ export default async function BloggPage() {
         </div>
       </section>
 
-      {/* Featured Post */}
       {featuredPost && (
         <section className="container mx-auto px-4 py-12">
           <Link href={`/blogg/${featuredPost.slug}`}>
@@ -184,7 +151,6 @@ export default async function BloggPage() {
         </section>
       )}
 
-      {/* Blog Posts Grid */}
       <section className="container mx-auto px-4 py-12">
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {regularPosts.length === 0 && !featuredPost ? (
@@ -242,7 +208,6 @@ export default async function BloggPage() {
         </div>
       </section>
 
-      {/* CTA */}
       <section className="container mx-auto px-4 py-20">
         <Card className="bg-primary text-primary-foreground">
           <CardContent className="p-12 text-center">
@@ -264,4 +229,3 @@ export default async function BloggPage() {
     </div>
   );
 }
-
