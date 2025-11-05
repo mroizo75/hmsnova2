@@ -1,5 +1,4 @@
 import Link from "next/link";
-import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,12 +19,7 @@ export async function generateStaticParams() {
   return [] as Array<{ slug: string }>;
 }
 
-export const metadata: Metadata = {
-  title: "HMS-artikkel | HMS Nova",
-  description: "Les våre ekspertartikler om HMS, arbeidsmiljø og sikkerhet. Praktiske tips og råd fra HMS Nova - vi bygger trygghet.",
-  keywords: "HMS, arbeidsmiljø, sikkerhet, ISO 9001, risikovurering",
-  robots: ROBOTS_CONFIG,
-};
+
 
 interface BlogPost {
   id: string;
