@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +14,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Trash2, Edit, Eye } from "lucide-react";
 import { getAllPostsAdmin, upsertBlogPost, deleteBlogPost } from "@/server/actions/blog.actions";
 import { useToast } from "@/hooks/use-toast";
+import { TipTapEditor } from "@/components/admin/tiptap-editor";
+import { ImageUploader } from "@/components/admin/image-uploader";
 
 export default function AdminBlogPage() {
   const router = useRouter();
@@ -24,6 +25,9 @@ export default function AdminBlogPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [content, setContent] = useState("");
+  const [coverImageUrl, setCoverImageUrl] = useState("");
+  const [coverImageKey, setCoverImageKey] = useState("");
 
   useEffect(() => {
     loadPosts();
@@ -41,11 +45,17 @@ export default function AdminBlogPage() {
 
   function handleNew() {
     setEditingPost(null);
+    setContent("");
+    setCoverImageUrl("");
+    setCoverImageKey("");
     setDialogOpen(true);
   }
 
   function handleEdit(post: any) {
     setEditingPost(post);
+    setContent(post.content || "");
+    setCoverImageUrl(post.coverImage || "");
+    setCoverImageKey("");
     setDialogOpen(true);
   }
 
@@ -75,8 +85,8 @@ export default function AdminBlogPage() {
       title: formData.get("title") as string,
       slug,
       excerpt: formData.get("excerpt") as string,
-      content: formData.get("content") as string,
-      coverImage: formData.get("coverImage") as string || null,
+      content,
+      coverImage: coverImageUrl || null,
       status: formData.get("status") as string,
       categoryId: formData.get("categoryId") as string || null,
     };
@@ -85,6 +95,9 @@ export default function AdminBlogPage() {
     if (result.success) {
       toast({ title: "Lagret", description: "Artikkelen er lagret" });
       setDialogOpen(false);
+      setContent("");
+      setCoverImageUrl("");
+      setCoverImageKey("");
       loadPosts();
     } else {
       toast({ variant: "destructive", title: "Feil", description: result.error });
@@ -110,7 +123,7 @@ export default function AdminBlogPage() {
               Ny artikkel
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingPost ? "Rediger artikkel" : "Ny artikkel"}
@@ -130,37 +143,33 @@ export default function AdminBlogPage() {
 
               <div>
                 <Label htmlFor="excerpt">Ingress *</Label>
-                <Textarea
+                <Input
                   id="excerpt"
                   name="excerpt"
-                  rows={3}
                   required
                   defaultValue={editingPost?.excerpt}
                   disabled={submitting}
+                  placeholder="Kort beskrivelse av artikkelen..."
                 />
               </div>
 
               <div>
-                <Label htmlFor="content">Innhold *</Label>
-                <Textarea
-                  id="content"
-                  name="content"
-                  rows={10}
-                  required
-                  defaultValue={editingPost?.content}
-                  disabled={submitting}
-                  placeholder="HTML-innhold støttes"
+                <Label>Forsidebilde</Label>
+                <ImageUploader
+                  onUploadComplete={(url, key) => {
+                    setCoverImageUrl(url);
+                    setCoverImageKey(key);
+                  }}
+                  currentImage={coverImageUrl}
                 />
               </div>
 
               <div>
-                <Label htmlFor="coverImage">Forsidebilde URL</Label>
-                <Input
-                  id="coverImage"
-                  name="coverImage"
-                  type="url"
-                  defaultValue={editingPost?.coverImage || ""}
-                  disabled={submitting}
+                <Label>Innhold *</Label>
+                <TipTapEditor
+                  content={content}
+                  onChange={setContent}
+                  placeholder="Skriv artikkelinnholdet ditt her..."
                 />
               </div>
 
