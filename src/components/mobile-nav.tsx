@@ -8,7 +8,8 @@ import { signOut, useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
+import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import {
   LayoutDashboard,
   FileText,
@@ -67,6 +68,9 @@ export function MobileNav() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-72 p-0">
+              <VisuallyHidden.Root>
+                <SheetTitle>Navigasjonsmeny</SheetTitle>
+              </VisuallyHidden.Root>
               <div className="flex h-full flex-col">
                 <div className="border-b p-6">
                   <Image src="/logo-nova.png" alt="HMS Nova" width={155} height={100} />
@@ -76,7 +80,7 @@ export function MobileNav() {
                     </Badge>
                   )}
                 </div>
-                <nav className="flex-1 space-y-1 p-4">
+                <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
                   {allowedNavItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = pathname === item.href;
