@@ -17,7 +17,7 @@ export function StructuredData({ data }: StructuredDataProps) {
       dangerouslySetInnerHTML={{
         __html: JSON.stringify(Array.isArray(data) ? data : data),
       }}
-      strategy="beforeInteractive"
+      strategy="afterInteractive"
     />
   );
 }
@@ -43,7 +43,7 @@ export function MultipleStructuredData({
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(data),
           }}
-          strategy="beforeInteractive"
+          strategy="afterInteractive"
         />
       ))}
     </>

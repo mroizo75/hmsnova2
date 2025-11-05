@@ -7,13 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Calendar, Clock, ArrowLeft, Share2 } from "lucide-react";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
-import { getCanonicalUrl, ROBOTS_CONFIG, getBreadcrumbSchema } from "@/lib/seo-config";
+import { getCanonicalUrl, ROBOTS_CONFIG, getBreadcrumbSchema, SITE_CONFIG } from "@/lib/seo-config";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 import Script from "next/script";
 import { TableOfContents } from "@/components/blog/table-of-contents";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+export const dynamicParams = true;
+
+export async function generateStaticParams() {
+  return [] as Array<{ slug: string }>;
+}
 
 export const metadata: Metadata = {
   title: "HMS-artikkel | HMS Nova",
@@ -54,9 +59,7 @@ async function getBlogPost(slug: string): Promise<BlogPost | null> {
   try {
     // Use internal URL during build, external URL at runtime
     const isServer = typeof window === 'undefined';
-    const baseUrl = isServer 
-      ? (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000')
-      : '';
+    const baseUrl = isServer ? SITE_CONFIG.url : '';
     
     const res = await fetch(`${baseUrl}/api/blog/${slug}`, {
       cache: 'no-store',
@@ -79,9 +82,7 @@ async function getBlogPost(slug: string): Promise<BlogPost | null> {
 async function getRelatedPosts(slug: string): Promise<BlogPost[]> {
   try {
     const isServer = typeof window === 'undefined';
-    const baseUrl = isServer 
-      ? (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000')
-      : '';
+    const baseUrl = isServer ? SITE_CONFIG.url : '';
     
     const res = await fetch(`${baseUrl}/api/blog/${slug}/related`, {
       cache: 'no-store',

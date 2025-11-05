@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Calendar, Clock, ArrowRight } from "lucide-react";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
-import { getCanonicalUrl, ROBOTS_CONFIG } from "@/lib/seo-config";
+import { getCanonicalUrl, ROBOTS_CONFIG, SITE_CONFIG } from "@/lib/seo-config";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -51,9 +51,7 @@ interface BlogPost {
 async function getBlogPosts(): Promise<BlogPost[]> {
   try {
     const isServer = typeof window === 'undefined';
-    const baseUrl = isServer 
-      ? (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000')
-      : '';
+    const baseUrl = isServer ? SITE_CONFIG.url : '';
     
     const res = await fetch(`${baseUrl}/api/blog`, {
       cache: 'no-store',
