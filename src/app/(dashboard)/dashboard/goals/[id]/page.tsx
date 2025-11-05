@@ -204,7 +204,7 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ id:
               {goal.actions.map((action) => (
                 <Link
                   key={action.id}
-                  href={`/dashboard/actions/${action.id}`}
+                  href="/dashboard/actions"
                   className="block p-3 rounded-lg border hover:bg-accent transition-colors"
                 >
                   <div className="flex items-center justify-between">

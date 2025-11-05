@@ -49,7 +49,7 @@ export function QuickActions({ permissions, userRole }: QuickActionsProps) {
     {
       label: "Nytt tiltak",
       icon: ListTodo,
-      href: "/dashboard/actions/new",
+      href: "/dashboard/actions",
       description: "Opprett tiltak",
       canPerform: permissions.canCreateActions,
     },

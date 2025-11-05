@@ -215,7 +215,7 @@ export default async function DashboardPage() {
       type: "action" as const,
       title: m.title,
       timestamp: m.createdAt,
-      link: `/dashboard/actions/${m.id}`,
+      link: `/dashboard/actions`,
       status: m.status,
     })),
     ...audits.map((a) => ({
