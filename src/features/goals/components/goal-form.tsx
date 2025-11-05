@@ -37,17 +37,43 @@ export function GoalForm({ tenantId, users, goal, mode = "create" }: GoalFormPro
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
+    
+    // Parse numbers safely
+    const targetValueStr = formData.get("targetValue") as string;
+    const targetValue = targetValueStr && targetValueStr.trim() !== "" 
+      ? parseFloat(targetValueStr) 
+      : undefined;
+    
+    const currentValueStr = formData.get("currentValue") as string;
+    const currentValue = currentValueStr && currentValueStr.trim() !== "" 
+      ? parseFloat(currentValueStr) 
+      : 0;
+    
+    const baselineStr = formData.get("baseline") as string;
+    const baseline = baselineStr && baselineStr.trim() !== "" 
+      ? parseFloat(baselineStr) 
+      : undefined;
+    
+    const quarterValue = formData.get("quarter") as string;
+    let quarter: number | undefined = undefined;
+    if (quarterValue && quarterValue !== "NONE") {
+      const parsed = parseInt(quarterValue);
+      if (!isNaN(parsed)) {
+        quarter = parsed;
+      }
+    }
+    
     const data = {
       tenantId,
       title: formData.get("title") as string,
       description: formData.get("description") as string || undefined,
       category: formData.get("category") as string,
-      targetValue: parseFloat(formData.get("targetValue") as string) || undefined,
-      currentValue: parseFloat(formData.get("currentValue") as string) || 0,
+      targetValue: !isNaN(targetValue as number) ? targetValue : undefined,
+      currentValue: !isNaN(currentValue as number) ? currentValue : 0,
       unit: formData.get("unit") as string || undefined,
-      baseline: parseFloat(formData.get("baseline") as string) || undefined,
+      baseline: !isNaN(baseline as number) ? baseline : undefined,
       year: parseInt(formData.get("year") as string),
-      quarter: formData.get("quarter") ? parseInt(formData.get("quarter") as string) : undefined,
+      quarter,
       startDate: formData.get("startDate") as string || undefined,
       deadline: formData.get("deadline") as string || undefined,
       ownerId: formData.get("ownerId") as string,
