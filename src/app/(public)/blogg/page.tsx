@@ -149,7 +149,7 @@ export default function BloggPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         {format(new Date(post.publishedAt), "d. MMM yyyy", {
@@ -157,6 +157,15 @@ export default function BloggPage() {
                         })}
                       </div>
                     </div>
+                    {post.keywords && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {post.keywords.split(",").slice(0, 3).map((keyword: string, index: number) => (
+                          <Badge key={index} variant="secondary" className="text-xs">
+                            {keyword.trim()}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </Link>

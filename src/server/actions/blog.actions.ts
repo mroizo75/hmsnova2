@@ -32,8 +32,9 @@ export async function getPublishedPosts() {
         coverImage: post.coverImage,
         publishedAt: post.publishedAt?.toISOString() || new Date().toISOString(),
         category: post.category,
-        author: { name: post.author.name || "HMS Nova", image: post.author.image },
+        author: { name: "HMS Nova", image: post.author.image },
         viewCount: post.viewCount,
+        keywords: post.keywords,
       })),
     };
   } catch (error) {
@@ -78,7 +79,8 @@ export async function getPostBySlug(slug: string) {
         viewCount: post.viewCount + 1,
         category: post.category,
         tags: post.tags,
-        author: { name: post.author.name || "HMS Nova", image: post.author.image },
+        keywords: post.keywords,
+        author: { name: "HMS Nova", image: post.author.image },
       },
     };
   } catch (error) {
@@ -181,6 +183,7 @@ export async function upsertBlogPost(data: any) {
       excerpt: data.excerpt,
       content: data.content,
       coverImage: data.coverImage,
+      keywords: data.keywords || null,
       status: data.status,
       publishedAt: data.status === "PUBLISHED" ? new Date() : null,
       categoryId: data.categoryId,
