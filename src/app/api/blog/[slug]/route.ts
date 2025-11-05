@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -10,8 +9,11 @@ export async function GET(
 ) {
   try {
     const { slug } = await params;
+    
+    // Lazy load db to avoid build-time evaluation
+    const { db } = await import("@/lib/db");
 
-    if (!db || !db.blogPost) {
+    if (!db?.blogPost) {
       return NextResponse.json(
         { error: "Database not available" },
         { status: 503 }

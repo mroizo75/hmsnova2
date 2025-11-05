@@ -50,7 +50,11 @@ interface BlogPost {
 
 async function getBlogPosts(): Promise<BlogPost[]> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const isServer = typeof window === 'undefined';
+    const baseUrl = isServer 
+      ? (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000')
+      : '';
+    
     const res = await fetch(`${baseUrl}/api/blog`, {
       cache: 'no-store',
       headers: {

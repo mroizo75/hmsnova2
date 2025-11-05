@@ -52,7 +52,12 @@ interface BlogPost {
 
 async function getBlogPost(slug: string): Promise<BlogPost | null> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    // Use internal URL during build, external URL at runtime
+    const isServer = typeof window === 'undefined';
+    const baseUrl = isServer 
+      ? (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000')
+      : '';
+    
     const res = await fetch(`${baseUrl}/api/blog/${slug}`, {
       cache: 'no-store',
       headers: {
@@ -73,7 +78,11 @@ async function getBlogPost(slug: string): Promise<BlogPost | null> {
 
 async function getRelatedPosts(slug: string): Promise<BlogPost[]> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const isServer = typeof window === 'undefined';
+    const baseUrl = isServer 
+      ? (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000')
+      : '';
+    
     const res = await fetch(`${baseUrl}/api/blog/${slug}/related`, {
       cache: 'no-store',
       headers: {
