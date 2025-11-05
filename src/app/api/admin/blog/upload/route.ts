@@ -75,12 +75,12 @@ export async function POST(request: NextRequest) {
       })
     );
 
-    // Generate signed URL for public access (1 year expiry)
+    // Generate signed URL for public access (7 days expiry - R2 max)
     const getCommand = new GetObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,
     });
-    const url = await getSignedUrl(s3Client, getCommand, { expiresIn: 31536000 });
+    const url = await getSignedUrl(s3Client, getCommand, { expiresIn: 604800 });
 
     return NextResponse.json({
       url,
