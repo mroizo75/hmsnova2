@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Edit, Eye } from "lucide-react";
+import { Plus, Trash2, Edit, Eye, X } from "lucide-react";
 import { getAllPostsAdmin, upsertBlogPost, deleteBlogPost } from "@/server/actions/blog.actions";
 import { useToast } from "@/hooks/use-toast";
 import { TipTapEditor } from "@/components/admin/tiptap-editor";
@@ -28,6 +28,8 @@ export default function AdminBlogPage() {
   const [content, setContent] = useState("");
   const [coverImageUrl, setCoverImageUrl] = useState("");
   const [coverImageKey, setCoverImageKey] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
 
   useEffect(() => {
     loadPosts();
@@ -48,6 +50,8 @@ export default function AdminBlogPage() {
     setContent("");
     setCoverImageUrl("");
     setCoverImageKey("");
+    setTags([]);
+    setTagInput("");
     setDialogOpen(true);
   }
 
@@ -56,6 +60,8 @@ export default function AdminBlogPage() {
     setContent(post.content || "");
     setCoverImageUrl(post.coverImage || "");
     setCoverImageKey("");
+    setTags(post.keywords ? post.keywords.split(",").map((k: string) => k.trim()) : []);
+    setTagInput("");
     setDialogOpen(true);
   }
 
@@ -89,6 +95,7 @@ export default function AdminBlogPage() {
       coverImage: coverImageUrl || null,
       status: formData.get("status") as string,
       categoryId: formData.get("categoryId") as string || null,
+      keywords: tags.join(", "),
     };
 
     const result = await upsertBlogPost(data);
@@ -98,6 +105,8 @@ export default function AdminBlogPage() {
       setContent("");
       setCoverImageUrl("");
       setCoverImageKey("");
+      setTags([]);
+      setTagInput("");
       loadPosts();
     } else {
       toast({ variant: "destructive", title: "Feil", description: result.error });
@@ -171,6 +180,61 @@ export default function AdminBlogPage() {
                   onChange={setContent}
                   placeholder="Skriv artikkelinnholdet ditt her..."
                 />
+              </div>
+
+              <div>
+                <Label htmlFor="tags">Nøkkelord / Tags (for SEO)</Label>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Input
+                      id="tags"
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          const newTag = tagInput.trim();
+                          if (newTag && !tags.includes(newTag)) {
+                            setTags([...tags, newTag]);
+                            setTagInput("");
+                          }
+                        }
+                      }}
+                      placeholder="Skriv inn nøkkelord og trykk Enter"
+                      disabled={submitting}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        const newTag = tagInput.trim();
+                        if (newTag && !tags.includes(newTag)) {
+                          setTags([...tags, newTag]);
+                          setTagInput("");
+                        }
+                      }}
+                      disabled={submitting || !tagInput.trim()}
+                    >
+                      Legg til
+                    </Button>
+                  </div>
+                  {tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {tags.map((tag, index) => (
+                        <Badge key={index} variant="secondary" className="gap-1">
+                          {tag}
+                          <button
+                            type="button"
+                            onClick={() => setTags(tags.filter((_, i) => i !== index))}
+                            className="ml-1 hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div>

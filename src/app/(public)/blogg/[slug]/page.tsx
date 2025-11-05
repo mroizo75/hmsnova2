@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { nb } from "date-fns/locale";
 import { getPostBySlug, getRelatedPosts } from "@/server/actions/blog.actions";
 import { sanitizeHtml } from "@/lib/sanitize-html";
+import { TableOfContents } from "@/components/blog/table-of-contents";
 
 export default function BlogPostPage() {
   const params = useParams();
@@ -124,24 +125,52 @@ export default function BlogPostPage() {
       </section>
 
       <section className="container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto">
-          <Card>
-            <CardContent className="p-8 md:p-12">
-              <div
-                className="prose prose-lg prose-slate max-w-none
-                  prose-headings:font-bold prose-headings:text-foreground
-                  prose-h2:text-3xl prose-h2:mt-8 prose-h2:mb-4
-                  prose-h3:text-2xl prose-h3:mt-6 prose-h3:mb-3
-                  prose-p:text-foreground prose-p:leading-relaxed prose-p:my-4
-                  prose-a:text-primary hover:prose-a:underline
-                  prose-ul:my-4 prose-ul:list-disc prose-ul:pl-6
-                  prose-ol:my-4 prose-ol:list-decimal prose-ol:pl-6
-                  prose-li:my-2 prose-li:text-foreground
-                  prose-img:rounded-lg prose-img:shadow-md prose-img:my-8"
-                dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content) }}
-              />
-            </CardContent>
-          </Card>
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8">
+            {/* Main content */}
+            <div className="min-w-0">
+              <Card>
+                <CardContent className="p-8 md:p-12">
+                  <article
+                    className="prose prose-lg prose-slate max-w-none
+                      prose-headings:font-bold prose-headings:text-foreground prose-headings:scroll-mt-20
+                      prose-h1:text-4xl prose-h1:mt-0 prose-h1:mb-6
+                      prose-h2:text-3xl prose-h2:mt-8 prose-h2:mb-4
+                      prose-h3:text-2xl prose-h3:mt-6 prose-h3:mb-3
+                      prose-p:text-foreground prose-p:leading-relaxed prose-p:my-4
+                      prose-a:text-primary hover:prose-a:underline
+                      prose-ul:my-4 prose-ul:list-disc prose-ul:pl-6
+                      prose-ol:my-4 prose-ol:list-decimal prose-ol:pl-6
+                      prose-li:my-2 prose-li:text-foreground
+                      prose-img:rounded-lg prose-img:shadow-md prose-img:my-8
+                      prose-code:text-primary prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded
+                      prose-pre:bg-muted prose-pre:border"
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content) }}
+                  />
+                </CardContent>
+              </Card>
+
+              {post.keywords && (
+                <div className="mt-8 flex flex-wrap gap-2">
+                  <span className="text-sm text-muted-foreground">Nøkkelord:</span>
+                  {post.keywords.split(",").map((keyword: string, index: number) => (
+                    <Badge key={index} variant="secondary">
+                      {keyword.trim()}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Table of Contents - Sticky sidebar */}
+            <aside className="hidden lg:block">
+              <div className="sticky top-20">
+                <Card className="p-6">
+                  <TableOfContents />
+                </Card>
+              </div>
+            </aside>
+          </div>
         </div>
       </section>
 
