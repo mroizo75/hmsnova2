@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
+// GHS/CLP Faresymboler
 const HAZARD_PICTOGRAMS = [
   { id: "brannfarlig", name: "Brannfarlig", file: "brannfarlig.webp" },
   { id: "etsende", name: "Etsende", file: "etsende.webp" },
@@ -63,6 +63,7 @@ export function HazardPictogramSelector({ defaultValue, onChange }: HazardPictog
                 ? "border-primary bg-primary/5 ring-2 ring-primary"
                 : "border-gray-200 hover:border-gray-300"
             )}
+            title={pictogram.name}
           >
             <Image
               src={`/faremerker/${pictogram.file}`}

@@ -1,5 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <polygon points="50,5 95,95 5,95" fill="white" stroke="red" stroke-width="3"/>
-  <rect x="30" y="30" width="40" height="40" fill="red"/>
-  <text x="50" y="90" text-anchor="middle" font-size="12" fill="black">GHS04</text>
-</svg>

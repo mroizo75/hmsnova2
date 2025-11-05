@@ -87,28 +87,32 @@ export default async function AnsattStoffkartotek() {
                         )}
                       </div>
 
-                      {/* Farepiktogrammer */}
-                      {chemical.warningPictograms && Array.isArray(chemical.warningPictograms) && chemical.warningPictograms.length > 0 && (() => {
-                        const pictograms = chemical.warningPictograms as unknown as string[];
-                        return (
-                          <div className="flex flex-wrap gap-1 mb-2">
-                            {pictograms.slice(0, 4).map((pic, idx) => (
-                              <div key={idx} className="h-8 w-8 relative">
-                                <Image
-                                  src={`/hazard-pictograms/${pic}`}
-                                  alt="Farepiktogram"
-                                  fill
-                                  className="object-contain"
-                                />
-                              </div>
-                            ))}
-                            {pictograms.length > 4 && (
-                              <div className="h-8 w-8 rounded bg-gray-200 flex items-center justify-center text-xs">
-                                +{pictograms.length - 4}
-                              </div>
-                            )}
-                          </div>
-                        );
+                      {/* Faresymboler */}
+                      {chemical.warningPictograms && (() => {
+                        try {
+                          const pictograms = JSON.parse(chemical.warningPictograms);
+                          return Array.isArray(pictograms) && pictograms.length > 0 ? (
+                            <div className="flex flex-wrap gap-1 mb-2">
+                              {pictograms.slice(0, 4).map((pic: string, idx: number) => (
+                                <div key={idx} className="h-8 w-8 relative">
+                                  <Image
+                                    src={`/faremerker/${pic}`}
+                                    alt="Farepiktogram"
+                                    fill
+                                    className="object-contain"
+                                  />
+                                </div>
+                              ))}
+                              {pictograms.length > 4 && (
+                                <div className="h-8 w-8 rounded bg-gray-200 flex items-center justify-center text-xs">
+                                  +{pictograms.length - 4}
+                                </div>
+                              )}
+                            </div>
+                          ) : null;
+                        } catch {
+                          return null;
+                        }
                       })()}
 
                       {/* PPE */}
