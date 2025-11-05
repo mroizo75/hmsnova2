@@ -205,6 +205,7 @@ export default async function FormsPage({
                   <TableHead>Skjemanavn</TableHead>
                   <TableHead>Kategori</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Tilgang</TableHead>
                   <TableHead className="text-right">Felt</TableHead>
                   <TableHead className="text-right">Utfyllinger</TableHead>
                   <TableHead>Sist brukt</TableHead>
@@ -237,6 +238,9 @@ export default async function FormsPage({
                       ) : (
                         <Badge variant="secondary">Inaktiv</Badge>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      {getAccessLabel(form.accessType, form.allowedRoles, form.allowedUsers)}
                     </TableCell>
                     <TableCell className="text-right">
                       <span className="text-muted-foreground">{form._count.fields}</span>
@@ -396,4 +400,84 @@ function getCategoryLabel(category: string): string {
     CHECKLIST: "Sjekkliste",
   };
   return labels[category] || category;
+}
+
+const roleLabels: Record<string, string> = {
+  ADMIN: "Admin",
+  HMS: "HMS",
+  LEDER: "Leder",
+  VERNEOMBUD: "Verneombud",
+  ANSATT: "Ansatt",
+  BHT: "BHT",
+  REVISOR: "Revisor",
+};
+
+function getAccessLabel(accessType: string, allowedRoles: string | null, allowedUsers: string | null) {
+  if (accessType === "ALL") {
+    return <span className="text-sm text-muted-foreground">Alle</span>;
+  }
+
+  if (accessType === "ROLES" && allowedRoles) {
+    try {
+      const roles = JSON.parse(allowedRoles);
+      if (roles.length === 0) return <span className="text-sm text-muted-foreground">Ingen</span>;
+      return (
+        <div className="flex flex-wrap gap-1">
+          {roles.slice(0, 2).map((role: string) => (
+            <Badge key={role} variant="outline" className="text-xs">
+              {roleLabels[role] || role}
+            </Badge>
+          ))}
+          {roles.length > 2 && (
+            <span className="text-xs text-muted-foreground">+{roles.length - 2}</span>
+          )}
+        </div>
+      );
+    } catch {
+      return <span className="text-sm text-muted-foreground">-</span>;
+    }
+  }
+
+  if (accessType === "USERS" && allowedUsers) {
+    try {
+      const users = JSON.parse(allowedUsers);
+      return (
+        <div className="flex items-center gap-1">
+          <Badge variant="outline" className="text-xs">
+            {users.length} bruker{users.length !== 1 ? "e" : ""}
+          </Badge>
+        </div>
+      );
+    } catch {
+      return <span className="text-sm text-muted-foreground">-</span>;
+    }
+  }
+
+  if (accessType === "ROLES_AND_USERS") {
+    try {
+      const roles = allowedRoles ? JSON.parse(allowedRoles) : [];
+      const users = allowedUsers ? JSON.parse(allowedUsers) : [];
+      return (
+        <div className="flex flex-wrap gap-1">
+          {roles.slice(0, 1).map((role: string) => (
+            <Badge key={role} variant="outline" className="text-xs">
+              {roleLabels[role] || role}
+            </Badge>
+          ))}
+          {roles.length > 1 && (
+            <span className="text-xs text-muted-foreground">+{roles.length - 1}</span>
+          )}
+          {users.length > 0 && (
+            <Badge variant="outline" className="text-xs">
+              {users.length} bruker{users.length !== 1 ? "e" : ""}
+            </Badge>
+          )}
+        </div>
+      );
+    } catch {
+      return <span className="text-sm text-muted-foreground">-</span>;
+    }
+  }
+
+  return <span className="text-sm text-muted-foreground">-</span>;
 }
