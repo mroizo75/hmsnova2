@@ -1,6 +1,5 @@
 import { MetadataRoute } from "next";
 import { SITE_CONFIG } from "@/lib/seo-config";
-import { db } from "@/lib/db";
 
 /**
  * Dynamisk sitemap for HMS Nova
@@ -106,6 +105,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Fetch blogg-poster fra database
   try {
+    const { db } = await import("@/lib/db");
     const blogPosts = await db.blogPost.findMany({
       where: {
         status: "PUBLISHED",

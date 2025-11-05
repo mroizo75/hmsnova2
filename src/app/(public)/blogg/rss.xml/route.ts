@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { SITE_CONFIG } from "@/lib/seo-config";
-import { db } from "@/lib/db";
 
 // Tving route til å være dynamisk (ikke pre-rendret under bygging)
 export const dynamic = 'force-dynamic';
@@ -12,6 +11,9 @@ export const revalidate = 3600;
  */
 export async function GET() {
   try {
+    // Lazy load db to avoid build-time evaluation
+    const { db } = await import("@/lib/db");
+
     // Sjekk at database er tilgjengelig
     if (!db || !db.blogPost) {
       return new NextResponse("RSS feed temporarily unavailable", { 
