@@ -136,47 +136,46 @@ export default async function AnsattOpplaering() {
           ) : (
             <div className="space-y-3">
               {myTrainings.map((training) => (
-                <div
-                  key={training.id}
-                  className="flex items-start gap-4 p-4 border rounded-lg"
-                >
-                  <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                    <GraduationCap className="h-5 w-5 text-blue-600" />
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold mb-1">{training.title}</h3>
-                    
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-2">
-                      {training.completedAt && (
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          Gjennomført: {new Date(training.completedAt).toLocaleDateString("nb-NO")}
-                        </span>
-                      )}
+                <Link key={training.id} href={`/ansatt/opplaering/${training.id}`}>
+                  <div className="flex items-start gap-4 p-4 border rounded-lg hover:shadow-md transition-shadow cursor-pointer">
+                    <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                      <GraduationCap className="h-5 w-5 text-blue-600" />
                     </div>
 
-                    {/* Status */}
-                    {training.effectiveness === null ? (
-                      <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
-                        <AlertCircle className="h-3 w-3 mr-1" />
-                        Venter på godkjenning
-                      </Badge>
-                    ) : (
-                      <div className="flex flex-col gap-1">
-                        <Badge variant="secondary" className="bg-green-100 text-green-700 w-fit">
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Godkjent
-                        </Badge>
-                        {training.evaluatedBy && (
-                          <span className="text-xs text-muted-foreground">
-                            Godkjent av: {training.evaluatedBy}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold mb-1">{training.title}</h3>
+                      
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-2">
+                        {training.completedAt && (
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            Gjennomført: {new Date(training.completedAt).toLocaleDateString("nb-NO")}
                           </span>
                         )}
                       </div>
-                    )}
+
+                      {/* Status */}
+                      {training.effectiveness === null ? (
+                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
+                          <AlertCircle className="h-3 w-3 mr-1" />
+                          Venter på godkjenning
+                        </Badge>
+                      ) : (
+                        <div className="flex flex-col gap-1">
+                          <Badge variant="secondary" className="bg-green-100 text-green-700 w-fit">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Godkjent
+                          </Badge>
+                          {training.evaluatedBy && (
+                            <span className="text-xs text-muted-foreground">
+                              Godkjent av: {training.evaluatedBy}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
