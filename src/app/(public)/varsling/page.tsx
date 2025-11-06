@@ -55,7 +55,7 @@ export default function WhistleblowingInfoPage() {
               <p className="text-sm text-muted-foreground mb-4">
                 Bruk den unike lenken du har mottatt, for eksempel: <br />
                 <code className="text-xs bg-muted px-2 py-1 rounded">
-                  hmsnova.com/varsling/bedriftsnavn
+                  hmsnova.no/varsling/bedriftsnavn
                 </code>
               </p>
             </CardContent>

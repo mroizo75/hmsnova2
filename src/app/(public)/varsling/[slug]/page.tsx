@@ -236,11 +236,11 @@ export default function TenantWhistleblowingPage() {
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-6 w-6 text-green-600" />
                 <CardTitle className="text-green-900 dark:text-green-100">
-                  Varsling mottatt
+                  ✅ Varsling sendt til {tenant.name}
                 </CardTitle>
               </div>
               <CardDescription className="text-green-700 dark:text-green-300">
-                Din varsling er nå registrert og vil bli behandlet konfidensielt
+                Din varsling er nå registrert hos {tenant.name} og vil bli behandlet konfidensielt av deres HMS-ansvarlige eller ledelse
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -299,15 +299,26 @@ export default function TenantWhistleblowingPage() {
           <Link href="/">
             <h1 className="text-3xl font-bold">HMS Nova</h1>
           </Link>
-          <p className="mt-2 text-muted-foreground">Anonym varsling til {tenant.name}</p>
+          <p className="mt-2 text-lg font-semibold text-primary">Anonym varsling til {tenant.name}</p>
         </div>
 
+        <Alert className="mb-6 border-green-500 bg-green-50 dark:border-green-700 dark:bg-green-950">
+          <Shield className="h-4 w-4 text-green-600" />
+          <AlertTitle className="text-green-900 dark:text-green-100">
+            ✅ Din varsling går direkte til {tenant.name}
+          </AlertTitle>
+          <AlertDescription className="text-green-800 dark:text-green-200">
+            <strong>Denne varslingen sendes kun til {tenant.name}.</strong> Ingen andre bedrifter eller HMS Nova ser denne varslingen. 
+            All informasjon behandles konfidensielt av bedriftens HMS-ansvarlige eller ledelse.
+          </AlertDescription>
+        </Alert>
+
         <Alert className="mb-6">
-          <Shield className="h-4 w-4" />
-          <AlertTitle>Konfidensielt og trygt</AlertTitle>
+          <Lock className="h-4 w-4" />
+          <AlertTitle>100% konfidensielt</AlertTitle>
           <AlertDescription>
-            All informasjon du sender blir behandlet konfidensielt. Du kan velge å være helt
-            anonym eller oppgi kontaktinformasjon hvis du ønsker det.
+            Du kan velge å være helt anonym eller oppgi kontaktinformasjon hvis du ønsker tilbakemelding. 
+            Alle varslinger behandles etter arbeidsmiljølovens varslingsregler.
           </AlertDescription>
         </Alert>
 

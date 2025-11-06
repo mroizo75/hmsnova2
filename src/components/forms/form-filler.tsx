@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { SignaturePad } from "./signature-pad";
 import { ArrowLeft, Send, Save, Upload } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 
 interface FormField {
@@ -318,13 +319,25 @@ export function FormFiller({ form, userId, tenantId, returnUrl = "/dashboard/for
         {form.requiresSignature && (
           <Card>
             <CardHeader>
-              <CardTitle>
-                Digital signatur
-                <span className="text-destructive ml-1">*</span>
+              <CardTitle className="flex items-center justify-between">
+                <span>
+                  Digital signatur
+                  <span className="text-destructive ml-1">*</span>
+                </span>
+                {signature && (
+                  <Badge variant="default" className="bg-green-600">
+                    ✅ Signatur bekreftet
+                  </Badge>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <SignaturePad onSave={handleSignature} initialValue={signature} />
+              {signature && (
+                <p className="text-sm text-green-600 mt-3 font-medium">
+                  ✓ Din signatur er lagret og vil bli inkludert i skjemaet
+                </p>
+              )}
             </CardContent>
           </Card>
         )}

@@ -32,7 +32,7 @@ export default async function AnsattVarslingPage() {
   const tenantSlug = userTenant?.tenant?.slug || "";
   const tenantName = userTenant?.tenant?.name || "din bedrift";
   const whistleblowUrl = tenantSlug 
-    ? `${process.env.NEXT_PUBLIC_URL || "https://hmsnova.com"}/varsling/${tenantSlug}`
+    ? `${process.env.NEXT_PUBLIC_URL || "https://hmsnova.no"}/varsling/${tenantSlug}`
     : "";
 
   return (
@@ -179,20 +179,36 @@ export default async function AnsattVarslingPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
-            Varslingslenke for {tenantName}
+            {tenantName} sin unike varslingskanal
           </CardTitle>
           <CardDescription className="text-green-700">
-            Denne lenken kan deles med både ansatte og eksterne
+            Dette er din bedrifts egen, private varslingskanal
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <Alert className="bg-white border-green-300">
+            <Shield className="h-4 w-4 text-green-600" />
+            <AlertTitle className="text-green-900">✅ Varslinger går direkte til {tenantName}</AlertTitle>
+            <AlertDescription className="text-green-800">
+              Alle varslinger som sendes via denne lenken går <strong>kun</strong> til din bedrifts HMS-ansvarlige eller ledelse. 
+              Ingen andre bedrifter eller HMS Nova ser disse varslingene.
+            </AlertDescription>
+          </Alert>
+
           <div className="rounded-lg bg-white p-4 border border-green-200">
-            <p className="text-sm text-muted-foreground mb-2">Direkte lenke:</p>
+            <p className="text-sm text-muted-foreground mb-2">Din bedrifts varslingslenke:</p>
             <p className="text-lg font-mono font-bold text-green-900 break-all">{whistleblowUrl}</p>
           </div>
-          <p className="text-sm text-green-700 mt-3">
-            💡 <strong>Tips:</strong> Denne lenken kan deles på plakater, intranett, eller via e-post
-          </p>
+          
+          <div className="bg-white rounded-lg p-4 border border-green-200">
+            <p className="text-xs font-medium text-green-900 mb-2">💡 Slik fungerer det:</p>
+            <ul className="text-xs text-green-800 space-y-1">
+              <li>• Varslinger lagres <strong>kun</strong> i {tenantName} sin database</li>
+              <li>• Kun autoriserte personer i {tenantName} kan lese varslingene</li>
+              <li>• Varsler kan være 100% anonyme med kommunikasjon via saksnummer</li>
+              <li>• Lenken kan trygt deles med ansatte og eksterne</li>
+            </ul>
+          </div>
         </CardContent>
       </Card>
 
