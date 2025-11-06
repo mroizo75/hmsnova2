@@ -3,13 +3,14 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, CheckCircle2, AlertTriangle, XCircle, Clock } from "lucide-react";
+import { GraduationCap, CheckCircle2, AlertTriangle, XCircle, Clock, Download } from "lucide-react";
 import {
   getTrainingStatus,
   getTrainingStatusLabel,
   STANDARD_COURSES,
 } from "@/features/training/schemas/training.schema";
 import type { Training } from "@prisma/client";
+import { useRef } from "react";
 
 interface CompetenceMatrixProps {
   matrix: Array<{
@@ -19,6 +20,8 @@ interface CompetenceMatrixProps {
 }
 
 export function CompetenceMatrix({ matrix }: CompetenceMatrixProps) {
+  const tableRef = useRef<HTMLDivElement>(null);
+
   // Get all unique course keys from trainings
   const allCourseKeys = Array.from(
     new Set(matrix.flatMap((m) => m.trainings.map((t) => t.courseKey)))
@@ -46,6 +49,10 @@ export function CompetenceMatrix({ matrix }: CompetenceMatrixProps) {
       }
     }
   });
+
+  const handleExportPDF = () => {
+    window.print();
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -99,17 +106,26 @@ export function CompetenceMatrix({ matrix }: CompetenceMatrixProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <GraduationCap className="h-5 w-5" />
-          Kompetansematrise
-        </CardTitle>
-        <CardDescription>
-          Oversikt over hvilken kompetanse hver ansatt har. ISO 9001: Dokumentert kompetanse.
-        </CardDescription>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <GraduationCap className="h-5 w-5" />
+              Kompetansematrise
+            </CardTitle>
+            <CardDescription>
+              Oversikt over hvilken kompetanse hver ansatt har. ISO 9001: Dokumentert kompetanse.
+            </CardDescription>
+          </div>
+          <Button onClick={handleExportPDF} variant="outline" className="print:hidden">
+            <Download className="mr-2 h-4 w-4" />
+            Eksporter til PDF
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
+        <div className="overflow-x-auto -mx-6 px-6" ref={tableRef}>
+          <div className="min-w-full inline-block align-middle">
+            <table className="w-full border-collapse min-w-max">
             <thead>
               <tr className="border-b">
                 <th className="text-left p-3 font-semibold bg-muted/50 sticky left-0 z-10">
@@ -189,10 +205,11 @@ export function CompetenceMatrix({ matrix }: CompetenceMatrixProps) {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* Legend */}
-        <div className="mt-6 flex flex-wrap gap-4 items-center justify-center border-t pt-4">
+        <div className="mt-6 flex flex-wrap gap-4 items-center justify-center border-t pt-4 print:hidden">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-green-600" />
             <span className="text-sm">Gyldig</span>

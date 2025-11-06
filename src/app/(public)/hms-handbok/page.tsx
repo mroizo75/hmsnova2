@@ -210,7 +210,7 @@ export default function HMSHandbokPage() {
                 <p className="text-primary-foreground/90 mb-6">
                   Ingen skjulte kostnader. Ingen kredittkort. Start i dag.
                 </p>
-                <Button size="lg" variant="secondary" asChild>
+                <Button size="lg" className="bg-green-700 hover:bg-green-800 text-white" asChild>
                   <Link href="/gratis-hms-system">
                     Kom i gang nå – helt gratis
                     <ArrowRight className="ml-2 h-5 w-5" />

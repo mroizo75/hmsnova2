@@ -76,7 +76,7 @@ export default function HomePage() {
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <RegisterDialog>
-            <Button size="lg" className="text-lg px-8">
+            <Button size="lg" className="text-lg px-8 bg-green-700 hover:bg-green-800 text-white">
               Kom i gang nå
               <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
             </Button>
@@ -508,7 +508,7 @@ export default function HomePage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <RegisterDialog>
-                <Button size="lg" variant="secondary" className="text-lg px-8">
+                <Button size="lg" className="text-lg px-8 bg-green-700 hover:bg-green-800 text-white">
                   Kom i gang nå
                   <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
                 </Button>
