@@ -378,36 +378,24 @@ async function main() {
 
   console.log("✅ Faktura opprettet:", invoice.id);
 
-  // Slett eksisterende demo-data for Test Bedrift AS (for å unngå unique constraint errors)
-  console.log("🗑️  Rydder opp eksisterende demo-data...");
-  await prisma.inspectionFinding.deleteMany({ where: { inspection: { tenantId: tenant.id } } });
-  await prisma.inspection.deleteMany({ where: { tenantId: tenant.id } });
-  await prisma.auditFinding.deleteMany({ where: { audit: { tenantId: tenant.id } } });
-  await prisma.audit.deleteMany({ where: { tenantId: tenant.id } });
-  await prisma.whistleblowMessage.deleteMany({ where: { whistleblowing: { tenantId: tenant.id } } });
-  await prisma.whistleblowing.deleteMany({ where: { tenantId: tenant.id } });
-  await prisma.meetingDecision.deleteMany({ where: { meeting: { tenantId: tenant.id } } });
-  await prisma.meetingParticipant.deleteMany({ where: { meeting: { tenantId: tenant.id } } });
-  await prisma.meeting.deleteMany({ where: { tenantId: tenant.id } });
-  await prisma.managementReview.deleteMany({ where: { tenantId: tenant.id } });
-  await prisma.kpiMeasurement.deleteMany({ where: { tenantId: tenant.id } });
-  await prisma.training.deleteMany({ where: { tenantId: tenant.id } });
-  await prisma.chemical.deleteMany({ where: { tenantId: tenant.id } });
-  await prisma.measure.deleteMany({ where: { tenantId: tenant.id } });
-  await prisma.incident.deleteMany({ where: { tenantId: tenant.id } });
-  await prisma.risk.deleteMany({ where: { tenantId: tenant.id } });
-  await prisma.documentVersion.deleteMany({ where: { tenantId: tenant.id } });
-  await prisma.document.deleteMany({ where: { tenantId: tenant.id } });
-  await prisma.goal.deleteMany({ where: { tenantId: tenant.id } });
-  console.log("✅ Eksisterende demo-data slettet");
+  // VIKTIG: Seed-filen sletter IKKE eksisterende data!
+  // Dette er for å beskytte ekte produksjonsdata fra å bli slettet ved kjøring av seed.
+  // Hvis du vil starte på nytt med kun demo-data, må du manuelt tømme databasen først.
+  console.log("ℹ️  Seed-scriptet beholder eksisterende data. Demo-data hoppes over hvis de allerede finnes...");
 
-  // Opprett eksempel dokumenter
-  const doc1 = await prisma.document.create({
-    data: {
-      tenantId: tenant.id,
-      title: "HMS-håndbok 2024",
-      slug: "hms-handbok-2024",
-      fileKey: "demo/hms-handbok.pdf",
+  // Opprett demo-data (kun hvis databasen er tom)
+  const existingDataCount = await prisma.document.count({ where: { tenantId: tenant.id } });
+  
+  if (existingDataCount === 0) {
+    console.log("📦 Oppretter demo-data siden databasen er tom...");
+    
+    // Opprett eksempel dokumenter
+    const doc1 = await prisma.document.create({
+      data: {
+        tenantId: tenant.id,
+        title: "HMS-håndbok 2024",
+        slug: "hms-handbok-2024",
+        fileKey: "demo/hms-handbok.pdf",
       kind: "OTHER",
       version: "1.0",
       status: "APPROVED",
@@ -847,6 +835,9 @@ async function main() {
   });
 
   console.log("✅ Varsling opprettet:", whistleblow1.caseNumber, "med", 4, "meldinger");
+  } else {
+    console.log("ℹ️  Databasen har allerede data - demo-data hoppes over for å beskytte eksisterende data");
+  }
 
   console.log("\n🎉 Seeding fullført!");
   console.log("\n📊 DEMO DATA OPPSUMMERING:");

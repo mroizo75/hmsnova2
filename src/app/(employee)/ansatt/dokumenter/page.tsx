@@ -29,27 +29,41 @@ export default async function AnsattDokumenter() {
 
   const userRole = userTenant?.role || "ANSATT";
 
-  // Hent godkjente dokumenter som brukeren har tilgang til
-  const documents = await prisma.document.findMany({
+  // Hent alle godkjente dokumenter for denne tenanten
+  const allDocuments = await prisma.document.findMany({
     where: {
       tenantId: session.user.tenantId,
       status: "APPROVED", // Kun godkjente dokumenter for ansatte
-      OR: [
-        { visibleToRoles: null }, // Dokumenter synlige for alle
-        { visibleToRoles: { equals: null } }, // Eksplisitt null
-        {
-          visibleToRoles: {
-            path: "$",
-            array_contains: userRole, // Dokumenter der brukerens rolle er inkludert
-          },
-        },
-      ],
     },
     orderBy: {
       updatedAt: "desc",
     },
-    take: 50,
+    take: 200, // Hent flere for å kunne filtrere
   });
+
+  // Filtrer basert på roller i JavaScript (siden JSON-filtering i Prisma er komplisert)
+  const documents = allDocuments.filter((doc) => {
+    if (!doc.visibleToRoles) {
+      // Ingen rolle-restriksjoner = synlig for alle
+      return true;
+    }
+    try {
+      const roles = typeof doc.visibleToRoles === "string" 
+        ? JSON.parse(doc.visibleToRoles) 
+        : doc.visibleToRoles;
+      
+      if (!Array.isArray(roles) || roles.length === 0) {
+        // Tom array eller ikke en array = synlig for alle
+        return true;
+      }
+      
+      // Sjekk om brukerens rolle er i listen
+      return roles.includes(userRole);
+    } catch (error) {
+      console.error("Feil ved parsing av visibleToRoles:", error);
+      return true; // Vis dokumentet hvis det er feil i dataene
+    }
+  }).slice(0, 50); // Begrens til 50 dokumenter
 
   return (
     <div className="space-y-6">
