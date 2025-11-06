@@ -10,7 +10,7 @@ import {
   STANDARD_COURSES,
 } from "@/features/training/schemas/training.schema";
 import type { Training } from "@prisma/client";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 interface CompetenceMatrixProps {
   matrix: Array<{
@@ -52,18 +52,129 @@ export function CompetenceMatrix({ matrix }: CompetenceMatrixProps) {
 
   const handleExportPDF = async () => {
     try {
-      const response = await fetch("/api/training/matrix-pdf");
-      if (!response.ok) throw new Error("PDF generation failed");
+      const { default: jsPDF } = await import("jspdf");
+      const { default: autoTable } = await import("jspdf-autotable");
+
+      const doc = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
+      });
+
+      // Tittel
+      doc.setFontSize(16);
+      doc.text("Kompetansematrise", 148, 12, { align: "center" });
       
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `kompetansematrise-${new Date().toISOString().split("T")[0]}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      doc.setFontSize(9);
+      doc.text(
+        `Generert: ${new Date().toLocaleDateString("nb-NO")}`,
+        148,
+        18,
+        { align: "center" }
+      );
+
+      // Forbered tabell data med kortere kurs-navn
+      const shortCourseTitles = courses.map((c) => {
+        // Forkorte lange kursnavn
+        if (c.title.length > 20) {
+          return c.title.substring(0, 17) + "...";
+        }
+        return c.title;
+      });
+
+      const tableHead = [["Ansatt", ...shortCourseTitles]];
+      const tableBody = matrix.map((item) => {
+        const row = [
+          item.user.name || "Ukjent",
+          ...courses.map((course) => {
+            const training = item.trainings.find((t) => t.courseKey === course.key);
+            if (!training) {
+              return course.isRequired ? "✗" : "-";
+            }
+            const status = getTrainingStatus(training);
+            let statusText = "-";
+            if (status === "VALID" || status === "COMPLETED") {
+              statusText = "✓";
+            } else if (status === "EXPIRING_SOON") {
+              statusText = "⚠";
+            } else if (status === "EXPIRED") {
+              statusText = "✗";
+            }
+            if (training.validUntil) {
+              const date = new Date(training.validUntil).toLocaleDateString("nb-NO", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "2-digit",
+              });
+              statusText += `\n${date}`;
+            }
+            return statusText;
+          }),
+        ];
+        return row;
+      });
+
+      // Beregn kolonne-bredde dynamisk basert på antall kurs
+      const pageWidth = doc.internal.pageSize.width - 20; // margins
+      const nameColWidth = 35;
+      const availableWidth = pageWidth - nameColWidth;
+      const courseColWidth = Math.max(10, Math.min(20, availableWidth / courses.length));
+
+      const columnStyles: any = { 0: { cellWidth: nameColWidth, fontStyle: "bold" } };
+      for (let i = 1; i <= courses.length; i++) {
+        columnStyles[i] = { cellWidth: courseColWidth, halign: "center" };
+      }
+
+      autoTable(doc, {
+        head: tableHead,
+        body: tableBody,
+        startY: 23,
+        theme: "grid",
+        styles: {
+          fontSize: courses.length > 8 ? 6 : 7,
+          cellPadding: 1.5,
+          overflow: "linebreak",
+          lineWidth: 0.1,
+        },
+        headStyles: {
+          fillColor: [71, 85, 105],
+          textColor: 255,
+          fontStyle: "bold",
+          halign: "center",
+          fontSize: courses.length > 8 ? 6 : 7,
+          cellPadding: 2,
+        },
+        columnStyles: columnStyles,
+        margin: { left: 10, right: 10 },
+        didParseCell: function (data) {
+          if (data.section === "body" && data.column.index > 0) {
+            const cellText = data.cell.text.join("");
+            if (cellText.includes("✓")) {
+              data.cell.styles.textColor = [22, 163, 74];
+              data.cell.styles.fontStyle = "bold";
+            } else if (cellText.includes("⚠")) {
+              data.cell.styles.textColor = [202, 138, 4];
+              data.cell.styles.fontStyle = "bold";
+            } else if (cellText.includes("✗")) {
+              data.cell.styles.textColor = [220, 38, 38];
+              data.cell.styles.fontStyle = "bold";
+            }
+          }
+        },
+      });
+
+      // Footer med forklaring
+      doc.setFontSize(7);
+      doc.setTextColor(100);
+      doc.text(
+        "Forklaring: ✓ = Gyldig kompetanse  |  ⚠ = Utløper snart  |  ✗ = Utløpt eller mangler  |  - = Ikke påkrevd",
+        148,
+        doc.internal.pageSize.height - 8,
+        { align: "center" }
+      );
+
+      // Last ned
+      doc.save(`kompetansematrise-${new Date().toISOString().split("T")[0]}.pdf`);
     } catch (error) {
       console.error("Failed to generate PDF:", error);
       alert("Kunne ikke generere PDF. Vennligst prøv igjen.");
@@ -141,33 +252,38 @@ export function CompetenceMatrix({ matrix }: CompetenceMatrixProps) {
       <CardContent>
         <div className="relative">
           <div 
-            className="overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100" 
+            className="overflow-auto max-h-[70vh] border rounded-lg" 
             ref={tableRef}
-            style={{ 
-              scrollbarWidth: 'thin',
-              scrollbarColor: '#D1D5DB #F3F4F6'
-            }}
           >
-            <table className="w-full border-collapse min-w-max table-fixed"
-              style={{ minWidth: `${120 + (courses.length * 160)}px` }}
-            >
-            <thead>
-              <tr className="border-b">
-                <th className="text-left p-3 font-semibold bg-muted/50 sticky left-0 z-10 bg-background border-r w-[120px]">
-                  Ansatt
+            <table className="w-full border-collapse">
+            <thead className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800">
+              <tr>
+                <th className="text-left p-2 font-semibold sticky left-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b min-w-[150px]">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold">Ansatt</span>
+                  </div>
                 </th>
                 {courses.map((course) => (
                   <th
                     key={course.key}
-                    className="text-center p-3 font-semibold bg-muted/50 w-[160px]"
+                    className="relative p-1 bg-slate-100 dark:bg-slate-800 border-b border-l"
+                    style={{ minWidth: "40px", maxWidth: "50px", width: "50px" }}
                   >
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-sm">{course.title}</span>
-                      {course.isRequired && (
-                        <Badge variant="destructive" className="text-xs">
-                          Påkrevd
-                        </Badge>
-                      )}
+                    <div className="flex items-start justify-center" style={{ height: "120px" }}>
+                      <div 
+                        className="absolute bottom-2 left-1/2 origin-bottom-left text-xs font-semibold whitespace-nowrap"
+                        style={{ 
+                          transform: "rotate(-45deg) translateX(-50%)",
+                          transformOrigin: "0 0",
+                          width: "120px",
+                          textAlign: "left"
+                        }}
+                      >
+                        {course.title}
+                        {course.isRequired && (
+                          <span className="ml-1 text-red-600">*</span>
+                        )}
+                      </div>
                     </div>
                   </th>
                 ))}
@@ -175,10 +291,10 @@ export function CompetenceMatrix({ matrix }: CompetenceMatrixProps) {
             </thead>
             <tbody>
               {matrix.map((item) => (
-                <tr key={item.user.id} className="border-b hover:bg-muted/20">
-                  <td className="p-3 font-medium sticky left-0 bg-background z-10 border-r w-[120px]">
-                    <div className="min-w-[100px]">
-                      <div className="font-semibold">{item.user.name || "Ukjent"}</div>
+                <tr key={item.user.id} className="border-b hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                  <td className="p-2 sticky left-0 bg-background z-10 border-r">
+                    <div className="min-w-[130px]">
+                      <div className="font-semibold text-sm">{item.user.name || "Ukjent"}</div>
                       <div className="text-xs text-muted-foreground truncate">
                         {item.user.email}
                       </div>
@@ -191,35 +307,43 @@ export function CompetenceMatrix({ matrix }: CompetenceMatrixProps) {
 
                     if (!training) {
                       return (
-                        <td key={course.key} className="p-3 text-center w-[160px]">
+                        <td 
+                          key={course.key} 
+                          className="p-1 text-center border-l"
+                          style={{ minWidth: "40px", maxWidth: "50px" }}
+                        >
                           {course.isRequired ? (
-                            <div className="flex flex-col items-center gap-1">
-                              <XCircle className="h-5 w-5 text-red-600" />
-                              <span className="text-xs text-red-600 font-medium">
-                                Mangler
-                              </span>
+                            <div className="flex flex-col items-center" title="Mangler påkrevd kompetanse">
+                              <XCircle className="h-4 w-4 text-red-600" />
                             </div>
                           ) : (
-                            <span className="text-muted-foreground">-</span>
+                            <span className="text-muted-foreground text-xs">-</span>
                           )}
                         </td>
                       );
                     }
 
                     const status = getTrainingStatus(training);
+                    const validDate = training.validUntil 
+                      ? new Date(training.validUntil).toLocaleDateString("nb-NO", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "2-digit",
+                        })
+                      : null;
 
                     return (
-                      <td key={course.key} className="p-3 text-center w-[160px]">
-                        <div className="flex flex-col items-center gap-2">
+                      <td 
+                        key={course.key} 
+                        className="p-1 text-center border-l"
+                        style={{ minWidth: "40px", maxWidth: "50px" }}
+                        title={`${course.title}: ${getTrainingStatusLabel(status)}${validDate ? ` (${validDate})` : ""}`}
+                      >
+                        <div className="flex flex-col items-center gap-0.5">
                           {getStatusIcon(status)}
-                          {getStatusBadge(status)}
-                          {training.validUntil && (
-                            <div className="text-xs text-muted-foreground">
-                              {new Date(training.validUntil).toLocaleDateString("nb-NO", {
-                                day: "2-digit",
-                                month: "2-digit",
-                                year: "2-digit",
-                              })}
+                          {validDate && (
+                            <div className="text-[9px] text-muted-foreground leading-none">
+                              {validDate}
                             </div>
                           )}
                         </div>
@@ -231,31 +355,31 @@ export function CompetenceMatrix({ matrix }: CompetenceMatrixProps) {
             </tbody>
           </table>
           </div>
-          
-          {/* Scroll hint */}
-          <div className="text-center text-sm text-muted-foreground mt-2 md:hidden">
-            ← Scroll sideveis for å se alle kurs →
-          </div>
         </div>
 
-        {/* Legend */}
-        <div className="mt-6 flex flex-wrap gap-4 items-center justify-center border-t pt-4">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
-            <span className="text-sm">Gyldig</span>
+        {/* Legend og info */}
+        <div className="mt-4 space-y-2">
+          <div className="flex flex-wrap gap-4 items-center justify-center p-3 bg-slate-50 dark:bg-slate-900 rounded-lg">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <span className="text-sm">Gyldig</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-yellow-600" />
+              <span className="text-sm">Utløper snart</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <XCircle className="h-4 w-4 text-red-600" />
+              <span className="text-sm">Utløpt/Mangler</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-gray-400" />
+              <span className="text-sm">Ikke startet</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-yellow-600" />
-            <span className="text-sm">Utløper snart</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <XCircle className="h-4 w-4 text-red-600" />
-            <span className="text-sm">Utløpt/Mangler</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-gray-400" />
-            <span className="text-sm">Ikke startet</span>
-          </div>
+          <p className="text-xs text-center text-muted-foreground">
+            * = Påkrevd kompetanse | Hold musepekeren over en celle for mer informasjon
+          </p>
         </div>
       </CardContent>
     </Card>
