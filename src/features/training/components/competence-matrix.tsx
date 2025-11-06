@@ -50,8 +50,24 @@ export function CompetenceMatrix({ matrix }: CompetenceMatrixProps) {
     }
   });
 
-  const handleExportPDF = () => {
-    window.print();
+  const handleExportPDF = async () => {
+    try {
+      const response = await fetch("/api/training/matrix-pdf");
+      if (!response.ok) throw new Error("PDF generation failed");
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `kompetansematrise-${new Date().toISOString().split("T")[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Failed to generate PDF:", error);
+      alert("Kunne ikke generere PDF. Vennligst prøv igjen.");
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -123,18 +139,27 @@ export function CompetenceMatrix({ matrix }: CompetenceMatrixProps) {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto -mx-6 px-6" ref={tableRef}>
-          <div className="min-w-full inline-block align-middle">
-            <table className="w-full border-collapse min-w-max">
+        <div className="relative">
+          <div 
+            className="overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100" 
+            ref={tableRef}
+            style={{ 
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#D1D5DB #F3F4F6'
+            }}
+          >
+            <table className="w-full border-collapse min-w-max table-fixed"
+              style={{ minWidth: `${120 + (courses.length * 160)}px` }}
+            >
             <thead>
               <tr className="border-b">
-                <th className="text-left p-3 font-semibold bg-muted/50 sticky left-0 z-10">
+                <th className="text-left p-3 font-semibold bg-muted/50 sticky left-0 z-10 bg-background border-r w-[120px]">
                   Ansatt
                 </th>
                 {courses.map((course) => (
                   <th
                     key={course.key}
-                    className="text-center p-3 font-semibold bg-muted/50 min-w-[140px]"
+                    className="text-center p-3 font-semibold bg-muted/50 w-[160px]"
                   >
                     <div className="flex flex-col items-center gap-1">
                       <span className="text-sm">{course.title}</span>
@@ -151,10 +176,10 @@ export function CompetenceMatrix({ matrix }: CompetenceMatrixProps) {
             <tbody>
               {matrix.map((item) => (
                 <tr key={item.user.id} className="border-b hover:bg-muted/20">
-                  <td className="p-3 font-medium sticky left-0 bg-background z-10">
-                    <div>
-                      <div>{item.user.name || "Ukjent"}</div>
-                      <div className="text-sm text-muted-foreground">
+                  <td className="p-3 font-medium sticky left-0 bg-background z-10 border-r w-[120px]">
+                    <div className="min-w-[100px]">
+                      <div className="font-semibold">{item.user.name || "Ukjent"}</div>
+                      <div className="text-xs text-muted-foreground truncate">
                         {item.user.email}
                       </div>
                     </div>
@@ -166,7 +191,7 @@ export function CompetenceMatrix({ matrix }: CompetenceMatrixProps) {
 
                     if (!training) {
                       return (
-                        <td key={course.key} className="p-3 text-center">
+                        <td key={course.key} className="p-3 text-center w-[160px]">
                           {course.isRequired ? (
                             <div className="flex flex-col items-center gap-1">
                               <XCircle className="h-5 w-5 text-red-600" />
@@ -184,7 +209,7 @@ export function CompetenceMatrix({ matrix }: CompetenceMatrixProps) {
                     const status = getTrainingStatus(training);
 
                     return (
-                      <td key={course.key} className="p-3 text-center">
+                      <td key={course.key} className="p-3 text-center w-[160px]">
                         <div className="flex flex-col items-center gap-2">
                           {getStatusIcon(status)}
                           {getStatusBadge(status)}
@@ -206,10 +231,15 @@ export function CompetenceMatrix({ matrix }: CompetenceMatrixProps) {
             </tbody>
           </table>
           </div>
+          
+          {/* Scroll hint */}
+          <div className="text-center text-sm text-muted-foreground mt-2 md:hidden">
+            ← Scroll sideveis for å se alle kurs →
+          </div>
         </div>
 
         {/* Legend */}
-        <div className="mt-6 flex flex-wrap gap-4 items-center justify-center border-t pt-4 print:hidden">
+        <div className="mt-6 flex flex-wrap gap-4 items-center justify-center border-t pt-4">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-green-600" />
             <span className="text-sm">Gyldig</span>
