@@ -15,9 +15,6 @@ export type Subjects =
   | "Chemical"
   | "EnvironmentalAspect"
   | "EnvironmentalMeasurement"
-  | "SecurityAsset"
-  | "SecurityControl"
-  | "AccessReview"
   | "FormTemplate"
   | "FormSubmission"
   | "CustomerFeedback";
@@ -148,14 +145,5 @@ function applyDomainPermissions(perms: typeof rolePermissions[Role], can: Abilit
     can(["create", "update"], "EnvironmentalMeasurement");
   }
 
-  if (perms.canReadSecurity) {
-    can("read", ["SecurityAsset", "SecurityControl", "AccessReview"]);
-  }
-  if (perms.canCreateSecurity) {
-    can("create", ["SecurityAsset", "SecurityControl"]);
-  }
-  if (perms.canUpdateSecurity) {
-    can("update", ["SecurityAsset", "SecurityControl", "AccessReview"]);
-  }
 }
 
