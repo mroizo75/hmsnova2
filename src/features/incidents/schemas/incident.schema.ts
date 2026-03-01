@@ -25,9 +25,10 @@ export const createIncidentSchema = z.object({
   severity: z.number().int().min(1).max(5, "Alvorlighetsgrad må være 1-5"),
   occurredAt: z.date(),
   reportedBy: z.string().cuid(),
+  reportedForUserId: z.string().cuid().optional(),
   location: z.string().optional(),
   witnessName: z.string().optional(),
-  immediateAction: z.string().optional(), // ISO 9001: Umiddelbare tiltak
+  immediateAction: z.string().optional(),
   injuryType: z.string().max(120).optional(),
   medicalAttentionRequired: z.boolean().optional(),
   lostTimeMinutes: z.number().int().min(0).optional(),
@@ -94,10 +95,13 @@ export function getIncidentTypeLabel(type: IncidentType): string {
   const labels: Record<IncidentType, string> = {
     AVVIK: "Avvik",
     NESTEN: "Nestenulykke",
+    ULYKKE: "Arbeidsulykke",
+    FARLIG_SITUASJON: "Farlig situasjon",
+    YRKESSYKDOM: "Yrkessykdom",
     SKADE: "Personskade",
-    MILJO: "Miljøhendelse",
+    MILJO: "Miljøavvik",
     KVALITET: "Kvalitetsavvik",
-    HMS: "HMS",
+    HMS: "HMS-avvik",
     CUSTOMER: "Kundeklage",
   };
   return labels[type];
@@ -110,6 +114,9 @@ export function getIncidentTypeColor(type: IncidentType): string {
   const colors: Record<IncidentType, string> = {
     AVVIK: "bg-orange-100 text-orange-800 border-orange-300",
     NESTEN: "bg-yellow-100 text-yellow-800 border-yellow-300",
+    ULYKKE: "bg-red-100 text-red-800 border-red-300",
+    FARLIG_SITUASJON: "bg-amber-100 text-amber-800 border-amber-300",
+    YRKESSYKDOM: "bg-pink-100 text-pink-800 border-pink-300",
     SKADE: "bg-red-100 text-red-800 border-red-300",
     MILJO: "bg-green-100 text-green-800 border-green-300",
     KVALITET: "bg-blue-100 text-blue-800 border-blue-300",

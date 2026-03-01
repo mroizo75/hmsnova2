@@ -77,7 +77,6 @@ export const ADVANCED_MODE_ONLY = [
   "forms",              // Skjemabygger
   "risks",              // Avansert risikovurdering
   "riskRegister",       // Risikoregister
-  "security",           // Informasjonssikkerhet (ISO 27001)
   "wellbeing",          // Psykososialt arbeidsmiljø
   "complaints",         // Klager
   "feedback",           // Kundetilbakemeldinger

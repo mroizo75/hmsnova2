@@ -1,10 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { PPE_PICTOGRAMS } from "@/lib/pictograms";
 
 interface PPESelectorProps {
@@ -26,57 +24,60 @@ export function PPESelector({ defaultValue, onChange }: PPESelectorProps) {
     }
   }, [defaultValue]);
 
-  const togglePPE = (file: string) => {
-    const newSelected = selected.includes(file)
+  const toggle = (file: string) => {
+    const next = selected.includes(file)
       ? selected.filter((f) => f !== file)
       : [...selected, file];
-    
-    setSelected(newSelected);
-    onChange?.(newSelected);
+    setSelected(next);
+    onChange?.(next);
   };
 
   return (
-    <div className="space-y-4">
-      <Label>Påkrevd personlig verneutstyr (PPE)</Label>
+    <div className="space-y-3">
       <input type="hidden" name="requiredPPE" value={JSON.stringify(selected)} />
-      
-      <ScrollArea className="h-[400px] pr-4">
-        <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
-          {PPE_PICTOGRAMS.map((ppe) => (
+
+      <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2">
+        {PPE_PICTOGRAMS.map((ppe) => {
+          const isSelected = selected.includes(ppe.file);
+          return (
             <button
               key={ppe.id}
               type="button"
-              onClick={() => togglePPE(ppe.file)}
-              className={cn(
-                "relative aspect-square rounded-lg border-2 p-2 transition-all hover:scale-105",
-                selected.includes(ppe.file)
-                  ? "border-blue-500 bg-blue-50 ring-2 ring-blue-500"
-                  : "border-gray-200 hover:border-gray-300"
-              )}
               title={ppe.name}
+              onClick={() => toggle(ppe.file)}
+              className={cn(
+                "relative aspect-square rounded-lg border-2 transition-all",
+                isSelected
+                  ? "border-blue-500 bg-blue-50 ring-1 ring-blue-400"
+                  : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+              )}
             >
               <Image
                 src={`/ppe/${ppe.file}`}
                 alt={ppe.name}
                 fill
-                className="object-contain p-1"
+                className="object-contain p-1.5"
+                unoptimized
               />
-              {selected.includes(ppe.file) && (
-                <div className="absolute -top-1 -right-1 bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
+              {isSelected && (
+                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-blue-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">
                   ✓
-                </div>
+                </span>
               )}
             </button>
-          ))}
-        </div>
-      </ScrollArea>
+          );
+        })}
+      </div>
 
-      {selected.length > 0 && (
-        <div className="text-sm text-muted-foreground">
-          Valgte: {selected.length} PPE-krav
-        </div>
+      {selected.length > 0 ? (
+        <p className="text-xs text-blue-700 font-medium">
+          {selected.length} verneutstyr valgt
+        </p>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Klikk for å velge påkrevd verneutstyr
+        </p>
       )}
     </div>
   );
 }
-

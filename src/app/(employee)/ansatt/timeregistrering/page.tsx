@@ -10,8 +10,7 @@ import {
   getTimeRegistrationConfig,
 } from "@/server/actions/time-registration.actions";
 import { TimeRegistrationOverview } from "@/features/time-registration/components/time-registration-overview";
-import { TimeEntryForm } from "@/features/time-registration/components/time-entry-form";
-import { MileageEntryForm } from "@/features/time-registration/components/mileage-entry-form";
+import { RegistrationFormUnified } from "@/features/time-registration/components/registration-form-unified";
 
 export default async function AnsattTimeregistreringPage() {
   const session = await getServerSession(authOptions);
@@ -108,36 +107,18 @@ export default async function AnsattTimeregistreringPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5" />
-            Registrer timer
+            Registrer timer og kjøring
           </CardTitle>
           <CardDescription>
-            Skriv kun timer og reise – ordinær og overtid beregnes automatisk
+            Arbeid, reise, sykefravær og km godtgjørelse – ordinær og overtid beregnes automatisk
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <TimeEntryForm
+          <RegistrationFormUnified
             tenantId={tenantId}
             projects={activeProjects}
             lunchBreakMinutes={config?.lunchBreakMinutes ?? 30}
             eveningOvertimeFromHour={config?.eveningOvertimeFromHour ?? undefined}
-          />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Car className="h-5 w-5" />
-            Km godtgjørelse
-          </CardTitle>
-          <CardDescription>
-            Kilometer – sats er satt av leder. Kun hvis avtalt med arbeidsgiver.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <MileageEntryForm
-            tenantId={tenantId}
-            projects={activeProjects}
             defaultKmRate={config?.defaultKmRate ?? 4.5}
             rateEditable={false}
             showDisclaimer={true}

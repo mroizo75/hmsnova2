@@ -126,11 +126,11 @@ export async function createChemical(input: any) {
         unit: input.unit,
         status: input.status || "ACTIVE",
         notes: input.notes,
-        
-        // ECHA-berikede felter
+
+        // ECHA-berikede felter – manuell override tar prioritet
         ecNumber: echaData?.ecNumber,
-        isCMR,
-        isSVHC: echaData?.isSVHC || false,
+        isCMR: input.isCMR === true ? true : isCMR,
+        isSVHC: input.isSVHC === true ? true : (echaData?.isSVHC || false),
         reachStatus: echaData?.reachStatus,
         hazardLevel,
         substitutionPriority,
@@ -196,9 +196,12 @@ export async function updateChemical(chemicalId: string, input: any) {
       casNumber: input.casNumber,
       hazardClass: input.hazardClass,
       hazardStatements: input.hazardStatements,
+      precautionaryStatements: input.precautionaryStatements,
       warningPictograms: input.warningPictograms,
       requiredPPE: input.requiredPPE,
-      containsIsocyanates: input.containsIsocyanates || false,
+      containsIsocyanates: input.containsIsocyanates ?? false,
+      isCMR: input.isCMR ?? false,
+      isSVHC: input.isSVHC ?? false,
       sdsVersion: input.sdsVersion,
       sdsDate: input.sdsDate ? new Date(input.sdsDate) : undefined,
       nextReviewDate: input.nextReviewDate ? new Date(input.nextReviewDate) : undefined,

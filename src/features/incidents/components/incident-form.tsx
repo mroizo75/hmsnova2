@@ -16,22 +16,69 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createIncident } from "@/server/actions/incident.actions";
 import { useToast } from "@/hooks/use-toast";
+import { Camera, X } from "lucide-react";
+import Image from "next/image";
 import type { IncidentType } from "@prisma/client";
 
 interface IncidentFormProps {
   tenantId: string;
   userId: string;
   risks: Array<{ id: string; title: string; category: string; score: number }>;
+  users: Array<{ id: string; name: string | null; email: string }>;
   defaultType?: IncidentType;
 }
 
-const incidentTypes: Array<{ value: IncidentType; label: string; desc: string }> = [
-  { value: "AVVIK", label: "Avvik", desc: "Avvik fra prosedyrer eller krav" },
-  { value: "NESTEN", label: "Nestenulykke", desc: "Hendelse som kunne ført til skade" },
-  { value: "SKADE", label: "Personskade", desc: "Skade på person" },
-  { value: "MILJO", label: "Miljøhendelse", desc: "Utslipp, søl eller miljøskade" },
-  { value: "KVALITET", label: "Kvalitetsavvik", desc: "Produkt/tjeneste kvalitet" },
-  { value: "CUSTOMER", label: "Kundeklage", desc: "ISO 10002: Kunde- og brukertilbakemeldinger" },
+/**
+ * Hendelsestyper basert på AML § 5-1, § 5-2 og IK-HMS § 5.
+ * ULYKKE/NESTEN/FARLIG_SITUASJON = AML § 5-2 og § 2-3
+ * YRKESSYKDOM = AML § 5-1 (registreringsplikt) og § 5-3 (leges meldeplikt)
+ * AVVIK = IK-HMS § 5 og ISO 9001 kap. 10.2
+ */
+const incidentTypes: Array<{ value: IncidentType; label: string; desc: string; badge?: string }> = [
+  {
+    value: "ULYKKE",
+    label: "Arbeidsulykke",
+    desc: "Energi frigitt og skade/tap oppstod på person, materiell eller miljø",
+    badge: "AML § 5-2 – varslingspliktig",
+  },
+  {
+    value: "NESTEN",
+    label: "Nestenulykke",
+    desc: "Energi frigitt, men ingen skade – under andre omstendigheter ville ulykke ha skjedd",
+    badge: "AML § 5-2 – tilløp til ulykke",
+  },
+  {
+    value: "FARLIG_SITUASJON",
+    label: "Farlig situasjon / Observasjon",
+    desc: "Farlig tilstand eller uønsket forhold som representerer en fare, men ingen energi frigitt",
+    badge: "AML § 2-3",
+  },
+  {
+    value: "YRKESSYKDOM",
+    label: "Yrkessykdom / Arbeidsrelatert sykdom",
+    desc: "Sykdom som antas å ha sin grunn i arbeidet eller forholdene på arbeidsplassen",
+    badge: "AML § 5-1",
+  },
+  {
+    value: "AVVIK",
+    label: "Avvik",
+    desc: "Brudd på lovgivning, interne krav, prosedyrer eller standarder (ISO 9001 kap. 10.2)",
+  },
+  {
+    value: "MILJO",
+    label: "Miljøavvik",
+    desc: "Utslipp, søl eller annet avvik fra miljøkrav (ISO 14001)",
+  },
+  {
+    value: "KVALITET",
+    label: "Kvalitetsavvik",
+    desc: "Produkt- eller tjenestekvalitet som ikke møter krav (ISO 9001)",
+  },
+  {
+    value: "CUSTOMER",
+    label: "Kundeklage",
+    desc: "Klage eller tilbakemelding fra kunde/bruker (ISO 10002)",
+  },
 ];
 
 const severityLevels = [
@@ -44,11 +91,29 @@ const severityLevels = [
 
 const NO_RISK_REFERENCE_VALUE = "__none_risk_reference__";
 
-export function IncidentForm({ tenantId, userId, risks = [], defaultType }: IncidentFormProps) {
+export function IncidentForm({ tenantId, userId, risks = [], users = [], defaultType }: IncidentFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [selectedType, setSelectedType] = useState<IncidentType | "">(defaultType || "");
+  const NO_REPORTED_FOR_VALUE = "__none__";
+  const [reportedForUserId, setReportedForUserId] = useState<string>(NO_REPORTED_FOR_VALUE);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!e.target.files) return;
+    const files = Array.from(e.target.files);
+    const merged = [...imageFiles, ...files].slice(0, 5);
+    setImageFiles(merged);
+    setImagePreviews(merged.map((f) => URL.createObjectURL(f)));
+  }
+
+  function removeImage(index: number) {
+    const newFiles = imageFiles.filter((_, i) => i !== index);
+    setImageFiles(newFiles);
+    setImagePreviews(newFiles.map((f) => URL.createObjectURL(f)));
+  }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -72,6 +137,7 @@ export function IncidentForm({ tenantId, userId, risks = [], defaultType }: Inci
       lostTimeMinutes: formData.get("lostTimeMinutes")
         ? parseInt(formData.get("lostTimeMinutes") as string, 10)
         : undefined,
+      reportedForUserId: reportedForUserId && reportedForUserId !== NO_REPORTED_FOR_VALUE ? reportedForUserId : undefined,
       riskReferenceId:
         rawRiskReferenceId && rawRiskReferenceId !== NO_RISK_REFERENCE_VALUE
           ? rawRiskReferenceId
@@ -89,22 +155,33 @@ export function IncidentForm({ tenantId, userId, risks = [], defaultType }: Inci
     try {
       const result = await createIncident(data);
 
-      if (result.success) {
-        const redirectRoute = result.data?.type === "CUSTOMER" ? "/dashboard/complaints" : "/dashboard/incidents";
-        toast({
-          title: "✅ Avvik rapportert",
-          description: "Avviket er registrert og vil bli fulgt opp",
-          className: "bg-green-50 border-green-200",
-        });
-        router.push(redirectRoute);
-        router.refresh();
-      } else {
+      if (!result.success) {
         toast({
           variant: "destructive",
           title: "Feil",
           description: result.error || "Kunne ikke rapportere avvik",
         });
+        return;
       }
+
+      // Last opp bilder hvis det finnes noen
+      if (imageFiles.length > 0 && result.data?.id) {
+        const imgFormData = new FormData();
+        imageFiles.forEach((file) => imgFormData.append("images", file));
+        await fetch(`/api/incidents/${result.data.id}/attachments`, {
+          method: "POST",
+          body: imgFormData,
+        });
+      }
+
+      const redirectRoute = result.data?.type === "CUSTOMER" ? "/dashboard/complaints" : "/dashboard/incidents";
+      toast({
+        title: "✅ Avvik rapportert",
+        description: "Avviket er registrert og vil bli fulgt opp",
+        className: "bg-green-50 border-green-200",
+      });
+      router.push(redirectRoute);
+      router.refresh();
     } catch (error) {
       toast({
         variant: "destructive",
@@ -145,11 +222,19 @@ export function IncidentForm({ tenantId, userId, risks = [], defaultType }: Inci
                   ))}
                 </SelectContent>
               </Select>
-              {selectedType && (
-                <p className="text-xs text-muted-foreground">
-                  {incidentTypes.find(t => t.value === selectedType)?.desc}
-                </p>
-              )}
+              {selectedType && (() => {
+                const t = incidentTypes.find(t => t.value === selectedType);
+                return t ? (
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">{t.desc}</p>
+                    {t.badge && (
+                      <span className="inline-block rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+                        {t.badge}
+                      </span>
+                    )}
+                  </div>
+                ) : null;
+              })()}
             </div>
 
             <div className="space-y-2">
@@ -225,6 +310,35 @@ export function IncidentForm({ tenantId, userId, risks = [], defaultType }: Inci
               disabled={loading}
             />
           </div>
+
+          {users.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="reportedForUserId">
+                Rapportert på vegne av
+                <span className="ml-1 text-xs font-normal text-muted-foreground">(valgfritt – for leder/HMS som rapporterer for ansatt)</span>
+              </Label>
+              <Select
+                value={reportedForUserId}
+                onValueChange={setReportedForUserId}
+                disabled={loading}
+              >
+                <SelectTrigger id="reportedForUserId">
+                  <SelectValue placeholder="Velg ansatt (valgfritt)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_REPORTED_FOR_VALUE}>— Ingen (rapporterer for meg selv) —</SelectItem>
+                  {users.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name || u.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Bruk dette feltet når du som leder eller HMS-ansvarlig rapporterer en hendelse på vegne av en ansatt.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -383,6 +497,64 @@ export function IncidentForm({ tenantId, userId, risks = [], defaultType }: Inci
               Beskriv hva som ble gjort for å håndtere situasjonen umiddelbart
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Bilder</CardTitle>
+          <CardDescription>Last opp bilder som dokumenterer hendelsen (valgfritt, maks 5)</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="relative">
+            <Input
+              id="incident-images"
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleImageChange}
+              disabled={loading || imageFiles.length >= 5}
+              className="sr-only"
+            />
+            <Label
+              htmlFor="incident-images"
+              className={`flex items-center justify-center gap-2 h-24 border-2 border-dashed rounded-lg cursor-pointer transition-colors hover:bg-muted/50 ${
+                imageFiles.length >= 5 ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+            >
+              <Camera className="h-5 w-5 text-muted-foreground" />
+              <div className="text-center">
+                <p className="text-sm font-medium">
+                  {imageFiles.length >= 5 ? "Maks 5 bilder" : "Klikk for å legge til bilder"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {imageFiles.length > 0 ? `${imageFiles.length}/5 bilder valgt` : "PNG, JPG, HEIC støttes"}
+                </p>
+              </div>
+            </Label>
+          </div>
+
+          {imagePreviews.length > 0 && (
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+              {imagePreviews.map((preview, index) => (
+                <div key={index} className="relative aspect-square rounded-lg overflow-hidden border">
+                  <Image
+                    src={preview}
+                    alt={`Forhåndsvisning ${index + 1}`}
+                    fill
+                    className="object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(index)}
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 

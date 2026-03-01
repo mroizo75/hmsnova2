@@ -184,6 +184,7 @@ export async function createIncident(input: any) {
         severity: validated.severity,
         occurredAt: validated.occurredAt,
         reportedBy: validated.reportedBy,
+        reportedForUserId: validated.reportedForUserId ?? null,
         location: sanitizeString(validated.location),
         witnessName: sanitizeString(validated.witnessName),
         immediateAction: sanitizeString(validated.immediateAction),

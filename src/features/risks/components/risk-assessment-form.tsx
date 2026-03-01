@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createRiskAssessment } from "@/server/actions/risk.actions";
 import { useToast } from "@/hooks/use-toast";
@@ -20,12 +21,18 @@ export function RiskAssessmentForm({ tenantId, defaultYear }: RiskAssessmentForm
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState(`Risikovurdering ${defaultYear}`);
   const [year, setYear] = useState(defaultYear);
+  const [participants, setParticipants] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const result = await createRiskAssessment({ tenantId, title: title.trim(), assessmentYear: year });
+      const result = await createRiskAssessment({
+        tenantId,
+        title: title.trim(),
+        assessmentYear: year,
+        participants: participants.trim() || undefined,
+      });
       if (result.success && result.data) {
         toast({
           title: "Risikovurdering opprettet",
@@ -45,12 +52,12 @@ export function RiskAssessmentForm({ tenantId, defaultYear }: RiskAssessmentForm
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className="space-y-4">
       <Card>
         <CardHeader>
           <CardTitle>Risikovurdering for et år</CardTitle>
           <CardDescription>
-            Tittel og år for den årlige risikovurderingen. Etter opprettelse legger du inn risikopunkter (beskrivelse, nivå, kategori, dato).
+            Tittel og år for den årlige risikovurderingen (IK-HMS § 5 nr. 6). Etter opprettelse legger du inn risikopunkter.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -81,6 +88,25 @@ export function RiskAssessmentForm({ tenantId, defaultYear }: RiskAssessmentForm
               />
             </div>
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="participants">
+              Deltakere i vurderingen
+              <span className="ml-1 text-xs font-normal text-muted-foreground">(IK-HMS § 5 nr. 3 + AML § 3-1)</span>
+            </Label>
+            <Textarea
+              id="participants"
+              value={participants}
+              onChange={(e) => setParticipants(e.target.value)}
+              placeholder="F.eks: Kari Olsen (HMS-ansvarlig), Per Hansen (Verneombud), Anne Berg (Avd.leder produksjon)"
+              rows={3}
+              disabled={loading}
+            />
+            <p className="text-xs text-muted-foreground">
+              Loven krever at risikovurderingen gjøres i samarbeid med arbeidstakerne og verneombudet. Dokumenter hvem som deltok.
+            </p>
+          </div>
+
           <div className="flex gap-4">
             <Button type="submit" disabled={loading}>
               {loading ? "Oppretter..." : "Opprett risikovurdering"}

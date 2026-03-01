@@ -1,0 +1,68 @@
+---
+description: Norsk HMS-lovgivning skal sjekkes for alle nye funksjoner i dette prosjektet
+alwaysApply: true
+---
+
+# HMS Nova – Lovkrav-første utvikling
+
+## Grunnregel
+
+**Før enhver ny funksjon, felt eller modul implementeres, SKAL du sjekke hva norsk lov og forskrift faktisk krever.** Ikke anta eller tippe — finn hjemmelen.
+
+## Primære lovkilder å konsultere
+
+| Lov/Forskrift | Område | Relevante paragrafer |
+|---|---|---|
+| Arbeidsmiljøloven (AML) | Ulykker, skader, yrkessykdom, verneombud | § 2-3, § 3-1, § 5-1, § 5-2, § 5-3, § 6-2 |
+| Internkontrollforskriften (IK-HMS) | Avviksregistrering, systematisk HMS | § 5 |
+| Arbeidsmiljøforskriftene | Eksponering, kjemikalier, ergonomi | Utførelse, grenseverdier |
+| GDPR / Personopplysningsloven | Persondata, samtykke, lagring | Art. 5, 6, 9 |
+| ISO 9001:2015 | Avvik og korrigerende tiltak | Kap. 10.2 |
+| ISO 45001:2018 | Arbeidsmiljøstyring | Kap. 6.1, 8.2, 10.2 |
+| ISO 14001:2015 | Miljøstyring | Kap. 6.1.2, 9.1 |
+| Timeregistrering / Arbeidstidsloven | Arbeidstid, overtid, pauser | § 10 |
+| Varslerloven | Varsling om kritikkverdige forhold | § 2, § 3, § 4 |
+
+## Framgangsmåte for nye funksjoner
+
+1. **Identifiser lovområde** – Hvilken lov/forskrift regulerer dette?
+2. **Slå opp konkret krav** – Bruk Lovdata (lovdata.no) eller Arbeidstilsynet (arbeidstilsynet.no)
+3. **Definer obligatoriske felter** – Hva MÅ systemet registrere for å oppfylle kravet?
+4. **Definer valgfrie felter** – Hva er nyttig, men ikke lovpålagt?
+5. **Implementer** – Kode og validering skal speile lovkravet, ikke en antakelse
+
+## Eksempler fra prosjektet
+
+### ✅ Riktig – Hendelsestyper basert på AML § 5-2
+```
+ULYKKE          → AML § 5-2 (1): varslingspliktig til Arbeidstilsynet
+NESTEN          → AML § 5-2 (3)b: "tilløp til ulykker"
+FARLIG_SITUASJON → AML § 2-3: alle ansatte har plikt til å melde
+YRKESSYKDOM     → AML § 5-1 + § 5-3: registrerings- og meldeplikt
+```
+
+### ❌ Feil – Typer uten lovforankring
+```
+HMS             → for vagt, ikke en juridisk kategori
+SKADE           → ikke AML-terminologi (bruk ULYKKE)
+```
+
+### ✅ Riktig – Eksponeringsregister basert på forskrift om tiltaksverdier
+```
+Felt som er lovpålagte: stoff, eksponeringstype, varighet, målt verdi vs. grenseverdi
+```
+
+## Rapporteringsfrister som må støttes
+
+- **Straks** (muntlig): Alvorlig personskade eller dødsfall → Arbeidstilsynet + politiet (AML § 5-2)
+- **Skriftlig bekreftelse**: Senest dagen etter varsel
+- **Statistikk**: Sykefravær og fraværsstatistikk (AML § 5-1 (4))
+
+## Når du er usikker
+
+Bruk WebSearch eller WebFetch mot:
+- `lovdata.no` for lovtekst
+- `arbeidstilsynet.no` for veiledninger
+- `datatilsynet.no` for personvern
+
+Sitér alltid paragraf/artikkel i kode-kommentarer og i beskrivelser av felter som er lovpålagte.

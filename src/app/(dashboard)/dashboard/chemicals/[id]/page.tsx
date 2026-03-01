@@ -11,6 +11,7 @@ import Image from "next/image";
 import { normalizePpeFile } from "@/lib/pictograms";
 import { IsocyanateWarning } from "@/components/isocyanate-warning";
 import { ChemicalRiskSuggestions } from "@/components/chemical-risk-suggestions";
+import { ExposureRegisterWarning } from "@/components/exposure-register-warning";
 
 export default async function ChemicalDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -37,9 +38,12 @@ export default async function ChemicalDetailPage({ params }: { params: Promise<{
 
   const tenantId = user.tenants[0].tenantId;
 
-  const chemical = await prisma.chemical.findUnique({
-    where: { id, tenantId },
-  });
+  const [chemical, exposureCount] = await Promise.all([
+    prisma.chemical.findUnique({ where: { id, tenantId } }),
+    prisma.exposureRegister.count({
+      where: { tenantId, chemicalId: id, status: { not: "ARCHIVED" } },
+    }),
+  ]);
 
   if (!chemical) {
     notFound();
@@ -119,6 +123,15 @@ export default async function ChemicalDetailPage({ params }: { params: Promise<{
         })() : undefined} />
       )}
 
+      {/* Eksponeringsregister-varsel */}
+      <ExposureRegisterWarning
+        chemicalId={chemical.id}
+        chemicalName={chemical.productName}
+        hazardStatements={chemical.hazardStatements}
+        isCMR={chemical.isCMR}
+        existingEntryCount={exposureCount}
+      />
+
       {/* Foreslåtte risikovurderinger */}
       <ChemicalRiskSuggestions
         chemicalId={chemical.id}
@@ -140,7 +153,21 @@ export default async function ChemicalDetailPage({ params }: { params: Promise<{
             {chemical.casNumber && (
               <div>
                 <p className="text-sm text-muted-foreground">CAS-nummer</p>
-                <p className="font-medium">{chemical.casNumber}</p>
+                <p className="font-medium font-mono">{chemical.casNumber}</p>
+              </div>
+            )}
+
+            {chemical.ecNumber && (
+              <div>
+                <p className="text-sm text-muted-foreground">EC-nummer (ECHA)</p>
+                <p className="font-medium font-mono">{chemical.ecNumber}</p>
+              </div>
+            )}
+
+            {chemical.hazardClass && (
+              <div>
+                <p className="text-sm text-muted-foreground">Fareklasse (GHS/CLP)</p>
+                <p className="font-medium">{chemical.hazardClass}</p>
               </div>
             )}
 
@@ -165,20 +192,45 @@ export default async function ChemicalDetailPage({ params }: { params: Promise<{
                 </p>
               </div>
             )}
+
+            {/* Klassifiseringsflagg */}
+            {(chemical.isCMR || chemical.isSVHC || chemical.reachStatus) && (
+              <div className="space-y-1 pt-1">
+                <p className="text-sm text-muted-foreground">Klassifisering</p>
+                <div className="flex flex-wrap gap-2">
+                  {chemical.isCMR && (
+                    <Badge className="bg-red-100 text-red-800 border-red-200">CMR-stoff</Badge>
+                  )}
+                  {chemical.isSVHC && (
+                    <Badge className="bg-purple-100 text-purple-800 border-purple-200">SVHC (REACH)</Badge>
+                  )}
+                  {chemical.reachStatus && (
+                    <Badge variant="outline" className="text-xs">{chemical.reachStatus}</Badge>
+                  )}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Farepiktogrammer */}
+        {/* Faremarkering */}
         <Card>
           <CardHeader>
             <CardTitle>Faremarkering</CardTitle>
-            <CardDescription>GHS/CLP-klassifisering</CardDescription>
+            <CardDescription>GHS/CLP-klassifisering og setninger</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {chemical.hazardStatements && (
               <div>
                 <p className="text-sm text-muted-foreground">H-setninger</p>
-                <p className="font-medium whitespace-pre-wrap">{chemical.hazardStatements}</p>
+                <p className="font-medium whitespace-pre-wrap text-sm">{chemical.hazardStatements}</p>
+              </div>
+            )}
+
+            {chemical.precautionaryStatements && (
+              <div>
+                <p className="text-sm text-muted-foreground">P-setninger</p>
+                <p className="font-medium whitespace-pre-wrap text-sm">{chemical.precautionaryStatements}</p>
               </div>
             )}
 

@@ -75,7 +75,16 @@ export async function GET(request: NextRequest) {
     const [tenant, timeEntries, mileageEntries, userTenants] = await Promise.all([
       prisma.tenant.findUnique({
         where: { id: session.user.tenantId },
-        select: { name: true },
+        select: {
+          name: true,
+          defaultHourlyRate: true,
+          approximateTaxPercent: true,
+          defaultKmRate: true,
+          kmAllowanceTaxable: true,
+          overtime40Multiplier: true,
+          overtime50Multiplier: true,
+          overtime100Multiplier: true,
+        },
       }),
       prisma.timeEntry.findMany({
         where: {
@@ -132,6 +141,15 @@ export async function GET(request: NextRequest) {
       timeEntries,
       mileageEntries,
       userDisplayNames,
+      config: {
+        defaultHourlyRate: tenant.defaultHourlyRate,
+        approximateTaxPercent: tenant.approximateTaxPercent,
+        defaultKmRate: tenant.defaultKmRate,
+        kmAllowanceTaxable: tenant.kmAllowanceTaxable ?? false,
+        overtime40Multiplier: tenant.overtime40Multiplier ?? 1.4,
+        overtime50Multiplier: tenant.overtime50Multiplier ?? 1.5,
+        overtime100Multiplier: tenant.overtime100Multiplier ?? 2,
+      },
     };
 
     if (format === "pdf") {

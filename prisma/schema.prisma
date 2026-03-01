@@ -111,6 +111,7 @@ model User {
   editedTimeEntries      TimeEntry[]      @relation("TimeEntryEditedBy")
   mileageEntries         MileageEntry[]
   editedMileageEntries   MileageEntry[]   @relation("MileageEntryEditedBy")
+  exposureRegisters      ExposureRegister[] @relation("ExposureRegisterEmployee")
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
 
@@ -248,14 +249,24 @@ model Tenant {
   timeRegistrationEnabled Boolean   @default(false) // Aktiver modul per tenant
   weeklyHoursNorm         Float     @default(37.5)  // Ordinær uke (timer)
   overtime50Multiplier     Float     @default(1.5)  // Overtid 50 % = 1.5x
+  overtime40Multiplier     Float     @default(1.4)  // Overtid 40 % = 1.4x (kundespesifikk)
   overtime100Multiplier    Float     @default(2)    // Overtid 100 % = 2x
+  useOvertime40Percent     Boolean   @default(false) // Bruk 40 % i stedet for 50 % hverdag
   defaultKmRate            Float     @default(4.5)  // Standard kr/km
+  kmAllowanceTaxable       Boolean   @default(false) // true = overskudd over 3,50 kr/km skattes, false = km utenom
   lunchBreakMinutes        Int       @default(30)   // Lunsj som trekkes fra klokketimer (0 = ingen)
   eveningOvertimeFromHour  Int?      // Fra denne kl (man–fre) = 100 % overtid. Null = alt 50 %
+  saturdayOvertime40LimitHours Float? // Lørdag: første X t ved 40 %, resten 100 %. Null = alt 100 %
+  defaultHourlyRate          Float?  // Timelønn (N.Rate) for ca. utbetaling. Null = skjul
+  approximateTaxPercent      Float?  // Ca. skatt i % (f.eks. 25). Brukes for ca. utbetaling
   projects                 Project[]
   timeEntries              TimeEntry[]
   mileageEntries           MileageEntry[]
   sequences                TenantSequence[]
+  ruhReports               RuhReport[]
+  sjaAnalyses              SjaAnalysis[]
+  sjaTemplates             SjaTemplate[]
+  exposureRegisters        ExposureRegister[]
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
@@ -732,18 +743,32 @@ model LegalReference {
 
 /// Årlig eller periodisk risikovurdering (f.eks. "Risikovurdering 2026"). ISO 45001: systematisk vurdering med identifiserte risikopunkter.
 model RiskAssessment {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   tenantId       String
-  title          String   // f.eks. "Risikovurdering 2026"
-  assessmentYear Int      // år (2026)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  title          String    // f.eks. "Risikovurdering 2026"
+  assessmentYear Int       // år (2026)
+
+  // IK-HMS § 5 nr. 3 + AML § 3-1 (1): Hvem deltok i vurderingen (arbeidstakere, verneombud)
+  participants   String?   @db.Text
+
+  // IK-HMS § 5 nr. 6: Godkjenning av risikovurderingen
+  approvedById   String?
+  approvedAt     DateTime?
+
+  // IK-HMS § 5 nr. 8: Hvem gjennomgikk vurderingen (periodisk gjennomgang)
+  reviewedById   String?
+  reviewedAt     DateTime?
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   risks  Risk[]
 
   @@index([tenantId])
   @@index([assessmentYear])
+  @@index([approvedById])
+  @@index([reviewedById])
 }
 
 model Risk {
@@ -794,6 +819,7 @@ model Risk {
   securityControls    SecurityControl[]
   chemicalLinks       RiskChemicalLink[]
   trainingRequirements RiskTrainingRequirement[]
+  exposureRegisters   ExposureRegister[]
 
   @@index([tenantId])
   @@index([riskAssessmentId])
@@ -1429,7 +1455,8 @@ model Incident {
   description         String       @db.Text
   severity            Int          // 1-5 (ISO 9001: Alvorlighetsgrad)
   occurredAt          DateTime
-  reportedBy          String
+  reportedBy          String       // UserId for den som registrerte avviket
+  reportedForUserId   String?      // Valgfritt: UserId for den avviket gjelder (rapportert på vegne av)
   responsibleId       String?      // Ansvarlig for oppfølging av avviket
   location            String?
   witnessName         String?
@@ -1471,17 +1498,22 @@ model Incident {
   @@index([occurredAt])
   @@index([severity])
   @@index([responsibleId])
+  @@index([reportedForUserId])
   @@index([riskReferenceId])
 }
 
 enum IncidentType {
-  AVVIK
-  NESTEN
-  SKADE
-  MILJO
-  KVALITET
+  AVVIK           // Avvik fra prosedyrer/krav (IK-HMS § 5)
+  NESTEN          // Nestenulykke – energi frigitt, ingen skade (AML § 5-2)
+  ULYKKE          // Arbeidsulykke – energi frigitt, skade/tap oppstod (AML § 5-2)
+  FARLIG_SITUASJON // Farlig tilstand/observasjon (AML § 2-3)
+  YRKESSYKDOM     // Yrkessykdom / arbeidsrelatert sykdom (AML § 5-1, § 5-3)
+  MILJO           // Miljøavvik (ISO 14001)
+  KVALITET        // Kvalitetsavvik (ISO 9001)
+  CUSTOMER        // Kundeklage (ISO 10002)
+  // HMS beholdes for bakoverkompatibilitet med eksisterende data
   HMS
-  CUSTOMER
+  SKADE           // Deprekert – bruk ULYKKE
 }
 
 enum IncidentStatus {
@@ -1498,6 +1530,184 @@ enum IncidentStage {
   ACTIONS_DEFINED
   ACTIONS_COMPLETE
   VERIFIED
+}
+
+// ============================================
+// RUH – Rapport om Uønsket Hendelse
+// ============================================
+
+model RuhReport {
+  id              String        @id @default(cuid())
+  tenantId        String
+  ruhNummer       String?       // Unikt referansenummer per tenant (RUH-2026-001)
+  category        RuhCategory
+  title           String
+  description     String        @db.Text
+  occurredAt      DateTime
+  location        String?
+  reportedBy      String        // Navn på den som rapporterer
+  reportedById    String?       // Bruker-ID (om innlogget)
+  involvedPersons String?       @db.Text // Hvem var involvert
+  witnessName     String?
+  injuryOccurred  Boolean       @default(false)
+  injuryDescription String?     @db.Text
+  immediateAction String?       @db.Text // Umiddelbare tiltak som ble gjort
+  suggestedActions String?      @db.Text // Foreslåtte forebyggende tiltak
+  status          RuhStatus     @default(SUBMITTED)
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  reviewComment   String?       @db.Text
+  completedBy     String?
+  completedAt     DateTime?
+  completedComment String?      @db.Text
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  attachments       Attachment[]       @relation("RuhAttachments")
+  exposureRegisters ExposureRegister[]
+
+  @@index([tenantId])
+  @@index([ruhNummer])
+  @@index([status])
+  @@index([occurredAt])
+  @@index([reportedById])
+}
+
+enum RuhCategory {
+  PERSONSKADE
+  NESTENULYKKE
+  MATERIELL_SKADE
+  BRANN_EKSPLOSJON
+  UTSLIPP_MILJO
+  TRUSLER_VOLD
+  ERGONOMI
+  ANNET
+}
+
+enum RuhStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  COMPLETED
+}
+
+// ============================================
+// SJA – Sikker Jobb Analyse
+// ============================================
+
+model SjaAnalysis {
+  id                String        @id @default(cuid())
+  tenantId          String
+  sjaNummer         String?
+  title             String
+  description       String?       @db.Text
+  workLocation      String
+  plannedDate       DateTime
+  status            SjaStatus     @default(DRAFT)
+  conclusion        SjaConclusion @default(NOT_DECIDED)
+  conclusionComment String?       @db.Text
+
+  createdById       String
+  createdByName     String
+  responsibleName   String
+  participants      String?       @db.Text
+
+  additionalConditions String?    @db.Text
+  weatherConditions    String?
+  imageUrls            String?    @db.Text
+
+  submittedAt       DateTime?
+  signedByNames     String?       @db.Text
+
+  templateId        String?
+  templateName      String?
+
+  approvedById      String?
+  approvedByName    String?
+  approvedAt        DateTime?
+
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  tenant            Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  hazards           SjaHazard[]
+  attachments       Attachment[]  @relation("SjaAttachments")
+
+  @@index([tenantId])
+  @@index([sjaNummer])
+  @@index([status])
+  @@index([plannedDate])
+  @@index([createdById])
+}
+
+model SjaHazard {
+  id                String   @id @default(cuid())
+  sjaAnalysisId     String
+  sortOrder         Int      @default(0)
+  activity          String
+  hazard            String   @db.Text
+  consequence       String?  @db.Text
+  probability       Int      @default(1)
+  severity          Int      @default(1)
+  riskLevel         Int      @default(1)
+  measures          String   @db.Text
+  responsibleName   String?
+  completed         Boolean  @default(false)
+
+  sjaAnalysis       SjaAnalysis @relation(fields: [sjaAnalysisId], references: [id], onDelete: Cascade)
+
+  @@index([sjaAnalysisId])
+}
+
+model SjaTemplate {
+  id                String   @id @default(cuid())
+  tenantId          String
+  name              String
+  description       String?  @db.Text
+  workLocation      String?
+  isActive          Boolean  @default(true)
+
+  createdById       String
+  createdByName     String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  hazards           SjaTemplateHazard[]
+
+  @@index([tenantId])
+  @@index([tenantId, isActive])
+}
+
+model SjaTemplateHazard {
+  id                String   @id @default(cuid())
+  templateId        String
+  sortOrder         Int      @default(0)
+  activity          String
+  hazard            String   @db.Text
+  consequence       String?  @db.Text
+  probability       Int      @default(1)
+  severity          Int      @default(1)
+  measures          String   @db.Text
+  responsibleName   String?
+
+  template          SjaTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([templateId])
+}
+
+enum SjaStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum SjaConclusion {
+  NOT_DECIDED
+  APPROVED
+  CONDITIONAL
+  REJECTED
 }
 
 // ============================================
@@ -1775,8 +1985,9 @@ model Chemical {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
-  tenant     Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  riskLinks  RiskChemicalLink[] // Kobling til risikovurderinger
+  tenant           Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  riskLinks        RiskChemicalLink[] // Kobling til risikovurderinger
+  exposureRegisters ExposureRegister[]
 
   @@index([tenantId])
   @@index([status])
@@ -1795,27 +2006,120 @@ enum ChemicalStatus {
 }
 
 // ============================================
+// Eksponeringsregister
+// ============================================
+
+model ExposureRegister {
+  id          String   @id @default(cuid())
+  tenantId    String
+
+  // Ansattdata – lagres direkte for arkivformål (40–60 år)
+  employeeId          String?   // FK til User (nullable for arkiverte poster)
+  employeeName        String    // Fullt navn
+  employeeBirthNumber String    // Fødselsnummer (kryptert)
+  department          String?   // Avdeling
+  jobTitle            String    // Stilling/Rolle
+  workLocation        String    // Arbeidssted/Lokasjon
+  employmentStartDate DateTime?
+  employmentEndDate   DateTime?
+
+  // Eksponeringsfaktor
+  chemicalId      String?  // FK til Chemical (kan kobles til stoffkartotek)
+  exposureAgent   String   // Navn på stoff/faktor
+  casNumber       String?  // CAS-nummer
+  exposureType    ExposureType @default(INHALATION)
+
+  // Tidsrom for eksponering
+  exposureStartDate DateTime
+  exposureEndDate   DateTime?
+  duration          String?  // Fritekst, f.eks. "3 dager/uke, 2 timer/dag"
+
+  // Tiltak og verneutstyr
+  ppeUsed              String?  @db.Text // Verneutstyr brukt (fritekst)
+  riskAssessmentDone   Boolean  @default(false)
+
+  // Helsekontroll
+  healthCheckRequired Boolean  @default(false)
+  healthCheckDone     Boolean  @default(false)
+  healthCheckDate     DateTime?
+
+  // Langtidslagring – kan ikke slettes uten tillatelse fra Arbeidstilsynet
+  retentionYears     Int      @default(40)
+  retentionUntilDate DateTime
+  status             ExposureRegisterStatus @default(ACTIVE)
+  archivedAt         DateTime?
+
+  // Kobling til RUH-rapport (valgfritt)
+  ruhReportId String?
+
+  // Kobling til risikovurdering (valgfritt)
+  riskId String?
+
+  // Metadata
+  comment     String?  @db.Text // Kommentar / tilleggsinformasjon
+  registeredBy String   // Navn på den som registrerte
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee  User?      @relation("ExposureRegisterEmployee", fields: [employeeId], references: [id], onDelete: SetNull)
+  chemical  Chemical?  @relation(fields: [chemicalId], references: [id], onDelete: SetNull)
+  ruhReport RuhReport? @relation(fields: [ruhReportId], references: [id], onDelete: SetNull)
+  risk      Risk?      @relation(fields: [riskId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([employeeId])
+  @@index([chemicalId])
+  @@index([ruhReportId])
+  @@index([riskId])
+  @@index([status])
+  @@index([exposureStartDate])
+}
+
+enum ExposureType {
+  INHALATION  // Innånding
+  SKIN        // Hudkontakt
+  NOISE       // Støy
+  VIBRATION   // Vibrasjon
+  BIOLOGICAL  // Biologisk
+  RADIATION   // Stråling
+  OTHER       // Annet
+}
+
+enum ExposureRegisterStatus {
+  ACTIVE    // Pågående eksponering
+  INACTIVE  // Avsluttet eksponering
+  ARCHIVED  // Arkivert (kan ikke slettes)
+}
+
+// ============================================
 // Attachments
 // ============================================
 
 model Attachment {
-  id         String   @id @default(cuid())
-  tenantId   String
-  incidentId String?
-  objectType String?
-  objectId   String?
-  fileKey    String
-  name       String
-  mime       String
-  size       Int?
-  createdAt  DateTime @default(now())
+  id            String   @id @default(cuid())
+  tenantId      String
+  incidentId    String?
+  ruhReportId   String?
+  sjaAnalysisId String?
+  objectType    String?
+  objectId      String?
+  fileKey       String
+  name          String
+  mime          String
+  size          Int?
+  createdAt     DateTime @default(now())
 
-  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  incident Incident? @relation(fields: [incidentId], references: [id])
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  incident    Incident?    @relation(fields: [incidentId], references: [id])
+  ruhReport   RuhReport?   @relation("RuhAttachments", fields: [ruhReportId], references: [id])
+  sjaAnalysis SjaAnalysis? @relation("SjaAttachments", fields: [sjaAnalysisId], references: [id])
 
   @@index([tenantId])
   @@index([objectType, objectId])
   @@index([incidentId])
+  @@index([ruhReportId])
+  @@index([sjaAnalysisId])
 }
 
 // ============================================
@@ -3028,9 +3332,11 @@ model TimeEntry {
 enum TimeEntryType {
   NORMAL        // Ordinær tid
   OVERTIME_50   // Overtid 50 %
+  OVERTIME_40   // Overtid 40 % (kundespesifikk)
   OVERTIME_100  // Overtid 100 %
   WEEKEND       // Helg/helligdag
   TRAVEL        // Reise/kjøring (timer, ikke km)
+  SICK_LEAVE    // Sykefravær (Sick Day / Sick Leave)
 }
 
 model MileageEntry {

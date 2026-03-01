@@ -30,7 +30,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Lightbulb } from "lucide-react";
+import { ChevronDown, ChevronRight, Lightbulb } from "lucide-react";
 
 interface RiskFormProps {
   tenantId: string;
@@ -241,7 +241,9 @@ export function RiskForm({
       <Card>
         <CardHeader>
           <CardTitle>Grunnleggende informasjon</CardTitle>
-          <CardDescription>Beskriv risikoen og hvem som eier den</CardDescription>
+          <CardDescription>
+            Beskriv risikoen og hvem som eier den — IK-HMS § 5 nr. 6 krever skriftlig dokumentasjon av alle identifiserte farer.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
@@ -306,7 +308,7 @@ export function RiskForm({
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="location">Lokasjon</Label>
               <Input
@@ -324,16 +326,6 @@ export function RiskForm({
                 name="area"
                 placeholder="Byggeplass, lager, etc."
                 defaultValue={risk?.area ?? ""}
-                disabled={loading}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="linkedProcess">Knyttet til prosess</Label>
-              <Input
-                id="linkedProcess"
-                name="linkedProcess"
-                placeholder="F.eks. Vedlikehold, Montasje"
-                defaultValue={risk?.linkedProcess ?? ""}
                 disabled={loading}
               />
             </div>
@@ -400,7 +392,7 @@ export function RiskForm({
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <CardTitle>Risikonivå</CardTitle>
+            <CardTitle>Risikonivå (AML § 3-1)</CardTitle>
             {(level === "MEDIUM" || level === "HIGH" || level === "CRITICAL") && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -559,18 +551,18 @@ export function RiskForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>Oppfølging og koblinger</CardTitle>
-          <CardDescription>Koble risikoen mot KPIer og inspeksjonsmaler</CardDescription>
+          <CardTitle>Oppfølging</CardTitle>
+          <CardDescription>
+            Frekvens og neste gjennomgangsdato — IK-HMS § 5 nr. 8 krever at risikovurderingen gjennomgås regelmessig.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="controlFrequency">Oppfølgingsfrekvens *</Label>
               <Select
                 value={controlFrequency}
-                onValueChange={(value: ControlFrequency) => {
-                  setControlFrequency(value);
-                }}
+                onValueChange={(value: ControlFrequency) => setControlFrequency(value)}
                 disabled={loading}
               >
                 <SelectTrigger>
@@ -599,9 +591,141 @@ export function RiskForm({
                 disabled={loading}
               />
             </div>
+            <div className="space-y-2">
+              <Label>Responsstrategi</Label>
+              <Select
+                value={responseStrategy}
+                onValueChange={(value: RiskResponseStrategy) => setResponseStrategy(value)}
+                disabled={loading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Velg strategi" />
+                </SelectTrigger>
+                <SelectContent>
+                  {responseOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <div>
+                        <p className="font-medium">{option.label}</p>
+                        <p className="text-xs text-muted-foreground">{option.description}</p>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+        </CardContent>
+      </Card>
 
-          <div className="grid gap-4 md:grid-cols-2">
+      {/* Avansert: ISO 31000-spesifikke felter – kun nødvendig for virksomhetsrisiko */}
+      <AdvancedSection
+        goalOptions={goalOptions}
+        templateOptions={templateOptions}
+        selectedGoal={selectedGoal}
+        setSelectedGoal={setSelectedGoal}
+        selectedTemplate={selectedTemplate}
+        setSelectedTemplate={setSelectedTemplate}
+        linkedProcess={risk?.linkedProcess ?? ""}
+        riskAppetite={riskAppetite}
+        setRiskAppetite={setRiskAppetite}
+        riskTolerance={riskTolerance}
+        setRiskTolerance={setRiskTolerance}
+        trend={trend}
+        setTrend={setTrend}
+        reviewedAt={reviewedAt}
+        setReviewedAt={setReviewedAt}
+        loading={loading}
+      />
+
+      <div className="flex gap-4">
+        <Button type="submit" disabled={loading}>
+          {loading ? "Lagrer..." : mode === "create" ? "Opprett risiko" : "Lagre endringer"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => router.back()}
+          disabled={loading}
+        >
+          Avbryt
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+interface AdvancedSectionProps {
+  goalOptions: Array<{ id: string; title: string }>;
+  templateOptions: Array<{ id: string; name: string }>;
+  selectedGoal: string;
+  setSelectedGoal: (v: string) => void;
+  selectedTemplate: string;
+  setSelectedTemplate: (v: string) => void;
+  linkedProcess: string;
+  riskAppetite: string;
+  setRiskAppetite: (v: string) => void;
+  riskTolerance: string;
+  setRiskTolerance: (v: string) => void;
+  trend: RiskTrend;
+  setTrend: (v: RiskTrend) => void;
+  reviewedAt: string;
+  setReviewedAt: (v: string) => void;
+  loading: boolean;
+}
+
+function AdvancedSection({
+  goalOptions,
+  templateOptions,
+  selectedGoal,
+  setSelectedGoal,
+  selectedTemplate,
+  setSelectedTemplate,
+  linkedProcess,
+  riskAppetite,
+  setRiskAppetite,
+  riskTolerance,
+  setRiskTolerance,
+  trend,
+  setTrend,
+  reviewedAt,
+  setReviewedAt,
+  loading,
+}: AdvancedSectionProps) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="rounded-lg border bg-muted/30">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between px-5 py-4 text-left"
+        onClick={() => setOpen((prev) => !prev)}
+      >
+        <div>
+          <p className="font-medium text-sm">Avansert – ISO 31000 / virksomhetsrisiko</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Risikoappetitt, KPI-kobling, inspeksjonsmal m.m. — ikke nødvendig for standard AML-vurdering
+          </p>
+        </div>
+        {open ? (
+          <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+        ) : (
+          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+        )}
+      </button>
+
+      {open && (
+        <div className="px-5 pb-5 space-y-5 border-t pt-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="linkedProcess">Knyttet til prosess</Label>
+              <Input
+                id="linkedProcess"
+                name="linkedProcess"
+                placeholder="F.eks. Vedlikehold, Montasje"
+                defaultValue={linkedProcess}
+                disabled={loading}
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="kpiId">Koble til mål/KPI</Label>
               <Select
@@ -610,7 +734,9 @@ export function RiskForm({
                 disabled={goalOptions.length === 0 || loading}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={goalOptions.length ? "Velg mål (valgfritt)" : "Ingen mål tilgjengelig"} />
+                  <SelectValue
+                    placeholder={goalOptions.length ? "Velg mål (valgfritt)" : "Ingen mål tilgjengelig"}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NO_GOAL_VALUE}>Ingen</SelectItem>
@@ -645,15 +771,7 @@ export function RiskForm({
               </Select>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Risikoappetitt og strategi</CardTitle>
-          <CardDescription>ISO 31000: dokumenter toleransegrenser og valgt respons</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="riskAppetite">Risikoappetitt</Label>
@@ -662,9 +780,9 @@ export function RiskForm({
                 name="riskAppetite"
                 placeholder="Beskriv hvilket nivå av risiko virksomheten aksepterer"
                 value={riskAppetite}
-                onChange={(event) => setRiskAppetite(event.target.value)}
+                onChange={(e) => setRiskAppetite(e.target.value)}
                 disabled={loading}
-                rows={3}
+                rows={2}
               />
             </div>
             <div className="space-y-2">
@@ -674,38 +792,16 @@ export function RiskForm({
                 name="riskTolerance"
                 placeholder="Beskriv hvilke avvik/indikatorer som utløser tiltak"
                 value={riskTolerance}
-                onChange={(event) => setRiskTolerance(event.target.value)}
+                onChange={(e) => setRiskTolerance(e.target.value)}
                 disabled={loading}
-                rows={3}
+                rows={2}
               />
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>Responsstrategi *</Label>
-              <Select
-                value={responseStrategy}
-                onValueChange={(value: RiskResponseStrategy) => setResponseStrategy(value)}
-                disabled={loading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Velg strategi" />
-                </SelectTrigger>
-                <SelectContent>
-                  {responseOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      <div>
-                        <p className="font-medium">{option.label}</p>
-                        <p className="text-xs text-muted-foreground">{option.description}</p>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Trend *</Label>
+              <Label>Trend</Label>
               <Select value={trend} onValueChange={(value: RiskTrend) => setTrend(value)} disabled={loading}>
                 <SelectTrigger>
                   <SelectValue placeholder="Velg trend" />
@@ -720,36 +816,19 @@ export function RiskForm({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="reviewedAt">Sist gjennomgått</Label>
+              <Label htmlFor="reviewedAt">Sist gjennomgått (ISO 31000)</Label>
               <Input
                 id="reviewedAt"
                 name="reviewedAt"
                 type="date"
                 value={reviewedAt}
-                onChange={(event) => setReviewedAt(event.target.value)}
+                onChange={(e) => setReviewedAt(e.target.value)}
                 disabled={loading}
               />
             </div>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Hold appetitt, toleranse og strategi oppdatert – brukes i ledelsens gjennomgang, revisjoner og rapporter.
-          </p>
-        </CardContent>
-      </Card>
-
-      <div className="flex gap-4">
-        <Button type="submit" disabled={loading}>
-          {loading ? "Lagrer..." : mode === "create" ? "Opprett risiko" : "Lagre endringer"}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => router.back()}
-          disabled={loading}
-        >
-          Avbryt
-        </Button>
-      </div>
-    </form>
+        </div>
+      )}
+    </div>
   );
 }

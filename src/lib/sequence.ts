@@ -13,6 +13,14 @@ const SEQUENCE_CONFIG: Record<
     prefix: "SKJ",
     format: (year, num) => `SKJ-${year}-${String(num).padStart(3, "0")}`,
   },
+  RUH: {
+    prefix: "RUH",
+    format: (year, num) => `RUH-${year}-${String(num).padStart(3, "0")}`,
+  },
+  SJA: {
+    prefix: "SJA",
+    format: (year, num) => `SJA-${year}-${String(num).padStart(3, "0")}`,
+  },
   "FORM:RUH": {
     prefix: "RUH",
     format: (year, num) => `RUH-${year}-${String(num).padStart(3, "0")}`,
@@ -38,7 +46,7 @@ function getSequenceConfig(type: string): {
  * Bruker transaksjon for å unngå race conditions.
  *
  * @param tenantId - Tenant-ID
- * @param sequenceType - "AVVIK" | "FORM:SKJ" | "FORM:RUH" | "FORM:{custom}"
+ * @param sequenceType - "AVVIK" | "RUH" | "FORM:SKJ" | "FORM:RUH" | "FORM:{custom}"
  * @param year - År for sekvensen (default: nåværende år)
  */
 export async function generateSequenceNumber(

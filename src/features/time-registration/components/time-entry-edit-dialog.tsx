@@ -26,9 +26,11 @@ import { format } from "date-fns";
 const TIME_TYPE_OPTIONS = [
   { value: "NORMAL", label: "Ordinær" },
   { value: "OVERTIME_50", label: "Overtid 50 %" },
+  { value: "OVERTIME_40", label: "Overtid 40 %" },
   { value: "OVERTIME_100", label: "Overtid 100 %" },
   { value: "WEEKEND", label: "Helg/helligdag" },
   { value: "TRAVEL", label: "Reise/kjøring" },
+  { value: "SICK_LEAVE", label: "Sykefravær" },
 ] as const;
 
 interface TimeEntryEditDialogProps {

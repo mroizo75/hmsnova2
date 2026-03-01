@@ -8,6 +8,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { RiskAssessmentItemForm } from "@/features/risks/components/risk-assessment-item-form";
 import { RiskAssessmentItemList } from "@/features/risks/components/risk-assessment-item-list";
+import { RiskAssessmentComplianceCard } from "@/features/risks/components/risk-assessment-compliance-card";
 
 export default async function RiskAssessmentPage({
   params,
@@ -32,21 +33,35 @@ export default async function RiskAssessmentPage({
 
   const tenantId = user.tenants[0].tenantId;
 
-  const assessment = await prisma.riskAssessment.findFirst({
-    where: { id, tenantId },
-    include: {
-      risks: {
-        orderBy: [{ score: "desc" }, { assessmentDate: "desc" }, { createdAt: "asc" }],
-        include: {
-          owner: { select: { id: true, name: true, email: true } },
+  const [assessment, userTenants] = await Promise.all([
+    prisma.riskAssessment.findFirst({
+      where: { id, tenantId },
+      include: {
+        risks: {
+          orderBy: [{ score: "desc" }, { assessmentDate: "desc" }, { createdAt: "asc" }],
+          include: {
+            owner: { select: { id: true, name: true, email: true } },
+          },
         },
       },
-    },
-  });
+    }),
+    prisma.userTenant.findMany({
+      where: { tenantId },
+      include: { user: { select: { id: true, name: true, email: true } } },
+    }),
+  ]);
 
   if (!assessment) {
     notFound();
   }
+
+  const userList = userTenants
+    .filter((ut) => ut.user.email)
+    .map((ut) => ({
+      id: ut.user.id,
+      name: ut.user.name,
+      email: ut.user.email ?? "",
+    }));
 
   return (
     <div className="space-y-6">
@@ -59,9 +74,21 @@ export default async function RiskAssessmentPage({
         </Button>
         <h1 className="text-3xl font-bold">{assessment.title}</h1>
         <p className="text-muted-foreground">
-          Legg inn risikopunkter nedover (beskrivelse, nivå, kategori, dato). ISO 45001: systematisk identifikasjon og vurdering.
+          Systematisk risikovurdering i henhold til IK-HMS § 5 og AML § 3-1.
         </p>
       </div>
+
+      <RiskAssessmentComplianceCard
+        assessment={{
+          id: assessment.id,
+          participants: assessment.participants,
+          approvedById: assessment.approvedById,
+          approvedAt: assessment.approvedAt,
+          reviewedById: assessment.reviewedById,
+          reviewedAt: assessment.reviewedAt,
+        }}
+        users={userList}
+      />
 
       <RiskAssessmentItemForm
         riskAssessmentId={assessment.id}

@@ -69,10 +69,16 @@ export async function getTimeRegistrationConfig(tenantId: string) {
         timeRegistrationEnabled: true,
         weeklyHoursNorm: true,
         overtime50Multiplier: true,
+        overtime40Multiplier: true,
         overtime100Multiplier: true,
+        useOvertime40Percent: true,
         defaultKmRate: true,
+        kmAllowanceTaxable: true,
         lunchBreakMinutes: true,
         eveningOvertimeFromHour: true,
+        saturdayOvertime40LimitHours: true,
+        defaultHourlyRate: true,
+        approximateTaxPercent: true,
       },
     });
     if (!tenant) return { success: false, error: "Virksomhet ikke funnet" };
@@ -89,10 +95,16 @@ export async function updateTimeRegistrationConfig(
     timeRegistrationEnabled?: boolean;
     weeklyHoursNorm?: number;
     overtime50Multiplier?: number;
+    overtime40Multiplier?: number;
     overtime100Multiplier?: number;
+    useOvertime40Percent?: boolean;
     defaultKmRate?: number;
+    kmAllowanceTaxable?: boolean;
     lunchBreakMinutes?: number;
     eveningOvertimeFromHour?: number | null;
+    saturdayOvertime40LimitHours?: number | null;
+    defaultHourlyRate?: number | null;
+    approximateTaxPercent?: number | null;
   }
 ) {
   try {
@@ -107,10 +119,16 @@ export async function updateTimeRegistrationConfig(
         timeRegistrationEnabled: data.timeRegistrationEnabled,
         weeklyHoursNorm: data.weeklyHoursNorm,
         overtime50Multiplier: data.overtime50Multiplier,
+        overtime40Multiplier: data.overtime40Multiplier,
         overtime100Multiplier: data.overtime100Multiplier,
+        useOvertime40Percent: data.useOvertime40Percent,
         defaultKmRate: data.defaultKmRate,
+        kmAllowanceTaxable: data.kmAllowanceTaxable,
         lunchBreakMinutes: data.lunchBreakMinutes,
         eveningOvertimeFromHour: data.eveningOvertimeFromHour,
+        saturdayOvertime40LimitHours: data.saturdayOvertime40LimitHours,
+        defaultHourlyRate: data.defaultHourlyRate,
+        approximateTaxPercent: data.approximateTaxPercent,
       },
     });
     revalidatePath("/dashboard/time-registration");
@@ -236,20 +254,33 @@ export async function deleteProject(id: string) {
 type TimeEntryTypeValue =
   | "NORMAL"
   | "OVERTIME_50"
+  | "OVERTIME_40"
   | "OVERTIME_100"
   | "WEEKEND"
-  | "TRAVEL";
+  | "TRAVEL"
+  | "SICK_LEAVE";
 
 /** Automatisk overtidsberegning: daglig norm (f.eks. 7,5 t) fra weeklyHoursNorm / 5 */
 function getDailyNorm(weeklyHoursNorm: number): number {
   return weeklyHoursNorm / 5;
 }
 
-/** Bestem overtidstype fra tenant-regler: helg = WEEKEND; arbeid etter kl X = 100 %; ellers 50 % */
+/** Parse "HH:mm" eller "HH" til desimaltimer (0–24) */
+function parseTimeToHours(s: string): number | null {
+  const m = s.trim().match(/^(\d{1,2})(?::(\d{2}))?$/);
+  if (!m) return null;
+  const h = parseInt(m[1], 10);
+  const min = m[2] ? parseInt(m[2], 10) : 0;
+  if (h < 0 || h > 23 || min < 0 || min > 59) return null;
+  return h + min / 60;
+}
+
+/** Bestem overtidstype fra tenant-regler: helg = WEEKEND; arbeid etter kl X = 100 %; ellers 50 % eller 40 % */
 function resolveOvertimeType(
   date: Date,
   workedUntilHour: number | null | undefined,
-  eveningOvertimeFromHour: number | null
+  eveningOvertimeFromHour: number | null,
+  useOvertime40Percent: boolean
 ): TimeEntryTypeValue {
   const d = new Date(date);
   const day = d.getDay();
@@ -263,7 +294,7 @@ function resolveOvertimeType(
   ) {
     return "OVERTIME_100";
   }
-  return "OVERTIME_50";
+  return useOvertime40Percent ? "OVERTIME_40" : "OVERTIME_50";
 }
 
 export async function createTimeEntry(input: {
@@ -271,9 +302,17 @@ export async function createTimeEntry(input: {
   projectId: string;
   date: Date;
   hours: number;
-  mode: "work" | "travel";
+  mode: "work" | "travel" | "sick";
   /** Arbeidet til kl (0–23). Hvis satt og ≥ eveningOvertimeFromHour = 100 % overtid man–fre */
   workedUntilHour?: number | null;
+  /** Alternativ: Fra/til-klokkeslett. Total = (To − From) − Lunch − M.Driving − E.Driving */
+  fromToInput?: {
+    from: string;
+    to: string;
+    lunchMinutes?: number;
+    drivingMorningMinutes?: number;
+    drivingEveningMinutes?: number;
+  };
   comment?: string;
 }) {
   try {
@@ -289,6 +328,8 @@ export async function createTimeEntry(input: {
         weeklyHoursNorm: true,
         lunchBreakMinutes: true,
         eveningOvertimeFromHour: true,
+        useOvertime40Percent: true,
+        saturdayOvertime40LimitHours: true,
       },
     });
     if (!tenant?.timeRegistrationEnabled) {
@@ -302,14 +343,31 @@ export async function createTimeEntry(input: {
       return { success: false, error: "Prosjekt ikke funnet eller ikke aktivt" };
     }
 
-    if (input.hours <= 0 || input.hours > 24) {
-      return { success: false, error: "Timer må være mellom 0 og 24" };
-    }
-
     const date = new Date(input.date);
     const comment = input.comment?.trim() || null;
+    const lunchMinutes = tenant?.lunchBreakMinutes ?? 30;
+    const lunchHours = lunchMinutes / 60;
 
-    const lunchHours = (tenant?.lunchBreakMinutes ?? 30) / 60;
+    let actualClockHours = input.hours;
+    let workedUntilHour = input.workedUntilHour;
+
+    if (input.fromToInput && input.mode === "work") {
+      const fromH = parseTimeToHours(input.fromToInput.from);
+      const toH = parseTimeToHours(input.fromToInput.to);
+      if (fromH == null || toH == null) {
+        return { success: false, error: "Ugyldig fra/til-klokkeslett (bruk HH:mm eller HH)" };
+      }
+      let span = toH - fromH;
+      if (span < 0) span += 24;
+      const lunch = (input.fromToInput.lunchMinutes ?? lunchMinutes) / 60;
+      const drivingM = (input.fromToInput.drivingMorningMinutes ?? 0) / 60;
+      const drivingE = (input.fromToInput.drivingEveningMinutes ?? 0) / 60;
+      actualClockHours = Math.max(0, span - lunch - drivingM - drivingE);
+      workedUntilHour = Math.floor(toH) + (toH % 1 >= 0.5 ? 1 : 0);
+    }
+    if (actualClockHours <= 0 || actualClockHours > 24) {
+      return { success: false, error: "Timer må være mellom 0 og 24" };
+    }
 
     if (input.mode === "travel") {
       const entry = await prisma.timeEntry.create({
@@ -318,7 +376,7 @@ export async function createTimeEntry(input: {
           projectId: input.projectId,
           userId: user.id,
           date,
-          hours: input.hours,
+          hours: actualClockHours,
           timeType: "TRAVEL",
           comment,
         },
@@ -328,8 +386,32 @@ export async function createTimeEntry(input: {
       return { success: true, data: entry };
     }
 
-    // mode === "work": trekke lunsj fra klokketimer, deretter split ordinær + overtid
-    const actualHours = Math.max(0, input.hours - lunchHours);
+    if (input.mode === "sick") {
+      const actualHours = Math.max(0, actualClockHours - lunchHours);
+      if (actualHours <= 0) {
+        return { success: false, error: "Sykefravær (etter lunsj) må være over 0" };
+      }
+      const entry = await prisma.timeEntry.create({
+        data: {
+          tenantId,
+          projectId: input.projectId,
+          userId: user.id,
+          date,
+          hours: actualHours,
+          timeType: "SICK_LEAVE",
+          comment,
+        },
+      });
+      revalidatePath("/dashboard/time-registration");
+      revalidatePath("/ansatt/timeregistrering");
+      return { success: true, data: entry };
+    }
+
+    // mode === "work": ved fromToInput er actualClockHours allerede netto (minus lunsj/reise)
+    const actualHours =
+      input.fromToInput && input.mode === "work"
+        ? actualClockHours
+        : Math.max(0, actualClockHours - lunchHours);
     if (actualHours <= 0) {
       return { success: false, error: "Arbeidstimer (etter lunsj) må være over 0" };
     }
@@ -337,8 +419,9 @@ export async function createTimeEntry(input: {
     const dailyNorm = getDailyNorm(tenant.weeklyHoursNorm ?? 37.5);
     const overtimeType = resolveOvertimeType(
       date,
-      input.workedUntilHour,
-      tenant.eveningOvertimeFromHour
+      workedUntilHour,
+      tenant.eveningOvertimeFromHour,
+      tenant.useOvertime40Percent ?? false
     );
 
     if (actualHours <= dailyNorm) {
@@ -360,32 +443,85 @@ export async function createTimeEntry(input: {
 
     const normalHours = dailyNorm;
     const overtimeHours = actualHours - dailyNorm;
+    const isSaturday = date.getDay() === 6;
+    const satLimit = tenant.saturdayOvertime40LimitHours;
 
-    await prisma.$transaction([
-      prisma.timeEntry.create({
-        data: {
-          tenantId,
-          projectId: input.projectId,
-          userId: user.id,
-          date,
-          hours: normalHours,
-          timeType: "NORMAL",
-          comment,
-        },
-      }),
-      prisma.timeEntry.create({
-        data: {
-          tenantId,
-          projectId: input.projectId,
-          userId: user.id,
-          date,
-          hours: overtimeHours,
-          timeType: overtimeType,
-          workedUntilHour: input.workedUntilHour ?? null,
-          comment,
-        },
-      }),
-    ]);
+    if (isSaturday && satLimit != null && satLimit > 0 && overtimeHours > 0) {
+      const overtime40Part = Math.min(overtimeHours, satLimit);
+      const overtime100Part = Math.max(0, overtimeHours - satLimit);
+      const entries: any[] = [
+        prisma.timeEntry.create({
+          data: {
+            tenantId,
+            projectId: input.projectId,
+            userId: user.id,
+            date,
+            hours: normalHours,
+            timeType: "NORMAL",
+            comment,
+          },
+        }),
+      ];
+      if (overtime40Part > 0) {
+        entries.push(
+          prisma.timeEntry.create({
+            data: {
+              tenantId,
+              projectId: input.projectId,
+              userId: user.id,
+              date,
+              hours: overtime40Part,
+              timeType: "OVERTIME_40",
+              workedUntilHour: workedUntilHour ?? null,
+              comment,
+            },
+          })
+        );
+      }
+      if (overtime100Part > 0) {
+        entries.push(
+          prisma.timeEntry.create({
+            data: {
+              tenantId,
+              projectId: input.projectId,
+              userId: user.id,
+              date,
+              hours: overtime100Part,
+              timeType: "OVERTIME_100",
+              workedUntilHour: workedUntilHour ?? null,
+              comment,
+            },
+          })
+        );
+      }
+      await prisma.$transaction(entries);
+    } else {
+      await prisma.$transaction([
+        prisma.timeEntry.create({
+          data: {
+            tenantId,
+            projectId: input.projectId,
+            userId: user.id,
+            date,
+            hours: normalHours,
+            timeType: "NORMAL",
+            comment,
+          },
+        }),
+        prisma.timeEntry.create({
+          data: {
+            tenantId,
+            projectId: input.projectId,
+            userId: user.id,
+            date,
+            hours: overtimeHours,
+            timeType: overtimeType,
+            workedUntilHour: workedUntilHour ?? null,
+            comment,
+          },
+        }),
+      ]);
+    }
     revalidatePath("/dashboard/time-registration");
     revalidatePath("/ansatt/timeregistrering");
     return { success: true, data: null };
@@ -660,8 +796,13 @@ export async function getTimeRegistrationOverview(
         select: {
           weeklyHoursNorm: true,
           overtime50Multiplier: true,
+          overtime40Multiplier: true,
           overtime100Multiplier: true,
+          useOvertime40Percent: true,
           defaultKmRate: true,
+          kmAllowanceTaxable: true,
+          defaultHourlyRate: true,
+          approximateTaxPercent: true,
         },
       }),
     ]);

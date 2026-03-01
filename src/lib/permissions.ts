@@ -23,6 +23,16 @@ export interface RolePermissions {
   canInvestigateIncidents: boolean;
   canCloseIncidents: boolean;
   
+  // RUH – Rapport om uønsket hendelse
+  canReadRuh: boolean;
+  canCreateRuh: boolean;
+  canHandleRuh: boolean;
+
+  // SJA – Sikker Jobb Analyse
+  canReadSja: boolean;
+  canCreateSja: boolean;
+  canApproveSja: boolean;
+  
   // Risikovurderinger
   canReadRisks: boolean;
   canCreateRisks: boolean;
@@ -72,11 +82,6 @@ export interface RolePermissions {
   canUpdateEnvironment: boolean;
   canRecordEnvironmentalMeasurements: boolean;
 
-  // Informasjonssikkerhet (ISO 27001)
-  canReadSecurity: boolean;
-  canCreateSecurity: boolean;
-  canUpdateSecurity: boolean;
-  
   // Mål & KPIer
   canReadGoals: boolean;
   canCreateGoals: boolean;
@@ -124,6 +129,10 @@ export interface RolePermissions {
 
   // Juridisk register – lover og forskrifter per bransje (alle roller)
   canReadLegalRegister: boolean;
+
+  // Eksponeringsregister – ansatte eksponert for helseskadelige stoffer
+  canReadExposureRegister: boolean;
+  canManageExposureRegister: boolean;
 }
 
 /**
@@ -142,6 +151,12 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateIncidents: true,
     canInvestigateIncidents: true,
     canCloseIncidents: true,
+    canReadRuh: true,
+    canCreateRuh: true,
+    canHandleRuh: true,
+    canReadSja: true,
+    canCreateSja: true,
+    canApproveSja: true,
     canReadRisks: true,
     canCreateRisks: true,
     canApproveRisks: true,
@@ -183,9 +198,6 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateEnvironment: true,
     canUpdateEnvironment: true,
     canRecordEnvironmentalMeasurements: true,
-    canReadSecurity: true,
-    canCreateSecurity: true,
-    canUpdateSecurity: true,
     canReadManagementReviews: true,
     canCreateManagementReviews: true,
     canApproveManagementReviews: true,
@@ -206,6 +218,8 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canViewAllReports: true,
     canAccessTimeRegistration: true,
     canReadLegalRegister: true,
+    canReadExposureRegister: true,
+    canManageExposureRegister: true,
   },
 
   // HMS - HMS-ansvarlig, nesten full tilgang
@@ -220,6 +234,12 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateIncidents: true,
     canInvestigateIncidents: true,
     canCloseIncidents: true,
+    canReadRuh: true,
+    canCreateRuh: true,
+    canHandleRuh: true,
+    canReadSja: true,
+    canCreateSja: true,
+    canApproveSja: true,
     canReadRisks: true,
     canCreateRisks: true,
     canApproveRisks: true,
@@ -261,9 +281,6 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateEnvironment: true,
     canUpdateEnvironment: true,
     canRecordEnvironmentalMeasurements: true,
-    canReadSecurity: true,
-    canCreateSecurity: true,
-    canUpdateSecurity: true,
     canReadManagementReviews: true,
     canCreateManagementReviews: true,
     canApproveManagementReviews: false, // Kun Admin
@@ -284,6 +301,8 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canViewAllReports: true,
     canAccessTimeRegistration: true,
     canReadLegalRegister: true,
+    canReadExposureRegister: true,
+    canManageExposureRegister: true,
   },
 
   // LEDER - Leder, kan administrere i sin avdeling
@@ -298,6 +317,12 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateIncidents: true,
     canInvestigateIncidents: true,
     canCloseIncidents: true,
+    canReadRuh: true,
+    canCreateRuh: true,
+    canHandleRuh: true,
+    canReadSja: true,
+    canCreateSja: true,
+    canApproveSja: true,
     canReadRisks: true,
     canCreateRisks: true,
     canApproveRisks: false,
@@ -339,9 +364,6 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateEnvironment: true,
     canUpdateEnvironment: true,
     canRecordEnvironmentalMeasurements: true,
-    canReadSecurity: true,
-    canCreateSecurity: false,
-    canUpdateSecurity: false,
     canReadManagementReviews: true,
     canCreateManagementReviews: false,
     canApproveManagementReviews: false,
@@ -362,6 +384,8 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canViewAllReports: true,
     canAccessTimeRegistration: true,
     canReadLegalRegister: true,
+    canReadExposureRegister: true,
+    canManageExposureRegister: true,
   },
 
   // VERNEOMBUD - Verneombud, fokus på HMS
@@ -376,6 +400,12 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateIncidents: true,
     canInvestigateIncidents: false,
     canCloseIncidents: false,
+    canReadRuh: true,
+    canCreateRuh: true,
+    canHandleRuh: false,
+    canReadSja: true,
+    canCreateSja: true,
+    canApproveSja: false,
     canReadRisks: true,
     canCreateRisks: true,
     canApproveRisks: false,
@@ -417,9 +447,6 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateEnvironment: true,
     canUpdateEnvironment: false,
     canRecordEnvironmentalMeasurements: true,
-    canReadSecurity: false,
-    canCreateSecurity: false,
-    canUpdateSecurity: false,
     canReadManagementReviews: false,
     canCreateManagementReviews: false,
     canApproveManagementReviews: false,
@@ -440,6 +467,8 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canViewAllReports: false,
     canAccessTimeRegistration: true,
     canReadLegalRegister: true,
+    canReadExposureRegister: true,
+    canManageExposureRegister: false,
   },
 
   // ANSATT - Ansatt, begrenset tilgang
@@ -454,6 +483,12 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateIncidents: true, // Kan rapportere avvik og kundeklager
     canInvestigateIncidents: false,
     canCloseIncidents: false,
+    canReadRuh: true, // Kan se egne RUH-rapporter
+    canCreateRuh: true, // Alle ansatte kan sende RUH
+    canHandleRuh: false,
+    canReadSja: true, // Kan se egne SJA
+    canCreateSja: true, // Alle ansatte kan opprette SJA
+    canApproveSja: false,
     canReadRisks: false,
     canCreateRisks: false,
     canApproveRisks: false,
@@ -495,9 +530,6 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateEnvironment: false,
     canUpdateEnvironment: false,
     canRecordEnvironmentalMeasurements: false,
-    canReadSecurity: false,
-    canCreateSecurity: false,
-    canUpdateSecurity: false,
     canReadManagementReviews: false,
     canCreateManagementReviews: false,
     canApproveManagementReviews: false,
@@ -518,6 +550,8 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canViewAllReports: false,
     canAccessTimeRegistration: true,
     canReadLegalRegister: true,
+    canReadExposureRegister: false,
+    canManageExposureRegister: false,
   },
 
   // BHT - Bedriftshelsetjeneste, lesetilgang + rapportering
@@ -532,6 +566,12 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateIncidents: true,
     canInvestigateIncidents: false,
     canCloseIncidents: false,
+    canReadRuh: true,
+    canCreateRuh: true,
+    canHandleRuh: false,
+    canReadSja: true,
+    canCreateSja: true,
+    canApproveSja: false,
     canReadRisks: true,
     canCreateRisks: true,
     canApproveRisks: false,
@@ -573,9 +613,6 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateEnvironment: false,
     canUpdateEnvironment: false,
     canRecordEnvironmentalMeasurements: true,
-    canReadSecurity: true,
-    canCreateSecurity: false,
-    canUpdateSecurity: false,
     canReadManagementReviews: true,
     canCreateManagementReviews: false,
     canApproveManagementReviews: false,
@@ -596,6 +633,8 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canViewAllReports: true,
     canAccessTimeRegistration: true,
     canReadLegalRegister: true,
+    canReadExposureRegister: true,
+    canManageExposureRegister: false,
   },
 
   // REVISOR - Revisor, kun lesetilgang
@@ -610,6 +649,12 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateIncidents: false,
     canInvestigateIncidents: false,
     canCloseIncidents: false,
+    canReadRuh: true,
+    canCreateRuh: false,
+    canHandleRuh: false,
+    canReadSja: true,
+    canCreateSja: false,
+    canApproveSja: false,
     canReadRisks: true,
     canCreateRisks: false,
     canApproveRisks: false,
@@ -651,9 +696,6 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateEnvironment: false,
     canUpdateEnvironment: false,
     canRecordEnvironmentalMeasurements: false,
-    canReadSecurity: true,
-    canCreateSecurity: false,
-    canUpdateSecurity: false,
     canReadManagementReviews: true,
     canCreateManagementReviews: false,
     canApproveManagementReviews: false,
@@ -674,6 +716,8 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canViewAllReports: true,
     canAccessTimeRegistration: true,
     canReadLegalRegister: true,
+    canReadExposureRegister: true,
+    canManageExposureRegister: false,
   },
 };
 
@@ -707,6 +751,8 @@ export function getVisibleNavItems(role: Role) {
     risks: perms.canReadRisks,
     riskRegister: perms.canReadRisks,
     incidents: perms.canReadIncidents || perms.canCreateIncidents,
+    ruh: perms.canReadRuh || perms.canCreateRuh,
+    sja: perms.canReadSja || perms.canCreateSja,
     inspections: perms.canReadInspections,
     chemicals: perms.canReadChemicals,
     training: perms.canReadOwnTraining || perms.canReadAllTraining,
@@ -718,12 +764,12 @@ export function getVisibleNavItems(role: Role) {
     actions: perms.canReadActions,
     goals: perms.canReadGoals,
     environment: perms.canReadEnvironment,
-    security: perms.canReadSecurity,
     feedback: perms.canReadOwnFeedback || perms.canReadAllFeedback || perms.canCreateFeedback,
     complaints: perms.canCreateIncidents,
     settings: perms.canReadSettings,
     timeRegistration: perms.canAccessTimeRegistration,
     legalRegister: perms.canReadLegalRegister,
+    exposureRegister: perms.canReadExposureRegister,
   };
 }
 

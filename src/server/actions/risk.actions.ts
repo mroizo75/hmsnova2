@@ -6,6 +6,7 @@ import {
   createRiskSchema,
   updateRiskSchema,
   createRiskAssessmentSchema,
+  updateRiskAssessmentSchema,
   riskLevelToMatrix,
 } from "@/features/risks/schemas/risk.schema";
 import { ControlFrequency, RiskCategory } from "@prisma/client";
@@ -379,6 +380,7 @@ export async function createRiskAssessment(input: {
   tenantId: string;
   title: string;
   assessmentYear: number;
+  participants?: string;
 }) {
   try {
     const { user, tenantId } = await getActionContext();
@@ -389,6 +391,7 @@ export async function createRiskAssessment(input: {
         tenantId: validated.tenantId,
         title: validated.title,
         assessmentYear: validated.assessmentYear,
+        participants: validated.participants?.trim() || null,
       },
     });
 
@@ -407,6 +410,55 @@ export async function createRiskAssessment(input: {
     return { success: true, data: assessment };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Kunne ikke opprette risikovurdering";
+    return { success: false, error: message };
+  }
+}
+
+export async function updateRiskAssessment(input: {
+  id: string;
+  participants?: string;
+  approvedById?: string | null;
+  approvedAt?: string | null;
+  reviewedById?: string | null;
+  reviewedAt?: string | null;
+}) {
+  try {
+    const { user, tenantId } = await getActionContext();
+    const validated = updateRiskAssessmentSchema.parse(input);
+
+    const existing = await prisma.riskAssessment.findFirst({
+      where: { id: validated.id, tenantId },
+    });
+    if (!existing) return { success: false, error: "Risikovurdering ikke funnet" };
+
+    const assessment = await prisma.riskAssessment.update({
+      where: { id: validated.id },
+      data: {
+        participants: validated.participants !== undefined
+          ? (validated.participants?.trim() || null)
+          : undefined,
+        approvedById: validated.approvedById,
+        approvedAt: validated.approvedAt,
+        reviewedById: validated.reviewedById,
+        reviewedAt: validated.reviewedAt,
+        updatedAt: new Date(),
+      },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        tenantId,
+        userId: user.id,
+        action: "RISK_ASSESSMENT_UPDATED",
+        resource: `RiskAssessment:${assessment.id}`,
+        metadata: JSON.stringify({ title: assessment.title }),
+      },
+    });
+
+    revalidatePath(`/dashboard/risks/assessment/${assessment.id}`);
+    return { success: true, data: assessment };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Kunne ikke oppdatere risikovurdering";
     return { success: false, error: message };
   }
 }

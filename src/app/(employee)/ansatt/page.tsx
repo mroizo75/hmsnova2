@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { FileText, AlertCircle, Beaker, GraduationCap, Shield, Bell, ClipboardList, ShieldAlert, Clock } from "lucide-react";
+import { FileText, AlertCircle, Beaker, GraduationCap, Shield, Bell, ClipboardList, ShieldAlert, Clock, FileWarning, HardHat } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/lib/db";
@@ -93,6 +93,36 @@ export default async function AnsattDashboard() {
               <Badge variant="destructive" className="mt-2 text-xs">
                 Viktig!
               </Badge>
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* RUH */}
+        <Link href="/ansatt/ruh/ny">
+          <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-amber-500">
+            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+              <div className="h-16 w-16 rounded-full bg-amber-100 flex items-center justify-center mb-3">
+                <FileWarning className="h-8 w-8 text-amber-600" />
+              </div>
+              <h3 className="font-semibold text-lg mb-1">RUH</h3>
+              <p className="text-xs text-muted-foreground">
+                Uønsket hendelse
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* SJA */}
+        <Link href="/ansatt/sja">
+          <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-orange-500">
+            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+              <div className="h-16 w-16 rounded-full bg-orange-100 flex items-center justify-center mb-3">
+                <HardHat className="h-8 w-8 text-orange-600" />
+              </div>
+              <h3 className="font-semibold text-lg mb-1">SJA</h3>
+              <p className="text-xs text-muted-foreground">
+                Sikker Jobb Analyse
+              </p>
             </CardContent>
           </Card>
         </Link>

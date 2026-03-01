@@ -76,6 +76,18 @@ export const createRiskAssessmentSchema = z.object({
   tenantId: z.string().cuid(),
   title: z.string().min(3, "Tittel må være minst 3 tegn"),
   assessmentYear: z.number().int().min(2000).max(2100),
+  // IK-HMS § 5 nr. 3 + AML § 3-1 (1): Hvem deltok (arbeidstakere, verneombud)
+  participants: z.string().optional(),
+});
+
+// IK-HMS § 5 nr. 6 (godkjenning) + IK-HMS § 5 nr. 8 (periodisk gjennomgang)
+export const updateRiskAssessmentSchema = z.object({
+  id: z.string().cuid(),
+  participants: z.string().optional(),
+  approvedById: z.string().cuid().optional().nullable(),
+  approvedAt: z.coerce.date().optional().nullable(),
+  reviewedById: z.string().cuid().optional().nullable(),
+  reviewedAt: z.coerce.date().optional().nullable(),
 });
 
 /** Enkel nivå for risikopunkt i årlig risikovurdering (ISO 45001) */
@@ -89,6 +101,7 @@ export const riskLevelToMatrix = {
 export type CreateRiskInput = z.infer<typeof createRiskSchema>;
 export type UpdateRiskInput = z.infer<typeof updateRiskSchema>;
 export type CreateRiskAssessmentInput = z.infer<typeof createRiskAssessmentSchema>;
+export type UpdateRiskAssessmentInput = z.infer<typeof updateRiskAssessmentSchema>;
 
 /**
  * Helper function to calculate risk score and level

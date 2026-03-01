@@ -4,21 +4,19 @@ import { redirect } from "next/navigation";
 import { getPermissions } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Zap, Clock, Car } from "lucide-react";
+import { Clock } from "lucide-react";
 import {
   getProjects,
   getTimeRegistrationOverview,
   getTimeRegistrationConfig,
 } from "@/server/actions/time-registration.actions";
 import { TimeRegistrationOverview } from "@/features/time-registration/components/time-registration-overview";
-import { TimeEntryForm } from "@/features/time-registration/components/time-entry-form";
-import { MileageEntryForm } from "@/features/time-registration/components/mileage-entry-form";
+import { RegistrationFormUnified } from "@/features/time-registration/components/registration-form-unified";
 import { ProjectsList } from "@/features/time-registration/components/projects-list";
 import { ReportExportDropdown } from "@/features/time-registration/components/report-export-dropdown";
 import { TimeRegistrationEnableCard } from "@/features/time-registration/components/time-registration-enable-card";
 import { TimeRegistrationSettings } from "@/features/time-registration/components/time-registration-settings";
+import { TimeRegistrationPayrollSettings } from "@/features/time-registration/components/time-registration-payroll-settings";
 
 export default async function TimeRegistrationPage() {
   const session = await getServerSession(authOptions);
@@ -121,6 +119,15 @@ export default async function TimeRegistrationPage() {
             weeklyHoursNorm={config?.weeklyHoursNorm ?? 37.5}
             lunchBreakMinutes={config?.lunchBreakMinutes ?? 30}
             eveningOvertimeFromHour={config?.eveningOvertimeFromHour ?? null}
+            useOvertime40Percent={config?.useOvertime40Percent ?? false}
+            saturdayOvertime40LimitHours={config?.saturdayOvertime40LimitHours ?? null}
+          />
+          <TimeRegistrationPayrollSettings
+            tenantId={tenantId}
+            defaultHourlyRate={config?.defaultHourlyRate ?? null}
+            approximateTaxPercent={config?.approximateTaxPercent ?? null}
+            defaultKmRate={config?.defaultKmRate ?? null}
+            kmAllowanceTaxable={config?.kmAllowanceTaxable ?? false}
           />
         </>
       )}
@@ -129,37 +136,20 @@ export default async function TimeRegistrationPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5" />
-            Registrer timer
+            Registrer timer og kjøring
           </CardTitle>
           <CardDescription>
-            Skriv kun timer og reise – ordinær og overtid beregnes automatisk
+            Arbeid, reise, sykefravær og km godtgjørelse – én inngang
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <TimeEntryForm
+          <RegistrationFormUnified
             tenantId={tenantId}
             projects={activeProjects}
             lunchBreakMinutes={config?.lunchBreakMinutes ?? 30}
             eveningOvertimeFromHour={config?.eveningOvertimeFromHour ?? undefined}
-          />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Car className="h-5 w-5" />
-            Km godtgjørelse
-          </CardTitle>
-          <CardDescription>
-            Kilometer og sats – beløp beregnes automatisk for refusjon
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <MileageEntryForm
-            tenantId={tenantId}
-            projects={activeProjects}
             defaultKmRate={config?.defaultKmRate ?? 4.5}
+            rateEditable={true}
           />
         </CardContent>
       </Card>

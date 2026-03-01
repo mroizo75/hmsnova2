@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { HAZARD_PICTOGRAMS } from "@/lib/pictograms";
@@ -25,55 +24,59 @@ export function HazardPictogramSelector({ defaultValue, onChange }: HazardPictog
     }
   }, [defaultValue]);
 
-  const togglePictogram = (file: string) => {
-    const newSelected = selected.includes(file)
+  const toggle = (file: string) => {
+    const next = selected.includes(file)
       ? selected.filter((f) => f !== file)
       : [...selected, file];
-    
-    setSelected(newSelected);
-    onChange?.(newSelected);
+    setSelected(next);
+    onChange?.(next);
   };
 
   return (
-    <div className="space-y-4">
-      <Label>Faresymboler (GHS/CLP)</Label>
+    <div className="space-y-3">
       <input type="hidden" name="warningPictograms" value={JSON.stringify(selected)} />
-      
-      <div className="grid grid-cols-3 md:grid-cols-5 gap-4">
-        {HAZARD_PICTOGRAMS.map((pictogram) => (
-          <button
-            key={pictogram.id}
-            type="button"
-            onClick={() => togglePictogram(pictogram.file)}
-            className={cn(
-              "relative aspect-square rounded-lg border-2 p-2 transition-all hover:scale-105",
-              selected.includes(pictogram.file)
-                ? "border-primary bg-primary/5 ring-2 ring-primary"
-                : "border-gray-200 hover:border-gray-300"
-            )}
-            title={pictogram.name}
-          >
-            <Image
-              src={`/faremerker/${pictogram.file}`}
-              alt={pictogram.name}
-              fill
-              className="object-contain p-2"
-            />
-            {selected.includes(pictogram.file) && (
-              <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
-                ✓
-              </div>
-            )}
-          </button>
-        ))}
+
+      <div className="grid grid-cols-5 sm:grid-cols-7 md:grid-cols-9 gap-2">
+        {HAZARD_PICTOGRAMS.map((pictogram) => {
+          const isSelected = selected.includes(pictogram.file);
+          return (
+            <button
+              key={pictogram.id}
+              type="button"
+              title={pictogram.name}
+              onClick={() => toggle(pictogram.file)}
+              className={cn(
+                "relative aspect-square rounded-lg border-2 transition-all",
+                isSelected
+                  ? "border-orange-500 bg-orange-50 ring-1 ring-orange-400"
+                  : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+              )}
+            >
+              <Image
+                src={`/faremerker/${pictogram.file}`}
+                alt={pictogram.name}
+                fill
+                className="object-contain p-1.5"
+              />
+              {isSelected && (
+                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-orange-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">
+                  ✓
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      {selected.length > 0 && (
-        <div className="text-sm text-muted-foreground">
-          Valgte: {selected.length} faresymbol{selected.length !== 1 ? "er" : ""}
-        </div>
+      {selected.length > 0 ? (
+        <p className="text-xs text-orange-700 font-medium">
+          {selected.length} faresymbol{selected.length !== 1 ? "er" : ""} valgt
+        </p>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Klikk for å velge faresymboler fra sikkerhetsdatabladet
+        </p>
       )}
     </div>
   );
 }
-

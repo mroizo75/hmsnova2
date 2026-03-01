@@ -5,9 +5,11 @@ import ExcelJS from "exceljs";
 const TIME_TYPE_LABELS: Record<string, string> = {
   NORMAL: "Ordinær",
   OVERTIME_50: "Overtid 50 %",
+  OVERTIME_40: "Overtid 40 %",
   OVERTIME_100: "Overtid 100 %",
   WEEKEND: "Helg/helligdag",
   TRAVEL: "Reise/kjøring",
+  SICK_LEAVE: "Sykefravær",
 };
 
 export interface TimeEntryForReport {
@@ -33,12 +35,26 @@ export interface MileageEntryForReport {
   editedBy: { name: string | null } | null;
 }
 
+/** Trekkfri sats pr km (Skatteetaten 2024–2026). Beløp over dette er skattepliktig. */
+const TREKKFRI_KM_SATS = 3.5;
+
+export interface TimeRegistrationReportConfig {
+  defaultHourlyRate: number | null;
+  approximateTaxPercent: number | null;
+  defaultKmRate: number | null;
+  kmAllowanceTaxable: boolean;
+  overtime40Multiplier: number;
+  overtime50Multiplier: number;
+  overtime100Multiplier: number;
+}
+
 export interface TimeRegistrationReportData {
   tenantName: string;
   dateRange: { from: Date; to: Date };
   timeEntries: TimeEntryForReport[];
   mileageEntries: MileageEntryForReport[];
   userDisplayNames: Record<string, string>;
+  config?: TimeRegistrationReportConfig | null;
 }
 
 export async function generateTimeRegistrationExcel(
@@ -47,8 +63,14 @@ export async function generateTimeRegistrationExcel(
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "HMS Nova";
 
-  const { tenantName, dateRange, timeEntries, mileageEntries, userDisplayNames } =
-    data;
+  const {
+    tenantName,
+    dateRange,
+    timeEntries,
+    mileageEntries,
+    userDisplayNames,
+    config,
+  } = data;
 
   const dateRangeStr = `${format(dateRange.from, "d.M.yyyy", { locale: nb })} – ${format(dateRange.to, "d.M.yyyy", { locale: nb })}`;
 
@@ -89,7 +111,7 @@ export async function generateTimeRegistrationExcel(
       date: format(new Date(e.date), "dd.MM.yyyy", { locale: nb }),
       project: e.project.name,
       code: e.project.code || "",
-      hours: e.hours,
+      hours: Math.round(e.hours * 10) / 10,
       type: TIME_TYPE_LABELS[e.timeType] || e.timeType,
       comment: e.comment || "",
     });
@@ -102,6 +124,9 @@ export async function generateTimeRegistrationExcel(
     .reduce((s, e) => s + e.hours, 0);
   const overtime50 = timeEntries
     .filter((e) => e.timeType === "OVERTIME_50")
+    .reduce((s, e) => s + e.hours, 0);
+  const overtime40 = timeEntries
+    .filter((e) => e.timeType === "OVERTIME_40")
     .reduce((s, e) => s + e.hours, 0);
   const overtime100 = timeEntries
     .filter((e) => e.timeType === "OVERTIME_100")
@@ -150,6 +175,7 @@ export async function generateTimeRegistrationExcel(
     fgColor: { argb: "FFE0E0E0" },
   };
 
+  const defaultKmRateForSheet = config?.defaultKmRate ?? 4.5;
   for (const e of mileageEntries) {
     const name =
       userDisplayNames[e.user.id] ||
@@ -161,15 +187,18 @@ export async function generateTimeRegistrationExcel(
       date: format(new Date(e.date), "dd.MM.yyyy", { locale: nb }),
       project: e.project.name,
       code: e.project.code || "",
-      km: e.kilometers,
+      km: Math.round(e.kilometers),
       rate: e.ratePerKm ?? "",
-      amount: e.amount ?? e.kilometers * (e.ratePerKm ?? 4.5),
+      amount: Math.round(
+        e.amount ?? e.kilometers * (e.ratePerKm ?? defaultKmRateForSheet)
+      ),
       comment: e.comment || "",
     });
   }
 
   const totalAmount = mileageEntries.reduce(
-    (s, e) => s + (e.amount ?? e.kilometers * (e.ratePerKm ?? 4.5)),
+    (s, e) =>
+      s + (e.amount ?? e.kilometers * (e.ratePerKm ?? defaultKmRateForSheet)),
     0
   );
   const totalKm = mileageEntries.reduce((s, e) => s + e.kilometers, 0);
@@ -186,6 +215,160 @@ export async function generateTimeRegistrationExcel(
   ]);
   const mileageSummaryRow = mileageSheet.lastRow;
   if (mileageSummaryRow) mileageSummaryRow.font = { bold: true };
+
+  // Sheet 3: Lønn (per ansatt: timer-beregning + km godtgjørelse)
+  const payrollSheet = workbook.addWorksheet("Lønn", {
+    headerFooter: {
+      firstHeader: `${tenantName} – Lønnsoversikt`,
+      firstFooter: `Generert ${format(new Date(), "d. MMMM yyyy", { locale: nb })}`,
+    },
+  });
+
+  const rate = config?.defaultHourlyRate ?? 0;
+  const taxPercent = config?.approximateTaxPercent ?? 25;
+  const defaultKmRate = config?.defaultKmRate ?? 4.5;
+  const kmAllowanceTaxable = config?.kmAllowanceTaxable ?? false;
+  const mult40 = config?.overtime40Multiplier ?? 1.4;
+  const mult50 = config?.overtime50Multiplier ?? 1.5;
+  const mult100 = config?.overtime100Multiplier ?? 2;
+
+  const userIds = [
+    ...new Set([
+      ...timeEntries.map((e) => e.user.id),
+      ...mileageEntries.map((e) => e.user.id),
+    ]),
+  ];
+
+  const payrollRows: Array<{
+    name: string;
+    normalHours: number;
+    overtime40: number;
+    overtime50: number;
+    overtime100: number;
+    sickHours: number;
+    travelHours: number;
+    grossFromHours: number;
+    kmAmount: number;
+    taxAmount: number;
+    netPay: number;
+  }> = [];
+
+  for (const uid of userIds) {
+    const name =
+      userDisplayNames[uid] ||
+      timeEntries.find((e) => e.user.id === uid)?.user.name ||
+      mileageEntries.find((e) => e.user.id === uid)?.user.email ||
+      "–";
+
+    const userTimeEntries = timeEntries.filter((e) => e.user.id === uid);
+    const normalHours = userTimeEntries
+      .filter((e) => e.timeType === "NORMAL")
+      .reduce((s, e) => s + e.hours, 0);
+    const travelHours = userTimeEntries
+      .filter((e) => e.timeType === "TRAVEL")
+      .reduce((s, e) => s + e.hours, 0);
+    const overtime40 = userTimeEntries
+      .filter((e) => e.timeType === "OVERTIME_40")
+      .reduce((s, e) => s + e.hours, 0);
+    const overtime50 = userTimeEntries
+      .filter((e) => e.timeType === "OVERTIME_50")
+      .reduce((s, e) => s + e.hours, 0);
+    const overtime100 = userTimeEntries
+      .filter((e) => e.timeType === "OVERTIME_100" || e.timeType === "WEEKEND")
+      .reduce((s, e) => s + e.hours, 0);
+    const sickHours = userTimeEntries
+      .filter((e) => e.timeType === "SICK_LEAVE")
+      .reduce((s, e) => s + e.hours, 0);
+
+    const grossFromHours =
+      rate > 0
+        ? (normalHours + travelHours + sickHours) * rate +
+          overtime40 * rate * mult40 +
+          overtime50 * rate * mult50 +
+          overtime100 * rate * mult100
+        : 0;
+
+    const userMileageEntries = mileageEntries.filter((e) => e.user.id === uid);
+    const kmAmount = userMileageEntries.reduce(
+      (s, e) => s + (e.amount ?? e.kilometers * (e.ratePerKm ?? defaultKmRate)),
+      0
+    );
+    const skattepliktigKmAmount = kmAllowanceTaxable
+      ? userMileageEntries.reduce(
+          (s, e) => {
+            const r = e.ratePerKm ?? defaultKmRate;
+            return s + e.kilometers * Math.max(0, r - TREKKFRI_KM_SATS);
+          },
+          0
+        )
+      : 0;
+
+    const grossTaxable = grossFromHours + skattepliktigKmAmount;
+    const taxAmount = grossTaxable * (taxPercent / 100);
+    const netPay = grossFromHours + kmAmount - taxAmount;
+
+    payrollRows.push({
+      name: String(name),
+      normalHours,
+      overtime40,
+      overtime50,
+      overtime100,
+      sickHours,
+      travelHours,
+      grossFromHours,
+      kmAmount,
+      taxAmount,
+      netPay,
+    });
+  }
+
+  payrollRows.sort((a, b) => a.name.localeCompare(b.name));
+
+  payrollSheet.columns = [
+    { header: "Navn", key: "name", width: 24 },
+    { header: "Ordinær t", key: "normalHours", width: 10 },
+    { header: "Overtid 40% t", key: "overtime40", width: 12 },
+    { header: "Overtid 50% t", key: "overtime50", width: 12 },
+    { header: "Overtid 100% t", key: "overtime100", width: 13 },
+    { header: "Sykefravær t", key: "sickHours", width: 11 },
+    { header: "Reise t", key: "travelHours", width: 9 },
+    { header: "Brutto timer (kr)", key: "grossFromHours", width: 14 },
+    { header: "Km godtgjørelse (kr)", key: "kmAmount", width: 18 },
+    { header: "Ca. skatt (kr)", key: "taxAmount", width: 13 },
+    { header: "Ca. utbetaling (kr)", key: "netPay", width: 17 },
+  ];
+
+  const payrollHeaderRow = payrollSheet.getRow(1);
+  payrollHeaderRow.font = { bold: true };
+  payrollHeaderRow.fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FFE0E0E0" },
+  };
+
+  for (const row of payrollRows) {
+    payrollSheet.addRow({
+      name: row.name,
+      normalHours: Math.round(row.normalHours * 10) / 10,
+      overtime40: Math.round(row.overtime40 * 10) / 10,
+      overtime50: Math.round(row.overtime50 * 10) / 10,
+      overtime100: Math.round(row.overtime100 * 10) / 10,
+      sickHours: Math.round(row.sickHours * 10) / 10,
+      travelHours: Math.round(row.travelHours * 10) / 10,
+      grossFromHours: Math.round(row.grossFromHours),
+      kmAmount: Math.round(row.kmAmount),
+      taxAmount: Math.round(row.taxAmount),
+      netPay: Math.round(row.netPay),
+    });
+  }
+
+  if (rate === 0) {
+    payrollSheet.addRow([]);
+    payrollSheet.addRow([
+      "",
+      "Timelønn er ikke satt – brutto/utbetaling viser 0. Konfigurer i Lønn-innstillinger.",
+    ]);
+  }
 
   const buffer = await workbook.xlsx.writeBuffer();
   return Buffer.from(buffer as ArrayBuffer);
@@ -219,6 +402,7 @@ export async function generateTimeRegistrationPdf(
 
   const { tenantName, dateRange, timeEntries, mileageEntries, userDisplayNames } =
     data;
+  const defaultKmRatePdf = data.config?.defaultKmRate ?? 4.5;
 
   doc.setFontSize(10);
   doc.text(
@@ -246,7 +430,7 @@ export async function generateTimeRegistrationPdf(
       e.user.email ||
       "–";
     addLine(
-      `${format(new Date(e.date), "dd.MM.yy")} | ${name} | ${e.project.name} | ${e.hours} t (${TIME_TYPE_LABELS[e.timeType] || e.timeType})`
+      `${format(new Date(e.date), "dd.MM.yy")} | ${name} | ${e.project.name} | ${(Math.round(e.hours * 10) / 10).toFixed(1)} t (${TIME_TYPE_LABELS[e.timeType] || e.timeType})`
     );
     totalHours += e.hours;
   }
@@ -265,15 +449,97 @@ export async function generateTimeRegistrationPdf(
       e.user.name ||
       e.user.email ||
       "–";
-    const amt = e.amount ?? e.kilometers * (e.ratePerKm ?? 4.5);
+    const amt = e.amount ?? e.kilometers * (e.ratePerKm ?? defaultKmRatePdf);
     addLine(
-      `${format(new Date(e.date), "dd.MM.yy")} | ${name} | ${e.project.name} | ${e.kilometers} km | ${amt.toFixed(0)} kr`
+      `${format(new Date(e.date), "dd.MM.yy")} | ${name} | ${e.project.name} | ${Math.round(e.kilometers)} km | ${Math.round(amt)} kr`
     );
     totalKm += e.kilometers;
     totalAmount += amt;
   }
   if (mileageEntries.length === 0) addLine("Ingen km godtgjørelse registrert.");
   addLine(`Sum km: ${totalKm.toFixed(0)} | Sum beløp: ${totalAmount.toFixed(0)} kr`);
+  y += 6;
+
+  const cfg = data.config;
+  const rate = cfg?.defaultHourlyRate ?? 0;
+  const taxPercent = cfg?.approximateTaxPercent ?? 25;
+  const defaultKmRate = cfg?.defaultKmRate ?? 4.5;
+  const kmAllowanceTaxable = cfg?.kmAllowanceTaxable ?? false;
+  const mult40 = cfg?.overtime40Multiplier ?? 1.4;
+  const mult50 = cfg?.overtime50Multiplier ?? 1.5;
+  const mult100 = cfg?.overtime100Multiplier ?? 2;
+
+  if (rate > 0) {
+    addLine("Lønnsoversikt", { size: 12, bold: true });
+    y += 2;
+
+    const userIds = [
+      ...new Set([
+        ...timeEntries.map((e) => e.user.id),
+        ...mileageEntries.map((e) => e.user.id),
+      ]),
+    ];
+
+    for (const uid of userIds) {
+      const name =
+        userDisplayNames[uid] ||
+        timeEntries.find((e) => e.user.id === uid)?.user.name ||
+        mileageEntries.find((e) => e.user.id === uid)?.user.email ||
+        "–";
+
+      const userTimeEntries = timeEntries.filter((e) => e.user.id === uid);
+      const normalHours = userTimeEntries
+        .filter((e) => e.timeType === "NORMAL" || e.timeType === "TRAVEL")
+        .reduce((s, e) => s + e.hours, 0);
+      const sickHours = userTimeEntries
+        .filter((e) => e.timeType === "SICK_LEAVE")
+        .reduce((s, e) => s + e.hours, 0);
+      const overtime40 = userTimeEntries
+        .filter((e) => e.timeType === "OVERTIME_40")
+        .reduce((s, e) => s + e.hours, 0);
+      const overtime50 = userTimeEntries
+        .filter((e) => e.timeType === "OVERTIME_50")
+        .reduce((s, e) => s + e.hours, 0);
+      const overtime100 = userTimeEntries
+        .filter((e) => e.timeType === "OVERTIME_100" || e.timeType === "WEEKEND")
+        .reduce((s, e) => s + e.hours, 0);
+
+      const grossFromHours =
+        normalHours * rate +
+        sickHours * rate +
+        overtime40 * rate * mult40 +
+        overtime50 * rate * mult50 +
+        overtime100 * rate * mult100;
+
+      const userMileageEntries = mileageEntries.filter((e) => e.user.id === uid);
+      const kmAmount = userMileageEntries.reduce(
+        (s, e) =>
+          s + (e.amount ?? e.kilometers * (e.ratePerKm ?? defaultKmRate)),
+        0
+      );
+      const skattepliktigKmAmount = kmAllowanceTaxable
+        ? userMileageEntries.reduce(
+            (s, e) => {
+              const r = e.ratePerKm ?? defaultKmRate;
+              return s + e.kilometers * Math.max(0, r - TREKKFRI_KM_SATS);
+            },
+            0
+          )
+        : 0;
+
+      const grossTaxable = grossFromHours + skattepliktigKmAmount;
+      const taxAmount = grossTaxable * (taxPercent / 100);
+      const netPay = grossFromHours + kmAmount - taxAmount;
+
+      const kmNote =
+        kmAllowanceTaxable && skattepliktigKmAmount > 0
+          ? ` (${Math.round(skattepliktigKmAmount)} kr skattepliktig)`
+          : " (utenom skatt)";
+      addLine(
+        `${name}: Brutto timer ${Math.round(grossFromHours)} kr | Km ${Math.round(kmAmount)} kr${kmNote} | Ca. utbetaling ${Math.round(netPay)} kr`
+      );
+    }
+  }
 
   const arrayBuffer = doc.output("arraybuffer") as ArrayBuffer;
   return Buffer.from(arrayBuffer);

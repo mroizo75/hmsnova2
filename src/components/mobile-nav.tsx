@@ -33,6 +33,9 @@ import {
   ListChecks,
   Clock,
   Scale,
+  FileWarning,
+  HardHat,
+  FlaskConical,
 } from "lucide-react";
 import { usePermissions } from "@/hooks/use-permissions";
 import { getRoleDisplayName } from "@/lib/permissions";
@@ -47,10 +50,13 @@ const navItems = [
   { href: "/dashboard/documents", label: "nav.documents", icon: FileText, permission: "documents" as const, simple: true },
   { href: "/dashboard/juridisk-register", label: "nav.legalRegister", icon: Scale, permission: "legalRegister" as const, simple: true },
   { href: "/dashboard/incidents", label: "nav.incidents", icon: AlertCircle, permission: "incidents" as const, simple: true },
+  { href: "/dashboard/ruh", label: "nav.ruh", icon: FileWarning, permission: "ruh" as const, simple: true },
+  { href: "/dashboard/sja", label: "nav.sja", icon: HardHat, permission: "sja" as const, simple: true },
   { href: "/dashboard/inspections", label: "nav.inspections", icon: ShieldCheck, permission: "inspections" as const, simple: true },
   { href: "/dashboard/training", label: "nav.training", icon: GraduationCap, permission: "training" as const, simple: true },
   { href: "/dashboard/actions", label: "nav.actions", icon: ListTodo, permission: "actions" as const, simple: true },
   { href: "/dashboard/chemicals", label: "nav.chemicals", icon: Beaker, permission: "chemicals" as const, simple: true },
+  { href: "/dashboard/exposure-register", label: "nav.exposureRegister", icon: FlaskConical, permission: "exposureRegister" as const, simple: true },
   { href: "/dashboard/wellbeing", label: "nav.wellbeing", icon: HeartPulse, permission: "forms" as const, simple: true }, // Psykososial = lovpålagt
   // AVANSERT
   { href: "/dashboard/forms", label: "nav.forms", icon: ClipboardList, permission: "forms" as const, simple: false },

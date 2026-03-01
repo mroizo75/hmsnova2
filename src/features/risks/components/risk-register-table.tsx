@@ -75,13 +75,17 @@ export function RiskRegisterTable({ rows }: RiskRegisterTableProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">Alle kategorier</SelectItem>
-              <SelectItem value="STRATEGIC">Strategisk</SelectItem>
+              <SelectItem value="SAFETY">Sikkerhet (AML)</SelectItem>
+              <SelectItem value="HEALTH">Helse (AML)</SelectItem>
+              <SelectItem value="PSYCHOSOCIAL">Psykososialt (AML § 4-3)</SelectItem>
+              <SelectItem value="ERGONOMIC">Ergonomisk (AML § 4-2)</SelectItem>
+              <SelectItem value="PHYSICAL">Fysisk arbeidsmiljø</SelectItem>
+              <SelectItem value="ORGANISATIONAL">Organisatorisk</SelectItem>
+              <SelectItem value="ENVIRONMENTAL">Miljø (ISO 14001)</SelectItem>
               <SelectItem value="OPERATIONAL">Operasjonell</SelectItem>
-              <SelectItem value="SAFETY">Sikkerhet</SelectItem>
-              <SelectItem value="HEALTH">Helse</SelectItem>
-              <SelectItem value="ENVIRONMENTAL">Miljø</SelectItem>
+              <SelectItem value="STRATEGIC">Strategisk (ISO 31000)</SelectItem>
               <SelectItem value="INFORMATION_SECURITY">Informasjonssikkerhet</SelectItem>
-              <SelectItem value="LEGAL">Juridisk</SelectItem>
+              <SelectItem value="LEGAL">Juridisk/Compliance</SelectItem>
             </SelectContent>
           </Select>
           <Input

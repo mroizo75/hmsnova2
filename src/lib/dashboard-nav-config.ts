@@ -8,13 +8,14 @@ export type NavPermission =
   | "documents"
   | "legalRegister"
   | "incidents"
+  | "ruh"
+  | "sja"
   | "inspections"
   | "training"
   | "actions"
   | "chemicals"
   | "forms"
   | "risks"
-  | "security"
   | "feedback"
   | "environment"
   | "audits"
@@ -38,6 +39,8 @@ export const DASHBOARD_NAV_CONFIG: DashboardNavItemConfig[] = [
   { href: "/dashboard/documents", label: "nav.documents", permission: "documents", defaultSimple: true },
   { href: "/dashboard/juridisk-register", label: "nav.legalRegister", permission: "legalRegister", defaultSimple: true },
   { href: "/dashboard/incidents", label: "nav.incidents", permission: "incidents", defaultSimple: true },
+  { href: "/dashboard/ruh", label: "nav.ruh", permission: "ruh", defaultSimple: true },
+  { href: "/dashboard/sja", label: "nav.sja", permission: "sja", defaultSimple: true },
   { href: "/dashboard/inspections", label: "nav.inspections", permission: "inspections", defaultSimple: true },
   { href: "/dashboard/training", label: "nav.training", permission: "training", defaultSimple: true },
   { href: "/dashboard/actions", label: "nav.actions", permission: "actions", defaultSimple: true },
@@ -45,7 +48,6 @@ export const DASHBOARD_NAV_CONFIG: DashboardNavItemConfig[] = [
   { href: "/dashboard/forms", label: "nav.forms", permission: "forms", defaultSimple: false },
   { href: "/dashboard/risks", label: "nav.risks", permission: "risks", defaultSimple: false },
   { href: "/dashboard/risk-register", label: "nav.riskRegister", permission: "risks", defaultSimple: false },
-  { href: "/dashboard/security", label: "nav.security", permission: "security", defaultSimple: false },
   { href: "/dashboard/wellbeing", label: "nav.wellbeing", permission: "forms", defaultSimple: true },
   { href: "/dashboard/complaints", label: "nav.complaints", permission: "incidents", defaultSimple: false },
   { href: "/dashboard/feedback", label: "nav.feedback", permission: "feedback", defaultSimple: false },

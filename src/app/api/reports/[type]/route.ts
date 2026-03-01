@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { generateIsoReport } from "@/lib/reports/iso-reports";
 
-const allowedTypes = ["environment", "risk", "security"] as const;
+const allowedTypes = ["environment", "risk"] as const;
 const allowedFormats = ["pdf", "excel"] as const;
 
 type ReportType = (typeof allowedTypes)[number];

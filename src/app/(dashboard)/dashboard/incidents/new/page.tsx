@@ -32,20 +32,23 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
 
   const tenantId = user.tenants[0].tenantId;
 
-  const risks = await prisma.risk.findMany({
-    where: { tenantId },
-    select: {
-      id: true,
-      title: true,
-      category: true,
-      score: true,
-    },
-    orderBy: [
-      { score: "desc" },
-      { createdAt: "desc" },
-    ],
-    take: 25,
-  });
+  const [risks, users] = await Promise.all([
+    prisma.risk.findMany({
+      where: { tenantId },
+      select: { id: true, title: true, category: true, score: true },
+      orderBy: [{ score: "desc" }, { createdAt: "desc" }],
+      take: 25,
+    }),
+    prisma.userTenant.findMany({
+      where: { tenantId },
+      include: { user: { select: { id: true, name: true, email: true } } },
+      orderBy: { user: { name: "asc" } },
+    }),
+  ]);
+
+  const userList = users
+    .map((ut) => ut.user)
+    .filter((u) => u.id !== user.id);
 
   return (
     <div className="space-y-6">
@@ -56,9 +59,9 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
             Tilbake til avvik
           </Link>
         </Button>
-        <h1 className="text-3xl font-bold">Rapporter avvik</h1>
+        <h1 className="text-3xl font-bold">Rapporter hendelse / avvik</h1>
         <p className="text-muted-foreground">
-          ISO 9001: Rapporter hendelser, avvik og nestenulykker
+          AML § 5-1/5-2 og IK-HMS § 5 – registrer ulykker, nestenulykker, farlige situasjoner og avvik
         </p>
       </div>
 
@@ -66,6 +69,7 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
         tenantId={tenantId}
         userId={user.id}
         risks={risks}
+        users={userList}
         defaultType={resolvedSearchParams?.type}
       />
     </div>

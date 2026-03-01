@@ -28,6 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Chemical } from "@prisma/client";
 import { normalizePpeFile } from "@/lib/pictograms";
 import { IsocyanateBadge } from "@/components/isocyanate-warning";
+import { ExposureRegisterBadge } from "@/components/exposure-register-warning";
 
 interface ChemicalListProps {
   chemicals: Chemical[];
@@ -452,7 +453,13 @@ export function ChemicalList({
                   <TableCell className="font-medium min-w-0 px-2">
                     <div className="flex flex-col gap-1 min-w-0">
                       <span className="truncate" title={chemical.productName}>{chemical.productName}</span>
-                      {chemical.containsIsocyanates && <IsocyanateBadge />}
+                      <div className="flex flex-wrap gap-1">
+                        {chemical.containsIsocyanates && <IsocyanateBadge />}
+                        <ExposureRegisterBadge
+                          hazardStatements={chemical.hazardStatements}
+                          isCMR={chemical.isCMR}
+                        />
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell className="hidden lg:table-cell min-w-0 px-2">

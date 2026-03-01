@@ -6,7 +6,7 @@ import { format } from "date-fns";
 import { nb } from "date-fns/locale";
 
 type ReportFormat = "pdf" | "excel";
-type IsoReportType = "environment" | "risk" | "security";
+type IsoReportType = "environment" | "risk";
 
 interface ReportResult {
   buffer: ArrayBuffer;
@@ -36,10 +36,6 @@ export async function generateIsoReport(
       return format === "pdf"
         ? generateRiskPdf(tenantId)
         : generateRiskExcel(tenantId);
-    case "security":
-      return format === "pdf"
-        ? generateSecurityPdf(tenantId)
-        : generateSecurityExcel(tenantId);
     default:
       throw new Error("Unsupported report type");
   }
@@ -274,148 +270,4 @@ async function generateRiskExcel(tenantId: string): Promise<ReportResult> {
   };
 }
 
-async function generateSecurityPdf(tenantId: string): Promise<ReportResult> {
-  const [assets, controls, accessReviews] = await Promise.all([
-    prisma.securityAsset.findMany({
-      where: { tenantId },
-      include: { owner: { select: { name: true } } },
-    }),
-    prisma.securityControl.findMany({
-      where: { tenantId },
-      include: { owner: { select: { name: true } } },
-    }),
-    prisma.accessReview.findMany({
-      where: { tenantId },
-      include: {
-        entries: true,
-      },
-    }),
-  ]);
-
-  const pdf = new jsPDF();
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(18);
-  pdf.text("ISMS-status (ISO 27001)", 20, 25);
-  pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(12);
-  pdf.text(`Sikkerhetsobjekter: ${assets.length}`, 20, 45);
-  pdf.text(`Kontroller: ${controls.length}`, 20, 60);
-  pdf.text(`Tilgangsgjennomganger: ${accessReviews.length}`, 20, 75);
-
-  autoTable(pdf, {
-    startY: 90,
-    head: [
-      ["Kontroll-ID", "Tittel", "Kategori", "Status", "Eier", "Neste review"],
-    ],
-    body: controls.map((control) => [
-      control.code,
-      control.title,
-      control.category,
-      control.status,
-      control.owner?.name || "Ikke satt",
-      formatDate(control.nextReviewDate),
-    ]),
-    styles: { fontSize: 9 },
-    headStyles: { fillColor: [59, 130, 246] },
-  });
-
-  const buffer = pdf.output("arraybuffer") as ArrayBuffer;
-  return {
-    buffer,
-    filename: pdfFilename("isms-rapport"),
-    contentType: "application/pdf",
-  };
-}
-
-async function generateSecurityExcel(tenantId: string): Promise<ReportResult> {
-  const workbook = new ExcelJS.Workbook();
-  const assetSheet = workbook.addWorksheet("Assets");
-  const controlSheet = workbook.addWorksheet("Kontroller");
-  const reviewSheet = workbook.addWorksheet("Tilgangsreview");
-
-  assetSheet.columns = [
-    { header: "Navn", key: "name", width: 28 },
-    { header: "Kategori", key: "category", width: 18 },
-    { header: "Eier", key: "owner", width: 22 },
-    { header: "CIA (C/I/A)", key: "cia", width: 14 },
-    { header: "Kritikalitet", key: "criticality", width: 12 },
-  ];
-
-  controlSheet.columns = [
-    { header: "Kontroll", key: "code", width: 14 },
-    { header: "Tittel", key: "title", width: 32 },
-    { header: "Kategori", key: "category", width: 16 },
-    { header: "Status", key: "status", width: 16 },
-    { header: "Modenhet", key: "maturity", width: 16 },
-    { header: "Eier", key: "owner", width: 20 },
-    { header: "Neste review", key: "nextReview", width: 18 },
-  ];
-
-  reviewSheet.columns = [
-    { header: "Tittel", key: "title", width: 32 },
-    { header: "System", key: "system", width: 20 },
-    { header: "Status", key: "status", width: 14 },
-    { header: "Forfallsdato", key: "dueDate", width: 18 },
-    { header: "Antall tilgangsposter", key: "entries", width: 24 },
-  ];
-
-  const [assets, controls, reviews] = await Promise.all([
-    prisma.securityAsset.findMany({
-      where: { tenantId },
-      include: { owner: { select: { name: true } } },
-    }),
-    prisma.securityControl.findMany({
-      where: { tenantId },
-      include: { owner: { select: { name: true } } },
-    }),
-    prisma.accessReview.findMany({
-      where: { tenantId },
-      include: { entries: true },
-    }),
-  ]);
-
-  assetSheet.addRows(
-    assets.map((asset) => ({
-      name: asset.name,
-      category: asset.type,
-      owner: asset.owner?.name || "Ikke satt",
-      cia: `${asset.confidentiality}/${asset.integrity}/${asset.availability}`,
-      criticality: asset.businessCriticality ?? "—",
-    }))
-  );
-
-  controlSheet.addRows(
-    controls.map((control) => ({
-      code: control.code,
-      title: control.title,
-      category: control.category,
-      status: control.status,
-      maturity: control.maturity,
-      owner: control.owner?.name || "Ikke satt",
-      nextReview: formatDate(control.nextReviewDate),
-    }))
-  );
-
-  reviewSheet.addRows(
-    reviews.map((review) => ({
-      title: review.title,
-      system: review.systemName || "—",
-      status: review.status,
-      dueDate: formatDate(review.dueDate),
-      entries: review.entries.length,
-    }))
-  );
-
-  assetSheet.getRow(1).font = { bold: true };
-  controlSheet.getRow(1).font = { bold: true };
-  reviewSheet.getRow(1).font = { bold: true };
-
-  const buffer = (await workbook.xlsx.writeBuffer()) as ArrayBuffer;
-  return {
-    buffer,
-    filename: excelFilename("isms-rapport"),
-    contentType:
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  };
-}
 
