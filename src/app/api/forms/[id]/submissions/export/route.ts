@@ -14,12 +14,90 @@ import {
 } from "date-fns";
 import { nb } from "date-fns/locale";
 
+// ── Hjelpefunksjoner ──────────────────────────────────────────────────────────
+
 function getDisplayName(
   user: { name: string | null; email: string },
   userTenant: { displayName: string | null } | null
 ): string {
-  const displayName = userTenant?.displayName?.trim() || user.name?.trim();
-  return displayName || user.email;
+  return userTenant?.displayName?.trim() || user.name?.trim() || user.email;
+}
+
+function parseJsonArray(json: string | null): string[] {
+  if (!json) return [];
+  try {
+    const parsed = JSON.parse(json);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function formatFieldValue(
+  fieldType: string,
+  optionsJson: string | null,
+  rawValue: string | null,
+  fileKey: string | null
+): string {
+  if (fileKey) return `[Fil vedlagt]`;
+  if (!rawValue) return "";
+
+  switch (fieldType) {
+    case "CHECKBOX": {
+      const options = parseJsonArray(optionsJson);
+      if (options.length > 0) {
+        const selected = parseJsonArray(rawValue);
+        return selected.join(", ");
+      }
+      return rawValue === "true" ? "Ja" : "Nei";
+    }
+    case "LIKERT_SCALE": {
+      const labels: Record<string, string> = {
+        "1": "1 – Svært uenig",
+        "2": "2 – Uenig",
+        "3": "3 – Nøytral",
+        "4": "4 – Enig",
+        "5": "5 – Svært enig",
+      };
+      return labels[rawValue] ?? rawValue;
+    }
+    case "DATE": {
+      try {
+        return new Date(rawValue).toLocaleDateString("nb-NO", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        });
+      } catch {
+        return rawValue;
+      }
+    }
+    case "DATETIME": {
+      try {
+        return new Date(rawValue).toLocaleString("nb-NO", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      } catch {
+        return rawValue;
+      }
+    }
+    default:
+      return rawValue;
+  }
+}
+
+function getStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    DRAFT: "Kladd",
+    SUBMITTED: "Innsendt",
+    APPROVED: "Godkjent",
+    REJECTED: "Avvist",
+  };
+  return labels[status] || status;
 }
 
 function getDateFilter(
@@ -33,10 +111,7 @@ function getDateFilter(
   if (period === "week" || week) {
     const w = week ? parseInt(week, 10) : getWeek(now, { weekStartsOn: 1, locale: nb });
     const y = year ? parseInt(year, 10) : now.getFullYear();
-    const from = startOfWeek(new Date(y, 0, (w - 1) * 7 + 1), {
-      weekStartsOn: 1,
-      locale: nb,
-    });
+    const from = startOfWeek(new Date(y, 0, (w - 1) * 7 + 1), { weekStartsOn: 1, locale: nb });
     const to = endOfWeek(from, { weekStartsOn: 1, locale: nb });
     return { from, to };
   }
@@ -59,6 +134,8 @@ function getDateFilter(
   return null;
 }
 
+// ── Rute ─────────────────────────────────────────────────────────────────────
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -80,9 +157,7 @@ export async function GET(
     const form = await prisma.formTemplate.findUnique({
       where: { id },
       include: {
-        fields: {
-          orderBy: { order: "asc" },
-        },
+        fields: { orderBy: { order: "asc" } },
       },
     });
 
@@ -90,8 +165,7 @@ export async function GET(
       return NextResponse.json({ error: "Skjema ikke funnet" }, { status: 404 });
     }
 
-    const canAccess =
-      form.tenantId === session.user.tenantId || form.isGlobal === true;
+    const canAccess = form.tenantId === session.user.tenantId || form.isGlobal === true;
     if (!canAccess) {
       return NextResponse.json({ error: "Ingen tilgang" }, { status: 403 });
     }
@@ -103,61 +177,62 @@ export async function GET(
         formTemplateId: id,
         tenantId: session.user.tenantId,
         ...(dateFilter && {
-          createdAt: {
-            gte: dateFilter.from,
-            lte: dateFilter.to,
-          },
+          createdAt: { gte: dateFilter.from, lte: dateFilter.to },
         }),
       },
       include: {
         fieldValues: true,
-        submittedBy: {
-          select: { id: true, name: true, email: true },
-        },
+        submittedBy: { select: { id: true, name: true, email: true } },
       },
       orderBy: { createdAt: "desc" },
     });
 
+    // Hent visningsnavn fra UserTenant
     const submittedByIds = [
-      ...new Set(
-        submissions
-          .map((s) => s.submittedById)
-          .filter((id): id is string => id != null)
-      ),
+      ...new Set(submissions.map((s) => s.submittedById).filter((id): id is string => id != null)),
     ];
     const userTenants = await prisma.userTenant.findMany({
-      where: {
-        userId: { in: submittedByIds },
-        tenantId: session.user.tenantId,
-      },
+      where: { userId: { in: submittedByIds }, tenantId: session.user.tenantId },
       select: { userId: true, displayName: true },
     });
-    const displayNameMap = new Map(
-      userTenants.map((ut) => [ut.userId, ut.displayName])
-    );
+    const displayNameMap = new Map(userTenants.map((ut) => [ut.userId, ut.displayName]));
 
+    // Filtrer bort SECTION_HEADER – de er ikke reelle svar-felt
+    const answerFields = form.fields.filter((f) => f.fieldType !== "SECTION_HEADER");
+
+    // ── Bygg arbeidsbok ───────────────────────────────────
     const workbook = new ExcelJS.Workbook();
+    workbook.creator = "HMS Nova";
+    workbook.created = new Date();
+
     const worksheet = workbook.addWorksheet("Svar");
 
-    const baseHeaders = ["Referanse", "Navn", "Dato", "Status"];
-    const headers = [...baseHeaders, ...form.fields.map((f) => f.label)];
+    const baseHeaders = ["Referanse", "Utfylt av", "Dato", "Status"];
+    const fieldHeaders = answerFields.map((f) => f.label);
+    const allHeaders = [...baseHeaders, ...fieldHeaders];
 
-    worksheet.addRow(headers);
+    // Definer kolonner
+    worksheet.columns = allHeaders.map((header, idx) => ({
+      header,
+      key: `col_${idx}`,
+      width: Math.min(Math.max(header.length + 4, 14), 50),
+    }));
 
+    // Header-rad formatering
     const headerRow = worksheet.getRow(1);
-    headerRow.font = { bold: true };
+    headerRow.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
     headerRow.fill = {
       type: "pattern",
       pattern: "solid",
-      fgColor: { argb: "FFE0E0E0" },
+      fgColor: { argb: "FF006428" }, // HMS Nova grønn
     };
+    headerRow.alignment = { vertical: "middle", wrapText: false };
+    headerRow.height = 20;
 
-    worksheet.columns = headers.map((header) => ({
-      header,
-      key: header.replace(/\s/g, "_"),
-      width: Math.max(header.length + 2, 15),
-    }));
+    // Legg til frys på øverste rad
+    worksheet.views = [{ state: "frozen", ySplit: 1, xSplit: 0, activeCell: "A2" }];
 
+    // ── Datarader ─────────────────────────────────────────
     for (const submission of submissions) {
       const displayName =
         submission.submittedById == null
@@ -166,43 +241,81 @@ export async function GET(
               displayName: displayNameMap.get(submission.submittedById) ?? null,
             });
 
-      const row: (string | number)[] = [
+      const rowData: (string | number)[] = [
         submission.submissionNumber || "",
         displayName,
         new Date(submission.createdAt).toLocaleString("nb-NO"),
         getStatusLabel(submission.status),
       ];
 
-      for (const field of form.fields) {
-        const fieldValue = submission.fieldValues.find((fv) => fv.fieldId === field.id);
-        if (fieldValue) {
-          if (fieldValue.fileKey) {
-            row.push(`[Fil: ${fieldValue.fileKey}]`);
-          } else {
-            row.push(fieldValue.value || "");
-          }
-        } else {
-          row.push("");
-        }
+      for (const field of answerFields) {
+        const fv = submission.fieldValues.find((v) => v.fieldId === field.id);
+        rowData.push(
+          formatFieldValue(field.fieldType, field.options, fv?.value ?? null, fv?.fileKey ?? null)
+        );
       }
 
-      worksheet.addRow(row);
+      const dataRow = worksheet.addRow(rowData);
+
+      // Zebra-striper
+      const rowIdx = dataRow.number;
+      if (rowIdx % 2 === 0) {
+        dataRow.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFF5F5F5" },
+        };
+      }
+
+      // Tekstbryting for TEXTAREA-felt
+      answerFields.forEach((field, colIdx) => {
+        if (field.fieldType === "TEXTAREA") {
+          const cell = dataRow.getCell(baseHeaders.length + colIdx + 1);
+          cell.alignment = { wrapText: true, vertical: "top" };
+        }
+      });
+    }
+
+    // Auto-filter på header-rad
+    worksheet.autoFilter = {
+      from: { row: 1, column: 1 },
+      to: { row: 1, column: allHeaders.length },
+    };
+
+    // ── Metadata-ark ─────────────────────────────────────
+    const metaSheet = workbook.addWorksheet("Info");
+    metaSheet.columns = [
+      { key: "key", width: 22 },
+      { key: "value", width: 40 },
+    ];
+    metaSheet.addRow(["Skjema", form.title]);
+    if (form.description) metaSheet.addRow(["Beskrivelse", form.description]);
+    metaSheet.addRow(["Eksportert", new Date().toLocaleString("nb-NO")]);
+    metaSheet.addRow(["Antall svar", submissions.length]);
+    if (dateFilter) {
+      metaSheet.addRow(["Periode fra", dateFilter.from.toLocaleDateString("nb-NO")]);
+      metaSheet.addRow(["Periode til", dateFilter.to.toLocaleDateString("nb-NO")]);
+    }
+    metaSheet.addRow([]);
+    metaSheet.addRow(["Felt i skjema", ""]);
+    for (const field of answerFields) {
+      metaSheet.addRow([
+        field.label,
+        getFieldTypeLabel(field.fieldType) + (field.isRequired ? " *" : ""),
+      ]);
     }
 
     const excelBuffer = await workbook.xlsx.writeBuffer();
 
     let filename = form.title.replace(/[^a-z0-9æøå]/gi, "_") + "_svar";
     if (dateFilter) {
-      const fromStr = dateFilter.from.toISOString().slice(0, 10);
-      const toStr = dateFilter.to.toISOString().slice(0, 10);
-      filename += `_${fromStr}_${toStr}`;
+      filename += `_${dateFilter.from.toISOString().slice(0, 10)}_${dateFilter.to.toISOString().slice(0, 10)}`;
     }
     filename += ".xlsx";
 
     return new NextResponse(excelBuffer, {
       headers: {
-        "Content-Type":
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "Content-Disposition": `attachment; filename="${filename}"`,
       },
     });
@@ -215,12 +328,19 @@ export async function GET(
   }
 }
 
-function getStatusLabel(status: string): string {
+function getFieldTypeLabel(fieldType: string): string {
   const labels: Record<string, string> = {
-    DRAFT: "Kladd",
-    SUBMITTED: "Innsendt",
-    APPROVED: "Godkjent",
-    REJECTED: "Avvist",
+    TEXT: "Kort tekst",
+    TEXTAREA: "Lang tekst",
+    NUMBER: "Tall",
+    DATE: "Dato",
+    DATETIME: "Dato og tid",
+    CHECKBOX: "Avkrysning",
+    RADIO: "Radioknapper",
+    SELECT: "Rullegardin",
+    FILE: "Fil",
+    SIGNATURE: "Signatur",
+    LIKERT_SCALE: "Likert-skala (1–5)",
   };
-  return labels[status] || status;
+  return labels[fieldType] || fieldType;
 }

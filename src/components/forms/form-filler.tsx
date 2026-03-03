@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,9 +12,17 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { SignaturePad } from "./signature-pad";
-import { ArrowLeft, Send, Save, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Send, Save, ShieldCheck, Camera, Paperclip, X, ImageIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+
+function isImageFile(file: File): boolean {
+  return file.type.startsWith("image/");
+}
+
+function createObjectUrl(file: File): string {
+  return URL.createObjectURL(file);
+}
 
 interface FormField {
   id: string;
@@ -39,9 +47,25 @@ interface FormFillerProps {
   userId: string;
   tenantId: string;
   returnUrl?: string;
+  inspectionId?: string;
 }
 
-export function FormFiller({ form, userId, tenantId, returnUrl = "/dashboard/forms" }: FormFillerProps) {
+function getMultiCheckboxSelected(stored: string | undefined): string[] {
+  if (!stored) return [];
+  try {
+    return JSON.parse(stored);
+  } catch {
+    return [];
+  }
+}
+
+function toggleMultiCheckbox(stored: string | undefined, option: string): string {
+  const current = getMultiCheckboxSelected(stored);
+  const exists = current.includes(option);
+  return JSON.stringify(exists ? current.filter((v) => v !== option) : [...current, option]);
+}
+
+export function FormFiller({ form, userId, tenantId, returnUrl = "/dashboard/forms", inspectionId }: FormFillerProps) {
   const isAnonymous = form.isAnonymous ?? false;
   const router = useRouter();
   const { toast } = useToast();
@@ -49,19 +73,40 @@ export function FormFiller({ form, userId, tenantId, returnUrl = "/dashboard/for
   const [formValues, setFormValues] = useState<Record<string, string>>({});
   const [signature, setSignature] = useState<string>("");
   const [files, setFiles] = useState<Record<string, File>>({});
+  const [imagePreviews, setImagePreviews] = useState<Record<string, string>>({});
+  const cameraInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   function handleFieldChange(fieldId: string, value: string) {
     setFormValues((prev) => ({ ...prev, [fieldId]: value }));
   }
 
   function handleFileChange(fieldId: string, file: File | null) {
+    // Frigjør gammel preview-URL
+    if (imagePreviews[fieldId]) {
+      URL.revokeObjectURL(imagePreviews[fieldId]);
+    }
+
     if (file) {
       setFiles((prev) => ({ ...prev, [fieldId]: file }));
+      if (isImageFile(file)) {
+        setImagePreviews((prev) => ({ ...prev, [fieldId]: createObjectUrl(file) }));
+      } else {
+        setImagePreviews((prev) => {
+          const next = { ...prev };
+          delete next[fieldId];
+          return next;
+        });
+      }
     } else {
       setFiles((prev) => {
-        const newFiles = { ...prev };
-        delete newFiles[fieldId];
-        return newFiles;
+        const next = { ...prev };
+        delete next[fieldId];
+        return next;
+      });
+      setImagePreviews((prev) => {
+        const next = { ...prev };
+        delete next[fieldId];
+        return next;
       });
     }
   }
@@ -88,7 +133,11 @@ export function FormFiller({ form, userId, tenantId, returnUrl = "/dashboard/for
     if (status === "SUBMITTED") {
       const requiredFields = form.fields.filter((f) => f.isRequired);
       for (const field of requiredFields) {
-        if (!formValues[field.id]) {
+        const isMultiCheckbox = field.type === "CHECKBOX" && field.options && field.options.length > 0;
+        const isEmpty = isMultiCheckbox
+          ? getMultiCheckboxSelected(formValues[field.id]).length === 0
+          : !formValues[field.id];
+        if (isEmpty) {
           toast({
             title: "❌ Manglende felt",
             description: `"${field.label}" er påkrevd`,
@@ -119,6 +168,9 @@ export function FormFiller({ form, userId, tenantId, returnUrl = "/dashboard/for
         formData.append("userId", userId);
       }
       formData.append("status", status);
+      if (inspectionId) {
+        formData.append("inspectionId", inspectionId);
+      }
       formData.append("values", JSON.stringify(formValues));
       if (signature) {
         formData.append("signature", signature);
@@ -309,8 +361,8 @@ export function FormFiller({ form, userId, tenantId, returnUrl = "/dashboard/for
                   />
                 )}
 
-                {/* CHECKBOX */}
-                {field.type === "CHECKBOX" && (
+                {/* CHECKBOX – enkelt (ingen options) */}
+                {field.type === "CHECKBOX" && (!field.options || field.options.length === 0) && (
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id={field.id}
@@ -323,6 +375,30 @@ export function FormFiller({ form, userId, tenantId, returnUrl = "/dashboard/for
                     <Label htmlFor={field.id} className="cursor-pointer">
                       Ja
                     </Label>
+                  </div>
+                )}
+
+                {/* CHECKBOX – flervalg (med options) */}
+                {field.type === "CHECKBOX" && field.options && field.options.length > 0 && (
+                  <div className="space-y-2">
+                    {field.options.map((option) => {
+                      const selected = getMultiCheckboxSelected(formValues[field.id]);
+                      const isChecked = selected.includes(option);
+                      return (
+                        <div key={option} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`${field.id}-${option}`}
+                            checked={isChecked}
+                            onCheckedChange={() =>
+                              handleFieldChange(field.id, toggleMultiCheckbox(formValues[field.id], option))
+                            }
+                          />
+                          <Label htmlFor={`${field.id}-${option}`} className="cursor-pointer font-normal">
+                            {option}
+                          </Label>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
@@ -365,19 +441,86 @@ export function FormFiller({ form, userId, tenantId, returnUrl = "/dashboard/for
                   </Select>
                 )}
 
-                {/* FILE */}
+                {/* FILE / BILDE */}
                 {field.type === "FILE" && (
-                  <div className="space-y-2">
-                    <Input
+                  <div className="space-y-3">
+                    {/* Skjult vanlig fil-input */}
+                    <input
+                      ref={(el) => { cameraInputRefs.current[`file-${field.id}`] = el; }}
+                      id={`file-${field.id}`}
                       type="file"
+                      accept="image/*,application/pdf,.doc,.docx,.xlsx,.xls,.csv,.txt"
+                      className="hidden"
                       onChange={(e) => handleFileChange(field.id, e.target.files?.[0] || null)}
-                      required={field.isRequired}
                     />
-                    {files[field.id] && (
-                      <p className="text-sm text-muted-foreground">
-                        📎 {files[field.id].name}
-                      </p>
+                    {/* Skjult kamera-input (åpner bakvendt kamera) */}
+                    <input
+                      ref={(el) => { cameraInputRefs.current[`camera-${field.id}`] = el; }}
+                      id={`camera-${field.id}`}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={(e) => handleFileChange(field.id, e.target.files?.[0] || null)}
+                    />
+
+                    {/* Valgt fil / bilde-preview */}
+                    {files[field.id] ? (
+                      <div className="relative rounded-lg border bg-muted/30 overflow-hidden">
+                        {imagePreviews[field.id] ? (
+                          <img
+                            src={imagePreviews[field.id]}
+                            alt="Forhåndsvisning"
+                            className="w-full max-h-64 object-contain bg-black/5"
+                          />
+                        ) : (
+                          <div className="flex items-center gap-3 p-3">
+                            <Paperclip className="h-5 w-5 text-muted-foreground shrink-0" />
+                            <span className="text-sm truncate">{files[field.id].name}</span>
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleFileChange(field.id, null)}
+                          className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1 shadow"
+                          aria-label="Fjern fil"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                        <p className="text-xs text-muted-foreground px-3 pb-2 pt-1 truncate">
+                          {files[field.id].name}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border-2 border-dashed border-muted-foreground/30 p-4 text-center text-sm text-muted-foreground">
+                        <ImageIcon className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                        <p>Ingen fil valgt</p>
+                      </div>
                     )}
+
+                    {/* Knapper */}
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => cameraInputRefs.current[`camera-${field.id}`]?.click()}
+                      >
+                        <Camera className="h-4 w-4 mr-2" />
+                        Ta bilde
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => cameraInputRefs.current[`file-${field.id}`]?.click()}
+                      >
+                        <Paperclip className="h-4 w-4 mr-2" />
+                        Velg fil
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>

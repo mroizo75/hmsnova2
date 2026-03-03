@@ -3,6 +3,106 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { jsPDF } from "jspdf";
+import { getStorage } from "@/lib/storage";
+
+function formatFieldValue(fieldType: string, optionsJson: string | null, rawValue: string | null, fileKey: string | null): string {
+  if (fileKey) {
+    return `[Vedlagt fil: ${fileKey.split("/").pop()}]`;
+  }
+
+  if (!rawValue) return "(Ikke besvart)";
+
+  switch (fieldType) {
+    case "CHECKBOX": {
+      const options = parseJsonArray(optionsJson);
+      if (options.length > 0) {
+        const selected = parseJsonArray(rawValue);
+        return selected.length > 0 ? selected.join(", ") : "(Ingen valgt)";
+      }
+      return rawValue === "true" ? "Ja" : "Nei";
+    }
+    case "LIKERT_SCALE": {
+      const labels: Record<string, string> = {
+        "1": "1 – Svært uenig",
+        "2": "2 – Uenig",
+        "3": "3 – Nøytral",
+        "4": "4 – Enig",
+        "5": "5 – Svært enig",
+      };
+      return labels[rawValue] ?? rawValue;
+    }
+    case "DATE": {
+      try {
+        return new Date(rawValue).toLocaleDateString("nb-NO", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+        });
+      } catch {
+        return rawValue;
+      }
+    }
+    case "DATETIME": {
+      try {
+        return new Date(rawValue).toLocaleString("nb-NO", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      } catch {
+        return rawValue;
+      }
+    }
+    default:
+      return rawValue;
+  }
+}
+
+function parseJsonArray(json: string | null): string[] {
+  if (!json) return [];
+  try {
+    const parsed = JSON.parse(json);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function isImageKey(key: string): boolean {
+  const ext = key.split(".").pop()?.toLowerCase();
+  return ["jpg", "jpeg", "png", "gif", "webp"].includes(ext ?? "");
+}
+
+function getImageFormat(key: string): "JPEG" | "PNG" | "GIF" | "WEBP" {
+  const ext = key.split(".").pop()?.toLowerCase();
+  if (ext === "png") return "PNG";
+  if (ext === "gif") return "GIF";
+  if (ext === "webp") return "WEBP";
+  return "JPEG";
+}
+
+async function fetchImageAsBase64(fileKey: string): Promise<string | null> {
+  try {
+    const storage = getStorage();
+    const buffer = await storage.get(fileKey);
+    if (!buffer) return null;
+    return buffer.toString("base64");
+  } catch {
+    return null;
+  }
+}
+
+function getStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    DRAFT: "Kladd",
+    SUBMITTED: "Innsendt",
+    APPROVED: "Godkjent",
+    REJECTED: "Avvist",
+  };
+  return labels[status] || status;
+}
 
 export async function GET(
   request: NextRequest,
@@ -19,9 +119,7 @@ export async function GET(
     const form = await prisma.formTemplate.findUnique({
       where: { id, tenantId: session.user.tenantId! },
       include: {
-        fields: {
-          orderBy: { order: "asc" },
-        },
+        fields: { orderBy: { order: "asc" } },
       },
     });
 
@@ -33,6 +131,7 @@ export async function GET(
       where: { id: submissionId, formTemplateId: id },
       include: {
         fieldValues: true,
+        submittedBy: { select: { name: true, email: true } },
       },
     });
 
@@ -40,158 +139,226 @@ export async function GET(
       return NextResponse.json({ error: "Submission not found" }, { status: 404 });
     }
 
-    // Generer PDF med utfylt data
+    const valueMap = new Map(submission.fieldValues.map((fv) => [fv.fieldId, fv]));
+
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 20;
+    const contentWidth = pageWidth - 2 * margin;
     let yPos = 20;
 
-    // Tittel
-    doc.setFontSize(20);
-    doc.text(form.title, margin, yPos);
-    yPos += 10;
-
-    // Beskrivelse
-    if (form.description) {
-      doc.setFontSize(12);
-      doc.setTextColor(100);
-      const descLines = doc.splitTextToSize(form.description, pageWidth - 2 * margin);
-      doc.text(descLines, margin, yPos);
-      yPos += descLines.length * 7 + 5;
-    }
-
-    // Submission info
-    doc.setFontSize(10);
-    doc.setTextColor(80);
-    if (submission.submissionNumber) {
-      doc.text(`Referanse: ${submission.submissionNumber}`, margin, yPos);
-      yPos += 5;
-    }
-    doc.text(`Innsendt: ${new Date(submission.createdAt).toLocaleString("nb-NO")}`, margin, yPos);
-    yPos += 5;
-    doc.text(`Status: ${getStatusLabel(submission.status)}`, margin, yPos);
-    yPos += 10;
-
-    // Linje
-    doc.setDrawColor(200);
-    doc.line(margin, yPos, pageWidth - margin, yPos);
-    yPos += 15;
-
-    // Felt og svar
-    doc.setTextColor(0);
-    for (const field of form.fields) {
-      // Sjekk om vi trenger ny side
-      if (yPos > 270) {
+    function checkPageBreak(needed: number) {
+      if (yPos + needed > pageHeight - 20) {
         doc.addPage();
         yPos = 20;
       }
+    }
 
-      // Feltnavn
-      doc.setFontSize(12);
+    // ── Header-blokk ──────────────────────────────────────
+    doc.setFillColor(0, 100, 60);
+    doc.rect(0, 0, pageWidth, 14, "F");
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255);
+    doc.text("HMS Nova", margin, 9);
+    yPos = 24;
+
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    const titleLines = doc.splitTextToSize(form.title, contentWidth);
+    doc.text(titleLines, margin, yPos);
+    yPos += titleLines.length * 9 + 4;
+
+    if (form.description) {
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(80, 80, 80);
+      const descLines = doc.splitTextToSize(form.description, contentWidth);
+      doc.text(descLines, margin, yPos);
+      yPos += descLines.length * 6 + 4;
+    }
+
+    // ── Metadata-rad ──────────────────────────────────────
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 80);
+    const metaItems: string[] = [];
+    if (submission.submissionNumber) metaItems.push(`Ref: ${submission.submissionNumber}`);
+    metaItems.push(`Innsendt: ${new Date(submission.createdAt).toLocaleString("nb-NO")}`);
+    metaItems.push(`Status: ${getStatusLabel(submission.status)}`);
+    const submittedByName = submission.submittedBy?.name || submission.submittedBy?.email;
+    if (submittedByName) metaItems.push(`Utfylt av: ${submittedByName}`);
+    doc.text(metaItems.join("   •   "), margin, yPos);
+    yPos += 6;
+
+    doc.setDrawColor(0, 100, 60);
+    doc.setLineWidth(0.5);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 12;
+
+    // ── Feltene ───────────────────────────────────────────
+    doc.setTextColor(0, 0, 0);
+
+    for (const field of form.fields) {
+      // Seksjonsoverskrift behandles separat
+      if (field.fieldType === "SECTION_HEADER") {
+        checkPageBreak(18);
+        if (yPos > 30) yPos += 4;
+        doc.setFontSize(13);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(0, 100, 60);
+        const sectionLines = doc.splitTextToSize(field.label, contentWidth);
+        doc.text(sectionLines, margin, yPos);
+        yPos += sectionLines.length * 7;
+        doc.setDrawColor(0, 100, 60);
+        doc.setLineWidth(0.3);
+        doc.line(margin, yPos + 1, pageWidth - margin, yPos + 1);
+        yPos += 8;
+        if (field.helpText) {
+          doc.setFontSize(9);
+          doc.setFont("helvetica", "italic");
+          doc.setTextColor(100, 100, 100);
+          const htLines = doc.splitTextToSize(field.helpText, contentWidth);
+          doc.text(htLines, margin, yPos);
+          yPos += htLines.length * 5 + 4;
+        }
+        doc.setTextColor(0, 0, 0);
+        continue;
+      }
+
+      const fieldValue = valueMap.get(field.id);
+      const rawValue = fieldValue?.value ?? null;
+      const fileKey = fieldValue?.fileKey ?? null;
+      const displayValue = formatFieldValue(field.fieldType, field.options, rawValue, fileKey);
+      const isMultiLine = field.fieldType === "TEXTAREA";
+
+      // Plass vi trenger: spørsmålslabel (7) + evt. helptext (5/linje) + svar (7–30)
+      checkPageBreak(isMultiLine ? 40 : 22);
+
+      // Spørsmål
+      doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
-      const label = field.isRequired ? `${field.label} *` : field.label;
-      doc.text(label, margin, yPos);
-      yPos += 7;
+      doc.setTextColor(30, 30, 30);
+      const labelText = field.isRequired ? `${field.label} *` : field.label;
+      const labelLines = doc.splitTextToSize(labelText, contentWidth);
+      doc.text(labelLines, margin, yPos);
+      yPos += labelLines.length * 6 + 2;
 
       // Hjelpetekst
       if (field.helpText) {
         doc.setFont("helvetica", "italic");
         doc.setFontSize(9);
-        doc.setTextColor(100);
-        const helpLines = doc.splitTextToSize(field.helpText, pageWidth - 2 * margin);
-        doc.text(helpLines, margin, yPos);
-        yPos += helpLines.length * 4 + 3;
-        doc.setTextColor(0);
+        doc.setTextColor(120, 120, 120);
+        const htLines = doc.splitTextToSize(field.helpText, contentWidth);
+        doc.text(htLines, margin, yPos);
+        yPos += htLines.length * 4 + 2;
       }
 
       // Svar
-      const fieldValue = submission.fieldValues.find((fv) => fv.fieldId === field.id);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(11);
-      
-      if (fieldValue) {
-        if (fieldValue.fileKey) {
-          doc.setTextColor(50, 50, 200);
-          doc.text(`[Vedlagt fil: ${fieldValue.fileKey.split("/").pop()}]`, margin + 5, yPos);
-          doc.setTextColor(0);
-          yPos += 10;
-        } else if (fieldValue.value) {
-          doc.setTextColor(0);
-          if (field.fieldType === "TEXTAREA") {
-            const answerLines = doc.splitTextToSize(fieldValue.value, pageWidth - 2 * margin - 10);
-            doc.text(answerLines, margin + 5, yPos);
-            yPos += answerLines.length * 6 + 5;
-          } else {
-            doc.text(fieldValue.value, margin + 5, yPos);
-            yPos += 10;
-          }
-        } else {
-          doc.setTextColor(150);
-          doc.text("(Ikke besvart)", margin + 5, yPos);
-          doc.setTextColor(0);
-          yPos += 10;
-        }
-      } else {
-        doc.setTextColor(150);
-        doc.text("(Ikke besvart)", margin + 5, yPos);
-        doc.setTextColor(0);
-        yPos += 10;
-      }
-
-      yPos += 5;
-    }
-
-    // Signatur
-    if (form.requiresSignature && submission.signedAt) {
-      if (yPos > 250) {
-        doc.addPage();
-        yPos = 20;
-      }
-      
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
-      doc.text("Digital signatur", margin, yPos);
-      yPos += 7;
-      
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
-      doc.text(`Signert: ${new Date(submission.signedAt).toLocaleString("nb-NO")}`, margin, yPos);
-      yPos += 10;
+      const isUnanswered = displayValue === "(Ikke besvart)" || displayValue === "(Ingen valgt)";
 
-      // Vis signatur-bilde hvis tilgjengelig i metadata
+      if (fileKey && isImageKey(fileKey)) {
+        // Hent bilde og embed
+        const base64 = await fetchImageAsBase64(fileKey);
+        if (base64) {
+          const format = getImageFormat(fileKey);
+          const maxImgWidth = contentWidth - 4;
+          const maxImgHeight = 80;
+          checkPageBreak(maxImgHeight + 14);
+          try {
+            // Beregn proporsjoner
+            const tempImg = { width: maxImgWidth, height: maxImgHeight };
+            doc.addImage(base64, format, margin + 4, yPos, tempImg.width, tempImg.height, undefined, "MEDIUM");
+            yPos += maxImgHeight + 4;
+          } catch {
+            doc.setTextColor(50, 50, 200);
+            doc.text(`[Bilde: ${fileKey.split("/").pop()}]`, margin + 4, yPos);
+            yPos += 8;
+          }
+        } else {
+          doc.setTextColor(50, 50, 200);
+          doc.text(`[Bilde: ${fileKey.split("/").pop()}]`, margin + 4, yPos);
+          yPos += 8;
+        }
+        doc.setTextColor(0, 0, 0);
+      } else if (fileKey) {
+        doc.setTextColor(50, 50, 200);
+        doc.text(`[Vedlagt fil: ${fileKey.split("/").pop()}]`, margin + 4, yPos);
+        doc.setTextColor(0, 0, 0);
+        yPos += 8;
+      } else if (isMultiLine) {
+        doc.setTextColor(isUnanswered ? 150 : 0, isUnanswered ? 150 : 0, isUnanswered ? 150 : 0);
+        const answerLines = doc.splitTextToSize(displayValue, contentWidth - 4);
+        doc.setFillColor(250, 250, 240);
+        doc.rect(margin, yPos - 4, contentWidth, answerLines.length * 5.5 + 4, "F");
+        doc.text(answerLines, margin + 4, yPos);
+        yPos += answerLines.length * 5.5;
+        doc.setTextColor(0, 0, 0);
+      } else {
+        doc.setTextColor(isUnanswered ? 150 : 0, isUnanswered ? 150 : 0, isUnanswered ? 150 : 0);
+        doc.text(displayValue, margin + 4, yPos);
+        doc.setTextColor(0, 0, 0);
+      }
+
+      yPos += 10;
+    }
+
+    // ── Signatur ──────────────────────────────────────────
+    if (form.requiresSignature && submission.signedAt) {
+      checkPageBreak(50);
+      yPos += 4;
+      doc.setDrawColor(180);
+      doc.setLineWidth(0.3);
+      doc.line(margin, yPos, pageWidth - margin, yPos);
+      yPos += 8;
+
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 0);
+      doc.text("Digital signatur", margin, yPos);
+      yPos += 7;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(80, 80, 80);
+      doc.text(`Signert: ${new Date(submission.signedAt).toLocaleString("nb-NO")}`, margin, yPos);
+      yPos += 8;
+
       if (submission.metadata) {
         try {
           const metadata = JSON.parse(submission.metadata);
           if (metadata.signatureData) {
             doc.addImage(metadata.signatureData, "PNG", margin, yPos, 80, 30);
+            yPos += 35;
           }
-        } catch (e) {
-          // Ignorer hvis metadata ikke kan parses
+        } catch {
+          // Ignorer parsefeil
         }
       }
     }
 
-    // Footer
+    // ── Footer på alle sider ──────────────────────────────
     const totalPages = (doc as any).internal.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
       doc.setFontSize(8);
-      doc.setTextColor(150);
+      doc.setTextColor(150, 150, 150);
       doc.text(
-        `HMS Nova - ${form.title} - Side ${i} av ${totalPages}`,
+        `HMS Nova – ${form.title} – Side ${i} av ${totalPages}`,
         pageWidth / 2,
-        doc.internal.pageSize.getHeight() - 10,
+        pageHeight - 10,
         { align: "center" }
       );
     }
 
-    // Generer PDF som buffer
     const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
 
     return new NextResponse(pdfBuffer, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${form.title.replace(/[^a-z0-9]/gi, "_")}_${submission.createdAt.toISOString().split("T")[0]}.pdf"`,
+        "Content-Disposition": `attachment; filename="${form.title.replace(/[^a-z0-9æøå]/gi, "_")}_${submission.createdAt.toISOString().split("T")[0]}.pdf"`,
       },
     });
   } catch (error: any) {
@@ -202,14 +369,3 @@ export async function GET(
     );
   }
 }
-
-function getStatusLabel(status: string): string {
-  const labels: Record<string, string> = {
-    DRAFT: "Kladd",
-    SUBMITTED: "Innsendt",
-    APPROVED: "Godkjent",
-    REJECTED: "Avvist",
-  };
-  return labels[status] || status;
-}
-

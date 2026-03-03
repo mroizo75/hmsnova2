@@ -4,9 +4,16 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { FormFiller } from "@/components/forms/form-filler";
 
-export default async function AnsattFillFormPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function AnsattFillFormPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ inspectionId?: string }>;
+}) {
   const session = await getServerSession(authOptions);
   const { id } = await params;
+  const { inspectionId } = await searchParams;
 
   if (!session?.user?.tenantId) {
     redirect("/login");
@@ -82,6 +89,8 @@ export default async function AnsattFillFormPage({ params }: { params: Promise<{
   const isAnonymous =
     form.category === "WELLBEING" || form.allowAnonymousResponses;
 
+  const returnUrl = inspectionId ? `/ansatt/vernerunder` : "/ansatt/skjemaer";
+
   return (
     <FormFiller
       form={{
@@ -103,7 +112,8 @@ export default async function AnsattFillFormPage({ params }: { params: Promise<{
       }}
       userId={session.user.id}
       tenantId={session.user.tenantId}
-      returnUrl="/ansatt/skjemaer"
+      returnUrl={returnUrl}
+      inspectionId={inspectionId}
     />
   );
 }

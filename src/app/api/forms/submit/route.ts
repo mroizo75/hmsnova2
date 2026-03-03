@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
     const status = formData.get("status") as string;
     const valuesJson = formData.get("values") as string;
     const signature = formData.get("signature") as string | null;
+    const inspectionId = formData.get("inspectionId") as string | null;
 
     const values = JSON.parse(valuesJson);
     const storage = getStorage();
@@ -95,6 +96,18 @@ export async function POST(request: NextRequest) {
           },
         });
       }
+    }
+
+    // Koble submission til inspeksjon og sett status COMPLETED
+    if (status === "SUBMITTED" && inspectionId) {
+      await prisma.inspection.update({
+        where: { id: inspectionId, tenantId },
+        data: {
+          formSubmissionId: submission.id,
+          status: "COMPLETED",
+          completedDate: new Date(),
+        },
+      });
     }
 
     // Send varsling til HMS-ansvarlige hvis skjemaet sendes inn (ikke kladd)

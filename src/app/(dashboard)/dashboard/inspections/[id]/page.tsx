@@ -228,12 +228,12 @@ export default async function InspectionDetailPage({
           <CardContent>
             {inspection.formSubmission ? (
               <div className="flex gap-3">
-                <Link href={`/dashboard/forms/${inspection.formTemplate.id}/fill?inspectionId=${id}`} className="flex-1">
+                <Link href={`/dashboard/forms/${inspection.formTemplate.id}/submissions/${inspection.formSubmissionId}`} className="flex-1">
                   <Button variant="outline" className="w-full">
                     Se utfylt skjema
                   </Button>
                 </Link>
-                <Link href={`/api/forms/${inspection.formSubmissionId}/pdf`} target="_blank">
+                <Link href={`/api/forms/${inspection.formTemplate.id}/submissions/${inspection.formSubmissionId}/pdf`} target="_blank">
                   <Button variant="outline">
                     <Download className="h-4 w-4 mr-2" />
                     Last ned PDF
