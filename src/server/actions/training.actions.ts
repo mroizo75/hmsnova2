@@ -272,6 +272,129 @@ export async function getTrainingStats(tenantId: string) {
   }
 }
 
+// Registrer flere kurs for én ansatt i én operasjon
+export async function createEmployeeTrainings(input: {
+  tenantId: string;
+  userId: string;
+  courses: Array<{
+    courseKey: string;
+    title: string;
+    provider: string;
+    completedAt?: string;
+    validUntil?: string;
+    proofDocKey?: string;
+    isRequired?: boolean;
+  }>;
+}) {
+  try {
+    const { user, tenantId } = await getSessionContext();
+
+    if (!input.courses || input.courses.length === 0) {
+      return { success: false, error: "Ingen kurs lagt til" };
+    }
+
+    const created = await prisma.$transaction(
+      input.courses.map((c) =>
+        prisma.training.create({
+          data: {
+            tenantId,
+            userId: input.userId,
+            courseKey: c.courseKey,
+            title: c.title,
+            provider: c.provider,
+            completedAt: c.completedAt ? new Date(c.completedAt) : undefined,
+            validUntil: c.validUntil ? new Date(c.validUntil) : undefined,
+            proofDocKey: c.proofDocKey ?? null,
+            isRequired: c.isRequired ?? false,
+          },
+        })
+      )
+    );
+
+    await prisma.auditLog.create({
+      data: {
+        tenantId,
+        userId: user.id,
+        action: "TRAINING_EMPLOYEE_BULK_CREATED",
+        resource: `Training:employee:${input.userId}`,
+        metadata: JSON.stringify({
+          userId: input.userId,
+          count: created.length,
+          courses: input.courses.map((c) => c.title),
+        }),
+      },
+    });
+
+    revalidatePath("/dashboard/training");
+    return { success: true, data: created };
+  } catch (error: any) {
+    console.error("Create employee trainings error:", error);
+    return { success: false, error: error.message || "Kunne ikke registrere kursene" };
+  }
+}
+
+// Masseregistrer opplæring for flere ansatte i én operasjon
+export async function createBulkTrainings(input: {
+  tenantId: string;
+  courseKey: string;
+  title: string;
+  provider: string;
+  completedAt?: string;
+  validUntil?: string;
+  isRequired: boolean;
+  participants: Array<{ userId: string; proofDocKey?: string }>;
+}) {
+  try {
+    const { user, tenantId } = await getSessionContext();
+
+    if (!input.participants || input.participants.length === 0) {
+      return { success: false, error: "Ingen deltakere valgt" };
+    }
+
+    const completedAt = input.completedAt ? new Date(input.completedAt) : undefined;
+    const validUntil = input.validUntil ? new Date(input.validUntil) : undefined;
+
+    const created = await prisma.$transaction(
+      input.participants.map((p) =>
+        prisma.training.create({
+          data: {
+            tenantId,
+            userId: p.userId,
+            courseKey: input.courseKey,
+            title: input.title,
+            provider: input.provider,
+            completedAt,
+            validUntil,
+            proofDocKey: p.proofDocKey ?? null,
+            isRequired: input.isRequired,
+          },
+        })
+      )
+    );
+
+    await prisma.auditLog.create({
+      data: {
+        tenantId,
+        userId: user.id,
+        action: "TRAINING_BULK_CREATED",
+        resource: `Training:bulk`,
+        metadata: JSON.stringify({
+          title: input.title,
+          courseKey: input.courseKey,
+          count: created.length,
+          userIds: input.participants.map((p) => p.userId),
+        }),
+      },
+    });
+
+    revalidatePath("/dashboard/training");
+    return { success: true, data: created };
+  } catch (error: any) {
+    console.error("Create bulk trainings error:", error);
+    return { success: false, error: error.message || "Kunne ikke registrere opplæringene" };
+  }
+}
+
 // Få kompetansematrise (hvem har hvilken kompetanse)
 export async function getCompetenceMatrix(tenantId: string) {
   try {

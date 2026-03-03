@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
     const valuesJson = formData.get("values") as string;
     const signature = formData.get("signature") as string | null;
     const inspectionId = formData.get("inspectionId") as string | null;
+    const fieldCommentsJson = formData.get("fieldComments") as string | null;
 
     const values = JSON.parse(valuesJson);
     const storage = getStorage();
@@ -51,6 +52,19 @@ export async function POST(request: NextRequest) {
     const isAnonymous =
       form.category === "WELLBEING" || form.allowAnonymousResponses;
 
+    // Bygg metadata-objekt
+    const metadataObj: Record<string, unknown> = {};
+    if (signature) {
+      metadataObj.signatureData = signature;
+    }
+    if (fieldCommentsJson) {
+      try {
+        metadataObj.fieldComments = JSON.parse(fieldCommentsJson);
+      } catch {
+        // Ignorer ugyldig JSON
+      }
+    }
+
     // Opprett submission
     const submission = await prisma.formSubmission.create({
       data: {
@@ -60,7 +74,7 @@ export async function POST(request: NextRequest) {
         submittedById: isAnonymous ? null : userId,
         status: status as "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED",
         signedAt: signature ? new Date() : null,
-        metadata: signature ? JSON.stringify({ signatureData: signature }) : null,
+        metadata: Object.keys(metadataObj).length > 0 ? JSON.stringify(metadataObj) : null,
       },
     });
 

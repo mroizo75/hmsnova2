@@ -12,7 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { SignaturePad } from "./signature-pad";
-import { ArrowLeft, Send, Save, ShieldCheck, Camera, Paperclip, X, ImageIcon } from "lucide-react";
+import { ArrowLeft, Send, Save, ShieldCheck, Camera, Paperclip, X, ImageIcon, MessageSquarePlus, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 
@@ -74,7 +74,28 @@ export function FormFiller({ form, userId, tenantId, returnUrl = "/dashboard/for
   const [signature, setSignature] = useState<string>("");
   const [files, setFiles] = useState<Record<string, File>>({});
   const [imagePreviews, setImagePreviews] = useState<Record<string, string>>({});
+  const [fieldComments, setFieldComments] = useState<Record<string, string>>({});
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const cameraInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  // Merknader er alltid tilgjengelig i vernerunde-kontekst (inspectionId satt)
+  const showComments = !!inspectionId;
+
+  function handleCommentChange(fieldId: string, value: string) {
+    setFieldComments((prev) => ({ ...prev, [fieldId]: value }));
+  }
+
+  function toggleComment(fieldId: string) {
+    setExpandedComments((prev) => {
+      const next = new Set(prev);
+      if (next.has(fieldId)) {
+        next.delete(fieldId);
+      } else {
+        next.add(fieldId);
+      }
+      return next;
+    });
+  }
 
   function handleFieldChange(fieldId: string, value: string) {
     setFormValues((prev) => ({ ...prev, [fieldId]: value }));
@@ -172,6 +193,13 @@ export function FormFiller({ form, userId, tenantId, returnUrl = "/dashboard/for
         formData.append("inspectionId", inspectionId);
       }
       formData.append("values", JSON.stringify(formValues));
+      // Send merknader for alle felt som har tekst
+      const nonEmptyComments = Object.fromEntries(
+        Object.entries(fieldComments).filter(([, v]) => v.trim() !== "")
+      );
+      if (Object.keys(nonEmptyComments).length > 0) {
+        formData.append("fieldComments", JSON.stringify(nonEmptyComments));
+      }
       if (signature) {
         formData.append("signature", signature);
       }
@@ -524,6 +552,46 @@ export function FormFiller({ form, userId, tenantId, returnUrl = "/dashboard/for
                   </div>
                 )}
               </div>
+
+              {/* Merknad per punkt – vises i vernerunde-kontekst */}
+              {showComments && (
+                <div className="mt-3 pt-3 border-t border-dashed border-muted-foreground/20">
+                  {expandedComments.has(field.id) || fieldComments[field.id] ? (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <MessageSquare className="h-3 w-3" />
+                        Merknad (valgfritt)
+                      </Label>
+                      <Textarea
+                        value={fieldComments[field.id] || ""}
+                        onChange={(e) => handleCommentChange(field.id, e.target.value)}
+                        placeholder="Skriv inn merknad, avvik eller observasjon for dette punktet…"
+                        rows={2}
+                        className="text-sm resize-none"
+                        autoFocus={expandedComments.has(field.id) && !fieldComments[field.id]}
+                      />
+                      {!fieldComments[field.id] && (
+                        <button
+                          type="button"
+                          onClick={() => toggleComment(field.id)}
+                          className="text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          Lukk merknad
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => toggleComment(field.id)}
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <MessageSquarePlus className="h-3.5 w-3.5" />
+                      Legg til merknad
+                    </button>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
           );

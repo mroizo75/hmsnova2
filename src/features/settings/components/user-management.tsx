@@ -38,15 +38,17 @@ import {
   importUsersFromFile,
   activateUserInTenant,
   activateAllPendingUsers,
+  updateEmployeeNumber,
 } from "@/server/actions/settings.actions";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, FileSpreadsheet, Send, HelpCircle } from "lucide-react";
+import { Upload, FileSpreadsheet, Send, HelpCircle, Pencil, Check, X } from "lucide-react";
 
 interface UserManagementProps {
   users: Array<{
     userId: string;
     role: string;
     invitationSentAt: Date | null;
+    employeeNumber: string | null;
     user: {
       id: string;
       name: string | null;
@@ -70,6 +72,8 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
   const [importFile, setImportFile] = useState<File | null>(null);
   const [activatingUserId, setActivatingUserId] = useState<string | null>(null);
   const [activatingAll, setActivatingAll] = useState(false);
+  const [editingEmployeeNumber, setEditingEmployeeNumber] = useState<string | null>(null);
+  const [employeeNumberDraft, setEmployeeNumberDraft] = useState("");
 
   const pendingActivationCount = users.filter(
     (u) => !u.invitationSentAt && u.userId !== currentUserId
@@ -263,6 +267,24 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
         variant: "destructive",
         title: "Kunne ikke aktivere",
         description: "error" in result ? result.error : "Kunne ikke aktivere",
+      });
+    }
+  };
+
+  const handleEmployeeNumberSave = async (userId: string) => {
+    const result = await updateEmployeeNumber(userId, employeeNumberDraft);
+    if (result.success) {
+      toast({
+        title: "Ansattnummer oppdatert",
+        className: "bg-green-50 border-green-200",
+      });
+      setEditingEmployeeNumber(null);
+      router.refresh();
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Feil",
+        description: result.error || "Kunne ikke oppdatere ansattnummer",
       });
     }
   };
@@ -479,6 +501,7 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
                 <TableRow>
                   <TableHead>Navn</TableHead>
                   <TableHead>E-post</TableHead>
+                  <TableHead>Ansattnr.</TableHead>
                   <TableHead>Rolle</TableHead>
                   <TableHead>Medlem siden</TableHead>
                   {isAdmin && <TableHead className="text-right">Handlinger</TableHead>}
@@ -499,6 +522,56 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
                         )}
                       </TableCell>
                       <TableCell>{userTenant.user.email}</TableCell>
+                      <TableCell>
+                        {isAdmin && editingEmployeeNumber === userTenant.userId ? (
+                          <div className="flex items-center gap-1">
+                            <Input
+                              value={employeeNumberDraft}
+                              onChange={(e) => setEmployeeNumberDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleEmployeeNumberSave(userTenant.userId);
+                                if (e.key === "Escape") setEditingEmployeeNumber(null);
+                              }}
+                              placeholder="f.eks. A-0042"
+                              className="h-7 w-28 text-xs"
+                              autoFocus
+                            />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => handleEmployeeNumberSave(userTenant.userId)}
+                            >
+                              <Check className="h-3.5 w-3.5 text-green-600" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => setEditingEmployeeNumber(null)}
+                            >
+                              <X className="h-3.5 w-3.5 text-muted-foreground" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <button
+                            className={`group flex items-center gap-1.5 text-sm ${isAdmin ? "cursor-pointer hover:text-foreground" : "cursor-default"}`}
+                            onClick={() => {
+                              if (!isAdmin) return;
+                              setEmployeeNumberDraft(userTenant.employeeNumber ?? "");
+                              setEditingEmployeeNumber(userTenant.userId);
+                            }}
+                            title={isAdmin ? "Klikk for å redigere" : undefined}
+                          >
+                            <span className={userTenant.employeeNumber ? "font-mono text-xs" : "text-muted-foreground text-xs italic"}>
+                              {userTenant.employeeNumber || (isAdmin ? "Sett nr." : "—")}
+                            </span>
+                            {isAdmin && (
+                              <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-60 transition-opacity" />
+                            )}
+                          </button>
+                        )}
+                      </TableCell>
                       <TableCell>
                         {isAdmin && !isCurrentUser ? (
                           <Select

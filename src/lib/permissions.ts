@@ -75,6 +75,7 @@ export interface RolePermissions {
   canCreateInspections: boolean;
   canConductInspections: boolean;
   canCloseInspections: boolean;
+  canDeleteInspections: boolean;
 
   // Miljøstyring (ISO 14001)
   canReadEnvironment: boolean;
@@ -186,6 +187,7 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateInspections: true,
     canConductInspections: true,
     canCloseInspections: true,
+    canDeleteInspections: true,
     canReadGoals: true,
     canCreateGoals: true,
     canUpdateGoals: true,
@@ -269,6 +271,7 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateInspections: true,
     canConductInspections: true,
     canCloseInspections: true,
+    canDeleteInspections: false,
     canReadGoals: true,
     canCreateGoals: true,
     canUpdateGoals: true,
@@ -352,6 +355,7 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateInspections: true,
     canConductInspections: true,
     canCloseInspections: false,
+    canDeleteInspections: false,
     canReadGoals: true,
     canCreateGoals: true,
     canUpdateGoals: true,
@@ -435,6 +439,7 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateInspections: true,
     canConductInspections: true,
     canCloseInspections: false,
+    canDeleteInspections: false,
     canReadGoals: true,
     canCreateGoals: false,
     canUpdateGoals: false,
@@ -518,6 +523,7 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateInspections: false,
     canConductInspections: false,
     canCloseInspections: false,
+    canDeleteInspections: false,
     canReadGoals: false,
     canCreateGoals: false,
     canUpdateGoals: false,
@@ -601,6 +607,7 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateInspections: false,
     canConductInspections: false,
     canCloseInspections: false,
+    canDeleteInspections: false,
     canReadGoals: true,
     canCreateGoals: false,
     canUpdateGoals: false,
@@ -684,6 +691,7 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateInspections: false,
     canConductInspections: false,
     canCloseInspections: false,
+    canDeleteInspections: false,
     canReadGoals: true,
     canCreateGoals: false,
     canUpdateGoals: false,

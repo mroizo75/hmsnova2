@@ -23,8 +23,11 @@ import { nb } from "date-fns/locale";
 import { InspectionFindingForm } from "@/features/inspections/components/inspection-finding-form";
 import { InspectionFindingList } from "@/features/inspections/components/inspection-finding-list";
 import { UpdateInspectionStatusForm } from "@/features/inspections/components/update-inspection-status-form";
+import { DeleteInspectionButton } from "@/features/inspections/components/delete-inspection-button";
 
 export const dynamic = "force-dynamic";
+
+import { getPermissions } from "@/lib/permissions";
 
 function getStatusBadge(status: string) {
   const variants: Record<
@@ -87,6 +90,8 @@ export default async function InspectionDetailPage({
   if (!session?.user?.email) {
     redirect("/login");
   }
+
+  const permissions = getPermissions(session.user.role ?? "ANSATT");
 
   const currentUser = await prisma.user.findUnique({
     where: { email: session.user.email },
@@ -193,12 +198,12 @@ export default async function InspectionDetailPage({
                 Rediger
               </Button>
             </Link>
-            <Link href={`/api/inspections/${inspection.id}/report`} target="_blank">
-              <Button variant="outline" size="sm">
-                <Download className="mr-2 h-4 w-4" />
-                Last ned rapport
-              </Button>
-            </Link>
+            {permissions.canDeleteInspections && (
+              <DeleteInspectionButton
+                inspectionId={inspection.id}
+                inspectionTitle={inspection.title}
+              />
+            )}
           </div>
         </div>
       </div>

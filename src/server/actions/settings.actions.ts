@@ -783,6 +783,33 @@ export async function removeUserFromTenant(userId: string) {
 }
 
 // ============================================================================
+// EMPLOYEE NUMBER
+// ============================================================================
+
+export async function updateEmployeeNumber(userId: string, employeeNumber: string) {
+  try {
+    const { user, tenantId } = await getSessionContext();
+
+    const userTenant = user.tenants.find((t) => t.tenantId === tenantId);
+    if (!userTenant || userTenant.role !== "ADMIN") {
+      return { success: false, error: "Kun administratorer kan sette ansattnummer" };
+    }
+
+    const value = employeeNumber.trim() || null;
+
+    await prisma.userTenant.update({
+      where: { userId_tenantId: { userId, tenantId } },
+      data: { employeeNumber: value },
+    });
+
+    revalidatePath("/dashboard/settings");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Kunne ikke oppdatere ansattnummer" };
+  }
+}
+
+// ============================================================================
 // SUBSCRIPTION & INVOICES
 // ============================================================================
 

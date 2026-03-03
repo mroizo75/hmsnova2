@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { TrainingForm } from "@/features/training/components/training-form";
+import { TrainingHeaderActions } from "@/features/training/components/training-header-actions";
 import { TrainingList } from "@/features/training/components/training-list";
 import {
   GraduationCap,
@@ -12,11 +12,7 @@ import {
   AlertTriangle,
   XCircle,
   Clock,
-  Users,
-  Target,
-  Settings,
 } from "lucide-react";
-import Link from "next/link";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
 import { helpContent } from "@/lib/help-content";
 
@@ -132,27 +128,11 @@ export default async function TrainingPage() {
           </div>
           <PageHelpDialog content={helpContent.training} />
         </div>
-        <div className="flex gap-2">
-          <Link href="/dashboard/goals?category=COMPETENCE">
-            <Button variant="outline">
-              <Target className="mr-2 h-4 w-4" />
-              Kompetansemål
-            </Button>
-          </Link>
-          <Link href="/dashboard/training/courses">
-            <Button variant="outline">
-              <Settings className="mr-2 h-4 w-4" />
-              Kursmaler
-            </Button>
-          </Link>
-          <Link href="/dashboard/training/matrix">
-            <Button variant="outline">
-              <Users className="mr-2 h-4 w-4" />
-              Kompetansematrise
-            </Button>
-          </Link>
-          <TrainingForm tenantId={tenantId} users={tenantUsers} courseTemplates={courseTemplates} />
-        </div>
+        <TrainingHeaderActions
+          tenantId={tenantId}
+          users={tenantUsers}
+          courseTemplates={courseTemplates}
+        />
       </div>
 
       {/* KPI Cards */}

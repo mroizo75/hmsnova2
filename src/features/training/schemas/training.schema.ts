@@ -25,6 +25,8 @@ export const createTrainingSchema = z.object({
 
 export const updateTrainingSchema = z.object({
   id: z.string().cuid(),
+  title: z.string().min(3).optional(),
+  provider: z.string().min(2).optional(),
   completedAt: z.date().optional(),
   validUntil: z.date().optional(),
   proofDocKey: z.string().optional(),

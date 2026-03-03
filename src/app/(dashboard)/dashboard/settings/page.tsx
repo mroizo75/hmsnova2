@@ -65,6 +65,12 @@ export default async function SettingsPage() {
     orderBy: { createdAt: "desc" },
   });
 
+  // Bygg opp brukerliste med employeeNumber for UserManagement
+  const usersWithEmployeeNumber = tenantUsers.map((ut) => ({
+    ...ut,
+    employeeNumber: ut.employeeNumber ?? null,
+  }));
+
   // Hent brukergrense basert på pricing tier
   const { getSubscriptionLimits } = await import("@/lib/subscription");
   const limits = getSubscriptionLimits(tenant.pricingTier as any);
@@ -137,9 +143,9 @@ export default async function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="users">
-          <UserManagement 
-            users={tenantUsers} 
-            currentUserId={user.id} 
+          <UserManagement
+            users={usersWithEmployeeNumber}
+            currentUserId={user.id}
             isAdmin={isAdmin}
             pricingTier={tenant.pricingTier}
             maxUsers={limits.maxUsers}

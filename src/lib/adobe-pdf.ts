@@ -523,3 +523,98 @@ export async function extractTextFromPDF(pdfBuffer: Buffer): Promise<string> {
     throw error;
   }
 }
+
+/**
+ * Konverterer HTML-streng til PDF-buffer via Adobe PDF Services REST API.
+ * Brukes for inspeksjonsrapporter der innholdet bygges dynamisk server-side.
+ */
+
+const ADOBE_REST_API_BASE = "https://pdf-services.adobe.io";
+const ADOBE_TOKEN_URL_REST = "https://ims-na1.adobelogin.com/ims/token/v3";
+
+async function getRestAccessToken(): Promise<string> {
+  const clientId = process.env.ADOBE_CLIENT_ID;
+  const clientSecret = process.env.ADOBE_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
+    throw new Error("Adobe PDF Services credentials mangler");
+  }
+  const res = await fetch(ADOBE_TOKEN_URL_REST, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "client_credentials",
+      client_id: clientId,
+      client_secret: clientSecret,
+      scope: "openid,AdobeID,DCAPI",
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`Adobe token-forespørsel feilet: ${await res.text()}`);
+  }
+  const data = await res.json();
+  return data.access_token as string;
+}
+
+export async function htmlToPdf(htmlContent: string): Promise<Buffer> {
+  const clientId = process.env.ADOBE_CLIENT_ID!;
+  const token = await getRestAccessToken();
+
+  const authHeaders = {
+    Authorization: `Bearer ${token}`,
+    "x-api-key": clientId,
+    "Content-Type": "application/json",
+  };
+
+  const assetRes = await fetch(`${ADOBE_REST_API_BASE}/assets`, {
+    method: "POST",
+    headers: authHeaders,
+    body: JSON.stringify({ mediaType: "text/html" }),
+  });
+  if (!assetRes.ok) throw new Error(`Adobe asset-oppretting feilet: ${assetRes.status}`);
+
+  const { uploadUri, assetID } = await assetRes.json();
+
+  const uploadRes = await fetch(uploadUri, {
+    method: "PUT",
+    headers: { "Content-Type": "text/html" },
+    body: htmlContent,
+  });
+  if (!uploadRes.ok) throw new Error(`Adobe opplasting feilet: ${uploadRes.status}`);
+
+  const jobRes = await fetch(`${ADOBE_REST_API_BASE}/operation/htmltopdf`, {
+    method: "POST",
+    headers: authHeaders,
+    body: JSON.stringify({
+      assetID,
+      json: "{}",
+      includeHeaderFooter: false,
+      pageLayout: { pageWidth: 11, pageHeight: 8.5 },
+    }),
+  });
+  if (!jobRes.ok) throw new Error(`Adobe jobb-start feilet: ${jobRes.status}`);
+
+  const jobUrl = jobRes.headers.get("location");
+  if (!jobUrl) throw new Error("Adobe returnerte ingen jobb-URL");
+
+  let downloadUri: string | null = null;
+  for (let attempt = 0; attempt < 30; attempt++) {
+    await new Promise((r) => setTimeout(r, 2000));
+    const statusRes = await fetch(jobUrl, {
+      headers: { Authorization: `Bearer ${token}`, "x-api-key": clientId },
+    });
+    if (!statusRes.ok) continue;
+    const statusData = await statusRes.json();
+    if (statusData.status === "done") {
+      downloadUri = statusData.asset?.downloadUri ?? null;
+      break;
+    }
+    if (statusData.status === "failed") {
+      throw new Error(`Adobe PDF feilet: ${JSON.stringify(statusData.error)}`);
+    }
+  }
+  if (!downloadUri) throw new Error("Adobe PDF tidsavbrutt");
+
+  const pdfRes = await fetch(downloadUri);
+  if (!pdfRes.ok) throw new Error(`Adobe PDF-nedlasting feilet: ${pdfRes.status}`);
+  return Buffer.from(await pdfRes.arrayBuffer());
+}

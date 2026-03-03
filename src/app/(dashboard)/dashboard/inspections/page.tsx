@@ -9,7 +9,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
-import { Plus, Calendar, MapPin, User, Smartphone } from "lucide-react";
+import { Plus, Calendar, MapPin, User, Smartphone, BarChart3 } from "lucide-react";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
 import { helpContent } from "@/lib/help-content";
 import {
@@ -84,14 +84,22 @@ export default async function InspectionsPage() {
           </div>
           <PageHelpDialog content={helpContent.inspections} />
         </div>
-        {permissions.canCreateInspections && (
-          <Link href="/dashboard/inspections/new">
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Ny vernerunde
+        <div className="flex items-center gap-2">
+          <Link href="/dashboard/inspections/rapport">
+            <Button variant="outline">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Rapport
             </Button>
           </Link>
-        )}
+          {permissions.canCreateInspections && (
+            <Link href="/dashboard/inspections/new">
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Ny vernerunde
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Mobile Quick Access */}

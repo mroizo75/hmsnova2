@@ -61,6 +61,7 @@ export default async function EditExposureRegisterPage({
     name: ut.user.name,
     email: ut.user.email,
     department: ut.department,
+    employeeNumber: ut.employeeNumber ?? null,
   }));
 
   return (

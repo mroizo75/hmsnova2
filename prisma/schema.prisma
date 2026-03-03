@@ -570,6 +570,9 @@ model UserTenant {
   role       Role
   department String?
   
+  // Intern ansatt-ID (bedriftens eget nummersystem, f.eks. "A-0042")
+  employeeNumber String?
+
   // Tenant-spesifikke brukerinnstillinger (kan være ulike per tenant)
   displayName  String?      // Visningsnavn i denne tenanten (kan være annerledes enn User.name)
   phone        String?      // Telefonnummer for denne tenanten

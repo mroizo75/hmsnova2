@@ -32,12 +32,16 @@ interface TrainingFormProps {
   users: Array<{ id: string; name: string | null; email: string }>;
   courseTemplates: CourseTemplate[];
   trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function TrainingForm({ tenantId, users, courseTemplates, trigger }: TrainingFormProps) {
+export function TrainingForm({ tenantId, users, courseTemplates, trigger, open: controlledOpen, onOpenChange }: TrainingFormProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
   const [loading, setLoading] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -94,14 +98,16 @@ export function TrainingForm({ tenantId, users, courseTemplates, trigger }: Trai
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Registrer opplæring
-          </Button>
-        )}
-      </DialogTrigger>
+      {controlledOpen === undefined && (
+        <DialogTrigger asChild>
+          {trigger || (
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Registrer opplæring
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Registrer opplæring</DialogTitle>

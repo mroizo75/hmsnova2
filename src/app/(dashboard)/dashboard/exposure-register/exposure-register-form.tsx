@@ -22,7 +22,35 @@ import { createExposureRegister, updateExposureRegister } from "@/server/actions
 import type { CreateExposureRegisterInput } from "@/server/actions/exposure-register.actions";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
-import { Search, X } from "lucide-react";
+import { Search, X, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+
+/**
+ * Validerer norsk fødselsnummer (11 siffer) ved hjelp av kontrollsiffer-algoritmen.
+ * Returnerer "valid" | "invalid" | "incomplete".
+ */
+function validateFodselsnummer(value: string): "valid" | "invalid" | "incomplete" {
+  const digits = value.replace(/\s/g, "");
+  if (digits.length < 11) return "incomplete";
+  if (!/^\d{11}$/.test(digits)) return "invalid";
+
+  const d = digits.split("").map(Number);
+  const w1 = [3, 7, 6, 1, 8, 9, 4, 5, 2];
+  const w2 = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+
+  const s1 = w1.reduce((acc, w, i) => acc + w * d[i], 0);
+  const k1 = 11 - (s1 % 11);
+  if (k1 === 10) return "invalid";
+  const k1Final = k1 === 11 ? 0 : k1;
+  if (k1Final !== d[9]) return "invalid";
+
+  const s2 = w2.reduce((acc, w, i) => acc + w * d[i], 0);
+  const k2 = 11 - (s2 % 11);
+  if (k2 === 10) return "invalid";
+  const k2Final = k2 === 11 ? 0 : k2;
+  if (k2Final !== d[10]) return "invalid";
+
+  return "valid";
+}
 
 const EXPOSURE_TYPE_OPTIONS: { value: ExposureType; label: string }[] = [
   { value: "INHALATION", label: "Innånding" },
@@ -39,6 +67,7 @@ type Employee = {
   name: string | null;
   email: string;
   department: string | null;
+  employeeNumber: string | null;
 };
 
 type Chemical = {
@@ -114,6 +143,13 @@ export function ExposureRegisterForm({ employees, chemicals, ruhReports = [], ri
   const [employeeId, setEmployeeId] = useState(existing?.employeeId ?? "");
   const [employeeName, setEmployeeName] = useState(existing?.employeeName ?? "");
   const [employeeBirthNumber, setEmployeeBirthNumber] = useState(existing?.employeeBirthNumber ?? "");
+  const [birthNumberConfirm, setBirthNumberConfirm] = useState(existing?.employeeBirthNumber ?? "");
+  const [internalEmployeeNumber, setInternalEmployeeNumber] = useState(() => {
+    if (existing?.employeeId) {
+      return employees.find((e) => e.id === existing.employeeId)?.employeeNumber ?? "";
+    }
+    return "";
+  });
   const [department, setDepartment] = useState(existing?.department ?? "");
   const [jobTitle, setJobTitle] = useState(existing?.jobTitle ?? "");
   const [workLocation, setWorkLocation] = useState(existing?.workLocation ?? "");
@@ -167,6 +203,9 @@ export function ExposureRegisterForm({ employees, chemicals, ruhReports = [], ri
     if (emp) {
       setEmployeeName(emp.name || emp.email);
       if (emp.department) setDepartment(emp.department);
+      setInternalEmployeeNumber(emp.employeeNumber ?? "");
+    } else {
+      setInternalEmployeeNumber("");
     }
   }
 
@@ -186,6 +225,8 @@ export function ExposureRegisterForm({ employees, chemicals, ruhReports = [], ri
 
     if (!employeeName.trim()) return setError("Navn på ansatt er påkrevd");
     if (!employeeBirthNumber.trim()) return setError("Fødselsnummer er påkrevd");
+    if (validateFodselsnummer(employeeBirthNumber) === "invalid") return setError("Ugyldig fødselsnummer – kontrollsifrene stemmer ikke");
+    if (employeeBirthNumber.trim() !== birthNumberConfirm.trim()) return setError("Fødselsnumrene stemmer ikke overens");
     if (!jobTitle.trim()) return setError("Stilling er påkrevd");
     if (!workLocation.trim()) return setError("Arbeidssted er påkrevd");
     if (!exposureAgent.trim()) return setError("Eksponeringsfaktor er påkrevd");
@@ -278,15 +319,105 @@ export function ExposureRegisterForm({ employees, chemicals, ruhReports = [], ri
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="employeeBirthNumber">Fødselsnummer *</Label>
+              <Label htmlFor="internalEmployeeNumber">Ansatt-ID (internt nr.)</Label>
               <Input
-                id="employeeBirthNumber"
-                value={employeeBirthNumber}
-                onChange={(e) => setEmployeeBirthNumber(e.target.value)}
-                placeholder="12345678901"
-                maxLength={11}
-                required
+                id="internalEmployeeNumber"
+                value={internalEmployeeNumber}
+                onChange={(e) => setInternalEmployeeNumber(e.target.value)}
+                placeholder="f.eks. A-0042"
+                className="font-mono"
               />
+              {employeeId && !internalEmployeeNumber && (
+                <p className="text-xs text-amber-600">
+                  Ingen ansattnummer registrert på denne ansatte – kan settes under Innstillinger → Brukere.
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="employeeBirthNumber">Fødselsnummer *</Label>
+              {(() => {
+                const status = validateFodselsnummer(employeeBirthNumber);
+                return (
+                  <>
+                    <div className="relative">
+                      <Input
+                        id="employeeBirthNumber"
+                        value={employeeBirthNumber}
+                        onChange={(e) => setEmployeeBirthNumber(e.target.value.replace(/\D/g, ""))}
+                        placeholder="11 siffer"
+                        maxLength={11}
+                        inputMode="numeric"
+                        className={`pr-9 font-mono ${
+                          status === "valid" ? "border-green-500 focus-visible:ring-green-500" :
+                          status === "invalid" ? "border-red-400 focus-visible:ring-red-400" : ""
+                        }`}
+                        required
+                      />
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+                        {status === "valid" && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+                        {status === "invalid" && <XCircle className="h-4 w-4 text-red-400" />}
+                        {status === "incomplete" && employeeBirthNumber.length > 0 && (
+                          <AlertCircle className="h-4 w-4 text-amber-400" />
+                        )}
+                      </span>
+                    </div>
+                    {status === "valid" && (
+                      <p className="text-xs text-green-600 flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3" /> Gyldig fødselsnummer
+                      </p>
+                    )}
+                    {status === "invalid" && employeeBirthNumber.length === 11 && (
+                      <p className="text-xs text-red-500 flex items-center gap-1">
+                        <XCircle className="h-3 w-3" /> Ugyldig – kontrollsifrene stemmer ikke
+                      </p>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="birthNumberConfirm">
+                Bekreft fødselsnummer *
+              </Label>
+              {(() => {
+                const matches = birthNumberConfirm.length > 0 && birthNumberConfirm === employeeBirthNumber;
+                const mismatch = birthNumberConfirm.length === employeeBirthNumber.length && birthNumberConfirm !== employeeBirthNumber;
+                return (
+                  <>
+                    <div className="relative">
+                      <Input
+                        id="birthNumberConfirm"
+                        value={birthNumberConfirm}
+                        onChange={(e) => setBirthNumberConfirm(e.target.value.replace(/\D/g, ""))}
+                        placeholder="Skriv inn igjen"
+                        maxLength={11}
+                        inputMode="numeric"
+                        onPaste={(e) => e.preventDefault()}
+                        className={`pr-9 font-mono ${
+                          matches ? "border-green-500 focus-visible:ring-green-500" :
+                          mismatch ? "border-red-400 focus-visible:ring-red-400" : ""
+                        }`}
+                      />
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+                        {matches && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+                        {mismatch && <XCircle className="h-4 w-4 text-red-400" />}
+                      </span>
+                    </div>
+                    {matches && (
+                      <p className="text-xs text-green-600 flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3" /> Fødselsnumrene stemmer overens
+                      </p>
+                    )}
+                    {mismatch && (
+                      <p className="text-xs text-red-500 flex items-center gap-1">
+                        <XCircle className="h-3 w-3" /> Stemmer ikke – sjekk igjen
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground">Lim inn er deaktivert – tast inn manuelt for å bekrefte</p>
+                  </>
+                );
+              })()}
             </div>
             <div className="space-y-2">
               <Label htmlFor="department">Avdeling</Label>

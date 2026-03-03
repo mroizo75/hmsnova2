@@ -370,6 +370,7 @@ export async function getEmployeesForTenant(tenantId: string) {
         email: ut.user.email,
         department: ut.department,
         role: ut.role,
+        employeeNumber: ut.employeeNumber ?? null,
       })),
     };
   } catch (error: any) {

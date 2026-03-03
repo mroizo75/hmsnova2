@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Calendar, User, CheckCircle2, FileText } from "lucide-react";
+import { ArrowLeft, Download, Calendar, User, CheckCircle2, FileText, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
@@ -158,6 +158,17 @@ export default async function SubmissionViewPage({
     submission.fieldValues.map((fv) => [fv.fieldId, fv])
   );
 
+  // Hent feltmerknader fra metadata
+  const fieldComments: Record<string, string> = (() => {
+    if (!submission.metadata) return {};
+    try {
+      const meta = JSON.parse(submission.metadata);
+      return meta.fieldComments ?? {};
+    } catch {
+      return {};
+    }
+  })();
+
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       {/* Header */}
@@ -261,6 +272,19 @@ export default async function SubmissionViewPage({
                     fieldValue?.fileKey ?? null
                   )}
                 </div>
+
+                {/* Merknad fra vernerunde */}
+                {fieldComments[field.id] && (
+                  <div className="mt-3 pt-3 border-t border-dashed border-muted-foreground/20">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1.5 mb-1">
+                      <MessageSquare className="h-3 w-3" />
+                      Merknad
+                    </p>
+                    <p className="text-sm text-foreground/80 italic whitespace-pre-wrap">
+                      {fieldComments[field.id]}
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           );

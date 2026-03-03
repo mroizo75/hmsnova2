@@ -196,6 +196,17 @@ export async function GET(
     doc.line(margin, yPos, pageWidth - margin, yPos);
     yPos += 12;
 
+    // Hent feltmerknader fra metadata
+    const fieldComments: Record<string, string> = (() => {
+      if (!submission.metadata) return {};
+      try {
+        const meta = JSON.parse(submission.metadata);
+        return meta.fieldComments ?? {};
+      } catch {
+        return {};
+      }
+    })();
+
     // ── Feltene ───────────────────────────────────────────
     doc.setTextColor(0, 0, 0);
 
@@ -302,7 +313,33 @@ export async function GET(
         doc.setTextColor(0, 0, 0);
       }
 
-      yPos += 10;
+      yPos += 6;
+
+      // Merknad for dette feltet (hvis finnes)
+      const comment = fieldComments[field.id];
+      if (comment) {
+        const commentLines = doc.splitTextToSize(comment, contentWidth - 10);
+        checkPageBreak(commentLines.length * 5 + 12);
+
+        doc.setFillColor(245, 245, 245);
+        doc.rect(margin, yPos, contentWidth, commentLines.length * 5 + 8, "F");
+        doc.setDrawColor(180, 180, 180);
+        doc.setLineWidth(0.3);
+        doc.line(margin + 3, yPos, margin + 3, yPos + commentLines.length * 5 + 8);
+
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(120, 120, 120);
+        doc.text("Merknad:", margin + 8, yPos + 4);
+
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(9);
+        doc.setTextColor(60, 60, 60);
+        doc.text(commentLines, margin + 8, yPos + 9);
+        yPos += commentLines.length * 5 + 12;
+      }
+
+      yPos += 4;
     }
 
     // ── Signatur ──────────────────────────────────────────

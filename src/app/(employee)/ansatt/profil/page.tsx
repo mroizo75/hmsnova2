@@ -34,6 +34,13 @@ export default async function AnsattProfil() {
           include: {
             tenant: { select: { name: true } },
           },
+          select: {
+            id: true,
+            role: true,
+            department: true,
+            employeeNumber: true,
+            tenant: { select: { name: true } },
+          },
         },
       },
     }),
@@ -96,11 +103,16 @@ export default async function AnsattProfil() {
           <div className="space-y-3">
             {user.tenants.map((ut) => (
               <div key={ut.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
+                <div className="space-y-0.5">
                   <p className="font-medium">{ut.tenant.name}</p>
                   <p className="text-sm text-muted-foreground">Rolle: {ut.role}</p>
                   {ut.department && (
                     <p className="text-xs text-muted-foreground">Avdeling: {ut.department}</p>
+                  )}
+                  {ut.employeeNumber && (
+                    <p className="text-xs text-muted-foreground">
+                      Ansattnr.: <span className="font-mono font-medium text-foreground">{ut.employeeNumber}</span>
+                    </p>
                   )}
                 </div>
               </div>

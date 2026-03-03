@@ -55,6 +55,7 @@ export default async function NewExposureRegisterPage({
     name: ut.user.name,
     email: ut.user.email,
     department: ut.department,
+    employeeNumber: ut.employeeNumber ?? null,
   }));
 
   return (
