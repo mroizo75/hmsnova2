@@ -8,13 +8,16 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { IncidentType } from "@prisma/client";
 
-type PageSearchParams = Promise<{ type?: IncidentType }> | { type?: IncidentType } | undefined;
+type PageSearchParams =
+  | Promise<{ type?: IncidentType; projectId?: string }>
+  | { type?: IncidentType; projectId?: string }
+  | undefined;
 
 export default async function NewIncidentPage({ searchParams }: { searchParams?: PageSearchParams }) {
   const resolvedSearchParams =
     typeof searchParams === "object" && searchParams !== null && "then" in searchParams
       ? await searchParams
-      : (searchParams as { type?: IncidentType } | undefined);
+      : (searchParams as { type?: IncidentType; projectId?: string } | undefined);
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.email) {
@@ -32,7 +35,7 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
 
   const tenantId = user.tenants[0].tenantId;
 
-  const [risks, users] = await Promise.all([
+  const [risks, users, projects] = await Promise.all([
     prisma.risk.findMany({
       where: { tenantId },
       select: { id: true, title: true, category: true, score: true },
@@ -43,6 +46,11 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
       where: { tenantId },
       include: { user: { select: { id: true, name: true, email: true } } },
       orderBy: { user: { name: "asc" } },
+    }),
+    prisma.project.findMany({
+      where: { tenantId, status: { in: ["PLANNING", "ACTIVE"] } },
+      select: { id: true, name: true, code: true, status: true },
+      orderBy: { name: "asc" },
     }),
   ]);
 
@@ -70,7 +78,9 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
         userId={user.id}
         risks={risks}
         users={userList}
+        projects={projects}
         defaultType={resolvedSearchParams?.type}
+        defaultProjectId={resolvedSearchParams?.projectId}
       />
     </div>
   );

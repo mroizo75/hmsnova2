@@ -1760,6 +1760,156 @@ async function main() {
   console.log("   https://hmsnova.com/varsling/test-bedrift");
   console.log("   Tilgangskode for sporing: ABC123DEF456GHIJ");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
+  await seedIncidentSubcategories();
+}
+
+async function seedIncidentSubcategories() {
+  console.log("🌱 Seeder underkategorier for avvik/hendelser...");
+
+  // Systemstandard underkategorier (tenantId = null → synlig for alle)
+  // Basert på AML § 5-2, IK-HMS § 5, ISO 9001, kundens egne skjemaer
+  const categories: Array<{
+    incidentType: string;
+    industry: string;
+    key: string;
+    label: string;
+    sortOrder: number;
+  }> = [
+    // ── ULYKKE / RUH ────────────────────────────────────────────────
+    { incidentType: "ULYKKE", industry: "GENERELL", key: "PERSONSKADE", label: "Personskade", sortOrder: 1 },
+    { incidentType: "ULYKKE", industry: "GENERELL", key: "MATERIELL_SKADE", label: "Materiell skade", sortOrder: 2 },
+    { incidentType: "ULYKKE", industry: "GENERELL", key: "STROMGJENNOMGANG", label: "Strømgjennomgang", sortOrder: 3 },
+    { incidentType: "ULYKKE", industry: "GENERELL", key: "FALL_SAMEPLAN", label: "Fall i same plan", sortOrder: 4 },
+    { incidentType: "ULYKKE", industry: "GENERELL", key: "FALL_HOYDE", label: "Fall fra høyde", sortOrder: 5 },
+    { incidentType: "ULYKKE", industry: "GENERELL", key: "KLEM_KNUS", label: "Klem / knusing", sortOrder: 6 },
+    { incidentType: "ULYKKE", industry: "GENERELL", key: "KUTT_STIKK", label: "Kutt / stikk", sortOrder: 7 },
+    { incidentType: "ULYKKE", industry: "GENERELL", key: "KJEMISK_EKSPONERING", label: "Kjemisk eksponering", sortOrder: 8 },
+    { incidentType: "ULYKKE", industry: "GENERELL", key: "MILJOPAVIRKNING", label: "Miljøpåvirkning", sortOrder: 9 },
+    { incidentType: "ULYKKE", industry: "GENERELL", key: "BRANN_EKSPLOSJON", label: "Brann / eksplosjon", sortOrder: 10 },
+    { incidentType: "ULYKKE", industry: "GENERELL", key: "BRUDD_RUTINER", label: "Brudd på rutiner / lovverk", sortOrder: 11 },
+    { incidentType: "ULYKKE", industry: "GENERELL", key: "FEIL_UTSTYR", label: "Feil / mangel ved utstyr", sortOrder: 12 },
+    { incidentType: "ULYKKE", industry: "GENERELL", key: "MANGLENDE_VEDLIKEHOLD", label: "Manglende vedlikehold", sortOrder: 13 },
+    { incidentType: "ULYKKE", industry: "GENERELL", key: "MANGLENDE_OPPLAERING", label: "Manglende opplæring", sortOrder: 14 },
+    { incidentType: "ULYKKE", industry: "GENERELL", key: "ORDEN_RENHOLD", label: "Orden / renhold", sortOrder: 15 },
+    { incidentType: "ULYKKE", industry: "GENERELL", key: "TRUSLER_VOLD", label: "Trusler / vold", sortOrder: 16 },
+
+    // BYGG
+    { incidentType: "ULYKKE", industry: "BYGG", key: "GRAVEULYKKE", label: "Graveulykke / ras", sortOrder: 17 },
+    { incidentType: "ULYKKE", industry: "BYGG", key: "KRAN_LOFT", label: "Kran / løfteoperasjon", sortOrder: 18 },
+    { incidentType: "ULYKKE", industry: "BYGG", key: "STILLASVELT", label: "Stillasulykke", sortOrder: 19 },
+
+    // ATEX
+    { incidentType: "ULYKKE", industry: "ATEX", key: "EX_GASS_UTSLIPP", label: "Gassutslipp i Ex-sone", sortOrder: 20 },
+    { incidentType: "ULYKKE", industry: "ATEX", key: "EX_TENNKILDE", label: "Utilsiktet tennkilde", sortOrder: 21 },
+
+    // HELSE
+    { incidentType: "ULYKKE", industry: "HELSE", key: "PASIENTFALL", label: "Pasientfall", sortOrder: 22 },
+    { incidentType: "ULYKKE", industry: "HELSE", key: "FEILMEDISINERING", label: "Feilmedisinering", sortOrder: 23 },
+    { incidentType: "ULYKKE", industry: "HELSE", key: "NAALESTIKK", label: "Nålestikk / stikkskade", sortOrder: 24 },
+    { incidentType: "ULYKKE", industry: "HELSE", key: "VOLD_PASIENT", label: "Vold fra pasient", sortOrder: 25 },
+
+    // OFFSHORE
+    { incidentType: "ULYKKE", industry: "OFFSHORE", key: "MOB", label: "Mann over bord (MOB)", sortOrder: 26 },
+    { incidentType: "ULYKKE", industry: "OFFSHORE", key: "H2S", label: "H2S-eksponering", sortOrder: 27 },
+    { incidentType: "ULYKKE", industry: "OFFSHORE", key: "BRONNKONTROLL", label: "Brønnkontroll-hendelse", sortOrder: 28 },
+
+    // ── NESTEN / RUH ────────────────────────────────────────────────
+    { incidentType: "NESTEN", industry: "GENERELL", key: "POTENSIELL_PERSONSKADE", label: "Potensiell fare for personskade", sortOrder: 1 },
+    { incidentType: "NESTEN", industry: "GENERELL", key: "NESTEN_FALL", label: "Nesten-fall", sortOrder: 2 },
+    { incidentType: "NESTEN", industry: "GENERELL", key: "NESTEN_KLEM", label: "Nesten-klem / knusing", sortOrder: 3 },
+    { incidentType: "NESTEN", industry: "GENERELL", key: "NESTEN_STROM", label: "Nesten-strømgjennomgang", sortOrder: 4 },
+    { incidentType: "NESTEN", industry: "GENERELL", key: "NESTEN_KJEMIKALIE", label: "Nesten-kjemikalieeksponering", sortOrder: 5 },
+    { incidentType: "NESTEN", industry: "GENERELL", key: "FEIL_UTSTYR_NESTEN", label: "Feil / mangel ved utstyr", sortOrder: 6 },
+    { incidentType: "NESTEN", industry: "GENERELL", key: "ORDEN_RENHOLD_NESTEN", label: "Orden / renholdsproblem", sortOrder: 7 },
+    { incidentType: "NESTEN", industry: "GENERELL", key: "BRUDD_RUTINER_NESTEN", label: "Brudd på rutiner / lovverk", sortOrder: 8 },
+    { incidentType: "NESTEN", industry: "GENERELL", key: "MILJORISIKO", label: "Miljørisiko / nesten-utslipp", sortOrder: 9 },
+
+    // ── FARLIG SITUASJON ────────────────────────────────────────────
+    { incidentType: "FARLIG_SITUASJON", industry: "GENERELL", key: "FARLIG_TILSTAND", label: "Farlig tilstand / område", sortOrder: 1 },
+    { incidentType: "FARLIG_SITUASJON", industry: "GENERELL", key: "MANGELFULL_SIKRING", label: "Mangelfull sikring / vern", sortOrder: 2 },
+    { incidentType: "FARLIG_SITUASJON", industry: "GENERELL", key: "FEIL_UTSTYR_FARLIG", label: "Feil / defekt utstyr", sortOrder: 3 },
+    { incidentType: "FARLIG_SITUASJON", industry: "GENERELL", key: "KJEMISK_FARE", label: "Kjemisk fare oppdaget", sortOrder: 4 },
+    { incidentType: "FARLIG_SITUASJON", industry: "GENERELL", key: "BRANN_FARE", label: "Brann- / eksplosjonsfare", sortOrder: 5 },
+    { incidentType: "FARLIG_SITUASJON", industry: "GENERELL", key: "ERGONOMISK_FARE", label: "Ergonomisk fare", sortOrder: 6 },
+    { incidentType: "FARLIG_SITUASJON", industry: "GENERELL", key: "PSYKOSOSIAL_BELASTNING", label: "Psykososial belastning", sortOrder: 7 },
+
+    // ── AVVIK ───────────────────────────────────────────────────────
+    { incidentType: "AVVIK", industry: "GENERELL", key: "INTERN_AVVIK", label: "Internt avvik", sortOrder: 1 },
+    { incidentType: "AVVIK", industry: "GENERELL", key: "REKLAMASJON", label: "Reklamasjon", sortOrder: 2 },
+    { incidentType: "AVVIK", industry: "GENERELL", key: "GARANTI", label: "Garantisak", sortOrder: 3 },
+    { incidentType: "AVVIK", industry: "GENERELL", key: "VAREMOTTAK", label: "Varemottak / leverandøravvik", sortOrder: 4 },
+    { incidentType: "AVVIK", industry: "GENERELL", key: "SKADE_KUNDENS_EIENDELER", label: "Skade på kundens eiendeler", sortOrder: 5 },
+    { incidentType: "AVVIK", industry: "GENERELL", key: "PROSEDYRE_BRUDD", label: "Brudd på prosedyre / rutine", sortOrder: 6 },
+    { incidentType: "AVVIK", industry: "GENERELL", key: "LOVBRUDD", label: "Brudd på lov / forskrift", sortOrder: 7 },
+    { incidentType: "AVVIK", industry: "GENERELL", key: "DOKUMENTASJON", label: "Manglende / feil dokumentasjon", sortOrder: 8 },
+
+    // ATEX-avvik
+    { incidentType: "AVVIK", industry: "ATEX", key: "EX_ENHETSSERTIFISERING", label: "Ex-produkt enhetssertifisering", sortOrder: 9 },
+    { incidentType: "AVVIK", industry: "ATEX", key: "EX_TYPESERTIFISERING", label: "Ex-produkt typesertifisering", sortOrder: 10 },
+    { incidentType: "AVVIK", industry: "ATEX", key: "TILBAKEKALLING_IKKE_EX", label: "Tilbakekalling – ikke Ex-produkt", sortOrder: 11 },
+    { incidentType: "AVVIK", industry: "ATEX", key: "TILBAKEKALLING_EX_ENHET", label: "Tilbakekalling Ex-enhetssertifisering", sortOrder: 12 },
+    { incidentType: "AVVIK", industry: "ATEX", key: "TILBAKEKALLING_EX_TYPE", label: "Tilbakekalling Ex-typesertifisering", sortOrder: 13 },
+    { incidentType: "AVVIK", industry: "ATEX", key: "SERTIFISERINGSORGAN_VARSLET", label: "Eksternt sertifiseringsorgan varslet", sortOrder: 14 },
+
+    // ── YRKESSYKDOM ─────────────────────────────────────────────────
+    { incidentType: "YRKESSYKDOM", industry: "GENERELL", key: "MUSKEL_SKJELETT", label: "Muskel- og skjelettlidelse", sortOrder: 1 },
+    { incidentType: "YRKESSYKDOM", industry: "GENERELL", key: "HORSELSKADE", label: "Hørselskade", sortOrder: 2 },
+    { incidentType: "YRKESSYKDOM", industry: "GENERELL", key: "LUNGESKADE", label: "Lungeskade / luftveissykdom", sortOrder: 3 },
+    { incidentType: "YRKESSYKDOM", industry: "GENERELL", key: "HUDSKADE", label: "Hudlidelse / allergi", sortOrder: 4 },
+    { incidentType: "YRKESSYKDOM", industry: "GENERELL", key: "KJEMISK_SYKDOM", label: "Kjemisk betinget sykdom", sortOrder: 5 },
+    { incidentType: "YRKESSYKDOM", industry: "GENERELL", key: "PSYKISK_BELASTNING", label: "Psykisk belastningslidelse", sortOrder: 6 },
+    { incidentType: "YRKESSYKDOM", industry: "GENERELL", key: "VIBRASJONSSKADE", label: "Vibrasjonsskade", sortOrder: 7 },
+    { incidentType: "YRKESSYKDOM", industry: "GENERELL", key: "SMITTE", label: "Smittsom sykdom / infeksjon", sortOrder: 8 },
+
+    // ── MILJØAVVIK ───────────────────────────────────────────────────
+    { incidentType: "MILJO", industry: "GENERELL", key: "UTSLIPP_VANN", label: "Utslipp til vann / avløp", sortOrder: 1 },
+    { incidentType: "MILJO", industry: "GENERELL", key: "UTSLIPP_LUFT", label: "Utslipp til luft", sortOrder: 2 },
+    { incidentType: "MILJO", industry: "GENERELL", key: "FARLIG_AVFALL", label: "Feil håndtering av farlig avfall", sortOrder: 3 },
+    { incidentType: "MILJO", industry: "GENERELL", key: "SORUTSLIPP", label: "Søl / lekkasje av kjemikalier", sortOrder: 4 },
+    { incidentType: "MILJO", industry: "GENERELL", key: "ENERGIOVERFORBRUK", label: "Uønsket energiforbruk", sortOrder: 5 },
+
+    // ── KVALITETSAVVIK ───────────────────────────────────────────────
+    { incidentType: "KVALITET", industry: "GENERELL", key: "PRODUKT_FEIL", label: "Produktfeil / defekt", sortOrder: 1 },
+    { incidentType: "KVALITET", industry: "GENERELL", key: "TJENESTE_FEIL", label: "Tjenestefeil / mangel", sortOrder: 2 },
+    { incidentType: "KVALITET", industry: "GENERELL", key: "LEVERANDOR_FEIL", label: "Leverandørfeil", sortOrder: 3 },
+    { incidentType: "KVALITET", industry: "GENERELL", key: "PROSESS_FEIL", label: "Prosess- / fremstillingsfeil", sortOrder: 4 },
+    { incidentType: "KVALITET", industry: "GENERELL", key: "KALIBRERING", label: "Kalibreringsavvik (måleutstyr)", sortOrder: 5 },
+  ];
+
+  let created = 0;
+  let skipped = 0;
+
+  for (const cat of categories) {
+    const existing = await prisma.incidentSubcategoryOption.findFirst({
+      where: {
+        tenantId: null,
+        incidentType: cat.incidentType as any,
+        key: cat.key,
+      },
+    });
+
+    if (!existing) {
+      await prisma.incidentSubcategoryOption.create({
+        data: {
+          tenantId: null,
+          incidentType: cat.incidentType as any,
+          industry: cat.industry,
+          key: cat.key,
+          label: cat.label,
+          sortOrder: cat.sortOrder,
+          isActive: true,
+        },
+      });
+      created++;
+    } else {
+      skipped++;
+    }
+  }
+
+  console.log(
+    `✅ Underkategorier: ${created} opprettet, ${skipped} eksisterte allerede`
+  );
 }
 
 main()

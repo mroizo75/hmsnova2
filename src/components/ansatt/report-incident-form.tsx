@@ -17,18 +17,23 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Camera, X } from "lucide-react";
 import Image from "next/image";
 
+const NO_PROJECT = "__none__";
+
 export function ReportIncidentForm({
   tenantId,
   reportedBy,
+  projects = [],
   successRedirectPath = "/ansatt/avvik/takk",
 }: {
   tenantId: string;
   reportedBy: string;
+  projects?: Array<{ id: string; name: string; code: string | null }>;
   successRedirectPath?: string;
 }) {
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(NO_PROJECT);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
@@ -66,6 +71,9 @@ export function ReportIncidentForm({
     formData.append("tenantId", tenantId);
     formData.append("reportedBy", reportedBy);
     formData.append("date", new Date().toISOString());
+    if (selectedProjectId !== NO_PROJECT) {
+      formData.append("projectId", selectedProjectId);
+    }
 
     try {
       const response = await fetch("/api/incidents/report", {
@@ -96,6 +104,33 @@ export function ReportIncidentForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Prosjektvelger (kun om det finnes aktive prosjekter) */}
+      {projects.length > 0 && (
+        <div className="space-y-2">
+          <Label className="text-base">Prosjekt / jobb</Label>
+          <Select
+            value={selectedProjectId}
+            onValueChange={setSelectedProjectId}
+            disabled={isSubmitting}
+          >
+            <SelectTrigger className="h-12 text-base">
+              <SelectValue placeholder="Velg prosjekt (valgfritt)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NO_PROJECT}>— Ikke prosjektrelatert —</SelectItem>
+              {projects.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.name}{p.code ? ` (${p.code})` : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Er avviket knyttet til et bestemt prosjekt eller oppdrag?
+          </p>
+        </div>
+      )}
+
       {/* Type */}
       <div className="space-y-2">
         <Label htmlFor="type" className="text-base">

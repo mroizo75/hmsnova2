@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import { ReportIncidentForm } from "@/components/ansatt/report-incident-form";
+import { prisma } from "@/lib/db";
 
 export default async function NyttAvvik() {
   const session = await getServerSession(authOptions);
@@ -11,6 +12,12 @@ export default async function NyttAvvik() {
   if (!session?.user?.tenantId) {
     redirect("/login");
   }
+
+  const projects = await prisma.project.findMany({
+    where: { tenantId: session.user.tenantId, status: { in: ["PLANNING", "ACTIVE"] } },
+    select: { id: true, name: true, code: true },
+    orderBy: { name: "asc" },
+  });
 
   return (
     <div className="space-y-6">
@@ -44,6 +51,7 @@ export default async function NyttAvvik() {
           <ReportIncidentForm 
             tenantId={session.user.tenantId}
             reportedBy={session.user.name || session.user.email || "Ansatt"}
+            projects={projects}
           />
         </CardContent>
       </Card>

@@ -162,9 +162,14 @@ export async function createIncident(input: any) {
       tenantId,
       occurredAt: new Date(input.occurredAt),
       lostTimeMinutes: parseOptionalNumber(input.lostTimeMinutes),
+      lostWorkdays: parseOptionalNumber(input.lostWorkdays),
       medicalAttentionRequired: parseBoolean(input.medicalAttentionRequired),
-    responseDeadline: parseOptionalDate(input.responseDeadline),
-    customerSatisfaction: parseOptionalNumber(input.customerSatisfaction),
+      isFatal: parseBoolean(input.isFatal) ?? false,
+      isLostTimeIncident: parseBoolean(input.isLostTimeIncident) ?? false,
+      isRestrictedWork: parseBoolean(input.isRestrictedWork) ?? false,
+      responseDeadline: parseOptionalDate(input.responseDeadline),
+      customerSatisfaction: parseOptionalNumber(input.customerSatisfaction),
+      subcategoryKeys: Array.isArray(input.subcategoryKeys) ? input.subcategoryKeys : [],
     };
     const validated = createIncidentSchema.parse(normalizedInput);
 
@@ -198,6 +203,21 @@ export async function createIncident(input: any) {
         customerTicketId: sanitizeString(validated.customerTicketId),
         responseDeadline: validated.responseDeadline ?? null,
         customerSatisfaction: validated.customerSatisfaction ?? null,
+        // Prosjektkobling
+        projectId: validated.projectId ?? null,
+        // Underkategorier
+        subcategoryKeys: validated.subcategoryKeys?.length
+          ? JSON.stringify(validated.subcategoryKeys)
+          : null,
+        // RUH-felt (AML § 5-2)
+        involvedPersons: sanitizeString(validated.involvedPersons),
+        injuryDescription: sanitizeString(validated.injuryDescription),
+        suggestedActions: sanitizeString(validated.suggestedActions),
+        // HSE-statistikk (TRIR)
+        isFatal: validated.isFatal ?? false,
+        isLostTimeIncident: validated.isLostTimeIncident ?? false,
+        lostWorkdays: validated.lostWorkdays,
+        isRestrictedWork: validated.isRestrictedWork ?? false,
         stage: IncidentStage.REPORTED,
       },
     });
@@ -241,9 +261,14 @@ export async function updateIncident(input: any) {
       ...input,
       occurredAt: input.occurredAt ? new Date(input.occurredAt) : undefined,
       lostTimeMinutes: parseOptionalNumber(input.lostTimeMinutes),
+      lostWorkdays: parseOptionalNumber(input.lostWorkdays),
       medicalAttentionRequired: parseBoolean(input.medicalAttentionRequired),
-    responseDeadline: parseOptionalDate(input.responseDeadline),
-    customerSatisfaction: parseOptionalNumber(input.customerSatisfaction),
+      isFatal: parseBoolean(input.isFatal),
+      isLostTimeIncident: parseBoolean(input.isLostTimeIncident),
+      isRestrictedWork: parseBoolean(input.isRestrictedWork),
+      responseDeadline: parseOptionalDate(input.responseDeadline),
+      customerSatisfaction: parseOptionalNumber(input.customerSatisfaction),
+      subcategoryKeys: Array.isArray(input.subcategoryKeys) ? input.subcategoryKeys : undefined,
     };
     const validated = updateIncidentSchema.parse(normalizedInput);
     
@@ -280,6 +305,19 @@ export async function updateIncident(input: any) {
     if (validated.customerTicketId !== undefined) updateData.customerTicketId = sanitizeString(validated.customerTicketId);
     if (validated.responseDeadline !== undefined) updateData.responseDeadline = validated.responseDeadline ?? null;
     if (validated.customerSatisfaction !== undefined) updateData.customerSatisfaction = validated.customerSatisfaction ?? null;
+    if (validated.projectId !== undefined) updateData.projectId = validated.projectId ?? null;
+    if (validated.subcategoryKeys !== undefined) {
+      updateData.subcategoryKeys = validated.subcategoryKeys.length
+        ? JSON.stringify(validated.subcategoryKeys)
+        : null;
+    }
+    if (validated.involvedPersons !== undefined) updateData.involvedPersons = sanitizeString(validated.involvedPersons);
+    if (validated.injuryDescription !== undefined) updateData.injuryDescription = sanitizeString(validated.injuryDescription);
+    if (validated.suggestedActions !== undefined) updateData.suggestedActions = sanitizeString(validated.suggestedActions);
+    if (validated.isFatal !== undefined) updateData.isFatal = validated.isFatal;
+    if (validated.isLostTimeIncident !== undefined) updateData.isLostTimeIncident = validated.isLostTimeIncident;
+    if (validated.lostWorkdays !== undefined) updateData.lostWorkdays = validated.lostWorkdays;
+    if (validated.isRestrictedWork !== undefined) updateData.isRestrictedWork = validated.isRestrictedWork;
 
     let stageToPersist = validated.stage;
     if (!stageToPersist && validated.status) {

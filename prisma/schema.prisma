@@ -106,7 +106,8 @@ model User {
   scheduledReminders  ScheduledReminder[]  @relation("UserReminders")
   hmsAnnualPlanCompletions HmsAnnualPlanCompletion[]
   formSubmissions        FormSubmission[]
-  createdProjects        Project[]
+  projectsCreated        Project[]    @relation("ProjectCreatedBy")
+  projectsManaged        Project[]    @relation("ProjectManager")
   timeEntries            TimeEntry[]
   editedTimeEntries      TimeEntry[]      @relation("TimeEntryEditedBy")
   mileageEntries         MileageEntry[]
@@ -264,6 +265,7 @@ model Tenant {
   mileageEntries           MileageEntry[]
   sequences                TenantSequence[]
   ruhReports               RuhReport[]
+  incidentSubcategoryOptions IncidentSubcategoryOption[]
   sjaAnalyses              SjaAnalysis[]
   sjaTemplates             SjaTemplate[]
   exposureRegisters        ExposureRegister[]
@@ -1305,6 +1307,7 @@ model Measure {
   costEstimate      Int?
   benefitEstimate   Int?
   category          MeasureCategory @default(CORRECTIVE)
+  projectId         String?
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
@@ -1316,6 +1319,7 @@ model Measure {
   responsible User      @relation("MeasureResponsible", fields: [responsibleId], references: [id], onDelete: Cascade)
   environmentalAspect EnvironmentalAspect? @relation(fields: [environmentalAspectId], references: [id], onDelete: SetNull)
   inspectionFindings InspectionFinding[] @relation("InspectionFindingMeasure")
+  project     Project?  @relation("ProjectMeasures", fields: [projectId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([status])
@@ -1325,6 +1329,7 @@ model Measure {
   @@index([auditId])
   @@index([goalId])
   @@index([environmentalAspectId])
+  @@index([projectId])
 }
 
 enum ActionStatus {
@@ -1485,6 +1490,19 @@ model Incident {
   lostTimeMinutes     Int?
   riskReferenceId     String?
   measureEffectiveness ActionEffectiveness? @default(NOT_EVALUATED)
+  // RUH-felt (AML § 5-2: uønskede hendelser)
+  involvedPersons     String?      @db.Text
+  injuryDescription   String?      @db.Text
+  suggestedActions    String?      @db.Text
+  // HSE-statistikk (TRIR – Total Recordable Injury Rate)
+  isFatal             Boolean      @default(false)
+  isLostTimeIncident  Boolean      @default(false)
+  lostWorkdays        Int?
+  isRestrictedWork    Boolean      @default(false)
+  // Underkategorier (JSON-array med keys fra IncidentSubcategoryOption)
+  subcategoryKeys     String?      @db.Text
+  // Prosjektkobling (valgfritt – AML § 3-1 systematisk HMS per arbeidssted)
+  projectId           String?
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
 
@@ -1493,6 +1511,7 @@ model Incident {
   attachments Attachment[]
   customerFeedbacks CustomerFeedback[]
   risk        Risk?        @relation("IncidentRiskReference", fields: [riskReferenceId], references: [id])
+  project     Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([avviksnummer])
@@ -1503,6 +1522,7 @@ model Incident {
   @@index([responsibleId])
   @@index([reportedForUserId])
   @@index([riskReferenceId])
+  @@index([projectId])
 }
 
 enum IncidentType {
@@ -1595,6 +1615,31 @@ enum RuhStatus {
 }
 
 // ============================================
+// Incident underkategorier – konfigurerbare per bransje
+// ============================================
+
+model IncidentSubcategoryOption {
+  id           String       @id @default(cuid())
+  // null = systemstandard (synlig for alle tenants), satt = tenant-spesifikk
+  tenantId     String?
+  incidentType IncidentType
+  // Bransje-pakke: GENERELL, BYGG, ATEX, OFFSHORE, HELSE, TRANSPORT
+  industry     String       @default("GENERELL")
+  key          String       // Unik nøkkel, f.eks. "PERSONSKADE", "REKLAMASJON"
+  label        String       // Visningsnavn
+  isActive     Boolean      @default(true)
+  sortOrder    Int          @default(0)
+  createdAt    DateTime     @default(now())
+
+  tenant       Tenant?      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, incidentType, key])
+  @@index([incidentType])
+  @@index([tenantId])
+  @@index([industry])
+}
+
+// ============================================
 // SJA – Sikker Jobb Analyse
 // ============================================
 
@@ -1628,6 +1673,7 @@ model SjaAnalysis {
   approvedById      String?
   approvedByName    String?
   approvedAt        DateTime?
+  projectId         String?
 
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
@@ -1635,12 +1681,14 @@ model SjaAnalysis {
   tenant            Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   hazards           SjaHazard[]
   attachments       Attachment[]  @relation("SjaAttachments")
+  project           Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([sjaNummer])
   @@index([status])
   @@index([plannedDate])
   @@index([createdById])
+  @@index([projectId])
 }
 
 model SjaHazard {
@@ -2173,6 +2221,7 @@ model Inspection {
   durationMinutes  Int?
   followUpById     String?
   nextInspection   DateTime?
+  projectId        String?
   findings         InspectionFinding[]
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
@@ -2181,6 +2230,7 @@ model Inspection {
   template        InspectionTemplate? @relation("TemplateInspections", fields: [templateId], references: [id], onDelete: SetNull)
   formTemplate    FormTemplate?       @relation("InspectionFormTemplates", fields: [formTemplateId], references: [id], onDelete: SetNull)
   formSubmission  FormSubmission?     @relation("InspectionFormSubmission", fields: [formSubmissionId], references: [id], onDelete: SetNull)
+  project         Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
   
   @@index([tenantId])
   @@index([scheduledDate])
@@ -2191,6 +2241,7 @@ model Inspection {
   @@index([formSubmissionId])
   @@index([riskCategory])
   @@index([nextInspection])
+  @@index([projectId])
 }
 
 model InspectionTemplate {
@@ -3281,29 +3332,44 @@ model PackageLead {
 // ============================================
 
 model Project {
-  id          String       @id @default(cuid())
-  tenantId    String
-  name        String
-  code        String?      // Prosjektkode (f.eks. "PRJ-001")
-  description String?     @db.Text
-  status      ProjectStatus @default(ACTIVE)
-  createdById String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id               String        @id @default(cuid())
+  tenantId         String
+  name             String
+  code             String?       // Prosjektkode (f.eks. "PRJ-001")
+  orderNumber      String?       // Ordrenr / oppdragsnr fra kunde
+  clientName       String?       // Kunde / oppdragsgiver
+  location         String?       // Arbeidssted / anleggsadresse
+  description      String?       @db.Text
+  status           ProjectStatus @default(PLANNING)
+  startDate        DateTime?
+  endDate          DateTime?
+  projectManagerId String?       // UserId for prosjektleder
+  createdById      String
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
-  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  createdBy   User         @relation(fields: [createdById], references: [id], onDelete: Restrict)
-  timeEntries TimeEntry[]
+  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy      User           @relation("ProjectCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  projectManager User?          @relation("ProjectManager", fields: [projectManagerId], references: [id], onDelete: SetNull)
+  timeEntries    TimeEntry[]
   mileageEntries MileageEntry[]
+  incidents      Incident[]
+  sjaAnalyses    SjaAnalysis[]
+  inspections    Inspection[]
+  measures       Measure[]      @relation("ProjectMeasures")
 
   @@index([tenantId])
   @@index([status])
   @@index([createdById])
+  @@index([projectManagerId])
 }
 
 enum ProjectStatus {
+  PLANNING
   ACTIVE
+  ON_HOLD
   COMPLETED
+  ARCHIVED
 }
 
 model TimeEntry {

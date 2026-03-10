@@ -8,7 +8,7 @@ export type NavPermission =
   | "documents"
   | "legalRegister"
   | "incidents"
-  | "ruh"
+  | "hseStatistics"
   | "sja"
   | "inspections"
   | "training"
@@ -39,7 +39,7 @@ export const DASHBOARD_NAV_CONFIG: DashboardNavItemConfig[] = [
   { href: "/dashboard/documents", label: "nav.documents", permission: "documents", defaultSimple: true },
   { href: "/dashboard/juridisk-register", label: "nav.legalRegister", permission: "legalRegister", defaultSimple: true },
   { href: "/dashboard/incidents", label: "nav.incidents", permission: "incidents", defaultSimple: true },
-  { href: "/dashboard/ruh", label: "nav.ruh", permission: "ruh", defaultSimple: true },
+  { href: "/dashboard/incidents/statistics", label: "nav.hseStatistics", permission: "hseStatistics", defaultSimple: false },
   { href: "/dashboard/sja", label: "nav.sja", permission: "sja", defaultSimple: true },
   { href: "/dashboard/inspections", label: "nav.inspections", permission: "inspections", defaultSimple: true },
   { href: "/dashboard/training", label: "nav.training", permission: "training", defaultSimple: true },

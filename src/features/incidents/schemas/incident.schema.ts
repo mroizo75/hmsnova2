@@ -39,6 +39,19 @@ export const createIncidentSchema = z.object({
   customerTicketId: z.string().max(120).optional().or(z.literal("")),
   responseDeadline: z.date().optional(),
   customerSatisfaction: z.number().int().min(1).max(5).optional(),
+  // Prosjektkobling
+  projectId: z.string().cuid().optional(),
+  // Underkategorier (sjekkbokser per hendelsestype)
+  subcategoryKeys: z.array(z.string()).optional(),
+  // RUH-felt (AML § 5-2)
+  involvedPersons: z.string().optional(),
+  injuryDescription: z.string().optional(),
+  suggestedActions: z.string().optional(),
+  // HSE-statistikk (TRIR-beregning)
+  isFatal: z.boolean().optional(),
+  isLostTimeIncident: z.boolean().optional(),
+  lostWorkdays: z.number().int().min(0).optional(),
+  isRestrictedWork: z.boolean().optional(),
 });
 
 export const updateIncidentSchema = z.object({
@@ -66,6 +79,19 @@ export const updateIncidentSchema = z.object({
   customerTicketId: z.string().max(120).optional().or(z.literal("")),
   responseDeadline: z.date().optional().nullable(),
   customerSatisfaction: z.number().int().min(1).max(5).optional().nullable(),
+  // Prosjektkobling
+  projectId: z.string().cuid().optional().nullable(),
+  // Underkategorier
+  subcategoryKeys: z.array(z.string()).optional(),
+  // RUH-felt
+  involvedPersons: z.string().optional(),
+  injuryDescription: z.string().optional(),
+  suggestedActions: z.string().optional(),
+  // HSE-statistikk
+  isFatal: z.boolean().optional(),
+  isLostTimeIncident: z.boolean().optional(),
+  lostWorkdays: z.number().int().min(0).optional(),
+  isRestrictedWork: z.boolean().optional(),
 });
 
 export const investigateIncidentSchema = z.object({

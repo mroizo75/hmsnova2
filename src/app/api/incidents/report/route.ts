@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
     const injuryType = formData.get("injuryType") as string | null;
     const medicalAttention = formData.get("medicalAttentionRequired") as string | null;
     const lostTime = formData.get("lostTimeMinutes") as string | null;
+    const projectId = (formData.get("projectId") as string | null) || null;
 
     const avviksnummer = await generateSequenceNumber(
       tenantId,
@@ -54,6 +55,7 @@ export async function POST(request: NextRequest) {
         injuryType,
         medicalAttentionRequired: medicalAttention === "yes",
         lostTimeMinutes: lostTime ? parseInt(lostTime, 10) : undefined,
+        projectId,
       },
     });
 
