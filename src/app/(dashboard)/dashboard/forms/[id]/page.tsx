@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { CopyFormButton } from "@/components/forms/copy-form-button";
+import { DeleteFormButton } from "@/components/forms/delete-form-button";
 import { TimesheetExportDropdown } from "@/components/forms/timesheet-export-dropdown";
 import {
   Table,
@@ -43,11 +44,12 @@ export default async function FormDetailPage({
   searchParams,
 }: { 
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; returnUrl?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   const { id } = await params;
   const queryParams = await searchParams;
+  const returnUrl = queryParams.returnUrl ?? "/dashboard/forms";
 
   if (!session?.user?.tenantId) {
     redirect("/login");
@@ -152,7 +154,7 @@ export default async function FormDetailPage({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/dashboard/forms">
+          <Link href={returnUrl}>
             <Button variant="ghost" size="icon">
               <ArrowLeft className="h-5 w-5" />
             </Button>
@@ -165,7 +167,7 @@ export default async function FormDetailPage({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Link href={`/dashboard/forms/${form.id}/fill`}>
+          <Link href={`/dashboard/forms/${form.id}/fill?returnUrl=${encodeURIComponent(returnUrl)}`}>
             <Button variant="default" className="bg-green-600 hover:bg-green-700">
               <FileText className="h-4 w-4 mr-2" />
               Fyll ut skjema
@@ -174,12 +176,20 @@ export default async function FormDetailPage({
           {form.isGlobal ? (
             <CopyFormButton formId={form.id} formTitle={form.title} />
           ) : (
-            <Link href={`/dashboard/forms/${form.id}/edit`}>
-              <Button variant="outline">
-                <Pencil className="h-4 w-4 mr-2" />
-                Rediger
-              </Button>
-            </Link>
+            <>
+              <Link href={`/dashboard/forms/${form.id}/edit`}>
+                <Button variant="outline">
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Rediger
+                </Button>
+              </Link>
+              <DeleteFormButton
+                formId={form.id}
+                formTitle={form.title}
+                submissionCount={form._count.submissions}
+                returnUrl={returnUrl}
+              />
+            </>
           )}
         </div>
       </div>

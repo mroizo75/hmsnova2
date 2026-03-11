@@ -336,7 +336,7 @@ export default async function WellbeingPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-2">
-                        <Link href={`/dashboard/forms/${form.id}`}>
+                        <Link href={`/dashboard/forms/${form.id}?returnUrl=/dashboard/wellbeing`}>
                           <Button variant="ghost" size="sm" title="Se detaljer">
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -350,7 +350,7 @@ export default async function WellbeingPage() {
                             </Button>
                           </Link>
                         )}
-                        <Link href={`/dashboard/forms/${form.id}/fill`}>
+                        <Link href={`/dashboard/forms/${form.id}/fill?returnUrl=/dashboard/wellbeing`}>
                           <Button size="sm" className="bg-green-600 hover:bg-green-700">
                             <FileText className="h-4 w-4 mr-1" />
                             Fyll ut

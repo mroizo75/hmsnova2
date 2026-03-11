@@ -9,11 +9,11 @@ export default async function FillFormPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ inspectionId?: string }>;
+  searchParams: Promise<{ inspectionId?: string; returnUrl?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   const { id } = await params;
-  const { inspectionId } = await searchParams;
+  const { inspectionId, returnUrl: returnUrlParam } = await searchParams;
 
   if (!session?.user?.tenantId) {
     redirect("/login");
@@ -61,7 +61,7 @@ export default async function FillFormPage({
 
   const returnUrl = inspectionId
     ? `/dashboard/inspections/${inspectionId}`
-    : "/dashboard/forms";
+    : (returnUrlParam ?? "/dashboard/forms");
 
   return (
     <FormFiller

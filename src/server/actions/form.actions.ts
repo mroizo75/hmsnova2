@@ -107,7 +107,7 @@ export async function copyGlobalFormTemplate(formId: string) {
 /**
  * Sletter et skjema (kun tenant-spesifikke)
  */
-export async function deleteFormTemplate(formId: string) {
+export async function deleteFormTemplate(formId: string, force = false) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -115,14 +115,11 @@ export async function deleteFormTemplate(formId: string) {
       return { success: false, error: "Ikke autentisert" };
     }
 
-    // Hent skjemaet
     const form = await prisma.formTemplate.findUnique({
       where: { id: formId },
       include: {
         _count: {
-          select: {
-            submissions: true,
-          },
+          select: { submissions: true },
         },
       },
     });
@@ -131,26 +128,23 @@ export async function deleteFormTemplate(formId: string) {
       return { success: false, error: "Skjema ikke funnet" };
     }
 
-    // Sjekk eierskap
     if (form.tenantId !== session.user.tenantId) {
       return { success: false, error: "Ingen tilgang til dette skjemaet" };
     }
 
-    // Hindre sletting av globale skjemaer
     if (form.isGlobal) {
       return { success: false, error: "Kan ikke slette globale skjemaer" };
     }
 
-    // Advare hvis det finnes submissions
-    if (form._count.submissions > 0) {
+    if (form._count.submissions > 0 && !force) {
       return {
         success: false,
-        error: `Dette skjemaet har ${form._count.submissions} utfyllinger. Disse vil også slettes.`,
+        error: `Dette skjemaet har ${form._count.submissions} utfyllinger som også vil bli slettet.`,
         requiresConfirmation: true,
+        submissionCount: form._count.submissions,
       };
     }
 
-    // Slett skjemaet (cascade sletter felt og submissions)
     await prisma.formTemplate.delete({
       where: { id: formId },
     });

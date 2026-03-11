@@ -373,45 +373,76 @@ export default async function DashboardPage() {
   }
 
   // Generer HMS-score data for siste 6 måneder
+  //
+  // Vekting: Tiltak (35%) · Risikoer (30%) · Hendelser (20%) · Dokumenter (15%)
+  //
+  // Gradert score per status – aktiv behandling gir poeng, ikke bare lukking:
+  //   Risikoer:  CLOSED=1.0  · ACCEPTED=1.0 (formelt akseptert er god styring)
+  //              MITIGATING=0.7 (tiltak på plass) · OPEN=0.2
+  //   Hendelser: CLOSED=1.0  · ACTION_TAKEN=0.8 · INVESTIGATING=0.5 · OPEN=0.2
+  //   Tiltak:    DONE=1.0    · IN_PROGRESS=0.5  · andre=0.0
+  //   Dokumenter: fast 15 p (ingen straff for inaktiv måned)
   const hmsScoreData = [];
   for (let i = 5; i >= 0; i--) {
     const monthDate = subMonths(new Date(), i);
-    const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
     const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
 
-    // Beregn score basert på:
-    // - Risikoer lukket (30%)
-    // - Hendelser håndtert (25%)
-    // - Tiltak fullført (25%)
-    // - Dokumenter oppdatert (20%)
-    
-    const monthRisks = risks.filter((r) => 
-      r.createdAt <= monthEnd
-    );
-    const closedRisks = monthRisks.filter((r) => r.status === "CLOSED");
-    const riskScore = monthRisks.length > 0 ? (closedRisks.length / monthRisks.length) * 30 : 30;
+    // Risikoer (30%)
+    const monthRisks = risks.filter((r) => r.createdAt <= monthEnd);
+    const riskWeightMap: Record<string, number> = {
+      CLOSED: 1.0,
+      ACCEPTED: 1.0,
+      MITIGATING: 0.7,
+      OPEN: 0.2,
+    };
+    const riskScore =
+      monthRisks.length > 0
+        ? (monthRisks.reduce((sum, r) => sum + (riskWeightMap[r.status] ?? 0.2), 0) /
+            monthRisks.length) *
+          30
+        : 30;
 
-    const monthIncidents = incidents.filter((i) =>
-      i.createdAt <= monthEnd
-    );
-    const closedIncidents = monthIncidents.filter((i) => i.status === "CLOSED");
-    const incidentScore = monthIncidents.length > 0 ? (closedIncidents.length / monthIncidents.length) * 25 : 25;
+    // Hendelser (20%)
+    const monthIncidents = incidents.filter((inc) => inc.createdAt <= monthEnd);
+    const incidentWeightMap: Record<string, number> = {
+      CLOSED: 1.0,
+      ACTION_TAKEN: 0.8,
+      INVESTIGATING: 0.5,
+      OPEN: 0.2,
+    };
+    const incidentScore =
+      monthIncidents.length > 0
+        ? (monthIncidents.reduce(
+            (sum, inc) => sum + (incidentWeightMap[inc.status] ?? 0.2),
+            0
+          ) /
+            monthIncidents.length) *
+          20
+        : 20;
 
-    const monthMeasures = measures.filter((m) =>
-      m.createdAt <= monthEnd
-    );
-    const completedMeasures = monthMeasures.filter((m) => m.status === "DONE");
-    const measureScore = monthMeasures.length > 0 ? (completedMeasures.length / monthMeasures.length) * 25 : 25;
+    // Tiltak (35%)
+    const monthMeasures = measures.filter((m) => m.createdAt <= monthEnd);
+    const measureWeightMap: Record<string, number> = {
+      DONE: 1.0,
+      IN_PROGRESS: 0.5,
+    };
+    const measureScore =
+      monthMeasures.length > 0
+        ? (monthMeasures.reduce(
+            (sum, m) => sum + (measureWeightMap[m.status] ?? 0),
+            0
+          ) /
+            monthMeasures.length) *
+          35
+        : 35;
 
-    const monthDocuments = documents.filter((d) =>
-      d.updatedAt >= monthStart && d.updatedAt <= monthEnd
-    );
-    const documentScore = monthDocuments.length > 0 ? Math.min((monthDocuments.length / 5) * 20, 20) : 15;
+    // Dokumenter (15%): fast grunnverdi, ingen straff for inaktive måneder
+    const documentScore = 15;
 
     const totalScore = Math.round(riskScore + incidentScore + measureScore + documentScore);
 
     hmsScoreData.push({
-      month: format(monthDate, 'MMM', { locale: nb }),
+      month: format(monthDate, "MMM", { locale: nb }),
       score: Math.min(totalScore, 100),
     });
   }
