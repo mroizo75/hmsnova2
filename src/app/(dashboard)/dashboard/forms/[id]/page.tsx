@@ -167,7 +167,7 @@ export default async function FormDetailPage({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Link href={`/dashboard/forms/${form.id}/fill?returnUrl=${encodeURIComponent(returnUrl)}`}>
+          <Link href={`/dashboard/forms/${form.id}/fill?returnUrl=${encodeURIComponent(`/dashboard/forms/${form.id}`)}`}>
             <Button variant="default" className="bg-green-600 hover:bg-green-700">
               <FileText className="h-4 w-4 mr-2" />
               Fyll ut skjema

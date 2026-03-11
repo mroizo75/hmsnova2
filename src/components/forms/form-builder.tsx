@@ -217,7 +217,7 @@ export function FormBuilder({ tenantId, initialData }: FormBuilderProps) {
         description: "Skjemaet er lagret",
       });
 
-      router.push("/dashboard/forms");
+      router.push(`/dashboard/forms/${data.form.id}`);
       router.refresh();
     } catch (error) {
       toast({
