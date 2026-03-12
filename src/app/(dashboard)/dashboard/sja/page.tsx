@@ -81,6 +81,12 @@ export default async function SjaDashboardPage() {
             Oversikt over alle SJA-analyser og maler
           </p>
         </div>
+        <Button asChild>
+          <Link href="/dashboard/sja/new">
+            <Plus className="h-4 w-4 mr-1" />
+            Ny SJA
+          </Link>
+        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">

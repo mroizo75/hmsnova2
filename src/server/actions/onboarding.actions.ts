@@ -9,6 +9,7 @@ import { Resend } from "resend";
 import { OnboardingStatus } from "@prisma/client";
 import { AuditLog } from "@/lib/audit-log";
 import { createOnboardingInvoice } from "@/server/actions/invoice.actions";
+import { getBindingPrice } from "@/lib/subscription";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -214,8 +215,7 @@ export async function activateTenant(input: z.infer<typeof activateTenantSchema>
       }
 
       // 2. Beregn pris basert på bindingsperiode (nye HMS Nova priser)
-      // Standard er 1 år binding: 275 kr/mnd = 3300 kr/år
-      const yearlyPrice = 3300;
+      const yearlyPrice = getBindingPrice("1year").yearlyPrice;
 
       const plan: any = 
         tenant.pricingTier === "MICRO" ? "STARTER" :

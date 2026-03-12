@@ -29,6 +29,7 @@ export function usePermissions() {
         risks: false,
         riskRegister: false,
         incidents: false,
+        hseStatistics: false,
         ruh: false,
         sja: false,
         inspections: false,
@@ -40,11 +41,14 @@ export function usePermissions() {
         annualHmsPlan: false,
         meetings: false,
         feedback: false,
+        complaints: false,
         whistleblowing: false,
         actions: false,
         goals: false,
         settings: false,
         timeRegistration: false,
+        exposureRegister: false,
+        constructionCompliance: false,
       },
     };
   }

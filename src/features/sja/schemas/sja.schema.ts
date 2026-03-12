@@ -14,6 +14,7 @@ export const sjaHazardSchema = z.object({
 
 export const createSjaSchema = z.object({
   tenantId: z.string().cuid(),
+  projectId: z.string().cuid().optional(),
   title: z.string().min(3, "Tittel må være minst 3 tegn"),
   description: z.string().optional(),
   workLocation: z.string().min(1, "Arbeidssted er påkrevd"),

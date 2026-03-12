@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileWarning } from "lucide-react";
 import { ReportRuhForm } from "@/components/ansatt/report-ruh-form";
+import { prisma } from "@/lib/db";
+import { hasTenantFeature } from "@/lib/tenant-features";
 
 export default async function NyRuh() {
   const session = await getServerSession(authOptions);
@@ -11,6 +13,12 @@ export default async function NyRuh() {
   if (!session?.user?.tenantId) {
     redirect("/login");
   }
+
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: session.user.tenantId },
+    select: { industry: true },
+  });
+  const isHealthcareTenant = hasTenantFeature(tenant?.industry, "helseforetak");
 
   return (
     <div className="space-y-6">
@@ -41,6 +49,7 @@ export default async function NyRuh() {
           <ReportRuhForm
             tenantId={session.user.tenantId}
             reportedBy={session.user.name || session.user.email || "Ansatt"}
+            isHealthcareTenant={isHealthcareTenant}
           />
         </CardContent>
       </Card>

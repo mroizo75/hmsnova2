@@ -11,12 +11,22 @@ export async function GET(
 ) {
   try {
     const { path: pathArray } = await params;
+    const fileKey = pathArray.join("/");
+    const isPublicBlogImage = fileKey.startsWith("blog/images/");
     const session = await getServerSession(authOptions);
-    if (!session) {
+    if (!session && !isPublicBlogImage) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
+    if (!isPublicBlogImage) {
+      const sessionTenantId = session?.user?.tenantId;
+      if (!sessionTenantId) {
+        return new NextResponse("Forbidden", { status: 403 });
+      }
+      if (!fileKey.startsWith(`${sessionTenantId}/`)) {
+        return new NextResponse("Forbidden", { status: 403 });
+      }
+    }
 
-    const fileKey = pathArray.join("/");
     const storage = getStorage();
 
     // For lokal lagring
@@ -109,6 +119,7 @@ function getContentType(ext: string): string {
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
     ".gif": "image/gif",
+    ".webp": "image/webp",
   };
 
   return types[ext] || "application/octet-stream";

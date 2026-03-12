@@ -15,6 +15,18 @@ export async function GET(
     }
 
     const { tenantId } = await params;
+    const membership = await prisma.userTenant.findUnique({
+      where: {
+        userId_tenantId: {
+          userId: session.user.id,
+          tenantId,
+        },
+      },
+      select: { userId: true },
+    });
+    if (!membership) {
+      return NextResponse.json({ error: "Ingen tilgang" }, { status: 403 });
+    }
 
     // Hent alle brukere for denne tenanten
     const users = await prisma.userTenant.findMany({

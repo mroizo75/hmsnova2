@@ -69,6 +69,7 @@ export async function runScheduledAlerts(): Promise<TenantAlertSummary[]> {
       checkOpenAuditFindings(tenant.id),
       checkManagementReviewDue(tenant.id),
       checkInspectionFindings(tenant.id),
+      checkConstructionDailyRosterControl(tenant.id),
     ];
 
     const checkResults = await Promise.all(checks);
@@ -90,6 +91,109 @@ export async function runScheduledAlerts(): Promise<TenantAlertSummary[]> {
 
   console.log(`✅ Scheduled alerts completed. Processed ${tenants.length} tenants.`);
   return results;
+}
+
+// ============================================
+// BYGG/ANLEGG - Daglig kontroll av oversiktsliste
+// ============================================
+
+async function checkConstructionDailyRosterControl(tenantId: string): Promise<AlertResult> {
+  const now = new Date();
+  const todayStart = startOfDay(now);
+  const todayEnd = endOfDay(now);
+  let notifications = 0;
+  const tenantSettings = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: {
+      constructionDailyCheckAlertsEnabled: true,
+      constructionDailyCheckAlertRole: true,
+    },
+  });
+  if (!tenantSettings?.constructionDailyCheckAlertsEnabled) {
+    return {
+      type: "CONSTRUCTION_DAILY_CHECK_MISSING",
+      count: 0,
+      notifications: 0,
+    };
+  }
+
+  // Finn prosjekter med aktive personer på byggeplassen
+  const projectsWithActiveRoster = await prisma.project.findMany({
+    where: {
+      tenantId,
+      constructionRosterEntries: {
+        some: {
+          isActive: true,
+        },
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+
+  let missingCount = 0;
+  const selectedRole = tenantSettings.constructionDailyCheckAlertRole;
+  const selectedRoleCount = await prisma.userTenant.count({
+    where: {
+      tenantId,
+      role: selectedRole,
+    },
+  });
+  const notifyRole: Role = selectedRoleCount > 0 ? selectedRole : Role.ADMIN;
+
+  for (const project of projectsWithActiveRoster) {
+    const hasDailyCheckToday = await prisma.constructionRosterDailyCheck.findFirst({
+      where: {
+        tenantId,
+        projectId: project.id,
+        checkedDate: {
+          gte: todayStart,
+          lte: todayEnd,
+        },
+      },
+      select: { id: true },
+    });
+
+    if (hasDailyCheckToday) {
+      continue;
+    }
+
+    missingCount += 1;
+
+    // Unngå spam: maks ett varsel per prosjekt per dag
+    const recentNotification = await prisma.notification.findFirst({
+      where: {
+        tenantId,
+        type: "SYSTEM_ALERT",
+        link: `/dashboard/projects/${project.id}/construction-compliance`,
+        title: "⚠️ Daglig kontroll mangler (bygg/anlegg)",
+        createdAt: {
+          gt: todayStart,
+        },
+      },
+      select: { id: true },
+    });
+
+    if (recentNotification) {
+      continue;
+    }
+
+    await notifyUsersByRole(tenantId, notifyRole, {
+      type: "SYSTEM_ALERT",
+      title: "⚠️ Daglig kontroll mangler (bygg/anlegg)",
+      message: `Prosjekt "${project.name}" har aktive personer i oversiktslisten, men ingen daglig kontroll er registrert i dag.`,
+      link: `/dashboard/projects/${project.id}/construction-compliance`,
+    });
+    notifications += 1;
+  }
+
+  return {
+    type: "CONSTRUCTION_DAILY_CHECK_MISSING",
+    count: missingCount,
+    notifications,
+  };
 }
 
 // ============================================

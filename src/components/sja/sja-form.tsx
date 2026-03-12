@@ -53,6 +53,7 @@ const emptyHazard: HazardRow = {
 interface SjaFormProps {
   tenantId: string;
   userName: string;
+  projectId?: string;
   onSuccess?: () => void;
   successRedirectPath?: string;
   initialData?: {
@@ -69,6 +70,7 @@ interface SjaFormProps {
 export function SjaForm({
   tenantId,
   userName,
+  projectId,
   onSuccess,
   successRedirectPath = "/ansatt/sja",
   initialData,
@@ -158,6 +160,7 @@ export function SjaForm({
 
     const payload = {
       tenantId,
+      projectId,
       title: formData.get("title") as string,
       description: formData.get("description") as string,
       workLocation: formData.get("workLocation") as string,

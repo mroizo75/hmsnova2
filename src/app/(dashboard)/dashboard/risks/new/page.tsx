@@ -25,6 +25,19 @@ export default async function NewRiskAssessmentPage() {
 
   const tenantId = user.tenants[0].tenantId;
   const currentYear = new Date().getFullYear();
+  const projects = await prisma.project.findMany({
+    where: {
+      tenantId,
+      status: "ACTIVE",
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
 
   return (
     <div className="space-y-6">
@@ -41,7 +54,7 @@ export default async function NewRiskAssessmentPage() {
         </p>
       </div>
 
-      <RiskAssessmentForm tenantId={tenantId} defaultYear={currentYear} />
+      <RiskAssessmentForm tenantId={tenantId} defaultYear={currentYear} projects={projects} />
     </div>
   );
 }

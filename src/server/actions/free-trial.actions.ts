@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { createGeneratedDocument, generateDocuments, importGeneratedDocumentsToTenant } from "@/server/actions/generator.actions";
 import type { CompleteGeneratorData } from "@/features/document-generator/schemas/generator.schema";
+import { getBindingPrice } from "@/lib/subscription";
 
 const freeTrialSignupSchema = z.object({
   companyName: z.string().min(2, "Bedriftsnavn må være minst 2 tegn"),
@@ -14,7 +15,7 @@ const freeTrialSignupSchema = z.object({
 });
 
 const TRIAL_DAYS = 14;
-const YEARLY_PRICE = 3300;
+const YEARLY_PRICE = getBindingPrice("1year").yearlyPrice;
 
 /**
  * Bygger minimal generator-data for gratis-prøve fra signup-feltene.

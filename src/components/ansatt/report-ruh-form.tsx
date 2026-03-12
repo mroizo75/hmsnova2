@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,14 +18,33 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Camera, X } from "lucide-react";
 import Image from "next/image";
 
+type RuhContext = "general" | "homeVisitRisk" | "infectionExposure" | "medicationNearMiss" | "violenceThreat";
+
+interface RuhContextPreset {
+  category:
+    | "PERSONSKADE"
+    | "NESTENULYKKE"
+    | "MATERIELL_SKADE"
+    | "BRANN_EKSPLOSJON"
+    | "UTSLIPP_MILJO"
+    | "TRUSLER_VOLD"
+    | "ERGONOMI"
+    | "ANNET";
+  titlePlaceholder: string;
+  detailsLabel?: string;
+  detailsPlaceholder?: string;
+}
+
 export function ReportRuhForm({
   tenantId,
   reportedBy,
   successRedirectPath = "/ansatt/ruh/takk",
+  isHealthcareTenant = false,
 }: {
   tenantId: string;
   reportedBy: string;
   successRedirectPath?: string;
+  isHealthcareTenant?: boolean;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -33,6 +52,47 @@ export function ReportRuhForm({
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [injuryOccurred, setInjuryOccurred] = useState(false);
+  const [ruhContext, setRuhContext] = useState<RuhContext>("general");
+  const [selectedCategory, setSelectedCategory] = useState<RuhContextPreset["category"]>("ANNET");
+  const [contextDetails, setContextDetails] = useState("");
+
+  const contextPresets = useMemo<Record<RuhContext, RuhContextPreset>>(
+    () => ({
+      general: {
+        category: "ANNET",
+        titlePlaceholder: "F.eks: Fall fra stige på lager",
+      },
+      homeVisitRisk: {
+        category: "NESTENULYKKE",
+        titlePlaceholder: "F.eks: Utrygg situasjon ved hjemmebesøk",
+        detailsLabel: "Hva gjorde situasjonen risikofylt?",
+        detailsPlaceholder: "F.eks. alenearbeid uten støtte, utrygg adkomst, trusselsignal",
+      },
+      infectionExposure: {
+        category: "PERSONSKADE",
+        titlePlaceholder: "F.eks: Mulig smitteeksponering i oppdrag",
+        detailsLabel: "Beskriv eksponeringen",
+        detailsPlaceholder: "Hva ble du eksponert for, hvordan, og hvilke strakstiltak ble gjort?",
+      },
+      medicationNearMiss: {
+        category: "NESTENULYKKE",
+        titlePlaceholder: "F.eks: Nesten-feil i medikamenthåndtering",
+        detailsLabel: "Hva stoppet feilen?",
+        detailsPlaceholder: "Beskriv kontrollpunktet og hva som sviktet i prosessen",
+      },
+      violenceThreat: {
+        category: "TRUSLER_VOLD",
+        titlePlaceholder: "F.eks: Trussel fra bruker/pårørende",
+        detailsLabel: "Beskriv hendelsesforløpet",
+        detailsPlaceholder: "Hvem var til stede, hvordan ble situasjonen håndtert, og om alarm ble brukt",
+      },
+    }),
+    []
+  );
+
+  useEffect(() => {
+    setSelectedCategory(contextPresets[ruhContext].category);
+  }, [ruhContext, contextPresets]);
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files) {
@@ -65,6 +125,8 @@ export function ReportRuhForm({
     formData.append("reportedBy", reportedBy);
     formData.append("date", new Date().toISOString());
     formData.append("injuryOccurred", String(injuryOccurred));
+    formData.set("category", selectedCategory);
+    formData.set("ruhContext", ruhContext);
 
     try {
       const response = await fetch("/api/ruh/report", {
@@ -96,10 +158,37 @@ export function ReportRuhForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
+        <Label htmlFor="ruhContext" className="text-base">
+          Hendelseskontekst *
+        </Label>
+        <Select value={ruhContext} onValueChange={(value) => setRuhContext(value as RuhContext)}>
+          <SelectTrigger className="h-12 text-base">
+            <SelectValue placeholder="Velg kontekst" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="general">Generell RUH</SelectItem>
+            {isHealthcareTenant && (
+              <>
+                <SelectItem value="homeVisitRisk">Hjemmebesøk - risikosituasjon</SelectItem>
+                <SelectItem value="infectionExposure">Smitteeksponering</SelectItem>
+                <SelectItem value="medicationNearMiss">Nesten-feil medikament</SelectItem>
+                <SelectItem value="violenceThreat">Vold eller trusler</SelectItem>
+              </>
+            )}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="category" className="text-base">
           Kategori *
         </Label>
-        <Select name="category" required>
+        <Select
+          name="category"
+          required
+          value={selectedCategory}
+          onValueChange={(value) => setSelectedCategory(value as RuhContextPreset["category"])}
+        >
           <SelectTrigger className="h-12 text-base">
             <SelectValue placeholder="Velg kategori" />
           </SelectTrigger>
@@ -123,7 +212,7 @@ export function ReportRuhForm({
         <Input
           id="title"
           name="title"
-          placeholder="F.eks: Fall fra stige på lager"
+          placeholder={contextPresets[ruhContext].titlePlaceholder}
           required
           className="h-12 text-base"
         />
@@ -158,6 +247,26 @@ export function ReportRuhForm({
           Jo mer detaljer, jo bedre kan vi forebygge lignende hendelser
         </p>
       </div>
+
+      {contextPresets[ruhContext].detailsLabel && (
+        <div className="space-y-2">
+          <Label htmlFor="contextDetails" className="text-base">
+            {contextPresets[ruhContext].detailsLabel}
+          </Label>
+          <Textarea
+            id="contextDetails"
+            name="contextDetails"
+            value={contextDetails}
+            onChange={(e) => setContextDetails(e.target.value)}
+            placeholder={contextPresets[ruhContext].detailsPlaceholder}
+            rows={3}
+            className="text-base resize-none"
+          />
+          <p className="text-xs text-muted-foreground">
+            Notat lagres som RUH-kontekst (ikke pasientjournal).
+          </p>
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label htmlFor="involvedPersons" className="text-base">

@@ -65,6 +65,22 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const validated = createProjectSchema.parse(body);
+    let validatedProjectManagerId: string | null = null;
+    if (validated.projectManagerId) {
+      const manager = await prisma.userTenant.findUnique({
+        where: {
+          userId_tenantId: {
+            userId: validated.projectManagerId,
+            tenantId,
+          },
+        },
+        select: { userId: true },
+      });
+      if (!manager) {
+        return NextResponse.json({ error: "Prosjektleder finnes ikke i tenant" }, { status: 400 });
+      }
+      validatedProjectManagerId = manager.userId;
+    }
 
     const project = await prisma.project.create({
       data: {
@@ -78,7 +94,7 @@ export async function POST(request: NextRequest) {
         status: validated.status,
         startDate: validated.startDate ? new Date(validated.startDate) : null,
         endDate: validated.endDate ? new Date(validated.endDate) : null,
-        projectManagerId: validated.projectManagerId || null,
+        projectManagerId: validatedProjectManagerId,
         createdById: session.user.id,
       },
     });

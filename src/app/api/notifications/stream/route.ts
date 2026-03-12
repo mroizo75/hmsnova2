@@ -18,8 +18,12 @@ export async function GET(request: NextRequest) {
   if (!session?.user?.id) {
     return new Response("Unauthorized", { status: 401 });
   }
+  if (!session.user.tenantId) {
+    return new Response("Forbidden", { status: 403 });
+  }
 
   const userId = session.user.id;
+  const tenantId = session.user.tenantId;
   const encoder = new TextEncoder();
 
   // Opprett Redis subscriber for denne SSE-tilkoblingen
@@ -49,7 +53,8 @@ export async function GET(request: NextRequest) {
             } catch (error) {
               console.error(`❌ [SSE] Failed to send notification:`, error);
             }
-          }
+          },
+          tenantId
         );
       } else {
         // Fallback: Redis ikke tilgjengelig

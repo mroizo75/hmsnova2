@@ -18,7 +18,11 @@ import { TimeRegistrationEnableCard } from "@/features/time-registration/compone
 import { TimeRegistrationSettings } from "@/features/time-registration/components/time-registration-settings";
 import { TimeRegistrationPayrollSettings } from "@/features/time-registration/components/time-registration-payroll-settings";
 
-export default async function TimeRegistrationPage() {
+interface TimeRegistrationPageProps {
+  searchParams: Promise<{ projectId?: string }>;
+}
+
+export default async function TimeRegistrationPage({ searchParams }: TimeRegistrationPageProps) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.tenantId) {
@@ -39,10 +43,12 @@ export default async function TimeRegistrationPage() {
     getTimeRegistrationConfig(tenantId),
     getProjects(tenantId, false),
   ]);
+  const { projectId } = await searchParams;
 
   const config = configRes.success ? configRes.data : null;
   const projects = projectsRes.success ? projectsRes.data : [];
   const activeProjects = projects.filter((p) => p.status === "ACTIVE");
+  const selectedProject = projectId ? activeProjects.find((project) => project.id === projectId) : null;
 
   const enabled = config?.timeRegistrationEnabled ?? false;
 
@@ -97,6 +103,11 @@ export default async function TimeRegistrationPage() {
         </div>
         <ReportExportDropdown />
       </div>
+      {selectedProject ? (
+        <div className="rounded border border-blue-300 bg-blue-50 p-3 text-sm text-blue-900">
+          Timeregistrering er forhåndsvalgt for prosjekt: <strong>{selectedProject.name}</strong>
+        </div>
+      ) : null}
 
       {isAdmin && (
         <>
@@ -146,6 +157,7 @@ export default async function TimeRegistrationPage() {
           <RegistrationFormUnified
             tenantId={tenantId}
             projects={activeProjects}
+            initialProjectId={selectedProject?.id}
             lunchBreakMinutes={config?.lunchBreakMinutes ?? 30}
             eveningOvertimeFromHour={config?.eveningOvertimeFromHour ?? undefined}
             defaultKmRate={config?.defaultKmRate ?? 4.5}
@@ -166,6 +178,7 @@ export default async function TimeRegistrationPage() {
             initialData={overviewData}
             tenantId={tenantId}
             isAdmin={isAdmin}
+            initialProjectFilter={selectedProject?.id}
           />
         </CardContent>
       </Card>

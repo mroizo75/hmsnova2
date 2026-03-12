@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, BarChart3, AlertTriangle, Info } from "lucide-react";
 import Link from "next/link";
 import { HseStatisticsTable } from "@/features/incidents/components/hse-statistics-table";
+import { hasTenantFeature } from "@/lib/tenant-features";
 
 export default async function HseStatisticsPage() {
   const session = await getServerSession(authOptions);
@@ -18,7 +19,15 @@ export default async function HseStatisticsPage() {
 
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
-    include: { tenants: true },
+    include: {
+      tenants: {
+        include: {
+          tenant: {
+            select: { industry: true },
+          },
+        },
+      },
+    },
   });
 
   if (!user || user.tenants.length === 0) {
@@ -26,6 +35,9 @@ export default async function HseStatisticsPage() {
   }
 
   const tenantId = user.tenants[0].tenantId;
+  if (!hasTenantFeature(user.tenants[0]?.tenant?.industry, "trir")) {
+    redirect("/dashboard/incidents");
+  }
   const currentYear = new Date().getFullYear();
 
   // Hent data for inneværende år + 2 forrige (3 år totalt)

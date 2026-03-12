@@ -9,6 +9,7 @@ import { ArrowLeft, Download, Calendar, User, CheckCircle2, FileText, MessageSqu
 import Link from "next/link";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
+import { getPermissions } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -136,6 +137,16 @@ export default async function SubmissionViewPage({
   if (!session?.user?.tenantId) {
     redirect("/login");
   }
+  const userTenant = await prisma.userTenant.findUnique({
+    where: {
+      userId_tenantId: {
+        userId: session.user.id,
+        tenantId: session.user.tenantId,
+      },
+    },
+    select: { role: true },
+  });
+  const permissions = getPermissions(userTenant?.role ?? "ANSATT");
 
   const submission = await prisma.formSubmission.findUnique({
     where: { id: submissionId, tenantId: session.user.tenantId },
@@ -151,6 +162,11 @@ export default async function SubmissionViewPage({
   });
 
   if (!submission || submission.formTemplateId !== formId) {
+    redirect(`/dashboard/forms/${formId}`);
+  }
+  const restrictedGlobalView =
+    submission.formTemplate.isGlobal && !permissions.canManageForms;
+  if (restrictedGlobalView && submission.submittedById !== session.user.id) {
     redirect(`/dashboard/forms/${formId}`);
   }
 

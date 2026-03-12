@@ -7,17 +7,33 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { IncidentType } from "@prisma/client";
+import { hasTenantFeature } from "@/lib/tenant-features";
 
 type PageSearchParams =
-  | Promise<{ type?: IncidentType; projectId?: string }>
-  | { type?: IncidentType; projectId?: string }
+  | Promise<{
+      type?: IncidentType;
+      projectId?: string;
+      tablet?: string;
+      template?: "homeVisitRisk" | "violenceThreat" | "infectionExposure";
+    }>
+  | {
+      type?: IncidentType;
+      projectId?: string;
+      tablet?: string;
+      template?: "homeVisitRisk" | "violenceThreat" | "infectionExposure";
+    }
   | undefined;
 
 export default async function NewIncidentPage({ searchParams }: { searchParams?: PageSearchParams }) {
   const resolvedSearchParams =
     typeof searchParams === "object" && searchParams !== null && "then" in searchParams
       ? await searchParams
-      : (searchParams as { type?: IncidentType; projectId?: string } | undefined);
+    : (searchParams as {
+        type?: IncidentType;
+        projectId?: string;
+        tablet?: string;
+        template?: "homeVisitRisk" | "violenceThreat" | "infectionExposure";
+      } | undefined);
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.email) {
@@ -26,7 +42,17 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
 
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
-    include: { tenants: true },
+    include: {
+      tenants: {
+        include: {
+          tenant: {
+            select: {
+              industry: true,
+            },
+          },
+        },
+      },
+    },
   });
 
   if (!user || user.tenants.length === 0) {
@@ -34,6 +60,11 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
   }
 
   const tenantId = user.tenants[0].tenantId;
+  const isHealthcareTenant = hasTenantFeature(
+    user.tenants[0]?.tenant?.industry,
+    "helseforetak",
+  );
+  const isTabletMode = resolvedSearchParams?.tablet === "1" && isHealthcareTenant;
 
   const [risks, users, projects] = await Promise.all([
     prisma.risk.findMany({
@@ -71,6 +102,11 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
         <p className="text-muted-foreground">
           AML § 5-1/5-2 og IK-HMS § 5 – registrer ulykker, nestenulykker, farlige situasjoner og avvik
         </p>
+        {isTabletMode && (
+          <p className="mt-2 text-sm font-medium text-blue-700">
+            Tabletmodus aktiv: optimalisert for rask registrering ute i felt.
+          </p>
+        )}
       </div>
 
       <IncidentForm
@@ -81,6 +117,8 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
         projects={projects}
         defaultType={resolvedSearchParams?.type}
         defaultProjectId={resolvedSearchParams?.projectId}
+        isTabletMode={isTabletMode}
+        templatePreset={resolvedSearchParams?.template}
       />
     </div>
   );

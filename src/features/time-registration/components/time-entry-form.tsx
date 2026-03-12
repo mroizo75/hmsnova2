@@ -28,6 +28,7 @@ interface Project {
 interface TimeEntryFormProps {
   tenantId: string;
   projects: Project[];
+  initialProjectId?: string;
   defaultDate?: Date;
   lunchBreakMinutes?: number;
   /** Fra denne klokken (man–fre) = 100 % overtid. Null = alt 50 % */
@@ -39,6 +40,7 @@ interface TimeEntryFormProps {
 export function TimeEntryForm({
   tenantId,
   projects,
+  initialProjectId,
   defaultDate = new Date(),
   lunchBreakMinutes = 30,
   eveningOvertimeFromHour,
@@ -53,7 +55,7 @@ export function TimeEntryForm({
   }, [forceMode]);
   const [inputStyle, setInputStyle] = useState<"clock" | "fromTo">("clock");
   const [date, setDate] = useState(format(defaultDate, "yyyy-MM-dd"));
-  const [projectId, setProjectId] = useState("");
+  const [projectId, setProjectId] = useState(initialProjectId ?? "");
   const [hours, setHours] = useState("7.5");
   const [fromTime, setFromTime] = useState("07:00");
   const [toTime, setToTime] = useState("15:00");
@@ -114,7 +116,7 @@ export function TimeEntryForm({
       });
       router.refresh();
       setDate(format(new Date(), "yyyy-MM-dd"));
-      setProjectId("");
+      setProjectId(initialProjectId ?? "");
       setHours(mode === "work" ? "8" : mode === "sick" ? "7.5" : "0.5");
       setComment("");
     } catch (err) {

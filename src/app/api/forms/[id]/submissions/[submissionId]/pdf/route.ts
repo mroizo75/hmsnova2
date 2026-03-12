@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { jsPDF } from "jspdf";
 import { getStorage } from "@/lib/storage";
+import { getPermissions } from "@/lib/permissions";
 
 function formatFieldValue(fieldType: string, optionsJson: string | null, rawValue: string | null, fileKey: string | null): string {
   if (fileKey) {
@@ -115,9 +116,22 @@ export async function GET(
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (!session.user.tenantId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userTenant = await prisma.userTenant.findUnique({
+      where: {
+        userId_tenantId: {
+          userId: session.user.id,
+          tenantId: session.user.tenantId,
+        },
+      },
+      select: { role: true },
+    });
+    const permissions = getPermissions(userTenant?.role ?? "ANSATT");
 
     const form = await prisma.formTemplate.findUnique({
-      where: { id, tenantId: session.user.tenantId! },
+      where: { id },
       include: {
         fields: { orderBy: { order: "asc" } },
       },
@@ -126,9 +140,14 @@ export async function GET(
     if (!form) {
       return NextResponse.json({ error: "Form not found" }, { status: 404 });
     }
+    const canAccessForm = form.tenantId === session.user.tenantId || form.isGlobal;
+    if (!canAccessForm) {
+      return NextResponse.json({ error: "Ingen tilgang" }, { status: 403 });
+    }
+    const restrictedGlobalView = form.isGlobal && !permissions.canManageForms;
 
     const submission = await prisma.formSubmission.findUnique({
-      where: { id: submissionId, formTemplateId: id },
+      where: { id: submissionId, formTemplateId: id, tenantId: session.user.tenantId },
       include: {
         fieldValues: true,
         submittedBy: { select: { name: true, email: true } },
@@ -137,6 +156,9 @@ export async function GET(
 
     if (!submission) {
       return NextResponse.json({ error: "Submission not found" }, { status: 404 });
+    }
+    if (restrictedGlobalView && submission.submittedById !== session.user.id) {
+      return NextResponse.json({ error: "Ingen tilgang" }, { status: 403 });
     }
 
     const valueMap = new Map(submission.fieldValues.map((fv) => [fv.fieldId, fv]));

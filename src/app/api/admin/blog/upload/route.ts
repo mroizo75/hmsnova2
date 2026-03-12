@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 const s3Client = new S3Client({
   region: "auto",
@@ -75,12 +74,8 @@ export async function POST(request: NextRequest) {
       })
     );
 
-    // Generate signed URL for public access (7 days expiry - R2 max)
-    const getCommand = new GetObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: key,
-    });
-    const url = await getSignedUrl(s3Client, getCommand, { expiresIn: 604800 });
+    // Bruk stabil intern fil-endpoint i stedet for tidsbegrenset signert URL
+    const url = `/api/files/${key}`;
 
     return NextResponse.json({
       url,

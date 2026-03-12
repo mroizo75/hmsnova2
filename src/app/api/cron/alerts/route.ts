@@ -29,9 +29,9 @@ export async function GET(request: NextRequest) {
     const authHeader = request.headers.get("authorization");
     const cronSecret = process.env.CRON_SECRET;
 
-    // Tillat kjøring uten auth i development
-    if (process.env.NODE_ENV === "production" && cronSecret) {
-      if (authHeader !== `Bearer ${cronSecret}`) {
+    // Fail closed i production: krev gyldig secret
+    if (process.env.NODE_ENV === "production") {
+      if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
         console.error("❌ Unauthorized cron request");
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }

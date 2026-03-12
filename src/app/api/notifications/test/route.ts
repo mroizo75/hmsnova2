@@ -38,15 +38,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Ingen tilgang" }, { status: 403 });
     }
 
-    // Hent mottaker
-    const recipient = await prisma.user.findUnique({
-      where: { id: userId },
+    // Hent mottaker (må tilhøre samme tenant)
+    const recipientMembership = await prisma.userTenant.findUnique({
+      where: {
+        userId_tenantId: {
+          userId,
+          tenantId,
+        },
+      },
       select: {
-        email: true,
-        name: true,
-        notifyByEmail: true,
+        user: {
+          select: {
+            email: true,
+            name: true,
+            notifyByEmail: true,
+          },
+        },
       },
     });
+    const recipient = recipientMembership?.user;
 
     if (!recipient) {
       return NextResponse.json({ error: "Bruker ikke funnet" }, { status: 404 });

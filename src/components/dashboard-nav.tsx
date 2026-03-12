@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { signOut, useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,21 +49,35 @@ import { NotificationBell } from "@/components/notifications/notification-bell";
 import { useSimpleMode } from "@/hooks/use-simple-mode";
 import { useSimpleMenuConfig } from "@/hooks/use-simple-menu-config";
 import { TenantSwitcher } from "@/components/auth/tenant-switcher";
+import type { TenantFeature } from "@/lib/tenant-features";
 
-const navItems = [
+interface TenantApiResponseItem {
+  id: string;
+  features?: string[];
+}
+
+const navItems: Array<{
+  href: string;
+  label: string;
+  icon: any;
+  permission: string;
+  simple: boolean;
+  feature?: TenantFeature;
+}> = [
   // === GRUNNLEGGENDE HMS (vises alltid) ===
   { href: "/dashboard", label: "nav.dashboard", icon: LayoutDashboard, permission: "dashboard" as const, simple: true },
   { href: "/dashboard/documents", label: "nav.documents", icon: FileText, permission: "documents" as const, simple: true },
   { href: "/dashboard/juridisk-register", label: "nav.legalRegister", icon: Scale, permission: "legalRegister" as const, simple: true },
   { href: "/dashboard/incidents", label: "nav.incidents", icon: AlertCircle, permission: "incidents" as const, simple: true },
   { href: "/dashboard/projects", label: "nav.projects", icon: FolderOpen, permission: "incidents" as const, simple: true },
-  { href: "/dashboard/incidents/statistics", label: "nav.hseStatistics", icon: BarChart3, permission: "incidents" as const, simple: false },
+  { href: "/dashboard/construction-compliance", label: "nav.constructionCompliance", icon: HardHat, permission: "constructionCompliance" as const, simple: true },
+  { href: "/dashboard/incidents/statistics", label: "nav.hseStatistics", icon: BarChart3, permission: "incidents" as const, simple: false, feature: "trir" },
   { href: "/dashboard/sja", label: "nav.sja", icon: HardHat, permission: "sja" as const, simple: true },
   { href: "/dashboard/inspections", label: "nav.inspections", icon: ShieldCheck, permission: "inspections" as const, simple: true },
   { href: "/dashboard/training", label: "nav.training", icon: GraduationCap, permission: "training" as const, simple: true },
   { href: "/dashboard/actions", label: "nav.actions", icon: ListTodo, permission: "actions" as const, simple: true },
   { href: "/dashboard/chemicals", label: "nav.chemicals", icon: Beaker, permission: "chemicals" as const, simple: true },
-  { href: "/dashboard/exposure-register", label: "nav.exposureRegister", icon: FlaskConical, permission: "exposureRegister" as const, simple: true },
+  { href: "/dashboard/exposure-register", label: "nav.exposureRegister", icon: FlaskConical, permission: "exposureRegister" as const, simple: true, feature: "helseforetak" },
   
   // === AVANSERT (kun i avansert modus) ===
   { href: "/dashboard/forms", label: "nav.forms", icon: ClipboardList, permission: "forms" as const, simple: false },
@@ -92,10 +107,52 @@ export function DashboardNav() {
   const { visibleNavItems, role } = usePermissions();
   const { isSimpleMode, toggleMode } = useSimpleMode();
   const { simpleMenuItems } = useSimpleMenuConfig();
+  const [tenantFeatures, setTenantFeatures] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchTenantFeatures = async () => {
+      if (!session?.user?.tenantId) {
+        if (isMounted) {
+          setTenantFeatures([]);
+        }
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/user/tenants");
+        if (!response.ok) {
+          if (isMounted) {
+            setTenantFeatures([]);
+          }
+          return;
+        }
+
+        const data: { tenants?: TenantApiResponseItem[] } = await response.json();
+        const currentTenant = (data.tenants ?? []).find(
+          (tenant) => tenant.id === session.user.tenantId,
+        );
+        if (isMounted) {
+          setTenantFeatures(currentTenant?.features ?? []);
+        }
+      } catch {
+        if (isMounted) {
+          setTenantFeatures([]);
+        }
+      }
+    };
+
+    fetchTenantFeatures();
+    return () => {
+      isMounted = false;
+    };
+  }, [session?.user?.tenantId]);
 
   // Filtrer navigasjon basert på tilganger OG enkel/avansert modus
   const allowedNavItems = navItems.filter((item) => {
-    if (!visibleNavItems[item.permission]) return false;
+    if (!visibleNavItems[item.permission as keyof typeof visibleNavItems]) return false;
+    if (item.feature && !tenantFeatures?.includes(item.feature)) return false;
     if (!isSimpleMode) return true;
     // I enkel modus: bruk tenant-valg hvis satt, ellers standard (item.simple)
     if (simpleMenuItems !== null && Array.isArray(simpleMenuItems)) {

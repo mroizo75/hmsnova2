@@ -44,6 +44,7 @@ const frequencyOptions: Array<{ value: ControlFrequency; label: string }> = [
 
 interface MeasureFormProps {
   tenantId: string;
+  projectId?: string;
   riskId?: string;
   incidentId?: string;
   auditId?: string;
@@ -52,7 +53,16 @@ interface MeasureFormProps {
   trigger?: React.ReactNode;
 }
 
-export function MeasureForm({ tenantId, riskId, incidentId, auditId, goalId, users, trigger }: MeasureFormProps) {
+export function MeasureForm({
+  tenantId,
+  projectId,
+  riskId,
+  incidentId,
+  auditId,
+  goalId,
+  users,
+  trigger,
+}: MeasureFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -65,6 +75,7 @@ export function MeasureForm({ tenantId, riskId, incidentId, auditId, goalId, use
     const formData = new FormData(e.currentTarget);
     const data = {
       tenantId,
+      projectId,
       riskId,
       incidentId,
       auditId,
@@ -128,6 +139,11 @@ export function MeasureForm({ tenantId, riskId, incidentId, auditId, goalId, use
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {projectId ? (
+            <div className="rounded border border-blue-300 bg-blue-50 p-3 text-sm text-blue-900">
+              Tiltaket blir koblet til valgt prosjekt.
+            </div>
+          ) : null}
           <div className="space-y-2">
             <Label htmlFor="title">Tittel *</Label>
             <Input

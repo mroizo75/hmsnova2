@@ -378,6 +378,7 @@ export async function getRiskStats(tenantId: string) {
 
 export async function createRiskAssessment(input: {
   tenantId: string;
+  projectId?: string | null;
   title: string;
   assessmentYear: number;
   participants?: string;
@@ -385,10 +386,23 @@ export async function createRiskAssessment(input: {
   try {
     const { user, tenantId } = await getActionContext();
     const validated = createRiskAssessmentSchema.parse({ ...input, tenantId });
+    if (validated.projectId) {
+      const project = await prisma.project.findFirst({
+        where: {
+          id: validated.projectId,
+          tenantId: validated.tenantId,
+        },
+        select: { id: true },
+      });
+      if (!project) {
+        return { success: false, error: "Prosjekt ikke funnet for valgt tenant" };
+      }
+    }
 
     const assessment = await prisma.riskAssessment.create({
       data: {
         tenantId: validated.tenantId,
+        projectId: validated.projectId ?? null,
         title: validated.title,
         assessmentYear: validated.assessmentYear,
         participants: validated.participants?.trim() || null,

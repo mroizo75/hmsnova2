@@ -74,6 +74,7 @@ export const updateRiskSchema = z.object({
 /** Schema for å opprette en risikovurdering (f.eks. for et år) */
 export const createRiskAssessmentSchema = z.object({
   tenantId: z.string().cuid(),
+  projectId: z.string().cuid().optional().nullable(),
   title: z.string().min(3, "Tittel må være minst 3 tegn"),
   assessmentYear: z.number().int().min(2000).max(2100),
   // IK-HMS § 5 nr. 3 + AML § 3-1 (1): Hvem deltok (arbeidstakere, verneombud)

@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { DashboardNav } from "@/components/dashboard-nav";
 import { MobileNav } from "@/components/mobile-nav";
+import { AppBreadcrumbs } from "@/components/app-breadcrumbs";
 import { Toaster } from "@/components/ui/toaster";
 import { SessionUser } from "@/types";
 import { DashboardProviders } from "@/components/dashboard-providers";
@@ -51,6 +52,7 @@ export default async function DashboardLayout({
         <DashboardNav />
         <main className="flex-1 p-4 lg:p-8 overflow-x-auto overflow-y-auto">
           <div className="max-w-[100vw] lg:max-w-none">
+            <AppBreadcrumbs />
             {children}
           </div>
         </main>

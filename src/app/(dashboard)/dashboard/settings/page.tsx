@@ -139,7 +139,7 @@ export default async function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="notifications">
-          <NotificationSettings user={user as any} userTenant={userTenant} />
+          <NotificationSettings user={user as any} userTenant={userTenant} tenant={tenant as any} isAdmin={isAdmin} />
         </TabsContent>
 
         <TabsContent value="users">

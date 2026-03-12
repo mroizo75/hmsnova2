@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,17 +19,35 @@ import { Loader2, Camera, X } from "lucide-react";
 import Image from "next/image";
 
 const NO_PROJECT = "__none__";
+type IncidentContext = "general" | "homeVisitRisk" | "infectionExposure" | "medicationNearMiss" | "violenceThreat";
+
+interface SubcategoryOption {
+  id: string;
+  key: string;
+  label: string;
+  industry: string;
+}
+
+interface IncidentContextPreset {
+  type: string;
+  subcategoryMatchTerms: string[];
+  titlePlaceholder: string;
+  detailsLabel?: string;
+  detailsPlaceholder?: string;
+}
 
 export function ReportIncidentForm({
   tenantId,
   reportedBy,
   projects = [],
   successRedirectPath = "/ansatt/avvik/takk",
+  isHealthcareTenant = false,
 }: {
   tenantId: string;
   reportedBy: string;
   projects?: Array<{ id: string; name: string; code: string | null }>;
   successRedirectPath?: string;
+  isHealthcareTenant?: boolean;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -36,6 +55,119 @@ export function ReportIncidentForm({
   const [selectedProjectId, setSelectedProjectId] = useState<string>(NO_PROJECT);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [incidentContext, setIncidentContext] = useState<IncidentContext>("general");
+  const [selectedType, setSelectedType] = useState<string>("AVVIK");
+  const [contextDetails, setContextDetails] = useState("");
+  const [subcategoryOptions, setSubcategoryOptions] = useState<SubcategoryOption[]>([]);
+  const [loadingSubcategories, setLoadingSubcategories] = useState(false);
+  const [selectedSubcategoryKeys, setSelectedSubcategoryKeys] = useState<string[]>([]);
+
+  const contextPresets = useMemo<Record<IncidentContext, IncidentContextPreset>>(
+    () => ({
+      general: {
+        type: "AVVIK",
+        subcategoryMatchTerms: [],
+        titlePlaceholder: "F.eks: Våt gulv uten varsling",
+      },
+      homeVisitRisk: {
+        type: "FARLIG_SITUASJON",
+        subcategoryMatchTerms: ["alenearbeid", "hjemmebesok", "risiko"],
+        titlePlaceholder: "F.eks: Utrygg situasjon ved hjemmebesøk",
+        detailsLabel: "Hva gjorde situasjonen risikofylt?",
+        detailsPlaceholder: "F.eks. manglende kontaktpunkt, trussel, utrygg adkomst, ingen kollegastøtte",
+      },
+      infectionExposure: {
+        type: "ULYKKE",
+        subcategoryMatchTerms: ["smitte", "eksponering", "stikk", "kutt"],
+        titlePlaceholder: "F.eks: Smitteeksponering i oppdrag",
+        detailsLabel: "Beskriv eksponeringen",
+        detailsPlaceholder: "Hva ble du eksponert for, hvordan skjedde det, og hvilke tiltak ble gjort?",
+      },
+      medicationNearMiss: {
+        type: "NESTEN",
+        subcategoryMatchTerms: ["medikament", "nesten", "feil"],
+        titlePlaceholder: "F.eks: Nesten-feil i medikamenthåndtering",
+        detailsLabel: "Hva stoppet feilen før den nådde pasient?",
+        detailsPlaceholder: "Beskriv kontrollpunktet og hvorfor feilen kunne oppstå",
+      },
+      violenceThreat: {
+        type: "ULYKKE",
+        subcategoryMatchTerms: ["vold", "trussel"],
+        titlePlaceholder: "F.eks: Trussel fra bruker/pårørende",
+        detailsLabel: "Beskriv hendelsesforløpet",
+        detailsPlaceholder: "Hvem var til stede, hvordan ble situasjonen avverget, og om alarm/varsling ble brukt",
+      },
+    }),
+    []
+  );
+
+  useEffect(() => {
+    setSelectedType(contextPresets[incidentContext].type);
+  }, [incidentContext, contextPresets]);
+
+  useEffect(() => {
+    async function fetchSubcategories() {
+      if (!selectedType) {
+        setSubcategoryOptions([]);
+        setSelectedSubcategoryKeys([]);
+        return;
+      }
+      setLoadingSubcategories(true);
+      try {
+        const response = await fetch(`/api/incidents/subcategories?type=${selectedType}`);
+        if (!response.ok) {
+          setSubcategoryOptions([]);
+          setSelectedSubcategoryKeys([]);
+          return;
+        }
+        const data = (await response.json()) as { options?: SubcategoryOption[] };
+        const options = data.options ?? [];
+        setSubcategoryOptions(options);
+      } catch {
+        setSubcategoryOptions([]);
+        setSelectedSubcategoryKeys([]);
+      } finally {
+        setLoadingSubcategories(false);
+      }
+    }
+    fetchSubcategories();
+  }, [selectedType]);
+
+  useEffect(() => {
+    if (subcategoryOptions.length === 0) {
+      setSelectedSubcategoryKeys([]);
+      return;
+    }
+    setSelectedSubcategoryKeys((previous) =>
+      previous.filter((key) => subcategoryOptions.some((option) => option.key === key))
+    );
+    const terms = contextPresets[incidentContext].subcategoryMatchTerms;
+    if (terms.length === 0) {
+      return;
+    }
+    const matchingKeys = subcategoryOptions
+      .filter((option) => {
+      const haystack = `${option.key} ${option.label}`.toLowerCase();
+      return terms.some((term) => haystack.includes(term.toLowerCase()));
+      })
+      .map((option) => option.key);
+    if (matchingKeys.length > 0) {
+      setSelectedSubcategoryKeys((previous) => {
+        if (previous.length > 0) {
+          return previous;
+        }
+        return matchingKeys.slice(0, 2);
+      });
+    }
+  }, [incidentContext, subcategoryOptions, contextPresets]);
+
+  function toggleSubcategory(key: string) {
+    setSelectedSubcategoryKeys((previous) =>
+      previous.includes(key)
+        ? previous.filter((existingKey) => existingKey !== key)
+        : [...previous, key]
+    );
+  }
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files) {
@@ -68,6 +200,12 @@ export function ReportIncidentForm({
     });
 
     // Legg til metadata
+    formData.set("type", selectedType);
+    formData.set("incidentContext", incidentContext);
+    formData.set(
+      "subcategoryKeys",
+      JSON.stringify(selectedSubcategoryKeys)
+    );
     formData.append("tenantId", tenantId);
     formData.append("reportedBy", reportedBy);
     formData.append("date", new Date().toISOString());
@@ -133,22 +271,80 @@ export function ReportIncidentForm({
 
       {/* Type */}
       <div className="space-y-2">
+        <Label htmlFor="incidentContext" className="text-base">
+          Hendelseskontekst *
+        </Label>
+        <Select value={incidentContext} onValueChange={(value) => setIncidentContext(value as IncidentContext)}>
+          <SelectTrigger className="h-12 text-base">
+            <SelectValue placeholder="Velg kontekst" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="general">Generell hendelse</SelectItem>
+            {isHealthcareTenant && (
+              <>
+                <SelectItem value="homeVisitRisk">Hjemmebesøk - risikosituasjon</SelectItem>
+                <SelectItem value="infectionExposure">Smitteeksponering</SelectItem>
+                <SelectItem value="medicationNearMiss">Nesten-feil medikament</SelectItem>
+                <SelectItem value="violenceThreat">Vold eller trusler</SelectItem>
+              </>
+            )}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="type" className="text-base">
           Type hendelse *
         </Label>
-        <Select name="type" required>
+        <Select name="type" required value={selectedType} onValueChange={setSelectedType}>
           <SelectTrigger className="h-12 text-base">
             <SelectValue placeholder="Velg type" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="AVVIK">⚠️ Avvik</SelectItem>
             <SelectItem value="NESTEN">🟡 Nestenulykke</SelectItem>
-            <SelectItem value="SKADE">🔴 Skade/Ulykke</SelectItem>
+            <SelectItem value="ULYKKE">🔴 Ulykke</SelectItem>
+            <SelectItem value="FARLIG_SITUASJON">🟠 Farlig situasjon</SelectItem>
+            <SelectItem value="YRKESSYKDOM">🩺 Yrkessykdom</SelectItem>
             <SelectItem value="MILJO">🌍 Miljøavvik</SelectItem>
             <SelectItem value="KVALITET">📋 Kvalitetsavvik</SelectItem>
           </SelectContent>
         </Select>
       </div>
+
+      {selectedType && (
+        <div className="space-y-3">
+          <Label className="text-base">
+            Hva hendelsen dreier seg om
+            <span className="ml-1 text-xs font-normal text-muted-foreground">
+              (velg én eller flere)
+            </span>
+          </Label>
+          {loadingSubcategories ? (
+            <p className="text-xs text-muted-foreground">Laster underkategorier...</p>
+          ) : subcategoryOptions.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              Ingen underkategorier konfigurert for valgt type.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 gap-2 rounded-lg border bg-muted/30 p-4 sm:grid-cols-2">
+              {subcategoryOptions.map((option) => (
+                <label
+                  key={option.key}
+                  className="flex cursor-pointer items-center gap-2 select-none"
+                >
+                  <Checkbox
+                    checked={selectedSubcategoryKeys.includes(option.key)}
+                    onCheckedChange={() => toggleSubcategory(option.key)}
+                    disabled={isSubmitting}
+                  />
+                  <span className="text-sm">{option.label}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Alvorlighetsgrad */}
       <div className="space-y-2">
@@ -177,7 +373,7 @@ export function ReportIncidentForm({
         <Input
           id="title"
           name="title"
-          placeholder="F.eks: Våt gulv uten varsling"
+          placeholder={contextPresets[incidentContext].titlePlaceholder}
           required
           className="h-12 text-base"
         />
@@ -214,6 +410,26 @@ export function ReportIncidentForm({
           Jo mer detaljer, jo bedre kan vi forebygge lignende hendelser
         </p>
       </div>
+
+      {contextPresets[incidentContext].detailsLabel && (
+        <div className="space-y-2">
+          <Label htmlFor="contextDetails" className="text-base">
+            {contextPresets[incidentContext].detailsLabel}
+          </Label>
+          <Textarea
+            id="contextDetails"
+            name="contextDetails"
+            value={contextDetails}
+            onChange={(e) => setContextDetails(e.target.value)}
+            placeholder={contextPresets[incidentContext].detailsPlaceholder}
+            rows={3}
+            className="text-base resize-none"
+          />
+          <p className="text-xs text-muted-foreground">
+            Notat lagres som kontekst i avviket (ikke pasientjournal).
+          </p>
+        </div>
+      )}
 
       {/* Bildeopplasting */}
       <div className="space-y-3">

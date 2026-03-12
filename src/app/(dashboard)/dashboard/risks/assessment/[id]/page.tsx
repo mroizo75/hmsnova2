@@ -37,6 +37,12 @@ export default async function RiskAssessmentPage({
     prisma.riskAssessment.findFirst({
       where: { id, tenantId },
       include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         risks: {
           orderBy: [{ score: "desc" }, { assessmentDate: "desc" }, { createdAt: "asc" }],
           include: {
@@ -76,6 +82,11 @@ export default async function RiskAssessmentPage({
         <p className="text-muted-foreground">
           Systematisk risikovurdering i henhold til IK-HMS § 5 og AML § 3-1.
         </p>
+        {assessment.project ? (
+          <p className="text-sm text-blue-700 mt-2">
+            Knyttet til prosjekt: <strong>{assessment.project.name}</strong>
+          </p>
+        ) : null}
       </div>
 
       <RiskAssessmentComplianceCard

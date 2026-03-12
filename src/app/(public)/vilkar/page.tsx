@@ -107,12 +107,10 @@ export default function VilkarPage() {
               <div>
                 <h4 className="font-semibold mb-2">3.1 Abonnementspriser</h4>
                 <p className="text-sm text-muted-foreground mb-2">
-                  HMS Nova tilbys med valgfri bindingsperiode:
+                  HMS Nova tilbys med følgende prismodell:
                 </p>
                 <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                  <li><strong>Ingen binding:</strong> 300 kr/mnd</li>
-                  <li><strong>1 år binding:</strong> 275 kr/mnd (spar 300 kr/år)</li>
-                  <li><strong>2 år binding:</strong> 250 kr/mnd (spar 600 kr/år)</li>
+                  <li><strong>12 mnd binding:</strong> 300 kr/mnd (3 600 kr/år)</li>
                 </ul>
                 <p className="text-sm text-muted-foreground mt-2">
                   Alle planer inkluderer ubegrenset antall brukere.

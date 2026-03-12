@@ -200,8 +200,15 @@ export default async function AnsattAvvik() {
                   case "NESTEN":
                     typeBadge = "🟡 Nestenulykke";
                     break;
+                  case "ULYKKE":
                   case "SKADE":
                     typeBadge = "🔴 Skade";
+                    break;
+                  case "FARLIG_SITUASJON":
+                    typeBadge = "🟠 Farlig situasjon";
+                    break;
+                  case "YRKESSYKDOM":
+                    typeBadge = "🩺 Yrkessykdom";
                     break;
                   case "MILJO":
                     typeBadge = "🌍 Miljø";

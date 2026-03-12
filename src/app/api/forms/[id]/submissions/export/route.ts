@@ -13,6 +13,7 @@ import {
   getWeek,
 } from "date-fns";
 import { nb } from "date-fns/locale";
+import { getPermissions } from "@/lib/permissions";
 
 // ── Hjelpefunksjoner ──────────────────────────────────────────────────────────
 
@@ -147,6 +148,16 @@ export async function GET(
     if (!session?.user?.tenantId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const userTenant = await prisma.userTenant.findUnique({
+      where: {
+        userId_tenantId: {
+          userId: session.user.id,
+          tenantId: session.user.tenantId,
+        },
+      },
+      select: { role: true },
+    });
+    const permissions = getPermissions(userTenant?.role ?? "ANSATT");
 
     const { searchParams } = new URL(request.url);
     const period = searchParams.get("period");
@@ -169,6 +180,7 @@ export async function GET(
     if (!canAccess) {
       return NextResponse.json({ error: "Ingen tilgang" }, { status: 403 });
     }
+    const restrictedGlobalView = form.isGlobal && !permissions.canManageForms;
 
     const dateFilter = getDateFilter(period, year, month, week);
 
@@ -176,6 +188,7 @@ export async function GET(
       where: {
         formTemplateId: id,
         tenantId: session.user.tenantId,
+        ...(restrictedGlobalView ? { submittedById: session.user.id } : {}),
         ...(dateFilter && {
           createdAt: { gte: dateFilter.from, lte: dateFilter.to },
         }),

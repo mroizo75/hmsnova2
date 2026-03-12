@@ -7,21 +7,32 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { createRiskAssessment } from "@/server/actions/risk.actions";
 import { useToast } from "@/hooks/use-toast";
 
 interface RiskAssessmentFormProps {
   tenantId: string;
   defaultYear: number;
+  projects: Array<{ id: string; name: string }>;
 }
 
-export function RiskAssessmentForm({ tenantId, defaultYear }: RiskAssessmentFormProps) {
+const NO_PROJECT_VALUE = "__none_project__";
+
+export function RiskAssessmentForm({ tenantId, defaultYear, projects }: RiskAssessmentFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState(`Risikovurdering ${defaultYear}`);
   const [year, setYear] = useState(defaultYear);
   const [participants, setParticipants] = useState("");
+  const [projectId, setProjectId] = useState<string>(NO_PROJECT_VALUE);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +40,7 @@ export function RiskAssessmentForm({ tenantId, defaultYear }: RiskAssessmentForm
     try {
       const result = await createRiskAssessment({
         tenantId,
+        projectId: projectId === NO_PROJECT_VALUE ? null : projectId,
         title: title.trim(),
         assessmentYear: year,
         participants: participants.trim() || undefined,
@@ -87,6 +99,23 @@ export function RiskAssessmentForm({ tenantId, defaultYear }: RiskAssessmentForm
                 disabled={loading}
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Prosjekt (valgfritt)</Label>
+            <Select value={projectId} onValueChange={setProjectId} disabled={loading}>
+              <SelectTrigger>
+                <SelectValue placeholder="Velg prosjekt" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_PROJECT_VALUE}>Ikke knyttet til prosjekt</SelectItem>
+                {projects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

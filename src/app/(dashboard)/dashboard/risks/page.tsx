@@ -55,14 +55,19 @@ export default async function RisksPage() {
     ],
   });
 
+  const getActiveScore = (risk: (typeof risks)[number]) => risk.residualScore ?? risk.score;
+  const risksImprovedCount = risks.filter(
+    (risk) => risk.residualScore != null && risk.residualScore < risk.score
+  ).length;
+
   const stats = {
     total: risks.length,
-    critical: risks.filter(r => r.score >= 20).length,
-    high: risks.filter(r => r.score >= 12 && r.score < 20).length,
-    medium: risks.filter(r => r.score >= 6 && r.score < 12).length,
-    low: risks.filter(r => r.score < 6).length,
-    open: risks.filter(r => r.status === "OPEN").length,
-    mitigating: risks.filter(r => r.status === "MITIGATING").length,
+    critical: risks.filter((risk) => getActiveScore(risk) >= 20).length,
+    high: risks.filter((risk) => getActiveScore(risk) >= 12 && getActiveScore(risk) < 20).length,
+    medium: risks.filter((risk) => getActiveScore(risk) >= 6 && getActiveScore(risk) < 12).length,
+    low: risks.filter((risk) => getActiveScore(risk) < 6).length,
+    open: risks.filter((risk) => risk.status === "OPEN").length,
+    mitigating: risks.filter((risk) => risk.status === "MITIGATING").length,
   };
 
   return (
@@ -99,7 +104,7 @@ export default async function RisksPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Kritisk/Høy</CardTitle>
+            <CardTitle className="text-sm font-medium">Kritisk/Høy (nå)</CardTitle>
             <AlertTriangle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
@@ -125,12 +130,12 @@ export default async function RisksPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Under håndtering</CardTitle>
+            <CardTitle className="text-sm font-medium">Forbedret etter tiltak</CardTitle>
             <CheckCircle className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.mitigating}</div>
-            <p className="text-xs text-muted-foreground">Tiltak pågår</p>
+            <div className="text-2xl font-bold">{risksImprovedCount}</div>
+            <p className="text-xs text-muted-foreground">Risikoer med lavere rest-risiko</p>
           </CardContent>
         </Card>
       </div>
@@ -166,7 +171,10 @@ export default async function RisksPage() {
         </Card>
       )}
 
-      <RiskMatrix risks={risks} />
+      <div className="grid gap-4 xl:grid-cols-2">
+        <RiskMatrix risks={risks} viewMode="initial" />
+        <RiskMatrix risks={risks} viewMode="residual" />
+      </div>
 
       <div>
         <h2 className="text-xl font-semibold mb-4">Alle risikoer</h2>

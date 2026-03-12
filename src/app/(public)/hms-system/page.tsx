@@ -93,7 +93,7 @@ const faqs = [
   },
   {
     question: "Hva koster et HMS-system?",
-    answer: `HMS Nova koster fra 225 kr/mnd med 2 års binding, 275 kr/mnd med 1 år, eller 300 kr/mnd uten binding. 
+    answer: `HMS Nova koster 300 kr/mnd (3 600 kr/år) med 12 måneders binding. 
     Ubegrenset antall brukere inkludert. Digital signatur, mobilapp og alle funksjoner er inkludert i prisen. 
     Ingen oppstartskostnader eller skjulte avgifter.`,
   },
@@ -101,9 +101,9 @@ const faqs = [
     question: "Hva er forskjellen på HMS Nova og konkurrentene?",
     answer: `HMS Nova skiller seg ut ved å være:
     • 100% digitalt og moderne (ikke legacy-system)
-    • Betydelig billigere (fra 225 kr/mnd vs 500-1200 kr/mnd hos konkurrentene)
+    • Betydelig billigere (300 kr/mnd vs 500-1200 kr/mnd hos konkurrentene)
     • Ingen skjult ekstrakostnader for digital signatur
-    • Valgfri bindingstid (0-2 år)
+    • Forutsigbar prismodell med 12 måneders binding
     • Mobilapp med offline-støtte
     • Norsk kundeservice`,
   },

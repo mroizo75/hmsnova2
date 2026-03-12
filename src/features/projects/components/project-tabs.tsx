@@ -3,7 +3,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, HardHat, ClipboardCheck, ListTodo, Plus, ExternalLink } from "lucide-react";
+import { AlertCircle, HardHat, ClipboardCheck, ListTodo, Plus, ExternalLink, ShieldCheck, Clock } from "lucide-react";
 import Link from "next/link";
 import { getIncidentTypeLabel, getIncidentStatusLabel } from "@/features/incidents/schemas/incident.schema";
 
@@ -41,6 +41,21 @@ interface Measure {
   status: string;
   dueAt: Date;
   category: string;
+  riskId?: string | null;
+  incidentId?: string | null;
+  projectId?: string | null;
+}
+
+interface TimeEntry {
+  id: string;
+  date: Date;
+  hours: number;
+  timeType: string;
+  comment?: string | null;
+  user: {
+    name: string | null;
+    email: string;
+  };
 }
 
 interface ProjectTabsProps {
@@ -49,6 +64,7 @@ interface ProjectTabsProps {
   sjaAnalyses: SjaAnalysis[];
   inspections: Inspection[];
   measures: Measure[];
+  timeEntries: TimeEntry[];
 }
 
 const sjaStatusMap: Record<string, { label: string; color: string }> = {
@@ -78,10 +94,19 @@ export function ProjectTabs({
   sjaAnalyses,
   inspections,
   measures,
+  timeEntries,
 }: ProjectTabsProps) {
   return (
     <Tabs defaultValue="incidents">
-      <TabsList className="grid w-full grid-cols-4">
+      <div className="mb-3 flex justify-end">
+        <Button variant="outline" size="sm" asChild>
+          <Link href={`/dashboard/projects/${projectId}/construction-compliance`}>
+            <ShieldCheck className="mr-1 h-3.5 w-3.5" />
+            Bygg/anlegg-compliance
+          </Link>
+        </Button>
+      </div>
+      <TabsList className="grid w-full grid-cols-5">
         <TabsTrigger value="incidents" className="flex items-center gap-1.5">
           <AlertCircle className="h-3.5 w-3.5" />
           Avvik
@@ -108,6 +133,13 @@ export function ProjectTabs({
           Tiltak
           {measures.length > 0 && (
             <Badge variant="secondary" className="ml-1 text-xs h-4 px-1">{measures.length}</Badge>
+          )}
+        </TabsTrigger>
+        <TabsTrigger value="time" className="flex items-center gap-1.5">
+          <Clock className="h-3.5 w-3.5" />
+          Timer
+          {timeEntries.length > 0 && (
+            <Badge variant="secondary" className="ml-1 text-xs h-4 px-1">{timeEntries.length}</Badge>
           )}
         </TabsTrigger>
       </TabsList>
@@ -231,6 +263,12 @@ export function ProjectTabs({
       <TabsContent value="measures" className="mt-4">
         <div className="flex justify-between items-center mb-3">
           <p className="text-sm text-muted-foreground">Tiltak knyttet direkte til prosjektet</p>
+          <Button size="sm" asChild>
+            <Link href={`/dashboard/actions?projectId=${projectId}`}>
+              <Plus className="mr-1 h-3.5 w-3.5" />
+              Nytt tiltak
+            </Link>
+          </Button>
         </div>
         {measures.length === 0 ? (
           <EmptyState icon={<ListTodo className="h-8 w-8 text-muted-foreground" />} text="Ingen tiltak registrert direkte på dette prosjektet" />
@@ -247,11 +285,46 @@ export function ProjectTabs({
                       Frist: {new Date(m.dueAt).toLocaleDateString("nb-NO")}
                       {overdue && " — forfalt"}
                     </p>
+                    <p className="text-xs text-muted-foreground">
+                      Kilde: {m.incidentId ? "Avvik" : m.riskId ? "Risiko" : "Prosjekt"}
+                    </p>
                   </div>
                   <Badge variant="outline" className={`text-xs border ${sc.color}`}>{sc.label}</Badge>
                 </Link>
               );
             })}
+          </div>
+        )}
+      </TabsContent>
+
+      <TabsContent value="time" className="mt-4">
+        <div className="flex justify-between items-center mb-3">
+          <p className="text-sm text-muted-foreground">Timeregistreringer på prosjektet</p>
+          <Button size="sm" asChild>
+            <Link href={`/dashboard/time-registration?projectId=${projectId}`}>
+              <Plus className="mr-1 h-3.5 w-3.5" />
+              Stemple timer
+            </Link>
+          </Button>
+        </div>
+        {timeEntries.length === 0 ? (
+          <EmptyState icon={<Clock className="h-8 w-8 text-muted-foreground" />} text="Ingen timer registrert på dette prosjektet" />
+        ) : (
+          <div className="divide-y rounded-lg border">
+            {timeEntries.map((entry) => (
+              <div key={entry.id} className="flex items-center justify-between px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium">
+                    {entry.user.name || entry.user.email}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(entry.date).toLocaleDateString("nb-NO")} · {entry.timeType}
+                    {entry.comment ? ` · ${entry.comment}` : ""}
+                  </p>
+                </div>
+                <span className="text-sm font-semibold">{Number(entry.hours).toFixed(1)} t</span>
+              </div>
+            ))}
           </div>
         )}
       </TabsContent>

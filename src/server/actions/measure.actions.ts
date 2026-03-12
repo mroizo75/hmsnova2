@@ -122,10 +122,23 @@ export async function createMeasure(input: any) {
       benefitEstimate: parseOptionalNumber(input.benefitEstimate),
     };
     const validated = createMeasureSchema.parse(normalizedInput);
+    if (validated.projectId) {
+      const project = await prisma.project.findFirst({
+        where: {
+          id: validated.projectId,
+          tenantId,
+        },
+        select: { id: true },
+      });
+      if (!project) {
+        return { success: false, error: "Prosjekt ikke funnet for valgt tenant" };
+      }
+    }
     
     const measure = await prisma.measure.create({
       data: {
         tenantId: validated.tenantId,
+        projectId: validated.projectId,
         riskId: validated.riskId,
         incidentId: validated.incidentId,
         auditId: validated.auditId,
@@ -177,6 +190,9 @@ export async function createMeasure(input: any) {
     
     revalidatePath("/dashboard/risks");
     revalidatePath("/dashboard/actions");
+    if (validated.projectId) {
+      revalidatePath(`/dashboard/projects/${validated.projectId}`);
+    }
     if (validated.riskId) {
       revalidatePath(`/dashboard/risks/${validated.riskId}`);
     }

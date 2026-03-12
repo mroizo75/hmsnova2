@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,21 @@ interface TenantUser {
   };
 }
 
+interface FormTemplateField {
+  id: string;
+  fieldType: string;
+  label: string;
+  isRequired: boolean;
+}
+
+interface InspectionFormTemplate {
+  id: string;
+  title: string;
+  description: string | null;
+  category: string;
+  isGlobal: boolean;
+  fields: FormTemplateField[];
+}
 
 const riskCategoryOptions = [
   { value: "SAFETY", label: "Sikkerhet" },
@@ -49,12 +64,14 @@ const NO_FOLLOWUP_VALUE = "__none_followup__";
 
 export default function NewInspectionPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const projectId = searchParams.get("projectId") || "";
   const { toast } = useToast();
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState<TenantUser[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
-  const [formTemplates, setFormTemplates] = useState<any[]>([]);
+  const [formTemplates, setFormTemplates] = useState<InspectionFormTemplate[]>([]);
   const [loadingFormTemplates, setLoadingFormTemplates] = useState(true);
 
   const [formData, setFormData] = useState({
@@ -115,13 +132,29 @@ export default function NewInspectionPage() {
     fetchFormTemplates();
   }, []);
 
+  const selectedFormTemplate =
+    formData.formTemplateId === NO_TEMPLATE_VALUE
+      ? null
+      : formTemplates.find((template) => template.id === formData.formTemplateId) ?? null;
+
+  const previewFields = selectedFormTemplate?.fields ?? [];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.formTemplateId === NO_TEMPLATE_VALUE) {
+      toast({
+        title: "Mangler mal",
+        description: "Du må velge et vernerunde-skjema fra malbiblioteket.",
+        variant: "destructive",
+      });
+      return;
+    }
     setLoading(true);
 
     try {
       const payload = {
         ...formData,
+        projectId: projectId || undefined,
         formTemplateId: formData.formTemplateId === NO_TEMPLATE_VALUE ? undefined : formData.formTemplateId,
         riskCategory: formData.riskCategory === NO_RISK_CATEGORY_VALUE ? undefined : formData.riskCategory,
         followUpById: formData.followUpById === NO_FOLLOWUP_VALUE ? undefined : formData.followUpById,
@@ -184,6 +217,11 @@ export default function NewInspectionPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
+            {projectId ? (
+              <div className="rounded border border-blue-300 bg-blue-50 p-3 text-sm text-blue-900">
+                Denne vernerunden blir registrert på valgt prosjekt.
+              </div>
+            ) : null}
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="title">
@@ -225,7 +263,10 @@ export default function NewInspectionPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="formTemplateId">📋 Vernerunde-skjema</Label>
+                <Label htmlFor="formTemplateId">
+                  📋 Mal (skjemabuilder)
+                  <span className="text-destructive"> *</span>
+                </Label>
                 <Select
                   value={formData.formTemplateId}
                   onValueChange={(value) => {
@@ -248,10 +289,10 @@ export default function NewInspectionPage() {
                   disabled={loadingFormTemplates}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={loadingFormTemplates ? "Laster skjemaer..." : "Velg skjema (anbefalt)"} />
+                    <SelectValue placeholder={loadingFormTemplates ? "Laster skjemaer..." : "Velg mal-skjema"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={NO_TEMPLATE_VALUE}>Ingen skjema</SelectItem>
+                    <SelectItem value={NO_TEMPLATE_VALUE}>Velg mal</SelectItem>
                     {formTemplates.length === 0 && !loadingFormTemplates && (
                       <div className="px-2 py-6 text-sm text-muted-foreground text-center">
                         <p className="font-semibold">Ingen vernerunde-skjemaer funnet</p>
@@ -266,11 +307,45 @@ export default function NewInspectionPage() {
                     )}
                     {formTemplates.map((template) => (
                       <SelectItem key={template.id} value={template.id}>
-                        📋 {template.title}
+                        {template.isGlobal ? `📋 ${template.title} (Eksempelmal)` : `📋 ${template.title}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {selectedFormTemplate ? (
+                  <div className="rounded border bg-muted/30 p-3 space-y-2">
+                    <p className="text-sm font-semibold">{selectedFormTemplate.title}</p>
+                    {selectedFormTemplate.description ? (
+                      <p className="text-xs text-muted-foreground">
+                        {selectedFormTemplate.description}
+                      </p>
+                    ) : null}
+                    {selectedFormTemplate.isGlobal ? (
+                      <p className="text-xs rounded border border-purple-300 bg-purple-50 p-2 text-purple-900">
+                        Dette er en global eksempelmal. Lag en kopi under Skjemaer hvis du vil endre
+                        eller legge til punkter.
+                      </p>
+                    ) : null}
+                    <p className="text-xs font-medium">
+                      Felter i malen: {previewFields.length}
+                    </p>
+                    {previewFields.length > 0 ? (
+                      <ul className="text-xs space-y-1">
+                        {previewFields.slice(0, 10).map((field) => (
+                          <li key={field.id} className="list-disc ml-4">
+                            {field.label}
+                            {field.isRequired ? " (påkrevd)" : ""}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    {previewFields.length > 10 ? (
+                      <p className="text-xs text-muted-foreground">
+                        +{previewFields.length - 10} flere felter i skjemaet.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
                 {formTemplates.length === 0 && !loadingFormTemplates && (
                   <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
                     <p className="text-sm text-blue-900 font-medium">
@@ -436,7 +511,7 @@ export default function NewInspectionPage() {
               </Link>
               <Button type="submit" disabled={loading}>
                 <Save className="mr-2 h-4 w-4" />
-                {loading ? "Oppretter..." : "Opprett inspeksjon"}
+                {loading ? "Oppretter..." : "Opprett vernerunde"}
               </Button>
             </div>
           </form>

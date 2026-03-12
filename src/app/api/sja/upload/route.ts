@@ -13,7 +13,12 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData();
-    const tenantId = formData.get("tenantId") as string;
+    const tenantId = session.user.tenantId ?? (
+      await prisma.userTenant.findFirst({
+        where: { userId: session.user.id },
+        select: { tenantId: true },
+      })
+    )?.tenantId;
     const sjaAnalysisId = formData.get("sjaAnalysisId") as string;
 
     if (!tenantId || !sjaAnalysisId) {

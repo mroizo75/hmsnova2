@@ -17,10 +17,26 @@ export async function GET(
       return createErrorResponse(ErrorCodes.UNAUTHORIZED, "Ikke autentisert", 401);
     }
 
+    const sessionTenantId = session.user.tenantId ?? (
+      await prisma.userTenant.findFirst({
+        where: { userId: session.user.id },
+        select: { tenantId: true },
+      })
+    )?.tenantId;
+    if (!sessionTenantId) {
+      return createErrorResponse(ErrorCodes.FORBIDDEN, "Ingen tenant tilgang", 403);
+    }
     const { id: auditId } = await params;
+    const audit = await prisma.audit.findFirst({
+      where: { id: auditId, tenantId: sessionTenantId },
+      select: { id: true },
+    });
+    if (!audit) {
+      return createErrorResponse(ErrorCodes.NOT_FOUND, "Revisjon ikke funnet", 404);
+    }
 
     const findings = await prisma.auditFinding.findMany({
-      where: { auditId },
+      where: { auditId: audit.id },
       orderBy: { createdAt: "desc" },
     });
 
@@ -44,12 +60,28 @@ export async function POST(
       return createErrorResponse(ErrorCodes.UNAUTHORIZED, "Ikke autentisert", 401);
     }
 
+    const sessionTenantId = session.user.tenantId ?? (
+      await prisma.userTenant.findFirst({
+        where: { userId: session.user.id },
+        select: { tenantId: true },
+      })
+    )?.tenantId;
+    if (!sessionTenantId) {
+      return createErrorResponse(ErrorCodes.FORBIDDEN, "Ingen tenant tilgang", 403);
+    }
     const { id: auditId } = await params;
     const data = await request.json();
+    const audit = await prisma.audit.findFirst({
+      where: { id: auditId, tenantId: sessionTenantId },
+      select: { id: true },
+    });
+    if (!audit) {
+      return createErrorResponse(ErrorCodes.NOT_FOUND, "Revisjon ikke funnet", 404);
+    }
 
     const finding = await prisma.auditFinding.create({
       data: {
-        auditId,
+        auditId: audit.id,
         findingType: data.findingType || "OBSERVATION",
         clause: data.clause,
         description: data.description,

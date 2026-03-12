@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getTenantFeaturesForIndustry } from "@/lib/tenant-features";
 
 export async function GET(request: NextRequest) {
   try {
@@ -43,6 +44,7 @@ export async function GET(request: NextRequest) {
       role: ut.role,
       employeeCount: ut.tenant.employeeCount,
       industry: ut.tenant.industry,
+      features: getTenantFeaturesForIndustry(ut.tenant.industry),
     }));
 
     return NextResponse.json({

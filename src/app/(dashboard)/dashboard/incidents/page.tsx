@@ -63,12 +63,14 @@ export default async function IncidentsPage() {
           </div>
           <PageHelpDialog content={helpContent.incidents} />
         </div>
-        <Button asChild>
-          <Link href="/dashboard/incidents/new">
-            <Plus className="mr-2 h-4 w-4" />
-            Rapporter avvik
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild>
+            <Link href="/dashboard/incidents/new">
+              <Plus className="mr-2 h-4 w-4" />
+              Rapporter avvik
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

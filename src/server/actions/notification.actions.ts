@@ -28,7 +28,7 @@ export async function createNotification(input: CreateNotificationInput) {
     });
 
     // Publiser til Redis pub/sub for real-time oppdatering
-    await publishNotification(input.userId, notification);
+    await publishNotification(input.userId, notification, input.tenantId);
 
     return { success: true, data: notification };
   } catch (error: any) {

@@ -78,6 +78,18 @@ export async function createSjaAnalysis(input: any) {
       plannedDate: new Date(input.plannedDate),
     };
     const validated = createSjaSchema.parse(normalizedInput);
+    if (validated.projectId) {
+      const project = await prisma.project.findFirst({
+        where: {
+          id: validated.projectId,
+          tenantId,
+        },
+        select: { id: true },
+      });
+      if (!project) {
+        return { success: false, error: "Prosjekt ikke funnet for valgt tenant" };
+      }
+    }
 
     const sjaNummer = await generateSequenceNumber(
       validated.tenantId,
@@ -101,6 +113,7 @@ export async function createSjaAnalysis(input: any) {
         createdByName: user.name || user.email,
         templateId: validated.templateId ?? null,
         templateName: validated.templateName ?? null,
+        projectId: validated.projectId ?? null,
         submittedAt: new Date(),
         signedByNames: validated.participants,
         status: SjaStatus.DRAFT,
@@ -133,6 +146,9 @@ export async function createSjaAnalysis(input: any) {
     });
 
     revalidatePath("/dashboard/sja");
+    if (validated.projectId) {
+      revalidatePath(`/dashboard/projects/${validated.projectId}`);
+    }
     revalidatePath("/ansatt/sja");
     return { success: true, data: analysis };
   } catch (error: any) {

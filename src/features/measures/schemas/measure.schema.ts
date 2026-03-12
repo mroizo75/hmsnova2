@@ -17,6 +17,7 @@ import {
 
 export const createMeasureSchema = z.object({
   tenantId: z.string().cuid(),
+  projectId: z.string().cuid().optional(),
   riskId: z.string().cuid().optional(),
   incidentId: z.string().cuid().optional(),
   auditId: z.string().cuid().optional(),

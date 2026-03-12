@@ -10,7 +10,11 @@ import { ListTodo, Clock, CheckCircle, AlertTriangle } from "lucide-react";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
 import { helpContent } from "@/lib/help-content";
 
-export default async function ActionsPage() {
+interface ActionsPageProps {
+  searchParams: Promise<{ projectId?: string }>;
+}
+
+export default async function ActionsPage({ searchParams }: ActionsPageProps) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.email) {
@@ -27,6 +31,19 @@ export default async function ActionsPage() {
   }
 
   const tenantId = user.tenants[0].tenantId;
+  const { projectId } = await searchParams;
+  const selectedProject = projectId
+    ? await prisma.project.findFirst({
+        where: {
+          id: projectId,
+          tenantId,
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+      })
+    : null;
 
   const measures = await prisma.measure.findMany({
     where: { tenantId },
@@ -73,8 +90,13 @@ export default async function ActionsPage() {
           </div>
           <PageHelpDialog content={helpContent.actions} />
         </div>
-        <MeasureForm tenantId={tenantId} users={tenantUsers} />
+        <MeasureForm tenantId={tenantId} projectId={selectedProject?.id} users={tenantUsers} />
       </div>
+      {selectedProject ? (
+        <div className="rounded border border-blue-300 bg-blue-50 p-3 text-sm text-blue-900">
+          Nye tiltak opprettes for prosjekt: <strong>{selectedProject.name}</strong>
+        </div>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>

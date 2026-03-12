@@ -9,6 +9,7 @@ export type NavPermission =
   | "legalRegister"
   | "incidents"
   | "hseStatistics"
+  | "exposureRegister"
   | "sja"
   | "inspections"
   | "training"
@@ -25,6 +26,7 @@ export type NavPermission =
   | "timeRegistration"
   | "whistleblowing"
   | "goals"
+  | "constructionCompliance"
   | "settings";
 
 export interface DashboardNavItemConfig {
@@ -45,6 +47,7 @@ export const DASHBOARD_NAV_CONFIG: DashboardNavItemConfig[] = [
   { href: "/dashboard/training", label: "nav.training", permission: "training", defaultSimple: true },
   { href: "/dashboard/actions", label: "nav.actions", permission: "actions", defaultSimple: true },
   { href: "/dashboard/chemicals", label: "nav.chemicals", permission: "chemicals", defaultSimple: true },
+  { href: "/dashboard/exposure-register", label: "nav.exposureRegister", permission: "exposureRegister", defaultSimple: true },
   { href: "/dashboard/forms", label: "nav.forms", permission: "forms", defaultSimple: false },
   { href: "/dashboard/risks", label: "nav.risks", permission: "risks", defaultSimple: false },
   { href: "/dashboard/risk-register", label: "nav.riskRegister", permission: "risks", defaultSimple: false },
@@ -58,6 +61,7 @@ export const DASHBOARD_NAV_CONFIG: DashboardNavItemConfig[] = [
   { href: "/dashboard/annual-hms-plan", label: "nav.annualHmsPlan", permission: "annualHmsPlan", defaultSimple: true },
   { href: "/dashboard/meetings", label: "nav.meetings", permission: "meetings", defaultSimple: false },
   { href: "/dashboard/time-registration", label: "nav.timeRegistration", permission: "timeRegistration", defaultSimple: true },
+  { href: "/dashboard/construction-compliance", label: "nav.constructionCompliance", permission: "constructionCompliance", defaultSimple: true },
   { href: "/dashboard/whistleblowing", label: "nav.whistleblowing", permission: "whistleblowing", defaultSimple: false },
   { href: "/dashboard/goals", label: "nav.goals", permission: "goals", defaultSimple: false },
   { href: "/dashboard/settings", label: "nav.settings", permission: "settings", defaultSimple: true },

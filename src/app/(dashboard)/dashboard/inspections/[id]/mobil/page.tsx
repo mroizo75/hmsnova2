@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { MobileFindingForm } from "@/features/inspections/components/mobile-finding-form";
+import { InspectionChecklist } from "@/features/inspections/components/inspection-checklist";
+import { CompleteInspectionButton } from "@/features/inspections/components/complete-inspection-button";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, CheckCircle, Clock, MapPin } from "lucide-react";
 import Link from "next/link";
@@ -123,7 +125,7 @@ export default async function InspectionMobilePage({
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-sm text-orange-600 bg-orange-50 p-3 rounded-md">
                   <Clock className="h-4 w-4" />
-                  <span>Skjema må fylles ut</span>
+                  <span>Skjema må fylles ut og sendes inn (funn er valgfritt)</span>
                 </div>
                 <Link href={`/dashboard/forms/${inspection.formTemplate.id}/fill?inspectionId=${id}`}>
                   <Button className="w-full">
@@ -150,6 +152,19 @@ export default async function InspectionMobilePage({
             <div className="text-sm text-muted-foreground mt-1">Åpne funn</div>
           </div>
         </div>
+
+        {inspection.checklist ? (
+          <div className="bg-white rounded-lg border p-4 mb-6">
+            <h2 className="text-base font-semibold mb-2">Sjekkpunkter</h2>
+            <InspectionChecklist inspectionId={inspection.id} checklist={inspection.checklist} />
+            <div className="mt-3">
+              <CompleteInspectionButton
+                inspectionId={inspection.id}
+                findingsCount={inspection.findings.length}
+              />
+            </div>
+          </div>
+        ) : null}
 
         {/* Add Finding Form */}
         <MobileFindingForm inspectionId={id} />

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Stethoscope } from "lucide-react";
 import { AddBhtClientForm } from "@/features/admin/components/add-bht-client-form";
+import { hasTenantFeature } from "@/lib/tenant-features";
 
 export const metadata = {
   title: "Ny BHT-kunde | HMS Nova",
@@ -26,7 +27,7 @@ export default async function NewBhtClientPage() {
   }
 
   // Hent alle aktive tenants som ikke allerede er BHT-kunder
-  const tenantsWithoutBht = await prisma.tenant.findMany({
+  const candidateTenants = await prisma.tenant.findMany({
     where: {
       status: { in: ["ACTIVE", "TRIAL"] },
       bhtClient: null,
@@ -42,6 +43,9 @@ export default async function NewBhtClientPage() {
     },
     orderBy: { name: "asc" },
   });
+  const tenantsWithoutBht = candidateTenants.filter((tenant) =>
+    hasTenantFeature(tenant.industry, "bht")
+  );
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">

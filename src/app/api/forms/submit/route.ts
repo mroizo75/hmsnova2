@@ -30,6 +30,13 @@ export async function POST(request: NextRequest) {
 
     const values = JSON.parse(valuesJson);
     const storage = getStorage();
+    const sessionTenantId = session.user.tenantId;
+    if (!sessionTenantId) {
+      return NextResponse.json({ error: "Ingen tenant i sesjon" }, { status: 403 });
+    }
+    if (tenantId !== sessionTenantId) {
+      return NextResponse.json({ error: "Ugyldig tenant-kontekst" }, { status: 403 });
+    }
 
     // Hent skjemaet for å få feltene
     const form = await prisma.formTemplate.findUnique({
@@ -39,6 +46,11 @@ export async function POST(request: NextRequest) {
 
     if (!form) {
       return NextResponse.json({ error: "Form not found" }, { status: 404 });
+    }
+    const canAccessForm =
+      form.tenantId === sessionTenantId || (form.isGlobal === true && form.tenantId === null);
+    if (!canAccessForm) {
+      return NextResponse.json({ error: "Ingen tilgang til skjema" }, { status: 403 });
     }
 
     const sequenceType = getFormSequenceType(form.numberPrefix ?? null);
@@ -51,6 +63,9 @@ export async function POST(request: NextRequest) {
     // Anonyme svar for psykososiale skjemaer (ISO 45003, AML § 4-3)
     const isAnonymous =
       form.category === "WELLBEING" || form.allowAnonymousResponses;
+    if (!isAnonymous && userId !== session.user.id) {
+      return NextResponse.json({ error: "Ugyldig bruker-kontekst" }, { status: 403 });
+    }
 
     // Bygg metadata-objekt
     const metadataObj: Record<string, unknown> = {};
@@ -115,7 +130,7 @@ export async function POST(request: NextRequest) {
     // Koble submission til inspeksjon og sett status COMPLETED
     if (status === "SUBMITTED" && inspectionId) {
       await prisma.inspection.update({
-        where: { id: inspectionId, tenantId },
+        where: { id: inspectionId, tenantId: sessionTenantId },
         data: {
           formSubmissionId: submission.id,
           status: "COMPLETED",

@@ -9,6 +9,8 @@ import {
   updateTrainingSchema,
   evaluateTrainingSchema,
 } from "@/features/training/schemas/training.schema";
+import { hasTenantFeature } from "@/lib/tenant-features";
+import { runHealthcareTrainingExpiryAlerts } from "@/lib/healthcare-training-alerts";
 
 async function getSessionContext() {
   const session = await getServerSession(authOptions);
@@ -428,6 +430,36 @@ export async function getCompetenceMatrix(tenantId: string) {
   } catch (error: any) {
     console.error("Get competence matrix error:", error);
     return { success: false, error: error.message || "Kunne ikke hente kompetansematrise" };
+  }
+}
+
+export async function sendHealthcareTrainingExpiryAlerts() {
+  try {
+    const { user, tenantId } = await getSessionContext();
+    const userTenant = user.tenants.find((ut) => ut.tenantId === tenantId);
+    const isAllowedRole =
+      userTenant?.role === "ADMIN" ||
+      userTenant?.role === "HMS" ||
+      userTenant?.role === "LEDER";
+
+    if (!isAllowedRole) {
+      return { success: false, error: "Ingen tilgang til å sende varsler" };
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { industry: true },
+    });
+
+    if (!hasTenantFeature(tenant?.industry, "helseforetak")) {
+      return { success: false, error: "Varslingsflyten er kun tilgjengelig for helsebransje" };
+    }
+
+    const result = await runHealthcareTrainingExpiryAlerts({ tenantId });
+    return { success: true, data: { sent: result.totalSent } };
+  } catch (error: any) {
+    console.error("Send healthcare training expiry alerts error:", error);
+    return { success: false, error: error.message || "Kunne ikke sende kompetansevarsler" };
   }
 }
 

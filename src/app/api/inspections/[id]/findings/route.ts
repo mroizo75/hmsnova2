@@ -17,10 +17,26 @@ export async function GET(
       return createErrorResponse(ErrorCodes.UNAUTHORIZED, "Ikke autentisert", 401);
     }
 
+    const sessionTenantId = session.user.tenantId ?? (
+      await prisma.userTenant.findFirst({
+        where: { userId: session.user.id },
+        select: { tenantId: true },
+      })
+    )?.tenantId;
+    if (!sessionTenantId) {
+      return createErrorResponse(ErrorCodes.FORBIDDEN, "Ingen tenant tilgang", 403);
+    }
     const { id: inspectionId } = await params;
+    const inspection = await prisma.inspection.findFirst({
+      where: { id: inspectionId, tenantId: sessionTenantId },
+      select: { id: true },
+    });
+    if (!inspection) {
+      return createErrorResponse(ErrorCodes.NOT_FOUND, "Inspeksjon ikke funnet", 404);
+    }
 
     const findings = await prisma.inspectionFinding.findMany({
-      where: { inspectionId },
+      where: { inspectionId: inspection.id },
       orderBy: { createdAt: "desc" },
     });
 
@@ -44,12 +60,28 @@ export async function POST(
       return createErrorResponse(ErrorCodes.UNAUTHORIZED, "Ikke autentisert", 401);
     }
 
+    const sessionTenantId = session.user.tenantId ?? (
+      await prisma.userTenant.findFirst({
+        where: { userId: session.user.id },
+        select: { tenantId: true },
+      })
+    )?.tenantId;
+    if (!sessionTenantId) {
+      return createErrorResponse(ErrorCodes.FORBIDDEN, "Ingen tenant tilgang", 403);
+    }
     const { id: inspectionId } = await params;
     const data = await request.json();
+    const inspection = await prisma.inspection.findFirst({
+      where: { id: inspectionId, tenantId: sessionTenantId },
+      select: { id: true },
+    });
+    if (!inspection) {
+      return createErrorResponse(ErrorCodes.NOT_FOUND, "Inspeksjon ikke funnet", 404);
+    }
 
     const finding = await prisma.inspectionFinding.create({
       data: {
-        inspectionId,
+        inspectionId: inspection.id,
         title: data.title,
         description: data.description,
         severity: data.severity || 3,

@@ -17,11 +17,30 @@ export async function PATCH(
       return createErrorResponse(ErrorCodes.UNAUTHORIZED, "Ikke autentisert", 401);
     }
 
+    const sessionTenantId = session.user.tenantId ?? (
+      await prisma.userTenant.findFirst({
+        where: { userId: session.user.id },
+        select: { tenantId: true },
+      })
+    )?.tenantId;
+    if (!sessionTenantId) {
+      return createErrorResponse(ErrorCodes.FORBIDDEN, "Ingen tenant tilgang", 403);
+    }
     const { id } = await params;
     const data = await request.json();
+    const existing = await prisma.inspectionFinding.findFirst({
+      where: {
+        id,
+        inspection: { tenantId: sessionTenantId },
+      },
+      select: { id: true },
+    });
+    if (!existing) {
+      return createErrorResponse(ErrorCodes.NOT_FOUND, "Funn ikke funnet", 404);
+    }
 
     const finding = await prisma.inspectionFinding.update({
-      where: { id },
+      where: { id: existing.id },
       data: {
         ...(data.title && { title: data.title }),
         ...(data.description && { description: data.description }),
@@ -60,10 +79,29 @@ export async function DELETE(
       return createErrorResponse(ErrorCodes.UNAUTHORIZED, "Ikke autentisert", 401);
     }
 
+    const sessionTenantId = session.user.tenantId ?? (
+      await prisma.userTenant.findFirst({
+        where: { userId: session.user.id },
+        select: { tenantId: true },
+      })
+    )?.tenantId;
+    if (!sessionTenantId) {
+      return createErrorResponse(ErrorCodes.FORBIDDEN, "Ingen tenant tilgang", 403);
+    }
     const { id } = await params;
+    const existing = await prisma.inspectionFinding.findFirst({
+      where: {
+        id,
+        inspection: { tenantId: sessionTenantId },
+      },
+      select: { id: true },
+    });
+    if (!existing) {
+      return createErrorResponse(ErrorCodes.NOT_FOUND, "Funn ikke funnet", 404);
+    }
 
     await prisma.inspectionFinding.delete({
-      where: { id },
+      where: { id: existing.id },
     });
 
     return createSuccessResponse(undefined, "Funn slettet");

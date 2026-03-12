@@ -45,76 +45,77 @@ model Session {
 }
 
 model User {
-  id            String       @id @default(cuid())
+  id            String    @id @default(cuid())
   name          String?
-  email         String       @unique
+  email         String    @unique
   emailVerified DateTime?
-  image         String?      // Avatar/profilbilde
+  image         String? // Avatar/profilbilde
   password      String?
-  isSuperAdmin  Boolean      @default(false)
-  isSupport     Boolean      @default(false) // Support rolle: kan kun administrere tenants
-  lastTenantId  String?      // Siste valgte tenant for brukere med flere tenants
-  
+  isSuperAdmin  Boolean   @default(false)
+  isSupport     Boolean   @default(false) // Support rolle: kan kun administrere tenants
+  lastTenantId  String? // Siste valgte tenant for brukere med flere tenants
+
   // Kontaktinformasjon
-  phone         String?      // Telefonnummer
-  address       String?      // Adresse
-  postalCode    String?      // Postnummer
-  city          String?      // Poststed
-  
+  phone      String? // Telefonnummer
+  address    String? // Adresse
+  postalCode String? // Postnummer
+  city       String? // Poststed
+
   // Varslingsinnstillinger
-  notifyByEmail       Boolean  @default(true)  // Motta e-postvarsler
-  notifyBySms         Boolean  @default(false) // Motta SMS-varsler (krever phone)
-  reminderDaysBefore  Int      @default(1)     // Hvor mange dager før hendelser skal varsles
-  notifyMeetings      Boolean  @default(true)  // Varsle om møter
-  notifyInspections   Boolean  @default(true)  // Varsle om vernerunder/inspeksjoner
-  notifyAudits        Boolean  @default(true)  // Varsle om revisjoner
-  notifyMeasures      Boolean  @default(true)  // Varsle om tiltak som forfaller
-  notifyIncidents     Boolean  @default(true)  // Varsle om avvik/hendelser
-  notifyDocuments     Boolean  @default(true)  // Varsle om dokumenter
-  notifyTraining      Boolean  @default(true)  // Varsle om opplæring
-  notifyRisks         Boolean  @default(true)  // Varsle om risikoer
-  dailyDigest         Boolean  @default(false) // Motta daglig e-post sammendrag
-  weeklyDigest        Boolean  @default(true)  // Motta ukentlig e-post sammendrag
-  
+  notifyByEmail      Boolean @default(true) // Motta e-postvarsler
+  notifyBySms        Boolean @default(false) // Motta SMS-varsler (krever phone)
+  reminderDaysBefore Int     @default(1) // Hvor mange dager før hendelser skal varsles
+  notifyMeetings     Boolean @default(true) // Varsle om møter
+  notifyInspections  Boolean @default(true) // Varsle om vernerunder/inspeksjoner
+  notifyAudits       Boolean @default(true) // Varsle om revisjoner
+  notifyMeasures     Boolean @default(true) // Varsle om tiltak som forfaller
+  notifyIncidents    Boolean @default(true) // Varsle om avvik/hendelser
+  notifyDocuments    Boolean @default(true) // Varsle om dokumenter
+  notifyTraining     Boolean @default(true) // Varsle om opplæring
+  notifyRisks        Boolean @default(true) // Varsle om risikoer
+  dailyDigest        Boolean @default(false) // Motta daglig e-post sammendrag
+  weeklyDigest       Boolean @default(true) // Motta ukentlig e-post sammendrag
+
   // Security: Account lockout
   failedLoginAttempts Int       @default(0)
   lockedUntil         DateTime?
   lastLoginAttempt    DateTime?
-  
-  accounts            Account[]
-  sessions            Session[]
-  tenants             UserTenant[]
-  blogPosts           BlogPost[]   // Blogg-artikler skrevet av bruker
-  passwordResetTokens PasswordResetToken[]
-  meetingParticipants MeetingParticipant[] @relation("MeetingParticipants")
-  meetingDecisions    MeetingDecision[]    @relation("MeetingDecisions")
-  documentsApproved   Document[]           @relation("DocumentApprovedBy")
-  ownedDocuments      Document[]           @relation("DocumentOwner")
-  ownedRisks          Risk[]               @relation("RiskOwner")
-  riskControlsOwned   RiskControl[]        @relation("RiskControlOwner")
-  securityAssetsOwned SecurityAsset[]      @relation("SecurityAssetOwner")
-  securityControlsOwned SecurityControl[]  @relation("SecurityControlOwner")
-  securityEvidenceCollected SecurityEvidence[] @relation("SecurityEvidenceCollector")
-  environmentalAspects EnvironmentalAspect[] @relation("EnvironmentalAspectOwner")
-  measures            Measure[]            @relation("MeasureResponsible")
-  environmentalMeasurements EnvironmentalMeasurement[] @relation("EnvironmentalMeasurementResponsible")
-  accessReviewsOwned  AccessReview[]       @relation("AccessReviewOwner")
-  accessReviewDecisions AccessReviewEntry[] @relation("AccessReviewDecider")
-  feedbackRecorded    CustomerFeedback[]   @relation("FeedbackRecorder")
-  feedbackFollowUp    CustomerFeedback[]   @relation("FeedbackFollowUpOwner")
-  notifications       Notification[]
-  scheduledReminders  ScheduledReminder[]  @relation("UserReminders")
-  hmsAnnualPlanCompletions HmsAnnualPlanCompletion[]
-  formSubmissions        FormSubmission[]
-  projectsCreated        Project[]    @relation("ProjectCreatedBy")
-  projectsManaged        Project[]    @relation("ProjectManager")
-  timeEntries            TimeEntry[]
-  editedTimeEntries      TimeEntry[]      @relation("TimeEntryEditedBy")
-  mileageEntries         MileageEntry[]
-  editedMileageEntries   MileageEntry[]   @relation("MileageEntryEditedBy")
-  exposureRegisters      ExposureRegister[] @relation("ExposureRegisterEmployee")
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
+
+  accounts                  Account[]
+  sessions                  Session[]
+  tenants                   UserTenant[]
+  blogPosts                 BlogPost[] // Blogg-artikler skrevet av bruker
+  passwordResetTokens       PasswordResetToken[]
+  meetingParticipants       MeetingParticipant[]           @relation("MeetingParticipants")
+  meetingDecisions          MeetingDecision[]              @relation("MeetingDecisions")
+  documentsApproved         Document[]                     @relation("DocumentApprovedBy")
+  ownedDocuments            Document[]                     @relation("DocumentOwner")
+  ownedRisks                Risk[]                         @relation("RiskOwner")
+  riskControlsOwned         RiskControl[]                  @relation("RiskControlOwner")
+  securityAssetsOwned       SecurityAsset[]                @relation("SecurityAssetOwner")
+  securityControlsOwned     SecurityControl[]              @relation("SecurityControlOwner")
+  securityEvidenceCollected SecurityEvidence[]             @relation("SecurityEvidenceCollector")
+  environmentalAspects      EnvironmentalAspect[]          @relation("EnvironmentalAspectOwner")
+  measures                  Measure[]                      @relation("MeasureResponsible")
+  environmentalMeasurements EnvironmentalMeasurement[]     @relation("EnvironmentalMeasurementResponsible")
+  accessReviewsOwned        AccessReview[]                 @relation("AccessReviewOwner")
+  accessReviewDecisions     AccessReviewEntry[]            @relation("AccessReviewDecider")
+  feedbackRecorded          CustomerFeedback[]             @relation("FeedbackRecorder")
+  feedbackFollowUp          CustomerFeedback[]             @relation("FeedbackFollowUpOwner")
+  notifications             Notification[]
+  scheduledReminders        ScheduledReminder[]            @relation("UserReminders")
+  hmsAnnualPlanCompletions  HmsAnnualPlanCompletion[]
+  formSubmissions           FormSubmission[]
+  projectsCreated           Project[]                      @relation("ProjectCreatedBy")
+  projectsManaged           Project[]                      @relation("ProjectManager")
+  timeEntries               TimeEntry[]
+  editedTimeEntries         TimeEntry[]                    @relation("TimeEntryEditedBy")
+  mileageEntries            MileageEntry[]
+  editedMileageEntries      MileageEntry[]                 @relation("MileageEntryEditedBy")
+  constructionRosterChecks  ConstructionRosterDailyCheck[] @relation("ConstructionRosterCheckedBy")
+  exposureRegisters         ExposureRegister[]             @relation("ExposureRegisterEmployee")
+  createdAt                 DateTime                       @default(now())
+  updatedAt                 DateTime                       @updatedAt
 
   @@index([email])
   @@index([isSuperAdmin])
@@ -140,137 +141,143 @@ model PasswordResetToken {
   createdAt DateTime @default(now())
   ipAddress String?
   userAgent String?  @db.Text
-  
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@index([token])
   @@index([userId])
   @@index([expires])
 }
 
 model Tenant {
-  id               String           @id @default(cuid())
-  name             String
-  orgNumber        String?
-  slug             String           @unique
-  status           TenantStatus     @default(TRIAL)
-  trialEndsAt      DateTime?
-  contactEmail     String?
-  contactPhone     String?
-  address          String?
-  city             String?
-  postalCode       String?
-  fikenCompanyId   String?          @unique
-  
+  id             String       @id @default(cuid())
+  name           String
+  orgNumber      String?
+  slug           String       @unique
+  status         TenantStatus @default(TRIAL)
+  trialEndsAt    DateTime?
+  contactEmail   String?
+  contactPhone   String?
+  address        String?
+  city           String?
+  postalCode     String?
+  fikenCompanyId String?      @unique
+
   // Fakturainformasjon
-  invoiceEmail     String?          // E-post for faktura
-  useEHF           Boolean          @default(false) // Mottar EHF-fakturaer
-  invoiceAddress   String?          // Faktura-adresse (hvis ikke EHF)
-  invoicePostalCode String?         // Postnummer (hvis ikke EHF)
-  invoiceCity      String?          // Poststed (hvis ikke EHF)
-  
+  invoiceEmail      String? // E-post for faktura
+  useEHF            Boolean @default(false) // Mottar EHF-fakturaer
+  invoiceAddress    String? // Faktura-adresse (hvis ikke EHF)
+  invoicePostalCode String? // Postnummer (hvis ikke EHF)
+  invoiceCity       String? // Poststed (hvis ikke EHF)
+
   // CRM/Onboarding fields
-  employeeCount    Int?             // Antall ansatte
-  pricingTier      PricingTier?     // Prisklasse basert på ansatte
-  industry         String?          // Bransje
-  contactPerson    String?          // Kontaktperson
-  notes            String?          @db.Text // CRM-notater
-  onboardingStatus OnboardingStatus @default(NOT_STARTED)
+  employeeCount         Int? // Antall ansatte
+  pricingTier           PricingTier? // Prisklasse basert på ansatte
+  industry              String? // Bransje
+  contactPerson         String? // Kontaktperson
+  notes                 String?          @db.Text // CRM-notater
+  onboardingStatus      OnboardingStatus @default(NOT_STARTED)
   onboardingCompletedAt DateTime?
-  salesRep         String?          // Selger/support ansvarlig
+  salesRep              String? // Selger/support ansvarlig
   // Gratis 14-dagers løype vs vanlig registrering (superadmin aktiverer)
-  registrationType RegistrationType @default(STANDARD)
-  
+  registrationType      RegistrationType @default(STANDARD)
+
   // Årlig HMS-plan & ledelsens gjennomgang (konfig per tenant)
-  hmsAnnualPlanEnabled           Boolean   @default(true)  // Om årlig HMS-plan er aktivert for denne tenanten
-  hmsAnnualPlanConfig            Json?                 // Strukturert årshjul/plan (aktiviteter, ansvar, perioder)
-  managementReviewFrequencyMonths Int      @default(12) // Hvor ofte skal ledelsens gjennomgang minst gjennomføres (måneder)
-  
+  hmsAnnualPlanEnabled            Boolean @default(true) // Om årlig HMS-plan er aktivert for denne tenanten
+  hmsAnnualPlanConfig             Json? // Strukturert årshjul/plan (aktiviteter, ansvar, perioder)
+  managementReviewFrequencyMonths Int     @default(12) // Hvor ofte skal ledelsens gjennomgang minst gjennomføres (måneder)
+
   // HMS-kontaktinformasjon (dynamisk visning for ansatte)
-  hmsContactName   String?          // Navn på HMS-ansvarlig
-  hmsContactPhone  String?          // Telefon til HMS-ansvarlig
-  hmsContactEmail  String?          // E-post til HMS-ansvarlig
-  
+  hmsContactName  String? // Navn på HMS-ansvarlig
+  hmsContactPhone String? // Telefon til HMS-ansvarlig
+  hmsContactEmail String? // E-post til HMS-ansvarlig
+
   // Azure AD / Office 365 SSO Integration (per-tenant)
-  azureAdTenantId     String?       // Azure AD Tenant ID (fra Azure Portal)
-  azureAdEnabled      Boolean       @default(false) // Er Azure AD SSO aktivert?
-  azureAdSyncEnabled  Boolean       @default(false) // Auto-sync brukere fra Azure AD?
-  azureAdLastSync     DateTime?     // Sist synkronisert
-  azureAdDomain       String?       // Primary domain (f.eks. "firma.no")
-  azureAdAutoRole     Role?         // Standard rolle for nye brukere fra Azure AD
-  
-  users            UserTenant[]
-  activities       TenantActivity[]
-  documents        Document[]
-  documentVersions DocumentVersion[]
-  documentTemplates DocumentTemplate[]
-  risks            Risk[]
-  riskAssessments  RiskAssessment[]
-  riskControls     RiskControl[]
-  riskDocumentLinks RiskDocumentLink[]
-  riskAuditLinks   RiskAuditLink[]
-  riskChemicalLinks RiskChemicalLink[]
-  riskTrainingRequirements RiskTrainingRequirement[]
-  securityAssets   SecurityAsset[]
-  securityControls SecurityControl[]
-  securityControlDocuments SecurityControlDocument[]
-  securityEvidences SecurityEvidence[]
-  accessReviews    AccessReview[]
-  accessReviewEntries AccessReviewEntry[]
-  customerFeedbacks CustomerFeedback[]
-  incidents        Incident[]
-  trainings        Training[]
-  courseTemplates  CourseTemplate[]
-  actions          Measure[]
-  environmentalAspects EnvironmentalAspect[]
-  environmentalMeasurements EnvironmentalMeasurement[]
-  audits           Audit[]
-  goals            Goal[]
-  chemicals        Chemical[]
-  attachments      Attachment[]
-  auditLogs        AuditLog[]
-  subscription     Subscription?
-  offers           TenantOffer[]
-  invoices         Invoice[]
-  formTemplates    FormTemplate[]   // Digital forms
-  notifications    Notification[]
-  formSubmissions  FormSubmission[] // Digital forms
-  kpiMeasurements  KpiMeasurement[] // KPI målinger
-  inspections      Inspection[]     // Vernerunde/Inspeksjoner
-  inspectionTemplates InspectionTemplate[]
-  managementReviews ManagementReview[] // Ledelsens gjennomgang
-  meetings         Meeting[]        // AMU/VO møter
-  whistleblowings  Whistleblowing[] // Varslinger
-  scheduledReminders ScheduledReminder[] // Planlagte påminnelser
-  bhtClient        BhtClient?       // BHT-kunde (hvis aktivert)
-  navigationItems  NavigationItem[] // Meny-konfigurasjoner
-  simpleMenuItems  Json?            // Hrefs som vises i enkel meny (null = standard)
-  hmsAnnualPlanCompletions HmsAnnualPlanCompletion[] // Avkryssing av årlig HMS-plan (sjekkliste)
+  azureAdTenantId    String? // Azure AD Tenant ID (fra Azure Portal)
+  azureAdEnabled     Boolean   @default(false) // Er Azure AD SSO aktivert?
+  azureAdSyncEnabled Boolean   @default(false) // Auto-sync brukere fra Azure AD?
+  azureAdLastSync    DateTime? // Sist synkronisert
+  azureAdDomain      String? // Primary domain (f.eks. "firma.no")
+  azureAdAutoRole    Role? // Standard rolle for nye brukere fra Azure AD
+
+  users                        UserTenant[]
+  activities                   TenantActivity[]
+  documents                    Document[]
+  documentVersions             DocumentVersion[]
+  documentTemplates            DocumentTemplate[]
+  risks                        Risk[]
+  riskAssessments              RiskAssessment[]
+  riskControls                 RiskControl[]
+  riskDocumentLinks            RiskDocumentLink[]
+  riskAuditLinks               RiskAuditLink[]
+  riskChemicalLinks            RiskChemicalLink[]
+  riskTrainingRequirements     RiskTrainingRequirement[]
+  securityAssets               SecurityAsset[]
+  securityControls             SecurityControl[]
+  securityControlDocuments     SecurityControlDocument[]
+  securityEvidences            SecurityEvidence[]
+  accessReviews                AccessReview[]
+  accessReviewEntries          AccessReviewEntry[]
+  customerFeedbacks            CustomerFeedback[]
+  incidents                    Incident[]
+  trainings                    Training[]
+  courseTemplates              CourseTemplate[]
+  actions                      Measure[]
+  environmentalAspects         EnvironmentalAspect[]
+  environmentalMeasurements    EnvironmentalMeasurement[]
+  audits                       Audit[]
+  goals                        Goal[]
+  chemicals                    Chemical[]
+  attachments                  Attachment[]
+  auditLogs                    AuditLog[]
+  subscription                 Subscription?
+  offers                       TenantOffer[]
+  invoices                     Invoice[]
+  formTemplates                FormTemplate[] // Digital forms
+  notifications                Notification[]
+  formSubmissions              FormSubmission[] // Digital forms
+  kpiMeasurements              KpiMeasurement[] // KPI målinger
+  inspections                  Inspection[] // Vernerunde/Inspeksjoner
+  inspectionTemplates          InspectionTemplate[]
+  managementReviews            ManagementReview[] // Ledelsens gjennomgang
+  meetings                     Meeting[] // AMU/VO møter
+  whistleblowings              Whistleblowing[] // Varslinger
+  scheduledReminders           ScheduledReminder[] // Planlagte påminnelser
+  bhtClient                    BhtClient? // BHT-kunde (hvis aktivert)
+  navigationItems              NavigationItem[] // Meny-konfigurasjoner
+  simpleMenuItems              Json? // Hrefs som vises i enkel meny (null = standard)
+  hmsAnnualPlanCompletions     HmsAnnualPlanCompletion[] // Avkryssing av årlig HMS-plan (sjekkliste)
   // Timeregistrering (prosjekter, timer, kjøring)
-  timeRegistrationEnabled Boolean   @default(false) // Aktiver modul per tenant
-  weeklyHoursNorm         Float     @default(37.5)  // Ordinær uke (timer)
-  overtime50Multiplier     Float     @default(1.5)  // Overtid 50 % = 1.5x
-  overtime40Multiplier     Float     @default(1.4)  // Overtid 40 % = 1.4x (kundespesifikk)
-  overtime100Multiplier    Float     @default(2)    // Overtid 100 % = 2x
-  useOvertime40Percent     Boolean   @default(false) // Bruk 40 % i stedet for 50 % hverdag
-  defaultKmRate            Float     @default(4.5)  // Standard kr/km
-  kmAllowanceTaxable       Boolean   @default(false) // true = overskudd over 3,50 kr/km skattes, false = km utenom
-  lunchBreakMinutes        Int       @default(30)   // Lunsj som trekkes fra klokketimer (0 = ingen)
-  eveningOvertimeFromHour  Int?      // Fra denne kl (man–fre) = 100 % overtid. Null = alt 50 %
+  timeRegistrationEnabled      Boolean                        @default(false) // Aktiver modul per tenant
+  weeklyHoursNorm              Float                          @default(37.5) // Ordinær uke (timer)
+  overtime50Multiplier         Float                          @default(1.5) // Overtid 50 % = 1.5x
+  overtime40Multiplier         Float                          @default(1.4) // Overtid 40 % = 1.4x (kundespesifikk)
+  overtime100Multiplier        Float                          @default(2) // Overtid 100 % = 2x
+  useOvertime40Percent         Boolean                        @default(false) // Bruk 40 % i stedet for 50 % hverdag
+  defaultKmRate                Float                          @default(4.5) // Standard kr/km
+  kmAllowanceTaxable           Boolean                        @default(false) // true = overskudd over 3,50 kr/km skattes, false = km utenom
+  lunchBreakMinutes            Int                            @default(30) // Lunsj som trekkes fra klokketimer (0 = ingen)
+  eveningOvertimeFromHour      Int? // Fra denne kl (man–fre) = 100 % overtid. Null = alt 50 %
   saturdayOvertime40LimitHours Float? // Lørdag: første X t ved 40 %, resten 100 %. Null = alt 100 %
-  defaultHourlyRate          Float?  // Timelønn (N.Rate) for ca. utbetaling. Null = skjul
-  approximateTaxPercent      Float?  // Ca. skatt i % (f.eks. 25). Brukes for ca. utbetaling
-  projects                 Project[]
-  timeEntries              TimeEntry[]
-  mileageEntries           MileageEntry[]
-  sequences                TenantSequence[]
-  ruhReports               RuhReport[]
-  incidentSubcategoryOptions IncidentSubcategoryOption[]
-  sjaAnalyses              SjaAnalysis[]
-  sjaTemplates             SjaTemplate[]
-  exposureRegisters        ExposureRegister[]
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  defaultHourlyRate            Float? // Timelønn (N.Rate) for ca. utbetaling. Null = skjul
+  approximateTaxPercent        Float? // Ca. skatt i % (f.eks. 25). Brukes for ca. utbetaling
+  constructionDailyCheckAlertsEnabled Boolean @default(true) // Varsling ved manglende daglig kontroll i bygg/anlegg
+  constructionDailyCheckAlertRole Role @default(HMS) // Hvilken rolle som varsles for bygg/anlegg-kontroll
+  projects                     Project[]
+  constructionShaPlans         ConstructionShaPlan[]
+  constructionPreNotifications ConstructionPreNotification[]
+  constructionRosterEntries    ConstructionRosterEntry[]
+  constructionRosterChecks     ConstructionRosterDailyCheck[]
+  timeEntries                  TimeEntry[]
+  mileageEntries               MileageEntry[]
+  sequences                    TenantSequence[]
+  ruhReports                   RuhReport[]
+  incidentSubcategoryOptions   IncidentSubcategoryOption[]
+  sjaAnalyses                  SjaAnalysis[]
+  sjaTemplates                 SjaTemplate[]
+  exposureRegisters            ExposureRegister[]
+  createdAt                    DateTime                       @default(now())
+  updatedAt                    DateTime                       @updatedAt
 
   @@index([status])
   @@index([fikenCompanyId])
@@ -281,12 +288,12 @@ model Tenant {
 
 /// Sekvens-teller for unike referansenummer per tenant (avvik, skjemaer m.m.)
 model TenantSequence {
-  id            String   @id @default(cuid())
-  tenantId      String
-  sequenceType  String   // "AVVIK", "FORM:SKJ", "FORM:RUH" etc.
-  year          Int
-  lastNumber    Int      @default(0)
-  updatedAt     DateTime @updatedAt
+  id           String   @id @default(cuid())
+  tenantId     String
+  sequenceType String // "AVVIK", "FORM:SKJ", "FORM:RUH" etc.
+  year         Int
+  lastNumber   Int      @default(0)
+  updatedAt    DateTime @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -296,16 +303,16 @@ model TenantSequence {
 
 /// Én rad per steg per år per tenant. Brukeren huker av steg i sjekklisten for årlig HMS-plan.
 model HmsAnnualPlanCompletion {
-  id               String    @id @default(cuid())
-  tenantId         String
-  year             Int       // År (f.eks. 2025)
-  stepKey          String    // Nøkkel fra sjekkliste (f.eks. "management_review")
-  completedAt      DateTime  @default(now())
-  completedByUserId String?  // Hvem som krysset av
-  note             String?   @db.Text // Valgfri notat ved avkryssing
+  id                String   @id @default(cuid())
+  tenantId          String
+  year              Int // År (f.eks. 2025)
+  stepKey           String // Nøkkel fra sjekkliste (f.eks. "management_review")
+  completedAt       DateTime @default(now())
+  completedByUserId String? // Hvem som krysset av
+  note              String?  @db.Text // Valgfri notat ved avkryssing
 
-  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  completedBy User? @relation(fields: [completedByUserId], references: [id], onDelete: SetNull)
+  tenant      Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  completedBy User?  @relation(fields: [completedByUserId], references: [id], onDelete: SetNull)
 
   @@unique([tenantId, year, stepKey])
   @@index([tenantId])
@@ -313,11 +320,11 @@ model HmsAnnualPlanCompletion {
 }
 
 model TenantActivity {
-  id       String                 @id @default(cuid())
-  tenantId String
-  type     TenantActivityType
-  channel  TenantActivityChannel
-  note     String                 @db.Text
+  id        String                @id @default(cuid())
+  tenantId  String
+  type      TenantActivityType
+  channel   TenantActivityChannel
+  note      String                @db.Text
   createdAt DateTime              @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -326,20 +333,20 @@ model TenantActivity {
 }
 
 model TenantOffer {
-  id          String           @id @default(cuid())
-  tenantId    String
-  status      TenantOfferStatus @default(DRAFT)
-  token       String           @unique
-  yearlyPrice Float
-  bindingMonths Int            @default(12)
-  noticeMonths  Int            @default(3)
-  setupPrice  Float?
-  notes       String?          @db.Text
-  sentAt      DateTime?
-  acceptedAt  DateTime?
-  rejectedAt  DateTime?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id            String            @id @default(cuid())
+  tenantId      String
+  status        TenantOfferStatus @default(DRAFT)
+  token         String            @unique
+  yearlyPrice   Float
+  bindingMonths Int               @default(12)
+  noticeMonths  Int               @default(3)
+  setupPrice    Float?
+  notes         String?           @db.Text
+  sentAt        DateTime?
+  acceptedAt    DateTime?
+  rejectedAt    DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -356,10 +363,10 @@ enum TenantStatus {
 }
 
 enum PricingTier {
-  MICRO      // 1-20 ansatte (Små bedrifter: 6.000 kr/år)
-  SMALL      // 21-50 ansatte (Mellomstore bedrifter: 8.000 kr/år)
-  MEDIUM     // 51+ ansatte (Store bedrifter: 12.000 kr/år)
-  LARGE      // Legacy tier (ikke i bruk)
+  MICRO // 1-20 ansatte (Små bedrifter: 6.000 kr/år)
+  SMALL // 21-50 ansatte (Mellomstore bedrifter: 8.000 kr/år)
+  MEDIUM // 51+ ansatte (Store bedrifter: 12.000 kr/år)
+  LARGE // Legacy tier (ikke i bruk)
 }
 
 enum OnboardingStatus {
@@ -380,22 +387,22 @@ enum TenantOfferStatus {
 }
 
 enum TenantActivityType {
-  CONTACT      // Førstegangs kontakt
-  FOLLOW_UP    // Oppfølgingssamtale / -epost
-  OFFER_SENT   // Tilbud sendt
-  MEETING      // Møte / demo
-  OTHER        // Annet
+  CONTACT // Førstegangs kontakt
+  FOLLOW_UP // Oppfølgingssamtale / -epost
+  OFFER_SENT // Tilbud sendt
+  MEETING // Møte / demo
+  OTHER // Annet
 }
 
 enum TenantActivityChannel {
-  PHONE        // Telefon
-  EMAIL        // E-post
-  MEETING      // Fysisk eller digitalt møte
-  OTHER        // Annen kanal
+  PHONE // Telefon
+  EMAIL // E-post
+  MEETING // Fysisk eller digitalt møte
+  OTHER // Annen kanal
 }
 
 enum RegistrationType {
-  STANDARD   // Vanlig: registrer-bedrift → superadmin aktiverer → 14 dager → betaling
+  STANDARD // Vanlig: registrer-bedrift → superadmin aktiverer → 14 dager → betaling
   FREE_14_DAY // Gratis HMS: selvbetjent, 14 dager, vannmerkede dokumenter, deretter 300 kr/mnd eller deaktivering
 }
 
@@ -404,71 +411,71 @@ enum RegistrationType {
 // ═══════════════════════════════════════════════════════════════
 
 model GeneratedDocument {
-  id            String   @id @default(cuid())
-  email         String
-  companyName   String
-  orgNumber     String?
-  industry      Industry
-  employees     Int
-  
+  id          String   @id @default(cuid())
+  email       String
+  companyName String
+  orgNumber   String?
+  industry    Industry
+  employees   Int
+
   // Contact info
-  ceoName       String
-  address       String?
-  postalCode    String?
-  city          String?
-  phone         String?
-  
+  ceoName    String
+  address    String?
+  postalCode String?
+  city       String?
+  phone      String?
+
   // HMS Organization
   hmsResponsible String?
-  hmsEmail      String?
-  hmsPhone      String?
-  safetyRep     String?
+  hmsEmail       String?
+  hmsPhone       String?
+  safetyRep      String?
   safetyRepEmail String?
   safetyRepPhone String?
-  hasBHT        Boolean @default(false)
-  bhtProvider   String?
-  bhtContact    String?
-  
+  hasBHT         Boolean @default(false)
+  bhtProvider    String?
+  bhtContact     String?
+
   // Departments (JSON array)
-  departments   Json?
-  
+  departments Json?
+
   // Training (JSON array of completed training)
   completedTraining Json?
-  
+
   // Additional info
   companyDescription String? @db.Text
-  
+
   // Generated files (R2 keys)
-  registerKey   String?  // HMS-00: Register over HMS-dokumenter
-  handbookKey   String?  // HMS-01: HMS-Håndbok
-  riskKey       String?  // HMS-02: Risikovurdering
-  trainingKey   String?  // HMS-03: Opplæringsplan
-  vernerundeKey String?  // HMS-04: Vernerunde / Sjekkliste
-  amuKey        String?  // HMS-05: AMU møteprotokoll
-  zipKey        String?  // Komplett pakke med alle dokumenter
-  
+  registerKey   String? // HMS-00: Register over HMS-dokumenter
+  handbookKey   String? // HMS-01: HMS-Håndbok
+  riskKey       String? // HMS-02: Risikovurdering
+  trainingKey   String? // HMS-03: Opplæringsplan
+  vernerundeKey String? // HMS-04: Vernerunde / Sjekkliste
+  amuKey        String? // HMS-05: AMU møteprotokoll
+  zipKey        String? // Komplett pakke med alle dokumenter
+
   // Meta
-  status        GenerationStatus @default(PENDING)
-  generatedAt   DateTime?
-  downloadCount Int     @default(0)
-  lastDownloadAt DateTime?
-  convertedToTrial Boolean @default(false)
-  convertedAt   DateTime?
+  status             GenerationStatus @default(PENDING)
+  generatedAt        DateTime?
+  downloadCount      Int              @default(0)
+  lastDownloadAt     DateTime?
+  convertedToTrial   Boolean          @default(false)
+  convertedAt        DateTime?
   // Gratis HMS-løype: vannmerkede PDF-er lagres (ikke DOCX), slik at systemet ikke gis bort utskriftsklart
-  isFreeTrialPackage Boolean @default(false)
+  isFreeTrialPackage Boolean          @default(false)
   // Når satt: pakken tilhører denne tenanten og skal importeres som Document etter generering
-  tenantId          String?
-  
+  tenantId           String?
+
   // Marketing consent
   marketingConsent Boolean @default(false)
-  
+
   // Newsletter tracking
-  newsletterSubscribed Boolean @default(false) // Hvis de ønsker nyhetsbrev
-  lastNewsletterSent  DateTime? // Siste nyhetsbrev sendt
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
+  newsletterSubscribed Boolean   @default(false) // Hvis de ønsker nyhetsbrev
+  lastNewsletterSent   DateTime? // Siste nyhetsbrev sendt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([email])
   @@index([industry])
   @@index([status])
@@ -487,30 +494,30 @@ enum GenerationStatus {
 }
 
 enum Industry {
-  CONSTRUCTION      // Bygg og anlegg
-  HEALTHCARE        // Helsevesen
-  TRANSPORT         // Transport og logistikk
-  MANUFACTURING     // Industri og produksjon
-  RETAIL            // Handel og service
-  HOSPITALITY       // Hotell og restaurant
-  EDUCATION         // Utdanning
-  TECHNOLOGY        // Teknologi og IT
-  AGRICULTURE       // Landbruk
-  OTHER             // Annet
+  CONSTRUCTION // Bygg og anlegg
+  HEALTHCARE // Helsevesen
+  TRANSPORT // Transport og logistikk
+  MANUFACTURING // Industri og produksjon
+  RETAIL // Handel og service
+  HOSPITALITY // Hotell og restaurant
+  EDUCATION // Utdanning
+  TECHNOLOGY // Teknologi og IT
+  AGRICULTURE // Landbruk
+  OTHER // Annet
 }
 
 model Subscription {
-  id              String            @id @default(cuid())
-  tenantId        String            @unique
-  plan            SubscriptionPlan
-  status          SubscriptionStatus @default(ACTIVE)
-  price           Float
-  billingInterval BillingInterval   @default(MONTHLY)
+  id                 String             @id @default(cuid())
+  tenantId           String             @unique
+  plan               SubscriptionPlan
+  status             SubscriptionStatus @default(ACTIVE)
+  price              Float
+  billingInterval    BillingInterval    @default(MONTHLY)
   currentPeriodStart DateTime
   currentPeriodEnd   DateTime
-  cancelAtPeriodEnd  Boolean        @default(false)
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  cancelAtPeriodEnd  Boolean            @default(false)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -537,18 +544,18 @@ enum BillingInterval {
 }
 
 model Invoice {
-  id              String        @id @default(cuid())
-  tenantId        String
-  fikenInvoiceId  String?       @unique
-  invoiceNumber   String?
-  amount          Float
-  dueDate         DateTime
-  paidDate        DateTime?
-  status          InvoiceStatus @default(PENDING)
-  period          String?       // "2025-01"
-  description     String?       @db.Text
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id             String        @id @default(cuid())
+  tenantId       String
+  fikenInvoiceId String?       @unique
+  invoiceNumber  String?
+  amount         Float
+  dueDate        DateTime
+  paidDate       DateTime?
+  status         InvoiceStatus @default(PENDING)
+  period         String? // "2025-01"
+  description    String?       @db.Text
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -566,39 +573,39 @@ enum InvoiceStatus {
 }
 
 model UserTenant {
-  id         String   @id @default(cuid())
+  id         String  @id @default(cuid())
   userId     String
   tenantId   String
   role       Role
   department String?
-  
+
   // Intern ansatt-ID (bedriftens eget nummersystem, f.eks. "A-0042")
   employeeNumber String?
 
   // Tenant-spesifikke brukerinnstillinger (kan være ulike per tenant)
-  displayName  String?      // Visningsnavn i denne tenanten (kan være annerledes enn User.name)
-  phone        String?      // Telefonnummer for denne tenanten
-  
+  displayName String? // Visningsnavn i denne tenanten (kan være annerledes enn User.name)
+  phone       String? // Telefonnummer for denne tenanten
+
   // Varslingsinnstillinger (per tenant)
-  notifyByEmail       Boolean  @default(true)  // Motta e-postvarsler
-  notifyBySms         Boolean  @default(false) // Motta SMS-varsler (krever phone)
-  reminderDaysBefore  Int      @default(1)     // Hvor mange dager før hendelser skal varsles
-  notifyMeetings      Boolean  @default(true)  // Varsle om møter
-  notifyInspections   Boolean  @default(true)  // Varsle om vernerunder/inspeksjoner
-  notifyAudits        Boolean  @default(true)  // Varsle om revisjoner
-  notifyMeasures      Boolean  @default(true)  // Varsle om tiltak som forfaller
-  notifyIncidents     Boolean  @default(true)  // Varsle om avvik/hendelser
-  notifyDocuments     Boolean  @default(true)  // Varsle om dokumenter
-  notifyTraining      Boolean  @default(true)  // Varsle om opplæring
-  notifyRisks         Boolean  @default(true)  // Varsle om risikoer
-  dailyDigest         Boolean  @default(false) // Motta daglig e-post sammendrag
-  weeklyDigest        Boolean  @default(true)  // Motta ukentlig e-post sammendrag
+  notifyByEmail      Boolean @default(true) // Motta e-postvarsler
+  notifyBySms        Boolean @default(false) // Motta SMS-varsler (krever phone)
+  reminderDaysBefore Int     @default(1) // Hvor mange dager før hendelser skal varsles
+  notifyMeetings     Boolean @default(true) // Varsle om møter
+  notifyInspections  Boolean @default(true) // Varsle om vernerunder/inspeksjoner
+  notifyAudits       Boolean @default(true) // Varsle om revisjoner
+  notifyMeasures     Boolean @default(true) // Varsle om tiltak som forfaller
+  notifyIncidents    Boolean @default(true) // Varsle om avvik/hendelser
+  notifyDocuments    Boolean @default(true) // Varsle om dokumenter
+  notifyTraining     Boolean @default(true) // Varsle om opplæring
+  notifyRisks        Boolean @default(true) // Varsle om risikoer
+  dailyDigest        Boolean @default(false) // Motta daglig e-post sammendrag
+  weeklyDigest       Boolean @default(true) // Motta ukentlig e-post sammendrag
 
   // Import: null = ikke sendt invitasjon (vis «Aktiver»); satt = invitasjon sendt
-  invitationSentAt    DateTime?
+  invitationSentAt DateTime?
 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -623,39 +630,39 @@ enum Role {
 // ============================================
 
 model Document {
-  id         String       @id @default(cuid())
-  tenantId   String
-  kind       DocumentKind
-  title      String
-  slug       String
-  version    String       // Gjeldende versjon (v1.0, v1.1, v2.0)
-  status     DocStatus    @default(DRAFT)
-  fileKey    String       // Gjeldende fil
-  mime       String       @default("application/pdf") // MIME-type (f.eks. application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document)
-  approvedBy String?
-  approvedAt DateTime?
-  updatedBy  String?
-  ownerId    String?
-  templateId String?
-  nextReviewDate DateTime? // Når skal dokumentet gjennomgås igjen?
-  reviewIntervalMonths Int @default(12)
-  effectiveFrom DateTime?
-  effectiveTo   DateTime?
-  planSummary   String?    @db.Text
-  doSummary     String?    @db.Text
-  checkSummary  String?    @db.Text
-  actSummary    String?    @db.Text
-  visibleToRoles Json?    // Array av roller som skal se dokumentet ["ANSATT", "LEDER"]. Null = alle
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  id                   String       @id @default(cuid())
+  tenantId             String
+  kind                 DocumentKind
+  title                String
+  slug                 String
+  version              String // Gjeldende versjon (v1.0, v1.1, v2.0)
+  status               DocStatus    @default(DRAFT)
+  fileKey              String // Gjeldende fil
+  mime                 String       @default("application/pdf") // MIME-type (f.eks. application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document)
+  approvedBy           String?
+  approvedAt           DateTime?
+  updatedBy            String?
+  ownerId              String?
+  templateId           String?
+  nextReviewDate       DateTime? // Når skal dokumentet gjennomgås igjen?
+  reviewIntervalMonths Int          @default(12)
+  effectiveFrom        DateTime?
+  effectiveTo          DateTime?
+  planSummary          String?      @db.Text
+  doSummary            String?      @db.Text
+  checkSummary         String?      @db.Text
+  actSummary           String?      @db.Text
+  visibleToRoles       Json? // Array av roller som skal se dokumentet ["ANSATT", "LEDER"]. Null = alle
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
 
-  tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  versions        DocumentVersion[] // Historikk av alle versjoner
-  approvedByUser  User?             @relation("DocumentApprovedBy", fields: [approvedBy], references: [id], onDelete: SetNull)
-  owner           User?             @relation("DocumentOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  template        DocumentTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  riskDocumentLinks RiskDocumentLink[]
-  riskControlsEvidence RiskControl[] @relation("RiskControlEvidence")
+  tenant                   Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  versions                 DocumentVersion[] // Historikk av alle versjoner
+  approvedByUser           User?                     @relation("DocumentApprovedBy", fields: [approvedBy], references: [id], onDelete: SetNull)
+  owner                    User?                     @relation("DocumentOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  template                 DocumentTemplate?         @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  riskDocumentLinks        RiskDocumentLink[]
+  riskControlsEvidence     RiskControl[]             @relation("RiskControlEvidence")
   securityControlDocuments SecurityControlDocument[]
 
   @@unique([tenantId, slug]) // Slug må være unik per tenant
@@ -666,18 +673,18 @@ model Document {
 
 // Versjonshåndtering - ALLE versjoner lagres
 model DocumentVersion {
-  id              String    @id @default(cuid())
-  tenantId        String
-  documentId      String
-  version         String    // v1.0, v1.1, v2.0
-  fileKey         String    // Fil for denne versjonen
-  mime            String    @default("application/pdf") // MIME-type for denne versjonen
-  changeComment   String?   @db.Text // Hva ble endret?
-  uploadedBy      String
-  approvedBy      String?
-  approvedAt      DateTime?
-  supersededAt    DateTime? // Når ble denne erstattet av ny versjon?
-  createdAt       DateTime  @default(now())
+  id            String    @id @default(cuid())
+  tenantId      String
+  documentId    String
+  version       String // v1.0, v1.1, v2.0
+  fileKey       String // Fil for denne versjonen
+  mime          String    @default("application/pdf") // MIME-type for denne versjonen
+  changeComment String?   @db.Text // Hva ble endret?
+  uploadedBy    String
+  approvedBy    String?
+  approvedAt    DateTime?
+  supersededAt  DateTime? // Når ble denne erstattet av ny versjon?
+  createdAt     DateTime  @default(now())
 
   tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
@@ -698,24 +705,24 @@ enum DocumentKind {
 }
 
 enum DocStatus {
-  DRAFT      // Nytt dokument, ikke godkjent
-  APPROVED   // Godkjent og aktivt
-  ARCHIVED   // Utdatert/erstattet
+  DRAFT // Nytt dokument, ikke godkjent
+  APPROVED // Godkjent og aktivt
+  ARCHIVED // Utdatert/erstattet
 }
 
 model DocumentTemplate {
-  id           String   @id @default(cuid())
-  tenantId     String?
-  name         String
-  category     String?
-  description  String?  @db.Text
-  pdcaGuidance Json?
-  defaultReviewIntervalMonths Int @default(12)
-  isGlobal     Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                          String   @id @default(cuid())
+  tenantId                    String?
+  name                        String
+  category                    String?
+  description                 String?  @db.Text
+  pdcaGuidance                Json?
+  defaultReviewIntervalMonths Int      @default(12)
+  isGlobal                    Boolean  @default(false)
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
 
-  tenant   Tenant?   @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  tenant    Tenant?    @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   documents Document[]
 
   @@index([tenantId])
@@ -728,16 +735,16 @@ model DocumentTemplate {
 
 /// Lover og forskrifter som gjelder for ulike bransjer. Tilgjengelig for alle roller.
 model LegalReference {
-  id              String   @id @default(cuid())
-  title           String   // f.eks. "Arbeidsmiljøloven"
-  paragraphRef    String?  // f.eks. "§ 3-2"
-  description     String   @db.Text // Kort beskrivelse av hva som gjelder
-  sourceUrl       String   // Lenke til Lovdata eller Arbeidstilsynet
-  industries      Json     // ["construction", "healthcare", ...] eller ["all"] for alle bransjer
-  sortOrder       Int      @default(0) // Rekkefølge i listen
-  lastVerifiedAt  DateTime? // Sist sjekket mot lovdata
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String    @id @default(cuid())
+  title          String // f.eks. "Arbeidsmiljøloven"
+  paragraphRef   String? // f.eks. "§ 3-2"
+  description    String    @db.Text // Kort beskrivelse av hva som gjelder
+  sourceUrl      String // Lenke til Lovdata eller Arbeidstilsynet
+  industries     Json // ["construction", "healthcare", ...] eller ["all"] for alle bransjer
+  sortOrder      Int       @default(0) // Rekkefølge i listen
+  lastVerifiedAt DateTime? // Sist sjekket mot lovdata
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@index([sortOrder])
 }
@@ -748,83 +755,86 @@ model LegalReference {
 
 /// Årlig eller periodisk risikovurdering (f.eks. "Risikovurdering 2026"). ISO 45001: systematisk vurdering med identifiserte risikopunkter.
 model RiskAssessment {
-  id             String    @id @default(cuid())
+  id             String @id @default(cuid())
   tenantId       String
-  title          String    // f.eks. "Risikovurdering 2026"
-  assessmentYear Int       // år (2026)
+  projectId      String?
+  title          String // f.eks. "Risikovurdering 2026"
+  assessmentYear Int // år (2026)
 
   // IK-HMS § 5 nr. 3 + AML § 3-1 (1): Hvem deltok i vurderingen (arbeidstakere, verneombud)
-  participants   String?   @db.Text
+  participants String? @db.Text
 
   // IK-HMS § 5 nr. 6: Godkjenning av risikovurderingen
-  approvedById   String?
-  approvedAt     DateTime?
+  approvedById String?
+  approvedAt   DateTime?
 
   // IK-HMS § 5 nr. 8: Hvem gjennomgikk vurderingen (periodisk gjennomgang)
-  reviewedById   String?
-  reviewedAt     DateTime?
+  reviewedById String?
+  reviewedAt   DateTime?
 
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
   risks  Risk[]
 
   @@index([tenantId])
+  @@index([projectId])
   @@index([assessmentYear])
   @@index([approvedById])
   @@index([reviewedById])
 }
 
 model Risk {
-  id          String     @id @default(cuid())
-  tenantId    String
-  riskAssessmentId String? // tilhører en risikovurdering (årlig dokument)
-  title       String
-  context     String     @db.Text
-  likelihood  Int
-  consequence Int
-  score       Int
-  ownerId     String
-  status      RiskStatus @default(OPEN)
-  category    RiskCategory @default(OPERATIONAL)
-  location    String?
-  area        String?
-  description String?   @db.Text
-  existingControls String? @db.Text
-  residualLikelihood Int?
-  residualConsequence Int?
-  residualScore Int?
-  nextReviewDate DateTime?
-  controlFrequency ControlFrequency? @default(ANNUAL)
-  riskStatement String? @db.Text
-  kpiId        String?
+  id                   String               @id @default(cuid())
+  tenantId             String
+  riskAssessmentId     String? // tilhører en risikovurdering (årlig dokument)
+  title                String
+  context              String               @db.Text
+  likelihood           Int
+  consequence          Int
+  score                Int
+  ownerId              String
+  status               RiskStatus           @default(OPEN)
+  category             RiskCategory         @default(OPERATIONAL)
+  location             String?
+  area                 String?
+  description          String?              @db.Text
+  existingControls     String?              @db.Text
+  residualLikelihood   Int?
+  residualConsequence  Int?
+  residualScore        Int?
+  nextReviewDate       DateTime?
+  controlFrequency     ControlFrequency?    @default(ANNUAL)
+  riskStatement        String?              @db.Text
+  kpiId                String?
   inspectionTemplateId String?
-  linkedProcess String?
-  riskAppetite String? @db.Text
-  riskTolerance String? @db.Text
-  responseStrategy RiskResponseStrategy @default(REDUCE)
-  trend        RiskTrend @default(STABLE)
-  reviewedAt  DateTime?
-  assessmentDate DateTime? // vurderingsdato for dette punktet (i listen)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  linkedProcess        String?
+  riskAppetite         String?              @db.Text
+  riskTolerance        String?              @db.Text
+  responseStrategy     RiskResponseStrategy @default(REDUCE)
+  trend                RiskTrend            @default(STABLE)
+  reviewedAt           DateTime?
+  assessmentDate       DateTime? // vurderingsdato for dette punktet (i listen)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
 
-  tenant              Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  riskAssessment      RiskAssessment?    @relation(fields: [riskAssessmentId], references: [id], onDelete: SetNull)
-  measures            Measure[]
-  owner               User               @relation("RiskOwner", fields: [ownerId], references: [id])
-  kpi                 Goal?              @relation("RiskGoal", fields: [kpiId], references: [id])
-  inspectionTemplate  InspectionTemplate? @relation("RiskInspectionTemplate", fields: [inspectionTemplateId], references: [id])
-  linkedIncidents     Incident[]         @relation("IncidentRiskReference")
-  inspectionFindings  InspectionFinding[] @relation("InspectionFindingRisk")
-  documentLinks       RiskDocumentLink[]
-  auditLinks          RiskAuditLink[]
-  controls            RiskControl[]
-  securityControls    SecurityControl[]
-  chemicalLinks       RiskChemicalLink[]
+  tenant               Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  riskAssessment       RiskAssessment?           @relation(fields: [riskAssessmentId], references: [id], onDelete: SetNull)
+  measures             Measure[]
+  owner                User                      @relation("RiskOwner", fields: [ownerId], references: [id])
+  kpi                  Goal?                     @relation("RiskGoal", fields: [kpiId], references: [id])
+  inspectionTemplate   InspectionTemplate?       @relation("RiskInspectionTemplate", fields: [inspectionTemplateId], references: [id])
+  linkedIncidents      Incident[]                @relation("IncidentRiskReference")
+  inspectionFindings   InspectionFinding[]       @relation("InspectionFindingRisk")
+  documentLinks        RiskDocumentLink[]
+  auditLinks           RiskAuditLink[]
+  controls             RiskControl[]
+  securityControls     SecurityControl[]
+  chemicalLinks        RiskChemicalLink[]
   trainingRequirements RiskTrainingRequirement[]
-  exposureRegisters   ExposureRegister[]
+  exposureRegisters    ExposureRegister[]
 
   @@index([tenantId])
   @@index([riskAssessmentId])
@@ -852,10 +862,10 @@ enum RiskCategory {
   LEGAL
   INFORMATION_SECURITY
   // Arbeidsmiljø (ISO 45001) – typiske kategorier i årlig risikovurdering
-  PSYCHOSOCIAL   // Psykososialt
-  ERGONOMIC      // Ergonomisk
+  PSYCHOSOCIAL // Psykososialt
+  ERGONOMIC // Ergonomisk
   ORGANISATIONAL // Organisatorisk
-  PHYSICAL       // Fysisk
+  PHYSICAL // Fysisk
 }
 
 enum RiskResponseStrategy {
@@ -909,13 +919,13 @@ enum RiskControlEffectiveness {
 }
 
 model RiskDocumentLink {
-  id         String                @id @default(cuid())
+  id         String               @id @default(cuid())
   tenantId   String
   riskId     String
   documentId String
-  relation   RiskDocumentRelation  @default(SUPPORTING)
-  note       String?               @db.Text
-  createdAt  DateTime              @default(now())
+  relation   RiskDocumentRelation @default(SUPPORTING)
+  note       String?              @db.Text
+  createdAt  DateTime             @default(now())
 
   tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   risk     Risk     @relation(fields: [riskId], references: [id], onDelete: Cascade)
@@ -927,13 +937,13 @@ model RiskDocumentLink {
 }
 
 model RiskAuditLink {
-  id        String             @id @default(cuid())
+  id        String            @id @default(cuid())
   tenantId  String
   riskId    String
   auditId   String
-  relation  RiskAuditRelation  @default(CONTROL_TEST)
-  summary   String?            @db.Text
-  createdAt DateTime           @default(now())
+  relation  RiskAuditRelation @default(CONTROL_TEST)
+  summary   String?           @db.Text
+  createdAt DateTime          @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   risk   Risk   @relation(fields: [riskId], references: [id], onDelete: Cascade)
@@ -962,10 +972,10 @@ model RiskControl {
   createdAt          DateTime                 @default(now())
   updatedAt          DateTime                 @updatedAt
 
-  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  risk              Risk     @relation(fields: [riskId], references: [id], onDelete: Cascade)
-  owner             User?    @relation("RiskControlOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  evidenceDocument  Document? @relation("RiskControlEvidence", fields: [evidenceDocumentId], references: [id], onDelete: SetNull)
+  tenant           Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  risk             Risk      @relation(fields: [riskId], references: [id], onDelete: Cascade)
+  owner            User?     @relation("RiskControlOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  evidenceDocument Document? @relation("RiskControlEvidence", fields: [evidenceDocumentId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([riskId])
@@ -979,15 +989,15 @@ model RiskControl {
 // ============================================
 
 model RiskChemicalLink {
-  id          String        @id @default(cuid())
-  tenantId    String
-  riskId      String
-  chemicalId  String
-  exposure    ExposureLevel @default(MEDIUM)
-  ppRequired  Boolean       @default(false) // Personlig verneutstyr påkrevd
-  note        String?       @db.Text
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id         String        @id @default(cuid())
+  tenantId   String
+  riskId     String
+  chemicalId String
+  exposure   ExposureLevel @default(MEDIUM)
+  ppRequired Boolean       @default(false) // Personlig verneutstyr påkrevd
+  note       String?       @db.Text
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
 
   tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   risk     Risk     @relation(fields: [riskId], references: [id], onDelete: Cascade)
@@ -1000,9 +1010,9 @@ model RiskChemicalLink {
 }
 
 enum ExposureLevel {
-  LOW      // Minimal eksponering - lav risiko
-  MEDIUM   // Moderat eksponering - standard sikkerhetstiltak
-  HIGH     // Høy eksponering - krever ekstra tiltak og overvåking
+  LOW // Minimal eksponering - lav risiko
+  MEDIUM // Moderat eksponering - standard sikkerhetstiltak
+  HIGH // Høy eksponering - krever ekstra tiltak og overvåking
   CRITICAL // Kritisk eksponering - CMR, diisocyanater, SVHC (krever spesialtiltak)
 }
 
@@ -1014,7 +1024,7 @@ model RiskTrainingRequirement {
   id          String   @id @default(cuid())
   tenantId    String
   riskId      String
-  courseKey   String   // Nøkkel fra CourseTemplate (f.eks. "diisocyanate-handling")
+  courseKey   String // Nøkkel fra CourseTemplate (f.eks. "diisocyanate-handling")
   isMandatory Boolean  @default(true) // Obligatorisk opplæring
   reason      String?  @db.Text // Begrunnelse (f.eks. "EU REACH Annex XVII")
   createdAt   DateTime @default(now())
@@ -1109,21 +1119,21 @@ enum FeedbackStatus {
 }
 
 model SecurityAsset {
-  id                   String          @id @default(cuid())
-  tenantId             String
-  name                 String
-  description          String?         @db.Text
-  type                 SecurityAssetType @default(INFORMATION_SYSTEM)
-  ownerId              String?
-  confidentiality      CIAValue        @default(MEDIUM)
-  integrity            CIAValue        @default(MEDIUM)
-  availability         CIAValue        @default(MEDIUM)
-  businessCriticality  Int?
-  createdAt            DateTime        @default(now())
-  updatedAt            DateTime        @updatedAt
+  id                  String            @id @default(cuid())
+  tenantId            String
+  name                String
+  description         String?           @db.Text
+  type                SecurityAssetType @default(INFORMATION_SYSTEM)
+  ownerId             String?
+  confidentiality     CIAValue          @default(MEDIUM)
+  integrity           CIAValue          @default(MEDIUM)
+  availability        CIAValue          @default(MEDIUM)
+  businessCriticality Int?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  owner  User?  @relation("SecurityAssetOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  tenant   Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  owner    User?             @relation("SecurityAssetOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   controls SecurityControl[]
 
   @@index([tenantId])
@@ -1131,29 +1141,29 @@ model SecurityAsset {
 }
 
 model SecurityControl {
-  id                String                   @id @default(cuid())
-  tenantId          String
-  code              String
-  title             String
-  requirement       String?                  @db.Text
-  annexReference    String?
-  category          SecurityControlCategory  @default(ORGANIZATIONAL)
-  status            SecurityControlStatus    @default(PLANNED)
-  maturity          SecurityControlMaturity  @default(INITIAL)
-  ownerId           String?
-  linkedAssetId     String?
-  linkedRiskId      String?
+  id                 String                  @id @default(cuid())
+  tenantId           String
+  code               String
+  title              String
+  requirement        String?                 @db.Text
+  annexReference     String?
+  category           SecurityControlCategory @default(ORGANIZATIONAL)
+  status             SecurityControlStatus   @default(PLANNED)
+  maturity           SecurityControlMaturity @default(INITIAL)
+  ownerId            String?
+  linkedAssetId      String?
+  linkedRiskId       String?
   implementationNote String?                 @db.Text
-  monitoring        String?                  @db.Text
-  lastTestDate      DateTime?
-  nextReviewDate    DateTime?
-  createdAt         DateTime                 @default(now())
-  updatedAt         DateTime                 @updatedAt
+  monitoring         String?                 @db.Text
+  lastTestDate       DateTime?
+  nextReviewDate     DateTime?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
 
-  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  owner       User?         @relation("SecurityControlOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  linkedAsset SecurityAsset? @relation(fields: [linkedAssetId], references: [id], onDelete: SetNull)
-  linkedRisk  Risk?         @relation(fields: [linkedRiskId], references: [id], onDelete: SetNull)
+  tenant      Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  owner       User?                     @relation("SecurityControlOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  linkedAsset SecurityAsset?            @relation(fields: [linkedAssetId], references: [id], onDelete: SetNull)
+  linkedRisk  Risk?                     @relation(fields: [linkedRiskId], references: [id], onDelete: SetNull)
   evidences   SecurityEvidence[]
   documents   SecurityControlDocument[]
 
@@ -1165,32 +1175,32 @@ model SecurityControl {
 }
 
 model SecurityControlDocument {
-  id         String      @id @default(cuid())
+  id         String   @id @default(cuid())
   tenantId   String
   controlId  String
   documentId String
-  note       String?     @db.Text
-  createdAt  DateTime    @default(now())
+  note       String?  @db.Text
+  createdAt  DateTime @default(now())
 
-  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant   Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   control  SecurityControl @relation(fields: [controlId], references: [id], onDelete: Cascade)
-  document Document       @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  document Document        @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   @@unique([controlId, documentId])
   @@index([documentId])
 }
 
 model SecurityEvidence {
-  id             String      @id @default(cuid())
-  tenantId       String
-  controlId      String
-  title          String
-  description    String?     @db.Text
-  attachmentKey  String?
-  collectedById  String?
-  collectedAt    DateTime    @default(now())
-  reviewResult   String?
-  createdAt      DateTime    @default(now())
+  id            String   @id @default(cuid())
+  tenantId      String
+  controlId     String
+  title         String
+  description   String?  @db.Text
+  attachmentKey String?
+  collectedById String?
+  collectedAt   DateTime @default(now())
+  reviewResult  String?
+  createdAt     DateTime @default(now())
 
   tenant      Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   control     SecurityControl @relation(fields: [controlId], references: [id], onDelete: Cascade)
@@ -1214,8 +1224,8 @@ model AccessReview {
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  owner  User?  @relation("AccessReviewOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  tenant  Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  owner   User?               @relation("AccessReviewOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   entries AccessReviewEntry[]
 
   @@index([tenantId])
@@ -1223,17 +1233,17 @@ model AccessReview {
 }
 
 model AccessReviewEntry {
-  id           String         @id @default(cuid())
-  reviewId     String
-  tenantId     String
-  userName     String
-  userEmail    String
-  role         String?
-  decision     AccessDecision @default(REVIEW)
-  comment      String?        @db.Text
-  decidedById  String?
-  decidedAt    DateTime?
-  createdAt    DateTime       @default(now())
+  id          String         @id @default(cuid())
+  reviewId    String
+  tenantId    String
+  userName    String
+  userEmail   String
+  role        String?
+  decision    AccessDecision @default(REVIEW)
+  comment     String?        @db.Text
+  decidedById String?
+  decidedAt   DateTime?
+  createdAt   DateTime       @default(now())
 
   tenant    Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   review    AccessReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
@@ -1245,36 +1255,36 @@ model AccessReviewEntry {
 }
 
 model CustomerFeedback {
-  id               String          @id @default(cuid())
+  id               String            @id @default(cuid())
   tenantId         String
   recordedById     String
-  recordedAt       DateTime        @default(now())
+  recordedAt       DateTime          @default(now())
   customerName     String?
   customerCompany  String?
   contactEmail     String?
   contactPhone     String?
-  source           FeedbackSource  @default(EMAIL)
+  source           FeedbackSource    @default(EMAIL)
   sentiment        FeedbackSentiment @default(POSITIVE)
   rating           Int?
   summary          String
-  details          String?         @db.Text
-  highlights       String?         @db.Text
-  feedbackDate     DateTime?       @default(now())
-  followUpStatus   FeedbackStatus  @default(NEW)
+  details          String?           @db.Text
+  highlights       String?           @db.Text
+  feedbackDate     DateTime?         @default(now())
+  followUpStatus   FeedbackStatus    @default(NEW)
   followUpOwnerId  String?
-  followUpNotes    String?         @db.Text
+  followUpNotes    String?           @db.Text
   linkedGoalId     String?
   linkedIncidentId String?
-  attachments      String?         @db.Text
+  attachments      String?           @db.Text
   sharedAt         DateTime?
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
-  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  recordedBy   User     @relation("FeedbackRecorder", fields: [recordedById], references: [id], onDelete: Cascade)
-  followUpOwner User?   @relation("FeedbackFollowUpOwner", fields: [followUpOwnerId], references: [id], onDelete: SetNull)
-  goal         Goal?    @relation(fields: [linkedGoalId], references: [id], onDelete: SetNull)
-  incident     Incident? @relation(fields: [linkedIncidentId], references: [id], onDelete: SetNull)
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  recordedBy    User      @relation("FeedbackRecorder", fields: [recordedById], references: [id], onDelete: Cascade)
+  followUpOwner User?     @relation("FeedbackFollowUpOwner", fields: [followUpOwnerId], references: [id], onDelete: SetNull)
+  goal          Goal?     @relation(fields: [linkedGoalId], references: [id], onDelete: SetNull)
+  incident      Incident? @relation(fields: [linkedIncidentId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([recordedAt])
@@ -1288,38 +1298,38 @@ model CustomerFeedback {
 // ============================================
 
 model Measure {
-  id                String       @id @default(cuid())
-  tenantId          String
-  riskId            String?
-  incidentId        String?
-  auditId           String?
-  goalId            String?
+  id                    String              @id @default(cuid())
+  tenantId              String
+  riskId                String?
+  incidentId            String?
+  auditId               String?
+  goalId                String?
   environmentalAspectId String?
-  title             String
-  description       String?      @db.Text
-  dueAt             DateTime
-  responsibleId     String
-  status            ActionStatus @default(PENDING)
-  completedAt       DateTime?
-  effectiveness     ActionEffectiveness @default(NOT_EVALUATED)
-  effectivenessNote String?      @db.Text
-  followUpFrequency ControlFrequency? @default(ANNUAL)
-  costEstimate      Int?
-  benefitEstimate   Int?
-  category          MeasureCategory @default(CORRECTIVE)
-  projectId         String?
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
+  title                 String
+  description           String?             @db.Text
+  dueAt                 DateTime
+  responsibleId         String
+  status                ActionStatus        @default(PENDING)
+  completedAt           DateTime?
+  effectiveness         ActionEffectiveness @default(NOT_EVALUATED)
+  effectivenessNote     String?             @db.Text
+  followUpFrequency     ControlFrequency?   @default(ANNUAL)
+  costEstimate          Int?
+  benefitEstimate       Int?
+  category              MeasureCategory     @default(CORRECTIVE)
+  projectId             String?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
 
-  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  risk        Risk?     @relation(fields: [riskId], references: [id])
-  incident    Incident? @relation(fields: [incidentId], references: [id])
-  audit       Audit?    @relation(fields: [auditId], references: [id])
-  goal        Goal?     @relation(fields: [goalId], references: [id])
-  responsible User      @relation("MeasureResponsible", fields: [responsibleId], references: [id], onDelete: Cascade)
+  tenant              Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  risk                Risk?                @relation(fields: [riskId], references: [id])
+  incident            Incident?            @relation(fields: [incidentId], references: [id])
+  audit               Audit?               @relation(fields: [auditId], references: [id])
+  goal                Goal?                @relation(fields: [goalId], references: [id])
+  responsible         User                 @relation("MeasureResponsible", fields: [responsibleId], references: [id], onDelete: Cascade)
   environmentalAspect EnvironmentalAspect? @relation(fields: [environmentalAspectId], references: [id], onDelete: SetNull)
-  inspectionFindings InspectionFinding[] @relation("InspectionFindingMeasure")
-  project     Project?  @relation("ProjectMeasures", fields: [projectId], references: [id], onDelete: SetNull)
+  inspectionFindings  InspectionFinding[]  @relation("InspectionFindingMeasure")
+  project             Project?             @relation("ProjectMeasures", fields: [projectId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([status])
@@ -1358,32 +1368,32 @@ enum MeasureCategory {
 // ============================================
 
 model EnvironmentalAspect {
-  id                 String                       @id @default(cuid())
-  tenantId           String
-  title              String
-  description        String?                      @db.Text
-  process            String?
-  location           String?
-  category           EnvironmentalAspectCategory  @default(RESOURCE_USE)
-  impactType         EnvironmentalImpactType      @default(NEGATIVE)
-  severity           Int
-  likelihood         Int
-  significanceScore  Int
-  legalRequirement   String?                      @db.Text
-  controlMeasures    String?                      @db.Text
-  monitoringMethod   String?
+  id                  String                      @id @default(cuid())
+  tenantId            String
+  title               String
+  description         String?                     @db.Text
+  process             String?
+  location            String?
+  category            EnvironmentalAspectCategory @default(RESOURCE_USE)
+  impactType          EnvironmentalImpactType     @default(NEGATIVE)
+  severity            Int
+  likelihood          Int
+  significanceScore   Int
+  legalRequirement    String?                     @db.Text
+  controlMeasures     String?                     @db.Text
+  monitoringMethod    String?
   monitoringFrequency ControlFrequency?           @default(ANNUAL)
-  ownerId            String?
-  goalId             String?
-  status             EnvironmentalAspectStatus    @default(ACTIVE)
-  nextReviewDate     DateTime?
+  ownerId             String?
+  goalId              String?
+  status              EnvironmentalAspectStatus   @default(ACTIVE)
+  nextReviewDate      DateTime?
   lastMeasurementDate DateTime?
-  createdAt          DateTime                     @default(now())
-  updatedAt          DateTime                     @updatedAt
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
 
-  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  owner       User?        @relation("EnvironmentalAspectOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  goal        Goal?        @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  tenant       Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  owner        User?                      @relation("EnvironmentalAspectOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  goal         Goal?                      @relation(fields: [goalId], references: [id], onDelete: SetNull)
   measurements EnvironmentalMeasurement[]
   measures     Measure[]
 
@@ -1455,63 +1465,63 @@ enum EnvironmentalMeasurementStatus {
 // ============================================
 
 model Incident {
-  id                  String       @id @default(cuid())
-  tenantId            String
-  avviksnummer        String?      // Unikt referansenummer per tenant (AV-2025-001)
-  type                IncidentType
-  title               String
-  description         String       @db.Text
-  severity            Int          // 1-5 (ISO 9001: Alvorlighetsgrad)
-  occurredAt          DateTime
-  reportedBy          String       // UserId for den som registrerte avviket
-  reportedForUserId   String?      // Valgfritt: UserId for den avviket gjelder (rapportert på vegne av)
-  responsibleId       String?      // Ansvarlig for oppfølging av avviket
-  location            String?
-  witnessName         String?
-  immediateAction     String?      @db.Text // ISO 9001: Umiddelbare tiltak
-  rootCause           String?      @db.Text // ISO 9001: Årsaksanalyse
-  contributingFactors String?      @db.Text
-  investigatedBy      String?
-  investigatedAt      DateTime?
-  customerName        String?
-  customerEmail       String?
-  customerPhone       String?
-  customerTicketId    String?
-  responseDeadline    DateTime?
-  customerSatisfaction Int?
-  status              IncidentStatus @default(OPEN)
-  stage               IncidentStage  @default(REPORTED)
-  closedBy            String?
-  closedAt            DateTime?
-  effectivenessReview String?      @db.Text // ISO 9001: Effektivitetsvurdering
-  lessonsLearned      String?      @db.Text // ISO 9001: Læringspunkter
-  injuryType          String?
-  medicalAttentionRequired Boolean @default(false)
-  lostTimeMinutes     Int?
-  riskReferenceId     String?
-  measureEffectiveness ActionEffectiveness? @default(NOT_EVALUATED)
+  id                       String               @id @default(cuid())
+  tenantId                 String
+  avviksnummer             String? // Unikt referansenummer per tenant (AV-2025-001)
+  type                     IncidentType
+  title                    String
+  description              String               @db.Text
+  severity                 Int // 1-5 (ISO 9001: Alvorlighetsgrad)
+  occurredAt               DateTime
+  reportedBy               String // UserId for den som registrerte avviket
+  reportedForUserId        String? // Valgfritt: UserId for den avviket gjelder (rapportert på vegne av)
+  responsibleId            String? // Ansvarlig for oppfølging av avviket
+  location                 String?
+  witnessName              String?
+  immediateAction          String?              @db.Text // ISO 9001: Umiddelbare tiltak
+  rootCause                String?              @db.Text // ISO 9001: Årsaksanalyse
+  contributingFactors      String?              @db.Text
+  investigatedBy           String?
+  investigatedAt           DateTime?
+  customerName             String?
+  customerEmail            String?
+  customerPhone            String?
+  customerTicketId         String?
+  responseDeadline         DateTime?
+  customerSatisfaction     Int?
+  status                   IncidentStatus       @default(OPEN)
+  stage                    IncidentStage        @default(REPORTED)
+  closedBy                 String?
+  closedAt                 DateTime?
+  effectivenessReview      String?              @db.Text // ISO 9001: Effektivitetsvurdering
+  lessonsLearned           String?              @db.Text // ISO 9001: Læringspunkter
+  injuryType               String?
+  medicalAttentionRequired Boolean              @default(false)
+  lostTimeMinutes          Int?
+  riskReferenceId          String?
+  measureEffectiveness     ActionEffectiveness? @default(NOT_EVALUATED)
   // RUH-felt (AML § 5-2: uønskede hendelser)
-  involvedPersons     String?      @db.Text
-  injuryDescription   String?      @db.Text
-  suggestedActions    String?      @db.Text
+  involvedPersons          String?              @db.Text
+  injuryDescription        String?              @db.Text
+  suggestedActions         String?              @db.Text
   // HSE-statistikk (TRIR – Total Recordable Injury Rate)
-  isFatal             Boolean      @default(false)
-  isLostTimeIncident  Boolean      @default(false)
-  lostWorkdays        Int?
-  isRestrictedWork    Boolean      @default(false)
+  isFatal                  Boolean              @default(false)
+  isLostTimeIncident       Boolean              @default(false)
+  lostWorkdays             Int?
+  isRestrictedWork         Boolean              @default(false)
   // Underkategorier (JSON-array med keys fra IncidentSubcategoryOption)
-  subcategoryKeys     String?      @db.Text
+  subcategoryKeys          String?              @db.Text
   // Prosjektkobling (valgfritt – AML § 3-1 systematisk HMS per arbeidssted)
-  projectId           String?
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
+  projectId                String?
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @updatedAt
 
-  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  measures    Measure[]
-  attachments Attachment[]
+  tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  measures          Measure[]
+  attachments       Attachment[]
   customerFeedbacks CustomerFeedback[]
-  risk        Risk?        @relation("IncidentRiskReference", fields: [riskReferenceId], references: [id])
-  project     Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  risk              Risk?              @relation("IncidentRiskReference", fields: [riskReferenceId], references: [id])
+  project           Project?           @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([avviksnummer])
@@ -1526,17 +1536,17 @@ model Incident {
 }
 
 enum IncidentType {
-  AVVIK           // Avvik fra prosedyrer/krav (IK-HMS § 5)
-  NESTEN          // Nestenulykke – energi frigitt, ingen skade (AML § 5-2)
-  ULYKKE          // Arbeidsulykke – energi frigitt, skade/tap oppstod (AML § 5-2)
+  AVVIK // Avvik fra prosedyrer/krav (IK-HMS § 5)
+  NESTEN // Nestenulykke – energi frigitt, ingen skade (AML § 5-2)
+  ULYKKE // Arbeidsulykke – energi frigitt, skade/tap oppstod (AML § 5-2)
   FARLIG_SITUASJON // Farlig tilstand/observasjon (AML § 2-3)
-  YRKESSYKDOM     // Yrkessykdom / arbeidsrelatert sykdom (AML § 5-1, § 5-3)
-  MILJO           // Miljøavvik (ISO 14001)
-  KVALITET        // Kvalitetsavvik (ISO 9001)
-  CUSTOMER        // Kundeklage (ISO 10002)
+  YRKESSYKDOM // Yrkessykdom / arbeidsrelatert sykdom (AML § 5-1, § 5-3)
+  MILJO // Miljøavvik (ISO 14001)
+  KVALITET // Kvalitetsavvik (ISO 9001)
+  CUSTOMER // Kundeklage (ISO 10002)
   // HMS beholdes for bakoverkompatibilitet med eksisterende data
   HMS
-  SKADE           // Deprekert – bruk ULYKKE
+  SKADE // Deprekert – bruk ULYKKE
 }
 
 enum IncidentStatus {
@@ -1560,31 +1570,31 @@ enum IncidentStage {
 // ============================================
 
 model RuhReport {
-  id              String        @id @default(cuid())
-  tenantId        String
-  ruhNummer       String?       // Unikt referansenummer per tenant (RUH-2026-001)
-  category        RuhCategory
-  title           String
-  description     String        @db.Text
-  occurredAt      DateTime
-  location        String?
-  reportedBy      String        // Navn på den som rapporterer
-  reportedById    String?       // Bruker-ID (om innlogget)
-  involvedPersons String?       @db.Text // Hvem var involvert
-  witnessName     String?
-  injuryOccurred  Boolean       @default(false)
+  id                String      @id @default(cuid())
+  tenantId          String
+  ruhNummer         String? // Unikt referansenummer per tenant (RUH-2026-001)
+  category          RuhCategory
+  title             String
+  description       String      @db.Text
+  occurredAt        DateTime
+  location          String?
+  reportedBy        String // Navn på den som rapporterer
+  reportedById      String? // Bruker-ID (om innlogget)
+  involvedPersons   String?     @db.Text // Hvem var involvert
+  witnessName       String?
+  injuryOccurred    Boolean     @default(false)
   injuryDescription String?     @db.Text
-  immediateAction String?       @db.Text // Umiddelbare tiltak som ble gjort
-  suggestedActions String?      @db.Text // Foreslåtte forebyggende tiltak
-  status          RuhStatus     @default(SUBMITTED)
-  reviewedBy      String?
-  reviewedAt      DateTime?
-  reviewComment   String?       @db.Text
-  completedBy     String?
-  completedAt     DateTime?
-  completedComment String?      @db.Text
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  immediateAction   String?     @db.Text // Umiddelbare tiltak som ble gjort
+  suggestedActions  String?     @db.Text // Foreslåtte forebyggende tiltak
+  status            RuhStatus   @default(SUBMITTED)
+  reviewedBy        String?
+  reviewedAt        DateTime?
+  reviewComment     String?     @db.Text
+  completedBy       String?
+  completedAt       DateTime?
+  completedComment  String?     @db.Text
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
 
   tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   attachments       Attachment[]       @relation("RuhAttachments")
@@ -1625,13 +1635,13 @@ model IncidentSubcategoryOption {
   incidentType IncidentType
   // Bransje-pakke: GENERELL, BYGG, ATEX, OFFSHORE, HELSE, TRANSPORT
   industry     String       @default("GENERELL")
-  key          String       // Unik nøkkel, f.eks. "PERSONSKADE", "REKLAMASJON"
-  label        String       // Visningsnavn
+  key          String // Unik nøkkel, f.eks. "PERSONSKADE", "REKLAMASJON"
+  label        String // Visningsnavn
   isActive     Boolean      @default(true)
   sortOrder    Int          @default(0)
   createdAt    DateTime     @default(now())
 
-  tenant       Tenant?      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, incidentType, key])
   @@index([incidentType])
@@ -1655,33 +1665,33 @@ model SjaAnalysis {
   conclusion        SjaConclusion @default(NOT_DECIDED)
   conclusionComment String?       @db.Text
 
-  createdById       String
-  createdByName     String
-  responsibleName   String
-  participants      String?       @db.Text
+  createdById     String
+  createdByName   String
+  responsibleName String
+  participants    String? @db.Text
 
-  additionalConditions String?    @db.Text
+  additionalConditions String? @db.Text
   weatherConditions    String?
-  imageUrls            String?    @db.Text
+  imageUrls            String? @db.Text
 
-  submittedAt       DateTime?
-  signedByNames     String?       @db.Text
+  submittedAt   DateTime?
+  signedByNames String?   @db.Text
 
-  templateId        String?
-  templateName      String?
+  templateId   String?
+  templateName String?
 
-  approvedById      String?
-  approvedByName    String?
-  approvedAt        DateTime?
-  projectId         String?
+  approvedById   String?
+  approvedByName String?
+  approvedAt     DateTime?
+  projectId      String?
 
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  tenant            Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  hazards           SjaHazard[]
-  attachments       Attachment[]  @relation("SjaAttachments")
-  project           Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  hazards     SjaHazard[]
+  attachments Attachment[] @relation("SjaAttachments")
+  project     Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([sjaNummer])
@@ -1692,57 +1702,57 @@ model SjaAnalysis {
 }
 
 model SjaHazard {
-  id                String   @id @default(cuid())
-  sjaAnalysisId     String
-  sortOrder         Int      @default(0)
-  activity          String
-  hazard            String   @db.Text
-  consequence       String?  @db.Text
-  probability       Int      @default(1)
-  severity          Int      @default(1)
-  riskLevel         Int      @default(1)
-  measures          String   @db.Text
-  responsibleName   String?
-  completed         Boolean  @default(false)
+  id              String  @id @default(cuid())
+  sjaAnalysisId   String
+  sortOrder       Int     @default(0)
+  activity        String
+  hazard          String  @db.Text
+  consequence     String? @db.Text
+  probability     Int     @default(1)
+  severity        Int     @default(1)
+  riskLevel       Int     @default(1)
+  measures        String  @db.Text
+  responsibleName String?
+  completed       Boolean @default(false)
 
-  sjaAnalysis       SjaAnalysis @relation(fields: [sjaAnalysisId], references: [id], onDelete: Cascade)
+  sjaAnalysis SjaAnalysis @relation(fields: [sjaAnalysisId], references: [id], onDelete: Cascade)
 
   @@index([sjaAnalysisId])
 }
 
 model SjaTemplate {
-  id                String   @id @default(cuid())
-  tenantId          String
-  name              String
-  description       String?  @db.Text
-  workLocation      String?
-  isActive          Boolean  @default(true)
+  id           String  @id @default(cuid())
+  tenantId     String
+  name         String
+  description  String? @db.Text
+  workLocation String?
+  isActive     Boolean @default(true)
 
-  createdById       String
-  createdByName     String
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdById   String
+  createdByName String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  hazards           SjaTemplateHazard[]
+  tenant  Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  hazards SjaTemplateHazard[]
 
   @@index([tenantId])
   @@index([tenantId, isActive])
 }
 
 model SjaTemplateHazard {
-  id                String   @id @default(cuid())
-  templateId        String
-  sortOrder         Int      @default(0)
-  activity          String
-  hazard            String   @db.Text
-  consequence       String?  @db.Text
-  probability       Int      @default(1)
-  severity          Int      @default(1)
-  measures          String   @db.Text
-  responsibleName   String?
+  id              String  @id @default(cuid())
+  templateId      String
+  sortOrder       Int     @default(0)
+  activity        String
+  hazard          String  @db.Text
+  consequence     String? @db.Text
+  probability     Int     @default(1)
+  severity        Int     @default(1)
+  measures        String  @db.Text
+  responsibleName String?
 
-  template          SjaTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  template SjaTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 
   @@index([templateId])
 }
@@ -1766,22 +1776,22 @@ enum SjaConclusion {
 // ============================================
 
 model Training {
-  id              String    @id @default(cuid())
-  tenantId        String
-  userId          String
-  courseKey       String    // Unik ID for kurset (f.eks. "first-aid", "forklift")
-  title           String    // "Førstehjelp", "Truckførerbevis"
-  provider        String    // "Røde Kors", "BHT", "Internt"
-  description     String?   @db.Text
-  completedAt     DateTime? // ISO 9001: Når ble opplæringen fullført
-  validUntil      DateTime? // For kurs med utløpsdato
-  proofDocKey     String?   // ISO 9001: Dokumentert bevis (sertifikat PDF/bilde)
-  isRequired      Boolean   @default(false) // Obligatorisk for alle/visse roller
-  effectiveness   String?   @db.Text // ISO 9001: Evaluering av effektivitet
-  evaluatedBy     String?
-  evaluatedAt     DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  tenantId      String
+  userId        String
+  courseKey     String // Unik ID for kurset (f.eks. "first-aid", "forklift")
+  title         String // "Førstehjelp", "Truckførerbevis"
+  provider      String // "Røde Kors", "BHT", "Internt"
+  description   String?   @db.Text
+  completedAt   DateTime? // ISO 9001: Når ble opplæringen fullført
+  validUntil    DateTime? // For kurs med utløpsdato
+  proofDocKey   String? // ISO 9001: Dokumentert bevis (sertifikat PDF/bilde)
+  isRequired    Boolean   @default(false) // Obligatorisk for alle/visse roller
+  effectiveness String?   @db.Text // ISO 9001: Evaluering av effektivitet
+  evaluatedBy   String?
+  evaluatedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -1794,18 +1804,18 @@ model Training {
 
 // Kursmal/template som definerer hvilke kurs en tenant bruker
 model CourseTemplate {
-  id              String   @id @default(cuid())
-  tenantId        String?  // Null = globalt kurs, String = tenant-spesifikt
-  courseKey       String   // Unik nøkkel (f.eks. "first-aid", "forklift")
-  title           String   // "Førstehjelp", "Truckførerbevis"
-  description     String?  @db.Text
-  provider        String?  // Standard leverandør (f.eks. "Røde Kors")
-  isRequired      Boolean  @default(false) // Obligatorisk for alle
-  validityYears   Int?     // Hvor lenge er kurset gyldig (null = ikke utløpsdato)
-  isGlobal        Boolean  @default(false) // Globalt standard HMS-kurs
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id            String   @id @default(cuid())
+  tenantId      String? // Null = globalt kurs, String = tenant-spesifikt
+  courseKey     String // Unik nøkkel (f.eks. "first-aid", "forklift")
+  title         String // "Førstehjelp", "Truckførerbevis"
+  description   String?  @db.Text
+  provider      String? // Standard leverandør (f.eks. "Røde Kors")
+  isRequired    Boolean  @default(false) // Obligatorisk for alle
+  validityYears Int? // Hvor lenge er kurset gyldig (null = ikke utløpsdato)
+  isGlobal      Boolean  @default(false) // Globalt standard HMS-kurs
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -1820,30 +1830,30 @@ model CourseTemplate {
 // ============================================
 
 model Audit {
-  id              String      @id @default(cuid())
-  tenantId        String
-  title           String      // "Q1 2024 Internrevisjon"
-  auditType       AuditType   @default(INTERNAL)
-  scope           String      @db.Text // ISO 9001: Revisjonens omfang
-  criteria        String      @db.Text // ISO 9001: Revisjonskriterier (hvilke krav)
-  leadAuditorId   String      // ISO 9001: Hovedrevisor (objektivitet)
-  teamMemberIds   String?     @db.Text // JSON array av bruker-IDer
-  scheduledDate   DateTime    // ISO 9001: Planlagt dato
-  completedAt     DateTime?   // ISO 9001: Når revisjon ble fullført
-  area            String      // Område som revideres (HMS, Kvalitet, etc)
-  department      String?     // Avdeling (hvis aktuelt)
-  status          AuditStatus @default(PLANNED)
-  summary         String?     @db.Text // Oppsummering av revisjon
-  conclusion      String?     @db.Text // Konklusjon og anbefaling
-  reportKey       String?     // PDF-rapport i storage
-  approvedBy      String?     // Hvem som godkjente revisjonen
-  approvedAt      DateTime?   // Når revisjonen ble godkjent
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id            String      @id @default(cuid())
+  tenantId      String
+  title         String // "Q1 2024 Internrevisjon"
+  auditType     AuditType   @default(INTERNAL)
+  scope         String      @db.Text // ISO 9001: Revisjonens omfang
+  criteria      String      @db.Text // ISO 9001: Revisjonskriterier (hvilke krav)
+  leadAuditorId String // ISO 9001: Hovedrevisor (objektivitet)
+  teamMemberIds String?     @db.Text // JSON array av bruker-IDer
+  scheduledDate DateTime // ISO 9001: Planlagt dato
+  completedAt   DateTime? // ISO 9001: Når revisjon ble fullført
+  area          String // Område som revideres (HMS, Kvalitet, etc)
+  department    String? // Avdeling (hvis aktuelt)
+  status        AuditStatus @default(PLANNED)
+  summary       String?     @db.Text // Oppsummering av revisjon
+  conclusion    String?     @db.Text // Konklusjon og anbefaling
+  reportKey     String? // PDF-rapport i storage
+  approvedBy    String? // Hvem som godkjente revisjonen
+  approvedAt    DateTime? // Når revisjonen ble godkjent
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
-  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  findings AuditFinding[]
-  measures Measure[]
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  findings       AuditFinding[]
+  measures       Measure[]
   riskAuditLinks RiskAuditLink[]
 
   @@index([tenantId])
@@ -1854,35 +1864,35 @@ model Audit {
 }
 
 enum AuditType {
-  INTERNAL       // Internrevisjon (ISO 9001: 9.2)
-  EXTERNAL       // Ekstern revisjon (kunde, sertifisering)
-  SUPPLIER       // Leverandørrevisjon
-  CERTIFICATION  // Sertifiseringsrevisjon (ISO 9001)
+  INTERNAL // Internrevisjon (ISO 9001: 9.2)
+  EXTERNAL // Ekstern revisjon (kunde, sertifisering)
+  SUPPLIER // Leverandørrevisjon
+  CERTIFICATION // Sertifiseringsrevisjon (ISO 9001)
 }
 
 enum AuditStatus {
-  PLANNED      // Planlagt
-  IN_PROGRESS  // Pågår
-  COMPLETED    // Fullført
-  APPROVED     // Godkjent
-  CANCELLED    // Avbrutt
+  PLANNED // Planlagt
+  IN_PROGRESS // Pågår
+  COMPLETED // Fullført
+  APPROVED // Godkjent
+  CANCELLED // Avbrutt
 }
 
 model AuditFinding {
   id               String        @id @default(cuid())
   auditId          String
-  findingType      FindingType   // ISO 9001: Større/mindre avvik, observasjon
-  clause           String        // ISO 9001 klausul (f.eks. "7.2", "9.1")
+  findingType      FindingType // ISO 9001: Større/mindre avvik, observasjon
+  clause           String // ISO 9001 klausul (f.eks. "7.2", "9.1")
   description      String        @db.Text // Beskrivelse av funn
   evidence         String        @db.Text // ISO 9001: Bevis/observasjon
   requirement      String        @db.Text // Hvilket krav er ikke oppfylt
-  responsibleId    String        // Ansvarlig for korrigerende tiltak
-  dueDate          DateTime?     // Frist for lukking
+  responsibleId    String // Ansvarlig for korrigerende tiltak
+  dueDate          DateTime? // Frist for lukking
   correctiveAction String?       @db.Text // ISO 9001: Korrigerende tiltak
   rootCause        String?       @db.Text // ISO 9001: Årsaksanalyse
   status           FindingStatus @default(OPEN)
   closedAt         DateTime?
-  verifiedById     String?       // Hvem som verifiserte lukkingen
+  verifiedById     String? // Hvem som verifiserte lukkingen
   verifiedAt       DateTime?
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
@@ -1897,17 +1907,17 @@ model AuditFinding {
 }
 
 enum FindingType {
-  MAJOR_NC     // Større avvik (Major Non-Conformity)
-  MINOR_NC     // Mindre avvik (Minor Non-Conformity)
-  OBSERVATION  // Observasjon (potensielt problem)
-  STRENGTH     // Styrke (god praksis)
+  MAJOR_NC // Større avvik (Major Non-Conformity)
+  MINOR_NC // Mindre avvik (Minor Non-Conformity)
+  OBSERVATION // Observasjon (potensielt problem)
+  STRENGTH // Styrke (god praksis)
 }
 
 enum FindingStatus {
-  OPEN         // Åpen
-  IN_PROGRESS  // Under arbeid
-  RESOLVED     // Løst (venter verifikasjon)
-  VERIFIED     // Verifisert lukket
+  OPEN // Åpen
+  IN_PROGRESS // Under arbeid
+  RESOLVED // Løst (venter verifikasjon)
+  VERIFIED // Verifisert lukket
 }
 
 // ============================================
@@ -1915,28 +1925,28 @@ enum FindingStatus {
 // ============================================
 
 model Goal {
-  id              String       @id @default(cuid())
-  tenantId        String
-  title           String       // "Reduser arbeidsskader med 50%"
-  description     String?      @db.Text
-  category        GoalCategory @default(QUALITY) // HMS, Kvalitet, Miljø, etc
-  targetValue     Float?       // Målverdi (f.eks. 50 for "50% reduksjon")
-  currentValue    Float?       // Nåværende verdi (oppdateres ved måling)
-  unit            String?      // Enhet (%, antall, timer, NOK, etc)
-  baseline        Float?       // Utgangspunkt for måling
-  year            Int          // Hvilket år gjelder målet?
-  quarter         Int?         // Hvilket kvartal? (1-4, null = hele året)
-  startDate       DateTime?    // Startdato
-  deadline        DateTime?    // Sluttdato/frist
-  ownerId         String       // Ansvarlig for målet (ISO 9001: Ansvar)
-  status          GoalStatus   @default(ACTIVE)
-  measurements    KpiMeasurement[] // Målinger over tid
-  actions         Measure[]    // Tiltak knyttet til målet
+  id                   String                @id @default(cuid())
+  tenantId             String
+  title                String // "Reduser arbeidsskader med 50%"
+  description          String?               @db.Text
+  category             GoalCategory          @default(QUALITY) // HMS, Kvalitet, Miljø, etc
+  targetValue          Float? // Målverdi (f.eks. 50 for "50% reduksjon")
+  currentValue         Float? // Nåværende verdi (oppdateres ved måling)
+  unit                 String? // Enhet (%, antall, timer, NOK, etc)
+  baseline             Float? // Utgangspunkt for måling
+  year                 Int // Hvilket år gjelder målet?
+  quarter              Int? // Hvilket kvartal? (1-4, null = hele året)
+  startDate            DateTime? // Startdato
+  deadline             DateTime? // Sluttdato/frist
+  ownerId              String // Ansvarlig for målet (ISO 9001: Ansvar)
+  status               GoalStatus            @default(ACTIVE)
+  measurements         KpiMeasurement[] // Målinger over tid
+  actions              Measure[] // Tiltak knyttet til målet
   environmentalAspects EnvironmentalAspect[]
-  risks           Risk[]       @relation("RiskGoal")
-  customerFeedback CustomerFeedback[]
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  risks                Risk[]                @relation("RiskGoal")
+  customerFeedback     CustomerFeedback[]
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -1949,22 +1959,22 @@ model Goal {
 }
 
 enum GoalCategory {
-  QUALITY      // Kvalitetsmål
-  HMS          // Helse, miljø, sikkerhet
-  ENVIRONMENT  // Miljømål
-  CUSTOMER     // Kundetilfredshet
-  EFFICIENCY   // Effektivitet/produktivitet
-  FINANCE      // Økonomiske mål
-  COMPETENCE   // Kompetanseutvikling
-  OTHER        // Annet
+  QUALITY // Kvalitetsmål
+  HMS // Helse, miljø, sikkerhet
+  ENVIRONMENT // Miljømål
+  CUSTOMER // Kundetilfredshet
+  EFFICIENCY // Effektivitet/produktivitet
+  FINANCE // Økonomiske mål
+  COMPETENCE // Kompetanseutvikling
+  OTHER // Annet
 }
 
 enum GoalStatus {
-  ACTIVE       // Aktivt mål
-  ACHIEVED     // Oppnådd
-  AT_RISK      // I risiko (ikke på sporet)
-  FAILED       // Ikke oppnådd
-  ARCHIVED     // Arkivert
+  ACTIVE // Aktivt mål
+  ACHIEVED // Oppnådd
+  AT_RISK // I risiko (ikke på sporet)
+  FAILED // Ikke oppnådd
+  ARCHIVED // Arkivert
 }
 
 // Målinger/KPI-verdier over tid (ISO 9001: 9.1 Overvåking og måling)
@@ -1972,12 +1982,12 @@ model KpiMeasurement {
   id              String          @id @default(cuid())
   goalId          String
   tenantId        String
-  value           Float           // Målt verdi
-  measurementDate DateTime        // Når ble målingen tatt?
+  value           Float // Målt verdi
+  measurementDate DateTime // Når ble målingen tatt?
   measurementType MeasurementType @default(MANUAL)
   comment         String?         @db.Text // Kommentar til målingen
-  measuredById    String?         // Hvem målte (hvis manuell)
-  source          String?         // Kilde (hvis automatisk, f.eks. "incidents_count")
+  measuredById    String? // Hvem målte (hvis manuell)
+  source          String? // Kilde (hvis automatisk, f.eks. "incidents_count")
   createdAt       DateTime        @default(now())
 
   goal   Goal   @relation(fields: [goalId], references: [id], onDelete: Cascade)
@@ -1989,9 +1999,9 @@ model KpiMeasurement {
 }
 
 enum MeasurementType {
-  MANUAL      // Manuell registrering
-  AUTOMATIC   // Automatisk fra systemet
-  CALCULATED  // Beregnet fra andre data
+  MANUAL // Manuell registrering
+  AUTOMATIC // Automatisk fra systemet
+  CALCULATED // Beregnet fra andre data
 }
 
 // ============================================
@@ -1999,45 +2009,45 @@ enum MeasurementType {
 // ============================================
 
 model Chemical {
-  id               String          @id @default(cuid())
-  tenantId         String
-  productName      String          // Produktnavn
-  supplier         String?         // Leverandør
-  casNumber        String?         // CAS-nummer
-  hazardClass      String?         // Fareklasse (GHS/CLP)
-  hazardStatements String?         @db.Text // H-setninger (H226, H315, etc)
-  precautionaryStatements String?  @db.Text // P-setninger (P210, P261, etc)
-  warningPictograms String?        @db.Text // JSON array av faresymboler (filnavn)
-  requiredPPE      String?         @db.Text // JSON array av påkrevd PPE (ISO 7010)
-  sdsKey           String?         // Sikkerhetsdatablad (PDF) i storage
-  sdsVersion       String?         // Versjon av sikkerhetsdatablad
-  sdsDate          DateTime?       // Dato for sikkerhetsdatablad
-  nextReviewDate   DateTime?       // Neste revisjonsdata for datablad
-  location         String?         // Lagringssted
-  quantity         Float?          // Mengde
-  unit             String?         // Enhet (liter, kg, etc)
-  status           ChemicalStatus  @default(ACTIVE)
-  notes            String?         @db.Text // Notater/kommentarer
-  lastVerifiedAt   DateTime?       // Sist verifisert i revisjon
-  lastVerifiedBy   String?         // Hvem verifiserte sist
-  
-  // ECHA/AI-berikede data (automatisk)
-  ecNumber         String?         // EC-nummer fra ECHA
-  isCMR            Boolean         @default(false) // Carcinogenic, Mutagenic, Reprotoxic
-  isSVHC           Boolean         @default(false) // Substance of Very High Concern
-  containsIsocyanates Boolean      @default(false) // Inneholder diisocyanater - krever spesialkurs
-  reachStatus      String?         // REACH-status
-  hazardLevel      Int?            // 1-5 (beregnet fra H-setninger)
-  substitutionPriority String?     // HIGH, MEDIUM, LOW
-  autoSuggestedAlternatives String? @db.Text // JSON array av foreslåtte alternativer
-  lastEchaSync     DateTime?       // Sist synkronisert med ECHA
-  aiExtractedData  String?         @db.Text // JSON med AI-ekstraherte data fra SDS
-  
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  id                      String         @id @default(cuid())
+  tenantId                String
+  productName             String // Produktnavn
+  supplier                String? // Leverandør
+  casNumber               String? // CAS-nummer
+  hazardClass             String? // Fareklasse (GHS/CLP)
+  hazardStatements        String?        @db.Text // H-setninger (H226, H315, etc)
+  precautionaryStatements String?        @db.Text // P-setninger (P210, P261, etc)
+  warningPictograms       String?        @db.Text // JSON array av faresymboler (filnavn)
+  requiredPPE             String?        @db.Text // JSON array av påkrevd PPE (ISO 7010)
+  sdsKey                  String? // Sikkerhetsdatablad (PDF) i storage
+  sdsVersion              String? // Versjon av sikkerhetsdatablad
+  sdsDate                 DateTime? // Dato for sikkerhetsdatablad
+  nextReviewDate          DateTime? // Neste revisjonsdata for datablad
+  location                String? // Lagringssted
+  quantity                Float? // Mengde
+  unit                    String? // Enhet (liter, kg, etc)
+  status                  ChemicalStatus @default(ACTIVE)
+  notes                   String?        @db.Text // Notater/kommentarer
+  lastVerifiedAt          DateTime? // Sist verifisert i revisjon
+  lastVerifiedBy          String? // Hvem verifiserte sist
 
-  tenant           Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  riskLinks        RiskChemicalLink[] // Kobling til risikovurderinger
+  // ECHA/AI-berikede data (automatisk)
+  ecNumber                  String? // EC-nummer fra ECHA
+  isCMR                     Boolean   @default(false) // Carcinogenic, Mutagenic, Reprotoxic
+  isSVHC                    Boolean   @default(false) // Substance of Very High Concern
+  containsIsocyanates       Boolean   @default(false) // Inneholder diisocyanater - krever spesialkurs
+  reachStatus               String? // REACH-status
+  hazardLevel               Int? // 1-5 (beregnet fra H-setninger)
+  substitutionPriority      String? // HIGH, MEDIUM, LOW
+  autoSuggestedAlternatives String?   @db.Text // JSON array av foreslåtte alternativer
+  lastEchaSync              DateTime? // Sist synkronisert med ECHA
+  aiExtractedData           String?   @db.Text // JSON med AI-ekstraherte data fra SDS
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  riskLinks         RiskChemicalLink[] // Kobling til risikovurderinger
   exposureRegisters ExposureRegister[]
 
   @@index([tenantId])
@@ -2051,9 +2061,9 @@ model Chemical {
 }
 
 enum ChemicalStatus {
-  ACTIVE      // I bruk
-  PHASED_OUT  // Utfases
-  ARCHIVED    // Ikke lenger i bruk
+  ACTIVE // I bruk
+  PHASED_OUT // Utfases
+  ARCHIVED // Ikke lenger i bruk
 }
 
 // ============================================
@@ -2061,41 +2071,41 @@ enum ChemicalStatus {
 // ============================================
 
 model ExposureRegister {
-  id          String   @id @default(cuid())
-  tenantId    String
+  id       String @id @default(cuid())
+  tenantId String
 
   // Ansattdata – lagres direkte for arkivformål (40–60 år)
-  employeeId          String?   // FK til User (nullable for arkiverte poster)
-  employeeName        String    // Fullt navn
-  employeeBirthNumber String    // Fødselsnummer (kryptert)
-  department          String?   // Avdeling
-  jobTitle            String    // Stilling/Rolle
-  workLocation        String    // Arbeidssted/Lokasjon
+  employeeId          String? // FK til User (nullable for arkiverte poster)
+  employeeName        String // Fullt navn
+  employeeBirthNumber String // Fødselsnummer (kryptert)
+  department          String? // Avdeling
+  jobTitle            String // Stilling/Rolle
+  workLocation        String // Arbeidssted/Lokasjon
   employmentStartDate DateTime?
   employmentEndDate   DateTime?
 
   // Eksponeringsfaktor
-  chemicalId      String?  // FK til Chemical (kan kobles til stoffkartotek)
-  exposureAgent   String   // Navn på stoff/faktor
-  casNumber       String?  // CAS-nummer
-  exposureType    ExposureType @default(INHALATION)
+  chemicalId    String? // FK til Chemical (kan kobles til stoffkartotek)
+  exposureAgent String // Navn på stoff/faktor
+  casNumber     String? // CAS-nummer
+  exposureType  ExposureType @default(INHALATION)
 
   // Tidsrom for eksponering
   exposureStartDate DateTime
   exposureEndDate   DateTime?
-  duration          String?  // Fritekst, f.eks. "3 dager/uke, 2 timer/dag"
+  duration          String? // Fritekst, f.eks. "3 dager/uke, 2 timer/dag"
 
   // Tiltak og verneutstyr
-  ppeUsed              String?  @db.Text // Verneutstyr brukt (fritekst)
-  riskAssessmentDone   Boolean  @default(false)
+  ppeUsed            String? @db.Text // Verneutstyr brukt (fritekst)
+  riskAssessmentDone Boolean @default(false)
 
   // Helsekontroll
-  healthCheckRequired Boolean  @default(false)
-  healthCheckDone     Boolean  @default(false)
+  healthCheckRequired Boolean   @default(false)
+  healthCheckDone     Boolean   @default(false)
   healthCheckDate     DateTime?
 
   // Langtidslagring – kan ikke slettes uten tillatelse fra Arbeidstilsynet
-  retentionYears     Int      @default(40)
+  retentionYears     Int                    @default(40)
   retentionUntilDate DateTime
   status             ExposureRegisterStatus @default(ACTIVE)
   archivedAt         DateTime?
@@ -2107,10 +2117,10 @@ model ExposureRegister {
   riskId String?
 
   // Metadata
-  comment     String?  @db.Text // Kommentar / tilleggsinformasjon
-  registeredBy String   // Navn på den som registrerte
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  comment      String?  @db.Text // Kommentar / tilleggsinformasjon
+  registeredBy String // Navn på den som registrerte
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   employee  User?      @relation("ExposureRegisterEmployee", fields: [employeeId], references: [id], onDelete: SetNull)
@@ -2128,19 +2138,19 @@ model ExposureRegister {
 }
 
 enum ExposureType {
-  INHALATION  // Innånding
-  SKIN        // Hudkontakt
-  NOISE       // Støy
-  VIBRATION   // Vibrasjon
-  BIOLOGICAL  // Biologisk
-  RADIATION   // Stråling
-  OTHER       // Annet
+  INHALATION // Innånding
+  SKIN // Hudkontakt
+  NOISE // Støy
+  VIBRATION // Vibrasjon
+  BIOLOGICAL // Biologisk
+  RADIATION // Stråling
+  OTHER // Annet
 }
 
 enum ExposureRegisterStatus {
-  ACTIVE    // Pågående eksponering
-  INACTIVE  // Avsluttet eksponering
-  ARCHIVED  // Arkivert (kan ikke slettes)
+  ACTIVE // Pågående eksponering
+  INACTIVE // Avsluttet eksponering
+  ARCHIVED // Arkivert (kan ikke slettes)
 }
 
 // ============================================
@@ -2181,8 +2191,8 @@ model AuditLog {
   id        String   @id @default(cuid())
   tenantId  String
   userId    String
-  action    String   // DOCUMENT_UPLOADED, DOCUMENT_APPROVED, DOCUMENT_DELETED, etc.
-  resource  String?  // Document:abc123
+  action    String // DOCUMENT_UPLOADED, DOCUMENT_APPROVED, DOCUMENT_DELETED, etc.
+  resource  String? // Document:abc123
   metadata  String?  @db.Text // JSON med detaljer
   ipAddress String?
   userAgent String?  @db.Text
@@ -2202,36 +2212,37 @@ model AuditLog {
 // ============================================================================
 
 model Inspection {
-  id               String            @id @default(cuid())
+  id               String              @id @default(cuid())
   tenantId         String
   title            String
-  description      String?           @db.Text
-  type             InspectionType    @default(VERNERUNDE)
-  status           InspectionStatus  @default(PLANNED)
+  description      String?             @db.Text
+  type             InspectionType      @default(VERNERUNDE)
+  status           InspectionStatus    @default(PLANNED)
   scheduledDate    DateTime
   completedDate    DateTime?
   location         String?
   area             String?
   riskCategory     RiskCategory?
-  templateId       String?           // Gammelt system: InspectionTemplate
-  formTemplateId   String?           // Nytt system: FormTemplate (skjemabygger)
-  formSubmissionId String?           // Kobling til utfylt skjema
-  conductedBy      String            // userId
-  participants     String?           @db.Text // JSON array of userIds
+  templateId       String? // Gammelt system: InspectionTemplate
+  formTemplateId   String? // Nytt system: FormTemplate (skjemabygger)
+  formSubmissionId String? // Kobling til utfylt skjema
+  conductedBy      String // userId
+  participants     String?             @db.Text // JSON array of userIds
+  checklist        Json? // Kopiert sjekkliste fra valgt inspeksjonsmal ved opprettelse
   durationMinutes  Int?
   followUpById     String?
   nextInspection   DateTime?
   projectId        String?
   findings         InspectionFinding[]
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  
-  tenant          Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  template        InspectionTemplate? @relation("TemplateInspections", fields: [templateId], references: [id], onDelete: SetNull)
-  formTemplate    FormTemplate?       @relation("InspectionFormTemplates", fields: [formTemplateId], references: [id], onDelete: SetNull)
-  formSubmission  FormSubmission?     @relation("InspectionFormSubmission", fields: [formSubmissionId], references: [id], onDelete: SetNull)
-  project         Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  tenant         Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  template       InspectionTemplate? @relation("TemplateInspections", fields: [templateId], references: [id], onDelete: SetNull)
+  formTemplate   FormTemplate?       @relation("InspectionFormTemplates", fields: [formTemplateId], references: [id], onDelete: SetNull)
+  formSubmission FormSubmission?     @relation("InspectionFormSubmission", fields: [formSubmissionId], references: [id], onDelete: SetNull)
+  project        Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
   @@index([tenantId])
   @@index([scheduledDate])
   @@index([status])
@@ -2245,16 +2256,16 @@ model Inspection {
 }
 
 model InspectionTemplate {
-  id          String   @id @default(cuid())
-  tenantId    String?
-  name        String
-  description String? @db.Text
-  category    String?
+  id           String        @id @default(cuid())
+  tenantId     String?
+  name         String
+  description  String?       @db.Text
+  category     String?
   riskCategory RiskCategory?
-  checklist   Json?
-  isGlobal    Boolean @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  checklist    Json?
+  isGlobal     Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   tenant      Tenant?      @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   inspections Inspection[] @relation("TemplateInspections")
@@ -2267,27 +2278,27 @@ model InspectionTemplate {
 }
 
 model InspectionFinding {
-  id            String           @id @default(cuid())
-  inspectionId  String
-  title         String
-  description   String           @db.Text
-  severity      Int              // 1-5 (1=Lav, 5=Kritisk)
-  location      String?
-  imageKeys     String?          @db.Text // JSON array of R2 keys
-  status        InspectionFindingStatus    @default(OPEN)
-  responsibleId String?
-  dueDate       DateTime?
-  resolvedAt    DateTime?
-  resolutionNotes String?        @db.Text
-  linkedRiskId  String?
+  id              String                  @id @default(cuid())
+  inspectionId    String
+  title           String
+  description     String                  @db.Text
+  severity        Int // 1-5 (1=Lav, 5=Kritisk)
+  location        String?
+  imageKeys       String?                 @db.Text // JSON array of R2 keys
+  status          InspectionFindingStatus @default(OPEN)
+  responsibleId   String?
+  dueDate         DateTime?
+  resolvedAt      DateTime?
+  resolutionNotes String?                 @db.Text
+  linkedRiskId    String?
   linkedMeasureId String?
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
-  
-  inspection Inspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
-  linkedRisk Risk? @relation("InspectionFindingRisk", fields: [linkedRiskId], references: [id])
-  linkedMeasure Measure? @relation("InspectionFindingMeasure", fields: [linkedMeasureId], references: [id])
-  
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  inspection    Inspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  linkedRisk    Risk?      @relation("InspectionFindingRisk", fields: [linkedRiskId], references: [id])
+  linkedMeasure Measure?   @relation("InspectionFindingMeasure", fields: [linkedMeasureId], references: [id])
+
   @@index([inspectionId])
   @@index([status])
   @@index([responsibleId])
@@ -2326,33 +2337,33 @@ enum InspectionFindingStatus {
 // brukere fyller ut digitalt med signatur. Se FORMS.md for full dokumentasjon.
 
 model FormTemplate {
-  id                String            @id @default(cuid())
-  tenantId          String?
-  title             String            // "HMS Morgenmøte"
-  description       String?           @db.Text
-  numberPrefix      String?           // Prefix for autogenerert referansenummer (f.eks. "RUH" → RUH-2025-001)
-  category          FormCategory      @default(CUSTOM)
-  isActive          Boolean           @default(true)
-  requiresSignature Boolean           @default(true)
-  requiresApproval  Boolean           @default(false)
-  isRecurring       Boolean           @default(false)
-  recurrenceRule    String?           @db.Text // RRULE format (daglig/ukentlig)
-  isGlobal          Boolean           @default(false) // For globale/system-templates
-  allowAnonymousResponses Boolean    @default(false) // Psykososialt: anonyme svar (ISO 45003, AML § 4-3)
-  
+  id                      String       @id @default(cuid())
+  tenantId                String?
+  title                   String // "HMS Morgenmøte"
+  description             String?      @db.Text
+  numberPrefix            String? // Prefix for autogenerert referansenummer (f.eks. "RUH" → RUH-2025-001)
+  category                FormCategory @default(CUSTOM)
+  isActive                Boolean      @default(true)
+  requiresSignature       Boolean      @default(true)
+  requiresApproval        Boolean      @default(false)
+  isRecurring             Boolean      @default(false)
+  recurrenceRule          String?      @db.Text // RRULE format (daglig/ukentlig)
+  isGlobal                Boolean      @default(false) // For globale/system-templates
+  allowAnonymousResponses Boolean      @default(false) // Psykososialt: anonyme svar (ISO 45003, AML § 4-3)
+
   // Tilgangsstyring
-  accessType        AccessType        @default(ALL) // Hvem har tilgang
-  allowedRoles      String?           @db.Text // JSON array: ["ADMIN", "HMS"]
-  allowedUsers      String?           @db.Text // JSON array: ["userId1", "userId2"]
-  
-  createdBy         String
-  fields            FormField[]
-  submissions       FormSubmission[]
-  inspections       Inspection[]      @relation("InspectionFormTemplates")
-  tenant            Tenant?           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-  
+  accessType   AccessType @default(ALL) // Hvem har tilgang
+  allowedRoles String?    @db.Text // JSON array: ["ADMIN", "HMS"]
+  allowedUsers String?    @db.Text // JSON array: ["userId1", "userId2"]
+
+  createdBy   String
+  fields      FormField[]
+  submissions FormSubmission[]
+  inspections Inspection[]     @relation("InspectionFormTemplates")
+  tenant      Tenant?          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
   @@index([tenantId])
   @@index([createdBy])
   @@index([category])
@@ -2361,80 +2372,80 @@ model FormTemplate {
 }
 
 enum AccessType {
-  ALL            // Alle i tenanten
-  ROLES          // Spesifikke roller
-  USERS          // Spesifikke brukere
+  ALL // Alle i tenanten
+  ROLES // Spesifikke roller
+  USERS // Spesifikke brukere
   ROLES_AND_USERS // Kombinasjon av roller og brukere
 }
 
 enum FormCategory {
-  MEETING       // Møtereferater
-  INSPECTION    // Inspeksjoner / Vernerunder
-  INCIDENT      // Hendelsesrapporter
-  RISK          // Risikovurderinger
-  TRAINING      // Opplæring
-  CHECKLIST     // Sjekklister
-  TIMESHEET     // Timeliste (eksport til regnskap)
-  WELLBEING     // Psykososiale skjemaer (ISO 45003)
-  BCM           // Beredskaps- og kontinuitetsplaner (ISO 22301)
-  COMPLAINT     // Kundeklager (ISO 10002)
-  CUSTOM        // Egendefinert
+  MEETING // Møtereferater
+  INSPECTION // Inspeksjoner / Vernerunder
+  INCIDENT // Hendelsesrapporter
+  RISK // Risikovurderinger
+  TRAINING // Opplæring
+  CHECKLIST // Sjekklister
+  TIMESHEET // Timeliste (eksport til regnskap)
+  WELLBEING // Psykososiale skjemaer (ISO 45003)
+  BCM // Beredskaps- og kontinuitetsplaner (ISO 22301)
+  COMPLAINT // Kundeklager (ISO 10002)
+  CUSTOM // Egendefinert
 }
 
 model FormField {
-  id               String          @id @default(cuid())
+  id               String           @id @default(cuid())
   formTemplateId   String
   fieldType        FieldType
   label            String
-  helpText         String?         @db.Text
+  helpText         String?          @db.Text
   placeholder      String?
-  isRequired       Boolean         @default(false)
-  order            Int             // Sortering (1, 2, 3...)
-  validation       String?         @db.Text // JSON: { min: 5, max: 100 }
-  options          String?         @db.Text // JSON: ["Ja", "Nei", "Vet ikke"]
-  conditionalLogic String?         @db.Text // JSON: Vis hvis felt X = Y
-  formTemplate     FormTemplate    @relation(fields: [formTemplateId], references: [id], onDelete: Cascade)
+  isRequired       Boolean          @default(false)
+  order            Int // Sortering (1, 2, 3...)
+  validation       String?          @db.Text // JSON: { min: 5, max: 100 }
+  options          String?          @db.Text // JSON: ["Ja", "Nei", "Vet ikke"]
+  conditionalLogic String?          @db.Text // JSON: Vis hvis felt X = Y
+  formTemplate     FormTemplate     @relation(fields: [formTemplateId], references: [id], onDelete: Cascade)
   values           FormFieldValue[]
-  createdAt        DateTime        @default(now())
-  
+  createdAt        DateTime         @default(now())
+
   @@index([formTemplateId])
   @@index([order])
 }
 
 enum FieldType {
-  TEXT          // Kort tekst
-  TEXTAREA      // Lang tekst
-  NUMBER        // Tall
-  DATE          // Dato
-  DATETIME      // Dato + tid
-  CHECKBOX      // Ja/Nei
-  RADIO         // Radioknapper
-  SELECT        // Dropdown
-  FILE          // Filopplasting
-  SIGNATURE     // Digital signatur
-  LIKERT_SCALE  // 1-5 skala (Svært uenig → Svært enig)
+  TEXT // Kort tekst
+  TEXTAREA // Lang tekst
+  NUMBER // Tall
+  DATE // Dato
+  DATETIME // Dato + tid
+  CHECKBOX // Ja/Nei
+  RADIO // Radioknapper
+  SELECT // Dropdown
+  FILE // Filopplasting
+  SIGNATURE // Digital signatur
+  LIKERT_SCALE // 1-5 skala (Svært uenig → Svært enig)
   SECTION_HEADER // Overskrift/seksjon i skjema
 }
 
 model FormSubmission {
-  id               String            @id @default(cuid())
+  id               String           @id @default(cuid())
   formTemplateId   String
-  tenantId        String
-  submissionNumber String?          // Unikt referansenummer per tenant (SKJ-2025-001 eller RUH-2025-001)
-  submittedById   String?           // Null = anonymt svar (psykososial kartlegging)
-  status          SubmissionStatus  @default(DRAFT)
-  signedAt        DateTime?
-  approvedById    String?
-  approvedAt      DateTime?
-  fieldValues     FormFieldValue[]
-  inspections     Inspection[]      @relation("InspectionFormSubmission")
-  metadata        String?           @db.Text // JSON: IP, location, etc.
-  formTemplate    FormTemplate      @relation(fields: [formTemplateId], references: [id], onDelete: Cascade)
-  tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  submittedBy     User?             @relation(fields: [submittedById], references: [id], onDelete: SetNull)
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  
+  tenantId         String
+  submissionNumber String? // Unikt referansenummer per tenant (SKJ-2025-001 eller RUH-2025-001)
+  submittedById    String? // Null = anonymt svar (psykososial kartlegging)
+  status           SubmissionStatus @default(DRAFT)
+  signedAt         DateTime?
+  approvedById     String?
+  approvedAt       DateTime?
+  fieldValues      FormFieldValue[]
+  inspections      Inspection[]     @relation("InspectionFormSubmission")
+  metadata         String?          @db.Text // JSON: IP, location, etc.
+  formTemplate     FormTemplate     @relation(fields: [formTemplateId], references: [id], onDelete: Cascade)
+  tenant           Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  submittedBy      User?            @relation(fields: [submittedById], references: [id], onDelete: SetNull)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
   @@index([tenantId])
   @@index([submissionNumber])
   @@index([submittedById])
@@ -2444,10 +2455,10 @@ model FormSubmission {
 }
 
 enum SubmissionStatus {
-  DRAFT         // Kladd (ikke sendt inn)
-  SUBMITTED     // Sendt inn, venter godkjenning
-  APPROVED      // Godkjent av leder
-  REJECTED      // Avvist
+  DRAFT // Kladd (ikke sendt inn)
+  SUBMITTED // Sendt inn, venter godkjenning
+  APPROVED // Godkjent av leder
+  REJECTED // Avvist
 }
 
 model FormFieldValue {
@@ -2455,10 +2466,10 @@ model FormFieldValue {
   submissionId String
   fieldId      String
   value        String?        @db.Text // JSON for komplekse verdier
-  fileKey      String?        // Hvis file upload
+  fileKey      String? // Hvis file upload
   submission   FormSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   field        FormField      @relation(fields: [fieldId], references: [id])
-  
+
   @@index([submissionId])
   @@index([fieldId])
 }
@@ -2468,41 +2479,41 @@ model FormFieldValue {
 // ============================================
 
 model BlogPost {
-  id              String        @id @default(cuid())
-  title           String
-  slug            String        @unique
-  excerpt         String        @db.Text // Kort beskrivelse (meta description)
-  content         String        @db.LongText // Markdown eller rich text
-  coverImage      String?       @db.Text // URL til hovedbilde (signerte URLs kan være lange)
-  
+  id         String  @id @default(cuid())
+  title      String
+  slug       String  @unique
+  excerpt    String  @db.Text // Kort beskrivelse (meta description)
+  content    String  @db.LongText // Markdown eller rich text
+  coverImage String? @db.Text // URL til hovedbilde (signerte URLs kan være lange)
+
   // SEO
-  metaTitle       String?       // Custom SEO title (default: title)
-  metaDescription String?       @db.Text // Custom meta description (default: excerpt)
-  keywords        String?       @db.Text // Kommaseparert liste med keywords
-  
+  metaTitle       String? // Custom SEO title (default: title)
+  metaDescription String? @db.Text // Custom meta description (default: excerpt)
+  keywords        String? @db.Text // Kommaseparert liste med keywords
+
   // Organisering
-  category        BlogCategory? @relation(fields: [categoryId], references: [id])
-  categoryId      String?
-  tags            BlogTag[]
-  
+  category   BlogCategory? @relation(fields: [categoryId], references: [id])
+  categoryId String?
+  tags       BlogTag[]
+
   // Publisering
-  status          PostStatus    @default(DRAFT)
-  publishedAt     DateTime?
-  scheduledFor    DateTime?     // Planlagt publisering
-  
+  status       PostStatus @default(DRAFT)
+  publishedAt  DateTime?
+  scheduledFor DateTime? // Planlagt publisering
+
   // Forfatter
-  authorId        String
-  author          User          @relation(fields: [authorId], references: [id])
-  
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
+
   // Analytics
-  viewCount       Int           @default(0)
-  
+  viewCount Int @default(0)
+
   // Relaterte artikler (valgfritt)
-  relatedPosts    String?       @db.Text // JSON array med post IDs
-  
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  
+  relatedPosts String? @db.Text // JSON array med post IDs
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([slug])
   @@index([status])
   @@index([publishedAt])
@@ -2511,32 +2522,32 @@ model BlogPost {
 }
 
 enum PostStatus {
-  DRAFT       // Kladd
-  PUBLISHED   // Publisert
-  SCHEDULED   // Planlagt
-  ARCHIVED    // Arkivert
+  DRAFT // Kladd
+  PUBLISHED // Publisert
+  SCHEDULED // Planlagt
+  ARCHIVED // Arkivert
 }
 
 model BlogCategory {
-  id          String      @id @default(cuid())
-  name        String      @unique
-  slug        String      @unique
-  description String?     @db.Text
-  color       String?     // Hex color for UI
+  id          String     @id @default(cuid())
+  name        String     @unique
+  slug        String     @unique
+  description String?    @db.Text
+  color       String? // Hex color for UI
   posts       BlogPost[]
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
   @@index([slug])
 }
 
 model BlogTag {
-  id        String      @id @default(cuid())
-  name      String      @unique
-  slug      String      @unique
+  id        String     @id @default(cuid())
+  name      String     @unique
+  slug      String     @unique
   posts     BlogPost[]
-  createdAt DateTime    @default(now())
-  
+  createdAt DateTime   @default(now())
+
   @@index([slug])
 }
 
@@ -2545,42 +2556,42 @@ model BlogTag {
 // ============================================
 
 model ManagementReview {
-  id                    String                @id @default(cuid())
-  tenantId              String
-  title                 String
-  reviewDate            DateTime
-  period                String                // "Q1 2025", "H1 2025", "2025"
-  conductedBy           String                // userId
-  participants          String?               @db.Text // JSON array of userIds
-  
+  id           String   @id @default(cuid())
+  tenantId     String
+  title        String
+  reviewDate   DateTime
+  period       String // "Q1 2025", "H1 2025", "2025"
+  conductedBy  String // userId
+  participants String?  @db.Text // JSON array of userIds
+
   // Input data (JSON)
-  hmsGoalsReview        String?               @db.Text // Gjennomgang av HMS-mål
-  incidentStatistics    String?               @db.Text // Avvik og hendelser statistikk
-  riskReview            String?               @db.Text // Risikovurderinger status
-  auditResults          String?               @db.Text // Revisjoner og funn
-  trainingStatus        String?               @db.Text // Opplæringsstatus
-  resourcesReview       String?               @db.Text // Ressurser og budsjett
-  externalChanges       String?               @db.Text // Eksterne endringer (lover, etc)
-  wellbeingSummary      String?               @db.Text // Psykososialt arbeidsmiljø oppsummering
-  
+  hmsGoalsReview     String? @db.Text // Gjennomgang av HMS-mål
+  incidentStatistics String? @db.Text // Avvik og hendelser statistikk
+  riskReview         String? @db.Text // Risikovurderinger status
+  auditResults       String? @db.Text // Revisjoner og funn
+  trainingStatus     String? @db.Text // Opplæringsstatus
+  resourcesReview    String? @db.Text // Ressurser og budsjett
+  externalChanges    String? @db.Text // Eksterne endringer (lover, etc)
+  wellbeingSummary   String? @db.Text // Psykososialt arbeidsmiljø oppsummering
+
   // Output data
-  conclusions           String?               @db.Text // Konklusjoner
-  decisions             String?               @db.Text // JSON array of beslutninger
-  actionPlan            String?               @db.Text // JSON array of tiltak
-  nextReviewDate        DateTime?
-  
+  conclusions    String?   @db.Text // Konklusjoner
+  decisions      String?   @db.Text // JSON array of beslutninger
+  actionPlan     String?   @db.Text // JSON array of tiltak
+  nextReviewDate DateTime?
+
   // Meta
-  status                ManagementReviewStatus @default(PLANNED)
-  approvedBy            String?               // userId
-  approvedAt            DateTime?
-  notes                 String?               @db.Text
-  attachments           String?               @db.Text // JSON array of file keys
-  
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
-  
+  status      ManagementReviewStatus @default(PLANNED)
+  approvedBy  String? // userId
+  approvedAt  DateTime?
+  notes       String?                @db.Text
+  attachments String?                @db.Text // JSON array of file keys
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  
+
   @@index([tenantId])
   @@index([reviewDate])
   @@index([status])
@@ -2598,38 +2609,38 @@ enum ManagementReviewStatus {
 // ============================================
 
 model Meeting {
-  id                String              @id @default(cuid())
-  tenantId          String
-  type              MeetingType         @default(AMU)
-  title             String
-  scheduledDate     DateTime
-  location          String?
-  meetingLink       String?             // Teams/Zoom link
-  
+  id            String      @id @default(cuid())
+  tenantId      String
+  type          MeetingType @default(AMU)
+  title         String
+  scheduledDate DateTime
+  location      String?
+  meetingLink   String? // Teams/Zoom link
+
   // Agenda
-  agenda            String?             @db.Text // JSON array of agenda items
-  
+  agenda String? @db.Text // JSON array of agenda items
+
   // Meeting notes
-  summary           String?             @db.Text
-  notes             String?             @db.Text
-  
+  summary String? @db.Text
+  notes   String? @db.Text
+
   // Meta
-  status            MeetingStatus       @default(PLANNED)
-  startedAt         DateTime?
-  completedAt       DateTime?
-  organizer         String              // userId
-  minuteTaker       String?             // Referent/protokollfører
-  
+  status      MeetingStatus @default(PLANNED)
+  startedAt   DateTime?
+  completedAt DateTime?
+  organizer   String // userId
+  minuteTaker String? // Referent/protokollfører
+
   // Relations
-  participants      MeetingParticipant[]
-  decisions         MeetingDecision[]
-  attachments       String?             @db.Text // JSON array of file keys
-  
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  
+  participants MeetingParticipant[]
+  decisions    MeetingDecision[]
+  attachments  String?              @db.Text // JSON array of file keys
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  
+
   @@index([tenantId])
   @@index([scheduledDate])
   @@index([type])
@@ -2637,40 +2648,40 @@ model Meeting {
 }
 
 model MeetingParticipant {
-  id              String   @id @default(cuid())
-  meetingId       String
-  userId          String?  // Kan være null for eksterne
-  externalName    String?  // For eksterne deltakere
-  externalEmail   String?
-  role            ParticipantRole @default(MEMBER)
-  attended        Boolean  @default(false)
-  notes           String?  @db.Text
-  
+  id            String          @id @default(cuid())
+  meetingId     String
+  userId        String? // Kan være null for eksterne
+  externalName  String? // For eksterne deltakere
+  externalEmail String?
+  role          ParticipantRole @default(MEMBER)
+  attended      Boolean         @default(false)
+  notes         String?         @db.Text
+
   meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
   user    User?   @relation("MeetingParticipants", fields: [userId], references: [id], onDelete: SetNull)
-  
+
   @@index([meetingId])
   @@index([userId])
 }
 
 model MeetingDecision {
-  id              String          @id @default(cuid())
-  meetingId       String
-  decisionNumber  String          // "2025-01", "2025-02", etc.
-  title           String
-  description     String          @db.Text
-  responsibleId   String?         // userId
-  dueDate         DateTime?
-  status          DecisionStatus  @default(PENDING)
-  completedAt     DateTime?
-  notes           String?         @db.Text
-  
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  
+  id             String         @id @default(cuid())
+  meetingId      String
+  decisionNumber String // "2025-01", "2025-02", etc.
+  title          String
+  description    String         @db.Text
+  responsibleId  String? // userId
+  dueDate        DateTime?
+  status         DecisionStatus @default(PENDING)
+  completedAt    DateTime?
+  notes          String?        @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   meeting     Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
   responsible User?   @relation("MeetingDecisions", fields: [responsibleId], references: [id], onDelete: SetNull)
-  
+
   @@index([meetingId])
   @@index([responsibleId])
   @@index([status])
@@ -2678,10 +2689,10 @@ model MeetingDecision {
 }
 
 enum MeetingType {
-  AMU             // Arbeidsmiljøutvalg
-  VO              // Verneombud møte
-  BHT             // Bedriftshelsetjeneste møte
-  HMS_COMMITTEE   // HMS-utvalg
+  AMU // Arbeidsmiljøutvalg
+  VO // Verneombud møte
+  BHT // Bedriftshelsetjeneste møte
+  HMS_COMMITTEE // HMS-utvalg
   OTHER
 }
 
@@ -2693,10 +2704,10 @@ enum MeetingStatus {
 }
 
 enum ParticipantRole {
-  CHAIR           // Møteleder
-  SECRETARY       // Referent
-  MEMBER          // Medlem
-  OBSERVER        // Observatør
+  CHAIR // Møteleder
+  SECRETARY // Referent
+  MEMBER // Medlem
+  OBSERVER // Observatør
 }
 
 enum DecisionStatus {
@@ -2711,55 +2722,55 @@ enum DecisionStatus {
 // ============================================
 
 model Whistleblowing {
-  id              String              @id @default(cuid())
-  tenantId        String
-  caseNumber      String              @unique // "VAR-2025-001"
-  accessCode      String              @unique // Tilgangskode for anonym oppfølging
-  
+  id         String @id @default(cuid())
+  tenantId   String
+  caseNumber String @unique // "VAR-2025-001"
+  accessCode String @unique // Tilgangskode for anonym oppfølging
+
   // Report details
-  category        WhistleblowCategory
-  title           String
-  description     String              @db.Text
-  occurredAt      DateTime?
-  location        String?
-  
+  category    WhistleblowCategory
+  title       String
+  description String              @db.Text
+  occurredAt  DateTime?
+  location    String?
+
   // Involved parties (anonymized)
-  involvedPersons String?             @db.Text // Beskrivelse uten navn
-  witnesses       String?             @db.Text
-  
+  involvedPersons String? @db.Text // Beskrivelse uten navn
+  witnesses       String? @db.Text
+
   // Reporter info (optional - kan være helt anonym)
-  reporterName    String?
-  reporterEmail   String?
-  reporterPhone   String?
-  isAnonymous     Boolean             @default(true)
-  
+  reporterName  String?
+  reporterEmail String?
+  reporterPhone String?
+  isAnonymous   Boolean @default(true)
+
   // Case handling
-  status          WhistleblowStatus   @default(RECEIVED)
-  severity        WhistleblowSeverity @default(MEDIUM)
-  handledBy       String?             // userId
-  assignedTo      String?             // userId
-  
+  status     WhistleblowStatus   @default(RECEIVED)
+  severity   WhistleblowSeverity @default(MEDIUM)
+  handledBy  String? // userId
+  assignedTo String? // userId
+
   // Investigation
-  investigationNotes String?          @db.Text
-  actions         String?             @db.Text // JSON array of actions taken
-  outcome         String?             @db.Text
-  closedReason    String?
-  
+  investigationNotes String? @db.Text
+  actions            String? @db.Text // JSON array of actions taken
+  outcome            String? @db.Text
+  closedReason       String?
+
   // Communication
-  messages        WhistleblowMessage[]
-  attachments     String?             @db.Text // JSON array of encrypted file keys
-  
+  messages    WhistleblowMessage[]
+  attachments String?              @db.Text // JSON array of encrypted file keys
+
   // Meta
-  receivedAt      DateTime            @default(now())
-  acknowledgedAt  DateTime?
-  investigatedAt  DateTime?
-  closedAt        DateTime?
-  
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  
+  receivedAt     DateTime  @default(now())
+  acknowledgedAt DateTime?
+  investigatedAt DateTime?
+  closedAt       DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  
+
   @@index([tenantId])
   @@index([caseNumber])
   @@index([accessCode])
@@ -2769,41 +2780,41 @@ model Whistleblowing {
 }
 
 model WhistleblowMessage {
-  id                String          @id @default(cuid())
-  whistleblowingId  String
-  sender            MessageSender   // REPORTER, HANDLER, SYSTEM
-  senderUserId      String?         // Kun hvis sender er HANDLER
-  message           String          @db.Text
-  isInternal        Boolean         @default(false) // Kun synlig for admin
-  readByReporter    Boolean         @default(false)
-  
-  createdAt         DateTime        @default(now())
-  
+  id               String        @id @default(cuid())
+  whistleblowingId String
+  sender           MessageSender // REPORTER, HANDLER, SYSTEM
+  senderUserId     String? // Kun hvis sender er HANDLER
+  message          String        @db.Text
+  isInternal       Boolean       @default(false) // Kun synlig for admin
+  readByReporter   Boolean       @default(false)
+
+  createdAt DateTime @default(now())
+
   whistleblowing Whistleblowing @relation(fields: [whistleblowingId], references: [id], onDelete: Cascade)
-  
+
   @@index([whistleblowingId])
   @@index([createdAt])
 }
 
 enum WhistleblowCategory {
-  HARASSMENT          // Trakassering
-  DISCRIMINATION      // Diskriminering
-  WORK_ENVIRONMENT    // Arbeidsmiljø
-  SAFETY              // HMS/Sikkerhet
-  CORRUPTION          // Korrupsjon/Underslag
-  ETHICS              // Etikk
-  LEGAL               // Lovbrudd
-  OTHER               // Annet
+  HARASSMENT // Trakassering
+  DISCRIMINATION // Diskriminering
+  WORK_ENVIRONMENT // Arbeidsmiljø
+  SAFETY // HMS/Sikkerhet
+  CORRUPTION // Korrupsjon/Underslag
+  ETHICS // Etikk
+  LEGAL // Lovbrudd
+  OTHER // Annet
 }
 
 enum WhistleblowStatus {
-  RECEIVED            // Mottatt
-  ACKNOWLEDGED        // Bekreftet mottatt
+  RECEIVED // Mottatt
+  ACKNOWLEDGED // Bekreftet mottatt
   UNDER_INVESTIGATION // Under etterforskning
-  ACTION_TAKEN        // Tiltak iverksatt
-  RESOLVED            // Løst
-  CLOSED              // Avsluttet
-  DISMISSED           // Avvist
+  ACTION_TAKEN // Tiltak iverksatt
+  RESOLVED // Løst
+  CLOSED // Avsluttet
+  DISMISSED // Avvist
 }
 
 enum WhistleblowSeverity {
@@ -2846,75 +2857,75 @@ model Notification {
 
 enum NotificationType {
   // Avvik/Hendelser
-  NEW_INCIDENT           // Nytt avvik
-  INCIDENT_UPDATED       // Avvik oppdatert
-  INCIDENT_CLOSED        // Avvik lukket
-  INCIDENT_OVERDUE       // Avvik ikke behandlet innen frist
-  
+  NEW_INCIDENT // Nytt avvik
+  INCIDENT_UPDATED // Avvik oppdatert
+  INCIDENT_CLOSED // Avvik lukket
+  INCIDENT_OVERDUE // Avvik ikke behandlet innen frist
+
   // Skjemaer
-  FORM_SUBMITTED         // Skjema sendt inn
-  FORM_APPROVED          // Skjema godkjent
-  FORM_REJECTED          // Skjema avvist
-  
+  FORM_SUBMITTED // Skjema sendt inn
+  FORM_APPROVED // Skjema godkjent
+  FORM_REJECTED // Skjema avvist
+
   // Varsling (whistleblowing)
-  WHISTLEBLOWING         // Ny varsling
-  WHISTLEBLOWING_MSG     // Ny melding i varslingssak
-  
+  WHISTLEBLOWING // Ny varsling
+  WHISTLEBLOWING_MSG // Ny melding i varslingssak
+
   // Tiltak
-  MEASURE_OVERDUE        // Tiltak forfalt
-  MEASURE_ASSIGNED       // Tiltak tildelt deg
-  MEASURE_DUE_SOON       // Tiltak forfaller snart (7 dager)
-  MEASURE_REMINDER       // Påminnelse om tiltak som forfaller
-  
+  MEASURE_OVERDUE // Tiltak forfalt
+  MEASURE_ASSIGNED // Tiltak tildelt deg
+  MEASURE_DUE_SOON // Tiltak forfaller snart (7 dager)
+  MEASURE_REMINDER // Påminnelse om tiltak som forfaller
+
   // Revisjoner
-  AUDIT_SCHEDULED        // Revisjon planlagt
-  AUDIT_REMINDER         // Påminnelse om revisjon
-  AUDIT_FINDING_OPEN     // Revisjonsfunn ikke lukket
-  
+  AUDIT_SCHEDULED // Revisjon planlagt
+  AUDIT_REMINDER // Påminnelse om revisjon
+  AUDIT_FINDING_OPEN // Revisjonsfunn ikke lukket
+
   // Opplæring
-  TRAINING_DUE           // Opplæring forfaller snart
-  TRAINING_EXPIRED       // Opplæring/sertifikat utløpt
-  TRAINING_ASSIGNED      // Ny opplæring tildelt
-  
+  TRAINING_DUE // Opplæring forfaller snart
+  TRAINING_EXPIRED // Opplæring/sertifikat utløpt
+  TRAINING_ASSIGNED // Ny opplæring tildelt
+
   // Møter
-  MEETING_REMINDER       // Påminnelse om møte
-  MEETING_SCHEDULED      // Nytt møte planlagt
-  
+  MEETING_REMINDER // Påminnelse om møte
+  MEETING_SCHEDULED // Nytt møte planlagt
+
   // Vernerunder/Inspeksjoner
-  INSPECTION_REMINDER    // Påminnelse om vernerunde/inspeksjon
-  INSPECTION_SCHEDULED   // Vernerunde planlagt
-  INSPECTION_OVERDUE     // Vernerunde ikke gjennomført
-  INSPECTION_FINDING     // Nytt funn fra vernerunde
-  
+  INSPECTION_REMINDER // Påminnelse om vernerunde/inspeksjon
+  INSPECTION_SCHEDULED // Vernerunde planlagt
+  INSPECTION_OVERDUE // Vernerunde ikke gjennomført
+  INSPECTION_FINDING // Nytt funn fra vernerunde
+
   // Risikoer
-  RISK_REVIEW_DUE        // Risiko trenger gjennomgang
-  RISK_HIGH_SCORE        // Høy risikoscore varsling
-  RISK_CONTROL_DUE       // Risikokontroll forfaller
-  
+  RISK_REVIEW_DUE // Risiko trenger gjennomgang
+  RISK_HIGH_SCORE // Høy risikoscore varsling
+  RISK_CONTROL_DUE // Risikokontroll forfaller
+
   // Dokumenter
-  DOCUMENT_REVIEW_DUE    // Dokument trenger revisjon
-  DOCUMENT_EXPIRED       // Dokument utløpt
-  DOCUMENT_APPROVED      // Dokument godkjent
-  
+  DOCUMENT_REVIEW_DUE // Dokument trenger revisjon
+  DOCUMENT_EXPIRED // Dokument utløpt
+  DOCUMENT_APPROVED // Dokument godkjent
+
   // Kjemikalier/Stoffkartotek
-  CHEMICAL_SDS_REVIEW    // SDS trenger oppdatering
-  CHEMICAL_EXPIRED       // Kjemikalie-revisjon forfalt
-  
+  CHEMICAL_SDS_REVIEW // SDS trenger oppdatering
+  CHEMICAL_EXPIRED // Kjemikalie-revisjon forfalt
+
   // Mål/KPI
-  GOAL_AT_RISK           // Mål i fare
-  GOAL_MEASUREMENT_DUE   // Tid for ny måling
-  
+  GOAL_AT_RISK // Mål i fare
+  GOAL_MEASUREMENT_DUE // Tid for ny måling
+
   // Miljø
-  ENVIRONMENTAL_LIMIT    // Miljømåling nær/over grense
-  
+  ENVIRONMENTAL_LIMIT // Miljømåling nær/over grense
+
   // Ledelsens gjennomgang
-  MGMT_REVIEW_DUE        // Tid for ledelsens gjennomgang
-  MGMT_REVIEW_SCHEDULED  // Ledelsens gjennomgang planlagt
-  
+  MGMT_REVIEW_DUE // Tid for ledelsens gjennomgang
+  MGMT_REVIEW_SCHEDULED // Ledelsens gjennomgang planlagt
+
   // System
-  DAILY_DIGEST           // Daglig sammendrag
-  WEEKLY_DIGEST          // Ukentlig sammendrag
-  SYSTEM_ALERT           // Systemvarsel
+  DAILY_DIGEST // Daglig sammendrag
+  WEEKLY_DIGEST // Ukentlig sammendrag
+  SYSTEM_ALERT // Systemvarsel
 }
 
 // ============================================
@@ -2922,25 +2933,25 @@ enum NotificationType {
 // ============================================
 
 model ScheduledReminder {
-  id              String            @id @default(cuid())
-  tenantId        String
-  userId          String            // Hvem som skal motta påminnelsen
-  type            ReminderType
-  entityType      String            // "Meeting", "Inspection", "Audit", "Measure"
-  entityId        String            // ID til møte/inspeksjon/etc
-  title           String            // Tittel på påminnelsen
-  message         String?           @db.Text // Ekstra melding/beskrivelse
-  scheduledFor    DateTime          // Når påminnelsen skal sendes
-  sentAt          DateTime?         // Når påminnelsen ble sendt
-  sentViaEmail    Boolean           @default(false)
-  sentViaSms      Boolean           @default(false)
-  status          ReminderStatus    @default(PENDING)
-  error           String?           @db.Text
-  createdAt       DateTime          @default(now())
-  
+  id           String         @id @default(cuid())
+  tenantId     String
+  userId       String // Hvem som skal motta påminnelsen
+  type         ReminderType
+  entityType   String // "Meeting", "Inspection", "Audit", "Measure"
+  entityId     String // ID til møte/inspeksjon/etc
+  title        String // Tittel på påminnelsen
+  message      String?        @db.Text // Ekstra melding/beskrivelse
+  scheduledFor DateTime // Når påminnelsen skal sendes
+  sentAt       DateTime? // Når påminnelsen ble sendt
+  sentViaEmail Boolean        @default(false)
+  sentViaSms   Boolean        @default(false)
+  status       ReminderStatus @default(PENDING)
+  error        String?        @db.Text
+  createdAt    DateTime       @default(now())
+
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user   User   @relation("UserReminders", fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@index([tenantId])
   @@index([userId])
   @@index([scheduledFor])
@@ -2950,29 +2961,29 @@ model ScheduledReminder {
 
 enum ReminderType {
   // Møter og hendelser
-  MEETING_UPCOMING        // Møte om X dager
-  INSPECTION_UPCOMING     // Vernerunde om X dager
-  AUDIT_UPCOMING          // Revisjon om X dager
-  MGMT_REVIEW_UPCOMING    // Ledelsens gjennomgang om X dager
-  
+  MEETING_UPCOMING // Møte om X dager
+  INSPECTION_UPCOMING // Vernerunde om X dager
+  AUDIT_UPCOMING // Revisjon om X dager
+  MGMT_REVIEW_UPCOMING // Ledelsens gjennomgang om X dager
+
   // Frister
-  MEASURE_DUE_SOON        // Tiltak forfaller snart
-  TRAINING_EXPIRING       // Opplæring utløper snart
-  DOCUMENT_REVIEW_SOON    // Dokument trenger revisjon snart
-  CHEMICAL_REVIEW_SOON    // Kjemikalie/SDS trenger revisjon snart
-  RISK_REVIEW_SOON        // Risiko trenger gjennomgang snart
-  GOAL_MEASUREMENT_SOON   // Tid for KPI-måling snart
-  
+  MEASURE_DUE_SOON // Tiltak forfaller snart
+  TRAINING_EXPIRING // Opplæring utløper snart
+  DOCUMENT_REVIEW_SOON // Dokument trenger revisjon snart
+  CHEMICAL_REVIEW_SOON // Kjemikalie/SDS trenger revisjon snart
+  RISK_REVIEW_SOON // Risiko trenger gjennomgang snart
+  GOAL_MEASUREMENT_SOON // Tid for KPI-måling snart
+
   // Periodiske
-  DAILY_TASKS             // Daglige oppgaver
-  WEEKLY_SUMMARY          // Ukentlig sammendrag
+  DAILY_TASKS // Daglige oppgaver
+  WEEKLY_SUMMARY // Ukentlig sammendrag
 }
 
 enum ReminderStatus {
-  PENDING     // Venter på å bli sendt
-  SENT        // Sendt vellykket
-  FAILED      // Feilet
-  CANCELLED   // Kansellert (f.eks. møte ble avlyst)
+  PENDING // Venter på å bli sendt
+  SENT // Sendt vellykket
+  FAILED // Feilet
+  CANCELLED // Kansellert (f.eks. møte ble avlyst)
 }
 
 // ============================================
@@ -2981,18 +2992,18 @@ enum ReminderStatus {
 
 // BHT-kunde registrering (kobling mellom BHT-leverandør og kunde-tenant)
 model BhtClient {
-  id                  String   @id @default(cuid())
-  tenantId            String   // Kunden som får BHT-tjenester
-  bhtProviderId       String?  // BHT-leverandørens tenant (null = HMS Nova selv)
-  contractStartDate   DateTime // Avtalestart
-  contractEndDate     DateTime? // Avtalens utløp
-  packageType         BhtPackageType @default(BASIC) // Grunnpakke eller utvidet
-  status              BhtClientStatus @default(ACTIVE)
-  notes               String?  @db.Text
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                String          @id @default(cuid())
+  tenantId          String // Kunden som får BHT-tjenester
+  bhtProviderId     String? // BHT-leverandørens tenant (null = HMS Nova selv)
+  contractStartDate DateTime // Avtalestart
+  contractEndDate   DateTime? // Avtalens utløp
+  packageType       BhtPackageType  @default(BASIC) // Grunnpakke eller utvidet
+  status            BhtClientStatus @default(ACTIVE)
+  notes             String?         @db.Text
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
-  tenant              Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant              Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   assessments         BhtAssessment[]
   consultations       BhtConsultation[]
   amoMeetings         BhtAmoMeeting[]
@@ -3005,7 +3016,7 @@ model BhtClient {
 }
 
 enum BhtPackageType {
-  BASIC    // Grunnpakke
+  BASIC // Grunnpakke
   EXTENDED // Utvidet pakke
 }
 
@@ -3017,129 +3028,129 @@ enum BhtClientStatus {
 
 // 1. Årlig arbeidsmiljøkartlegging
 model BhtAssessment {
-  id                String   @id @default(cuid())
-  bhtClientId       String
-  year              Int      // Hvilket år kartleggingen gjelder
-  status            BhtAssessmentStatus @default(DRAFT)
-  
-  // AI-foranalyse
-  aiSuggestedRisks  String?  @db.Text // JSON: foreslåtte risikoer
-  aiSuggestedIssues String?  @db.Text // JSON: foreslåtte avvik
-  aiSuggestedActions String? @db.Text // JSON: foreslåtte tiltak
-  aiGeneratedAt     DateTime?
-  
-  // Kundeinvolvering
-  sentToCustomerAt  DateTime?
-  customerConfirmedAt DateTime?
-  customerComments  String?  @db.Text
-  customerAdditions String?  @db.Text
-  
-  // BHT-vurdering
-  bhtReviewedBy     String?  // Bruker-ID
-  bhtReviewedAt     DateTime?
-  bhtComments       String?  @db.Text
-  adjustedRiskLevel String?  @db.Text // JSON: justert risikonivå
-  adjustedActions   String?  @db.Text // JSON: justerte tiltak
-  
-  // Ferdig rapport
-  finalReportUrl    String?
-  completedAt       DateTime?
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id          String              @id @default(cuid())
+  bhtClientId String
+  year        Int // Hvilket år kartleggingen gjelder
+  status      BhtAssessmentStatus @default(DRAFT)
 
-  bhtClient         BhtClient @relation(fields: [bhtClientId], references: [id], onDelete: Cascade)
-  
+  // AI-foranalyse
+  aiSuggestedRisks   String?   @db.Text // JSON: foreslåtte risikoer
+  aiSuggestedIssues  String?   @db.Text // JSON: foreslåtte avvik
+  aiSuggestedActions String?   @db.Text // JSON: foreslåtte tiltak
+  aiGeneratedAt      DateTime?
+
+  // Kundeinvolvering
+  sentToCustomerAt    DateTime?
+  customerConfirmedAt DateTime?
+  customerComments    String?   @db.Text
+  customerAdditions   String?   @db.Text
+
+  // BHT-vurdering
+  bhtReviewedBy     String? // Bruker-ID
+  bhtReviewedAt     DateTime?
+  bhtComments       String?   @db.Text
+  adjustedRiskLevel String?   @db.Text // JSON: justert risikonivå
+  adjustedActions   String?   @db.Text // JSON: justerte tiltak
+
+  // Ferdig rapport
+  finalReportUrl String?
+  completedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bhtClient BhtClient @relation(fields: [bhtClientId], references: [id], onDelete: Cascade)
+
   @@unique([bhtClientId, year])
   @@index([status])
   @@index([year])
 }
 
 enum BhtAssessmentStatus {
-  DRAFT           // Utkast
-  AI_ANALYZED     // AI-analyse ferdig
+  DRAFT // Utkast
+  AI_ANALYZED // AI-analyse ferdig
   SENT_TO_CUSTOMER // Sendt til kunde
   CUSTOMER_RESPONDED // Kunde har svart
-  BHT_REVIEWED    // BHT har vurdert
-  COMPLETED       // Ferdigstilt
+  BHT_REVIEWED // BHT har vurdert
+  COMPLETED // Ferdigstilt
 }
 
 // 2. HMS-rådgivning logg
 model BhtConsultation {
-  id              String   @id @default(cuid())
-  bhtClientId     String
+  id               String              @id @default(cuid())
+  bhtClientId      String
   consultationType BhtConsultationType
-  
-  // Hva ble spurt om
-  topic           String
-  description     String   @db.Text
-  
-  // Hva ble anbefalt
-  recommendation  String   @db.Text
-  
-  // Metadata
-  conductedBy     String   // Bruker-ID for BHT-rådgiver
-  conductedAt     DateTime
-  durationMinutes Int?     // Varighet i minutter
-  method          BhtConsultationMethod
-  
-  // Begrensninger
-  isWithinScope   Boolean  @default(true) // Innenfor grunnpakke-scope
-  outOfScopeNotes String?  @db.Text // Hvis utenfor scope, hva ble henvist til
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
 
-  bhtClient       BhtClient @relation(fields: [bhtClientId], references: [id], onDelete: Cascade)
+  // Hva ble spurt om
+  topic       String
+  description String @db.Text
+
+  // Hva ble anbefalt
+  recommendation String @db.Text
+
+  // Metadata
+  conductedBy     String // Bruker-ID for BHT-rådgiver
+  conductedAt     DateTime
+  durationMinutes Int? // Varighet i minutter
+  method          BhtConsultationMethod
+
+  // Begrensninger
+  isWithinScope   Boolean @default(true) // Innenfor grunnpakke-scope
+  outOfScopeNotes String? @db.Text // Hvis utenfor scope, hva ble henvist til
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bhtClient BhtClient @relation(fields: [bhtClientId], references: [id], onDelete: Cascade)
 
   @@index([bhtClientId])
   @@index([conductedAt])
 }
 
 enum BhtConsultationType {
-  ON_REQUEST      // På forespørsel
+  ON_REQUEST // På forespørsel
   ASSESSMENT_RELATED // I forbindelse med kartlegging
   OPERATIONAL_CHANGE // Ved endringer i drift
-  FOLLOW_UP       // Oppfølging
+  FOLLOW_UP // Oppfølging
 }
 
 enum BhtConsultationMethod {
   DIGITAL_MEETING // Digitalt møte
-  PHONE           // Telefon
-  WRITTEN         // Skriftlig i HMS Nova
-  IN_PERSON       // Fysisk møte
+  PHONE // Telefon
+  WRITTEN // Skriftlig i HMS Nova
+  IN_PERSON // Fysisk møte
 }
 
 // 3a. AMO-møte (Arbeidsmiljøorgan)
 model BhtAmoMeeting {
-  id              String   @id @default(cuid())
-  bhtClientId     String
-  year            Int
-  
+  id          String @id @default(cuid())
+  bhtClientId String
+  year        Int
+
   // Forberedelse
-  preparedIssues  String?  @db.Text // JSON: avvik fra HMS Nova
-  preparedRisks   String?  @db.Text // JSON: risikovurderinger
+  preparedIssues    String? @db.Text // JSON: avvik fra HMS Nova
+  preparedRisks     String? @db.Text // JSON: risikovurderinger
   preparedSickLeave String? @db.Text // JSON: sykefraværsstatistikk
   aiSuggestedAgenda String? @db.Text // JSON: AI-foreslåtte saker
-  
+
   // Gjennomføring
-  meetingDate     DateTime?
-  meetingType     BhtMeetingType @default(DIGITAL)
-  participants    String?  @db.Text // JSON: deltakere
-  agenda          String?  @db.Text // Endelig agenda
-  
+  meetingDate  DateTime?
+  meetingType  BhtMeetingType @default(DIGITAL)
+  participants String?        @db.Text // JSON: deltakere
+  agenda       String?        @db.Text // Endelig agenda
+
   // Referat
-  minutes         String?  @db.Text
-  decisions       String?  @db.Text // JSON: beslutninger
-  
+  minutes   String? @db.Text
+  decisions String? @db.Text // JSON: beslutninger
+
   // Tiltak
   actionsRegistered Boolean @default(false)
-  
-  status          BhtAmoStatus @default(PLANNED)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
 
-  bhtClient       BhtClient @relation(fields: [bhtClientId], references: [id], onDelete: Cascade)
+  status    BhtAmoStatus @default(PLANNED)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  bhtClient BhtClient @relation(fields: [bhtClientId], references: [id], onDelete: Cascade)
 
   @@unique([bhtClientId, year])
   @@index([status])
@@ -3161,33 +3172,33 @@ enum BhtAmoStatus {
 
 // 3b. BHT-vernerunde (alternativ til AMO)
 model BhtInspection {
-  id              String   @id @default(cuid())
-  bhtClientId     String
-  year            Int
-  
-  // Forberedelse
-  aiGeneratedChecklist String? @db.Text // JSON: AI-generert sjekkliste
-  basedOnIndustry String?  // Bransje
-  basedOnPreviousFindings String? @db.Text // Tidligere funn
-  
-  // Gjennomføring
-  inspectionDate  DateTime?
-  inspectionType  BhtMeetingType @default(DIGITAL)
-  participants    String?  @db.Text // JSON: deltakere
-  
-  // Funn
-  findings        String?  @db.Text // JSON: avvik og funn
-  improvements    String?  @db.Text // JSON: forbedringsforslag
-  
-  // Rapport
-  reportUrl       String?
-  actionsRegistered Boolean @default(false)
-  
-  status          BhtInspectionStatus @default(PLANNED)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id          String @id @default(cuid())
+  bhtClientId String
+  year        Int
 
-  bhtClient       BhtClient @relation(fields: [bhtClientId], references: [id], onDelete: Cascade)
+  // Forberedelse
+  aiGeneratedChecklist    String? @db.Text // JSON: AI-generert sjekkliste
+  basedOnIndustry         String? // Bransje
+  basedOnPreviousFindings String? @db.Text // Tidligere funn
+
+  // Gjennomføring
+  inspectionDate DateTime?
+  inspectionType BhtMeetingType @default(DIGITAL)
+  participants   String?        @db.Text // JSON: deltakere
+
+  // Funn
+  findings     String? @db.Text // JSON: avvik og funn
+  improvements String? @db.Text // JSON: forbedringsforslag
+
+  // Rapport
+  reportUrl         String?
+  actionsRegistered Boolean @default(false)
+
+  status    BhtInspectionStatus @default(PLANNED)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  bhtClient BhtClient @relation(fields: [bhtClientId], references: [id], onDelete: Cascade)
 
   @@unique([bhtClientId, year])
   @@index([status])
@@ -3203,43 +3214,43 @@ enum BhtInspectionStatus {
 
 // 4. Eksponeringsvurdering
 model BhtExposureAssessment {
-  id              String   @id @default(cuid())
-  bhtClientId     String
-  year            Int
-  
+  id          String @id @default(cuid())
+  bhtClientId String
+  year        Int
+
   // Datagrunnlag
   chemicalInventory String? @db.Text // JSON: stoffkartotek
-  jobDescriptions String?  @db.Text // JSON: stillingsbeskrivelser
-  assessmentData  String?  @db.Text // JSON: kartleggingsdata
-  
-  // AI-vurdering
-  aiExposureAnalysis String? @db.Text // JSON: mulig eksponering
-  aiRiskLevel     String?  // Risikonivå
-  aiGeneratedAt   DateTime?
-  
-  // BHT-konklusjon
-  bhtReviewedBy   String?
-  bhtReviewedAt   DateTime?
-  conclusion      BhtExposureConclusion?
-  furtherActionNeeded Boolean @default(false)
-  furtherActionNotes String? @db.Text // Hva anbefales
-  
-  // Dokumentasjon
-  assessmentNotes String?  @db.Text
-  
-  status          BhtExposureStatus @default(DRAFT)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  jobDescriptions   String? @db.Text // JSON: stillingsbeskrivelser
+  assessmentData    String? @db.Text // JSON: kartleggingsdata
 
-  bhtClient       BhtClient @relation(fields: [bhtClientId], references: [id], onDelete: Cascade)
+  // AI-vurdering
+  aiExposureAnalysis String?   @db.Text // JSON: mulig eksponering
+  aiRiskLevel        String? // Risikonivå
+  aiGeneratedAt      DateTime?
+
+  // BHT-konklusjon
+  bhtReviewedBy       String?
+  bhtReviewedAt       DateTime?
+  conclusion          BhtExposureConclusion?
+  furtherActionNeeded Boolean                @default(false)
+  furtherActionNotes  String?                @db.Text // Hva anbefales
+
+  // Dokumentasjon
+  assessmentNotes String? @db.Text
+
+  status    BhtExposureStatus @default(DRAFT)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  bhtClient BhtClient @relation(fields: [bhtClientId], references: [id], onDelete: Cascade)
 
   @@unique([bhtClientId, year])
   @@index([status])
 }
 
 enum BhtExposureConclusion {
-  SUFFICIENT      // Tilstrekkelig vurdert
-  NEEDS_FOLLOWUP  // Anbefaler videre kartlegging
+  SUFFICIENT // Tilstrekkelig vurdert
+  NEEDS_FOLLOWUP // Anbefaler videre kartlegging
 }
 
 enum BhtExposureStatus {
@@ -3251,47 +3262,47 @@ enum BhtExposureStatus {
 
 // 5. Årlig BHT-oppsummering og plan
 model BhtAnnualReport {
-  id              String   @id @default(cuid())
-  bhtClientId     String
-  year            Int
-  
+  id          String @id @default(cuid())
+  bhtClientId String
+  year        Int
+
   // Samlet grunnlag
-  assessmentSummary String? @db.Text // Oppsummering av kartlegging
-  consultationsSummary String? @db.Text // Oppsummering av rådgivning
+  assessmentSummary      String? @db.Text // Oppsummering av kartlegging
+  consultationsSummary   String? @db.Text // Oppsummering av rådgivning
   amoOrInspectionSummary String? @db.Text // AMO/Vernerunde oppsummering
-  exposureSummary String?  @db.Text // Eksponeringsvurdering oppsummering
-  
+  exposureSummary        String? @db.Text // Eksponeringsvurdering oppsummering
+
   // AI-utkast
-  aiDraftReport   String?  @db.Text // AI-generert utkast
-  aiSuggestedActions String? @db.Text // Foreslåtte tiltak
-  aiNextYearPlan  String?  @db.Text // Plan for neste år
-  aiGeneratedAt   DateTime?
-  
+  aiDraftReport      String?   @db.Text // AI-generert utkast
+  aiSuggestedActions String?   @db.Text // Foreslåtte tiltak
+  aiNextYearPlan     String?   @db.Text // Plan for neste år
+  aiGeneratedAt      DateTime?
+
   // BHT kvalitetssikring
-  bhtReviewedBy   String?
-  bhtReviewedAt   DateTime?
-  bhtAdjustments  String?  @db.Text // Justeringer gjort
-  
+  bhtReviewedBy  String?
+  bhtReviewedAt  DateTime?
+  bhtAdjustments String?   @db.Text // Justeringer gjort
+
   // Ferdig rapport
-  finalReportUrl  String?
-  
+  finalReportUrl String?
+
   // Ledelsens gjennomgang
   managementReviewedAt DateTime?
   managementReviewedBy String? // Kunde-side leder
-  
-  // Kvalitetssjekk
-  checkAssessmentDone Boolean @default(false)
-  checkConsultationsDone Boolean @default(false)
-  checkAmoOrInspectionDone Boolean @default(false)
-  checkExposureDone Boolean @default(false)
-  checkReportDone Boolean @default(false)
-  checkActionsDone Boolean @default(false)
-  
-  status          BhtReportStatus @default(DRAFT)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
 
-  bhtClient       BhtClient @relation(fields: [bhtClientId], references: [id], onDelete: Cascade)
+  // Kvalitetssjekk
+  checkAssessmentDone      Boolean @default(false)
+  checkConsultationsDone   Boolean @default(false)
+  checkAmoOrInspectionDone Boolean @default(false)
+  checkExposureDone        Boolean @default(false)
+  checkReportDone          Boolean @default(false)
+  checkActionsDone         Boolean @default(false)
+
+  status    BhtReportStatus @default(DRAFT)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  bhtClient BhtClient @relation(fields: [bhtClientId], references: [id], onDelete: Cascade)
 
   @@unique([bhtClientId, year])
   @@index([status])
@@ -3299,12 +3310,12 @@ model BhtAnnualReport {
 }
 
 enum BhtReportStatus {
-  DRAFT           // Utkast
-  AI_GENERATED    // AI-utkast ferdig
-  BHT_REVIEWED    // BHT har gjennomgått
-  FINAL           // Ferdigstilt
+  DRAFT // Utkast
+  AI_GENERATED // AI-utkast ferdig
+  BHT_REVIEWED // BHT har gjennomgått
+  FINAL // Ferdigstilt
   MANAGEMENT_REVIEWED // Ledelsen har gjennomgått
-  COMPLETED       // Alt fullført
+  COMPLETED // Alt fullført
 }
 
 // ============================================
@@ -3316,8 +3327,8 @@ model PackageLead {
   email     String
   name      String?
   phone     String?
-  tier      String   // SMALL = 1-5, MEDIUM = 5-20, LARGE = 20+
-  type      String   // WAITLIST | CONTACT (tilbud/ring meg)
+  tier      String // SMALL = 1-5, MEDIUM = 5-20, LARGE = 20+
+  type      String // WAITLIST | CONTACT (tilbud/ring meg)
   source    String   @default("komplett-pakke")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3335,33 +3346,143 @@ model Project {
   id               String        @id @default(cuid())
   tenantId         String
   name             String
-  code             String?       // Prosjektkode (f.eks. "PRJ-001")
-  orderNumber      String?       // Ordrenr / oppdragsnr fra kunde
-  clientName       String?       // Kunde / oppdragsgiver
-  location         String?       // Arbeidssted / anleggsadresse
+  code             String? // Prosjektkode (f.eks. "PRJ-001")
+  orderNumber      String? // Ordrenr / oppdragsnr fra kunde
+  clientName       String? // Kunde / oppdragsgiver
+  location         String? // Arbeidssted / anleggsadresse
   description      String?       @db.Text
   status           ProjectStatus @default(PLANNING)
   startDate        DateTime?
   endDate          DateTime?
-  projectManagerId String?       // UserId for prosjektleder
+  projectManagerId String? // UserId for prosjektleder
   createdById      String
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
-  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  createdBy      User           @relation("ProjectCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
-  projectManager User?          @relation("ProjectManager", fields: [projectManagerId], references: [id], onDelete: SetNull)
-  timeEntries    TimeEntry[]
-  mileageEntries MileageEntry[]
-  incidents      Incident[]
-  sjaAnalyses    SjaAnalysis[]
-  inspections    Inspection[]
-  measures       Measure[]      @relation("ProjectMeasures")
+  tenant                      Tenant                         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy                   User                           @relation("ProjectCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  projectManager              User?                          @relation("ProjectManager", fields: [projectManagerId], references: [id], onDelete: SetNull)
+  timeEntries                 TimeEntry[]
+  mileageEntries              MileageEntry[]
+  incidents                   Incident[]
+  sjaAnalyses                 SjaAnalysis[]
+  inspections                 Inspection[]
+  measures                    Measure[]                      @relation("ProjectMeasures")
+  constructionShaPlan         ConstructionShaPlan?
+  constructionPreNotification ConstructionPreNotification?
+  constructionRosterEntries   ConstructionRosterEntry[]
+  constructionRosterChecks    ConstructionRosterDailyCheck[]
+  riskAssessments             RiskAssessment[]
 
   @@index([tenantId])
   @@index([status])
   @@index([createdById])
   @@index([projectManagerId])
+}
+
+model ConstructionShaPlan {
+  id                           String                 @id @default(cuid())
+  tenantId                     String
+  projectId                    String                 @unique
+  status                       ConstructionPlanStatus @default(DRAFT)
+  organizationChart            String?                @db.Text // JSON-struktur for roller/entrepriser
+  progressPlan                 String?                @db.Text // JSON-struktur for fremdrift
+  specificMeasures             String?                @db.Text // JSON-liste av § 8 c-tiltak
+  changeProcedure              String?                @db.Text // Rutine for endringer i SHA-plan
+  builderName                  String?
+  builderRepresentativeName    String?
+  builderRepresentativeContact String?
+  coordinatorPlanningName      String? // KP
+  coordinatorExecutionName     String? // KU
+  conflictAssessmentDocumented Boolean                @default(false)
+  availableOnSite              Boolean                @default(false)
+  lastReviewedAt               DateTime?
+  createdAt                    DateTime               @default(now())
+  updatedAt                    DateTime               @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+model ConstructionPreNotification {
+  id                         String                         @id @default(cuid())
+  tenantId                   String
+  projectId                  String                         @unique
+  status                     ConstructionNotificationStatus @default(DRAFT)
+  sentAt                     DateTime?
+  submissionDate             DateTime?
+  projectAddress             String
+  projectType                String
+  builderName                String
+  builderOrgNumber           String?
+  builderAddress             String?
+  builderPhone               String?
+  builderRepresentativeName  String?
+  builderRepresentativePhone String?
+  coordinators               String?                        @db.Text // JSON med koordinatoropplysninger
+  designers                  String?                        @db.Text // JSON med prosjekterende virksomheter
+  contractors                String?                        @db.Text // JSON med utførende virksomheter
+  expectedStartDate          DateTime
+  expectedEndDate            DateTime?
+  maxWorkersSimultaneous     Int?
+  plannedBusinessesCount     Int?
+  visibleAtSite              Boolean                        @default(false) // Oppdatert melding synlig på byggeplassen
+  createdAt                  DateTime                       @default(now())
+  updatedAt                  DateTime                       @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([expectedStartDate])
+}
+
+model ConstructionRosterEntry {
+  id                String    @id @default(cuid())
+  tenantId          String
+  projectId         String
+  fullName          String
+  birthDate         DateTime  @db.Date
+  employerName      String
+  employerOrgNumber String?
+  hiringCompanyName String? // Ved innleie
+  hmsCardNumber     String?
+  startedAtSiteDate DateTime? @db.Date
+  endedAtSiteDate   DateTime? @db.Date
+  isActive          Boolean   @default(true)
+  notes             String?   @db.Text
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([projectId])
+  @@index([isActive])
+}
+
+model ConstructionRosterDailyCheck {
+  id          String   @id @default(cuid())
+  tenantId    String
+  projectId   String
+  checkedDate DateTime @db.Date
+  checkedById String
+  notes       String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant    Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  checkedBy User    @relation("ConstructionRosterCheckedBy", fields: [checkedById], references: [id], onDelete: Restrict)
+
+  @@unique([projectId, checkedDate])
+  @@index([tenantId])
+  @@index([checkedDate])
 }
 
 enum ProjectStatus {
@@ -3372,25 +3493,38 @@ enum ProjectStatus {
   ARCHIVED
 }
 
-model TimeEntry {
-  id          String      @id @default(cuid())
-  tenantId    String
-  projectId   String
-  userId      String      // Ansatt som registrerte
-  date        DateTime    @db.Date
-  hours       Float
-  timeType    TimeEntryType @default(NORMAL)
-  workedUntilHour Int?    // Arbeidet til kl (0–23). For kveldsovertid 100 %
-  comment     String?     @db.Text
-  editedById  String?     // Hvis admin har rettet
-  editedAt    DateTime?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+enum ConstructionPlanStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
 
-  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  editedBy User?    @relation("TimeEntryEditedBy", fields: [editedById], references: [id], onDelete: SetNull)
+enum ConstructionNotificationStatus {
+  DRAFT
+  READY_TO_SUBMIT
+  SUBMITTED
+  UPDATED_AFTER_SUBMISSION
+}
+
+model TimeEntry {
+  id              String        @id @default(cuid())
+  tenantId        String
+  projectId       String
+  userId          String // Ansatt som registrerte
+  date            DateTime      @db.Date
+  hours           Float
+  timeType        TimeEntryType @default(NORMAL)
+  workedUntilHour Int? // Arbeidet til kl (0–23). For kveldsovertid 100 %
+  comment         String?       @db.Text
+  editedById      String? // Hvis admin har rettet
+  editedAt        DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  tenant   Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  editedBy User?   @relation("TimeEntryEditedBy", fields: [editedById], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([projectId])
@@ -3399,34 +3533,34 @@ model TimeEntry {
 }
 
 enum TimeEntryType {
-  NORMAL        // Ordinær tid
-  OVERTIME_50   // Overtid 50 %
-  OVERTIME_40   // Overtid 40 % (kundespesifikk)
-  OVERTIME_100  // Overtid 100 %
-  WEEKEND       // Helg/helligdag
-  TRAVEL        // Reise/kjøring (timer, ikke km)
-  SICK_LEAVE    // Sykefravær (Sick Day / Sick Leave)
+  NORMAL // Ordinær tid
+  OVERTIME_50 // Overtid 50 %
+  OVERTIME_40 // Overtid 40 % (kundespesifikk)
+  OVERTIME_100 // Overtid 100 %
+  WEEKEND // Helg/helligdag
+  TRAVEL // Reise/kjøring (timer, ikke km)
+  SICK_LEAVE // Sykefravær (Sick Day / Sick Leave)
 }
 
 model MileageEntry {
-  id          String   @id @default(cuid())
-  tenantId    String
-  projectId   String
-  userId      String
-  date        DateTime @db.Date
-  kilometers  Float
-  ratePerKm   Float?   // Null = bruk tenant default
-  amount      Float?   // Beregnet eller manuelt
-  comment     String?  @db.Text
-  editedById  String?
-  editedAt    DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String    @id @default(cuid())
+  tenantId   String
+  projectId  String
+  userId     String
+  date       DateTime  @db.Date
+  kilometers Float
+  ratePerKm  Float? // Null = bruk tenant default
+  amount     Float? // Beregnet eller manuelt
+  comment    String?   @db.Text
+  editedById String?
+  editedAt   DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
-  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  editedBy User?    @relation("MileageEntryEditedBy", fields: [editedById], references: [id], onDelete: SetNull)
+  tenant   Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  editedBy User?   @relation("MileageEntryEditedBy", fields: [editedById], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([projectId])
@@ -3439,19 +3573,19 @@ model MileageEntry {
 // ============================================
 
 model NavigationItem {
-  id              String   @id @default(cuid())
-  tenantId        String?  // Null = global default, String = tenant-specific
-  key             String   // Unique identifier (e.g. "dashboard", "documents")
-  label           String   // Display label or i18n key (e.g. "nav.dashboard")
-  icon            String?  // Icon name (e.g. "LayoutDashboard")
-  href            String   // Navigation path (e.g. "/dashboard")
-  permission      String   // Permission key to check (e.g. "dashboard")
-  isSimpleMode    Boolean  @default(false) // Show in simple mode
-  isActive        Boolean  @default(true)  // Is this menu item active
-  order           Int      @default(0)     // Sort order
-  parentKey       String?  // For nested menus (null = top level)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id           String   @id @default(cuid())
+  tenantId     String? // Null = global default, String = tenant-specific
+  key          String // Unique identifier (e.g. "dashboard", "documents")
+  label        String // Display label or i18n key (e.g. "nav.dashboard")
+  icon         String? // Icon name (e.g. "LayoutDashboard")
+  href         String // Navigation path (e.g. "/dashboard")
+  permission   String // Permission key to check (e.g. "dashboard")
+  isSimpleMode Boolean  @default(false) // Show in simple mode
+  isActive     Boolean  @default(true) // Is this menu item active
+  order        Int      @default(0) // Sort order
+  parentKey    String? // For nested menus (null = top level)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 

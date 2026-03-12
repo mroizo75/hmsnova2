@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { Role } from "@prisma/client";
 
 async function getSessionContext() {
   const session = await getServerSession(authOptions);
@@ -34,6 +35,8 @@ export async function updateNotificationSettings(data: {
   notifyInspections: boolean;
   notifyAudits: boolean;
   notifyMeasures: boolean;
+  constructionDailyCheckAlertsEnabled?: boolean;
+  constructionDailyCheckAlertRole?: Role;
 }) {
   try {
     const context = await getSessionContext();
@@ -87,6 +90,20 @@ export async function updateNotificationSettings(data: {
         notifyMeasures: data.notifyMeasures,
       },
     });
+
+    if (
+      user.tenants[0].role === "ADMIN" &&
+      data.constructionDailyCheckAlertsEnabled !== undefined &&
+      data.constructionDailyCheckAlertRole
+    ) {
+      await prisma.tenant.update({
+        where: { id: tenantId },
+        data: {
+          constructionDailyCheckAlertsEnabled: data.constructionDailyCheckAlertsEnabled,
+          constructionDailyCheckAlertRole: data.constructionDailyCheckAlertRole,
+        },
+      });
+    }
 
     revalidatePath("/dashboard/settings");
     

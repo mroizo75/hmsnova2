@@ -36,6 +36,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { getPermissions } from "@/lib/permissions";
 
 const ITEMS_PER_PAGE = 20;
 
@@ -57,6 +58,16 @@ export default async function FormDetailPage({
 
   const currentPage = parseInt(queryParams.page || "1", 10);
   const skip = (currentPage - 1) * ITEMS_PER_PAGE;
+  const userTenant = await prisma.userTenant.findUnique({
+    where: {
+      userId_tenantId: {
+        userId: session.user.id,
+        tenantId: session.user.tenantId,
+      },
+    },
+    select: { role: true },
+  });
+  const permissions = getPermissions(userTenant?.role ?? "ANSATT");
 
   const form = await prisma.formTemplate.findUnique({
     where: { id },
@@ -84,12 +95,14 @@ export default async function FormDetailPage({
   if (form.tenantId && form.tenantId !== session.user.tenantId) {
     redirect("/dashboard/forms");
   }
+  const restrictedGlobalView = form.isGlobal && !permissions.canManageForms;
 
   // Hent submissions med paginering (KUN for denne tenanten)
   const submissions = await prisma.formSubmission.findMany({
     where: { 
       formTemplateId: id,
-      tenantId: session.user.tenantId, // VIKTIG: Kun tenant-spesifikke submissions
+      tenantId: session.user.tenantId,
+      ...(restrictedGlobalView ? { submittedById: session.user.id } : {}),
     },
     orderBy: { createdAt: "desc" },
     include: {
@@ -117,13 +130,23 @@ export default async function FormDetailPage({
     userTenants.map((ut) => [ut.userId, ut.displayName ?? null])
   );
 
-  const totalPages = Math.ceil(form._count.submissions / ITEMS_PER_PAGE);
+  const visibleSubmissionCount = restrictedGlobalView
+    ? await prisma.formSubmission.count({
+        where: {
+          formTemplateId: id,
+          tenantId: session.user.tenantId,
+          submittedById: session.user.id,
+        },
+      })
+    : form._count.submissions;
+  const totalVisiblePages = Math.ceil(visibleSubmissionCount / ITEMS_PER_PAGE);
 
   // Hent alle submissions for statistikk (KUN for denne tenanten)
   const allSubmissions = await prisma.formSubmission.findMany({
     where: { 
       formTemplateId: id,
-      tenantId: session.user.tenantId, // VIKTIG: Kun tenant-spesifikke submissions
+      tenantId: session.user.tenantId,
+      ...(restrictedGlobalView ? { submittedById: session.user.id } : {}),
     },
     select: {
       createdAt: true,
@@ -147,7 +170,7 @@ export default async function FormDetailPage({
 
   // Completion rate
   const completedSubmissions = allSubmissions.filter((s) => s.status === "SUBMITTED" || s.status === "APPROVED").length;
-  const completionRate = form._count.submissions > 0 ? Math.round((completedSubmissions / form._count.submissions) * 100) : 0;
+  const completionRate = visibleSubmissionCount > 0 ? Math.round((completedSubmissions / visibleSubmissionCount) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -206,8 +229,10 @@ export default async function FormDetailPage({
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{form._count.submissions}</div>
-            <p className="text-xs text-muted-foreground mt-1">Utfyllinger totalt</p>
+            <div className="text-2xl font-bold">{visibleSubmissionCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {restrictedGlobalView ? "Dine utfyllinger" : "Utfyllinger totalt"}
+            </p>
           </CardContent>
         </Card>
 
@@ -253,11 +278,27 @@ export default async function FormDetailPage({
           <CardContent>
             <div className="text-2xl font-bold">{completionRate}%</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {completedSubmissions} av {form._count.submissions}
+              {completedSubmissions} av {visibleSubmissionCount}
             </p>
           </CardContent>
         </Card>
       </div>
+
+      {form.isGlobal && (
+        <Card className="border-l-4 border-l-purple-500 bg-purple-50">
+          <CardContent className="p-4 text-sm text-purple-900">
+            <p>
+              <strong>Eksempelmal:</strong> Dette er en global standardmal. Hvis du vil endre
+              punkter, bruk <strong>Kopier</strong> og rediger den kopierte malen.
+            </p>
+            <p className="mt-2">
+              {restrictedGlobalView
+                ? "Du ser kun dine egne utfyllinger på denne malen."
+                : "Du ser alle utfyllinger i virksomheten for denne malen."}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Form details */}
       <div className="grid md:grid-cols-2 gap-6">
@@ -329,14 +370,16 @@ export default async function FormDetailPage({
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Innsendte svar ({form._count.submissions})</CardTitle>
-              {form._count.submissions > 0 && (
+              <CardTitle>
+                {restrictedGlobalView ? "Dine innsendte svar" : "Innsendte svar"} ({visibleSubmissionCount})
+              </CardTitle>
+              {visibleSubmissionCount > 0 && (
                 <p className="text-sm text-muted-foreground mt-1">
-                  Viser {skip + 1}-{Math.min(skip + ITEMS_PER_PAGE, form._count.submissions)} av {form._count.submissions}
+                  Viser {skip + 1}-{Math.min(skip + ITEMS_PER_PAGE, visibleSubmissionCount)} av {visibleSubmissionCount}
                 </p>
               )}
             </div>
-            {form._count.submissions > 0 &&
+            {visibleSubmissionCount > 0 &&
               (form.category === "TIMESHEET" ? (
                 <TimesheetExportDropdown formId={form.id} formTitle={form.title} />
               ) : (
@@ -350,7 +393,7 @@ export default async function FormDetailPage({
           </div>
         </CardHeader>
         <CardContent>
-          {form._count.submissions === 0 ? (
+          {visibleSubmissionCount === 0 ? (
             <div className="text-center py-12">
               <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
               <p className="text-muted-foreground">Ingen utfyllinger ennå</p>
@@ -429,7 +472,7 @@ export default async function FormDetailPage({
               </Table>
 
               {/* Pagination */}
-              {totalPages > 1 && (
+              {totalVisiblePages > 1 && (
                 <div className="mt-6">
                   <Pagination>
                     <PaginationContent>
@@ -467,7 +510,7 @@ export default async function FormDetailPage({
                         </PaginationLink>
                       </PaginationItem>
 
-                      {currentPage < totalPages && (
+                      {currentPage < totalVisiblePages && (
                         <PaginationItem>
                           <PaginationLink href={`/dashboard/forms/${id}?page=${currentPage + 1}`}>
                             {currentPage + 1}
@@ -475,16 +518,16 @@ export default async function FormDetailPage({
                         </PaginationItem>
                       )}
 
-                      {currentPage < totalPages - 2 && (
+                      {currentPage < totalVisiblePages - 2 && (
                         <PaginationItem>
                           <PaginationEllipsis />
                         </PaginationItem>
                       )}
 
-                      {currentPage < totalPages - 1 && (
+                      {currentPage < totalVisiblePages - 1 && (
                         <PaginationItem>
-                          <PaginationLink href={`/dashboard/forms/${id}?page=${totalPages}`}>
-                            {totalPages}
+                          <PaginationLink href={`/dashboard/forms/${id}?page=${totalVisiblePages}`}>
+                            {totalVisiblePages}
                           </PaginationLink>
                         </PaginationItem>
                       )}
@@ -492,13 +535,13 @@ export default async function FormDetailPage({
                       <PaginationItem>
                         <PaginationNext
                           href={
-                            currentPage < totalPages
+                            currentPage < totalVisiblePages
                               ? `/dashboard/forms/${id}?page=${currentPage + 1}`
                               : "#"
                           }
-                          aria-disabled={currentPage === totalPages}
+                          aria-disabled={currentPage === totalVisiblePages}
                           className={
-                            currentPage === totalPages ? "pointer-events-none opacity-50" : ""
+                            currentPage === totalVisiblePages ? "pointer-events-none opacity-50" : ""
                           }
                         />
                       </PaginationItem>

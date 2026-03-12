@@ -7,23 +7,18 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      include: { tenants: true },
-    });
-
-    if (!user || user.tenants.length === 0) {
-      return NextResponse.json(
-        { error: "User not associated with tenant" },
-        { status: 403 }
-      );
+    const tenantId = session.user.tenantId ?? (
+      await prisma.userTenant.findFirst({
+        where: { userId: session.user.id },
+        select: { tenantId: true },
+      })
+    )?.tenantId;
+    if (!tenantId) {
+      return NextResponse.json({ error: "User not associated with tenant" }, { status: 403 });
     }
-
-    const tenantId = user.tenants[0].tenantId;
 
     // Hent både globale og tenant-spesifikke kursmaler
     const courses = await prisma.courseTemplate.findMany({

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import { ReportIncidentForm } from "@/components/ansatt/report-incident-form";
 import { prisma } from "@/lib/db";
+import { hasTenantFeature } from "@/lib/tenant-features";
 
 export default async function NyttAvvik() {
   const session = await getServerSession(authOptions);
@@ -13,11 +14,18 @@ export default async function NyttAvvik() {
     redirect("/login");
   }
 
-  const projects = await prisma.project.findMany({
-    where: { tenantId: session.user.tenantId, status: { in: ["PLANNING", "ACTIVE"] } },
-    select: { id: true, name: true, code: true },
-    orderBy: { name: "asc" },
-  });
+  const [projects, tenant] = await Promise.all([
+    prisma.project.findMany({
+      where: { tenantId: session.user.tenantId, status: { in: ["PLANNING", "ACTIVE"] } },
+      select: { id: true, name: true, code: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.tenant.findUnique({
+      where: { id: session.user.tenantId },
+      select: { industry: true },
+    }),
+  ]);
+  const isHealthcareTenant = hasTenantFeature(tenant?.industry, "helseforetak");
 
   return (
     <div className="space-y-6">
@@ -52,6 +60,7 @@ export default async function NyttAvvik() {
             tenantId={session.user.tenantId}
             reportedBy={session.user.name || session.user.email || "Ansatt"}
             projects={projects}
+            isHealthcareTenant={isHealthcareTenant}
           />
         </CardContent>
       </Card>

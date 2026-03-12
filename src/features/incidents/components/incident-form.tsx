@@ -23,9 +23,10 @@ import {
 } from "@/components/ui/card";
 import { createIncident } from "@/server/actions/incident.actions";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, X, AlertTriangle, BarChart3, Users } from "lucide-react";
+import { Camera, X, AlertTriangle, BarChart3, Users, WifiOff, CloudUpload } from "lucide-react";
 import Image from "next/image";
 import type { IncidentType } from "@prisma/client";
+import { cn } from "@/lib/utils";
 
 interface SubcategoryOption {
   id: string;
@@ -42,7 +43,17 @@ interface IncidentFormProps {
   projects: Array<{ id: string; name: string; code: string | null; status: string }>;
   defaultType?: IncidentType;
   defaultProjectId?: string;
+  isTabletMode?: boolean;
+  templatePreset?: "homeVisitRisk" | "violenceThreat" | "infectionExposure";
 }
+
+interface OfflineIncidentQueueItem {
+  id: string;
+  createdAt: string;
+  payload: Record<string, unknown>;
+}
+
+const OFFLINE_INCIDENT_QUEUE_KEY = "hmsnova.offline.incidentQueue.v1";
 
 /**
  * Hendelsestyper basert på AML § 5-1, § 5-2 og IK-HMS § 5.
@@ -136,6 +147,8 @@ export function IncidentForm({
   projects = [],
   defaultType,
   defaultProjectId,
+  isTabletMode = false,
+  templatePreset,
 }: IncidentFormProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -159,6 +172,8 @@ export function IncidentForm({
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
     defaultProjectId ?? NO_PROJECT_VALUE
   );
+  const [offlineQueueCount, setOfflineQueueCount] = useState(0);
+  const [isSyncingOfflineQueue, setIsSyncingOfflineQueue] = useState(false);
 
   // HSE-statistikk
   const [isFatal, setIsFatal] = useState(false);
@@ -166,9 +181,59 @@ export function IncidentForm({
   const [isRestrictedWork, setIsRestrictedWork] = useState(false);
   const [medicalAttentionRequired, setMedicalAttentionRequired] = useState(false);
 
+  const templateDefaults: Record<
+    NonNullable<IncidentFormProps["templatePreset"]>,
+    { type: IncidentType; title: string; description: string; location: string; immediateAction: string }
+  > = {
+    homeVisitRisk: {
+      type: "FARLIG_SITUASJON",
+      title: "Risiko ved hjemmebesok",
+      description:
+        "Beskriv forhold i hjemmebesoket som ga forhoyet risiko for ansatt eller bruker.",
+      location: "Hjemmetjeneste / hjemmebesok",
+      immediateAction: "Arbeidet ble stanset og ansvarlig leder ble varslet.",
+    },
+    violenceThreat: {
+      type: "ULYKKE",
+      title: "Vold eller trussel i tjeneste",
+      description:
+        "Beskriv hendelsesforlop, hva som utløste situasjonen, og hvilke personer som var involvert.",
+      location: "Hjemmetjeneste / brukeradresse",
+      immediateAction: "Sikret ansatt, avbrutt oppdrag og varslet leder/politi ved behov.",
+    },
+    infectionExposure: {
+      type: "FARLIG_SITUASJON",
+      title: "Mistenkt smitteeksponering",
+      description:
+        "Beskriv eksponeringstype, varighet, verneutstyr brukt og hvilke tiltak som ble iverksatt.",
+      location: "Helse- og omsorgstjeneste",
+      immediateAction: "Smittevernrutine aktivert og hendelsen meldt til leder.",
+    },
+  };
+  const activeTemplate = templatePreset ? templateDefaults[templatePreset] : null;
+
   const isHmsType = selectedType ? HMS_TYPES.includes(selectedType as IncidentType) : false;
   const isHseStatsType = selectedType ? HSE_STATS_TYPES.includes(selectedType as IncidentType) : false;
   const isCustomerType = selectedType === "CUSTOMER";
+
+  useEffect(() => {
+    if (!isTabletMode || typeof window === "undefined") {
+      return;
+    }
+    try {
+      const raw = window.localStorage.getItem(OFFLINE_INCIDENT_QUEUE_KEY);
+      const queue = raw ? (JSON.parse(raw) as OfflineIncidentQueueItem[]) : [];
+      setOfflineQueueCount(queue.length);
+    } catch {
+      setOfflineQueueCount(0);
+    }
+  }, [isTabletMode]);
+
+  useEffect(() => {
+    if (!selectedType && activeTemplate?.type) {
+      setSelectedType(activeTemplate.type);
+    }
+  }, [activeTemplate, selectedType]);
 
   const fetchSubcategories = useCallback(async (type: IncidentType) => {
     setLoadingSubcategories(true);
@@ -213,6 +278,83 @@ export function IncidentForm({
     const newFiles = imageFiles.filter((_, i) => i !== index);
     setImageFiles(newFiles);
     setImagePreviews(newFiles.map((f) => URL.createObjectURL(f)));
+  }
+
+  function readOfflineQueue(): OfflineIncidentQueueItem[] {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = window.localStorage.getItem(OFFLINE_INCIDENT_QUEUE_KEY);
+      const queue = raw ? (JSON.parse(raw) as OfflineIncidentQueueItem[]) : [];
+      return Array.isArray(queue) ? queue : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function writeOfflineQueue(queue: OfflineIncidentQueueItem[]) {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(OFFLINE_INCIDENT_QUEUE_KEY, JSON.stringify(queue));
+    setOfflineQueueCount(queue.length);
+  }
+
+  async function syncOfflineQueue() {
+    const queue = readOfflineQueue();
+    if (queue.length === 0) {
+      toast({
+        title: "Ingen lagrede hendelser",
+        description: "Offline-køen er tom.",
+      });
+      return;
+    }
+
+    if (!navigator.onLine) {
+      toast({
+        variant: "destructive",
+        title: "Ingen nettverk",
+        description: "Koble til nett for å synkronisere lagrede hendelser.",
+      });
+      return;
+    }
+
+    setIsSyncingOfflineQueue(true);
+    let successCount = 0;
+    const failed: OfflineIncidentQueueItem[] = [];
+
+    for (const item of queue) {
+      try {
+        const response = await fetch("/api/incidents/offline-sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(item.payload),
+        });
+        if (!response.ok) {
+          failed.push(item);
+          continue;
+        }
+        successCount += 1;
+      } catch {
+        failed.push(item);
+      }
+    }
+
+    writeOfflineQueue(failed);
+    setIsSyncingOfflineQueue(false);
+
+    if (successCount > 0) {
+      toast({
+        title: "Synkronisering fullfort",
+        description: `${successCount} hendelser er synkronisert.`,
+      });
+      router.refresh();
+    }
+
+    if (failed.length > 0) {
+      toast({
+        variant: "destructive",
+        title: "Noen hendelser feilet",
+        description: `${failed.length} hendelser ligger fortsatt i offline-køen.`,
+      });
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -272,6 +414,27 @@ export function IncidentForm({
       isRestrictedWork,
     };
 
+    if (isTabletMode && !navigator.onLine) {
+      const queue = readOfflineQueue();
+      queue.push({
+        id: `${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        payload: data as unknown as Record<string, unknown>,
+      });
+      writeOfflineQueue(queue);
+      toast({
+        title: "Lagret offline",
+        description:
+          imageFiles.length > 0
+            ? "Hendelsen er lagret offline. Bilder synkroniseres ikke offline og ma legges ved etter synk."
+            : "Hendelsen blir synkronisert automatisk nar du er pa nett.",
+      });
+      setLoading(false);
+      e.currentTarget.reset();
+      setSelectedSubcategories([]);
+      return;
+    }
+
     try {
       const result = await createIncident(data);
 
@@ -318,7 +481,37 @@ export function IncidentForm({
   const selectedTypeInfo = incidentTypes.find((t) => t.value === selectedType);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form
+      onSubmit={handleSubmit}
+      className={cn(
+        "space-y-6",
+        isTabletMode &&
+          "space-y-8 pb-24 [&_button]:min-h-12 [&_input]:h-12 [&_input]:text-base [&_textarea]:text-base [&_[data-slot='select-trigger']]:min-h-12 [&_[data-slot='select-trigger']]:text-base",
+      )}
+    >
+      {isTabletMode && (
+        <Card className="border-blue-200 bg-blue-50/60">
+          <CardContent className="pt-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-sm text-blue-900">
+                <WifiOff className="h-4 w-4" />
+                Tabletmodus med offline-kø: {offlineQueueCount} usynkroniserte
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={syncOfflineQueue}
+                disabled={isSyncingOfflineQueue || offlineQueueCount === 0}
+                className="gap-2"
+              >
+                <CloudUpload className="h-4 w-4" />
+                {isSyncingOfflineQueue ? "Synkroniserer..." : "Synkroniser lagrede"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* ── Grunnleggende informasjon ── */}
       <Card>
         <CardHeader>
@@ -335,7 +528,7 @@ export function IncidentForm({
                 name="type"
                 required
                 disabled={loading}
-                value={selectedType || undefined}
+                value={selectedType || activeTemplate?.type || undefined}
                 onValueChange={(value) =>
                   setSelectedType(value as IncidentType)
                 }
@@ -477,6 +670,7 @@ export function IncidentForm({
               id="title"
               name="title"
               placeholder="F.eks. Fall fra stige ved lagerarbeid"
+              defaultValue={activeTemplate?.title}
               required
               disabled={loading}
             />
@@ -488,6 +682,7 @@ export function IncidentForm({
               id="description"
               name="description"
               placeholder="Beskriv detaljert hva som skjedde, når, hvor og hvem som var involvert"
+              defaultValue={activeTemplate?.description}
               required
               disabled={loading}
               rows={5}
@@ -513,6 +708,7 @@ export function IncidentForm({
                 id="location"
                 name="location"
                 placeholder="F.eks. Lager 2, Produksjonshall A"
+                defaultValue={activeTemplate?.location}
                 disabled={loading}
               />
             </div>
@@ -901,6 +1097,7 @@ export function IncidentForm({
               id="immediateAction"
               name="immediateAction"
               placeholder="F.eks. Stoppet arbeidet, ryddet området, sikret vitner, varslet leder..."
+              defaultValue={activeTemplate?.immediateAction}
               disabled={loading}
               rows={3}
             />
@@ -996,7 +1193,7 @@ export function IncidentForm({
         </div>
       </div>
 
-      <div className="flex gap-4">
+      <div className={cn("flex gap-4", isTabletMode && "sticky bottom-4 z-20 rounded-lg border bg-background p-3 shadow-lg")}>
         <Button type="submit" disabled={loading}>
           {loading ? "Rapporterer..." : "Rapporter avvik"}
         </Button>

@@ -22,6 +22,8 @@ import { format } from "date-fns";
 import { nb } from "date-fns/locale";
 import { InspectionFindingForm } from "@/features/inspections/components/inspection-finding-form";
 import { InspectionFindingList } from "@/features/inspections/components/inspection-finding-list";
+import { InspectionChecklist } from "@/features/inspections/components/inspection-checklist";
+import { CompleteInspectionButton } from "@/features/inspections/components/complete-inspection-button";
 import { UpdateInspectionStatusForm } from "@/features/inspections/components/update-inspection-status-form";
 import { DeleteInspectionButton } from "@/features/inspections/components/delete-inspection-button";
 
@@ -249,7 +251,7 @@ export default async function InspectionDetailPage({
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-sm text-orange-600 bg-orange-50 p-3 rounded-md">
                   <AlertTriangle className="h-4 w-4" />
-                  <span>Skjema må fylles ut for å fullføre vernerunden</span>
+                  <span>Skjema må fylles ut og sendes inn for å fullføre vernerunden (funn er valgfritt)</span>
                 </div>
                 <Link href={`/dashboard/forms/${inspection.formTemplate.id}/fill?inspectionId=${id}`}>
                   <Button className="w-full">
@@ -348,6 +350,29 @@ export default async function InspectionDetailPage({
         </Card>
       )}
 
+      {inspection.checklist ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Sjekkpunkter fra mal</CardTitle>
+            <CardDescription>
+              Fyll ut sjekkpunktene her. Fremdrift lagres direkte på vernerunden.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <InspectionChecklist inspectionId={inspection.id} checklist={inspection.checklist} />
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button asChild>
+                <a href="#funn">Gå til funnregistrering</a>
+              </Button>
+              <CompleteInspectionButton
+                inspectionId={inspection.id}
+                findingsCount={inspection.findings.length}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
       {/* Finding Statistics */}
       {findingStats.total > 0 && (
         <Card className="border-orange-200 bg-orange-50">
@@ -398,7 +423,7 @@ export default async function InspectionDetailPage({
       )}
 
       {/* Findings */}
-      <Card>
+      <Card id="funn">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>

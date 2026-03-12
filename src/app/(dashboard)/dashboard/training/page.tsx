@@ -4,8 +4,10 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { TrainingHeaderActions } from "@/features/training/components/training-header-actions";
 import { TrainingList } from "@/features/training/components/training-list";
+import { TrainingExpiryAlertButton } from "@/features/training/components/training-expiry-alert-button";
 import {
   GraduationCap,
   CheckCircle2,
@@ -15,6 +17,7 @@ import {
 } from "lucide-react";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
 import { helpContent } from "@/lib/help-content";
+import { hasTenantFeature } from "@/lib/tenant-features";
 
 export default async function TrainingPage() {
   const session = await getServerSession(authOptions);
@@ -25,7 +28,17 @@ export default async function TrainingPage() {
 
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
-    include: { tenants: true },
+    include: {
+      tenants: {
+        include: {
+          tenant: {
+            select: {
+              industry: true,
+            },
+          },
+        },
+      },
+    },
   });
 
   if (!user || user.tenants.length === 0) {
@@ -33,6 +46,10 @@ export default async function TrainingPage() {
   }
 
   const tenantId = user.tenants[0].tenantId;
+  const isHealthcareTenant = hasTenantFeature(
+    user.tenants[0]?.tenant?.industry,
+    "helseforetak",
+  );
 
   // Hent all opplæring med brukerinformasjon
   const trainings = await prisma.training.findMany({
@@ -110,6 +127,23 @@ export default async function TrainingPage() {
     if (!t.validUntil) return false;
     return new Date(t.validUntil) < now;
   }).length;
+  const healthcareExpiringTrainings = trainingsWithUser
+    .filter((training) => {
+      if (!training.validUntil || !training.isRequired) {
+        return false;
+      }
+      const daysUntilExpiry = Math.ceil(
+        (new Date(training.validUntil).getTime() - now.getTime()) /
+          (1000 * 60 * 60 * 24),
+      );
+      return daysUntilExpiry <= 30;
+    })
+    .sort((a, b) => {
+      const aDate = a.validUntil ? new Date(a.validUntil).getTime() : Number.MAX_SAFE_INTEGER;
+      const bDate = b.validUntil ? new Date(b.validUntil).getTime() : Number.MAX_SAFE_INTEGER;
+      return aDate - bDate;
+    })
+    .slice(0, 8);
 
   const evaluated = trainings.filter((t) => t.effectiveness).length;
 
@@ -230,6 +264,53 @@ export default async function TrainingPage() {
           </div>
         </CardContent>
       </Card>
+
+      {isHealthcareTenant && healthcareExpiringTrainings.length > 0 && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardHeader>
+            <CardTitle className="text-amber-900">
+              Helseforetak varsler - kompetanse utløper
+            </CardTitle>
+            <CardDescription className="text-amber-800">
+              Påkrevde kurs som er utløpt eller utløper innen 30 dager.
+            </CardDescription>
+            <div className="pt-2">
+              <TrainingExpiryAlertButton />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {healthcareExpiringTrainings.map((training) => {
+                const daysUntilExpiry = training.validUntil
+                  ? Math.ceil(
+                      (new Date(training.validUntil).getTime() - now.getTime()) /
+                        (1000 * 60 * 60 * 24),
+                    )
+                  : null;
+                const isExpired = (daysUntilExpiry ?? 1) <= 0;
+                return (
+                  <div
+                    key={training.id}
+                    className="flex items-center justify-between rounded-md border border-amber-200 bg-white p-3"
+                  >
+                    <div>
+                      <p className="font-medium">{training.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {training.user?.name || training.user?.email || "Ukjent ansatt"}
+                      </p>
+                    </div>
+                    <Badge variant={isExpired ? "destructive" : "outline"}>
+                      {isExpired
+                        ? "Utløpt"
+                        : `${daysUntilExpiry} dager igjen`}
+                    </Badge>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Training List */}
       <Card>

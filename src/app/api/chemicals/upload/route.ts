@@ -21,27 +21,25 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { error: "Ikke autentisert" },
         { status: 401 }
       );
     }
 
-    // Hent brukerens tenant
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      include: { tenants: true },
-    });
-
-    if (!user || user.tenants.length === 0) {
+    const tenantId = session.user.tenantId ?? (
+      await prisma.userTenant.findFirst({
+        where: { userId: session.user.id },
+        select: { tenantId: true },
+      })
+    )?.tenantId;
+    if (!tenantId) {
       return NextResponse.json(
         { error: "Ingen tenant tilknyttet" },
         { status: 403 }
       );
     }
-
-    const tenantId = user.tenants[0].tenantId;
 
     const formData = await request.formData();
     const file = formData.get("file");

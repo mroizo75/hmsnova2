@@ -69,11 +69,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const userTenant = await prisma.userTenant.findFirst({
+      where: { userId: session.user.id },
+      select: { tenantId: true },
+    });
+    if (!userTenant) {
+      return NextResponse.json({ error: "Ingen tenant tilgang" }, { status: 403 });
+    }
+
     const body = await request.json();
 
     const form = await prisma.formTemplate.create({
       data: {
-        tenantId: body.tenantId,
+        tenantId: userTenant.tenantId,
         title: body.title,
         description: body.description,
         numberPrefix: body.numberPrefix ?? null,
@@ -120,16 +128,35 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const userTenant = await prisma.userTenant.findFirst({
+      where: { userId: session.user.id },
+      select: { tenantId: true },
+    });
+    if (!userTenant) {
+      return NextResponse.json({ error: "Ingen tenant tilgang" }, { status: 403 });
+    }
+
     const body = await request.json();
+    const existingForm = await prisma.formTemplate.findFirst({
+      where: {
+        id: body.id,
+        tenantId: userTenant.tenantId,
+        isGlobal: false,
+      },
+      select: { id: true },
+    });
+    if (!existingForm) {
+      return NextResponse.json({ error: "Ingen tilgang til skjema" }, { status: 403 });
+    }
 
     // Slett eksisterende felter
     await prisma.formField.deleteMany({
-      where: { formTemplateId: body.id },
+      where: { formTemplateId: existingForm.id },
     });
 
     // Oppdater skjema med nye felter
     const form = await prisma.formTemplate.update({
-      where: { id: body.id },
+      where: { id: existingForm.id },
       data: {
         title: body.title,
         description: body.description,

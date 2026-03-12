@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Home, FileText, AlertCircle, Beaker, ClipboardList, GraduationCap, Clock } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { AppBreadcrumbs } from "@/components/app-breadcrumbs";
 import { prisma } from "@/lib/db";
 import { LogoutButton } from "@/components/ansatt/logout-button";
 import { NotificationBell } from "@/components/notifications/notification-bell";
@@ -90,6 +91,7 @@ export default async function EmployeeLayout({
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
+        <AppBreadcrumbs />
         {children}
       </main>
 

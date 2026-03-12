@@ -64,6 +64,7 @@ interface TimeRegistrationOverviewProps {
   initialData: OverviewData;
   tenantId: string;
   isAdmin: boolean;
+  initialProjectFilter?: string;
   /** Når satt, viser kun denne brukerens registreringer (for ansatt) */
   restrictToUserId?: string;
 }
@@ -72,6 +73,7 @@ export function TimeRegistrationOverview({
   initialData,
   tenantId,
   isAdmin,
+  initialProjectFilter,
   restrictToUserId,
 }: TimeRegistrationOverviewProps) {
   const { toast } = useToast();
@@ -84,7 +86,12 @@ export function TimeRegistrationOverview({
     getWeek(new Date(), { weekStartsOn: 1, locale: nb })
   );
   const ALL_FILTER = "__all__" as const;
-  const [projectFilter, setProjectFilter] = useState<string>(ALL_FILTER);
+  const hasInitialProject = Boolean(
+    initialProjectFilter && initialData.projects.some((project) => project.id === initialProjectFilter)
+  );
+  const [projectFilter, setProjectFilter] = useState<string>(
+    hasInitialProject && initialProjectFilter ? initialProjectFilter : ALL_FILTER
+  );
   const [userFilter, setUserFilter] = useState<string>(ALL_FILTER);
   const [deleteId, setDeleteId] = useState<{
     type: "time" | "mileage";

@@ -15,6 +15,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_CONFIG.url),
+  manifest: "/site.webmanifest",
   title: {
     default: `${SITE_CONFIG.name} - ${SITE_CONFIG.tagline}`,
     template: `%s | ${SITE_CONFIG.name}`,
@@ -47,6 +48,11 @@ export const metadata: Metadata = {
     title: `${SITE_CONFIG.name} - ${SITE_CONFIG.tagline}`,
     description: SITE_CONFIG.description,
     creator: "@hmsnova",
+  },
+  appleWebApp: {
+    capable: true,
+    title: SITE_CONFIG.name,
+    statusBarStyle: "default",
   },
 };
 

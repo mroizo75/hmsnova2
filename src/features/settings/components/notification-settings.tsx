@@ -9,16 +9,21 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Bell, Mail, Smartphone, Calendar, ClipboardCheck, AlertCircle, Target, TestTube } from "lucide-react";
-import type { User, UserTenant } from "@prisma/client";
+import type { Role, User, UserTenant } from "@prisma/client";
 import { updateNotificationSettings } from "@/server/actions/notification-settings.actions";
 import Link from "next/link";
 
 interface NotificationSettingsProps {
   user: User;
   userTenant: UserTenant;
+  tenant: {
+    constructionDailyCheckAlertsEnabled: boolean;
+    constructionDailyCheckAlertRole: Role;
+  };
+  isAdmin: boolean;
 }
 
-export function NotificationSettings({ user, userTenant }: NotificationSettingsProps) {
+export function NotificationSettings({ user, userTenant, tenant, isAdmin }: NotificationSettingsProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -31,6 +36,12 @@ export function NotificationSettings({ user, userTenant }: NotificationSettingsP
   const [notifyInspections, setNotifyInspections] = useState(userTenant.notifyInspections);
   const [notifyAudits, setNotifyAudits] = useState(userTenant.notifyAudits);
   const [notifyMeasures, setNotifyMeasures] = useState(userTenant.notifyMeasures);
+  const [constructionDailyCheckAlertsEnabled, setConstructionDailyCheckAlertsEnabled] = useState(
+    tenant.constructionDailyCheckAlertsEnabled
+  );
+  const [constructionDailyCheckAlertRole, setConstructionDailyCheckAlertRole] = useState<Role>(
+    tenant.constructionDailyCheckAlertRole
+  );
 
   // Sjekk telefonnummer fra både UserTenant og User (fallback)
   const hasPhoneNumber = !!userTenant.phone || !!user.phone;
@@ -57,6 +68,8 @@ export function NotificationSettings({ user, userTenant }: NotificationSettingsP
       notifyInspections,
       notifyAudits,
       notifyMeasures,
+      constructionDailyCheckAlertsEnabled,
+      constructionDailyCheckAlertRole,
     });
 
     if (result.success) {
@@ -93,6 +106,53 @@ export function NotificationSettings({ user, userTenant }: NotificationSettingsP
           </div>
         </CardHeader>
       </Card>
+
+      {isAdmin ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Bygg/anlegg-varsler (tenant)</CardTitle>
+            <CardDescription>
+              Styr daglig varsel om manglende kontroll av elektronisk oversiktsliste.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <Label htmlFor="constructionDailyCheckAlertsEnabled">
+                  Aktiver daglig bygg/anlegg-varsel
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Sender varsel når prosjekt har aktive personer, men ingen daglig kontroll i dag.
+                </p>
+              </div>
+              <Switch
+                id="constructionDailyCheckAlertsEnabled"
+                checked={constructionDailyCheckAlertsEnabled}
+                onCheckedChange={setConstructionDailyCheckAlertsEnabled}
+                disabled={loading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="constructionDailyCheckAlertRole">Hvilken rolle skal varsles?</Label>
+              <Select
+                value={constructionDailyCheckAlertRole}
+                onValueChange={(value) => setConstructionDailyCheckAlertRole(value as Role)}
+                disabled={loading}
+              >
+                <SelectTrigger id="constructionDailyCheckAlertRole">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="HMS">HMS-ansvarlig</SelectItem>
+                  <SelectItem value="ADMIN">Administrator</SelectItem>
+                  <SelectItem value="LEDER">Leder</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {/* Varslingsmetoder */}
       <Card>

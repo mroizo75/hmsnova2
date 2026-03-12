@@ -11,6 +11,7 @@ import { FAQSection } from "@/components/faq-section";
 import { getFAQsForPage } from "@/lib/faq-data";
 import { TestimonialsSection } from "@/components/testimonials-section";
 import { TrustBadges } from "@/components/trust-badges";
+import { PwaInstallButton } from "@/components/pwa-install-button";
 import {
   PAGE_METADATA,
   getOpenGraphDefaults,
@@ -91,6 +92,7 @@ export default function HomePage() {
               Registrer bedrift
             </Button>
           </Link>
+          <PwaInstallButton />
           <RingMegDialog />
         </div>
         <p className="text-sm text-muted-foreground mt-4">

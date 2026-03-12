@@ -246,6 +246,7 @@ async function main() {
   });
 
   console.log("✅ Admin bruker opprettet:", adminUser.email);
+  await seedGlobalInspectionTemplates(adminUser.id);
 
   // Opprett HMS-ansvarlig
   const hmsPassword = await bcrypt.hash("hms123", 10);
@@ -1764,6 +1765,253 @@ async function main() {
   await seedIncidentSubcategories();
 }
 
+async function seedGlobalInspectionTemplates(createdById: string) {
+  const templates = [
+    {
+      name: "Brannrunde",
+      description: "Kontroll av brannsikkerhet, rømningsveier og slokkeutstyr.",
+      category: "BRANNRUNDE",
+      riskCategory: "SAFETY" as const,
+      checklist: {
+        items: [
+          { type: "heading", title: "Brannsikkerhet" },
+          { type: "item", title: "Rømningsveier er frie og tydelig merket", checked: false },
+          { type: "item", title: "Brannslukningsutstyr er tilgjengelig og kontrollert", checked: false },
+          { type: "item", title: "Brannalarmanlegg er funksjonstestet", checked: false },
+          { type: "item", title: "Brannsentral/alarmpanel er tilgjengelig og uten feilmeldinger", checked: false },
+          { type: "item", title: "Nødlys fungerer i rømningsveier", checked: false },
+          { type: "heading", title: "Beredskap" },
+          { type: "item", title: "Brannskiller og branndører fungerer og holdes lukket", checked: false },
+          { type: "item", title: "Ansatte kjenner evakueringsrutiner og møteplass", checked: false },
+          { type: "item", title: "Brannøvelse er gjennomført iht. plan", checked: false },
+          { type: "item", title: "Kontaktliste og varslingsrutiner er oppdatert", checked: false },
+          { type: "item", title: "Lagring av brannfarlig materiale følger krav", checked: false },
+          { type: "item", title: "Tekniske rom er ryddige og uten blokkert adkomst", checked: false },
+        ],
+      },
+    },
+    {
+      name: "Sjekk av lokaler",
+      description: "Generell HMS-gjennomgang av kontor og fellesarealer.",
+      category: "LOKALER",
+      riskCategory: "HEALTH" as const,
+      checklist: {
+        items: [
+          { type: "heading", title: "Arbeidsmiljø" },
+          { type: "item", title: "Lys, ventilasjon og inneklima er tilfredsstillende", checked: false },
+          { type: "item", title: "Gulv, trapper og passasjer er uten snublefare", checked: false },
+          { type: "item", title: "Ergonomi ved arbeidsstasjoner er ivaretatt", checked: false },
+          { type: "item", title: "Støyforhold er vurdert og akseptable", checked: false },
+          { type: "item", title: "Renholdsrutiner følges i fellesarealer og sanitærrom", checked: false },
+          { type: "heading", title: "Beredskap og oppfølging" },
+          { type: "item", title: "Førstehjelpsutstyr er komplett og tilgjengelig", checked: false },
+          { type: "item", title: "Avvik og forbedringspunkter er dokumentert", checked: false },
+          { type: "item", title: "Sikkerhetsdatablader er tilgjengelige der relevant", checked: false },
+          { type: "item", title: "Elektriske installasjoner og skjøteledninger er i forsvarlig stand", checked: false },
+          { type: "item", title: "Psykososiale forhold og trivsel er fulgt opp", checked: false },
+          { type: "item", title: "Universell utforming og tilgjengelighet er ivaretatt", checked: false },
+        ],
+      },
+    },
+    {
+      name: "Verkstedkontroll",
+      description: "Sikker vernerunde for verksted og tekniske arbeidsplasser.",
+      category: "VERKSTED",
+      riskCategory: "SAFETY" as const,
+      checklist: {
+        items: [
+          { type: "heading", title: "Maskinsikkerhet" },
+          { type: "item", title: "Maskiner har nødvendige vern og nødstopper", checked: false },
+          { type: "item", title: "Låse-/merkingsrutiner følges ved vedlikehold", checked: false },
+          { type: "item", title: "Verneutstyr brukes og er i god stand", checked: false },
+          { type: "item", title: "Operatører har gyldig opplæring og instrukser", checked: false },
+          { type: "item", title: "Håndverktøy kontrolleres før bruk", checked: false },
+          { type: "heading", title: "Kjemikalier og orden" },
+          { type: "item", title: "Kjemikalier er korrekt merket og lagret", checked: false },
+          { type: "item", title: "Orden og renhold hindrer klem- og fallrisiko", checked: false },
+          { type: "item", title: "Spilloppsamlingsutstyr er tilgjengelig", checked: false },
+          { type: "item", title: "Varme arbeider utføres med gyldig tillatelse", checked: false },
+          { type: "item", title: "Løftepunkter, taljer og jekk er kontrollert", checked: false },
+          { type: "item", title: "Nødutstyr og øyeskyll er tilgjengelig og funksjonelt", checked: false },
+        ],
+      },
+    },
+    {
+      name: "Lagerkontroll",
+      description: "Kontroll av lagersikkerhet, logistikk og truckområder.",
+      category: "LAGER",
+      riskCategory: "OPERATIONAL" as const,
+      checklist: {
+        items: [
+          { type: "heading", title: "Lagersikkerhet" },
+          { type: "item", title: "Reoler og pallestabling er stabile og innen lastgrenser", checked: false },
+          { type: "item", title: "Gangsoner og trucksoner er tydelig adskilt", checked: false },
+          { type: "item", title: "Truckkontroll er utført før bruk", checked: false },
+          { type: "item", title: "Fartsgrenser og trafikkregler i lageret følges", checked: false },
+          { type: "item", title: "Fallende gjenstander er sikret med barrierer/nett ved behov", checked: false },
+          { type: "heading", title: "Adkomst og løft" },
+          { type: "item", title: "Løfteutstyr er kontrollert og merket", checked: false },
+          { type: "item", title: "Nødutganger og adkomstveier er frie", checked: false },
+          { type: "item", title: "Mottak/utlevering av varer skjer etter trygg arbeidsflyt", checked: false },
+          { type: "item", title: "Batterilading for truck skjer i sikkert område", checked: false },
+          { type: "item", title: "Belysning i plukksoner er tilstrekkelig", checked: false },
+          { type: "item", title: "Temperaturkrav i lager (der relevant) er dokumentert", checked: false },
+        ],
+      },
+    },
+    {
+      name: "Bygg- og anleggsrunde",
+      description: "Prosjektorientert vernerunde for bygg- og anleggsplass.",
+      category: "BYGG_ANLEGG",
+      riskCategory: "SAFETY" as const,
+      checklist: {
+        items: [
+          { type: "heading", title: "Plan og koordinering" },
+          { type: "item", title: "SHA-plan er oppdatert og kjent for involverte", checked: false },
+          { type: "item", title: "Samordning mellom entreprenører fungerer", checked: false },
+          { type: "item", title: "Sikker-jobb-analyser (SJA) er gjennomført for risikofylte aktiviteter", checked: false },
+          { type: "item", title: "HMS-kort og mannskapsoversikt er oppdatert", checked: false },
+          { type: "heading", title: "Utførelse på byggeplass" },
+          { type: "item", title: "Fallsikring, stillas og adkomst er kontrollert", checked: false },
+          { type: "item", title: "Arbeid i høyden, løft og gravearbeid er risikovurdert", checked: false },
+          { type: "item", title: "Mannskapsliste og daglig kontroll er oppdatert", checked: false },
+          { type: "item", title: "Sperringer, skilting og orden på riggområde er tilfredsstillende", checked: false },
+          { type: "item", title: "Elektriske installasjoner og midlertidig strøm er kontrollert", checked: false },
+          { type: "item", title: "Kjemikalier/farlig stoff på byggeplass håndteres etter krav", checked: false },
+          { type: "item", title: "Nabopåvirkning (støy, støv, trafikk) er vurdert og fulgt opp", checked: false },
+        ],
+      },
+    },
+  ];
+
+  for (const template of templates) {
+    const existing = await prisma.inspectionTemplate.findFirst({
+      where: {
+        tenantId: null,
+        isGlobal: true,
+        name: template.name,
+      },
+      select: { id: true },
+    });
+
+    if (existing) {
+      await prisma.inspectionTemplate.update({
+        where: { id: existing.id },
+        data: {
+          description: template.description,
+          category: template.category,
+          riskCategory: template.riskCategory,
+          checklist: template.checklist,
+        },
+      });
+    } else {
+      await prisma.inspectionTemplate.create({
+        data: {
+          tenantId: null,
+          isGlobal: true,
+          name: template.name,
+          description: template.description,
+          category: template.category,
+          riskCategory: template.riskCategory,
+          checklist: template.checklist,
+        },
+      });
+    }
+
+    const checklistItems = (template.checklist as { items: Array<{ type: string; title: string }> }).items;
+    const formFields = checklistItems.map((entry, index) => {
+      if (entry.type === "heading") {
+        return {
+          fieldType: "SECTION_HEADER" as const,
+          label: entry.title,
+          helpText: null,
+          placeholder: null,
+          isRequired: false,
+          order: index + 1,
+          options: null,
+        };
+      }
+
+      return {
+        fieldType: "RADIO" as const,
+        label: entry.title,
+        helpText: "Velg status for punktet. Legg til merknad ved behov.",
+        placeholder: null,
+        isRequired: true,
+        order: index + 1,
+        options: JSON.stringify(["OK", "Ikke OK", "Ikke relevant"]),
+      };
+    });
+
+    const existingFormTemplate = await prisma.formTemplate.findFirst({
+      where: {
+        tenantId: null,
+        isGlobal: true,
+        category: "INSPECTION",
+        title: template.name,
+      },
+      select: { id: true },
+    });
+
+    if (existingFormTemplate) {
+      await prisma.formTemplate.update({
+        where: { id: existingFormTemplate.id },
+        data: {
+          description: template.description,
+          requiresSignature: false,
+          requiresApproval: false,
+          accessType: "ALL",
+          isActive: true,
+        },
+      });
+
+      await prisma.formField.deleteMany({
+        where: { formTemplateId: existingFormTemplate.id },
+      });
+
+      await prisma.formField.createMany({
+        data: formFields.map((field) => ({
+          formTemplateId: existingFormTemplate.id,
+          fieldType: field.fieldType,
+          label: field.label,
+          helpText: field.helpText,
+          placeholder: field.placeholder,
+          isRequired: field.isRequired,
+          order: field.order,
+          options: field.options,
+        })),
+      });
+    } else {
+      await prisma.formTemplate.create({
+        data: {
+          tenantId: null,
+          isGlobal: true,
+          title: template.name,
+          description: template.description,
+          category: "INSPECTION",
+          requiresSignature: false,
+          requiresApproval: false,
+          accessType: "ALL",
+          createdBy: createdById,
+          fields: {
+            create: formFields.map((field) => ({
+              fieldType: field.fieldType,
+              label: field.label,
+              helpText: field.helpText,
+              placeholder: field.placeholder,
+              isRequired: field.isRequired,
+              order: field.order,
+              options: field.options,
+            })),
+          },
+        },
+      });
+    }
+  }
+
+  console.log("✅ Globale vernerunde-maler og skjema-maler oppdatert");
+}
+
 async function seedIncidentSubcategories() {
   console.log("🌱 Seeder underkategorier for avvik/hendelser...");
 
@@ -1824,6 +2072,9 @@ async function seedIncidentSubcategories() {
     { incidentType: "NESTEN", industry: "GENERELL", key: "ORDEN_RENHOLD_NESTEN", label: "Orden / renholdsproblem", sortOrder: 7 },
     { incidentType: "NESTEN", industry: "GENERELL", key: "BRUDD_RUTINER_NESTEN", label: "Brudd på rutiner / lovverk", sortOrder: 8 },
     { incidentType: "NESTEN", industry: "GENERELL", key: "MILJORISIKO", label: "Miljørisiko / nesten-utslipp", sortOrder: 9 },
+    { incidentType: "NESTEN", industry: "HELSE", key: "NESTEN_MEDIKAMENT", label: "Nesten-feil i medikamenthåndtering", sortOrder: 10 },
+    { incidentType: "NESTEN", industry: "HELSE", key: "NESTEN_FALL_HJEMMEBESOK", label: "Nesten-fall ved hjemmebesøk", sortOrder: 11 },
+    { incidentType: "NESTEN", industry: "HELSE", key: "NESTEN_STIKK_KUTT", label: "Nesten stikk-/kuttskade", sortOrder: 12 },
 
     // ── FARLIG SITUASJON ────────────────────────────────────────────
     { incidentType: "FARLIG_SITUASJON", industry: "GENERELL", key: "FARLIG_TILSTAND", label: "Farlig tilstand / område", sortOrder: 1 },
@@ -1833,6 +2084,9 @@ async function seedIncidentSubcategories() {
     { incidentType: "FARLIG_SITUASJON", industry: "GENERELL", key: "BRANN_FARE", label: "Brann- / eksplosjonsfare", sortOrder: 5 },
     { incidentType: "FARLIG_SITUASJON", industry: "GENERELL", key: "ERGONOMISK_FARE", label: "Ergonomisk fare", sortOrder: 6 },
     { incidentType: "FARLIG_SITUASJON", industry: "GENERELL", key: "PSYKOSOSIAL_BELASTNING", label: "Psykososial belastning", sortOrder: 7 },
+    { incidentType: "FARLIG_SITUASJON", industry: "HELSE", key: "ALENEARBEID_HOY_RISIKO", label: "Alenearbeid med forhøyet risiko", sortOrder: 8 },
+    { incidentType: "FARLIG_SITUASJON", industry: "HELSE", key: "SMITTERISIKO_OPPDRAG", label: "Smitterisiko i oppdragssituasjon", sortOrder: 9 },
+    { incidentType: "FARLIG_SITUASJON", industry: "HELSE", key: "TRUSSEL_BRUKER_PARORENDE", label: "Trussel fra bruker/pårørende", sortOrder: 10 },
 
     // ── AVVIK ───────────────────────────────────────────────────────
     { incidentType: "AVVIK", industry: "GENERELL", key: "INTERN_AVVIK", label: "Internt avvik", sortOrder: 1 },
@@ -1851,6 +2105,9 @@ async function seedIncidentSubcategories() {
     { incidentType: "AVVIK", industry: "ATEX", key: "TILBAKEKALLING_EX_ENHET", label: "Tilbakekalling Ex-enhetssertifisering", sortOrder: 12 },
     { incidentType: "AVVIK", industry: "ATEX", key: "TILBAKEKALLING_EX_TYPE", label: "Tilbakekalling Ex-typesertifisering", sortOrder: 13 },
     { incidentType: "AVVIK", industry: "ATEX", key: "SERTIFISERINGSORGAN_VARSLET", label: "Eksternt sertifiseringsorgan varslet", sortOrder: 14 },
+    { incidentType: "AVVIK", industry: "HELSE", key: "MEDIKAMENT_AVVIK", label: "Avvik i medikamenthåndtering", sortOrder: 15 },
+    { incidentType: "AVVIK", industry: "HELSE", key: "DOKUMENTASJON_PASIENTOPPDRAG", label: "Mangelfull dokumentasjon i pasientoppdrag", sortOrder: 16 },
+    { incidentType: "AVVIK", industry: "HELSE", key: "SMITTEVERN_BRUDD", label: "Brudd på smittevernrutiner", sortOrder: 17 },
 
     // ── YRKESSYKDOM ─────────────────────────────────────────────────
     { incidentType: "YRKESSYKDOM", industry: "GENERELL", key: "MUSKEL_SKJELETT", label: "Muskel- og skjelettlidelse", sortOrder: 1 },
@@ -1861,6 +2118,8 @@ async function seedIncidentSubcategories() {
     { incidentType: "YRKESSYKDOM", industry: "GENERELL", key: "PSYKISK_BELASTNING", label: "Psykisk belastningslidelse", sortOrder: 6 },
     { incidentType: "YRKESSYKDOM", industry: "GENERELL", key: "VIBRASJONSSKADE", label: "Vibrasjonsskade", sortOrder: 7 },
     { incidentType: "YRKESSYKDOM", industry: "GENERELL", key: "SMITTE", label: "Smittsom sykdom / infeksjon", sortOrder: 8 },
+    { incidentType: "YRKESSYKDOM", industry: "HELSE", key: "BIOLOGISK_EKSPONERING", label: "Biologisk eksponering", sortOrder: 9 },
+    { incidentType: "YRKESSYKDOM", industry: "HELSE", key: "MUSKEL_SKJELETT_HELSE", label: "Muskel- og skjelettplager ved pasienthåndtering", sortOrder: 10 },
 
     // ── MILJØAVVIK ───────────────────────────────────────────────────
     { incidentType: "MILJO", industry: "GENERELL", key: "UTSLIPP_VANN", label: "Utslipp til vann / avløp", sortOrder: 1 },

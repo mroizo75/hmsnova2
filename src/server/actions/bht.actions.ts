@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { AuditLog } from "@/lib/audit-log";
 import { generateAIResponse } from "@/lib/ai";
+import { hasTenantFeature } from "@/lib/tenant-features";
 
 /**
  * Legg til ny BHT-kunde
@@ -39,6 +40,13 @@ export async function addBhtClient(input: {
 
     if (!tenant) {
       return { success: false, error: "Kunde ikke funnet" };
+    }
+
+    if (!hasTenantFeature(tenant.industry, "bht")) {
+      return {
+        success: false,
+        error: "Kunden er ikke i helsebransje og kan ikke registreres som BHT-kunde.",
+      };
     }
 
     if (tenant.bhtClient) {

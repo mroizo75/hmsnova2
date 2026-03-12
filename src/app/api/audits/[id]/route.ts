@@ -17,10 +17,19 @@ export async function GET(
       return createErrorResponse(ErrorCodes.UNAUTHORIZED, "Ikke autentisert", 401);
     }
 
+    const sessionTenantId = session.user.tenantId ?? (
+      await prisma.userTenant.findFirst({
+        where: { userId: session.user.id },
+        select: { tenantId: true },
+      })
+    )?.tenantId;
+    if (!sessionTenantId) {
+      return createErrorResponse(ErrorCodes.FORBIDDEN, "Ingen tenant tilgang", 403);
+    }
     const { id } = await params;
 
-    const audit = await prisma.audit.findUnique({
-      where: { id },
+    const audit = await prisma.audit.findFirst({
+      where: { id, tenantId: sessionTenantId },
       include: {
         findings: {
           orderBy: { createdAt: "desc" },
@@ -53,11 +62,27 @@ export async function PATCH(
       return createErrorResponse(ErrorCodes.UNAUTHORIZED, "Ikke autentisert", 401);
     }
 
+    const sessionTenantId = session.user.tenantId ?? (
+      await prisma.userTenant.findFirst({
+        where: { userId: session.user.id },
+        select: { tenantId: true },
+      })
+    )?.tenantId;
+    if (!sessionTenantId) {
+      return createErrorResponse(ErrorCodes.FORBIDDEN, "Ingen tenant tilgang", 403);
+    }
     const { id } = await params;
     const data = await request.json();
+    const existing = await prisma.audit.findFirst({
+      where: { id, tenantId: sessionTenantId },
+      select: { id: true },
+    });
+    if (!existing) {
+      return createErrorResponse(ErrorCodes.NOT_FOUND, "Revisjon ikke funnet", 404);
+    }
 
     const audit = await prisma.audit.update({
-      where: { id },
+      where: { id: existing.id },
       data: {
         ...(data.title && { title: data.title }),
         ...(data.auditType && { auditType: data.auditType }),
@@ -99,10 +124,26 @@ export async function DELETE(
       return createErrorResponse(ErrorCodes.UNAUTHORIZED, "Ikke autentisert", 401);
     }
 
+    const sessionTenantId = session.user.tenantId ?? (
+      await prisma.userTenant.findFirst({
+        where: { userId: session.user.id },
+        select: { tenantId: true },
+      })
+    )?.tenantId;
+    if (!sessionTenantId) {
+      return createErrorResponse(ErrorCodes.FORBIDDEN, "Ingen tenant tilgang", 403);
+    }
     const { id } = await params;
+    const existing = await prisma.audit.findFirst({
+      where: { id, tenantId: sessionTenantId },
+      select: { id: true },
+    });
+    if (!existing) {
+      return createErrorResponse(ErrorCodes.NOT_FOUND, "Revisjon ikke funnet", 404);
+    }
 
     await prisma.audit.delete({
-      where: { id },
+      where: { id: existing.id },
     });
 
     return createSuccessResponse(undefined, "Revisjon slettet");

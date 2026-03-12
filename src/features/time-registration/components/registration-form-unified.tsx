@@ -14,6 +14,7 @@ interface Project {
 interface RegistrationFormUnifiedProps {
   tenantId: string;
   projects: Project[];
+  initialProjectId?: string;
   lunchBreakMinutes?: number;
   eveningOvertimeFromHour?: number | null;
   defaultKmRate: number;
@@ -24,6 +25,7 @@ interface RegistrationFormUnifiedProps {
 export function RegistrationFormUnified({
   tenantId,
   projects,
+  initialProjectId,
   lunchBreakMinutes = 30,
   eveningOvertimeFromHour,
   defaultKmRate,
@@ -55,6 +57,7 @@ export function RegistrationFormUnified({
           <TimeEntryForm
             tenantId={tenantId}
             projects={projects}
+            initialProjectId={initialProjectId}
             lunchBreakMinutes={lunchBreakMinutes}
             eveningOvertimeFromHour={eveningOvertimeFromHour}
             forceMode="work"
@@ -64,6 +67,7 @@ export function RegistrationFormUnified({
           <TimeEntryForm
             tenantId={tenantId}
             projects={projects}
+            initialProjectId={initialProjectId}
             lunchBreakMinutes={lunchBreakMinutes}
             eveningOvertimeFromHour={eveningOvertimeFromHour}
             forceMode="travel"
@@ -73,6 +77,7 @@ export function RegistrationFormUnified({
           <TimeEntryForm
             tenantId={tenantId}
             projects={projects}
+            initialProjectId={initialProjectId}
             lunchBreakMinutes={lunchBreakMinutes}
             eveningOvertimeFromHour={eveningOvertimeFromHour}
             forceMode="sick"
@@ -82,6 +87,7 @@ export function RegistrationFormUnified({
           <MileageEntryForm
             tenantId={tenantId}
             projects={projects}
+            initialProjectId={initialProjectId}
             defaultKmRate={defaultKmRate}
             rateEditable={rateEditable}
             showDisclaimer={showDisclaimer}

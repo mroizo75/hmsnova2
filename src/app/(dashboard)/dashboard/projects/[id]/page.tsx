@@ -71,9 +71,21 @@ export default async function ProjectDetailPage({
         orderBy: { dueAt: "asc" },
         select: {
           id: true, title: true, status: true, dueAt: true, category: true,
+          riskId: true, incidentId: true, projectId: true,
         },
       },
-      timeEntries: { select: { hours: true } },
+      timeEntries: {
+        orderBy: { date: "desc" },
+        select: {
+          id: true,
+          date: true,
+          hours: true,
+          timeType: true,
+          comment: true,
+          user: { select: { name: true, email: true } },
+        },
+        take: 20,
+      },
     },
   });
 
@@ -237,6 +249,7 @@ export default async function ProjectDetailPage({
         sjaAnalyses={project.sjaAnalyses as any}
         inspections={project.inspections as any}
         measures={project.measures as any}
+        timeEntries={project.timeEntries as any}
       />
     </div>
   );

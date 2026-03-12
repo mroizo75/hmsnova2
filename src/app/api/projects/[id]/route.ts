@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { getRosterRetentionUntil } from "@/lib/construction-compliance-rules";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 
@@ -94,6 +95,26 @@ export async function PATCH(
 
     const existing = await prisma.project.findUnique({ where: { id, tenantId } });
     if (!existing) return NextResponse.json({ error: "Prosjekt ikke funnet" }, { status: 404 });
+    let validatedProjectManagerId: string | null | undefined = undefined;
+    if (validated.projectManagerId !== undefined) {
+      if (validated.projectManagerId === null) {
+        validatedProjectManagerId = null;
+      } else {
+        const manager = await prisma.userTenant.findUnique({
+          where: {
+            userId_tenantId: {
+              userId: validated.projectManagerId,
+              tenantId,
+            },
+          },
+          select: { userId: true },
+        });
+        if (!manager) {
+          return NextResponse.json({ error: "Prosjektleder finnes ikke i tenant" }, { status: 400 });
+        }
+        validatedProjectManagerId = manager.userId;
+      }
+    }
 
     const project = await prisma.project.update({
       where: { id, tenantId },
@@ -111,8 +132,8 @@ export async function PATCH(
         ...(validated.endDate !== undefined && {
           endDate: validated.endDate ? new Date(validated.endDate) : null,
         }),
-        ...(validated.projectManagerId !== undefined && {
-          projectManagerId: validated.projectManagerId,
+        ...(validatedProjectManagerId !== undefined && {
+          projectManagerId: validatedProjectManagerId,
         }),
       },
     });
@@ -136,6 +157,48 @@ export async function DELETE(
 
     const existing = await prisma.project.findUnique({ where: { id, tenantId } });
     if (!existing) return NextResponse.json({ error: "Prosjekt ikke funnet" }, { status: 404 });
+
+    const rosterSummary = await prisma.constructionRosterEntry.aggregate({
+      where: { projectId: id, tenantId },
+      _count: { _all: true },
+      _max: { endedAtSiteDate: true },
+    });
+    const activeRosterCount = await prisma.constructionRosterEntry.count({
+      where: { projectId: id, tenantId, isActive: true },
+    });
+
+    if ((rosterSummary._count._all ?? 0) > 0) {
+      if (activeRosterCount > 0) {
+        return NextResponse.json(
+          {
+            error:
+              "Prosjekt kan ikke slettes mens oversiktslisten har aktive arbeidstakere. Avslutt linjene først.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const workFinishedAt = existing.endDate ?? rosterSummary._max.endedAtSiteDate;
+      if (!workFinishedAt) {
+        return NextResponse.json(
+          {
+            error:
+              "Prosjekt med oversiktsliste må ha sluttdato før sletting. Dette kreves for 6 måneders oppbevaring av oversiktsliste.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const retentionUntil = getRosterRetentionUntil(workFinishedAt);
+      if (new Date() < retentionUntil) {
+        return NextResponse.json(
+          {
+            error: `Prosjekt kan ikke slettes før oppbevaringsfrist er utløpt (${retentionUntil.toLocaleDateString("nb-NO")}).`,
+          },
+          { status: 400 }
+        );
+      }
+    }
 
     // Fjern prosjektkobling fra relaterte modeller, ikke slett dem
     await prisma.$transaction([

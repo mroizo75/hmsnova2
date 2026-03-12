@@ -18,7 +18,15 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
 
-    const tenantId = formData.get("tenantId") as string;
+    const tenantId = session.user.tenantId ?? (
+      await prisma.userTenant.findFirst({
+        where: { userId: session.user.id },
+        select: { tenantId: true },
+      })
+    )?.tenantId;
+    if (!tenantId) {
+      return NextResponse.json({ error: "Ingen tenant tilgang" }, { status: 403 });
+    }
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
     const category = formData.get("category") as RuhCategory;
@@ -31,6 +39,11 @@ export async function POST(request: NextRequest) {
     const injuryDescription = formData.get("injuryDescription") as string | null;
     const immediateAction = formData.get("immediateAction") as string | null;
     const suggestedActions = formData.get("suggestedActions") as string | null;
+    const ruhContext = formData.get("ruhContext") as string | null;
+    const contextDetails = (formData.get("contextDetails") as string | null)?.trim() || null;
+    const enrichedDescription = contextDetails
+      ? `${description}\n\nKontekstnotat: ${contextDetails}`
+      : description;
 
     const ruhNummer = await generateSequenceNumber(
       tenantId,
@@ -43,7 +56,7 @@ export async function POST(request: NextRequest) {
         tenantId,
         ruhNummer,
         title,
-        description,
+        description: enrichedDescription,
         category,
         location,
         occurredAt: new Date(date),
@@ -54,7 +67,7 @@ export async function POST(request: NextRequest) {
         injuryOccurred,
         injuryDescription: injuryOccurred ? injuryDescription : null,
         immediateAction,
-        suggestedActions,
+        suggestedActions: ruhContext ? [suggestedActions, `Kontekst: ${ruhContext}`].filter(Boolean).join("\n") : suggestedActions,
         status: "SUBMITTED",
       },
     });

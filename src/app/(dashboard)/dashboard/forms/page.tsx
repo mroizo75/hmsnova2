@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/pagination";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
 import { helpContent } from "@/lib/help-content";
+import { getPermissions } from "@/lib/permissions";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -44,6 +45,16 @@ export default async function FormsPage({
 
   const currentPage = parseInt(params.page || "1", 10);
   const skip = (currentPage - 1) * ITEMS_PER_PAGE;
+  const userTenant = await prisma.userTenant.findUnique({
+    where: {
+      userId_tenantId: {
+        userId: session.user.id,
+        tenantId: session.user.tenantId,
+      },
+    },
+    select: { role: true },
+  });
+  const permissions = getPermissions(userTenant?.role ?? "ANSATT");
 
   // Hent totalt antall skjemaer (tenant + globale)
   const totalForms = await prisma.formTemplate.count({
@@ -58,7 +69,7 @@ export default async function FormsPage({
   const totalPages = Math.ceil(totalForms / ITEMS_PER_PAGE);
 
   // Hent skjemaer for current page (tenant + globale)
-  const forms = await prisma.formTemplate.findMany({
+  const formsBase = await prisma.formTemplate.findMany({
     where: {
       OR: [
         { tenantId: session.user.tenantId },
@@ -71,14 +82,14 @@ export default async function FormsPage({
           fields: true,
           submissions: {
             where: {
-              tenantId: session.user.tenantId, // VIKTIG: Kun tenant-spesifikke submissions
+              tenantId: session.user.tenantId,
             },
           },
         },
       },
       submissions: {
         where: {
-          tenantId: session.user.tenantId, // VIKTIG: Kun tenant-spesifikke submissions
+          tenantId: session.user.tenantId,
         },
         orderBy: { createdAt: "desc" },
         take: 1,
@@ -91,9 +102,46 @@ export default async function FormsPage({
     skip,
     take: ITEMS_PER_PAGE,
   });
+  const forms = await Promise.all(
+    formsBase.map(async (form) => {
+      const restrictedGlobal = form.isGlobal && !permissions.canManageForms;
+      if (!restrictedGlobal) {
+        return {
+          ...form,
+          visibleSubmissionCount: form._count.submissions,
+          latestVisibleSubmissionCreatedAt: form.submissions[0]?.createdAt ?? null,
+        };
+      }
+
+      const [ownSubmissionCount, latestOwnSubmission] = await Promise.all([
+        prisma.formSubmission.count({
+          where: {
+            formTemplateId: form.id,
+            tenantId: session.user.tenantId,
+            submittedById: session.user.id,
+          },
+        }),
+        prisma.formSubmission.findFirst({
+          where: {
+            formTemplateId: form.id,
+            tenantId: session.user.tenantId,
+            submittedById: session.user.id,
+          },
+          orderBy: { createdAt: "desc" },
+          select: { createdAt: true },
+        }),
+      ]);
+
+      return {
+        ...form,
+        visibleSubmissionCount: ownSubmissionCount,
+        latestVisibleSubmissionCreatedAt: latestOwnSubmission?.createdAt ?? null,
+      };
+    })
+  );
 
   // Beregn stats (alle skjemaer - tenant + globale, men KUN tenant-submissions)
-  const allForms = await prisma.formTemplate.findMany({
+  const allFormsBase = await prisma.formTemplate.findMany({
     where: {
       OR: [
         { tenantId: session.user.tenantId },
@@ -105,15 +153,37 @@ export default async function FormsPage({
         select: {
           submissions: {
             where: {
-              tenantId: session.user.tenantId, // VIKTIG: Kun tenant-spesifikke submissions
+              tenantId: session.user.tenantId,
             },
           },
         },
       },
     },
   });
+  const allForms = await Promise.all(
+    allFormsBase.map(async (form) => {
+      const restrictedGlobal = form.isGlobal && !permissions.canManageForms;
+      if (!restrictedGlobal) {
+        return {
+          ...form,
+          visibleSubmissionCount: form._count.submissions,
+        };
+      }
+      const ownSubmissionCount = await prisma.formSubmission.count({
+        where: {
+          formTemplateId: form.id,
+          tenantId: session.user.tenantId,
+          submittedById: session.user.id,
+        },
+      });
+      return {
+        ...form,
+        visibleSubmissionCount: ownSubmissionCount,
+      };
+    })
+  );
 
-  const totalSubmissions = allForms.reduce((sum, form) => sum + form._count.submissions, 0);
+  const totalSubmissions = allForms.reduce((sum, form) => sum + form.visibleSubmissionCount, 0);
   const activeForms = allForms.filter((f) => f.isActive).length;
 
   return (
@@ -200,6 +270,11 @@ export default async function FormsPage({
             <strong>💡 Tips:</strong> Klikk på et skjema for å se alle utfyllinger, statistikk og laste ned PDF-er. 
             Bruk målinger for å følge med på hvor ofte skjemaene brukes!
           </p>
+          <p className="text-sm text-blue-900 mt-2">
+            <strong>Eksempelmaler:</strong> Skjema merket som global er standardmaler. Bruk{" "}
+            <strong>Kopier</strong> hvis du vil endre eller legge til punkter. For globale maler ser
+            vanlige brukere kun egne utfyllinger, mens skjemaansvarlige i bedriften ser alle.
+          </p>
         </CardContent>
       </Card>
 
@@ -253,7 +328,7 @@ export default async function FormsPage({
                           <p className="font-medium">{form.title}</p>
                           {form.isGlobal && (
                             <Badge variant="secondary" className="bg-purple-100 text-purple-700 text-xs">
-                              Global
+                              Eksempelmal
                             </Badge>
                           )}
                         </div>
@@ -286,16 +361,16 @@ export default async function FormsPage({
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <span className="font-medium">{form._count.submissions}</span>
-                        {form._count.submissions > 0 && (
+                        <span className="font-medium">{form.visibleSubmissionCount}</span>
+                        {form.visibleSubmissionCount > 0 && (
                           <TrendingUp className="h-4 w-4 text-green-600" />
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
-                      {form.submissions.length > 0 ? (
+                      {form.latestVisibleSubmissionCreatedAt ? (
                         <span className="text-sm text-muted-foreground">
-                          {new Date(form.submissions[0].createdAt).toLocaleDateString("nb-NO", {
+                          {new Date(form.latestVisibleSubmissionCreatedAt).toLocaleDateString("nb-NO", {
                             day: "2-digit",
                             month: "short",
                             year: "numeric",
@@ -321,7 +396,7 @@ export default async function FormsPage({
                             </Button>
                           </Link>
                         )}
-                        {form._count.submissions > 0 && (
+                        {form.visibleSubmissionCount > 0 && (
                           <Button
                             variant="ghost"
                             size="sm"

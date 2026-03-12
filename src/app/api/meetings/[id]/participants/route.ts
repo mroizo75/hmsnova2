@@ -41,6 +41,20 @@ export async function POST(
     if (!meeting) {
       return NextResponse.json({ error: "Meeting not found" }, { status: 404 });
     }
+    if (validatedData.userId) {
+      const participantUser = await db.userTenant.findUnique({
+        where: {
+          userId_tenantId: {
+            userId: validatedData.userId,
+            tenantId: session.user.tenantId,
+          },
+        },
+        select: { userId: true },
+      });
+      if (!participantUser) {
+        return NextResponse.json({ error: "Bruker ikke funnet i tenant" }, { status: 400 });
+      }
+    }
 
     const participant = await db.meetingParticipant.create({
       data: {

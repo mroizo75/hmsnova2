@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { Resend } from "resend";
 import { PricingTier, OnboardingStatus } from "@prisma/client";
 import { getCustomerWelcomeEmail, getAdminNotificationEmail } from "@/lib/email-templates";
+import { getBindingPrice } from "@/lib/subscription";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -134,7 +135,7 @@ export async function submitRegistrationRequest(formData: FormData) {
     });
 
     // Get pricing info for email (ny prismodell: 1 år binding som standard)
-    const yearlyPrice = 3300; // 275 kr/mnd * 12
+    const yearlyPrice = getBindingPrice("1year").yearlyPrice;
 
     // Send confirmation email to customer
     if (process.env.RESEND_API_KEY) {

@@ -134,6 +134,10 @@ export interface RolePermissions {
   // Eksponeringsregister – ansatte eksponert for helseskadelige stoffer
   canReadExposureRegister: boolean;
   canManageExposureRegister: boolean;
+
+  // Bygg/anlegg-compliance – SHA, forhåndsmelding, oversiktsliste
+  canReadConstructionCompliance: boolean;
+  canManageConstructionCompliance: boolean;
 }
 
 /**
@@ -222,6 +226,8 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canReadLegalRegister: true,
     canReadExposureRegister: true,
     canManageExposureRegister: true,
+    canReadConstructionCompliance: true,
+    canManageConstructionCompliance: true,
   },
 
   // HMS - HMS-ansvarlig, nesten full tilgang
@@ -306,6 +312,8 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canReadLegalRegister: true,
     canReadExposureRegister: true,
     canManageExposureRegister: true,
+    canReadConstructionCompliance: true,
+    canManageConstructionCompliance: true,
   },
 
   // LEDER - Leder, kan administrere i sin avdeling
@@ -390,6 +398,8 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canReadLegalRegister: true,
     canReadExposureRegister: true,
     canManageExposureRegister: true,
+    canReadConstructionCompliance: true,
+    canManageConstructionCompliance: true,
   },
 
   // VERNEOMBUD - Verneombud, fokus på HMS
@@ -474,6 +484,8 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canReadLegalRegister: true,
     canReadExposureRegister: true,
     canManageExposureRegister: false,
+    canReadConstructionCompliance: true,
+    canManageConstructionCompliance: true,
   },
 
   // ANSATT - Ansatt, begrenset tilgang
@@ -558,6 +570,8 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canReadLegalRegister: true,
     canReadExposureRegister: false,
     canManageExposureRegister: false,
+    canReadConstructionCompliance: true,
+    canManageConstructionCompliance: false,
   },
 
   // BHT - Bedriftshelsetjeneste, lesetilgang + rapportering
@@ -642,6 +656,8 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canReadLegalRegister: true,
     canReadExposureRegister: true,
     canManageExposureRegister: false,
+    canReadConstructionCompliance: true,
+    canManageConstructionCompliance: false,
   },
 
   // REVISOR - Revisor, kun lesetilgang
@@ -726,6 +742,8 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canReadLegalRegister: true,
     canReadExposureRegister: true,
     canManageExposureRegister: false,
+    canReadConstructionCompliance: true,
+    canManageConstructionCompliance: false,
   },
 };
 
@@ -759,6 +777,7 @@ export function getVisibleNavItems(role: Role) {
     risks: perms.canReadRisks,
     riskRegister: perms.canReadRisks,
     incidents: perms.canReadIncidents || perms.canCreateIncidents,
+    hseStatistics: perms.canReadIncidents || perms.canCreateIncidents,
     ruh: perms.canReadRuh || perms.canCreateRuh,
     sja: perms.canReadSja || perms.canCreateSja,
     inspections: perms.canReadInspections,
@@ -778,6 +797,7 @@ export function getVisibleNavItems(role: Role) {
     timeRegistration: perms.canAccessTimeRegistration,
     legalRegister: perms.canReadLegalRegister,
     exposureRegister: perms.canReadExposureRegister,
+    constructionCompliance: perms.canReadConstructionCompliance,
   };
 }
 

@@ -18,10 +18,19 @@ export async function GET(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
+    const sessionTenantId = session.user.tenantId ?? (
+      await prisma.userTenant.findFirst({
+        where: { userId: session.user.id },
+        select: { tenantId: true },
+      })
+    )?.tenantId;
+    if (!sessionTenantId) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
     const { id } = await params;
 
-    const inspection = await prisma.inspection.findUnique({
-      where: { id },
+    const inspection = await prisma.inspection.findFirst({
+      where: { id, tenantId: sessionTenantId },
       include: {
         findings: {
           orderBy: { severity: "desc" },

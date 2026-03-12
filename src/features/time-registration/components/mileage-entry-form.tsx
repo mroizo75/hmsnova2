@@ -25,6 +25,7 @@ interface Project {
 interface MileageEntryFormProps {
   tenantId: string;
   projects: Project[];
+  initialProjectId?: string;
   defaultKmRate: number;
   defaultDate?: Date;
   /** Når false: skjuler Kr/km (admin har satt sats), for ansatt */
@@ -36,6 +37,7 @@ interface MileageEntryFormProps {
 export function MileageEntryForm({
   tenantId,
   projects,
+  initialProjectId,
   defaultKmRate,
   defaultDate = new Date(),
   rateEditable = true,
@@ -45,7 +47,7 @@ export function MileageEntryForm({
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [date, setDate] = useState(format(defaultDate, "yyyy-MM-dd"));
-  const [projectId, setProjectId] = useState("");
+  const [projectId, setProjectId] = useState(initialProjectId ?? "");
   const [kilometers, setKilometers] = useState("");
   const [ratePerKm, setRatePerKm] = useState(String(defaultKmRate));
   const [comment, setComment] = useState("");
@@ -73,7 +75,7 @@ export function MileageEntryForm({
       toast({ title: "Km godtgjørelse registrert" });
       router.refresh();
       setDate(format(new Date(), "yyyy-MM-dd"));
-      setProjectId("");
+      setProjectId(initialProjectId ?? "");
       setKilometers("");
       setComment("");
     } catch (err) {

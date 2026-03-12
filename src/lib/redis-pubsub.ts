@@ -123,7 +123,11 @@ export function createRedisSubscriber(): Redis | null {
 /**
  * Publiser en notifikasjon til en brukers channel
  */
-export async function publishNotification(userId: string, notification: any): Promise<boolean> {
+export async function publishNotification(
+  userId: string,
+  notification: any,
+  tenantId?: string
+): Promise<boolean> {
   const publisher = getRedisPublisher();
   
   if (!publisher) {
@@ -132,7 +136,9 @@ export async function publishNotification(userId: string, notification: any): Pr
   }
 
   try {
-    const channel = `notifications:${userId}`;
+    const channel = tenantId
+      ? `notifications:${tenantId}:${userId}`
+      : `notifications:${userId}`;
     await publisher.publish(channel, JSON.stringify(notification));
     console.log(`📢 [Redis Pub/Sub] Published notification to ${channel}`);
     return true;
@@ -148,9 +154,12 @@ export async function publishNotification(userId: string, notification: any): Pr
 export async function subscribeToNotifications(
   subscriber: Redis,
   userId: string,
-  onNotification: (notification: any) => void
+  onNotification: (notification: any) => void,
+  tenantId?: string
 ): Promise<() => void> {
-  const channel = `notifications:${userId}`;
+  const channel = tenantId
+    ? `notifications:${tenantId}:${userId}`
+    : `notifications:${userId}`;
 
   subscriber.on('message', (ch, message) => {
     if (ch === channel) {

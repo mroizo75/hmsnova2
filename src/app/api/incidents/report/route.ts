@@ -18,7 +18,15 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
 
     // Hent data fra FormData
-    const tenantId = formData.get("tenantId") as string;
+    const tenantId = session.user.tenantId ?? (
+      await prisma.userTenant.findFirst({
+        where: { userId: session.user.id },
+        select: { tenantId: true },
+      })
+    )?.tenantId;
+    if (!tenantId) {
+      return NextResponse.json({ error: "Ingen tenant tilgang" }, { status: 403 });
+    }
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
     const type = formData.get("type") as string;
@@ -30,13 +38,37 @@ export async function POST(request: NextRequest) {
     const injuryType = formData.get("injuryType") as string | null;
     const medicalAttention = formData.get("medicalAttentionRequired") as string | null;
     const lostTime = formData.get("lostTimeMinutes") as string | null;
+    const immediateAction = formData.get("immediateAction") as string | null;
+    const suggestedActions = formData.get("suggestedActions") as string | null;
+    const involvedPersons = formData.get("involvedPersons") as string | null;
+    const incidentContext = formData.get("incidentContext") as string | null;
+    const contextDetails = (formData.get("contextDetails") as string | null)?.trim() || null;
+    const rawSubcategoryKeys = formData.get("subcategoryKeys") as string | null;
     const projectId = (formData.get("projectId") as string | null) || null;
+    const subcategoryKeys =
+      rawSubcategoryKeys && rawSubcategoryKeys.trim().startsWith("[")
+        ? rawSubcategoryKeys
+        : null;
+    const enrichedDescription = contextDetails
+      ? `${description}\n\nKontekstnotat: ${contextDetails}`
+      : description;
 
     const avviksnummer = await generateSequenceNumber(
       tenantId,
       "AVVIK",
       new Date(date).getFullYear()
     );
+    let validatedProjectId: string | null = null;
+    if (projectId) {
+      const project = await prisma.project.findFirst({
+        where: { id: projectId, tenantId },
+        select: { id: true },
+      });
+      if (!project) {
+        return NextResponse.json({ error: "Prosjekt ikke funnet" }, { status: 400 });
+      }
+      validatedProjectId = project.id;
+    }
 
     // Opprett avvik
     const incident = await prisma.incident.create({
@@ -44,7 +76,7 @@ export async function POST(request: NextRequest) {
         tenantId,
         avviksnummer,
         title,
-        description,
+        description: enrichedDescription,
         type: type as any, // Prisma vil validere enum
         severity,
         location,
@@ -55,7 +87,12 @@ export async function POST(request: NextRequest) {
         injuryType,
         medicalAttentionRequired: medicalAttention === "yes",
         lostTimeMinutes: lostTime ? parseInt(lostTime, 10) : undefined,
-        projectId,
+        immediateAction,
+        suggestedActions,
+        involvedPersons,
+        contributingFactors: incidentContext || undefined,
+        subcategoryKeys,
+        projectId: validatedProjectId,
       },
     });
 

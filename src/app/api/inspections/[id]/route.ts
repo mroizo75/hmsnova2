@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { Prisma } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { createErrorResponse, createSuccessResponse, ErrorCodes } from "@/lib/validations/api";
@@ -17,10 +18,19 @@ export async function GET(
       return createErrorResponse(ErrorCodes.UNAUTHORIZED, "Ikke autentisert", 401);
     }
 
+    const sessionTenantId = session.user.tenantId ?? (
+      await prisma.userTenant.findFirst({
+        where: { userId: session.user.id },
+        select: { tenantId: true },
+      })
+    )?.tenantId;
+    if (!sessionTenantId) {
+      return createErrorResponse(ErrorCodes.FORBIDDEN, "Ingen tenant tilgang", 403);
+    }
     const { id } = await params;
 
-    const inspection = await prisma.inspection.findUnique({
-      where: { id },
+    const inspection = await prisma.inspection.findFirst({
+      where: { id, tenantId: sessionTenantId },
       include: {
         findings: {
           orderBy: { createdAt: "desc" },
@@ -52,11 +62,27 @@ export async function PATCH(
       return createErrorResponse(ErrorCodes.UNAUTHORIZED, "Ikke autentisert", 401);
     }
 
+    const sessionTenantId = session.user.tenantId ?? (
+      await prisma.userTenant.findFirst({
+        where: { userId: session.user.id },
+        select: { tenantId: true },
+      })
+    )?.tenantId;
+    if (!sessionTenantId) {
+      return createErrorResponse(ErrorCodes.FORBIDDEN, "Ingen tenant tilgang", 403);
+    }
     const { id } = await params;
     const data = await request.json();
+    const existing = await prisma.inspection.findFirst({
+      where: { id, tenantId: sessionTenantId },
+      select: { id: true },
+    });
+    if (!existing) {
+      return createErrorResponse(ErrorCodes.NOT_FOUND, "Inspeksjon ikke funnet", 404);
+    }
 
     const inspection = await prisma.inspection.update({
-      where: { id },
+      where: { id: existing.id },
       data: {
         ...(data.title && { title: data.title }),
         ...(data.description !== undefined && { description: data.description }),
@@ -67,6 +93,9 @@ export async function PATCH(
         ...(data.location !== undefined && { location: data.location }),
         ...(data.participants !== undefined && {
           participants: data.participants ? JSON.stringify(data.participants) : null,
+        }),
+        ...(data.checklist !== undefined && {
+          checklist: data.checklist as Prisma.InputJsonValue,
         }),
       },
       include: {
@@ -94,10 +123,26 @@ export async function DELETE(
       return createErrorResponse(ErrorCodes.UNAUTHORIZED, "Ikke autentisert", 401);
     }
 
+    const sessionTenantId = session.user.tenantId ?? (
+      await prisma.userTenant.findFirst({
+        where: { userId: session.user.id },
+        select: { tenantId: true },
+      })
+    )?.tenantId;
+    if (!sessionTenantId) {
+      return createErrorResponse(ErrorCodes.FORBIDDEN, "Ingen tenant tilgang", 403);
+    }
     const { id } = await params;
+    const existing = await prisma.inspection.findFirst({
+      where: { id, tenantId: sessionTenantId },
+      select: { id: true },
+    });
+    if (!existing) {
+      return createErrorResponse(ErrorCodes.NOT_FOUND, "Inspeksjon ikke funnet", 404);
+    }
 
     await prisma.inspection.delete({
-      where: { id },
+      where: { id: existing.id },
     });
 
     return createSuccessResponse(undefined, "Inspeksjon slettet");

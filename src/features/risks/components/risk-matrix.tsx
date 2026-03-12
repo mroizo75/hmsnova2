@@ -7,7 +7,13 @@ interface RiskMatrixProps {
   selectedLikelihood?: number;
   selectedConsequence?: number;
   onCellClick?: (likelihood: number, consequence: number) => void;
-  risks?: Array<{ likelihood: number; consequence: number }>;
+  risks?: Array<{
+    likelihood: number;
+    consequence: number;
+    residualLikelihood?: number | null;
+    residualConsequence?: number | null;
+  }>;
+  viewMode?: "initial" | "residual";
 }
 
 const likelihoodLabels = [
@@ -31,17 +37,48 @@ export function RiskMatrix({
   selectedConsequence,
   onCellClick,
   risks = [],
+  viewMode = "initial",
 }: RiskMatrixProps) {
+  const getCoordinates = (risk: {
+    likelihood: number;
+    consequence: number;
+    residualLikelihood?: number | null;
+    residualConsequence?: number | null;
+  }) => {
+    if (
+      viewMode === "residual" &&
+      risk.residualLikelihood != null &&
+      risk.residualConsequence != null
+    ) {
+      return {
+        likelihood: risk.residualLikelihood,
+        consequence: risk.residualConsequence,
+      };
+    }
+
+    return {
+      likelihood: risk.likelihood,
+      consequence: risk.consequence,
+    };
+  };
+
   const getRiskCount = (likelihood: number, consequence: number) => {
-    return risks.filter(r => r.likelihood === likelihood && r.consequence === consequence).length;
+    return risks.filter((risk) => {
+      const coordinates = getCoordinates(risk);
+      return coordinates.likelihood === likelihood && coordinates.consequence === consequence;
+    }).length;
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>5x5 Risikomatrise</CardTitle>
+        <CardTitle>
+          5x5 Risikomatrise {viewMode === "residual" ? "– Etter tiltak (rest-risiko)" : "– Før tiltak"}
+        </CardTitle>
         <CardDescription>
-          Klikk på en celle for å velge sannsynlighet og konsekvens
+          {viewMode === "residual"
+            ? "Viser rest-risiko. Når rest-risiko ikke er satt, vises opprinnelig vurdering."
+            : "Klikk på en celle for å velge sannsynlighet og konsekvens"}
         </CardDescription>
       </CardHeader>
       <CardContent>
