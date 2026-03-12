@@ -151,6 +151,7 @@ export async function GET(
       include: {
         fieldValues: true,
         submittedBy: { select: { name: true, email: true } },
+        project: { select: { name: true, code: true } },
       },
     });
 
@@ -210,6 +211,11 @@ export async function GET(
     metaItems.push(`Status: ${getStatusLabel(submission.status)}`);
     const submittedByName = submission.submittedBy?.name || submission.submittedBy?.email;
     if (submittedByName) metaItems.push(`Utfylt av: ${submittedByName}`);
+    if (submission.project) {
+      metaItems.push(
+        `Prosjekt: ${submission.project.name}${submission.project.code ? ` (${submission.project.code})` : ""}`
+      );
+    }
     doc.text(metaItems.join("   •   "), margin, yPos);
     yPos += 6;
 

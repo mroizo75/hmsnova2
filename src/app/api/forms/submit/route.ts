@@ -80,11 +80,35 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    let selectedProjectId: string | null = null;
+    let selectedProjectName: string | null = null;
+    const projectField = form.fields.find((field) => field.fieldType === "PROJECT");
+
+    if (projectField) {
+      const candidateProjectId = values[projectField.id];
+      if (typeof candidateProjectId === "string" && candidateProjectId.trim().length > 0) {
+        const project = await prisma.project.findUnique({
+          where: { id: candidateProjectId, tenantId: sessionTenantId },
+          select: { id: true, name: true },
+        });
+
+        if (!project) {
+          return NextResponse.json({ error: "Ugyldig prosjektvalg" }, { status: 400 });
+        }
+
+        selectedProjectId = project.id;
+        selectedProjectName = project.name;
+      } else if (status === "SUBMITTED" && projectField.isRequired) {
+        return NextResponse.json({ error: "Prosjekt er påkrevd" }, { status: 400 });
+      }
+    }
+
     // Opprett submission
     const submission = await prisma.formSubmission.create({
       data: {
         formTemplateId: formId,
         tenantId,
+        projectId: selectedProjectId,
         submissionNumber,
         submittedById: isAnonymous ? null : userId,
         status: status as "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED",
@@ -96,6 +120,19 @@ export async function POST(request: NextRequest) {
     // Lagre feltverdier
     for (const field of form.fields) {
       const value = values[field.id];
+
+      if (field.fieldType === "PROJECT") {
+        if (selectedProjectName) {
+          await prisma.formFieldValue.create({
+            data: {
+              submissionId: submission.id,
+              fieldId: field.id,
+              value: selectedProjectName,
+            },
+          });
+        }
+        continue;
+      }
       
       // Håndter fil-opplasting
       if (field.fieldType === "FILE") {

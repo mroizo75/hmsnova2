@@ -142,6 +142,7 @@ export function FormBuilder({ tenantId, initialData }: FormBuilderProps) {
       NUMBER: "Tall",
       DATE: "Dato",
       DATETIME: "Dato og tid",
+      PROJECT: "Prosjekt",
       CHECKBOX: "Avkrysningsboks",
       RADIO: "Flervalg",
       SELECT: "Rullegardin",

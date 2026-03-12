@@ -86,10 +86,50 @@ export default async function ProjectDetailPage({
         },
         take: 20,
       },
+      formSubmissions: {
+        where: { tenantId },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          submissionNumber: true,
+          status: true,
+          createdAt: true,
+          formTemplateId: true,
+          formTemplate: {
+            select: {
+              title: true,
+            },
+          },
+          submittedBy: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+        },
+        take: 20,
+      },
     },
   });
 
   if (!project) notFound();
+
+  const attachments = await prisma.attachment.findMany({
+    where: {
+      tenantId,
+      objectType: "PROJECT",
+      objectId: project.id,
+    },
+    select: {
+      id: true,
+      fileKey: true,
+      name: true,
+      mime: true,
+      size: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
 
   const sc = statusConfig[project.status];
   const manHours = project.timeEntries.reduce((s, e) => s + e.hours, 0);
@@ -250,6 +290,8 @@ export default async function ProjectDetailPage({
         inspections={project.inspections as any}
         measures={project.measures as any}
         timeEntries={project.timeEntries as any}
+        attachments={attachments}
+        formSubmissions={project.formSubmissions as any}
       />
     </div>
   );

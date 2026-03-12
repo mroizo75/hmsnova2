@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { GripVertical, Trash, Type, AlignLeft, Hash, Calendar, CheckSquare, Circle, ChevronDown, FileUp, PenTool, BarChart3, Heading2 } from "lucide-react";
+import { GripVertical, Trash, Type, AlignLeft, Hash, Calendar, Briefcase, CheckSquare, Circle, ChevronDown, FileUp, PenTool, BarChart3, Heading2 } from "lucide-react";
 import { FormField } from "./form-builder";
 
 interface SortableFieldProps {
@@ -35,6 +35,7 @@ export function SortableField({ field, isSelected, onSelect, onDelete }: Sortabl
     NUMBER: Hash,
     DATE: Calendar,
     DATETIME: Calendar,
+    PROJECT: Briefcase,
     CHECKBOX: CheckSquare,
     RADIO: Circle,
     SELECT: ChevronDown,
@@ -121,6 +122,11 @@ export function SortableField({ field, isSelected, onSelect, onDelete }: Sortabl
               )}
               {field.type === "DATETIME" && (
                 <Input type="datetime-local" disabled />
+              )}
+              {field.type === "PROJECT" && (
+                <select className="w-full h-10 px-3 rounded-md border" disabled>
+                  <option>Velg prosjekt...</option>
+                </select>
               )}
               {field.type === "CHECKBOX" && (
                 <div className="flex items-center space-x-2">

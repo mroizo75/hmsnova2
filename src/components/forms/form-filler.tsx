@@ -48,6 +48,12 @@ interface FormFillerProps {
   tenantId: string;
   returnUrl?: string;
   inspectionId?: string;
+  projects?: Array<{
+    id: string;
+    name: string;
+    code: string | null;
+  }>;
+  initialProjectId?: string;
 }
 
 function getMultiCheckboxSelected(stored: string | undefined): string[] {
@@ -65,12 +71,31 @@ function toggleMultiCheckbox(stored: string | undefined, option: string): string
   return JSON.stringify(exists ? current.filter((v) => v !== option) : [...current, option]);
 }
 
-export function FormFiller({ form, userId, tenantId, returnUrl = "/dashboard/forms", inspectionId }: FormFillerProps) {
+export function FormFiller({
+  form,
+  userId,
+  tenantId,
+  returnUrl = "/dashboard/forms",
+  inspectionId,
+  projects = [],
+  initialProjectId,
+}: FormFillerProps) {
   const isAnonymous = form.isAnonymous ?? false;
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formValues, setFormValues] = useState<Record<string, string>>({});
+  const [formValues, setFormValues] = useState<Record<string, string>>(() => {
+    if (!initialProjectId) {
+      return {};
+    }
+
+    const projectField = form.fields.find((field) => field.type === "PROJECT");
+    if (!projectField) {
+      return {};
+    }
+
+    return { [projectField.id]: initialProjectId };
+  });
   const [signature, setSignature] = useState<string>("");
   const [files, setFiles] = useState<Record<string, File>>({});
   const [imagePreviews, setImagePreviews] = useState<Record<string, string>>({});
@@ -387,6 +412,28 @@ export function FormFiller({ form, userId, tenantId, returnUrl = "/dashboard/for
                     onChange={(e) => handleFieldChange(field.id, e.target.value)}
                     required={field.isRequired}
                   />
+                )}
+
+                {/* PROJECT */}
+                {field.type === "PROJECT" && (
+                  <Select
+                    value={formValues[field.id] || "NONE"}
+                    onValueChange={(value) => handleFieldChange(field.id, value === "NONE" ? "" : value)}
+                    required={field.isRequired}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Velg prosjekt..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="NONE">Velg prosjekt...</SelectItem>
+                      {projects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name}
+                          {project.code ? ` (${project.code})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 )}
 
                 {/* CHECKBOX – enkelt (ingen options) */}

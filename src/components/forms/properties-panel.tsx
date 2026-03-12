@@ -71,7 +71,7 @@ export function PropertiesPanel({ selectedField, onUpdateField }: PropertiesPane
         </div>
 
         {/* Placeholder */}
-        {!["CHECKBOX", "RADIO", "FILE", "SIGNATURE", "LIKERT_SCALE", "SECTION_HEADER"].includes(selectedField.type) && (
+        {!["CHECKBOX", "RADIO", "FILE", "SIGNATURE", "LIKERT_SCALE", "SECTION_HEADER", "PROJECT"].includes(selectedField.type) && (
           <div>
             <Label>Plassholder</Label>
             <Input

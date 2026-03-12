@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { getRosterRetentionUntil } from "@/lib/construction-compliance-rules";
 import { prisma } from "@/lib/db";
+import { getStorage } from "@/lib/storage";
 import { z } from "zod";
 
 const updateProjectSchema = z.object({
@@ -200,12 +201,46 @@ export async function DELETE(
       }
     }
 
-    // Fjern prosjektkobling fra relaterte modeller, ikke slett dem
+    const projectAttachments = await prisma.attachment.findMany({
+      where: {
+        tenantId,
+        objectType: "PROJECT",
+        objectId: id,
+      },
+      select: {
+        id: true,
+        fileKey: true,
+      },
+    });
+
+    const storage = getStorage();
+    const deleteResults = await Promise.allSettled(
+      projectAttachments.map((attachment) => storage.delete(attachment.fileKey))
+    );
+    const failedDeletes = deleteResults.filter((result) => result.status === "rejected");
+    if (failedDeletes.length > 0) {
+      return NextResponse.json(
+        {
+          error:
+            "Kunne ikke slette alle prosjektvedlegg fra cloud-lagring. Prosjektet ble ikke slettet.",
+        },
+        { status: 500 }
+      );
+    }
+
+    // Fjern prosjektkobling fra relaterte modeller, slett prosjektvedlegg og til slutt prosjektet
     await prisma.$transaction([
       prisma.incident.updateMany({ where: { projectId: id }, data: { projectId: null } }),
       prisma.sjaAnalysis.updateMany({ where: { projectId: id }, data: { projectId: null } }),
       prisma.inspection.updateMany({ where: { projectId: id }, data: { projectId: null } }),
       prisma.measure.updateMany({ where: { projectId: id }, data: { projectId: null } }),
+      prisma.attachment.deleteMany({
+        where: {
+          tenantId,
+          objectType: "PROJECT",
+          objectId: id,
+        },
+      }),
       prisma.project.delete({ where: { id, tenantId } }),
     ]);
 

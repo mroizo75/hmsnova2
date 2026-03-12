@@ -348,6 +348,7 @@ function getFieldTypeLabel(fieldType: string): string {
     NUMBER: "Tall",
     DATE: "Dato",
     DATETIME: "Dato og tid",
+    PROJECT: "Prosjekt",
     CHECKBOX: "Avkrysning",
     RADIO: "Radioknapper",
     SELECT: "Rullegardin",

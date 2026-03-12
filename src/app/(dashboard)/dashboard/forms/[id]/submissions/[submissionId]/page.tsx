@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Calendar, User, CheckCircle2, FileText, MessageSquare } from "lucide-react";
+import { ArrowLeft, Download, Calendar, User, Briefcase, CheckCircle2, FileText, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
@@ -153,6 +153,7 @@ export default async function SubmissionViewPage({
     include: {
       fieldValues: true,
       submittedBy: { select: { name: true, email: true } },
+      project: { select: { id: true, name: true, code: true } },
       formTemplate: {
         include: {
           fields: { orderBy: { order: "asc" } },
@@ -210,7 +211,7 @@ export default async function SubmissionViewPage({
 
       {/* Metadata */}
       <Card>
-        <CardContent className="pt-5 grid sm:grid-cols-3 gap-4">
+        <CardContent className="pt-5 grid sm:grid-cols-4 gap-4">
           <div className="flex items-start gap-2">
             <Calendar className="h-4 w-4 text-muted-foreground mt-1 shrink-0" />
             <div>
@@ -232,6 +233,20 @@ export default async function SubmissionViewPage({
           <div>
             <p className="text-xs text-muted-foreground mb-1">Status</p>
             {getStatusBadge(submission.status)}
+          </div>
+          <div className="flex items-start gap-2">
+            <Briefcase className="h-4 w-4 text-muted-foreground mt-1 shrink-0" />
+            <div>
+              <p className="text-xs text-muted-foreground">Prosjekt</p>
+              {submission.project ? (
+                <Link href={`/dashboard/projects/${submission.project.id}`} className="font-medium text-sm text-primary hover:underline">
+                  {submission.project.name}
+                  {submission.project.code ? ` (${submission.project.code})` : ""}
+                </Link>
+              ) : (
+                <p className="font-medium text-sm text-muted-foreground">Ikke koblet</p>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

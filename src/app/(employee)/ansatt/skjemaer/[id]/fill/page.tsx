@@ -9,11 +9,11 @@ export default async function AnsattFillFormPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ inspectionId?: string }>;
+  searchParams: Promise<{ inspectionId?: string; projectId?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   const { id } = await params;
-  const { inspectionId } = await searchParams;
+  const { inspectionId, projectId } = await searchParams;
 
   if (!session?.user?.tenantId) {
     redirect("/login");
@@ -89,6 +89,12 @@ export default async function AnsattFillFormPage({
   const isAnonymous =
     form.category === "WELLBEING" || form.allowAnonymousResponses;
 
+  const projects = await prisma.project.findMany({
+    where: { tenantId: session.user.tenantId },
+    select: { id: true, name: true, code: true },
+    orderBy: { name: "asc" },
+  });
+
   const returnUrl = inspectionId ? `/ansatt/vernerunder` : "/ansatt/skjemaer";
 
   return (
@@ -114,6 +120,8 @@ export default async function AnsattFillFormPage({
       tenantId={session.user.tenantId}
       returnUrl={returnUrl}
       inspectionId={inspectionId}
+      projects={projects}
+      initialProjectId={projectId}
     />
   );
 }

@@ -2418,6 +2418,7 @@ enum FieldType {
   NUMBER // Tall
   DATE // Dato
   DATETIME // Dato + tid
+  PROJECT // Prosjektvalg (kobler innsending til prosjekt)
   CHECKBOX // Ja/Nei
   RADIO // Radioknapper
   SELECT // Dropdown
@@ -2431,6 +2432,7 @@ model FormSubmission {
   id               String           @id @default(cuid())
   formTemplateId   String
   tenantId         String
+  projectId        String?
   submissionNumber String? // Unikt referansenummer per tenant (SKJ-2025-001 eller RUH-2025-001)
   submittedById    String? // Null = anonymt svar (psykososial kartlegging)
   status           SubmissionStatus @default(DRAFT)
@@ -2442,11 +2444,13 @@ model FormSubmission {
   metadata         String?          @db.Text // JSON: IP, location, etc.
   formTemplate     FormTemplate     @relation(fields: [formTemplateId], references: [id], onDelete: Cascade)
   tenant           Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project          Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
   submittedBy      User?            @relation(fields: [submittedById], references: [id], onDelete: SetNull)
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
   @@index([tenantId])
+  @@index([projectId])
   @@index([submissionNumber])
   @@index([submittedById])
   @@index([formTemplateId])
@@ -3373,6 +3377,7 @@ model Project {
   constructionRosterEntries   ConstructionRosterEntry[]
   constructionRosterChecks    ConstructionRosterDailyCheck[]
   riskAssessments             RiskAssessment[]
+  formSubmissions             FormSubmission[]
 
   @@index([tenantId])
   @@index([status])

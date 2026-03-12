@@ -17,7 +17,7 @@ export async function GET(
 
     const { id } = await params;
 
-    const [project, tenant] = await Promise.all([
+    const [project, tenant, attachments] = await Promise.all([
       prisma.project.findUnique({
         where: { id, tenantId },
         include: {
@@ -51,6 +51,20 @@ export async function GET(
         },
       }),
       prisma.tenant.findUnique({ where: { id: tenantId }, select: { name: true } }),
+      prisma.attachment.findMany({
+        where: {
+          tenantId,
+          objectType: "PROJECT",
+          objectId: id,
+        },
+        orderBy: { createdAt: "desc" },
+        select: {
+          name: true,
+          mime: true,
+          size: true,
+          createdAt: true,
+        },
+      }),
     ]);
 
     if (!project) return new NextResponse("Prosjekt ikke funnet", { status: 404 });
@@ -63,6 +77,7 @@ export async function GET(
       sjaAnalyses: project.sjaAnalyses,
       inspections: project.inspections,
       measures: project.measures,
+      attachments,
       manHours,
       tenantName: tenant?.name ?? "HMS Nova",
     });

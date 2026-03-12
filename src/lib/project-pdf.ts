@@ -58,6 +58,12 @@ interface ProjectReportData {
     dueAt: Date;
     category: string;
   }>;
+  attachments: Array<{
+    name: string;
+    mime: string;
+    size: number | null;
+    createdAt: Date;
+  }>;
   manHours: number;
   tenantName: string;
 }
@@ -106,6 +112,13 @@ const SEVERITY_LABELS: Record<number, string> = {
 function fmt(d: Date | null | undefined): string {
   if (!d) return "—";
   return format(new Date(d), "dd.MM.yyyy", { locale: nb });
+}
+
+function fmtFileSize(size: number | null | undefined): string {
+  if (!size || size <= 0) return "—";
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export async function generateProjectReport(data: ProjectReportData): Promise<Buffer> {
@@ -423,6 +436,33 @@ export async function generateProjectReport(data: ProjectReportData): Promise<Bu
             data.cell.styles.textColor = [29, 78, 216];
           }
         }
+      },
+    });
+    y = (doc as any).lastAutoTable.finalY + 6;
+  }
+
+  // ── Prosjektvedlegg ──
+  if (data.attachments.length > 0) {
+    checkPageBreak(30);
+    addSectionTitle(`Prosjektvedlegg (${data.attachments.length})`);
+    autoTable(doc, {
+      startY: y,
+      margin: { left: margin, right: margin },
+      head: [["Filnavn", "Format", "Størrelse", "Lastet opp"]],
+      body: data.attachments.map((attachment) => [
+        attachment.name,
+        attachment.mime,
+        fmtFileSize(attachment.size),
+        fmt(attachment.createdAt),
+      ]),
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [14, 116, 144], textColor: 255, fontStyle: "bold" },
+      alternateRowStyles: { fillColor: [236, 254, 255] },
+      columnStyles: {
+        0: { cellWidth: "auto" },
+        1: { cellWidth: 55 },
+        2: { cellWidth: 24 },
+        3: { cellWidth: 24 },
       },
     });
     y = (doc as any).lastAutoTable.finalY + 6;

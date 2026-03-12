@@ -2,7 +2,7 @@
 
 import { useDraggable } from "@dnd-kit/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Type, AlignLeft, Hash, Calendar, Clock, CheckSquare, Circle, ChevronDown, FileUp, PenTool, BarChart3, Heading2 } from "lucide-react";
+import { Type, AlignLeft, Hash, Calendar, Clock, Briefcase, CheckSquare, Circle, ChevronDown, FileUp, PenTool, BarChart3, Heading2 } from "lucide-react";
 
 const FIELD_TYPES = [
   { id: "TEXT", label: "Kort tekst", icon: Type, description: "Enkel tekstlinje" },
@@ -10,6 +10,7 @@ const FIELD_TYPES = [
   { id: "NUMBER", label: "Tall", icon: Hash, description: "Tallverdi" },
   { id: "DATE", label: "Dato", icon: Calendar, description: "Datovelger" },
   { id: "DATETIME", label: "Dato og tid", icon: Clock, description: "Dato med tidspunkt" },
+  { id: "PROJECT", label: "Prosjekt", icon: Briefcase, description: "Koble innsending til prosjekt" },
   { id: "CHECKBOX", label: "Avkrysning", icon: CheckSquare, description: "Ja/Nei checkbox" },
   { id: "RADIO", label: "Radioknapper", icon: Circle, description: "Velg ett alternativ" },
   { id: "SELECT", label: "Rullegardin", icon: ChevronDown, description: "Dropdown-meny" },

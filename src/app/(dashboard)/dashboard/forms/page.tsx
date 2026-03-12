@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, FileText, TrendingUp, BarChart3, Download, Eye, Pencil } from "lucide-react";
+import { Plus, FileText, TrendingUp, BarChart3, Download, Eye, Pencil, PlayCircle } from "lucide-react";
 import Link from "next/link";
 import { CopyFormButton } from "@/components/forms/copy-form-button";
 import {
@@ -34,7 +34,7 @@ const ITEMS_PER_PAGE = 10;
 export default async function FormsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; projectId?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   const params = await searchParams;
@@ -44,6 +44,7 @@ export default async function FormsPage({
   }
 
   const currentPage = parseInt(params.page || "1", 10);
+  const selectedProjectId = params.projectId || null;
   const skip = (currentPage - 1) * ITEMS_PER_PAGE;
   const userTenant = await prisma.userTenant.findUnique({
     where: {
@@ -196,6 +197,11 @@ export default async function FormsPage({
             <p className="text-muted-foreground mt-1">
               Lag, administrer og analyser egendefinerte skjemaer
             </p>
+            {selectedProjectId && (
+              <p className="text-sm text-primary mt-1">
+                Prosjektkobling aktiv: utfylling vil knyttes til valgt prosjekt.
+              </p>
+            )}
           </div>
           <PageHelpDialog content={helpContent.forms} />
         </div>
@@ -382,9 +388,25 @@ export default async function FormsPage({
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-2">
-                        <Link href={`/dashboard/forms/${form.id}`}>
+                        <Link
+                          href={
+                            selectedProjectId
+                              ? `/dashboard/forms/${form.id}?returnUrl=${encodeURIComponent(`/dashboard/projects/${selectedProjectId}`)}&projectId=${selectedProjectId}`
+                              : `/dashboard/forms/${form.id}`
+                          }
+                        >
                           <Button variant="ghost" size="sm" title="Se detaljer og statistikk">
                             <Eye className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Link
+                          href={`/dashboard/forms/${form.id}/fill?${new URLSearchParams({
+                            ...(selectedProjectId ? { projectId: selectedProjectId } : {}),
+                            returnUrl: selectedProjectId ? `/dashboard/projects/${selectedProjectId}` : "/dashboard/forms",
+                          }).toString()}`}
+                        >
+                          <Button variant="ghost" size="sm" title="Fyll ut skjema">
+                            <PlayCircle className="h-4 w-4" />
                           </Button>
                         </Link>
                         {form.isGlobal ? (

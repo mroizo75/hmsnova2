@@ -12,6 +12,7 @@ import {
   TrendingUp, 
   Users, 
   Calendar,
+  Briefcase,
   FileText,
   Eye
 } from "lucide-react";
@@ -45,12 +46,13 @@ export default async function FormDetailPage({
   searchParams,
 }: { 
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ page?: string; returnUrl?: string }>;
+  searchParams: Promise<{ page?: string; returnUrl?: string; projectId?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   const { id } = await params;
   const queryParams = await searchParams;
   const returnUrl = queryParams.returnUrl ?? "/dashboard/forms";
+  const projectId = queryParams.projectId;
 
   if (!session?.user?.tenantId) {
     redirect("/login");
@@ -108,6 +110,7 @@ export default async function FormDetailPage({
     include: {
       fieldValues: true,
       submittedBy: { select: { id: true, name: true, email: true } },
+      project: { select: { id: true, name: true, code: true } },
     },
     skip,
     take: ITEMS_PER_PAGE,
@@ -190,7 +193,12 @@ export default async function FormDetailPage({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Link href={`/dashboard/forms/${form.id}/fill?returnUrl=${encodeURIComponent(`/dashboard/forms/${form.id}`)}`}>
+          <Link
+            href={`/dashboard/forms/${form.id}/fill?${new URLSearchParams({
+              returnUrl: projectId ? `/dashboard/projects/${projectId}` : `/dashboard/forms/${form.id}`,
+              ...(projectId ? { projectId } : {}),
+            }).toString()}`}
+          >
             <Button variant="default" className="bg-green-600 hover:bg-green-700">
               <FileText className="h-4 w-4 mr-2" />
               Fyll ut skjema
@@ -407,6 +415,7 @@ export default async function FormDetailPage({
                     {form.category === "TIMESHEET" && (
                       <TableHead>Navn</TableHead>
                     )}
+                    <TableHead>Prosjekt</TableHead>
                     <TableHead>Dato</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Antall felt utfylt</TableHead>
@@ -432,6 +441,19 @@ export default async function FormDetailPage({
                       {form.category === "TIMESHEET" && (
                         <TableCell className="font-medium">{displayName}</TableCell>
                       )}
+                      <TableCell>
+                        {submission.project ? (
+                          <Link href={`/dashboard/projects/${submission.project.id}`} className="inline-flex items-center gap-1.5 text-primary hover:underline">
+                            <Briefcase className="h-3.5 w-3.5" />
+                            <span>{submission.project.name}</span>
+                            {submission.project.code && (
+                              <span className="text-xs text-muted-foreground">({submission.project.code})</span>
+                            )}
+                          </Link>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         {new Date(submission.createdAt).toLocaleDateString("nb-NO", {
                           day: "2-digit",
@@ -589,6 +611,7 @@ function getFieldTypeLabel(fieldType: string): string {
     NUMBER: "Tall",
     DATE: "Dato",
     DATETIME: "Dato og tid",
+    PROJECT: "Prosjekt",
     CHECKBOX: "Avkrysning",
     RADIO: "Radioknapper",
     SELECT: "Rullegardin",

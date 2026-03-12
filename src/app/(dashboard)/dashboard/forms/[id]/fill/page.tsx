@@ -42,11 +42,11 @@ export default async function FillFormPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ inspectionId?: string; returnUrl?: string }>;
+  searchParams: Promise<{ inspectionId?: string; returnUrl?: string; projectId?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   const { id } = await params;
-  const { inspectionId, returnUrl: returnUrlParam } = await searchParams;
+  const { inspectionId, returnUrl: returnUrlParam, projectId } = await searchParams;
 
   if (!session?.user?.tenantId) {
     redirect("/login");
@@ -145,6 +145,12 @@ export default async function FillFormPage({
   const isAnonymous =
     form.category === "WELLBEING" || form.allowAnonymousResponses;
 
+  const projects = await prisma.project.findMany({
+    where: { tenantId: session.user.tenantId },
+    select: { id: true, name: true, code: true },
+    orderBy: { name: "asc" },
+  });
+
   return (
     <FormFiller
       form={{
@@ -168,6 +174,8 @@ export default async function FillFormPage({
       tenantId={session.user.tenantId}
       returnUrl={returnUrl}
       inspectionId={inspectionId}
+      projects={projects}
+      initialProjectId={projectId}
     />
   );
 }
