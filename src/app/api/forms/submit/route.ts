@@ -10,6 +10,17 @@ import {
 import { notifyUsersByRole } from "@/server/actions/notification.actions";
 import { analyzeWellbeingSubmission } from "@/server/actions/wellbeing.actions";
 
+interface SubmittedInspectionFindingInput {
+  fieldId?: string;
+  fieldLabel?: string;
+  answer?: string;
+  title?: string;
+  description?: string;
+  severity?: number;
+  location?: string;
+  imageKeys?: string[];
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -27,6 +38,7 @@ export async function POST(request: NextRequest) {
     const signature = formData.get("signature") as string | null;
     const inspectionId = formData.get("inspectionId") as string | null;
     const fieldCommentsJson = formData.get("fieldComments") as string | null;
+    const inspectionFindingsJson = formData.get("inspectionFindings") as string | null;
 
     const values = JSON.parse(valuesJson);
     const storage = getStorage();
@@ -103,6 +115,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    let submittedInspectionFindings: SubmittedInspectionFindingInput[] = [];
+    if (inspectionFindingsJson) {
+      try {
+        const parsed = JSON.parse(inspectionFindingsJson) as unknown;
+        if (Array.isArray(parsed)) {
+          submittedInspectionFindings = parsed as SubmittedInspectionFindingInput[];
+        }
+      } catch {
+        return NextResponse.json(
+          { error: "Ugyldig format for inspeksjonsfunn" },
+          { status: 400 }
+        );
+      }
+    }
+
     // Opprett submission
     const submission = await prisma.formSubmission.create({
       data: {
@@ -166,8 +193,79 @@ export async function POST(request: NextRequest) {
 
     // Koble submission til inspeksjon og sett status COMPLETED
     if (status === "SUBMITTED" && inspectionId) {
-      await prisma.inspection.update({
+      const inspection = await prisma.inspection.findFirst({
         where: { id: inspectionId, tenantId: sessionTenantId },
+        select: {
+          id: true,
+          tenantId: true,
+          title: true,
+          location: true,
+        },
+      });
+      if (!inspection) {
+        return NextResponse.json({ error: "Inspeksjon ikke funnet" }, { status: 404 });
+      }
+
+      for (const findingInput of submittedInspectionFindings) {
+        const description = (findingInput.description || "").trim();
+        if (!description) {
+          continue;
+        }
+        const severityRaw =
+          typeof findingInput.severity === "number" && Number.isFinite(findingInput.severity)
+            ? findingInput.severity
+            : 3;
+        const severity = Math.max(1, Math.min(5, severityRaw));
+        const title = (findingInput.title || findingInput.fieldLabel || "Funn fra vernerunde").trim();
+        const location = (findingInput.location || "").trim();
+        const imageKeys = Array.isArray(findingInput.imageKeys)
+          ? findingInput.imageKeys.filter((key): key is string => typeof key === "string")
+          : [];
+
+        const finding = await prisma.inspectionFinding.create({
+          data: {
+            inspectionId: inspection.id,
+            title,
+            description,
+            severity,
+            location: location || null,
+            imageKeys: imageKeys.length > 0 ? JSON.stringify(imageKeys) : null,
+            status: "OPEN",
+          },
+        });
+
+        const occurredAt = new Date();
+        const avviksnummer = await generateSequenceNumber(
+          inspection.tenantId,
+          "AVVIK",
+          occurredAt.getFullYear()
+        );
+        const inspectionContext = `Kilde: Vernerunde "${inspection.title}"`;
+        const fieldContext = findingInput.fieldLabel
+          ? `\nSjekkpunkt: ${findingInput.fieldLabel}`
+          : "";
+        const answerContext = findingInput.answer
+          ? `\nSvar i skjema: ${findingInput.answer}`
+          : "";
+        const incidentDescription = `${inspectionContext}${fieldContext}${answerContext}\n\n${description}`;
+
+        await prisma.incident.create({
+          data: {
+            tenantId: inspection.tenantId,
+            avviksnummer,
+            type: "AVVIK",
+            title: `[Vernerunde] ${finding.title}`,
+            description: incidentDescription,
+            severity,
+            occurredAt,
+            reportedBy: session.user.id,
+            location: location || inspection.location || null,
+          },
+        });
+      }
+
+      await prisma.inspection.update({
+        where: { id: inspection.id },
         data: {
           formSubmissionId: submission.id,
           status: "COMPLETED",

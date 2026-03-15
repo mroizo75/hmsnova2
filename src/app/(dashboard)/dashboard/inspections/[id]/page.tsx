@@ -20,10 +20,7 @@ import {
 import Link from "next/link";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
-import { InspectionFindingForm } from "@/features/inspections/components/inspection-finding-form";
 import { InspectionFindingList } from "@/features/inspections/components/inspection-finding-list";
-import { InspectionChecklist } from "@/features/inspections/components/inspection-checklist";
-import { CompleteInspectionButton } from "@/features/inspections/components/complete-inspection-button";
 import { UpdateInspectionStatusForm } from "@/features/inspections/components/update-inspection-status-form";
 import { DeleteInspectionButton } from "@/features/inspections/components/delete-inspection-button";
 
@@ -144,20 +141,6 @@ export default async function InspectionDetailPage({
     select: { id: true, name: true, email: true },
   });
 
-  // Hent alle brukere for tenant (for å kunne legge til funn)
-  const tenantUsers = await prisma.user.findMany({
-    where: {
-      tenants: {
-        some: { tenantId },
-      },
-    },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-    },
-  });
-
   // Finding statistics
   const findingStats = {
     total: inspection.findings.length,
@@ -251,7 +234,10 @@ export default async function InspectionDetailPage({
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-sm text-orange-600 bg-orange-50 p-3 rounded-md">
                   <AlertTriangle className="h-4 w-4" />
-                  <span>Skjema må fylles ut og sendes inn for å fullføre vernerunden (funn er valgfritt)</span>
+                  <span>
+                    Skjema må fylles ut og sendes inn for å fullføre vernerunden. Punkter merket "Ikke OK"
+                    skal registreres som funn.
+                  </span>
                 </div>
                 <Link href={`/dashboard/forms/${inspection.formTemplate.id}/fill?inspectionId=${id}`}>
                   <Button className="w-full">
@@ -350,29 +336,6 @@ export default async function InspectionDetailPage({
         </Card>
       )}
 
-      {inspection.checklist ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Sjekkpunkter fra mal</CardTitle>
-            <CardDescription>
-              Fyll ut sjekkpunktene her. Fremdrift lagres direkte på vernerunden.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <InspectionChecklist inspectionId={inspection.id} checklist={inspection.checklist} />
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button asChild>
-                <a href="#funn">Gå til funnregistrering</a>
-              </Button>
-              <CompleteInspectionButton
-                inspectionId={inspection.id}
-                findingsCount={inspection.findings.length}
-              />
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
       {/* Finding Statistics */}
       {findingStats.total > 0 && (
         <Card className="border-orange-200 bg-orange-50">
@@ -425,23 +388,18 @@ export default async function InspectionDetailPage({
       {/* Findings */}
       <Card id="funn">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Funn og observasjoner</CardTitle>
-              <CardDescription>
-                {findingStats.total > 0
-                  ? `${findingStats.total} funn registrert`
-                  : "Dokumenter avvik, observasjoner eller forbedringsområder"}
-              </CardDescription>
-            </div>
-            <InspectionFindingForm inspectionId={inspection.id} users={tenantUsers} />
-          </div>
+          <CardTitle>Funn og observasjoner</CardTitle>
+          <CardDescription>
+            {findingStats.total > 0
+              ? `${findingStats.total} funn registrert fra vernerunden`
+              : "Ingen funn registrert. Funn opprettes direkte under vernerunden ved svar \"Ikke OK\"."}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {inspection.findings.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <p>Ingen funn registrert ennå</p>
-              <p className="text-sm mt-1">Bruk knappen over for å legge til funn</p>
+              <p className="text-sm mt-1">Funn registreres i vernerunden ved utfylling av punktene.</p>
             </div>
           ) : (
             <InspectionFindingList findings={inspection.findings} />

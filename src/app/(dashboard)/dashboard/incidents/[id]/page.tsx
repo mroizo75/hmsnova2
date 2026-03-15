@@ -70,6 +70,18 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
     return <div>Avvik ikke funnet</div>;
   }
 
+  const parsedSubcategoryKeys = (() => {
+    if (!incident.subcategoryKeys) return [] as string[];
+    try {
+      const parsed = JSON.parse(incident.subcategoryKeys) as unknown;
+      return Array.isArray(parsed)
+        ? parsed.filter((value): value is string => typeof value === "string")
+        : [];
+    } catch {
+      return [] as string[];
+    }
+  })();
+
   const tenantUsers = await prisma.user.findMany({
     where: {
       tenants: {
@@ -81,6 +93,17 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
       name: true,
       email: true,
     },
+  });
+
+  const tenantProjects = await prisma.project.findMany({
+    where: { tenantId },
+    select: {
+      id: true,
+      name: true,
+      code: true,
+      status: true,
+    },
+    orderBy: { name: "asc" },
   });
 
   const typeLabel = getIncidentTypeLabel(incident.type);
@@ -313,15 +336,24 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
         <Card className="border-2 border-primary/20">
           <CardHeader>
             <CardTitle>Behandle avvik</CardTitle>
-            <CardDescription>Oppdater status, alvorlighet og ansvarlig</CardDescription>
+            <CardDescription>Oppdater type, prosjekt, status, alvorlighet og ansvarlig</CardDescription>
           </CardHeader>
           <CardContent>
             <IncidentTreatmentForm
               incidentId={incident.id}
+              currentType={incident.type}
+              currentSubcategoryKeys={parsedSubcategoryKeys}
+              currentProjectId={incident.projectId}
               currentStatus={incident.status}
               currentSeverity={incident.severity}
               currentResponsibleId={incident.responsibleId}
+              currentMedicalAttentionRequired={incident.medicalAttentionRequired}
+              currentIsFatal={incident.isFatal}
+              currentIsLostTimeIncident={incident.isLostTimeIncident}
+              currentLostWorkdays={incident.lostWorkdays}
+              currentIsRestrictedWork={incident.isRestrictedWork}
               users={tenantUsers}
+              projects={tenantProjects}
             />
           </CardContent>
         </Card>

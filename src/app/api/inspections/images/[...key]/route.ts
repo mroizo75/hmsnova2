@@ -35,7 +35,7 @@ export async function GET(
     }
     const { key: keyParts } = await params;
     const key = keyParts.join("/");
-    if (!key.startsWith(`${sessionTenantId}/`)) {
+    if (!key.startsWith(`tenants/${sessionTenantId}/`)) {
       return new NextResponse("Forbidden", { status: 403 });
     }
 

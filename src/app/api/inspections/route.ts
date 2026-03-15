@@ -5,6 +5,35 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { createErrorResponse, createSuccessResponse, ErrorCodes } from "@/lib/validations/api";
 
+function buildChecklistFromFormTemplateFields(
+  fields: Array<{ label: string; fieldType: string }>
+): Prisma.InputJsonValue | null {
+  const checklistItems = fields
+    .filter((field) => {
+      const normalizedType = field.fieldType.toUpperCase();
+      return normalizedType !== "SECTION" && normalizedType !== "HEADING";
+    })
+    .map((field) => ({
+      type: "item" as const,
+      title: field.label,
+      checked: false,
+      status: "UNSET" as const,
+      findingTitle: "",
+      findingDescription: "",
+      findingSeverity: 3,
+      findingLocation: "",
+      findingImageKeys: [] as string[],
+    }));
+
+  if (checklistItems.length === 0) {
+    return null;
+  }
+
+  return {
+    items: checklistItems,
+  } as Prisma.InputJsonValue;
+}
+
 /**
  * GET /api/inspections
  * List all inspections for tenant
@@ -71,6 +100,7 @@ export async function POST(request: NextRequest) {
       riskCategory: string | null;
       checklist: unknown;
     } | null = null;
+    let selectedFormTemplateChecklist: Prisma.InputJsonValue | null = null;
     if (data.projectId) {
       const project = await prisma.project.findFirst({
         where: {
@@ -103,6 +133,26 @@ export async function POST(request: NextRequest) {
       }
       selectedTemplate = template;
     }
+    if (data.formTemplateId) {
+      const formTemplate = await prisma.formTemplate.findFirst({
+        where: {
+          id: data.formTemplateId,
+          OR: [{ tenantId }, { tenantId: null, isGlobal: true }],
+        },
+        select: {
+          fields: {
+            orderBy: { order: "asc" },
+            select: {
+              label: true,
+              fieldType: true,
+            },
+          },
+        },
+      });
+      if (formTemplate) {
+        selectedFormTemplateChecklist = buildChecklistFromFormTemplateFields(formTemplate.fields);
+      }
+    }
 
     const inspection = await prisma.inspection.create({
       data: {
@@ -122,7 +172,10 @@ export async function POST(request: NextRequest) {
         durationMinutes: data.durationMinutes ?? null,
         followUpById: data.followUpById || null,
         nextInspection: data.nextInspection ? new Date(data.nextInspection) : null,
-        checklist: (selectedTemplate?.checklist as Prisma.InputJsonValue | undefined) ?? null,
+        checklist:
+          (selectedTemplate?.checklist as Prisma.InputJsonValue | undefined) ??
+          selectedFormTemplateChecklist ??
+          null,
         projectId: validatedProjectId,
       },
       include: {

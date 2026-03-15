@@ -56,6 +56,14 @@ interface FormFillerProps {
   initialProjectId?: string;
 }
 
+interface InlineInspectionFindingDraft {
+  title: string;
+  description: string;
+  severity: number;
+  location: string;
+  imageKeys: string[];
+}
+
 function getMultiCheckboxSelected(stored: string | undefined): string[] {
   if (!stored) return [];
   try {
@@ -69,6 +77,28 @@ function toggleMultiCheckbox(stored: string | undefined, option: string): string
   const current = getMultiCheckboxSelected(stored);
   const exists = current.includes(option);
   return JSON.stringify(exists ? current.filter((v) => v !== option) : [...current, option]);
+}
+
+function isNotOkAnswer(value: string | undefined): boolean {
+  if (!value) return false;
+  const normalized = value.trim().toLowerCase();
+  return (
+    normalized.includes("ikke ok") ||
+    normalized === "ikke_ok" ||
+    normalized === "not ok" ||
+    normalized === "not_ok" ||
+    normalized === "nei" ||
+    normalized === "no" ||
+    normalized === "avvik" ||
+    normalized === "fail" ||
+    normalized === "failed" ||
+    normalized === "non-compliant" ||
+    normalized === "non_compliant"
+  );
+}
+
+function clampSeverity(value: number): number {
+  return Math.max(1, Math.min(5, value));
 }
 
 export function FormFiller({
@@ -102,6 +132,11 @@ export function FormFiller({
   const [fieldComments, setFieldComments] = useState<Record<string, string>>({});
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const cameraInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const findingImageInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [inlineInspectionFindings, setInlineInspectionFindings] = useState<
+    Record<string, InlineInspectionFindingDraft>
+  >({});
+  const [uploadingFindingFieldId, setUploadingFindingFieldId] = useState<string | null>(null);
 
   // Merknader er alltid tilgjengelig i vernerunde-kontekst (inspectionId satt)
   const showComments = !!inspectionId;
@@ -124,6 +159,101 @@ export function FormFiller({
 
   function handleFieldChange(fieldId: string, value: string) {
     setFormValues((prev) => ({ ...prev, [fieldId]: value }));
+  }
+
+  function getInlineFindingDraft(fieldId: string, fieldLabel: string): InlineInspectionFindingDraft {
+    return (
+      inlineInspectionFindings[fieldId] ?? {
+        title: fieldLabel,
+        description: "",
+        severity: 3,
+        location: "",
+        imageKeys: [],
+      }
+    );
+  }
+
+  function updateInlineFindingDraft(
+    fieldId: string,
+    fieldLabel: string,
+    patch: Partial<InlineInspectionFindingDraft>
+  ) {
+    setInlineInspectionFindings((prev) => {
+      const current = getInlineFindingDraft(fieldId, fieldLabel);
+      return {
+        ...prev,
+        [fieldId]: {
+          ...current,
+          ...patch,
+        },
+      };
+    });
+  }
+
+  async function uploadInlineFindingImages(
+    fieldId: string,
+    fieldLabel: string,
+    filesToUpload: FileList | null
+  ) {
+    if (!inspectionId || !filesToUpload || filesToUpload.length === 0) {
+      return;
+    }
+    setUploadingFindingFieldId(fieldId);
+    try {
+      const uploadedKeys: string[] = [];
+      for (const file of Array.from(filesToUpload)) {
+        const uploadFormData = new FormData();
+        uploadFormData.append("file", file);
+        uploadFormData.append("inspectionId", inspectionId);
+
+        const response = await fetch("/api/inspections/upload", {
+          method: "POST",
+          body: uploadFormData,
+        });
+        const result = (await response.json()) as {
+          data?: { key?: string };
+          message?: string;
+        };
+        if (!response.ok || !result.data?.key) {
+          throw new Error(result.message || "Kunne ikke laste opp bilde");
+        }
+        uploadedKeys.push(result.data.key);
+      }
+
+      const currentDraft = getInlineFindingDraft(fieldId, fieldLabel);
+      updateInlineFindingDraft(fieldId, fieldLabel, {
+        imageKeys: [...currentDraft.imageKeys, ...uploadedKeys],
+      });
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Feil ved bildeopplasting",
+        description: "Kunne ikke laste opp bilde for funnet.",
+      });
+    } finally {
+      setUploadingFindingFieldId(null);
+    }
+  }
+
+  async function removeInlineFindingImage(fieldId: string, fieldLabel: string, imageKey: string) {
+    try {
+      await fetch("/api/inspections/upload", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: imageKey }),
+      });
+
+      const currentDraft = getInlineFindingDraft(fieldId, fieldLabel);
+      updateInlineFindingDraft(fieldId, fieldLabel, {
+        imageKeys: currentDraft.imageKeys.filter((key) => key !== imageKey),
+      });
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Feil",
+        description: "Kunne ikke fjerne bilde.",
+      });
+    }
   }
 
   function handleFileChange(fieldId: string, file: File | null) {
@@ -201,6 +331,26 @@ export function FormFiller({
         });
         return;
       }
+
+      if (inspectionId) {
+        for (const field of form.fields) {
+          const answer = formValues[field.id];
+          if (!isNotOkAnswer(answer)) {
+            continue;
+          }
+
+          const draft = getInlineFindingDraft(field.id, field.label);
+          const description = draft.description.trim() || (fieldComments[field.id] || "").trim();
+          if (!description) {
+            toast({
+              title: "❌ Mangler funnbeskrivelse",
+              description: `Du har valgt "Ikke OK" på "${field.label}", men mangler beskrivelse av funnet.`,
+              variant: "destructive",
+            });
+            return;
+          }
+        }
+      }
     }
 
     setIsSubmitting(true);
@@ -224,6 +374,27 @@ export function FormFiller({
       );
       if (Object.keys(nonEmptyComments).length > 0) {
         formData.append("fieldComments", JSON.stringify(nonEmptyComments));
+      }
+      if (status === "SUBMITTED" && inspectionId) {
+        const inspectionFindings = form.fields
+          .filter((field) => isNotOkAnswer(formValues[field.id]))
+          .map((field) => {
+            const draft = getInlineFindingDraft(field.id, field.label);
+            return {
+              fieldId: field.id,
+              fieldLabel: field.label,
+              answer: formValues[field.id] ?? "",
+              title: (draft.title || field.label).trim(),
+              description: (draft.description || fieldComments[field.id] || "").trim(),
+              severity: clampSeverity(draft.severity || 3),
+              location: draft.location.trim(),
+              imageKeys: draft.imageKeys,
+            };
+          });
+
+        if (inspectionFindings.length > 0) {
+          formData.append("inspectionFindings", JSON.stringify(inspectionFindings));
+        }
       }
       if (signature) {
         formData.append("signature", signature);
@@ -249,7 +420,9 @@ export function FormFiller({
           ? "Du kan fortsette senere" 
           : form.requiresApproval 
             ? "Venter på godkjenning fra leder"
-            : "Takk for at du fylte ut skjemaet",
+            : inspectionId
+              ? "Skjema sendt inn med funn registrert direkte i punktene."
+              : "Takk for at du fylte ut skjemaet",
       });
 
       router.push(returnUrl);
@@ -599,6 +772,119 @@ export function FormFiller({
                   </div>
                 )}
               </div>
+
+              {inspectionId && isNotOkAnswer(formValues[field.id]) && (
+                <div className="mt-3 rounded-lg border border-red-200 bg-red-50/40 p-3 space-y-3">
+                  <div className="text-xs font-semibold text-red-900">
+                    Funn for punktet (Ikke OK)
+                  </div>
+                  {(() => {
+                    const draft = getInlineFindingDraft(field.id, field.label);
+                    return (
+                      <>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Funn-tittel</Label>
+                          <Input
+                            value={draft.title}
+                            onChange={(event) =>
+                              updateInlineFindingDraft(field.id, field.label, { title: event.target.value })
+                            }
+                            placeholder="Kort tittel på funnet"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">
+                            Beskrivelse av funn <span className="text-destructive">*</span>
+                          </Label>
+                          <Textarea
+                            value={draft.description}
+                            onChange={(event) =>
+                              updateInlineFindingDraft(field.id, field.label, { description: event.target.value })
+                            }
+                            placeholder="Beskriv hva som er avviket og hva som ble observert"
+                            rows={3}
+                            className="text-sm resize-none"
+                          />
+                        </div>
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">Alvorlighet (1-5)</Label>
+                            <Input
+                              type="number"
+                              min={1}
+                              max={5}
+                              value={draft.severity}
+                              onChange={(event) => {
+                                const nextValue = Number(event.target.value);
+                                if (!Number.isFinite(nextValue)) return;
+                                updateInlineFindingDraft(field.id, field.label, {
+                                  severity: clampSeverity(nextValue),
+                                });
+                              }}
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">Lokasjon</Label>
+                            <Input
+                              value={draft.location}
+                              onChange={(event) =>
+                                updateInlineFindingDraft(field.id, field.label, { location: event.target.value })
+                              }
+                              placeholder="F.eks. Lager 2"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs">Bilder (valgfritt)</Label>
+                          <input
+                            ref={(el) => {
+                              findingImageInputRefs.current[field.id] = el;
+                            }}
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            onChange={(event) =>
+                              uploadInlineFindingImages(field.id, field.label, event.target.files)
+                            }
+                            disabled={uploadingFindingFieldId === field.id}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => findingImageInputRefs.current[field.id]?.click()}
+                            disabled={uploadingFindingFieldId === field.id}
+                          >
+                            <Camera className="h-4 w-4 mr-2" />
+                            {uploadingFindingFieldId === field.id ? "Laster opp..." : "Legg til bilde"}
+                          </Button>
+                          {draft.imageKeys.length > 0 && (
+                            <div className="grid grid-cols-3 gap-2">
+                              {draft.imageKeys.map((imageKey) => (
+                                <div key={imageKey} className="relative">
+                                  <img
+                                    src={`/api/inspections/images/${imageKey}`}
+                                    alt="Funnbilde"
+                                    className="h-20 w-full rounded border object-cover"
+                                  />
+                                  <button
+                                    type="button"
+                                    className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white"
+                                    onClick={() => removeInlineFindingImage(field.id, field.label, imageKey)}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
 
               {/* Merknad per punkt – vises i vernerunde-kontekst */}
               {showComments && (

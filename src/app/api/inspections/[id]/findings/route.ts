@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { createErrorResponse, createSuccessResponse, ErrorCodes } from "@/lib/validations/api";
+import { generateSequenceNumber } from "@/lib/sequence";
 
 /**
  * GET /api/inspections/[id]/findings
@@ -29,7 +30,12 @@ export async function GET(
     const { id: inspectionId } = await params;
     const inspection = await prisma.inspection.findFirst({
       where: { id: inspectionId, tenantId: sessionTenantId },
-      select: { id: true },
+      select: {
+        id: true,
+        tenantId: true,
+        title: true,
+        location: true,
+      },
     });
     if (!inspection) {
       return createErrorResponse(ErrorCodes.NOT_FOUND, "Inspeksjon ikke funnet", 404);
@@ -73,7 +79,12 @@ export async function POST(
     const data = await request.json();
     const inspection = await prisma.inspection.findFirst({
       where: { id: inspectionId, tenantId: sessionTenantId },
-      select: { id: true },
+      select: {
+        id: true,
+        tenantId: true,
+        title: true,
+        location: true,
+      },
     });
     if (!inspection) {
       return createErrorResponse(ErrorCodes.NOT_FOUND, "Inspeksjon ikke funnet", 404);
@@ -90,6 +101,36 @@ export async function POST(
         status: "OPEN",
         responsibleId: data.responsibleId,
         dueDate: data.dueDate ? new Date(data.dueDate) : null,
+      },
+    });
+
+    const occurredAt = new Date();
+    const avviksnummer = await generateSequenceNumber(
+      inspection.tenantId,
+      "AVVIK",
+      occurredAt.getFullYear()
+    );
+    const findingDescription = typeof data.description === "string" ? data.description.trim() : "";
+    const findingLocation = typeof data.location === "string" ? data.location.trim() : "";
+    const inspectionContext = `Kilde: Vernerunde "${inspection.title}"`;
+    const incidentDescription = findingLocation
+      ? `${inspectionContext}\nLokasjon i funn: ${findingLocation}\n\n${findingDescription}`
+      : `${inspectionContext}\n\n${findingDescription}`;
+
+    await prisma.incident.create({
+      data: {
+        tenantId: inspection.tenantId,
+        avviksnummer,
+        type: "AVVIK",
+        title: `[Vernerunde] ${finding.title}`,
+        description: incidentDescription,
+        severity:
+          typeof data.severity === "number"
+            ? Math.max(1, Math.min(5, data.severity))
+            : 3,
+        occurredAt,
+        reportedBy: session.user.id,
+        location: findingLocation || inspection.location || null,
       },
     });
 

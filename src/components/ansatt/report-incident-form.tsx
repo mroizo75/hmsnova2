@@ -36,6 +36,21 @@ interface IncidentContextPreset {
   detailsPlaceholder?: string;
 }
 
+const employeeIncidentTypeOptions: Array<{
+  value: string;
+  label: string;
+  group: "hms" | "avvik" | "annet";
+}> = [
+  { value: "ULYKKE", label: "Arbeidsulykke / RUH", group: "hms" },
+  { value: "NESTEN", label: "Nestenulykke / RUH", group: "hms" },
+  { value: "FARLIG_SITUASJON", label: "Farlig situasjon / Observasjon", group: "hms" },
+  { value: "YRKESSYKDOM", label: "Yrkessykdom / Arbeidsrelatert sykdom", group: "hms" },
+  { value: "AVVIK", label: "Avvik", group: "avvik" },
+  { value: "MILJO", label: "Miljoavvik", group: "avvik" },
+  { value: "KVALITET", label: "Kvalitetsavvik", group: "avvik" },
+  { value: "CUSTOMER", label: "Kundeklage", group: "annet" },
+];
+
 export function ReportIncidentForm({
   tenantId,
   reportedBy,
@@ -301,13 +316,36 @@ export function ReportIncidentForm({
             <SelectValue placeholder="Velg type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="AVVIK">⚠️ Avvik</SelectItem>
-            <SelectItem value="NESTEN">🟡 Nestenulykke</SelectItem>
-            <SelectItem value="ULYKKE">🔴 Ulykke</SelectItem>
-            <SelectItem value="FARLIG_SITUASJON">🟠 Farlig situasjon</SelectItem>
-            <SelectItem value="YRKESSYKDOM">🩺 Yrkessykdom</SelectItem>
-            <SelectItem value="MILJO">🌍 Miljøavvik</SelectItem>
-            <SelectItem value="KVALITET">📋 Kvalitetsavvik</SelectItem>
+            <div className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              HMS / Personskade
+            </div>
+            {employeeIncidentTypeOptions
+              .filter((option) => option.group === "hms")
+              .map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            <div className="mt-1 border-t px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Avvik / Kvalitet
+            </div>
+            {employeeIncidentTypeOptions
+              .filter((option) => option.group === "avvik")
+              .map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            <div className="mt-1 border-t px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Annet
+            </div>
+            {employeeIncidentTypeOptions
+              .filter((option) => option.group === "annet")
+              .map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
           </SelectContent>
         </Select>
       </div>

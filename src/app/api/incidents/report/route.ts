@@ -6,6 +6,18 @@ import { generateSequenceNumber } from "@/lib/sequence";
 import { AuditLog } from "@/lib/audit-log";
 import { getStorage, generateFileKey } from "@/lib/storage";
 import { createNotification, notifyUsersByRole } from "@/server/actions/notification.actions";
+import { IncidentType } from "@prisma/client";
+
+const allowedEmployeeIncidentTypes: IncidentType[] = [
+  "ULYKKE",
+  "NESTEN",
+  "FARLIG_SITUASJON",
+  "YRKESSYKDOM",
+  "AVVIK",
+  "MILJO",
+  "KVALITET",
+  "CUSTOMER",
+];
 
 export async function POST(request: NextRequest) {
   try {
@@ -52,6 +64,13 @@ export async function POST(request: NextRequest) {
     const enrichedDescription = contextDetails
       ? `${description}\n\nKontekstnotat: ${contextDetails}`
       : description;
+
+    if (!allowedEmployeeIncidentTypes.includes(type as IncidentType)) {
+      return NextResponse.json(
+        { error: "Ugyldig hendelsestype for ansatt-rapportering." },
+        { status: 400 }
+      );
+    }
 
     const avviksnummer = await generateSequenceNumber(
       tenantId,
