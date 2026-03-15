@@ -13,6 +13,7 @@ import { prisma } from "@/lib/db";
 import { checkSDSVersion } from "@/lib/sds-version-checker";
 import { sendEmail } from "@/lib/email";
 import { getChemicalsToCheck } from "./smart-sds-scheduler";
+import { createNotification } from "@/server/actions/notification.actions";
 import pLimit from "p-limit";
 
 export async function weeklySDSVersionCheck() {
@@ -199,15 +200,13 @@ async function sendSDSUpdateNotification(
     });
 
     // Opprett notifikasjon i systemet også
-    await prisma.notification.create({
-      data: {
-        tenantId,
-        userId: user.id,
-        type: "CHEMICAL_SDS_REVIEW",
-        title: `${outdatedChemicals.length} kjemikalier trenger oppdatert SDS`,
-        message: `Nye versjoner funnet hos leverandør. Sjekk e-post for detaljer.`,
-        link: `/dashboard/chemicals`,
-      },
+    await createNotification({
+      tenantId,
+      userId: user.id,
+      type: "CHEMICAL_SDS_REVIEW",
+      title: `${outdatedChemicals.length} kjemikalier trenger oppdatert SDS`,
+      message: `Nye versjoner funnet hos leverandør. Sjekk e-post for detaljer.`,
+      link: `/dashboard/chemicals`,
     });
   }
 }

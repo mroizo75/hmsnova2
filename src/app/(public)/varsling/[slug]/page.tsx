@@ -132,6 +132,7 @@ export default function TenantWhistleblowingPage() {
 
       const payload: any = {
         tenantId: tenant.id,
+        tenantSlug: slug,
         category: formData.category,
         title: formData.title,
         description: formData.description,

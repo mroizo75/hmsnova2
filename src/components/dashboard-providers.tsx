@@ -2,6 +2,7 @@
 
 import { SimpleModeProvider } from "@/hooks/use-simple-mode";
 import { SimpleMenuConfigProvider, type SimpleMenuItemsConfig } from "@/hooks/use-simple-menu-config";
+import { NotificationsProvider } from "@/hooks/useNotifications";
 
 interface DashboardProvidersProps {
   children: React.ReactNode;
@@ -12,7 +13,7 @@ export function DashboardProviders({ children, simpleMenuItems = null }: Dashboa
   return (
     <SimpleMenuConfigProvider simpleMenuItems={simpleMenuItems ?? undefined}>
       <SimpleModeProvider>
-        {children}
+        <NotificationsProvider>{children}</NotificationsProvider>
       </SimpleModeProvider>
     </SimpleMenuConfigProvider>
   );

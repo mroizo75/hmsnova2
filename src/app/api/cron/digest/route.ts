@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendDigestEmails } from "@/lib/email-digest";
+import { validateCronRequest } from "@/lib/cron-auth";
 
 /**
  * Cron Job API Route for HMS Nova Email Digest
@@ -23,16 +24,9 @@ export const maxDuration = 120; // 2 minutter timeout
 
 export async function GET(request: NextRequest) {
   try {
-    // Verifiser at forespørselen kommer fra en autorisert kilde
-    const authHeader = request.headers.get("authorization");
-    const cronSecret = process.env.CRON_SECRET;
-
-    // Fail closed i production: krev gyldig secret
-    if (process.env.NODE_ENV === "production") {
-      if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-        console.error("❌ Unauthorized digest cron request");
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
+    const unauthorizedResponse = validateCronRequest(request);
+    if (unauthorizedResponse) {
+      return unauthorizedResponse;
     }
 
     // Hent digest type fra query parameter

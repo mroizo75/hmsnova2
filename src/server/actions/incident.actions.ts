@@ -16,20 +16,39 @@ import { IncidentStage, IncidentStatus } from "@prisma/client";
 
 async function getSessionContext() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.email) {
+  if (!session?.user?.email || !session.user.tenantId) {
     throw new Error("Unauthorized");
   }
   
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
-    include: { tenants: true },
+    select: {
+      id: true,
+      email: true,
+    },
   });
   
-  if (!user || user.tenants.length === 0) {
-    throw new Error("User not associated with a tenant");
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
+  const membership = await prisma.userTenant.findUnique({
+    where: {
+      userId_tenantId: {
+        userId: user.id,
+        tenantId: session.user.tenantId,
+      },
+    },
+    select: {
+      tenantId: true,
+    },
+  });
+
+  if (!membership) {
+    throw new Error("User not associated with selected tenant");
   }
   
-  return { user, tenantId: user.tenants[0].tenantId };
+  return { user, tenantId: membership.tenantId };
 }
 
 const sanitizeString = (value?: string | null) => {

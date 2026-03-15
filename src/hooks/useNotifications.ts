@@ -1,6 +1,15 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import {
+  createElement,
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import type { Notification as NotificationModel } from "@prisma/client";
 
 const STREAM_URL = "/api/notifications/stream";
@@ -18,6 +27,22 @@ const MAX_RECONNECT_ATTEMPTS = 5;
 const useStream = typeof window !== "undefined" && process.env.NODE_ENV !== "production";
 
 type MessageCallback = (data: Record<string, unknown>) => void;
+
+interface NotificationsState {
+  notifications: NotificationModel[];
+  unreadCount: number;
+  isLoading: boolean;
+  markAsRead: (notificationId: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  deleteNotification: (notificationId: string) => Promise<void>;
+}
+
+interface UseNotificationsOptions {
+  limit?: number;
+  bypassContext?: boolean;
+}
+
+const NotificationsContext = createContext<NotificationsState | null>(null);
 
 let shared: {
   eventSource: EventSource | null;
@@ -92,15 +117,34 @@ function subscribeToStream(cb: MessageCallback): () => void {
 }
 
 export function useNotifications() {
+  return useNotificationsWithOptions();
+}
+
+export function NotificationsProvider({ children }: { children: ReactNode }) {
+  const state = useNotificationsWithOptions({ limit: 100, bypassContext: true });
+  return createElement(NotificationsContext.Provider, { value: state }, children);
+}
+
+export function useNotificationsWithOptions(options?: UseNotificationsOptions): NotificationsState {
+  const contextValue = useContext(NotificationsContext);
+  if (contextValue && !options?.bypassContext) {
+    return contextValue;
+  }
+
+  const safeLimit = useMemo(() => {
+    const candidate = options?.limit ?? 10;
+    return Math.min(Math.max(candidate, 1), 100);
+  }, [options?.limit]);
   const [notifications, setNotifications] = useState<NotificationModel[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const prevUnreadRef = useRef<number>(0);
+  const requestUrl = useMemo(() => `/api/notifications?limit=${safeLimit}`, [safeLimit]);
 
   useEffect(() => {
     async function fetchNotifications() {
       try {
-        const response = await fetch("/api/notifications?limit=10");
+        const response = await fetch(requestUrl);
         if (response.ok) {
           const data = await response.json();
           setNotifications(data.notifications ?? []);
@@ -118,15 +162,23 @@ export function useNotifications() {
     }
 
     fetchNotifications();
-  }, []);
+  }, [requestUrl]);
 
   // I produksjon: bruk kun polling (unngår HTTP/2/SSE-feil på Vercel)
   useEffect(() => {
     if (!useStream) return;
 
     const unsubscribe = subscribeToStream((data) => {
-      setNotifications((prev) => [data as NotificationModel, ...prev].slice(0, 10));
-      setUnreadCount((prev) => prev + 1);
+      const incoming = data as NotificationModel;
+      setNotifications((prev) => {
+        if (prev.some((notification) => notification.id === incoming.id)) {
+          return prev;
+        }
+        return [incoming, ...prev].slice(0, safeLimit);
+      });
+      if (!incoming.isRead) {
+        setUnreadCount((prev) => prev + 1);
+      }
       if (
         typeof window !== "undefined" &&
         "Notification" in window &&
@@ -143,7 +195,7 @@ export function useNotifications() {
     });
 
     return unsubscribe;
-  }, []);
+  }, [safeLimit]);
 
   // Polling i produksjon – oppdater liste og unread count jevnlig (ingen åpen stream)
   useEffect(() => {
@@ -151,7 +203,7 @@ export function useNotifications() {
 
     const poll = async () => {
       try {
-        const response = await fetch("/api/notifications?limit=10");
+        const response = await fetch(requestUrl);
         if (!response.ok) return;
         const data = await response.json();
         setNotifications(data.notifications ?? []);
@@ -178,7 +230,7 @@ export function useNotifications() {
     void poll();
 
     return () => clearInterval(intervalId);
-  }, []);
+  }, [requestUrl]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !("Notification" in window)) return;
@@ -195,12 +247,22 @@ export function useNotifications() {
       });
 
       if (response.ok) {
-        setNotifications((prev) =>
-          prev.map((n) =>
-            n.id === notificationId ? { ...n, isRead: true } : n
-          )
-        );
-        setUnreadCount((prev) => Math.max(0, prev - 1));
+        setNotifications((prev) => {
+          let changedUnread = false;
+          const next = prev.map((notification) => {
+            if (notification.id !== notificationId) {
+              return notification;
+            }
+            if (!notification.isRead) {
+              changedUnread = true;
+            }
+            return { ...notification, isRead: true };
+          });
+          if (changedUnread) {
+            setUnreadCount((current) => Math.max(0, current - 1));
+          }
+          return next;
+        });
       }
     } catch (error) {
       if (process.env.NODE_ENV === "development") {
@@ -237,13 +299,13 @@ export function useNotifications() {
       });
 
       if (response.ok) {
-        const wasUnread = notifications.find(
-          (n) => n.id === notificationId
-        )?.isRead === false;
-        setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
-        if (wasUnread) {
-          setUnreadCount((prev) => Math.max(0, prev - 1));
-        }
+        setNotifications((prev) => {
+          const target = prev.find((notification) => notification.id === notificationId);
+          if (target && !target.isRead) {
+            setUnreadCount((current) => Math.max(0, current - 1));
+          }
+          return prev.filter((notification) => notification.id !== notificationId);
+        });
       }
     } catch (error) {
       if (process.env.NODE_ENV === "development") {

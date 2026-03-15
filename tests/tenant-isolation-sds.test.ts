@@ -1,151 +1,210 @@
-/**
- * TENANT ISOLATION TEST - SDS AUTOMATISERING
- * Sikrer at bedrifter ALDRI ser hverandres data
- */
+import test, { after } from "node:test";
+import assert from "node:assert/strict";
+import { prisma } from "../src/lib/db";
 
-import { describe, it, expect, beforeAll } from "@jest/globals";
-import { prisma } from "@/lib/db";
+interface Fixture {
+  tenantAId: string;
+  tenantBId: string;
+  chemicalAId: string;
+  chemicalBId: string;
+  userAId?: string;
+  userBId?: string;
+  userAEmail?: string;
+  userBEmail?: string;
+}
 
-describe("SDS Automation - Tenant Isolation", () => {
-  let tenantA: any;
-  let tenantB: any;
-  let chemicalA: any;
-  let chemicalB: any;
+function uniqueSuffix() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
 
-  beforeAll(async () => {
-    // Opprett to separate tenants
-    tenantA = await prisma.tenant.create({
-      data: {
-        name: "Bedrift A",
-        slug: "bedrift-a-test",
-        status: "ACTIVE",
-      },
-    });
+async function createFixture(): Promise<Fixture> {
+  const suffix = uniqueSuffix();
+  const tenantASlug = `bedrift-a-test-${suffix}`;
+  const tenantBSlug = `bedrift-b-test-${suffix}`;
 
-    tenantB = await prisma.tenant.create({
-      data: {
-        name: "Bedrift B",
-        slug: "bedrift-b-test",
-        status: "ACTIVE",
-      },
-    });
-
-    // Opprett kjemikalie for Tenant A
-    chemicalA = await prisma.chemical.create({
-      data: {
-        tenantId: tenantA.id,
-        productName: "Etanol (Bedrift A)",
-        casNumber: "64-17-5",
-        supplier: "VWR",
-        status: "ACTIVE",
-      },
-    });
-
-    // Opprett kjemikalie for Tenant B
-    chemicalB = await prisma.chemical.create({
-      data: {
-        tenantId: tenantB.id,
-        productName: "Aceton (Bedrift B)",
-        casNumber: "67-64-1",
-        supplier: "Sigma-Aldrich",
-        status: "ACTIVE",
-      },
-    });
+  const tenantA = await prisma.tenant.create({
+    data: {
+      name: `Bedrift A ${suffix}`,
+      slug: tenantASlug,
+      status: "ACTIVE",
+    },
   });
 
-  it("skal kun hente kjemikalier for riktig tenant", async () => {
+  const tenantB = await prisma.tenant.create({
+    data: {
+      name: `Bedrift B ${suffix}`,
+      slug: tenantBSlug,
+      status: "ACTIVE",
+    },
+  });
+
+  const chemicalA = await prisma.chemical.create({
+    data: {
+      tenantId: tenantA.id,
+      productName: "Etanol (Bedrift A)",
+      casNumber: "64-17-5",
+      supplier: "VWR",
+      status: "ACTIVE",
+    },
+  });
+
+  const chemicalB = await prisma.chemical.create({
+    data: {
+      tenantId: tenantB.id,
+      productName: "Aceton (Bedrift B)",
+      casNumber: "67-64-1",
+      supplier: "Sigma-Aldrich",
+      status: "ACTIVE",
+    },
+  });
+
+  return {
+    tenantAId: tenantA.id,
+    tenantBId: tenantB.id,
+    chemicalAId: chemicalA.id,
+    chemicalBId: chemicalB.id,
+  };
+}
+
+async function cleanupFixture(fixture: Fixture) {
+  await prisma.notification.deleteMany({
+    where: {
+      OR: [{ tenantId: fixture.tenantAId }, { tenantId: fixture.tenantBId }],
+    },
+  });
+
+  await prisma.userTenant.deleteMany({
+    where: {
+      OR: [{ tenantId: fixture.tenantAId }, { tenantId: fixture.tenantBId }],
+    },
+  });
+
+  if (fixture.userAEmail || fixture.userBEmail) {
+    const emails = [fixture.userAEmail, fixture.userBEmail].filter(
+      (email): email is string => Boolean(email)
+    );
+    await prisma.user.deleteMany({
+      where: {
+        email: { in: emails },
+      },
+    });
+  }
+
+  await prisma.chemical.deleteMany({
+    where: {
+      OR: [{ tenantId: fixture.tenantAId }, { tenantId: fixture.tenantBId }],
+    },
+  });
+
+  await prisma.tenant.deleteMany({
+    where: {
+      id: { in: [fixture.tenantAId, fixture.tenantBId] },
+    },
+  });
+}
+
+test("skal kun hente kjemikalier for riktig tenant", async () => {
+  const fixture = await createFixture();
+  try {
     const chemicalsForTenantA = await prisma.chemical.findMany({
-      where: {
-        tenantId: tenantA.id,
-      },
+      where: { tenantId: fixture.tenantAId },
     });
-
     const chemicalsForTenantB = await prisma.chemical.findMany({
-      where: {
-        tenantId: tenantB.id,
-      },
+      where: { tenantId: fixture.tenantBId },
     });
 
-    // Tenant A skal kun se sine egne
-    expect(chemicalsForTenantA).toHaveLength(1);
-    expect(chemicalsForTenantA[0].productName).toBe("Etanol (Bedrift A)");
+    assert.equal(chemicalsForTenantA.length, 1);
+    assert.equal(chemicalsForTenantA[0]?.productName, "Etanol (Bedrift A)");
+    assert.equal(chemicalsForTenantB.length, 1);
+    assert.equal(chemicalsForTenantB[0]?.productName, "Aceton (Bedrift B)");
+  } finally {
+    await cleanupFixture(fixture);
+  }
+});
 
-    // Tenant B skal kun se sine egne
-    expect(chemicalsForTenantB).toHaveLength(1);
-    expect(chemicalsForTenantB[0].productName).toBe("Aceton (Bedrift B)");
-  });
-
-  it("skal IKKE kunne oppdatere annen tenant sine kjemikalier", async () => {
-    // Forsøk å oppdatere Tenant B sitt kjemikalie med Tenant A sin ID
+test("skal IKKE kunne oppdatere annen tenant sine kjemikalier", async () => {
+  const fixture = await createFixture();
+  try {
     const result = await prisma.chemical.updateMany({
       where: {
-        id: chemicalB.id,
-        tenantId: tenantA.id, // ← Feil tenant!
+        id: fixture.chemicalBId,
+        tenantId: fixture.tenantAId,
       },
       data: {
         productName: "HACKED!",
       },
     });
 
-    // Ingen rader skal bli oppdatert
-    expect(result.count).toBe(0);
+    assert.equal(result.count, 0);
 
-    // Verifiser at kjemikaliet fortsatt har riktig navn
     const chemical = await prisma.chemical.findUnique({
-      where: { id: chemicalB.id },
+      where: { id: fixture.chemicalBId },
+      select: { productName: true },
     });
+    assert.equal(chemical?.productName, "Aceton (Bedrift B)");
+  } finally {
+    await cleanupFixture(fixture);
+  }
+});
 
-    expect(chemical?.productName).toBe("Aceton (Bedrift B)");
-  });
+test("skal ha tenant-isolerte storage paths", async () => {
+  const fixture = await createFixture();
+  try {
+    const sdsKeyA = `sds/${fixture.tenantAId}/${fixture.chemicalAId}-123456.pdf`;
+    const sdsKeyB = `sds/${fixture.tenantBId}/${fixture.chemicalBId}-123456.pdf`;
 
-  it("skal ha tenant-isolerte storage paths", async () => {
-    const sdsKeyA = `sds/${tenantA.id}/${chemicalA.id}-123456.pdf`;
-    const sdsKeyB = `sds/${tenantB.id}/${chemicalB.id}-123456.pdf`;
+    assert.notEqual(sdsKeyA, sdsKeyB);
+    assert.equal(sdsKeyA.includes(fixture.tenantAId), true);
+    assert.equal(sdsKeyB.includes(fixture.tenantBId), true);
+  } finally {
+    await cleanupFixture(fixture);
+  }
+});
 
-    // Paths skal være forskjellige
-    expect(sdsKeyA).not.toBe(sdsKeyB);
+test("skal kun sende varsler til riktig tenant sine brukere", async () => {
+  const fixture = await createFixture();
+  try {
+    const suffix = uniqueSuffix();
+    const userAEmail = `hms-a-${suffix}@test.no`;
+    const userBEmail = `hms-b-${suffix}@test.no`;
 
-    // Paths skal inneholde riktig tenant ID
-    expect(sdsKeyA).toContain(tenantA.id);
-    expect(sdsKeyB).toContain(tenantB.id);
-  });
-
-  it("skal kun sende varsler til riktig tenant sine brukere", async () => {
-    // Opprett brukere for begge tenants
     const userA = await prisma.user.create({
       data: {
-        email: "hms-a@test.no",
+        email: userAEmail,
         name: "HMS A",
       },
     });
 
     const userB = await prisma.user.create({
       data: {
-        email: "hms-b@test.no",
+        email: userBEmail,
         name: "HMS B",
       },
     });
 
-    await prisma.userTenant.create({
-      data: {
-        userId: userA.id,
-        tenantId: tenantA.id,
-        role: "HMS",
-      },
+    fixture.userAId = userA.id;
+    fixture.userBId = userB.id;
+    fixture.userAEmail = userAEmail;
+    fixture.userBEmail = userBEmail;
+
+    await prisma.userTenant.createMany({
+      data: [
+        {
+          userId: userA.id,
+          tenantId: fixture.tenantAId,
+          role: "HMS",
+        },
+        {
+          userId: userB.id,
+          tenantId: fixture.tenantBId,
+          role: "HMS",
+        },
+      ],
     });
 
-    await prisma.userTenant.create({
-      data: {
-        userId: userB.id,
-        tenantId: tenantB.id,
-        role: "HMS",
-      },
-    });
-
-    // Opprett notifikasjon for Tenant A
     await prisma.notification.create({
       data: {
-        tenantId: tenantA.id,
+        tenantId: fixture.tenantAId,
         userId: userA.id,
         type: "CHEMICAL_SDS_REVIEW",
         title: "Test varsel A",
@@ -153,60 +212,21 @@ describe("SDS Automation - Tenant Isolation", () => {
       },
     });
 
-    // Hent notifikasjoner for Tenant A
     const notificationsA = await prisma.notification.findMany({
-      where: {
-        tenantId: tenantA.id,
-      },
+      where: { tenantId: fixture.tenantAId },
     });
-
-    // Hent notifikasjoner for Tenant B
     const notificationsB = await prisma.notification.findMany({
-      where: {
-        tenantId: tenantB.id,
-      },
+      where: { tenantId: fixture.tenantBId },
     });
 
-    // Tenant A skal ha 1 notifikasjon
-    expect(notificationsA).toHaveLength(1);
-    expect(notificationsA[0].message).toBe("Dette er kun for Tenant A");
+    assert.equal(notificationsA.length, 1);
+    assert.equal(notificationsA[0]?.message, "Dette er kun for Tenant A");
+    assert.equal(notificationsB.length, 0);
+  } finally {
+    await cleanupFixture(fixture);
+  }
+});
 
-    // Tenant B skal ha 0 notifikasjoner
-    expect(notificationsB).toHaveLength(0);
-  });
-
-  afterAll(async () => {
-    // Rydd opp testdata
-    await prisma.notification.deleteMany({
-      where: {
-        OR: [{ tenantId: tenantA.id }, { tenantId: tenantB.id }],
-      },
-    });
-
-    await prisma.userTenant.deleteMany({
-      where: {
-        OR: [{ tenantId: tenantA.id }, { tenantId: tenantB.id }],
-      },
-    });
-
-    await prisma.user.deleteMany({
-      where: {
-        email: { in: ["hms-a@test.no", "hms-b@test.no"] },
-      },
-    });
-
-    await prisma.chemical.deleteMany({
-      where: {
-        OR: [{ tenantId: tenantA.id }, { tenantId: tenantB.id }],
-      },
-    });
-
-    await prisma.tenant.deleteMany({
-      where: {
-        slug: { in: ["bedrift-a-test", "bedrift-b-test"] },
-      },
-    });
-
-    await prisma.$disconnect();
-  });
+after(async () => {
+  await prisma.$disconnect();
 });

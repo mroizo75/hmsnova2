@@ -8,6 +8,7 @@ import { AppBreadcrumbs } from "@/components/app-breadcrumbs";
 import { prisma } from "@/lib/db";
 import { LogoutButton } from "@/components/ansatt/logout-button";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { NotificationsProvider } from "@/hooks/useNotifications";
 
 export default async function EmployeeLayout({
   children,
@@ -40,123 +41,125 @@ export default async function EmployeeLayout({
   ]);
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Header - Mobil-optimalisert med logo */}
-      <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Image
-                src="/logo-nova.png"
-                alt="HMS Nova"
-                width={155}
-                height={100}
-                className="h-16 w-auto"
-                priority
-              />
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-medium text-gray-900">{session.user.name}</p>
-                <p className="text-xs text-gray-500">Ansatt</p>
+    <NotificationsProvider>
+      <div className="min-h-screen bg-gray-50 pb-20">
+        {/* Header - Mobil-optimalisert med logo */}
+        <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Image
+                  src="/logo-nova.png"
+                  alt="HMS Nova"
+                  width={155}
+                  height={100}
+                  className="h-16 w-auto"
+                  priority
+                />
               </div>
-              
-              {/* Varsler */}
-              <NotificationBell />
-              
-              {/* Avatar - klikk for profil */}
-              <Link
-                href="/ansatt/profil"
-                className="h-10 w-10 rounded-full overflow-hidden bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold hover:opacity-90 transition-opacity shadow-md"
-                title="Min profil"
-              >
-                {user?.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={`/api/files/${user.image}`}
-                    alt="Profilbilde"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <span>{session.user.name?.charAt(0)?.toUpperCase() || "?"}</span>
-                )}
-              </Link>
-              
-              {/* Logg ut med bekreftelse */}
-              <LogoutButton />
+              <div className="flex items-center gap-3">
+                <div className="text-right hidden sm:block">
+                  <p className="text-sm font-medium text-gray-900">{session.user.name}</p>
+                  <p className="text-xs text-gray-500">Ansatt</p>
+                </div>
+
+                {/* Varsler */}
+                <NotificationBell />
+
+                {/* Avatar - klikk for profil */}
+                <Link
+                  href="/ansatt/profil"
+                  className="h-10 w-10 rounded-full overflow-hidden bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold hover:opacity-90 transition-opacity shadow-md"
+                  title="Min profil"
+                >
+                  {user?.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={`/api/files/${user.image}`}
+                      alt="Profilbilde"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span>{session.user.name?.charAt(0)?.toUpperCase() || "?"}</span>
+                  )}
+                </Link>
+
+                {/* Logg ut med bekreftelse */}
+                <LogoutButton />
+              </div>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-6">
-        <AppBreadcrumbs />
-        {children}
-      </main>
+        {/* Main Content */}
+        <main className="container mx-auto px-4 py-6">
+          <AppBreadcrumbs />
+          {children}
+        </main>
 
-      {/* Bottom Navigation - Mobil */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
-        <div className="flex justify-around items-center h-16">
-          <Link
-            href="/ansatt"
-            className="flex flex-col items-center justify-center flex-1 h-full hover:bg-gray-50 transition-colors"
-          >
-            <Home className="h-5 w-5 text-gray-600" />
-            <span className="text-xs mt-1 text-gray-600">Hjem</span>
-          </Link>
-          
-          <Link
-            href="/ansatt/dokumenter"
-            className="flex flex-col items-center justify-center flex-1 h-full hover:bg-gray-50 transition-colors"
-          >
-            <FileText className="h-5 w-5 text-gray-600" />
-            <span className="text-xs mt-1 text-gray-600">Dokumenter</span>
-          </Link>
-          
-          <Link
-            href="/ansatt/avvik"
-            className="flex flex-col items-center justify-center flex-1 h-full hover:bg-gray-50 transition-colors"
-          >
-            <AlertCircle className="h-5 w-5 text-gray-600" />
-            <span className="text-xs mt-1 text-gray-600">Avvik</span>
-          </Link>
-          
-          <Link
-            href="/ansatt/stoffkartotek"
-            className="flex flex-col items-center justify-center flex-1 h-full hover:bg-gray-50 transition-colors"
-          >
-            <Beaker className="h-5 w-5 text-gray-600" />
-            <span className="text-xs mt-1 text-gray-600">Stoffer</span>
-          </Link>
-          
-          <Link
-            href="/ansatt/skjemaer"
-            className="flex flex-col items-center justify-center flex-1 h-full hover:bg-gray-50 transition-colors"
-          >
-            <ClipboardList className="h-5 w-5 text-gray-600" />
-            <span className="text-xs mt-1 text-gray-600">Skjemaer</span>
-          </Link>
-          
-          <Link
-            href="/ansatt/opplaering"
-            className="flex flex-col items-center justify-center flex-1 h-full hover:bg-gray-50 transition-colors"
-          >
-            <GraduationCap className="h-5 w-5 text-gray-600" />
-            <span className="text-xs mt-1 text-gray-600">Opplæring</span>
-          </Link>
-          {tenant?.timeRegistrationEnabled && (
+        {/* Bottom Navigation - Mobil */}
+        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+          <div className="flex justify-around items-center h-16">
             <Link
-              href="/ansatt/timeregistrering"
+              href="/ansatt"
               className="flex flex-col items-center justify-center flex-1 h-full hover:bg-gray-50 transition-colors"
             >
-              <Clock className="h-5 w-5 text-gray-600" />
-              <span className="text-xs mt-1 text-gray-600">Timer</span>
+              <Home className="h-5 w-5 text-gray-600" />
+              <span className="text-xs mt-1 text-gray-600">Hjem</span>
             </Link>
-          )}
-        </div>
-      </nav>
-    </div>
+
+            <Link
+              href="/ansatt/dokumenter"
+              className="flex flex-col items-center justify-center flex-1 h-full hover:bg-gray-50 transition-colors"
+            >
+              <FileText className="h-5 w-5 text-gray-600" />
+              <span className="text-xs mt-1 text-gray-600">Dokumenter</span>
+            </Link>
+
+            <Link
+              href="/ansatt/avvik"
+              className="flex flex-col items-center justify-center flex-1 h-full hover:bg-gray-50 transition-colors"
+            >
+              <AlertCircle className="h-5 w-5 text-gray-600" />
+              <span className="text-xs mt-1 text-gray-600">Avvik</span>
+            </Link>
+
+            <Link
+              href="/ansatt/stoffkartotek"
+              className="flex flex-col items-center justify-center flex-1 h-full hover:bg-gray-50 transition-colors"
+            >
+              <Beaker className="h-5 w-5 text-gray-600" />
+              <span className="text-xs mt-1 text-gray-600">Stoffer</span>
+            </Link>
+
+            <Link
+              href="/ansatt/skjemaer"
+              className="flex flex-col items-center justify-center flex-1 h-full hover:bg-gray-50 transition-colors"
+            >
+              <ClipboardList className="h-5 w-5 text-gray-600" />
+              <span className="text-xs mt-1 text-gray-600">Skjemaer</span>
+            </Link>
+
+            <Link
+              href="/ansatt/opplaering"
+              className="flex flex-col items-center justify-center flex-1 h-full hover:bg-gray-50 transition-colors"
+            >
+              <GraduationCap className="h-5 w-5 text-gray-600" />
+              <span className="text-xs mt-1 text-gray-600">Opplæring</span>
+            </Link>
+            {tenant?.timeRegistrationEnabled && (
+              <Link
+                href="/ansatt/timeregistrering"
+                className="flex flex-col items-center justify-center flex-1 h-full hover:bg-gray-50 transition-colors"
+              >
+                <Clock className="h-5 w-5 text-gray-600" />
+                <span className="text-xs mt-1 text-gray-600">Timer</span>
+              </Link>
+            )}
+          </div>
+        </nav>
+      </div>
+    </NotificationsProvider>
   );
 }
 

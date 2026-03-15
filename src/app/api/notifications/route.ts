@@ -3,6 +3,31 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
+async function resolveTenantId(userId: string, sessionTenantId?: string | null) {
+  if (sessionTenantId) {
+    const membership = await prisma.userTenant.findUnique({
+      where: {
+        userId_tenantId: {
+          userId,
+          tenantId: sessionTenantId,
+        },
+      },
+      select: { tenantId: true },
+    });
+
+    if (membership) {
+      return membership.tenantId;
+    }
+  }
+
+  const fallbackMembership = await prisma.userTenant.findFirst({
+    where: { userId },
+    select: { tenantId: true },
+  });
+
+  return fallbackMembership?.tenantId ?? null;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -12,16 +37,14 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const parsedLimit = Number.parseInt(searchParams.get("limit") || "20", 10);
+    const limit = Number.isFinite(parsedLimit)
+      ? Math.min(Math.max(parsedLimit, 1), 100)
+      : 20;
     const unreadOnly = searchParams.get("unreadOnly") === "true";
 
-    // Hent tenantId fra UserTenant
-    const userTenant = await prisma.userTenant.findFirst({
-      where: { userId: session.user.id },
-      select: { tenantId: true },
-    });
-
-    if (!userTenant) {
+    const tenantId = await resolveTenantId(session.user.id, session.user.tenantId);
+    if (!tenantId) {
       return NextResponse.json(
         { error: "No tenant found" },
         { status: 404 }
@@ -30,7 +53,7 @@ export async function GET(request: NextRequest) {
 
     const where = {
       userId: session.user.id,
-      tenantId: userTenant.tenantId,
+      tenantId,
       ...(unreadOnly && { isRead: false }),
     };
 
@@ -43,7 +66,7 @@ export async function GET(request: NextRequest) {
     const unreadCount = await prisma.notification.count({
       where: {
         userId: session.user.id,
-        tenantId: userTenant.tenantId,
+        tenantId,
         isRead: false,
       },
     });
@@ -69,13 +92,8 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const { notificationId, markAll } = body;
 
-    // Hent tenantId
-    const userTenant = await prisma.userTenant.findFirst({
-      where: { userId: session.user.id },
-      select: { tenantId: true },
-    });
-
-    if (!userTenant) {
+    const tenantId = await resolveTenantId(session.user.id, session.user.tenantId);
+    if (!tenantId) {
       return NextResponse.json(
         { error: "No tenant found" },
         { status: 404 }
@@ -87,7 +105,7 @@ export async function PATCH(request: NextRequest) {
       await prisma.notification.updateMany({
         where: {
           userId: session.user.id,
-          tenantId: userTenant.tenantId,
+          tenantId,
           isRead: false,
         },
         data: {
@@ -105,7 +123,7 @@ export async function PATCH(request: NextRequest) {
         where: {
           id: notificationId,
           userId: session.user.id,
-          tenantId: userTenant.tenantId,
+          tenantId,
         },
       });
 
@@ -158,13 +176,8 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Hent tenantId
-    const userTenant = await prisma.userTenant.findFirst({
-      where: { userId: session.user.id },
-      select: { tenantId: true },
-    });
-
-    if (!userTenant) {
+    const tenantId = await resolveTenantId(session.user.id, session.user.tenantId);
+    if (!tenantId) {
       return NextResponse.json(
         { error: "No tenant found" },
         { status: 404 }
@@ -175,7 +188,7 @@ export async function DELETE(request: NextRequest) {
       where: {
         id: notificationId,
         userId: session.user.id,
-        tenantId: userTenant.tenantId,
+        tenantId,
       },
     });
 

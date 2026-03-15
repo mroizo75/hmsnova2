@@ -1,18 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runHealthcareTrainingExpiryAlerts } from "@/lib/healthcare-training-alerts";
+import { validateCronRequest } from "@/lib/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("authorization");
-    const cronSecret = process.env.CRON_SECRET;
-
-    if (process.env.NODE_ENV === "production") {
-      if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
+    const unauthorizedResponse = validateCronRequest(request);
+    if (unauthorizedResponse) {
+      return unauthorizedResponse;
     }
 
     const startedAt = Date.now();

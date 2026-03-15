@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 const createWhistleblowSchema = z.object({
   tenantId: z.string().min(1),
+  tenantSlug: z.string().min(1),
   category: z.enum([
     "HARASSMENT",
     "DISCRIMINATION",
@@ -59,9 +60,27 @@ export async function POST(req: NextRequest) {
     
     const validatedData = createWhistleblowSchema.parse(body);
 
+    const tenant = await db.tenant.findFirst({
+      where: {
+        id: validatedData.tenantId,
+        slug: validatedData.tenantSlug,
+        status: "ACTIVE",
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!tenant) {
+      return NextResponse.json(
+        { error: "Ugyldig varslingskanal" },
+        { status: 403 }
+      );
+    }
+
     // Generate unique case number
     const count = await db.whistleblowing.count({
-      where: { tenantId: validatedData.tenantId },
+      where: { tenantId: tenant.id },
     });
     const year = new Date().getFullYear();
     const caseNumber = `VAR-${year}-${String(count + 1).padStart(3, "0")}`;
@@ -71,7 +90,7 @@ export async function POST(req: NextRequest) {
 
     const report = await db.whistleblowing.create({
       data: {
-        tenantId: validatedData.tenantId,
+        tenantId: tenant.id,
         caseNumber,
         accessCode,
         category: validatedData.category,
@@ -100,14 +119,14 @@ export async function POST(req: NextRequest) {
     });
 
     // Send varsling til HMS-ansvarlige og ledelse
-    await notifyUsersByRole(validatedData.tenantId, "HMS", {
+    await notifyUsersByRole(tenant.id, "HMS", {
       type: "WHISTLEBLOWING",
       title: "Ny varsling mottatt",
       message: `${report.category}: ${report.title} - Saksnummer: ${caseNumber}`,
       link: `/dashboard/whistleblowing/${report.id}`,
     });
     
-    await notifyUsersByRole(validatedData.tenantId, "LEDER", {
+    await notifyUsersByRole(tenant.id, "LEDER", {
       type: "WHISTLEBLOWING",
       title: "Ny varsling mottatt",
       message: `${report.category}: ${report.title} - Saksnummer: ${caseNumber}`,

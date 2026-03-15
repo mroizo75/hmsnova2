@@ -1,0 +1,80 @@
+import type { NotificationType, UserTenant } from "@prisma/client";
+
+export type NotificationPreferenceKey =
+  | "notifyIncidents"
+  | "notifyMeasures"
+  | "notifyAudits"
+  | "notifyMeetings"
+  | "notifyInspections"
+  | "notifyRisks"
+  | "notifyDocuments"
+  | "notifyTraining";
+
+const notificationTypePreferenceMap: Partial<Record<NotificationType, NotificationPreferenceKey>> = {
+  NEW_INCIDENT: "notifyIncidents",
+  INCIDENT_UPDATED: "notifyIncidents",
+  INCIDENT_CLOSED: "notifyIncidents",
+  INCIDENT_OVERDUE: "notifyIncidents",
+  MEASURE_ASSIGNED: "notifyMeasures",
+  MEASURE_DUE_SOON: "notifyMeasures",
+  MEASURE_OVERDUE: "notifyMeasures",
+  MEASURE_REMINDER: "notifyMeasures",
+  AUDIT_SCHEDULED: "notifyAudits",
+  AUDIT_REMINDER: "notifyAudits",
+  AUDIT_FINDING_OPEN: "notifyAudits",
+  MEETING_REMINDER: "notifyMeetings",
+  MEETING_SCHEDULED: "notifyMeetings",
+  INSPECTION_REMINDER: "notifyInspections",
+  INSPECTION_SCHEDULED: "notifyInspections",
+  INSPECTION_OVERDUE: "notifyInspections",
+  INSPECTION_FINDING: "notifyInspections",
+  RISK_REVIEW_DUE: "notifyRisks",
+  RISK_HIGH_SCORE: "notifyRisks",
+  RISK_CONTROL_DUE: "notifyRisks",
+  DOCUMENT_REVIEW_DUE: "notifyDocuments",
+  DOCUMENT_EXPIRED: "notifyDocuments",
+  DOCUMENT_APPROVED: "notifyDocuments",
+  TRAINING_DUE: "notifyTraining",
+  TRAINING_EXPIRED: "notifyTraining",
+  TRAINING_ASSIGNED: "notifyTraining",
+  CHEMICAL_SDS_REVIEW: "notifyRisks",
+  CHEMICAL_EXPIRED: "notifyRisks",
+};
+
+const immediateEmailTypes = new Set<NotificationType>([
+  "NEW_INCIDENT",
+  "INCIDENT_OVERDUE",
+  "MEASURE_OVERDUE",
+  "WHISTLEBLOWING",
+  "WHISTLEBLOWING_MSG",
+  "TRAINING_EXPIRED",
+  "SYSTEM_ALERT",
+  "INSPECTION_FINDING",
+]);
+
+export function isNotificationTypeEnabledForUser(
+  type: NotificationType,
+  userTenant: Pick<UserTenant, NotificationPreferenceKey>
+): boolean {
+  const preferenceKey = notificationTypePreferenceMap[type];
+  if (!preferenceKey) {
+    return true;
+  }
+
+  return userTenant[preferenceKey];
+}
+
+export function shouldSendImmediateEmailForType(
+  type: NotificationType,
+  userTenant: Pick<UserTenant, "notifyByEmail" | NotificationPreferenceKey>
+): boolean {
+  if (!userTenant.notifyByEmail) {
+    return false;
+  }
+
+  if (!immediateEmailTypes.has(type)) {
+    return false;
+  }
+
+  return isNotificationTypeEnabledForUser(type, userTenant);
+}

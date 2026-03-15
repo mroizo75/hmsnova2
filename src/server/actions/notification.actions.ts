@@ -1,9 +1,14 @@
 "use server";
 
 import { prisma } from "@/lib/db";
+import { sendEmail } from "@/lib/email";
 import { getAuthContext } from "@/lib/server-authorization";
 import { NotificationType, Role } from "@prisma/client";
 import { publishNotification } from "@/lib/redis-pubsub";
+import {
+  isNotificationTypeEnabledForUser,
+  shouldSendImmediateEmailForType,
+} from "@/lib/notification-routing";
 
 interface CreateNotificationInput {
   tenantId: string;
@@ -14,8 +19,72 @@ interface CreateNotificationInput {
   link?: string;
 }
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "https://hmsnova.no";
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+async function sendImmediateNotificationEmail(input: {
+  to: string;
+  title: string;
+  message: string;
+  link?: string;
+}) {
+  if (!process.env.RESEND_API_KEY) {
+    return;
+  }
+
+  const safeTitle = escapeHtml(input.title);
+  const safeMessage = escapeHtml(input.message);
+  const fullLink = input.link ? `${APP_URL}${input.link}` : `${APP_URL}/dashboard/notifications`;
+
+  await sendEmail({
+    to: input.to,
+    subject: `HMS Nova: ${safeTitle}`,
+    html: `
+      <h2>${safeTitle}</h2>
+      <p>${safeMessage}</p>
+      <p>
+        <a href="${fullLink}" style="display:inline-block;padding:10px 18px;background:#0f172a;color:#ffffff;text-decoration:none;border-radius:6px;">
+          Åpne varsling
+        </a>
+      </p>
+    `,
+  });
+}
+
 export async function createNotification(input: CreateNotificationInput) {
   try {
+    const userTenant = await prisma.userTenant.findUnique({
+      where: {
+        userId_tenantId: {
+          userId: input.userId,
+          tenantId: input.tenantId,
+        },
+      },
+      include: {
+        user: {
+          select: {
+            email: true,
+          },
+        },
+      },
+    });
+
+    if (!userTenant) {
+      return { success: false, error: "Brukeren er ikke medlem i valgt tenant" };
+    }
+
+    if (!isNotificationTypeEnabledForUser(input.type, userTenant)) {
+      return { success: true, skipped: true };
+    }
+
     const notification = await prisma.notification.create({
       data: {
         tenantId: input.tenantId,
@@ -29,6 +98,19 @@ export async function createNotification(input: CreateNotificationInput) {
 
     // Publiser til Redis pub/sub for real-time oppdatering
     await publishNotification(input.userId, notification, input.tenantId);
+
+    if (userTenant.user.email && shouldSendImmediateEmailForType(input.type, userTenant)) {
+      try {
+        await sendImmediateNotificationEmail({
+          to: userTenant.user.email,
+          title: input.title,
+          message: input.message,
+          link: input.link,
+        });
+      } catch (emailError) {
+        console.error("Immediate notification email failed:", emailError);
+      }
+    }
 
     return { success: true, data: notification };
   } catch (error: any) {

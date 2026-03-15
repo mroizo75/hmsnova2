@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runScheduledAlerts } from "@/lib/scheduled-alerts";
-import { sendDigestEmails } from "@/lib/email-digest";
+import { validateCronRequest } from "@/lib/cron-auth";
 
 /**
  * Cron Job API Route for HMS Nova Alerts
@@ -25,16 +25,9 @@ export const maxDuration = 60; // 60 sekunder timeout
 
 export async function GET(request: NextRequest) {
   try {
-    // Verifiser at forespørselen kommer fra en autorisert kilde
-    const authHeader = request.headers.get("authorization");
-    const cronSecret = process.env.CRON_SECRET;
-
-    // Fail closed i production: krev gyldig secret
-    if (process.env.NODE_ENV === "production") {
-      if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-        console.error("❌ Unauthorized cron request");
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
+    const unauthorizedResponse = validateCronRequest(request);
+    if (unauthorizedResponse) {
+      return unauthorizedResponse;
     }
 
     console.log("🔔 Starting scheduled alerts cron job...");

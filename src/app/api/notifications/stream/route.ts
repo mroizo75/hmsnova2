@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { createRedisSubscriber, subscribeToNotifications } from "@/lib/redis-pubsub";
+import { prisma } from "@/lib/db";
 
 /**
  * Real-time notification streaming via Server-Sent Events (SSE)
@@ -18,12 +19,30 @@ export async function GET(request: NextRequest) {
   if (!session?.user?.id) {
     return new Response("Unauthorized", { status: 401 });
   }
-  if (!session.user.tenantId) {
+  const tenantId = session.user.tenantId
+    ? (
+        await prisma.userTenant.findUnique({
+          where: {
+            userId_tenantId: {
+              userId: session.user.id,
+              tenantId: session.user.tenantId,
+            },
+          },
+          select: { tenantId: true },
+        })
+      )?.tenantId
+    : (
+        await prisma.userTenant.findFirst({
+          where: { userId: session.user.id },
+          select: { tenantId: true },
+        })
+      )?.tenantId;
+
+  if (!tenantId) {
     return new Response("Forbidden", { status: 403 });
   }
 
   const userId = session.user.id;
-  const tenantId = session.user.tenantId;
   const encoder = new TextEncoder();
 
   // Opprett Redis subscriber for denne SSE-tilkoblingen

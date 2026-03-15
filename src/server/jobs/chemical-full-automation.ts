@@ -11,6 +11,7 @@ import { processSDSFromEmail } from "@/lib/email-monitoring";
 import { SupplierSDSManager } from "@/lib/supplier-api";
 import { parseSDSFile } from "@/lib/sds-parser";
 import { getStorage } from "@/lib/storage";
+import { createNotification } from "@/server/actions/notification.actions";
 
 /**
  * Daglig: Overvåk e-post for nye SDS-er
@@ -296,15 +297,13 @@ async function sendAutoUpdateNotification(chemical: any, tenantId: string) {
   for (const userTenant of hmsUsers) {
     const user = userTenant.user;
 
-    await prisma.notification.create({
-      data: {
-        tenantId: tenantId, // ← VIKTIG: Tenant-isolert notifikasjon!
-        userId: user.id,
-        type: "CHEMICAL_SDS_REVIEW",
-        title: `✅ SDS automatisk oppdatert: ${chemical.productName}`,
-        message: `HMS Nova har automatisk hentet og oppdatert sikkerhetsdatablad fra ${chemical.supplier}.`,
-        link: `/dashboard/chemicals/${chemical.id}`,
-      },
+    await createNotification({
+      tenantId: tenantId,
+      userId: user.id,
+      type: "CHEMICAL_SDS_REVIEW",
+      title: `✅ SDS automatisk oppdatert: ${chemical.productName}`,
+      message: `HMS Nova har automatisk hentet og oppdatert sikkerhetsdatablad fra ${chemical.supplier}.`,
+      link: `/dashboard/chemicals/${chemical.id}`,
     });
   }
 }

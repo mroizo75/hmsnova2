@@ -5,6 +5,7 @@
 
 import { prisma } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
+import { createNotification } from "@/server/actions/notification.actions";
 
 /**
  * Sjekk for utdaterte SDS-er og send varsler
@@ -67,15 +68,13 @@ export async function checkOutdatedSDS() {
         if (!userTenant.notifyByEmail || !userTenant.notifyRisks) continue;
 
         // Opprett notifikasjon i systemet
-        await prisma.notification.create({
-          data: {
-            tenantId: tenant.id,
-            userId: user.id,
-            type: "CHEMICAL_SDS_REVIEW",
-            title: "Stoffkartotek trenger oppdatering",
-            message: `${outdatedChemicals.length} kjemikalie(r) har utdaterte sikkerhetsdatablad eller trenger revisjon.`,
-            link: "/dashboard/chemicals",
-          },
+        await createNotification({
+          tenantId: tenant.id,
+          userId: user.id,
+          type: "CHEMICAL_SDS_REVIEW",
+          title: "Stoffkartotek trenger oppdatering",
+          message: `${outdatedChemicals.length} kjemikalie(r) har utdaterte sikkerhetsdatablad eller trenger revisjon.`,
+          link: "/dashboard/chemicals",
         });
 
         // Send e-post hvis brukeren har aktivert det
@@ -178,15 +177,13 @@ export async function checkCMRAndSubstitution() {
         const svhcCount = dangerousChemicals.filter(c => c.isSVHC).length;
 
         // Opprett notifikasjon
-        await prisma.notification.create({
-          data: {
-            tenantId: tenant.id,
-            userId: user.id,
-            type: "CHEMICAL_SDS_REVIEW",
-            title: "Farlige kjemikalier krever substitusjonsvurdering",
-            message: `Du har ${cmrCount} CMR-stoffer og ${svhcCount} SVHC-stoffer som bør vurderes erstattet.`,
-            link: "/dashboard/chemicals?filter=high-risk",
-          },
+        await createNotification({
+          tenantId: tenant.id,
+          userId: user.id,
+          type: "CHEMICAL_SDS_REVIEW",
+          title: "Farlige kjemikalier krever substitusjonsvurdering",
+          message: `Du har ${cmrCount} CMR-stoffer og ${svhcCount} SVHC-stoffer som bør vurderes erstattet.`,
+          link: "/dashboard/chemicals?filter=high-risk",
         });
 
         // Send ukentlig e-post (kun på mandager)

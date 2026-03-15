@@ -15,6 +15,7 @@ import { parseSDSFile } from "@/lib/sds-parser";
 import { SupplierSDSManager } from "@/lib/supplier-api";
 import { getStorage } from "@/lib/storage";
 import { searchSubstanceByCAS, calculateHazardLevel, isCMRSubstance } from "@/lib/echa-api";
+import { createNotification } from "@/server/actions/notification.actions";
 
 /**
  * STEG 1: Sjekk om nyeste versjon ved første registrering
@@ -153,15 +154,13 @@ export async function checkAndUpdateSDSOnCreate(
     });
 
     for (const userTenant of hmsUsers) {
-      await prisma.notification.create({
-        data: {
-          tenantId,
-          userId: userTenant.user.id,
-          type: "CHEMICAL_SDS_REVIEW",
-          title: `✅ SDS oppdatert automatisk: ${chemical.productName}`,
-          message: `Nyere versjon (${updateCheck.sdsInfo.sdsVersion}) ble funnet hos ${chemical.supplier} og lastet ned automatisk.`,
-          link: `/dashboard/chemicals/${chemicalId}`,
-        },
+      await createNotification({
+        tenantId,
+        userId: userTenant.user.id,
+        type: "CHEMICAL_SDS_REVIEW",
+        title: `✅ SDS oppdatert automatisk: ${chemical.productName}`,
+        message: `Nyere versjon (${updateCheck.sdsInfo.sdsVersion}) ble funnet hos ${chemical.supplier} og lastet ned automatisk.`,
+        link: `/dashboard/chemicals/${chemicalId}`,
       });
     }
 
@@ -346,15 +345,13 @@ async function sendWeeklyReport(
 
     if (!user.email || !userTenant.notifyByEmail) continue;
 
-    await prisma.notification.create({
-      data: {
-        tenantId,
-        userId: user.id,
-        type: "CHEMICAL_SDS_REVIEW",
-        title: `📊 Ukentlig SDS-rapport: ${updated} oppdateringer`,
-        message: `HMS Nova har sjekket ${checked} kjemikalier og oppdatert ${updated} sikkerhetsdatablad automatisk.`,
-        link: `/dashboard/chemicals`,
-      },
+    await createNotification({
+      tenantId,
+      userId: user.id,
+      type: "CHEMICAL_SDS_REVIEW",
+      title: `📊 Ukentlig SDS-rapport: ${updated} oppdateringer`,
+      message: `HMS Nova har sjekket ${checked} kjemikalier og oppdatert ${updated} sikkerhetsdatablad automatisk.`,
+      link: `/dashboard/chemicals`,
     });
   }
 }

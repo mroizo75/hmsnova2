@@ -8,6 +8,7 @@
 import { prisma } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 import { searchSubstanceByCAS } from "@/lib/echa-api";
+import { createNotification } from "@/server/actions/notification.actions";
 
 /**
  * Daglig: Sjekk ECHA for omklassifiseringer
@@ -99,15 +100,13 @@ async function sendCriticalReclassificationAlert(reclass: any) {
     const user = userTenant.user;
 
     // Opprett kritisk notifikasjon
-    await prisma.notification.create({
-      data: {
-        tenantId: chemical.tenantId,
-        userId: user.id,
-        type: "CHEMICAL_SDS_REVIEW",
-        title: `🚨 KRITISK: ${chemical.productName} omklassifisert`,
-        message: `ECHA har omklassifisert dette stoffet til CMR (kreftfremkallende/mutagent/reproduksjonstoksisk). Handling påkrevd innen 48 timer.`,
-        link: `/dashboard/chemicals/${chemical.id}`,
-      },
+    await createNotification({
+      tenantId: chemical.tenantId,
+      userId: user.id,
+      type: "CHEMICAL_SDS_REVIEW",
+      title: `🚨 KRITISK: ${chemical.productName} omklassifisert`,
+      message: `ECHA har omklassifisert dette stoffet til CMR (kreftfremkallende/mutagent/reproduksjonstoksisk). Handling påkrevd innen 48 timer.`,
+      link: `/dashboard/chemicals/${chemical.id}`,
     });
 
     // Send e-post (bruker innstillinger fra userTenant)

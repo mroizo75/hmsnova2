@@ -1,11 +1,10 @@
 "use client";
 
-import { Bell, Check, CheckCheck, Trash2, X } from "lucide-react";
+import { Bell, Check, CheckCheck, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -15,8 +14,10 @@ import { formatDistanceToNow } from "date-fns";
 import { nb } from "date-fns/locale";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { usePathname } from "next/navigation";
 
 export function NotificationBell() {
+  const pathname = usePathname();
   const {
     notifications,
     unreadCount,
@@ -25,6 +26,10 @@ export function NotificationBell() {
     markAllAsRead,
     deleteNotification,
   } = useNotifications();
+  const previewNotifications = notifications.slice(0, 10);
+  const notificationsPageHref = pathname.startsWith("/ansatt")
+    ? "/ansatt/notifications"
+    : "/dashboard/notifications";
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -54,7 +59,12 @@ export function NotificationBell() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative"
+          aria-label={`Varslinger${unreadCount > 0 ? `, ${unreadCount} uleste` : ""}`}
+        >
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-semibold">
@@ -84,7 +94,7 @@ export function NotificationBell() {
             <div className="p-8 text-center text-sm text-muted-foreground">
               Laster...
             </div>
-          ) : notifications.length === 0 ? (
+          ) : previewNotifications.length === 0 ? (
             <div className="p-8 text-center">
               <Bell className="h-12 w-12 mx-auto text-muted-foreground/50 mb-2" />
               <p className="text-sm text-muted-foreground">
@@ -93,7 +103,7 @@ export function NotificationBell() {
             </div>
           ) : (
             <div className="divide-y">
-              {notifications.map((notification) => (
+              {previewNotifications.map((notification) => (
                 <div
                   key={notification.id}
                   className={cn(
@@ -189,11 +199,11 @@ export function NotificationBell() {
           )}
         </ScrollArea>
 
-        {notifications.length > 0 && (
+        {previewNotifications.length > 0 && (
           <>
             <DropdownMenuSeparator />
             <div className="p-2">
-              <Link href="/dashboard/notifications">
+              <Link href={notificationsPageHref}>
                 <Button variant="ghost" className="w-full text-sm">
                   Se alle varslinger
                 </Button>

@@ -30,18 +30,33 @@ export async function getAuthContext(): Promise<AuthContext | null> {
 
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
-    include: {
-      tenants: {
-        take: 1,
-      },
+    select: {
+      id: true,
+      email: true,
     },
   });
 
-  if (!user || user.tenants.length === 0) {
+  if (!user) {
     return null;
   }
 
-  const userTenant = user.tenants[0];
+  const userTenant = session.user.tenantId
+    ? await prisma.userTenant.findUnique({
+        where: {
+          userId_tenantId: {
+            userId: user.id,
+            tenantId: session.user.tenantId,
+          },
+        },
+      })
+    : await prisma.userTenant.findFirst({
+        where: { userId: user.id },
+      });
+
+  if (!userTenant) {
+    return null;
+  }
+
   const role = userTenant.role;
   const permissions = getPermissions(role);
 
