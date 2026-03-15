@@ -8,7 +8,7 @@ import { HardHat, BookTemplate } from "lucide-react";
 import { SjaForm } from "@/components/sja/sja-form";
 
 interface PageProps {
-  searchParams: Promise<{ mal?: string }>;
+  searchParams: Promise<{ mal?: string; projectId?: string }>;
 }
 
 export default async function NySja({ searchParams }: PageProps) {
@@ -18,7 +18,34 @@ export default async function NySja({ searchParams }: PageProps) {
     redirect("/login");
   }
 
-  const { mal: templateId } = await searchParams;
+  const { mal: templateId, projectId } = await searchParams;
+
+  const [projects, selectedProject] = await Promise.all([
+    prisma.project.findMany({
+      where: {
+        tenantId: session.user.tenantId,
+        status: { in: ["PLANNING", "ACTIVE"] },
+      },
+      select: {
+        id: true,
+        name: true,
+        location: true,
+      },
+      orderBy: { name: "asc" },
+    }),
+    projectId
+      ? prisma.project.findFirst({
+          where: {
+            id: projectId,
+            tenantId: session.user.tenantId,
+          },
+          select: {
+            id: true,
+            name: true,
+          },
+        })
+      : Promise.resolve(null),
+  ]);
 
   let templateData: {
     title: string;
@@ -102,6 +129,16 @@ export default async function NySja({ searchParams }: PageProps) {
         </CardContent>
       </Card>
 
+      {selectedProject ? (
+        <Card className="border-l-4 border-l-blue-500 bg-blue-50">
+          <CardContent className="p-4">
+            <p className="text-sm text-blue-900">
+              Registreres på prosjekt: <strong>{selectedProject.name}</strong>
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
+
       <Card>
         <CardHeader>
           <CardTitle>SJA-skjema</CardTitle>
@@ -110,6 +147,8 @@ export default async function NySja({ searchParams }: PageProps) {
           <SjaForm
             tenantId={session.user.tenantId}
             userName={session.user.name || session.user.email || "Ansatt"}
+            projectId={selectedProject?.id}
+            projects={projects}
             initialData={templateData}
           />
         </CardContent>

@@ -44,6 +44,17 @@ interface ProjectReportData {
     status: string;
     plannedDate: Date;
     workLocation: string;
+    responsibleName: string;
+    participants: string | null;
+    additionalConditions: string | null;
+    weatherConditions: string | null;
+    conclusion: string;
+    hazards: Array<{
+      activity: string;
+      hazard: string;
+      measures: string;
+      riskLevel: number;
+    }>;
   }>;
   inspections: Array<{
     title: string;
@@ -99,6 +110,23 @@ const MEASURE_STATUS_LABELS: Record<string, string> = {
   IN_PROGRESS: "Pågår",
   DONE: "Fullført",
   CANCELLED: "Kansellert",
+};
+
+const SJA_STATUS_LABELS: Record<string, string> = {
+  DRAFT: "Utkast",
+  SUBMITTED: "Innsendt",
+  APPROVED: "Godkjent",
+  ACTIVE: "Aktiv",
+  COMPLETED: "Fullført",
+  REJECTED: "Avvist",
+  CANCELLED: "Kansellert",
+};
+
+const SJA_CONCLUSION_LABELS: Record<string, string> = {
+  APPROVED: "Godkjent",
+  CONDITIONAL: "Godkjent med vilkår",
+  REJECTED: "Avvist",
+  NOT_DECIDED: "Ikke avgjort",
 };
 
 const SEVERITY_LABELS: Record<number, string> = {
@@ -373,19 +401,79 @@ export async function generateProjectReport(data: ProjectReportData): Promise<Bu
     autoTable(doc, {
       startY: y,
       margin: { left: margin, right: margin },
-      head: [["SJA-nr", "Tittel", "Arbeidssted", "Dato", "Status"]],
+      head: [["SJA-nr", "Tittel", "Arbeidssted", "Dato", "Status", "Farer"]],
       body: data.sjaAnalyses.map((s) => [
         s.sjaNummer ?? "—",
         s.title,
         s.workLocation,
         fmt(s.plannedDate),
-        s.status,
+        SJA_STATUS_LABELS[s.status] ?? s.status,
+        String(s.hazards.length),
       ]),
       styles: { fontSize: 8, cellPadding: 2 },
       headStyles: { fillColor: [180, 83, 9], textColor: 255, fontStyle: "bold" },
       alternateRowStyles: { fillColor: [255, 251, 235] },
     });
     y = (doc as any).lastAutoTable.finalY + 6;
+
+    for (const sja of data.sjaAnalyses) {
+      checkPageBreak(40);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.text(
+        `${sja.sjaNummer ?? "SJA"} - ${sja.title}`,
+        margin,
+        y
+      );
+      y += 5;
+
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      const metaRows = [
+        `Dato: ${fmt(sja.plannedDate)}`,
+        `Status: ${SJA_STATUS_LABELS[sja.status] ?? sja.status}`,
+        `Konklusjon: ${SJA_CONCLUSION_LABELS[sja.conclusion] ?? sja.conclusion}`,
+        `Arbeidssted: ${sja.workLocation || "—"}`,
+        `Ansvarlig: ${sja.responsibleName || "—"}`,
+      ];
+      doc.text(metaRows, margin, y);
+      y += metaRows.length * 4 + 1;
+
+      addField("Deltakere", sja.participants ?? "—");
+      if (sja.weatherConditions) {
+        addField("Værforhold", sja.weatherConditions);
+      }
+      if (sja.additionalConditions) {
+        addField("Spesielle forhold", sja.additionalConditions);
+      }
+
+      if (sja.hazards.length > 0) {
+        checkPageBreak(26);
+        autoTable(doc, {
+          startY: y,
+          margin: { left: margin, right: margin },
+          head: [["Aktivitet", "Fare", "Tiltak", "Risiko"]],
+          body: sja.hazards.map((hazard) => [
+            hazard.activity,
+            hazard.hazard,
+            hazard.measures,
+            String(hazard.riskLevel),
+          ]),
+          styles: { fontSize: 8, cellPadding: 2 },
+          headStyles: { fillColor: [146, 64, 14], textColor: 255, fontStyle: "bold" },
+          alternateRowStyles: { fillColor: [255, 247, 237] },
+          columnStyles: {
+            0: { cellWidth: 35 },
+            1: { cellWidth: "auto" },
+            2: { cellWidth: "auto" },
+            3: { cellWidth: 14 },
+          },
+        });
+        y = (doc as any).lastAutoTable.finalY + 5;
+      } else {
+        y += 3;
+      }
+    }
   }
 
   // ── Vernerunder ──

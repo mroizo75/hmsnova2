@@ -54,6 +54,11 @@ interface SjaFormProps {
   tenantId: string;
   userName: string;
   projectId?: string;
+  projects?: Array<{
+    id: string;
+    name: string;
+    location?: string | null;
+  }>;
   onSuccess?: () => void;
   successRedirectPath?: string;
   initialData?: {
@@ -71,6 +76,7 @@ export function SjaForm({
   tenantId,
   userName,
   projectId,
+  projects = [],
   onSuccess,
   successRedirectPath = "/ansatt/sja",
   initialData,
@@ -78,6 +84,7 @@ export function SjaForm({
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState(projectId ?? "__none__");
   const [hazards, setHazards] = useState<HazardRow[]>(
     initialData?.hazards ?? [{ ...emptyHazard }]
   );
@@ -160,7 +167,7 @@ export function SjaForm({
 
     const payload = {
       tenantId,
-      projectId,
+      projectId: selectedProjectId === "__none__" ? undefined : selectedProjectId,
       title: formData.get("title") as string,
       description: formData.get("description") as string,
       workLocation: formData.get("workLocation") as string,
@@ -206,6 +213,11 @@ export function SjaForm({
 
       if (onSuccess) {
         onSuccess();
+      } else if (
+        selectedProjectId !== "__none__" &&
+        successRedirectPath === "/dashboard/sja"
+      ) {
+        router.push(`/dashboard/projects/${selectedProjectId}`);
       } else {
         router.push(successRedirectPath);
       }
@@ -259,6 +271,28 @@ export function SjaForm({
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
+          {projects.length > 0 ? (
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="projectId" className="text-base">
+                Prosjekt
+              </Label>
+              <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                <SelectTrigger id="projectId" className="h-12 text-base">
+                  <SelectValue placeholder="Velg prosjekt (valgfritt)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Ingen prosjektkobling</SelectItem>
+                  {projects.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.name}
+                      {project.location ? ` - ${project.location}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
+
           <div className="space-y-2">
             <Label htmlFor="workLocation" className="text-base">
               Arbeidssted *

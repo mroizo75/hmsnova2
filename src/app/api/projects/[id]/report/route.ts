@@ -37,6 +37,20 @@ export async function GET(
             select: {
               sjaNummer: true, title: true, status: true,
               plannedDate: true, workLocation: true,
+              responsibleName: true,
+              participants: true,
+              additionalConditions: true,
+              weatherConditions: true,
+              conclusion: true,
+              hazards: {
+                orderBy: { sortOrder: "asc" },
+                select: {
+                  activity: true,
+                  hazard: true,
+                  measures: true,
+                  riskLevel: true,
+                },
+              },
             },
           },
           inspections: {
