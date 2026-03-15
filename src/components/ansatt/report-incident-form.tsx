@@ -21,6 +21,16 @@ import Image from "next/image";
 const NO_PROJECT = "__none__";
 type IncidentContext = "general" | "homeVisitRisk" | "infectionExposure" | "medicationNearMiss" | "violenceThreat";
 
+function getCurrentLocalDateTimeValue(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
 interface SubcategoryOption {
   id: string;
   key: string;
@@ -68,6 +78,7 @@ export function ReportIncidentForm({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string>(NO_PROJECT);
+  const [occurredAt, setOccurredAt] = useState<string>(getCurrentLocalDateTimeValue());
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [incidentContext, setIncidentContext] = useState<IncidentContext>("general");
@@ -223,6 +234,7 @@ export function ReportIncidentForm({
     );
     formData.append("tenantId", tenantId);
     formData.append("reportedBy", reportedBy);
+    formData.set("occurredAt", occurredAt);
     formData.append("date", new Date().toISOString());
     if (selectedProjectId !== NO_PROJECT) {
       formData.append("projectId", selectedProjectId);
@@ -403,6 +415,22 @@ export function ReportIncidentForm({
         </Select>
       </div>
 
+      <div className="space-y-2">
+        <Label htmlFor="occurredAt" className="text-base">
+          Når skjedde det? *
+        </Label>
+        <Input
+          id="occurredAt"
+          name="occurredAt"
+          type="datetime-local"
+          value={occurredAt}
+          onChange={(event) => setOccurredAt(event.target.value)}
+          required
+          max={getCurrentLocalDateTimeValue()}
+          className="h-12 text-base"
+        />
+      </div>
+
       {/* Tittel */}
       <div className="space-y-2">
         <Label htmlFor="title" className="text-base">
@@ -427,6 +455,18 @@ export function ReportIncidentForm({
           name="location"
           placeholder="F.eks: Verksted, bygg A"
           required
+          className="h-12 text-base"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="witnessName" className="text-base">
+          Vitner
+        </Label>
+        <Input
+          id="witnessName"
+          name="witnessName"
+          placeholder="Navn på eventuelle vitner"
           className="h-12 text-base"
         />
       </div>
@@ -466,6 +506,116 @@ export function ReportIncidentForm({
           <p className="text-xs text-muted-foreground">
             Notat lagres som kontekst i avviket (ikke pasientjournal).
           </p>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <Label htmlFor="involvedPersons" className="text-base">
+          Hvem var involvert?
+        </Label>
+        <Textarea
+          id="involvedPersons"
+          name="involvedPersons"
+          placeholder="Navn eller roller på involverte personer"
+          rows={2}
+          className="text-base resize-none"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="injuryType" className="text-base">
+          Type skade/eksponering (valgfritt)
+        </Label>
+        <Input
+          id="injuryType"
+          name="injuryType"
+          placeholder="F.eks: Kuttskade, fallskade, kjemisk eksponering"
+          className="h-12 text-base"
+        />
+      </div>
+
+      {selectedType === "CUSTOMER" && (
+        <div className="space-y-4 rounded-lg border p-4">
+          <Label className="text-base font-semibold">Kundeinformasjon</Label>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="customerName" className="text-base">
+                Kundenavn
+              </Label>
+              <Input
+                id="customerName"
+                name="customerName"
+                placeholder="Navn på kunde/bedrift"
+                className="h-12 text-base"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="customerEmail" className="text-base">
+                Kunde e-post
+              </Label>
+              <Input
+                id="customerEmail"
+                name="customerEmail"
+                type="email"
+                placeholder="kunde@firma.no"
+                className="h-12 text-base"
+              />
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="customerPhone" className="text-base">
+                Telefon
+              </Label>
+              <Input
+                id="customerPhone"
+                name="customerPhone"
+                placeholder="+47 99 99 99 99"
+                className="h-12 text-base"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="customerTicketId" className="text-base">
+                Referanse/saksnummer
+              </Label>
+              <Input
+                id="customerTicketId"
+                name="customerTicketId"
+                placeholder="F.eks. #12345"
+                className="h-12 text-base"
+              />
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="responseDeadline" className="text-base">
+                Svarfrist
+              </Label>
+              <Input
+                id="responseDeadline"
+                name="responseDeadline"
+                type="date"
+                className="h-12 text-base"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="customerSatisfaction" className="text-base">
+                Kundetilfredshet (1-5)
+              </Label>
+              <Select name="customerSatisfaction">
+                <SelectTrigger className="h-12 text-base">
+                  <SelectValue placeholder="Velg vurdering" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2, 3, 4, 5].map((value) => (
+                    <SelectItem key={value} value={value.toString()}>
+                      {value}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
       )}
 

@@ -39,20 +39,27 @@ export async function POST(request: NextRequest) {
     if (!tenantId) {
       return NextResponse.json({ error: "Ingen tenant tilgang" }, { status: 403 });
     }
-    const title = formData.get("title") as string;
-    const description = formData.get("description") as string;
-    const type = formData.get("type") as string;
+    const title = (formData.get("title") as string | null)?.trim() ?? "";
+    const description = (formData.get("description") as string | null)?.trim() ?? "";
+    const type = (formData.get("type") as string | null)?.trim() ?? "";
     const severityStr = formData.get("severity") as string;
     const severity = parseInt(severityStr, 10); // Konverter til number
-    const location = formData.get("location") as string;
-    const reportedBy = formData.get("reportedBy") as string;
+    const location = (formData.get("location") as string | null)?.trim() ?? "";
+    const reportedBy = session.user.id;
+    const occurredAtRaw = (formData.get("occurredAt") as string | null)?.trim() ?? "";
     const date = formData.get("date") as string;
     const injuryType = formData.get("injuryType") as string | null;
     const medicalAttention = formData.get("medicalAttentionRequired") as string | null;
     const lostTime = formData.get("lostTimeMinutes") as string | null;
-    const immediateAction = formData.get("immediateAction") as string | null;
-    const suggestedActions = formData.get("suggestedActions") as string | null;
     const involvedPersons = formData.get("involvedPersons") as string | null;
+    const witnessName = formData.get("witnessName") as string | null;
+    const customerName = formData.get("customerName") as string | null;
+    const customerEmail = formData.get("customerEmail") as string | null;
+    const customerPhone = formData.get("customerPhone") as string | null;
+    const customerTicketId = formData.get("customerTicketId") as string | null;
+    const responseDeadlineRaw = (formData.get("responseDeadline") as string | null)?.trim() || null;
+    const customerSatisfactionRaw =
+      (formData.get("customerSatisfaction") as string | null)?.trim() || null;
     const incidentContext = formData.get("incidentContext") as string | null;
     const contextDetails = (formData.get("contextDetails") as string | null)?.trim() || null;
     const rawSubcategoryKeys = formData.get("subcategoryKeys") as string | null;
@@ -64,6 +71,30 @@ export async function POST(request: NextRequest) {
     const enrichedDescription = contextDetails
       ? `${description}\n\nKontekstnotat: ${contextDetails}`
       : description;
+    const occurredAt = occurredAtRaw ? new Date(occurredAtRaw) : new Date(date);
+    const responseDeadline = responseDeadlineRaw ? new Date(responseDeadlineRaw) : null;
+    const customerSatisfaction = customerSatisfactionRaw
+      ? parseInt(customerSatisfactionRaw, 10)
+      : null;
+
+    if (!title || !description || !location || !type) {
+      return NextResponse.json({ error: "Mangler påkrevde felt." }, { status: 400 });
+    }
+    if (!Number.isFinite(severity) || severity < 1 || severity > 5) {
+      return NextResponse.json({ error: "Ugyldig alvorlighetsgrad." }, { status: 400 });
+    }
+    if (Number.isNaN(occurredAt.getTime())) {
+      return NextResponse.json({ error: "Ugyldig tidspunkt for hendelsen." }, { status: 400 });
+    }
+    if (responseDeadline && Number.isNaN(responseDeadline.getTime())) {
+      return NextResponse.json({ error: "Ugyldig svarfrist." }, { status: 400 });
+    }
+    if (
+      customerSatisfaction !== null &&
+      (!Number.isFinite(customerSatisfaction) || customerSatisfaction < 1 || customerSatisfaction > 5)
+    ) {
+      return NextResponse.json({ error: "Ugyldig kundetilfredshet." }, { status: 400 });
+    }
 
     if (!allowedEmployeeIncidentTypes.includes(type as IncidentType)) {
       return NextResponse.json(
@@ -75,7 +106,7 @@ export async function POST(request: NextRequest) {
     const avviksnummer = await generateSequenceNumber(
       tenantId,
       "AVVIK",
-      new Date(date).getFullYear()
+      occurredAt.getFullYear()
     );
     let validatedProjectId: string | null = null;
     if (projectId) {
@@ -99,19 +130,26 @@ export async function POST(request: NextRequest) {
         type: type as any, // Prisma vil validere enum
         severity,
         location,
-        occurredAt: new Date(date),
+        occurredAt,
         reportedBy,
         status: "OPEN",
         stage: "REPORTED",
+        witnessName,
         injuryType,
         medicalAttentionRequired: medicalAttention === "yes",
         lostTimeMinutes: lostTime ? parseInt(lostTime, 10) : undefined,
-        immediateAction,
-        suggestedActions,
+        immediateAction: null,
+        suggestedActions: null,
         involvedPersons,
         contributingFactors: incidentContext || undefined,
         subcategoryKeys,
         projectId: validatedProjectId,
+        customerName,
+        customerEmail,
+        customerPhone,
+        customerTicketId,
+        responseDeadline,
+        customerSatisfaction,
       },
     });
 
