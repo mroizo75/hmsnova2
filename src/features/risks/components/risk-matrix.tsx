@@ -17,19 +17,19 @@ interface RiskMatrixProps {
 }
 
 const likelihoodLabels = [
-  { value: 5, label: "Svært sannsynlig", desc: "Skjer ofte (>50%)" },
-  { value: 4, label: "Sannsynlig", desc: "Kan skje (25-50%)" },
-  { value: 3, label: "Mulig", desc: "Kan hende (10-25%)" },
-  { value: 2, label: "Usannsynlig", desc: "Skjer sjelden (1-10%)" },
-  { value: 1, label: "Svært usannsynlig", desc: "Nesten aldri (<1%)" },
+  { value: 5, label: "Svært sannsynlig", shortLabel: "Svært sann.", desc: "Skjer ofte (>50%)" },
+  { value: 4, label: "Sannsynlig", shortLabel: "Sannsynlig", desc: "Kan skje (25-50%)" },
+  { value: 3, label: "Mulig", shortLabel: "Mulig", desc: "Kan hende (10-25%)" },
+  { value: 2, label: "Usannsynlig", shortLabel: "Usannsynlig", desc: "Skjer sjelden (1-10%)" },
+  { value: 1, label: "Svært usannsynlig", shortLabel: "Svært usann.", desc: "Nesten aldri (<1%)" },
 ];
 
 const consequenceLabels = [
-  { value: 1, label: "Ubetydelig", desc: "Ingen skade" },
-  { value: 2, label: "Mindre", desc: "Førstehjelpsskade" },
-  { value: 3, label: "Moderat", desc: "Fraværsskade" },
-  { value: 4, label: "Alvorlig", desc: "Varig skade" },
-  { value: 5, label: "Katastrofal", desc: "Dødsfall" },
+  { value: 1, label: "Ubetydelig", shortLabel: "Ubetydelig", desc: "Ingen skade" },
+  { value: 2, label: "Mindre", shortLabel: "Mindre", desc: "Førstehjelpsskade" },
+  { value: 3, label: "Moderat", shortLabel: "Moderat", desc: "Fraværsskade" },
+  { value: 4, label: "Alvorlig", shortLabel: "Alvorlig", desc: "Varig skade" },
+  { value: 5, label: "Katastrofal", shortLabel: "Katastrofal", desc: "Dødsfall" },
 ];
 
 export function RiskMatrix({
@@ -82,75 +82,77 @@ export function RiskMatrix({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr>
-                <th className="border p-2 bg-muted text-xs font-semibold">
-                  Sannsynlighet<br/>↓<br/>Konsekvens →
+        <table className="w-full table-fixed border-collapse text-[11px] md:text-xs">
+          <thead>
+            <tr>
+              <th className="w-24 border p-1.5 bg-muted text-[10px] md:text-xs font-semibold">
+                Sannsynlighet / Konsekvens
+              </th>
+              {consequenceLabels.map((c) => (
+                <th key={c.value} className="border p-1.5 bg-muted">
+                  <div className="font-semibold leading-tight">{c.value}. {c.shortLabel}</div>
+                  <div className="hidden lg:block text-muted-foreground font-normal text-[10px] leading-tight">
+                    {c.desc}
+                  </div>
                 </th>
-                {consequenceLabels.map((c) => (
-                  <th key={c.value} className="border p-2 bg-muted text-xs">
-                    <div className="font-semibold">{c.label}</div>
-                    <div className="text-muted-foreground font-normal">{c.desc}</div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {likelihoodLabels.map((l) => (
-                <tr key={l.value}>
-                  <td className="border p-2 bg-muted text-xs">
-                    <div className="font-semibold">{l.label}</div>
-                    <div className="text-muted-foreground font-normal">{l.desc}</div>
-                  </td>
-                  {consequenceLabels.map((c) => {
-                    const score = l.value * c.value;
-                    const isSelected =
-                      selectedLikelihood === l.value &&
-                      selectedConsequence === c.value;
-                    const riskCount = getRiskCount(l.value, c.value);
-                    const cellColor = getMatrixCellColor(score);
-
-                    return (
-                      <td
-                        key={`${l.value}-${c.value}`}
-                        className={`border p-4 text-center cursor-pointer transition-all ${cellColor} ${
-                          isSelected ? "ring-4 ring-primary ring-offset-2" : ""
-                        }`}
-                        onClick={() => onCellClick?.(l.value, c.value)}
-                      >
-                        <div className="text-white font-bold text-2xl">{score}</div>
-                        {riskCount > 0 && (
-                          <div className="text-white text-xs mt-1">
-                            {riskCount} risiko{riskCount > 1 ? "er" : ""}
-                          </div>
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </tr>
+          </thead>
+          <tbody>
+            {likelihoodLabels.map((l) => (
+              <tr key={l.value}>
+                <td className="border p-1.5 bg-muted align-top">
+                  <div className="font-semibold leading-tight">{l.value}. {l.shortLabel}</div>
+                  <div className="hidden lg:block text-muted-foreground font-normal text-[10px] leading-tight">
+                    {l.desc}
+                  </div>
+                </td>
+                {consequenceLabels.map((c) => {
+                  const score = l.value * c.value;
+                  const isSelected =
+                    selectedLikelihood === l.value &&
+                    selectedConsequence === c.value;
+                  const riskCount = getRiskCount(l.value, c.value);
+                  const cellColor = getMatrixCellColor(score);
 
-        <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+                  return (
+                    <td
+                      key={`${l.value}-${c.value}`}
+                      className={`border p-1.5 md:p-2 text-center transition-all h-14 md:h-16 ${cellColor} ${
+                        onCellClick ? "cursor-pointer" : ""
+                      } ${isSelected ? "ring-2 ring-primary ring-offset-1" : ""}`}
+                      onClick={() => onCellClick?.(l.value, c.value)}
+                    >
+                      <div className="text-white font-bold text-base md:text-lg leading-none">{score}</div>
+                      {riskCount > 0 && (
+                        <div className="text-white text-[10px] leading-tight mt-1">
+                          {riskCount} risiko{riskCount > 1 ? "er" : ""}
+                        </div>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-green-500 rounded"></div>
-            <span className="text-sm">Lav (1-5)</span>
+            <div className="w-4 h-4 bg-green-500 rounded"></div>
+            <span className="text-xs">Lav (1-5)</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-yellow-500 rounded"></div>
-            <span className="text-sm">Moderat (6-11)</span>
+            <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+            <span className="text-xs">Moderat (6-11)</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-orange-500 rounded"></div>
-            <span className="text-sm">Høy (12-19)</span>
+            <div className="w-4 h-4 bg-orange-500 rounded"></div>
+            <span className="text-xs">Høy (12-19)</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-red-500 rounded"></div>
-            <span className="text-sm">Kritisk (20-25)</span>
+            <div className="w-4 h-4 bg-red-500 rounded"></div>
+            <span className="text-xs">Kritisk (20-25)</span>
           </div>
         </div>
       </CardContent>

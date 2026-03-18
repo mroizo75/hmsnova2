@@ -22,8 +22,22 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { createIncident } from "@/server/actions/incident.actions";
+import {
+  generateAiIncidentCaseDraft,
+  runAiIncidentQualityCheck,
+} from "@/server/actions/ai-assistant.actions";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, X, AlertTriangle, BarChart3, Users, WifiOff, CloudUpload } from "lucide-react";
+import {
+  Camera,
+  X,
+  AlertTriangle,
+  BarChart3,
+  Users,
+  WifiOff,
+  CloudUpload,
+  Sparkles,
+  CheckCircle2,
+} from "lucide-react";
 import Image from "next/image";
 import type { IncidentType } from "@prisma/client";
 import { cn } from "@/lib/utils";
@@ -53,7 +67,17 @@ interface OfflineIncidentQueueItem {
   payload: Record<string, unknown>;
 }
 
+interface AiMeasureSuggestion {
+  title: string;
+  selected: boolean;
+}
+
+interface IncidentAiPrefs {
+  deselectedMeasureTitles: string[];
+}
+
 const OFFLINE_INCIDENT_QUEUE_KEY = "hmsnova.offline.incidentQueue.v1";
+const getIncidentAiPrefsKey = (userId: string) => `hmsnova.incident.aiPrefs.v1.${userId}`;
 
 /**
  * Hendelsestyper basert på AML § 5-1, § 5-2 og IK-HMS § 5.
@@ -174,6 +198,13 @@ export function IncidentForm({
   );
   const [offlineQueueCount, setOfflineQueueCount] = useState(0);
   const [isSyncingOfflineQueue, setIsSyncingOfflineQueue] = useState(false);
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [isCheckingQuality, setIsCheckingQuality] = useState(false);
+  const [aiMeasureSuggestions, setAiMeasureSuggestions] = useState<AiMeasureSuggestion[]>([]);
+  const [qualityWarnings, setQualityWarnings] = useState<string[]>([]);
+  const [immediateActionValue, setImmediateActionValue] = useState("");
+  const [suggestedActionsValue, setSuggestedActionsValue] = useState("");
+  const [aiDeselectedTitles, setAiDeselectedTitles] = useState<Set<string>>(new Set());
 
   // HSE-statistikk
   const [isFatal, setIsFatal] = useState(false);
@@ -235,6 +266,37 @@ export function IncidentForm({
     }
   }, [activeTemplate, selectedType]);
 
+  useEffect(() => {
+    if (activeTemplate?.immediateAction && immediateActionValue.length === 0) {
+      setImmediateActionValue(activeTemplate.immediateAction);
+    }
+  }, [activeTemplate, immediateActionValue.length]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(getIncidentAiPrefsKey(userId));
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as IncidentAiPrefs;
+      const values = Array.isArray(parsed.deselectedMeasureTitles)
+        ? parsed.deselectedMeasureTitles
+            .map((item) => (typeof item === "string" ? item.trim() : ""))
+            .filter((item) => item.length > 0)
+        : [];
+      setAiDeselectedTitles(new Set(values));
+    } catch {
+      // ignore invalid local cache
+    }
+  }, [userId]);
+
+  const persistAiPrefs = (nextDeselectedTitles: Set<string>) => {
+    if (typeof window === "undefined") return;
+    const payload: IncidentAiPrefs = {
+      deselectedMeasureTitles: Array.from(nextDeselectedTitles),
+    };
+    window.localStorage.setItem(getIncidentAiPrefsKey(userId), JSON.stringify(payload));
+  };
+
   const fetchSubcategories = useCallback(async (type: IncidentType) => {
     setLoadingSubcategories(true);
     setSelectedSubcategories([]);
@@ -279,6 +341,91 @@ export function IncidentForm({
     setImageFiles(newFiles);
     setImagePreviews(newFiles.map((f) => URL.createObjectURL(f)));
   }
+
+  const handleGenerateAi = async () => {
+    const titleInput = (document.getElementById("title") as HTMLInputElement | null)?.value || "";
+    const descriptionInput = (document.getElementById("description") as HTMLTextAreaElement | null)?.value || "";
+    if (!selectedType || titleInput.trim().length < 2 || descriptionInput.trim().length < 10) {
+      toast({
+        variant: "destructive",
+        title: "Mangler grunnlag",
+        description: "Velg type og fyll ut tittel + beskrivelse før AI-analyse.",
+      });
+      return;
+    }
+
+    setIsGeneratingAi(true);
+    try {
+      const result = await generateAiIncidentCaseDraft({
+        type: selectedType,
+        title: titleInput,
+        description: descriptionInput,
+        severity: Number((document.querySelector('[name=\"severity\"]') as HTMLInputElement | null)?.value || 3),
+      });
+      if (!result.success || !result.data) {
+        toast({
+          variant: "destructive",
+          title: "AI-analyse feilet",
+          description: result.error || "Ukjent feil",
+        });
+        return;
+      }
+      setImmediateActionValue(result.data.immediateAction);
+      setSuggestedActionsValue(result.data.suggestedActions.join("\n"));
+      setAiMeasureSuggestions(
+        result.data.suggestedActions.map((item) => ({
+          title: item,
+          selected: !aiDeselectedTitles.has(item),
+        }))
+      );
+      toast({
+        title: "AI-forslag klare",
+        description: "Utkast for tiltak og umiddelbar handling er fylt ut.",
+      });
+    } finally {
+      setIsGeneratingAi(false);
+    }
+  };
+
+  const handleQualityCheck = async () => {
+    const titleInput = (document.getElementById("title") as HTMLInputElement | null)?.value || "";
+    const descriptionInput = (document.getElementById("description") as HTMLTextAreaElement | null)?.value || "";
+    if (!selectedType || titleInput.trim().length < 2 || descriptionInput.trim().length < 10) {
+      return;
+    }
+    setIsCheckingQuality(true);
+    try {
+      const result = await runAiIncidentQualityCheck({
+        type: selectedType,
+        title: titleInput,
+        description: descriptionInput,
+        immediateAction: immediateActionValue,
+        suggestedActions: suggestedActionsValue,
+        severity: Number((document.querySelector('[name=\"severity\"]') as HTMLInputElement | null)?.value || 3),
+      });
+      if (result.success && result.data) {
+        setQualityWarnings(result.data.warnings);
+      }
+    } finally {
+      setIsCheckingQuality(false);
+    }
+  };
+
+  const toggleAiMeasureSuggestion = (title: string, checked: boolean) => {
+    setAiMeasureSuggestions((previous) =>
+      previous.map((item) => (item.title === title ? { ...item, selected: checked } : item))
+    );
+    setAiDeselectedTitles((previous) => {
+      const next = new Set(previous);
+      if (checked) {
+        next.delete(title);
+      } else {
+        next.add(title);
+      }
+      persistAiPrefs(next);
+      return next;
+    });
+  };
 
   function readOfflineQueue(): OfflineIncidentQueueItem[] {
     if (typeof window === "undefined") return [];
@@ -405,6 +552,9 @@ export function IncidentForm({
       involvedPersons: (formData.get("involvedPersons") as string) || undefined,
       injuryDescription: (formData.get("injuryDescription") as string) || undefined,
       suggestedActions: (formData.get("suggestedActions") as string) || undefined,
+      aiSuggestedMeasures: aiMeasureSuggestions
+        .filter((item) => item.selected)
+        .map((item) => item.title),
       // HSE-statistikk
       isFatal,
       isLostTimeIncident,
@@ -601,6 +751,50 @@ export function IncidentForm({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="rounded-md border bg-muted/30 p-3 space-y-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <p className="text-sm font-medium">AI-hjelp: hendelse til tiltak</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="secondary" onClick={handleGenerateAi} disabled={loading || isGeneratingAi}>
+                {isGeneratingAi ? "Genererer..." : "Analyser og foreslå tiltak"}
+              </Button>
+              <Button type="button" variant="outline" onClick={handleQualityCheck} disabled={loading || isCheckingQuality}>
+                {isCheckingQuality ? "Sjekker..." : "AI-kvalitetssjekk"}
+              </Button>
+            </div>
+            {qualityWarnings.length > 0 && (
+              <div className="rounded-md border bg-amber-50 p-2 text-xs text-amber-900">
+                <p className="font-medium mb-1">Forbedringspunkter før lagring:</p>
+                <ul className="list-disc ml-4 space-y-1">
+                  {qualityWarnings.map((warning) => (
+                    <li key={warning}>{warning}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {aiMeasureSuggestions.length > 0 && (
+              <div className="rounded-md border bg-green-50 p-2 text-xs text-green-900">
+                <p className="font-medium flex items-center gap-1 mb-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Velg hvilke AI-tiltak som skal opprettes ved lagring
+                </p>
+                <div className="space-y-1">
+                  {aiMeasureSuggestions.map((item) => (
+                    <label key={item.title} className="flex items-center gap-2">
+                      <Checkbox
+                        checked={item.selected}
+                        onCheckedChange={(value) => toggleAiMeasureSuggestion(item.title, value === true)}
+                      />
+                      <span>{item.title}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* ── Prosjektvelger ── */}
@@ -836,6 +1030,8 @@ export function IncidentForm({
                 id="suggestedActions"
                 name="suggestedActions"
                 placeholder="Hva mener du bør gjøres for å forhindre at dette skjer igjen?"
+              value={suggestedActionsValue}
+              onChange={(event) => setSuggestedActionsValue(event.target.value)}
                 disabled={loading}
                 rows={3}
               />
@@ -1097,7 +1293,8 @@ export function IncidentForm({
               id="immediateAction"
               name="immediateAction"
               placeholder="F.eks. Stoppet arbeidet, ryddet området, sikret vitner, varslet leder..."
-              defaultValue={activeTemplate?.immediateAction}
+              value={immediateActionValue}
+              onChange={(event) => setImmediateActionValue(event.target.value)}
               disabled={loading}
               rows={3}
             />

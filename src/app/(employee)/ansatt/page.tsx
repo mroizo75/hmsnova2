@@ -22,8 +22,10 @@ export default async function AnsattDashboard() {
       hmsContactPhone: true,
       hmsContactEmail: true,
       timeRegistrationEnabled: true,
+      industry: true,
     },
   });
+  const isAgricultureTenant = tenant?.industry?.toLowerCase() === "agriculture";
 
   // Hent tenant-navn fra session
   const tenantName = session.user.tenantName;
@@ -57,10 +59,34 @@ export default async function AnsattDashboard() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Husk å lese gjennom HMS-håndboken før du starter arbeidsdag.
+            {isAgricultureTenant
+              ? "Husk sikker sjekk før gårdsarbeid: maskin, dyr og arbeidsområde."
+              : "Husk å lese gjennom HMS-håndboken før du starter arbeidsdag."}
           </p>
         </CardContent>
       </Card>
+
+      {isAgricultureTenant && (
+        <Card className="border-l-4 border-l-green-600">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Rask start i felt</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Link href="/ansatt/avvik/ny" className="rounded-lg border p-3 hover:bg-muted">
+              <p className="font-medium">Registrer hendelse</p>
+              <p className="text-xs text-muted-foreground">Traktor, dyr eller nesten-ulykke</p>
+            </Link>
+            <Link href="/ansatt/vernerunder" className="rounded-lg border p-3 hover:bg-muted">
+              <p className="font-medium">Gjennomfør kontroll</p>
+              <p className="text-xs text-muted-foreground">Fjøs, maskiner og brannvern</p>
+            </Link>
+            <Link href="/ansatt/sja" className="rounded-lg border p-3 hover:bg-muted">
+              <p className="font-medium">Sikker jobb analyse</p>
+              <p className="text-xs text-muted-foreground">Velg mal og start arbeid</p>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Hovedfunksjoner - Store, touch-vennlige knapper */}
       <div className="grid grid-cols-2 gap-4">
@@ -86,9 +112,11 @@ export default async function AnsattDashboard() {
               <div className="h-16 w-16 rounded-full bg-red-100 flex items-center justify-center mb-3">
                 <AlertCircle className="h-8 w-8 text-red-600" />
               </div>
-              <h3 className="font-semibold text-lg mb-1">Rapporter</h3>
+              <h3 className="font-semibold text-lg mb-1">
+                {isAgricultureTenant ? "Noe farlig skjedde?" : "Rapporter"}
+              </h3>
               <p className="text-xs text-muted-foreground">
-                Meld fra om avvik
+                {isAgricultureTenant ? "Meld hendelse raskt" : "Meld fra om avvik"}
               </p>
               <Badge variant="destructive" className="mt-2 text-xs">
                 Viktig!
@@ -106,7 +134,7 @@ export default async function AnsattDashboard() {
               </div>
               <h3 className="font-semibold text-lg mb-1">RUH</h3>
               <p className="text-xs text-muted-foreground">
-                Uønsket hendelse
+                {isAgricultureTenant ? "Nesten-hendelse på gården" : "Uønsket hendelse"}
               </p>
             </CardContent>
           </Card>
@@ -121,7 +149,7 @@ export default async function AnsattDashboard() {
               </div>
               <h3 className="font-semibold text-lg mb-1">SJA</h3>
               <p className="text-xs text-muted-foreground">
-                Sikker Jobb Analyse
+                {isAgricultureTenant ? "Velg mal og start arbeid" : "Sikker Jobb Analyse"}
               </p>
             </CardContent>
           </Card>

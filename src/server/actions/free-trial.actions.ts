@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { createGeneratedDocument, generateDocuments, importGeneratedDocumentsToTenant } from "@/server/actions/generator.actions";
 import type { CompleteGeneratorData } from "@/features/document-generator/schemas/generator.schema";
 import { getBindingPrice } from "@/lib/subscription";
+import { provisionIndustryPackage } from "@/server/actions/industry-provision.actions";
 
 const freeTrialSignupSchema = z.object({
   companyName: z.string().min(2, "Bedriftsnavn må være minst 2 tegn"),
@@ -134,6 +135,8 @@ export async function createFreeTrialTenant(
         registrationType: "FREE_14_DAY",
       },
     });
+
+    await provisionIndustryPackage(tenant.id);
 
     const subscription = await prisma.subscription.create({
       data: {

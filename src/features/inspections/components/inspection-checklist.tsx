@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, X } from "lucide-react";
+import { Camera, X, Sparkles } from "lucide-react";
+import { generateAiInspectionSummary } from "@/server/actions/ai-assistant.actions";
 
 type ChecklistEntry =
   | { type: "heading"; title: string }
@@ -94,6 +95,8 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
   const [saving, setSaving] = useState(false);
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
   const [entries, setEntries] = useState<ChecklistEntry[]>(() => normalizeChecklistEntries(checklist));
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  const [aiSummary, setAiSummary] = useState("");
 
   const progress = useMemo(() => {
     const checklistItems = entries.filter((entry): entry is Extract<ChecklistEntry, { type: "item" }> => entry.type === "item");
@@ -304,6 +307,33 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
     }
   };
 
+  const handleGenerateSummary = async () => {
+    setIsGeneratingSummary(true);
+    try {
+      const result = await generateAiInspectionSummary({
+        inspectionName: `Vernerunde ${inspectionId}`,
+        checklistItems: entries
+          .filter((entry): entry is Extract<ChecklistEntry, { type: "item" }> => entry.type === "item")
+          .map((entry) => ({
+            title: entry.title,
+            status: entry.status || "UNSET",
+            findingDescription: entry.findingDescription || "",
+          })),
+      });
+      if (!result.success || !result.data) {
+        toast({
+          variant: "destructive",
+          title: "AI-oppsummering feilet",
+          description: result.error || "Ukjent feil",
+        });
+        return;
+      }
+      setAiSummary(result.data.summary);
+    } finally {
+      setIsGeneratingSummary(false);
+    }
+  };
+
   if (entries.length === 0) {
     return <p className="text-sm text-muted-foreground">Ingen sjekkpunkter i denne malen.</p>;
   }
@@ -453,6 +483,21 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
         <Button size="sm" onClick={saveChecklist} disabled={saving}>
           {saving ? "Lagrer..." : "Lagre sjekkliste"}
         </Button>
+      </div>
+      <div className="rounded-md border p-3 space-y-2">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <Sparkles className="h-4 w-4" />
+          AI-oppsummering av vernerunde
+        </div>
+        <Button type="button" size="sm" variant="outline" onClick={handleGenerateSummary} disabled={isGeneratingSummary}>
+          {isGeneratingSummary ? "Genererer..." : "Generer oppsummering"}
+        </Button>
+        <Textarea
+          value={aiSummary}
+          onChange={(event) => setAiSummary(event.target.value)}
+          placeholder="Oppsummering av status, kritiske avvik og anbefalt oppfølging."
+          rows={4}
+        />
       </div>
     </div>
   );

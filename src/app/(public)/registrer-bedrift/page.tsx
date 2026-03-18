@@ -19,12 +19,14 @@ import {
 import { CheckCircle2, ArrowLeft, Building2, Mail, Phone, User, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { submitRegistrationRequest } from "@/server/actions/registration.actions";
+import { AGRICULTURE_FARM_TYPES } from "@/lib/industry-packages";
 
 export default function RegistrerBedriftPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [useEHF, setUseEHF] = useState(true);
+  const [industry, setIndustry] = useState<string>("");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -63,8 +65,8 @@ export default function RegistrerBedriftPage() {
             </Badge>
             <h1 className="text-4xl font-bold mb-4">Søk om tilgang til HMS Nova</h1>
             <p className="text-lg text-muted-foreground">
-              Fyll ut skjemaet under, så tar vi kontakt med deg innen 24 timer for å aktivere din konto.
-              Alle planer inkluderer 14 dagers gratis prøveperiode.
+              Fyll ut skjemaet under, så setter vi opp en bransjetilpasset HMS-startpakke.
+              For landbruk får du ferdige forslag for gårdsdrift fra første dag.
             </p>
           </div>
 
@@ -132,26 +134,50 @@ export default function RegistrerBedriftPage() {
                 {/* Bransje */}
                 <div className="space-y-2">
                   <Label htmlFor="industry">
-                    Bransje <span className="text-destructive">*</span>
+                    Hva driver du med? <span className="text-destructive">*</span>
                   </Label>
-                  <Select name="industry" required>
+                  <Select
+                    name="industry"
+                    required
+                    onValueChange={(value) => setIndustry(value)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Velg bransje" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Bygg og anlegg">Bygg og anlegg</SelectItem>
-                      <SelectItem value="Helsevesen">Helsevesen</SelectItem>
-                      <SelectItem value="Transport og logistikk">Transport og logistikk</SelectItem>
-                      <SelectItem value="Industri og produksjon">Industri og produksjon</SelectItem>
-                      <SelectItem value="Handel og service">Handel og service</SelectItem>
-                      <SelectItem value="Hotell og restaurant">Hotell og restaurant</SelectItem>
-                      <SelectItem value="Utdanning">Utdanning</SelectItem>
-                      <SelectItem value="Teknologi og IT">Teknologi og IT</SelectItem>
-                      <SelectItem value="Landbruk">Landbruk</SelectItem>
-                      <SelectItem value="Annet">Annet</SelectItem>
+                      <SelectItem value="construction">Bygg og anlegg</SelectItem>
+                      <SelectItem value="healthcare">Helsevesen</SelectItem>
+                      <SelectItem value="transport">Transport og logistikk</SelectItem>
+                      <SelectItem value="manufacturing">Industri og produksjon</SelectItem>
+                      <SelectItem value="retail">Handel og service</SelectItem>
+                      <SelectItem value="hospitality">Hotell og restaurant</SelectItem>
+                      <SelectItem value="education">Utdanning</SelectItem>
+                      <SelectItem value="technology">Teknologi og IT</SelectItem>
+                      <SelectItem value="agriculture">Landbruk (gårdsdrift)</SelectItem>
+                      <SelectItem value="other">Annet</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+
+                {industry === "agriculture" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="farmType">
+                      Velg gårdstype <span className="text-destructive">*</span>
+                    </Label>
+                    <Select name="farmType" required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Velg gårdstype" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AGRICULTURE_FARM_TYPES.map((farmType) => (
+                          <SelectItem key={farmType.value} value={farmType.label}>
+                            {farmType.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 <div className="border-t pt-6">
                   <h3 className="font-semibold mb-4">Kontaktperson</h3>
@@ -355,6 +381,11 @@ export default function RegistrerBedriftPage() {
                   </Link>
                   .
                 </p>
+                {industry === "agriculture" && (
+                  <p className="text-xs text-center text-muted-foreground">
+                    For landbruk preutfyller vi forslag til risikovurdering, SJA og vernerunder.
+                  </p>
+                )}
               </form>
             </CardContent>
           </Card>

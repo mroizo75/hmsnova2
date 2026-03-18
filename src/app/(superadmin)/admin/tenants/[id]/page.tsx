@@ -4,13 +4,18 @@ import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getTenantDetails, toggleTenantStatus } from "@/server/actions/tenant.actions";
+import {
+  getTenantDetails,
+  getTenantIndustryPackageStatus,
+  toggleTenantStatus,
+} from "@/server/actions/tenant.actions";
 import { EditTenantForm } from "@/features/admin/components/edit-tenant-form";
 import { UpdateAdminEmailForm } from "@/features/admin/components/update-admin-email-form";
 import { ResendActivationForm } from "@/features/admin/components/resend-activation-form";
 import { DeleteTenantDialog } from "@/features/admin/components/delete-tenant-dialog";
 import { TenantActivityTimeline } from "@/features/admin/components/tenant-activity-timeline";
 import { TenantOfferCard } from "@/features/admin/components/tenant-offer-card";
+import { IndustryPackageActions } from "@/features/admin/components/industry-package-actions";
 import { 
   ArrowLeft,
   Building2, 
@@ -26,6 +31,7 @@ import {
   ShieldAlert,
   TrendingUp,
   CreditCard,
+  Boxes,
 } from "lucide-react";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
@@ -51,6 +57,8 @@ async function TenantDetails({ id }: { id: string }) {
   const adminUser = tenant.users.find((ut) => ut.role === "ADMIN")?.user;
   const hasSubscription = !!tenant.subscription;
   const lastManagementReview = tenant.managementReviews?.[0];
+  const packageStatusResult = await getTenantIndustryPackageStatus(tenant.id);
+  const packageStatus = packageStatusResult.success ? packageStatusResult.data : null;
 
   return (
     <div className="space-y-6">
@@ -437,6 +445,88 @@ async function TenantDetails({ id }: { id: string }) {
                 tenantId={tenant.id}
                 defaultEmail={adminUser?.email || tenant.contactEmail || ""}
               />
+            </CardContent>
+          </Card>
+
+          {/* Status Actions */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Boxes className="h-4 w-4" />
+                Bransjepakke-status
+              </CardTitle>
+              <CardDescription>
+                Oversikt over hva som er provisionert for valgt bransje
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {!packageStatusResult.success && (
+                <p className="text-sm text-destructive">{packageStatusResult.error}</p>
+              )}
+
+              {packageStatus?.hasPackage === false && (
+                <p className="text-sm text-muted-foreground">
+                  Ingen definert bransjepakke for denne tenanten
+                  {packageStatus.industryLabel ? ` (${packageStatus.industryLabel})` : ""}.
+                </p>
+              )}
+
+              {packageStatus?.hasPackage && (
+                <div className="space-y-3">
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Bransje: </span>
+                    <span className="font-medium">{packageStatus.industryLabel}</span>
+                  </div>
+
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span>Risikovurdering-forslag</span>
+                      <Badge variant="outline">
+                        {packageStatus.sections.risks.existing}/{packageStatus.sections.risks.expected}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>SJA-maler</span>
+                      <Badge variant="outline">
+                        {packageStatus.sections.sjaTemplates.existing}/{packageStatus.sections.sjaTemplates.expected}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Vernerunde-maler</span>
+                      <Badge variant="outline">
+                        {packageStatus.sections.inspectionTemplates.existing}/{packageStatus.sections.inspectionTemplates.expected}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Opplæringsmaler</span>
+                      <Badge variant="outline">
+                        {packageStatus.sections.courses.existing}/{packageStatus.sections.courses.expected}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Lovreferanser</span>
+                      <Badge variant="outline">
+                        {packageStatus.sections.legalReferences.existing}/{packageStatus.sections.legalReferences.expected}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Enkel mobilmeny</span>
+                      <Badge variant="outline">
+                        {packageStatus.sections.simpleMenu.existing}/{packageStatus.sections.simpleMenu.expected}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <IndustryPackageActions
+                    tenantId={tenant.id}
+                    hasPackage={packageStatus.hasPackage}
+                  />
+
+                  <p className="text-xs text-muted-foreground">
+                    Provisionering er idempotent og oppretter kun manglende elementer.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

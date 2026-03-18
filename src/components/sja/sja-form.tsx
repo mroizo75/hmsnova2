@@ -26,9 +26,11 @@ import {
   CloudSun,
   Users,
   ShieldAlert,
+  Sparkles,
 } from "lucide-react";
 import { getRiskColor, getRiskLabel } from "@/features/sja/schemas/sja.schema";
 import Image from "next/image";
+import { generateAiSjaSummary } from "@/server/actions/ai-assistant.actions";
 
 interface HazardRow {
   activity: string;
@@ -84,12 +86,14 @@ export function SjaForm({
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState(projectId ?? "__none__");
   const [hazards, setHazards] = useState<HazardRow[]>(
     initialData?.hazards ?? [{ ...emptyHazard }]
   );
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [aiSummary, setAiSummary] = useState("");
 
   function addHazard() {
     setHazards([...hazards, { ...emptyHazard }]);
@@ -229,6 +233,49 @@ export function SjaForm({
       });
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleGenerateSummary() {
+    const title = (document.getElementById("title") as HTMLInputElement | null)?.value || "";
+    const workLocation = (document.getElementById("workLocation") as HTMLInputElement | null)?.value || "";
+    const participants = (document.getElementById("participants") as HTMLTextAreaElement | null)?.value || "";
+    const validHazards = hazards.filter(
+      (item) => item.activity.trim() && item.hazard.trim() && item.measures.trim()
+    );
+    if (!title || !workLocation || !participants || validHazards.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Mangler grunnlag",
+        description: "Fyll ut tittel, sted, deltakere og minst én fare før AI-oppsummering.",
+      });
+      return;
+    }
+
+    setIsGeneratingSummary(true);
+    try {
+      const result = await generateAiSjaSummary({
+        title,
+        workLocation,
+        participants,
+        hazards: validHazards.map((item) => ({
+          activity: item.activity,
+          hazard: item.hazard,
+          consequence: item.consequence,
+          measures: item.measures,
+        })),
+      });
+      if (!result.success || !result.data) {
+        toast({
+          variant: "destructive",
+          title: "AI-oppsummering feilet",
+          description: result.error || "Ukjent feil",
+        });
+        return;
+      }
+      setAiSummary(result.data.summary);
+    } finally {
+      setIsGeneratingSummary(false);
     }
   }
 
@@ -617,6 +664,26 @@ export function SjaForm({
             <li>Nødvendige tiltak er beskrevet og forstått</li>
             <li>Alle vet hvem som er ansvarlig for hvert tiltak</li>
           </ul>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Sparkles className="h-4 w-4" />
+            AI-oppsummering
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Button type="button" variant="outline" onClick={handleGenerateSummary} disabled={isGeneratingSummary}>
+            {isGeneratingSummary ? "Genererer..." : "Generer oppsummering"}
+          </Button>
+          <Textarea
+            value={aiSummary}
+            onChange={(event) => setAiSummary(event.target.value)}
+            placeholder="AI-oppsummering av hovedfarer, tiltak og oppfølging vises her."
+            rows={4}
+          />
         </CardContent>
       </Card>
 

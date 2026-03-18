@@ -10,6 +10,9 @@ import { Plus, AlertTriangle, CheckCircle, Clock, Shield, FileText } from "lucid
 import Link from "next/link";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
 import { helpContent } from "@/lib/help-content";
+import { getPermissions } from "@/lib/permissions";
+import { AiRiskSuggestionsCard } from "@/features/risks/components/ai-risk-suggestions-card";
+import { RiskAssessmentDeleteButton } from "@/features/risks/components/risk-assessment-delete-button";
 
 export default async function RisksPage() {
   const session = await getServerSession(authOptions);
@@ -28,6 +31,10 @@ export default async function RisksPage() {
   }
 
   const tenantId = user.tenants[0].tenantId;
+  const tenantRole = user.tenants[0].role;
+  const permissions = getPermissions(tenantRole);
+  const canUseAiSuggestions = permissions.canCreateRisks;
+  const canDeleteRiskAssessments = permissions.canDeleteRisks;
 
   const riskAssessments = await prisma.riskAssessment.findMany({
     where: { tenantId },
@@ -90,15 +97,17 @@ export default async function RisksPage() {
         </Button>
       </div>
 
+      {canUseAiSuggestions && <AiRiskSuggestionsCard />}
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Totalt</CardTitle>
+            <CardTitle className="text-sm font-medium">Risikopunkter totalt</CardTitle>
             <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">Registrerte risikoer</p>
+            <p className="text-xs text-muted-foreground">Punkter i risikoregisteret</p>
           </CardContent>
         </Card>
 
@@ -145,25 +154,33 @@ export default async function RisksPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Risikovurderinger (år)
+              Årlige risikovurderinger (dokumenter)
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              Årlige risikovurderinger med risikopunkter – ISO 45001
+              Hver vurdering er et årsdokument med egne risikopunkter.
             </p>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
               {riskAssessments.map((a) => (
                 <li key={a.id}>
-                  <Link
-                    href={`/dashboard/risks/assessment/${a.id}`}
-                    className="flex items-center justify-between rounded-md border p-3 hover:bg-muted/50"
-                  >
-                    <span className="font-medium">{a.title}</span>
-                    <span className="text-muted-foreground text-sm">
-                      {a._count.risks} risikopunkt{a._count.risks !== 1 ? "er" : ""}
-                    </span>
-                  </Link>
+                  <div className="flex items-center gap-2 rounded-md border p-3 hover:bg-muted/50">
+                    <Link
+                      href={`/dashboard/risks/assessment/${a.id}`}
+                      className="flex min-w-0 flex-1 items-center justify-between gap-3"
+                    >
+                      <span className="font-medium truncate">{a.title}</span>
+                      <span className="text-muted-foreground text-sm whitespace-nowrap">
+                        {a._count.risks} risikopunkt{a._count.risks !== 1 ? "er" : ""}
+                      </span>
+                    </Link>
+                    {canDeleteRiskAssessments && (
+                      <RiskAssessmentDeleteButton
+                        assessmentId={a.id}
+                        assessmentTitle={a.title}
+                      />
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>
@@ -177,7 +194,10 @@ export default async function RisksPage() {
       </div>
 
       <div>
-        <h2 className="text-xl font-semibold mb-4">Alle risikoer</h2>
+        <h2 className="text-xl font-semibold mb-1">Risikoregister (alle risikopunkter)</h2>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Viser alle risikopunkter på tvers av vurderinger, med status og oppfølging av tiltak.
+        </p>
         <RiskList risks={risks} />
       </div>
     </div>

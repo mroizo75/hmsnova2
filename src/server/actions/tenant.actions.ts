@@ -7,7 +7,13 @@ import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
 import { sendEmail } from "@/lib/email";
 import { deleteTenantFiles } from "@/lib/storage";
+import { RiskCategory } from "@prisma/client";
 import { getBindingPrice } from "@/lib/subscription";
+import { provisionIndustryPackage } from "@/server/actions/industry-provision.actions";
+import { getIndustryPackage, getIndustryLabel } from "@/lib/industry-packages";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { generateRiskAnalysis } from "@/lib/ai";
 
 // Valideringsskjemaer
 const updateTenantSchema = z.object({
@@ -75,6 +81,631 @@ const createTenantOfferSchema = z.object({
   setupPrice: z.number().int().min(0).optional(),
   notes: z.string().optional(),
 });
+
+async function requirePrivilegedUser() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) {
+    return null;
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: {
+      id: true,
+      isSuperAdmin: true,
+      isSupport: true,
+    },
+  });
+
+  if (!user || (!user.isSuperAdmin && !user.isSupport)) {
+    return null;
+  }
+
+  return user;
+}
+
+function mapAiSeverityToValues(
+  severity: string
+): { likelihood: number; consequence: number } {
+  const normalizedSeverity = severity.trim().toUpperCase();
+  if (normalizedSeverity === "HIGH") {
+    return { likelihood: 3, consequence: 4 };
+  }
+  if (normalizedSeverity === "MEDIUM") {
+    return { likelihood: 2, consequence: 3 };
+  }
+  return { likelihood: 1, consequence: 2 };
+}
+
+function mapAiCategoryToRiskCategory(category: string): RiskCategory {
+  const normalizedCategory = category.trim().toLowerCase();
+  if (normalizedCategory.includes("ergonomi")) {
+    return "ERGONOMIC";
+  }
+  if (normalizedCategory.includes("sikker")) {
+    return "SAFETY";
+  }
+  if (normalizedCategory.includes("psyk")) {
+    return "PSYCHOSOCIAL";
+  }
+  if (normalizedCategory.includes("kjem")) {
+    return "HEALTH";
+  }
+  if (normalizedCategory.includes("fysisk")) {
+    return "PHYSICAL";
+  }
+  if (normalizedCategory.includes("milj")) {
+    return "ENVIRONMENTAL";
+  }
+  if (normalizedCategory.includes("jurid")) {
+    return "LEGAL";
+  }
+  return "OPERATIONAL";
+}
+
+export async function getTenantIndustryPackageStatus(tenantId: string) {
+  try {
+    const privilegedUser = await requirePrivilegedUser();
+    if (!privilegedUser) {
+      return { success: false, error: "Ingen tilgang" };
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: {
+        id: true,
+        industry: true,
+        simpleMenuItems: true,
+      },
+    });
+
+    if (!tenant) {
+      return { success: false, error: "Bedrift ikke funnet" };
+    }
+
+    const industryPackage = getIndustryPackage(tenant.industry);
+    if (!industryPackage) {
+      return {
+        success: true,
+        data: {
+          hasPackage: false,
+          industry: tenant.industry || null,
+          industryLabel: tenant.industry ? getIndustryLabel(tenant.industry) : null,
+        },
+      };
+    }
+
+    const expectedRiskTitles = industryPackage.risks.map((item) => item.title);
+    const expectedSjaTemplates = industryPackage.sjaTemplates.map((item) => item.name);
+    const expectedInspectionTemplates = industryPackage.inspectionTemplates.map((item) => item.name);
+    const expectedCourseKeys = industryPackage.courseTemplates.map((item) => item.courseKey);
+
+    const [riskMatches, sjaMatches, inspectionMatches, courseMatches, allLegalReferences] =
+      await Promise.all([
+        prisma.risk.findMany({
+          where: {
+            tenantId,
+            title: { in: expectedRiskTitles },
+          },
+          select: { title: true },
+        }),
+        prisma.sjaTemplate.findMany({
+          where: {
+            tenantId,
+            isActive: true,
+            name: { in: expectedSjaTemplates },
+          },
+          select: { name: true },
+        }),
+        prisma.inspectionTemplate.findMany({
+          where: {
+            tenantId,
+            name: { in: expectedInspectionTemplates },
+          },
+          select: { name: true },
+        }),
+        prisma.courseTemplate.findMany({
+          where: {
+            tenantId,
+            courseKey: { in: expectedCourseKeys },
+            isActive: true,
+          },
+          select: { courseKey: true },
+        }),
+        prisma.legalReference.findMany({
+          orderBy: { sortOrder: "asc" },
+        }),
+      ]);
+
+    const legalReferencesForIndustry = allLegalReferences.filter((reference) => {
+      const industries = Array.isArray(reference.industries)
+        ? (reference.industries as string[])
+        : [];
+      const normalized = industries.map((item) => item.toLowerCase());
+      return normalized.includes(industryPackage.industry) || normalized.includes("all");
+    });
+
+    const expectedLegalReferenceKeys = industryPackage.legalReferences.map(
+      (reference) => `${reference.title}::${reference.paragraphRef}`
+    );
+    const existingLegalReferenceKeys = new Set(
+      legalReferencesForIndustry.map((reference) => `${reference.title}::${reference.paragraphRef || ""}`)
+    );
+
+    const existingRiskTitles = new Set(riskMatches.map((item) => item.title));
+    const existingSjaTemplateNames = new Set(sjaMatches.map((item) => item.name));
+    const existingInspectionTemplateNames = new Set(inspectionMatches.map((item) => item.name));
+    const existingCourseKeys = new Set(courseMatches.map((item) => item.courseKey));
+    const selectedSimpleMenuItems = Array.isArray(tenant.simpleMenuItems)
+      ? (tenant.simpleMenuItems as string[])
+      : [];
+
+    const missingRiskTitles = expectedRiskTitles.filter((item) => !existingRiskTitles.has(item));
+    const missingSjaTemplates = expectedSjaTemplates.filter((item) => !existingSjaTemplateNames.has(item));
+    const missingInspectionTemplates = expectedInspectionTemplates.filter(
+      (item) => !existingInspectionTemplateNames.has(item)
+    );
+    const missingCourseKeys = expectedCourseKeys.filter((item) => !existingCourseKeys.has(item));
+    const missingLegalReferences = expectedLegalReferenceKeys.filter(
+      (key) => !existingLegalReferenceKeys.has(key)
+    );
+    const missingSimpleMenuItems = industryPackage.simpleMenuHrefs.filter(
+      (href) => !selectedSimpleMenuItems.includes(href)
+    );
+
+    return {
+      success: true,
+      data: {
+        hasPackage: true,
+        industry: industryPackage.industry,
+        industryLabel: industryPackage.displayName,
+        sections: {
+          risks: {
+            expected: expectedRiskTitles.length,
+            existing: expectedRiskTitles.length - missingRiskTitles.length,
+            missing: missingRiskTitles,
+          },
+          sjaTemplates: {
+            expected: expectedSjaTemplates.length,
+            existing: expectedSjaTemplates.length - missingSjaTemplates.length,
+            missing: missingSjaTemplates,
+          },
+          inspectionTemplates: {
+            expected: expectedInspectionTemplates.length,
+            existing: expectedInspectionTemplates.length - missingInspectionTemplates.length,
+            missing: missingInspectionTemplates,
+          },
+          courses: {
+            expected: expectedCourseKeys.length,
+            existing: expectedCourseKeys.length - missingCourseKeys.length,
+            missing: missingCourseKeys,
+          },
+          legalReferences: {
+            expected: expectedLegalReferenceKeys.length,
+            existing: expectedLegalReferenceKeys.length - missingLegalReferences.length,
+            missing: missingLegalReferences,
+          },
+          simpleMenu: {
+            expected: industryPackage.simpleMenuHrefs.length,
+            existing: industryPackage.simpleMenuHrefs.length - missingSimpleMenuItems.length,
+            missing: missingSimpleMenuItems,
+          },
+        },
+      },
+    };
+  } catch (error: any) {
+    console.error("Get tenant industry package status error:", error);
+    return { success: false, error: error.message || "Kunne ikke hente status for bransjepakke" };
+  }
+}
+
+export async function reprovisionTenantIndustryPackage(tenantId: string) {
+  try {
+    const privilegedUser = await requirePrivilegedUser();
+    if (!privilegedUser) {
+      return { success: false, error: "Ingen tilgang" };
+    }
+
+    const result = await provisionIndustryPackage(tenantId);
+    if (!result.success) {
+      return { success: false, error: result.error || "Kunne ikke reprovisjonere bransjepakke" };
+    }
+
+    revalidatePath(`/admin/tenants/${tenantId}`);
+    revalidatePath("/admin/tenants");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Reprovision tenant industry package error:", error);
+    return { success: false, error: error.message || "Kunne ikke reprovisjonere bransjepakke" };
+  }
+}
+
+export async function generateAiRiskSuggestionsForTenant(tenantId: string) {
+  try {
+    const privilegedUser = await requirePrivilegedUser();
+    if (!privilegedUser) {
+      return { success: false, error: "Ingen tilgang" };
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: {
+        id: true,
+        name: true,
+        industry: true,
+        employeeCount: true,
+      },
+    });
+
+    if (!tenant) {
+      return { success: false, error: "Bedrift ikke funnet" };
+    }
+
+    const industryLabel = tenant.industry?.trim()
+      ? getIndustryLabel(tenant.industry)
+      : "Annet";
+
+    const ownerCandidate = await prisma.userTenant.findFirst({
+      where: {
+        tenantId,
+        role: { in: ["ADMIN", "HMS", "LEDER"] },
+      },
+      orderBy: { createdAt: "asc" },
+      select: { userId: true },
+    });
+
+    if (!ownerCandidate) {
+      return { success: false, error: "Fant ingen ansvarlig bruker for nye risikoforslag" };
+    }
+
+    const [existingRisks, existingIncidents] = await Promise.all([
+      prisma.risk.findMany({
+        where: { tenantId },
+        select: { title: true },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      }),
+      prisma.incident.findMany({
+        where: { tenantId },
+        select: { title: true },
+        orderBy: { occurredAt: "desc" },
+        take: 50,
+      }),
+    ]);
+
+    const analysis = await generateRiskAnalysis(
+      industryLabel,
+      tenant.employeeCount || 1,
+      existingRisks.map((risk) => risk.title),
+      existingIncidents.map((incident) => incident.title),
+      {
+        cacheScope: `tenant:${tenantId}:riskSuggestions`,
+        rateLimitScope: `tenant:${tenantId}`,
+        budgetScope: `tenant:${tenantId}`,
+      }
+    );
+
+    if (!analysis.suggestedRisks.length) {
+      return {
+        success: true,
+        data: { created: 0, skipped: 0, message: "AI returnerte ingen nye forslag" },
+      };
+    }
+
+    const currentYear = new Date().getFullYear();
+    const assessmentTitle = `AI risikoforslag ${currentYear}`;
+    let createdCount = 0;
+    let skippedCount = 0;
+
+    await prisma.$transaction(async (tx) => {
+      let assessment = await tx.riskAssessment.findFirst({
+        where: {
+          tenantId,
+          title: assessmentTitle,
+          assessmentYear: currentYear,
+        },
+        select: { id: true },
+      });
+
+      if (!assessment) {
+        assessment = await tx.riskAssessment.create({
+          data: {
+            tenantId,
+            title: assessmentTitle,
+            assessmentYear: currentYear,
+          },
+          select: { id: true },
+        });
+      }
+
+      for (const suggestion of analysis.suggestedRisks) {
+        const suggestionTitle = suggestion.risk.trim();
+        if (!suggestionTitle) {
+          skippedCount += 1;
+          continue;
+        }
+
+        const existingRisk = await tx.risk.findFirst({
+          where: {
+            tenantId,
+            title: suggestionTitle,
+          },
+          select: { id: true },
+        });
+
+        if (existingRisk) {
+          skippedCount += 1;
+          continue;
+        }
+
+        const severityValues = mapAiSeverityToValues(suggestion.severity);
+        await tx.risk.create({
+          data: {
+            tenantId,
+            riskAssessmentId: assessment.id,
+            title: suggestionTitle,
+            context: `AI-forslag for ${industryLabel}: ${suggestionTitle}`,
+            likelihood: severityValues.likelihood,
+            consequence: severityValues.consequence,
+            score: severityValues.likelihood * severityValues.consequence,
+            ownerId: ownerCandidate.userId,
+            category: mapAiCategoryToRiskCategory(suggestion.category || ""),
+            description: `Automatisk forslag basert på bransje, eksisterende risiko og hendelseshistorikk.`,
+            existingControls: "Vurder tiltak via SJA, vernerunde og opplæringsplan.",
+            riskStatement: suggestionTitle,
+          },
+        });
+        createdCount += 1;
+      }
+    });
+
+    revalidatePath(`/admin/tenants/${tenantId}`);
+    revalidatePath("/dashboard/risks");
+
+    return {
+      success: true,
+      data: {
+        created: createdCount,
+        skipped: skippedCount,
+      },
+    };
+  } catch (error: any) {
+    console.error("Generate AI risk suggestions error:", error);
+    return {
+      success: false,
+      error: error.message || "Kunne ikke generere AI-risikoforslag",
+    };
+  }
+}
+
+const applyAiSuggestionsSchema = z.object({
+  tenantId: z.string().cuid(),
+  suggestions: z
+    .array(
+      z.object({
+        title: z.string().min(2),
+        severity: z.string().min(1),
+        category: z.string().min(1),
+      })
+    )
+    .min(1),
+});
+
+export async function previewAiRiskSuggestionsForTenant(tenantId: string) {
+  try {
+    const privilegedUser = await requirePrivilegedUser();
+    if (!privilegedUser) {
+      return { success: false, error: "Ingen tilgang" };
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: {
+        id: true,
+        industry: true,
+        employeeCount: true,
+      },
+    });
+
+    if (!tenant) {
+      return { success: false, error: "Bedrift ikke funnet" };
+    }
+
+    const industryLabel = tenant.industry?.trim()
+      ? getIndustryLabel(tenant.industry)
+      : "Annet";
+
+    const [existingRisks, existingIncidents] = await Promise.all([
+      prisma.risk.findMany({
+        where: { tenantId },
+        select: { title: true },
+        orderBy: { createdAt: "desc" },
+        take: 200,
+      }),
+      prisma.incident.findMany({
+        where: { tenantId },
+        select: { title: true },
+        orderBy: { occurredAt: "desc" },
+        take: 100,
+      }),
+    ]);
+
+    const analysis = await generateRiskAnalysis(
+      industryLabel,
+      tenant.employeeCount || 1,
+      existingRisks.map((risk) => risk.title),
+      existingIncidents.map((incident) => incident.title),
+      {
+        cacheScope: `tenant:${tenantId}:riskSuggestions`,
+        rateLimitScope: `tenant:${tenantId}`,
+        budgetScope: `tenant:${tenantId}`,
+      }
+    );
+
+    const existingRiskTitles = new Set(
+      existingRisks.map((risk) => risk.title.trim().toLowerCase())
+    );
+
+    const suggestions = analysis.suggestedRisks
+      .map((suggestion) => {
+        const title = suggestion.risk.trim();
+        const severity = suggestion.severity.trim().toUpperCase();
+        const category = suggestion.category.trim();
+        const rationale = (suggestion.rationale || "").trim();
+        return {
+          title,
+          severity,
+          category,
+          rationale,
+          isDuplicate: existingRiskTitles.has(title.toLowerCase()),
+        };
+      })
+      .filter((suggestion) => suggestion.title.length > 0);
+
+    return {
+      success: true,
+      data: {
+        suggestions,
+      },
+    };
+  } catch (error: any) {
+    console.error("Preview AI risk suggestions error:", error);
+    return {
+      success: false,
+      error: error.message || "Kunne ikke forhåndsvise AI-risikoforslag",
+    };
+  }
+}
+
+export async function applyAiRiskSuggestionsForTenant(input: {
+  tenantId: string;
+  suggestions: Array<{ title: string; severity: string; category: string }>;
+}) {
+  try {
+    const privilegedUser = await requirePrivilegedUser();
+    if (!privilegedUser) {
+      return { success: false, error: "Ingen tilgang" };
+    }
+
+    const validated = applyAiSuggestionsSchema.parse(input);
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: validated.tenantId },
+      select: {
+        id: true,
+        industry: true,
+      },
+    });
+
+    if (!tenant) {
+      return { success: false, error: "Bedrift ikke funnet" };
+    }
+
+    const industryLabel = tenant.industry?.trim()
+      ? getIndustryLabel(tenant.industry)
+      : "Annet";
+
+    const ownerCandidate = await prisma.userTenant.findFirst({
+      where: {
+        tenantId: validated.tenantId,
+        role: { in: ["ADMIN", "HMS", "LEDER"] },
+      },
+      orderBy: { createdAt: "asc" },
+      select: { userId: true },
+    });
+
+    if (!ownerCandidate) {
+      return { success: false, error: "Fant ingen ansvarlig bruker for nye risikoforslag" };
+    }
+
+    const currentYear = new Date().getFullYear();
+    const assessmentTitle = `AI risikoforslag ${currentYear}`;
+    let createdCount = 0;
+    let skippedCount = 0;
+
+    await prisma.$transaction(async (tx) => {
+      let assessment = await tx.riskAssessment.findFirst({
+        where: {
+          tenantId: validated.tenantId,
+          title: assessmentTitle,
+          assessmentYear: currentYear,
+        },
+        select: { id: true },
+      });
+
+      if (!assessment) {
+        assessment = await tx.riskAssessment.create({
+          data: {
+            tenantId: validated.tenantId,
+            title: assessmentTitle,
+            assessmentYear: currentYear,
+          },
+          select: { id: true },
+        });
+      }
+
+      for (const suggestion of validated.suggestions) {
+        const suggestionTitle = suggestion.title.trim();
+        if (!suggestionTitle) {
+          skippedCount += 1;
+          continue;
+        }
+
+        const existingRisk = await tx.risk.findFirst({
+          where: {
+            tenantId: validated.tenantId,
+            title: suggestionTitle,
+          },
+          select: { id: true },
+        });
+
+        if (existingRisk) {
+          skippedCount += 1;
+          continue;
+        }
+
+        const severityValues = mapAiSeverityToValues(suggestion.severity);
+        await tx.risk.create({
+          data: {
+            tenantId: validated.tenantId,
+            riskAssessmentId: assessment.id,
+            title: suggestionTitle,
+            context: `AI-forslag for ${industryLabel}: ${suggestionTitle}`,
+            likelihood: severityValues.likelihood,
+            consequence: severityValues.consequence,
+            score: severityValues.likelihood * severityValues.consequence,
+            ownerId: ownerCandidate.userId,
+            category: mapAiCategoryToRiskCategory(suggestion.category || ""),
+            description: "Manuelt godkjent AI-forslag basert på bransjedata og historikk.",
+            existingControls: "Vurder tiltak via SJA, vernerunde og opplæringsplan.",
+            riskStatement: suggestionTitle,
+          },
+        });
+        createdCount += 1;
+      }
+    });
+
+    revalidatePath(`/admin/tenants/${validated.tenantId}`);
+    revalidatePath("/dashboard/risks");
+
+    return {
+      success: true,
+      data: {
+        created: createdCount,
+        skipped: skippedCount,
+      },
+    };
+  } catch (error: any) {
+    console.error("Apply AI risk suggestions error:", error);
+    if (error instanceof ZodError) {
+      return { success: false, error: error.issues[0]?.message || "Ugyldig input" };
+    }
+    return {
+      success: false,
+      error: error.message || "Kunne ikke lagre AI-risikoforslag",
+    };
+  }
+}
 
 /**
  * Hent detaljert tenant-informasjon
@@ -681,6 +1312,8 @@ export async function createTenant(input: z.infer<typeof createTenantSchema>) {
         // Subscription opprettes når tenant aktiveres
       },
     });
+
+    await provisionIndustryPackage(tenant.id);
 
     revalidatePath("/admin/tenants");
     revalidatePath("/admin/registrations");

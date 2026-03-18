@@ -10,6 +10,7 @@ import { OnboardingStatus } from "@prisma/client";
 import { AuditLog } from "@/lib/audit-log";
 import { createOnboardingInvoice } from "@/server/actions/invoice.actions";
 import { getBindingPrice } from "@/lib/subscription";
+import { provisionIndustryPackage } from "@/server/actions/industry-provision.actions";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -313,6 +314,9 @@ export async function activateTenant(input: z.infer<typeof activateTenantSchema>
     createOnboardingInvoice(tenant.id).catch((err) => {
       console.error("Onboarding invoice (bakgrunn):", err);
     });
+
+    // Opprett bransjepakke idempotent ved aktivering
+    await provisionIndustryPackage(tenant.id);
 
     return {
       success: true,

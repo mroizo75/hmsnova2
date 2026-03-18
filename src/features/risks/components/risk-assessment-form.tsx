@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { createRiskAssessment } from "@/server/actions/risk.actions";
 import { useToast } from "@/hooks/use-toast";
+import { Sparkles } from "lucide-react";
 
 interface RiskAssessmentFormProps {
   tenantId: string;
@@ -24,6 +25,18 @@ interface RiskAssessmentFormProps {
 }
 
 const NO_PROJECT_VALUE = "__none_project__";
+const AI_RISK_TYPE_OPTIONS = [
+  "Arbeid i høyden",
+  "Maskiner og utstyr",
+  "Kjemikalier og eksponering",
+  "Ergonomi og belastning",
+  "Brann og eksplosjon",
+  "Alenearbeid",
+  "Trafikk og kjøretøy",
+  "Støy og vibrasjoner",
+  "Vold og trusler",
+  "Psykososial belastning",
+] as const;
 
 export function RiskAssessmentForm({ tenantId, defaultYear, projects }: RiskAssessmentFormProps) {
   const router = useRouter();
@@ -33,6 +46,8 @@ export function RiskAssessmentForm({ tenantId, defaultYear, projects }: RiskAsse
   const [year, setYear] = useState(defaultYear);
   const [participants, setParticipants] = useState("");
   const [projectId, setProjectId] = useState<string>(NO_PROJECT_VALUE);
+  const [aiRiskType, setAiRiskType] = useState<string>(AI_RISK_TYPE_OPTIONS[0]);
+  const [industryContext, setIndustryContext] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +66,14 @@ export function RiskAssessmentForm({ tenantId, defaultYear, projects }: RiskAsse
           description: `Du kan nå legge inn risikopunkter for ${year}.`,
           className: "bg-green-50 border-green-200",
         });
-        router.push(`/dashboard/risks/assessment/${result.data.id}`);
+        const query = new URLSearchParams({
+          openAi: "1",
+          aiRiskType,
+        });
+        if (industryContext.trim()) {
+          query.set("industryContext", industryContext.trim());
+        }
+        router.push(`/dashboard/risks/assessment/${result.data.id}?${query.toString()}`);
         router.refresh();
       } else {
         toast({ variant: "destructive", title: "Feil", description: result.error ?? "Kunne ikke opprette" });
@@ -134,6 +156,41 @@ export function RiskAssessmentForm({ tenantId, defaultYear, projects }: RiskAsse
             <p className="text-xs text-muted-foreground">
               Loven krever at risikovurderingen gjøres i samarbeid med arbeidstakerne og verneombudet. Dokumenter hvem som deltok.
             </p>
+          </div>
+
+          <div className="rounded-md border bg-muted/30 p-3 space-y-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <p className="text-sm font-medium">AI-forslag etter opprettelse</p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Når du trykker opprett, åpnes neste steg med AI-forslag for valgt risikotype.
+            </p>
+            <div className="space-y-2">
+              <Label>Velg risikotype</Label>
+              <Select value={aiRiskType} onValueChange={setAiRiskType} disabled={loading}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Velg risikotype" />
+                </SelectTrigger>
+                <SelectContent>
+                  {AI_RISK_TYPE_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="industry-context">Underbransje / arbeidstype (valgfritt)</Label>
+              <Input
+                id="industry-context"
+                value={industryContext}
+                onChange={(e) => setIndustryContext(e.target.value)}
+                placeholder="F.eks. terminaldrift, distribusjon, kjøletransport"
+                disabled={loading}
+              />
+            </div>
           </div>
 
           <div className="flex gap-4">

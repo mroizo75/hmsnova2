@@ -1,7 +1,56 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { getIndustryPackage } from "../src/lib/industry-packages";
 
 const prisma = new PrismaClient();
+
+async function ensureAgricultureLegalReferences() {
+  const agriculturePackage = getIndustryPackage("agriculture");
+  if (!agriculturePackage) {
+    return;
+  }
+
+  let sortOrder = 100;
+  for (const reference of agriculturePackage.legalReferences) {
+    const existing = await prisma.legalReference.findFirst({
+      where: {
+        title: reference.title,
+        paragraphRef: reference.paragraphRef,
+      },
+    });
+
+    if (!existing) {
+      await prisma.legalReference.create({
+        data: {
+          title: reference.title,
+          paragraphRef: reference.paragraphRef,
+          description: reference.description,
+          sourceUrl: reference.sourceUrl,
+          industries: ["agriculture"],
+          sortOrder,
+          lastVerifiedAt: new Date(),
+        },
+      });
+    } else {
+      const existingIndustries = Array.isArray(existing.industries)
+        ? (existing.industries as string[])
+        : [];
+
+      const normalizedIndustries = existingIndustries.map((industry) => industry.toLowerCase());
+      if (!normalizedIndustries.includes("agriculture")) {
+        await prisma.legalReference.update({
+          where: { id: existing.id },
+          data: {
+            industries: [...existingIndustries, "agriculture"],
+            lastVerifiedAt: new Date(),
+          },
+        });
+      }
+    }
+
+    sortOrder += 1;
+  }
+}
 
 async function main() {
   console.log("🌱 Seeding database...");
@@ -220,6 +269,8 @@ async function main() {
       console.log("✅ Rettet SDS-referanse (404-lenke)");
     }
   }
+
+  await ensureAgricultureLegalReferences();
 
   // Opprett admin bruker for tenant
   const hashedPassword = await bcrypt.hash("admin123", 10);

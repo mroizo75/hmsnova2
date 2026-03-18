@@ -12,6 +12,10 @@ import {
 import { ControlFrequency, RiskCategory } from "@prisma/client";
 import { calculateNextReviewDate } from "@/lib/document-utils";
 import { getActionContext } from "./action-context";
+import { generateRiskAnalysis, generateRiskAssessmentItemDraft } from "@/lib/ai";
+import { getIndustryLabel, isSupportedIndustry } from "@/lib/industry-packages";
+import { z } from "zod";
+import { getPermissions } from "@/lib/permissions";
 
 const sanitizeString = (value?: string | null) => {
   if (!value) return null;
@@ -48,6 +52,73 @@ const getNextReviewDateForFrequency = (base: Date, frequency: ControlFrequency) 
     default:
       return calculateNextReviewDate(base, 12);
   }
+};
+
+const applyAiRiskSuggestionsSchema = z.object({
+  suggestions: z
+    .array(
+      z.object({
+        title: z.string().min(2),
+        severity: z.string().min(1),
+        category: z.string().min(1),
+      })
+    )
+    .min(1),
+});
+
+const mapAiSeverityToValues = (severity: string): { likelihood: number; consequence: number } => {
+  const normalizedSeverity = severity.trim().toUpperCase();
+  if (normalizedSeverity === "HIGH") return { likelihood: 3, consequence: 4 };
+  if (normalizedSeverity === "MEDIUM") return { likelihood: 2, consequence: 3 };
+  return { likelihood: 1, consequence: 2 };
+};
+
+const mapAiCategoryToRiskCategory = (category: string): RiskCategory => {
+  const normalizedCategory = category.trim().toLowerCase();
+  if (normalizedCategory.includes("ergonomi")) return "ERGONOMIC";
+  if (normalizedCategory.includes("sikker")) return "SAFETY";
+  if (normalizedCategory.includes("psyk")) return "PSYCHOSOCIAL";
+  if (normalizedCategory.includes("kjem")) return "HEALTH";
+  if (normalizedCategory.includes("fysisk")) return "PHYSICAL";
+  if (normalizedCategory.includes("milj")) return "ENVIRONMENTAL";
+  if (normalizedCategory.includes("jurid")) return "LEGAL";
+  return "OPERATIONAL";
+};
+
+const assessmentItemCategoryOptions: RiskCategory[] = [
+  "PSYCHOSOCIAL",
+  "ERGONOMIC",
+  "ORGANISATIONAL",
+  "PHYSICAL",
+  "SAFETY",
+  "HEALTH",
+  "OPERATIONAL",
+  "ENVIRONMENTAL",
+];
+
+const generateAiRiskAssessmentItemDraftSchema = z.object({
+  riskType: z.string().min(2).max(120),
+  category: z.string().min(2).max(50),
+  industryContext: z.string().max(120).optional(),
+});
+
+const mapAiAssessmentCategoryToRiskCategory = (value: string, fallback: RiskCategory): RiskCategory => {
+  const normalizedValue = value.trim().toUpperCase();
+  if (assessmentItemCategoryOptions.includes(normalizedValue as RiskCategory)) {
+    return normalizedValue as RiskCategory;
+  }
+  return fallback;
+};
+
+const resolveIndustryPromptLabel = (
+  industry: string | null | undefined,
+  industryContext?: string | null
+): string => {
+  const base = isSupportedIndustry(industry)
+    ? getIndustryLabel(industry || "other")
+    : industry?.trim() || "Annet";
+  const extra = industryContext?.trim();
+  return extra ? `${base} (${extra})` : base;
 };
 
 // Hent alle risikoer for en tenant
@@ -557,6 +628,7 @@ export async function addRiskAssessmentItem(input: {
   nextReviewDate?: string | null;
   beskrivelse?: string | null;
   konsekvens?: string | null;
+  suggestedMeasures?: string[];
 }) {
   try {
     const { tenantId: ctxTenantId } = await getActionContext();
@@ -578,23 +650,49 @@ export async function addRiskAssessmentItem(input: {
           : `${input.title} (risikopunkt)`;
     const riskStatement = (input.konsekvens ?? "").trim() || null;
 
-    const risk = await prisma.risk.create({
-      data: {
-        tenantId: input.tenantId,
-        riskAssessmentId: input.riskAssessmentId,
-        title: input.title,
-        context,
-        riskStatement,
-        likelihood,
-        consequence,
-        score,
-        ownerId: input.ownerId,
-        status: "OPEN",
-        category: input.category as RiskCategory,
-        assessmentDate: input.assessmentDate ? new Date(input.assessmentDate) : null,
-        nextReviewDate: input.nextReviewDate ? new Date(input.nextReviewDate) : null,
-        controlFrequency: input.nextReviewDate ? "ANNUAL" : undefined,
-      },
+    const normalizedMeasures = (input.suggestedMeasures ?? [])
+      .map((item) => item.trim())
+      .filter((item, index, array) => item.length > 0 && array.indexOf(item) === index)
+      .slice(0, 5);
+
+    const risk = await prisma.$transaction(async (tx) => {
+      const createdRisk = await tx.risk.create({
+        data: {
+          tenantId: input.tenantId,
+          riskAssessmentId: input.riskAssessmentId,
+          title: input.title,
+          context,
+          riskStatement,
+          likelihood,
+          consequence,
+          score,
+          ownerId: input.ownerId,
+          status: "OPEN",
+          category: input.category as RiskCategory,
+          assessmentDate: input.assessmentDate ? new Date(input.assessmentDate) : null,
+          nextReviewDate: input.nextReviewDate ? new Date(input.nextReviewDate) : null,
+          controlFrequency: input.nextReviewDate ? "ANNUAL" : undefined,
+        },
+      });
+
+      if (normalizedMeasures.length > 0) {
+        const dueAt = new Date();
+        dueAt.setDate(dueAt.getDate() + 30);
+        await tx.measure.createMany({
+          data: normalizedMeasures.map((measureTitle) => ({
+            tenantId: input.tenantId,
+            riskId: createdRisk.id,
+            title: measureTitle,
+            description: "AI-foreslått tiltak. Bekreft ansvarlig, frist og effekt ved oppfølging.",
+            dueAt,
+            responsibleId: input.ownerId,
+            category: "MITIGATION",
+            followUpFrequency: "ANNUAL",
+          })),
+        });
+      }
+
+      return createdRisk;
     });
 
     revalidatePath("/dashboard/risks");
@@ -603,6 +701,246 @@ export async function addRiskAssessmentItem(input: {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Kunne ikke legge til risikopunkt";
     return { success: false, error: message };
+  }
+}
+
+export async function generateAiRiskAssessmentItem(input: {
+  riskType: string;
+  category: string;
+  industryContext?: string;
+}) {
+  try {
+    const { tenantId, user } = await getActionContext();
+    const permissions = getPermissions(user.tenants[0].role);
+    if (!permissions.canCreateRisks) {
+      return { success: false, error: "Ingen tilgang til AI-forslag for risikopunkt" };
+    }
+
+    const validated = generateAiRiskAssessmentItemDraftSchema.parse(input);
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { industry: true },
+    });
+    if (!tenant) {
+      return { success: false, error: "Bedrift ikke funnet" };
+    }
+
+    const existingRisks = await prisma.risk.findMany({
+      where: { tenantId },
+      select: { title: true },
+      orderBy: { createdAt: "desc" },
+      take: 200,
+    });
+
+    const draft = await generateRiskAssessmentItemDraft(
+      resolveIndustryPromptLabel(tenant.industry, validated.industryContext),
+      validated.riskType,
+      validated.category,
+      existingRisks.map((item) => item.title),
+      validated.industryContext,
+      {
+        cacheScope: `tenant:${tenantId}:riskAssessmentItem`,
+        rateLimitScope: `tenant:${tenantId}`,
+        budgetScope: `tenant:${tenantId}`,
+      }
+    );
+
+    const normalizedTitle = draft.title.trim();
+    if (!normalizedTitle) {
+      return { success: false, error: "AI kunne ikke lage et gyldig forslag" };
+    }
+
+    const level = draft.level?.toUpperCase();
+    const normalizedLevel =
+      level === "LOW" || level === "MEDIUM" || level === "HIGH" || level === "CRITICAL"
+        ? level
+        : "MEDIUM";
+
+    const fallbackCategory = mapAiAssessmentCategoryToRiskCategory(validated.category, "OPERATIONAL");
+    const normalizedCategory = mapAiAssessmentCategoryToRiskCategory(draft.category || "", fallbackCategory);
+    const suggestedMeasures = (draft.suggestedMeasures ?? [])
+      .map((item) => item.trim())
+      .filter((item, index, array) => item.length > 0 && array.indexOf(item) === index)
+      .slice(0, 5);
+
+    return {
+      success: true,
+      data: {
+        title: normalizedTitle,
+        beskrivelse: draft.beskrivelse?.trim() || "",
+        konsekvens: draft.konsekvens?.trim() || "",
+        level: normalizedLevel,
+        category: normalizedCategory,
+        suggestedMeasures,
+      },
+    };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Kunne ikke generere AI-forslag" };
+  }
+}
+
+export async function previewAiRiskSuggestions() {
+  try {
+    const { tenantId, user } = await getActionContext();
+    const permissions = getPermissions(user.tenants[0].role);
+    if (!permissions.canCreateRisks) {
+      return { success: false, error: "Ingen tilgang til AI-risikoforslag" };
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: {
+        industry: true,
+        employeeCount: true,
+      },
+    });
+
+    if (!tenant) {
+      return { success: false, error: "Bedrift ikke funnet" };
+    }
+
+    const [existingRisks, existingIncidents] = await Promise.all([
+      prisma.risk.findMany({
+        where: { tenantId },
+        select: { title: true },
+        orderBy: { createdAt: "desc" },
+        take: 200,
+      }),
+      prisma.incident.findMany({
+        where: { tenantId },
+        select: { title: true },
+        orderBy: { occurredAt: "desc" },
+        take: 100,
+      }),
+    ]);
+
+    const analysis = await generateRiskAnalysis(
+      resolveIndustryPromptLabel(tenant.industry),
+      tenant.employeeCount || 1,
+      existingRisks.map((item) => item.title),
+      existingIncidents.map((item) => item.title),
+      {
+        cacheScope: `tenant:${tenantId}:riskSuggestions`,
+        rateLimitScope: `tenant:${tenantId}`,
+        budgetScope: `tenant:${tenantId}`,
+      }
+    );
+
+    const existingRiskTitles = new Set(existingRisks.map((item) => item.title.trim().toLowerCase()));
+    const suggestions = analysis.suggestedRisks
+      .map((suggestion) => {
+        const title = suggestion.risk.trim();
+        return {
+          title,
+          severity: suggestion.severity.trim().toUpperCase(),
+          category: suggestion.category.trim(),
+          rationale: (suggestion.rationale || "").trim(),
+          isDuplicate: existingRiskTitles.has(title.toLowerCase()),
+        };
+      })
+      .filter((item) => item.title.length > 0);
+
+    return {
+      success: true,
+      data: {
+        suggestions,
+      },
+    };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Kunne ikke hente AI-risikoforslag" };
+  }
+}
+
+export async function applyAiRiskSuggestions(input: {
+  suggestions: Array<{ title: string; severity: string; category: string }>;
+}) {
+  try {
+    const { tenantId, user } = await getActionContext();
+    const permissions = getPermissions(user.tenants[0].role);
+    if (!permissions.canCreateRisks) {
+      return { success: false, error: "Ingen tilgang til å lagre AI-risikoforslag" };
+    }
+
+    const validated = applyAiRiskSuggestionsSchema.parse(input);
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { industry: true },
+    });
+    if (!tenant) {
+      return { success: false, error: "Bedrift ikke funnet" };
+    }
+
+    const ownerCandidate = await prisma.userTenant.findFirst({
+      where: {
+        tenantId,
+        role: { in: ["ADMIN", "HMS", "LEDER"] },
+      },
+      orderBy: { createdAt: "asc" },
+      select: { userId: true },
+    });
+    if (!ownerCandidate) {
+      return { success: false, error: "Fant ingen ansvarlig bruker for nye risikoforslag" };
+    }
+
+    const currentYear = new Date().getFullYear();
+    const assessmentTitle = `AI risikoforslag ${currentYear}`;
+    const industryLabel = resolveIndustryPromptLabel(tenant.industry);
+    let created = 0;
+    let skipped = 0;
+
+    await prisma.$transaction(async (tx) => {
+      let assessment = await tx.riskAssessment.findFirst({
+        where: { tenantId, title: assessmentTitle, assessmentYear: currentYear },
+        select: { id: true },
+      });
+      if (!assessment) {
+        assessment = await tx.riskAssessment.create({
+          data: { tenantId, title: assessmentTitle, assessmentYear: currentYear },
+          select: { id: true },
+        });
+      }
+
+      for (const suggestion of validated.suggestions) {
+        const title = suggestion.title.trim();
+        if (!title) {
+          skipped += 1;
+          continue;
+        }
+
+        const exists = await tx.risk.findFirst({
+          where: { tenantId, title },
+          select: { id: true },
+        });
+        if (exists) {
+          skipped += 1;
+          continue;
+        }
+
+        const severity = mapAiSeverityToValues(suggestion.severity);
+        await tx.risk.create({
+          data: {
+            tenantId,
+            riskAssessmentId: assessment.id,
+            title,
+            context: `AI-forslag for ${industryLabel}: ${title}`,
+            likelihood: severity.likelihood,
+            consequence: severity.consequence,
+            score: severity.likelihood * severity.consequence,
+            ownerId: ownerCandidate.userId,
+            category: mapAiCategoryToRiskCategory(suggestion.category),
+            description: "Manuelt godkjent AI-forslag basert på bransje og historikk.",
+            existingControls: "Vurder tiltak via SJA, vernerunde og opplæringsplan.",
+            riskStatement: title,
+          },
+        });
+        created += 1;
+      }
+    });
+
+    revalidatePath("/dashboard/risks");
+    return { success: true, data: { created, skipped } };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Kunne ikke lagre AI-risikoforslag" };
   }
 }
 

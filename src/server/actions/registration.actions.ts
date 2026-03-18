@@ -6,6 +6,8 @@ import { Resend } from "resend";
 import { PricingTier, OnboardingStatus } from "@prisma/client";
 import { getCustomerWelcomeEmail, getAdminNotificationEmail } from "@/lib/email-templates";
 import { getBindingPrice } from "@/lib/subscription";
+import { getIndustryLabel } from "@/lib/industry-packages";
+import { provisionIndustryPackage } from "@/server/actions/industry-provision.actions";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -17,6 +19,7 @@ const registrationSchema = z.object({
   contactPerson: z.string().min(2, "Kontaktperson er påkrevd"),
   contactEmail: z.string().email("Ugyldig e-postadresse"),
   contactPhone: z.string().min(8, "Ugyldig telefonnummer"),
+  farmType: z.string().optional(),
   invoiceEmail: z.string().email("Ugyldig e-postadresse for faktura").optional().or(z.literal("")),
   useEHF: z.string().optional().nullable(),
   address: z.string().optional().nullable(),
@@ -62,6 +65,7 @@ export async function submitRegistrationRequest(formData: FormData) {
       contactPerson: formData.get("contactPerson") as string,
       contactEmail: formData.get("contactEmail") as string,
       contactPhone: formData.get("contactPhone") as string,
+      farmType: (formData.get("farmType") as string) || undefined,
       invoiceEmail: formData.get("invoiceEmail") as string,
       useEHF: formData.get("useEHF") as string | null,
       address: formData.get("address") as string | null,
@@ -71,6 +75,14 @@ export async function submitRegistrationRequest(formData: FormData) {
     };
 
     const validated = registrationSchema.parse(data);
+    const normalizedIndustry = validated.industry.trim().toLowerCase();
+    const farmTypeNote =
+      normalizedIndustry === "agriculture" && validated.farmType
+        ? `Gårdstype: ${validated.farmType}`
+        : undefined;
+    const mergedNotes = [validated.notes || "", farmTypeNote || ""]
+      .filter((part) => part.trim().length > 0)
+      .join("\n");
 
     // Check if org number already exists
     const existingTenant = await prisma.tenant.findFirst({
@@ -126,13 +138,16 @@ export async function submitRegistrationRequest(formData: FormData) {
         // Bedriftsinformasjon
         employeeCount,
         pricingTier,
-        industry: validated.industry,
-        notes: validated.notes || undefined,
+        industry: normalizedIndustry,
+        notes: mergedNotes || undefined,
         onboardingStatus: "NOT_STARTED", // Venter på godkjenning
         // VIKTIG: subscription opprettes FØRST når superadmin aktiverer
         // VIKTIG: users opprettes FØRST når superadmin aktiverer
       },
     });
+
+    // Opprett bransjepakke idempotent (på registreringstidspunktet)
+    await provisionIndustryPackage(tenant.id);
 
     // Get pricing info for email (ny prismodell: 1 år binding som standard)
     const yearlyPrice = getBindingPrice("1year").yearlyPrice;
@@ -170,7 +185,7 @@ export async function submitRegistrationRequest(formData: FormData) {
             companyName: validated.companyName,
             orgNumber: validated.orgNumber,
             employeeCount: validated.employeeCount,
-            industry: validated.industry,
+            industry: getIndustryLabel(normalizedIndustry),
             pricingTier,
             yearlyPrice,
             contactPerson: validated.contactPerson,
@@ -181,7 +196,7 @@ export async function submitRegistrationRequest(formData: FormData) {
             address: validated.address || undefined,
             postalCode: validated.postalCode || undefined,
             city: validated.city || undefined,
-            notes: validated.notes || undefined,
+            notes: mergedNotes || undefined,
             tenantId: tenant.id,
           }),
         });

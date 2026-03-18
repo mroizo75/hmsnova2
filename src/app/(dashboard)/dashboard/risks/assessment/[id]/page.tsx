@@ -9,13 +9,26 @@ import Link from "next/link";
 import { RiskAssessmentItemForm } from "@/features/risks/components/risk-assessment-item-form";
 import { RiskAssessmentItemList } from "@/features/risks/components/risk-assessment-item-list";
 import { RiskAssessmentComplianceCard } from "@/features/risks/components/risk-assessment-compliance-card";
+import { getPermissions } from "@/lib/permissions";
+import { RiskAssessmentDeleteButton } from "@/features/risks/components/risk-assessment-delete-button";
 
 export default async function RiskAssessmentPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const openAiParam = resolvedSearchParams.openAi;
+  const aiRiskTypeParam = resolvedSearchParams.aiRiskType;
+  const industryContextParam = resolvedSearchParams.industryContext;
+  const openAi = Array.isArray(openAiParam) ? openAiParam[0] === "1" : openAiParam === "1";
+  const initialAiRiskType = Array.isArray(aiRiskTypeParam) ? aiRiskTypeParam[0] : aiRiskTypeParam;
+  const initialIndustryContext = Array.isArray(industryContextParam)
+    ? industryContextParam[0]
+    : industryContextParam;
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.email) {
@@ -32,6 +45,8 @@ export default async function RiskAssessmentPage({
   }
 
   const tenantId = user.tenants[0].tenantId;
+  const permissions = getPermissions(user.tenants[0].role);
+  const canDeleteRiskAssessments = permissions.canDeleteRisks;
 
   const [assessment, userTenants] = await Promise.all([
     prisma.riskAssessment.findFirst({
@@ -78,7 +93,15 @@ export default async function RiskAssessmentPage({
             Tilbake til risikovurdering
           </Link>
         </Button>
-        <h1 className="text-3xl font-bold">{assessment.title}</h1>
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-3xl font-bold">{assessment.title}</h1>
+          {canDeleteRiskAssessments && (
+            <RiskAssessmentDeleteButton
+              assessmentId={assessment.id}
+              assessmentTitle={assessment.title}
+            />
+          )}
+        </div>
         <p className="text-muted-foreground">
           Systematisk risikovurdering i henhold til IK-HMS § 5 og AML § 3-1.
         </p>
@@ -105,6 +128,9 @@ export default async function RiskAssessmentPage({
         riskAssessmentId={assessment.id}
         tenantId={tenantId}
         ownerId={user.id}
+        autoGenerateAi={openAi}
+        initialAiRiskType={initialAiRiskType}
+        initialIndustryContext={initialIndustryContext}
       />
 
       <Card>

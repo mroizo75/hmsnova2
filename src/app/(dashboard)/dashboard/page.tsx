@@ -9,6 +9,7 @@ import { QuickActions } from "@/features/dashboard/components/quick-actions";
 import { MyTasks } from "@/features/dashboard/components/my-tasks";
 import { HMSScoreChart } from "@/features/dashboard/components/hms-score-chart";
 import { TaskCenter } from "@/features/dashboard/components/task-center";
+import { AiAssistantPanel } from "@/features/dashboard/components/ai-assistant-panel";
 import { getPermissions } from "@/lib/permissions";
 import { subMonths, format } from "date-fns";
 import { nb } from "date-fns/locale";
@@ -479,6 +480,8 @@ export default async function DashboardPage() {
 
       {/* Critical Alerts */}
       {sortedAlerts.length > 0 && <CriticalAlerts alerts={sortedAlerts} />}
+
+      <AiAssistantPanel />
 
       {/* Quick Actions - kompakt rad */}
       <QuickActions permissions={permissions} userRole={userRole} />

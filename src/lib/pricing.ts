@@ -11,6 +11,7 @@
  */
 
 import { PricingTier } from "@prisma/client";
+import { SUPPORTED_INDUSTRIES } from "@/lib/industry-packages";
 
 export type BindingPeriod = "none" | "1year" | "2year";
 
@@ -305,16 +306,5 @@ export const ONBOARDING_STEPS = [
 /**
  * Industrier vi støtter med spesialiserte maler
  */
-export const SUPPORTED_INDUSTRIES = [
-  { value: "construction", label: "Bygg og anlegg", templates: 25 },
-  { value: "healthcare", label: "Helsevesen", templates: 20 },
-  { value: "manufacturing", label: "Industri & produksjon", templates: 30 },
-  { value: "retail", label: "Handel & service", templates: 15 },
-  { value: "transport", label: "Transport & logistikk", templates: 22 },
-  { value: "hospitality", label: "Hotell & restaurant", templates: 18 },
-  { value: "education", label: "Utdanning", templates: 12 },
-  { value: "technology", label: "Teknologi & IT", templates: 10 },
-  { value: "agriculture", label: "Landbruk", templates: 16 },
-  { value: "other", label: "Annet", templates: 8 },
-];
+export { SUPPORTED_INDUSTRIES };
 

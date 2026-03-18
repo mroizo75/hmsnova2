@@ -80,6 +80,14 @@ const parseOptionalDate = (value: any) => {
   return Number.isNaN(date.getTime()) ? undefined : date;
 };
 
+const normalizeSuggestedMeasures = (value: unknown): string[] => {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
+    .filter((item, index, array) => item.length > 0 && array.indexOf(item) === index)
+    .slice(0, 5);
+};
+
 const stageFromStatus = (status: IncidentStatus): IncidentStage => {
   switch (status) {
     case "INVESTIGATING":
@@ -189,6 +197,7 @@ export async function createIncident(input: any) {
       responseDeadline: parseOptionalDate(input.responseDeadline),
       customerSatisfaction: parseOptionalNumber(input.customerSatisfaction),
       subcategoryKeys: Array.isArray(input.subcategoryKeys) ? input.subcategoryKeys : [],
+      aiSuggestedMeasures: normalizeSuggestedMeasures(input.aiSuggestedMeasures),
     };
     const validated = createIncidentSchema.parse(normalizedInput);
 
@@ -240,6 +249,23 @@ export async function createIncident(input: any) {
         stage: IncidentStage.REPORTED,
       },
     });
+
+    if (normalizedInput.aiSuggestedMeasures.length > 0) {
+      const dueAt = new Date();
+      dueAt.setDate(dueAt.getDate() + 14);
+      await prisma.measure.createMany({
+        data: normalizedInput.aiSuggestedMeasures.map((title) => ({
+          tenantId,
+          incidentId: incident.id,
+          title,
+          description: "AI-foreslått tiltak fra hendelsesanalyse. Bekreft ansvarlig og effekt.",
+          dueAt,
+          responsibleId: user.id,
+          category: "CORRECTIVE",
+          followUpFrequency: "ANNUAL",
+        })),
+      });
+    }
     
     // Audit log
     await prisma.auditLog.create({
