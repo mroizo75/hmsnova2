@@ -54,6 +54,8 @@ interface FormFillerProps {
     code: string | null;
   }>;
   initialProjectId?: string;
+  /** Satt når bruker kommer fra «Vis alle maler» – må sendes til API ved innsending */
+  industryScopeBypass?: boolean;
 }
 
 interface InlineInspectionFindingDraft {
@@ -109,6 +111,7 @@ export function FormFiller({
   inspectionId,
   projects = [],
   initialProjectId,
+  industryScopeBypass = false,
 }: FormFillerProps) {
   const isAnonymous = form.isAnonymous ?? false;
   const router = useRouter();
@@ -360,6 +363,9 @@ export function FormFiller({
       const formData = new FormData();
       formData.append("formId", form.id);
       formData.append("tenantId", tenantId);
+      if (industryScopeBypass) {
+        formData.append("industryScopeBypass", "1");
+      }
       if (!isAnonymous) {
         formData.append("userId", userId);
       }

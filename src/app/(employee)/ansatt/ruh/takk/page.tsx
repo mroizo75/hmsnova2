@@ -1,9 +1,12 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, Home } from "lucide-react";
 
-export default function RuhTakk() {
+export default async function RuhTakk() {
+  const t = await getTranslations("employeeRuhThanksPage");
+
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-4">
       <Card className="max-w-md w-full">
@@ -13,25 +16,24 @@ export default function RuhTakk() {
           </div>
 
           <h1 className="text-2xl font-bold mb-3">
-            Takk for rapporten!
+            {t("title")}
           </h1>
 
           <p className="text-muted-foreground mb-8">
-            Din RUH-rapport er registrert og HMS-ansvarlig er varslet.
-            Du vil få beskjed når rapporten er behandlet.
+            {t("description")}
           </p>
 
           <div className="space-y-3">
             <Link href="/ansatt">
               <Button size="lg" className="w-full">
                 <Home className="mr-2 h-5 w-5" />
-                Tilbake til forsiden
+                {t("backHome")}
               </Button>
             </Link>
 
             <Link href="/ansatt/ruh/ny">
               <Button variant="outline" size="lg" className="w-full">
-                Send ny RUH-rapport
+                {t("newReport")}
               </Button>
             </Link>
           </div>

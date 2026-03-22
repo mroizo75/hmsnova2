@@ -11,6 +11,7 @@ import { RiskAssessmentItemList } from "@/features/risks/components/risk-assessm
 import { RiskAssessmentComplianceCard } from "@/features/risks/components/risk-assessment-compliance-card";
 import { getPermissions } from "@/lib/permissions";
 import { RiskAssessmentDeleteButton } from "@/features/risks/components/risk-assessment-delete-button";
+import { RiskAssessmentTitleEditor } from "@/features/risks/components/risk-assessment-title-editor";
 
 export default async function RiskAssessmentPage({
   params,
@@ -47,6 +48,7 @@ export default async function RiskAssessmentPage({
   const tenantId = user.tenants[0].tenantId;
   const permissions = getPermissions(user.tenants[0].role);
   const canDeleteRiskAssessments = permissions.canDeleteRisks;
+  const canEditAssessmentTitle = permissions.canCreateRisks;
 
   const [assessment, userTenants] = await Promise.all([
     prisma.riskAssessment.findFirst({
@@ -94,7 +96,13 @@ export default async function RiskAssessmentPage({
           </Link>
         </Button>
         <div className="flex items-start justify-between gap-3">
-          <h1 className="text-3xl font-bold">{assessment.title}</h1>
+          <div className="min-w-0 flex-1">
+            <RiskAssessmentTitleEditor
+              assessmentId={assessment.id}
+              initialTitle={assessment.title}
+              canEdit={canEditAssessmentTitle}
+            />
+          </div>
           {canDeleteRiskAssessments && (
             <RiskAssessmentDeleteButton
               assessmentId={assessment.id}

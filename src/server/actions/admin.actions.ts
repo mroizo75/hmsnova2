@@ -44,6 +44,11 @@ export async function createAdminUser(input: z.infer<typeof createAdminUserSchem
     await requireSuperAdmin();
 
     const validated = createAdminUserSchema.parse(input);
+    const mustHaveTenant = !validated.isSuperAdmin;
+
+    if (mustHaveTenant && (!validated.tenantId || validated.tenantId === "NONE" || !validated.role)) {
+      return { success: false, error: "Vanlige brukere må knyttes til en bedrift med gyldig rolle" };
+    }
 
     // SIKKERHET: Normaliser e-post til lowercase
     const normalizedEmail = validated.email.toLowerCase().trim();
@@ -60,26 +65,39 @@ export async function createAdminUser(input: z.infer<typeof createAdminUserSchem
     // Hash passord
     const hashedPassword = await bcrypt.hash(validated.password, 10);
 
-    // Opprett bruker
-    const user = await prisma.user.create({
-      data: {
-        email: normalizedEmail,
-        name: validated.name,
-        password: hashedPassword,
-        isSuperAdmin: validated.isSuperAdmin,
-      },
-    });
+    if (mustHaveTenant) {
+      const tenantExists = await prisma.tenant.findUnique({
+        where: { id: validated.tenantId! },
+        select: { id: true },
+      });
 
-    // Knytt til tenant hvis ikke superadmin
-    if (!validated.isSuperAdmin && validated.tenantId && validated.tenantId !== "NONE" && validated.role) {
-      await prisma.userTenant.create({
+      if (!tenantExists) {
+        return { success: false, error: "Bedrift ikke funnet" };
+      }
+    }
+
+    const user = await prisma.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
         data: {
-          userId: user.id,
-          tenantId: validated.tenantId,
-          role: validated.role,
+          email: normalizedEmail,
+          name: validated.name,
+          password: hashedPassword,
+          isSuperAdmin: validated.isSuperAdmin,
         },
       });
-    }
+
+      if (mustHaveTenant) {
+        await tx.userTenant.create({
+          data: {
+            userId: createdUser.id,
+            tenantId: validated.tenantId!,
+            role: validated.role!,
+          },
+        });
+      }
+
+      return createdUser;
+    });
 
     revalidatePath("/admin/users");
     return { success: true, data: user };
@@ -105,38 +123,66 @@ export async function updateAdminUser(userId: string, input: z.infer<typeof upda
       return { success: false, error: "Bruker ikke funnet" };
     }
 
-    // Oppdater bruker
-    const user = await prisma.user.update({
-      where: { id: userId },
-      data: {
-        name: validated.name,
-        isSuperAdmin: validated.isSuperAdmin,
-      },
-    });
+    if (validated.tenantId === "NONE" && !validated.isSuperAdmin) {
+      return { success: false, error: "Bruker må være knyttet til en bedrift" };
+    }
 
-    // Håndter tenant-tilknytning
-    if (!validated.isSuperAdmin && validated.tenantId && validated.role) {
-      // Fjern eksisterende tenant-tilknytninger
-      await prisma.userTenant.deleteMany({
-        where: { userId },
+    if (validated.isSuperAdmin === false && (!validated.tenantId || validated.tenantId === "NONE" || !validated.role)) {
+      return { success: false, error: "Vanlige brukere må knyttes til en bedrift med gyldig rolle" };
+    }
+
+    if (validated.tenantId && validated.tenantId !== "NONE") {
+      const tenantExists = await prisma.tenant.findUnique({
+        where: { id: validated.tenantId },
+        select: { id: true },
       });
 
-      // Legg til ny tenant-tilknytning hvis ikke "NONE"
-      if (validated.tenantId !== "NONE") {
-        await prisma.userTenant.create({
-          data: {
-            userId,
-            tenantId: validated.tenantId,
-            role: validated.role,
-          },
+      if (!tenantExists) {
+        return { success: false, error: "Bedrift ikke funnet" };
+      }
+    }
+
+    const user = await prisma.$transaction(async (tx) => {
+      const updatedUser = await tx.user.update({
+        where: { id: userId },
+        data: {
+          name: validated.name,
+          isSuperAdmin: validated.isSuperAdmin,
+        },
+      });
+
+      // Håndter tenant-tilknytning
+      if (!validated.isSuperAdmin && validated.tenantId && validated.role) {
+        await tx.userTenant.deleteMany({
+          where: { userId },
+        });
+
+        if (validated.tenantId !== "NONE") {
+          await tx.userTenant.create({
+            data: {
+              userId,
+              tenantId: validated.tenantId,
+              role: validated.role,
+            },
+          });
+        }
+      } else if (validated.isSuperAdmin) {
+        await tx.userTenant.deleteMany({
+          where: { userId },
         });
       }
-    } else if (validated.isSuperAdmin) {
-      // Fjern alle tenant-tilknytninger for superadmin
-      await prisma.userTenant.deleteMany({
-        where: { userId },
-      });
-    }
+
+      if (!updatedUser.isSuperAdmin && !updatedUser.isSupport) {
+        const tenantLinkCount = await tx.userTenant.count({
+          where: { userId },
+        });
+        if (tenantLinkCount === 0) {
+          throw new Error("Bruker må være knyttet til minst én bedrift");
+        }
+      }
+
+      return updatedUser;
+    });
 
     revalidatePath("/admin/users");
     revalidatePath(`/admin/users/${userId}`);

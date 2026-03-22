@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,7 +29,7 @@ import {
   ShieldAlert,
   Sparkles,
 } from "lucide-react";
-import { getRiskColor, getRiskLabel } from "@/features/sja/schemas/sja.schema";
+import { getRiskColor } from "@/features/sja/schemas/sja.schema";
 import Image from "next/image";
 import { generateAiSjaSummary } from "@/server/actions/ai-assistant.actions";
 
@@ -83,6 +84,7 @@ export function SjaForm({
   successRedirectPath = "/ansatt/sja",
   initialData,
 }: SjaFormProps) {
+  const t = useTranslations("employeeSjaForm");
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -136,8 +138,8 @@ export function SjaForm({
 
     if (!participants) {
       toast({
-        title: "Deltakere mangler",
-        description: "Alle som deltar i arbeidet må registreres.",
+        title: t("toast.participantsMissing.title"),
+        description: t("toast.participantsMissing.description"),
         variant: "destructive",
       });
       setIsSubmitting(false);
@@ -150,8 +152,8 @@ export function SjaForm({
 
     if (validHazards.length === 0) {
       toast({
-        title: "Ingen farer registrert",
-        description: "Legg til minst én fare med aktivitet, fare og tiltak.",
+        title: t("toast.noHazards.title"),
+        description: t("toast.noHazards.description"),
         variant: "destructive",
       });
       setIsSubmitting(false);
@@ -161,8 +163,8 @@ export function SjaForm({
     const plannedDateStr = formData.get("plannedDate") as string;
     if (!plannedDateStr) {
       toast({
-        title: "Dato mangler",
-        description: "Velg dato for når arbeidet skal utføres.",
+        title: t("toast.dateMissing.title"),
+        description: t("toast.dateMissing.description"),
         variant: "destructive",
       });
       setIsSubmitting(false);
@@ -211,8 +213,8 @@ export function SjaForm({
       }
 
       toast({
-        title: "SJA innsendt",
-        description: "Sikker jobb-analysen er registrert og klar for godkjenning.",
+        title: t("toast.submitSuccess.title"),
+        description: t("toast.submitSuccess.description"),
       });
 
       if (onSuccess) {
@@ -227,8 +229,8 @@ export function SjaForm({
       }
     } catch (error: any) {
       toast({
-        title: "Feil",
-        description: error.message || "Kunne ikke opprette SJA. Prøv igjen.",
+        title: t("toast.error.title"),
+        description: error.message || t("toast.error.description"),
         variant: "destructive",
       });
     } finally {
@@ -246,8 +248,8 @@ export function SjaForm({
     if (!title || !workLocation || !participants || validHazards.length === 0) {
       toast({
         variant: "destructive",
-        title: "Mangler grunnlag",
-        description: "Fyll ut tittel, sted, deltakere og minst én fare før AI-oppsummering.",
+        title: t("toast.aiMissingData.title"),
+        description: t("toast.aiMissingData.description"),
       });
       return;
     }
@@ -268,8 +270,8 @@ export function SjaForm({
       if (!result.success || !result.data) {
         toast({
           variant: "destructive",
-          title: "AI-oppsummering feilet",
-          description: result.error || "Ukjent feil",
+          title: t("toast.aiFailed.title"),
+          description: result.error || t("toast.aiFailed.description"),
         });
         return;
       }
@@ -280,22 +282,28 @@ export function SjaForm({
   }
 
   const today = new Date().toISOString().split("T")[0];
+  const getRiskLabel = (riskLevel: number): string => {
+    if (riskLevel >= 15) return t("risk.veryHigh");
+    if (riskLevel >= 10) return t("risk.high");
+    if (riskLevel >= 5) return t("risk.medium");
+    return t("risk.low");
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* === SEKSJON 1: Generell informasjon === */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold border-b pb-2">1. Generell informasjon</h3>
+        <h3 className="text-lg font-semibold border-b pb-2">{t("sections.general")}</h3>
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="title" className="text-base">
-              Arbeidsoppgave / Tittel *
+              {t("fields.title.label")} *
             </Label>
             <Input
               id="title"
               name="title"
-              placeholder="F.eks: Arbeid i høyden – tak bygg C"
+              placeholder={t("fields.title.placeholder")}
               required
               defaultValue={initialData?.title}
               className="h-12 text-base"
@@ -304,7 +312,7 @@ export function SjaForm({
 
           <div className="space-y-2">
             <Label htmlFor="plannedDate" className="text-base">
-              Dato for arbeidet *
+              {t("fields.plannedDate.label")} *
             </Label>
             <Input
               id="plannedDate"
@@ -321,14 +329,14 @@ export function SjaForm({
           {projects.length > 0 ? (
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="projectId" className="text-base">
-                Prosjekt
+                {t("fields.project.label")}
               </Label>
               <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
                 <SelectTrigger id="projectId" className="h-12 text-base">
-                  <SelectValue placeholder="Velg prosjekt (valgfritt)" />
+                  <SelectValue placeholder={t("fields.project.placeholder")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">Ingen prosjektkobling</SelectItem>
+                  <SelectItem value="__none__">{t("fields.project.none")}</SelectItem>
                   {projects.map((project) => (
                     <SelectItem key={project.id} value={project.id}>
                       {project.name}
@@ -342,12 +350,12 @@ export function SjaForm({
 
           <div className="space-y-2">
             <Label htmlFor="workLocation" className="text-base">
-              Arbeidssted *
+              {t("fields.workLocation.label")} *
             </Label>
             <Input
               id="workLocation"
               name="workLocation"
-              placeholder="F.eks: Bygg C, 3. etasje, tak"
+              placeholder={t("fields.workLocation.placeholder")}
               required
               defaultValue={initialData?.workLocation}
               className="h-12 text-base"
@@ -357,12 +365,12 @@ export function SjaForm({
           <div className="space-y-2">
             <Label htmlFor="weatherConditions" className="text-base flex items-center gap-1">
               <CloudSun className="h-4 w-4" />
-              Værforhold
+              {t("fields.weatherConditions.label")}
             </Label>
             <Input
               id="weatherConditions"
               name="weatherConditions"
-              placeholder="F.eks: Regn, vind 10 m/s, glatt"
+              placeholder={t("fields.weatherConditions.placeholder")}
               className="h-12 text-base"
             />
           </div>
@@ -370,12 +378,12 @@ export function SjaForm({
 
         <div className="space-y-2">
           <Label htmlFor="description" className="text-base">
-            Beskrivelse av arbeidet
+            {t("fields.description.label")}
           </Label>
           <Textarea
             id="description"
             name="description"
-            placeholder="Beskriv arbeidet som skal utføres..."
+            placeholder={t("fields.description.placeholder")}
             defaultValue={initialData?.description}
             rows={3}
             className="text-base resize-none"
@@ -387,24 +395,24 @@ export function SjaForm({
       <div className="space-y-4">
         <h3 className="text-lg font-semibold border-b pb-2 flex items-center gap-2">
           <Users className="h-5 w-5" />
-          2. Deltakere
+          {t("sections.participants")}
         </h3>
 
         <div className="space-y-2">
           <Label htmlFor="participants" className="text-base">
-            Alle som deltar i arbeidet *
+            {t("fields.participants.label")} *
           </Label>
           <Textarea
             id="participants"
             name="participants"
-            placeholder="Skriv navn på alle deltakere, én per linje. Alle som deltar i arbeidet SKAL registreres."
+            placeholder={t("fields.participants.placeholder")}
             defaultValue={initialData?.participants}
             rows={3}
             required
             className="text-base resize-none"
           />
           <p className="text-xs text-muted-foreground">
-            Alle deltakere bekrefter at de har gjennomgått SJA-en og forstått farene og tiltakene
+            {t("fields.participants.help")}
           </p>
         </div>
       </div>
@@ -413,19 +421,18 @@ export function SjaForm({
       <div className="space-y-4">
         <h3 className="text-lg font-semibold border-b pb-2 flex items-center gap-2">
           <ShieldAlert className="h-5 w-5 text-orange-500" />
-          3. Spesielle forhold i dag
+          {t("sections.specialConditions")}
         </h3>
 
         <Card className="border-orange-200 bg-orange-50/50">
           <CardContent className="p-4">
             <p className="text-sm text-orange-900 mb-3">
-              <strong>Tenk gjennom:</strong> Er det noe som er annerledes i dag? Nye folk,
-              endret utstyr, dårlig vær, tidspress, samarbeid med andre firma, endrede planer?
+              <strong>{t("fields.additionalConditions.title")}</strong> {t("fields.additionalConditions.help")}
             </p>
             <Textarea
               id="additionalConditions"
               name="additionalConditions"
-              placeholder="Beskriv eventuelle spesielle forhold, endringer eller tilleggsrisikoer som gjelder i dag..."
+              placeholder={t("fields.additionalConditions.placeholder")}
               rows={3}
               className="text-base resize-none bg-white"
             />
@@ -437,12 +444,12 @@ export function SjaForm({
       <div className="space-y-4">
         <h3 className="text-lg font-semibold border-b pb-2 flex items-center gap-2">
           <AlertTriangle className="h-5 w-5 text-red-500" />
-          4. Fareidentifikasjon og tiltak
+          {t("sections.hazards")}
         </h3>
 
         {initialData?.templateName && (
           <p className="text-sm text-muted-foreground">
-            Forhåndsutfylt fra mal. Gjennomgå alle punkter – legg til eller fjern etter behov.
+            {t("templatePrefill")}
           </p>
         )}
 
@@ -456,7 +463,7 @@ export function SjaForm({
                 <div className="flex items-center gap-2">
                   <GripVertical className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm font-semibold text-muted-foreground">
-                    Fare #{index + 1}
+                    {t("hazards.item", { index: index + 1 })}
                   </span>
                   {hazard.probability > 0 && hazard.severity > 0 && (
                     <span
@@ -464,7 +471,7 @@ export function SjaForm({
                         hazard.probability * hazard.severity
                       )}`}
                     >
-                      Risiko: {hazard.probability * hazard.severity} –{" "}
+                      {t("hazards.risk")}: {hazard.probability * hazard.severity} -{" "}
                       {getRiskLabel(hazard.probability * hazard.severity)}
                     </span>
                   )}
@@ -484,38 +491,38 @@ export function SjaForm({
 
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="space-y-1">
-                  <Label className="text-sm">Aktivitet / arbeidsoperasjon *</Label>
+                  <Label className="text-sm">{t("hazards.activity")} *</Label>
                   <Input
                     value={hazard.activity}
                     onChange={(e) => updateHazard(index, "activity", e.target.value)}
-                    placeholder="Hva skal gjøres?"
+                    placeholder={t("hazards.activityPlaceholder")}
                     className="text-sm"
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-sm">Fare / risiko *</Label>
+                  <Label className="text-sm">{t("hazards.hazard")} *</Label>
                   <Input
                     value={hazard.hazard}
                     onChange={(e) => updateHazard(index, "hazard", e.target.value)}
-                    placeholder="Hva kan gå galt?"
+                    placeholder={t("hazards.hazardPlaceholder")}
                     className="text-sm"
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <Label className="text-sm">Mulig konsekvens</Label>
+                <Label className="text-sm">{t("hazards.consequence")}</Label>
                 <Input
                   value={hazard.consequence}
                   onChange={(e) => updateHazard(index, "consequence", e.target.value)}
-                  placeholder="Hva er verst tenkelig utfall?"
+                  placeholder={t("hazards.consequencePlaceholder")}
                   className="text-sm"
                 />
               </div>
 
               <div className="grid gap-3 md:grid-cols-3">
                 <div className="space-y-1">
-                  <Label className="text-sm">Sannsynlighet (1–5)</Label>
+                  <Label className="text-sm">{t("hazards.probability")}</Label>
                   <Select
                     value={String(hazard.probability)}
                     onValueChange={(v) => updateHazard(index, "probability", Number(v))}
@@ -524,16 +531,16 @@ export function SjaForm({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">1 – Svært lav</SelectItem>
-                      <SelectItem value="2">2 – Lav</SelectItem>
-                      <SelectItem value="3">3 – Middels</SelectItem>
-                      <SelectItem value="4">4 – Høy</SelectItem>
-                      <SelectItem value="5">5 – Svært høy</SelectItem>
+                      <SelectItem value="1">{t("hazards.probabilityOptions.o1")}</SelectItem>
+                      <SelectItem value="2">{t("hazards.probabilityOptions.o2")}</SelectItem>
+                      <SelectItem value="3">{t("hazards.probabilityOptions.o3")}</SelectItem>
+                      <SelectItem value="4">{t("hazards.probabilityOptions.o4")}</SelectItem>
+                      <SelectItem value="5">{t("hazards.probabilityOptions.o5")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-sm">Konsekvens (1–5)</Label>
+                  <Label className="text-sm">{t("hazards.severity")}</Label>
                   <Select
                     value={String(hazard.severity)}
                     onValueChange={(v) => updateHazard(index, "severity", Number(v))}
@@ -542,31 +549,31 @@ export function SjaForm({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">1 – Ubetydelig</SelectItem>
-                      <SelectItem value="2">2 – Liten</SelectItem>
-                      <SelectItem value="3">3 – Moderat</SelectItem>
-                      <SelectItem value="4">4 – Alvorlig</SelectItem>
-                      <SelectItem value="5">5 – Svært alvorlig</SelectItem>
+                      <SelectItem value="1">{t("hazards.severityOptions.o1")}</SelectItem>
+                      <SelectItem value="2">{t("hazards.severityOptions.o2")}</SelectItem>
+                      <SelectItem value="3">{t("hazards.severityOptions.o3")}</SelectItem>
+                      <SelectItem value="4">{t("hazards.severityOptions.o4")}</SelectItem>
+                      <SelectItem value="5">{t("hazards.severityOptions.o5")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-sm">Ansvarlig for tiltak</Label>
+                  <Label className="text-sm">{t("hazards.responsible")}</Label>
                   <Input
                     value={hazard.responsibleName}
                     onChange={(e) => updateHazard(index, "responsibleName", e.target.value)}
-                    placeholder="Hvem er ansvarlig?"
+                    placeholder={t("hazards.responsiblePlaceholder")}
                     className="text-sm"
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <Label className="text-sm">Tiltak / barrierer *</Label>
+                <Label className="text-sm">{t("hazards.measures")} *</Label>
                 <Textarea
                   value={hazard.measures}
                   onChange={(e) => updateHazard(index, "measures", e.target.value)}
-                  placeholder="Hvilke tiltak skal iverksettes for å redusere risikoen?"
+                  placeholder={t("hazards.measuresPlaceholder")}
                   rows={2}
                   className="text-sm resize-none"
                 />
@@ -576,7 +583,7 @@ export function SjaForm({
 
           <Button type="button" variant="outline" className="w-full" onClick={addHazard}>
             <Plus className="h-4 w-4 mr-2" />
-            Legg til flere farer
+            {t("hazards.addMore")}
           </Button>
         </div>
       </div>
@@ -585,12 +592,12 @@ export function SjaForm({
       <div className="space-y-4">
         <h3 className="text-lg font-semibold border-b pb-2 flex items-center gap-2">
           <Camera className="h-5 w-5" />
-          5. Bilder av arbeidsområdet
+          {t("sections.images")}
         </h3>
 
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Ta bilder av arbeidsområdet, utstyr eller forhold som er relevante for SJA-en (valgfritt, maks 5)
+            {t("images.help")}
           </p>
           <div className="relative">
             <Input
@@ -614,10 +621,10 @@ export function SjaForm({
               <Camera className="h-6 w-6 text-muted-foreground" />
               <div className="text-center">
                 <p className="text-sm font-medium">
-                  {imageFiles.length >= 5 ? "Maks 5 bilder" : "Ta bilde eller velg fra album"}
+                  {imageFiles.length >= 5 ? t("images.maxReached") : t("images.takeOrChoose")}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {imageFiles.length > 0 ? `${imageFiles.length}/5 bilder lagt til` : "Valgfritt"}
+                  {imageFiles.length > 0 ? t("images.count", { count: imageFiles.length }) : t("images.optional")}
                 </p>
               </div>
             </Label>
@@ -629,7 +636,7 @@ export function SjaForm({
                 <div key={index} className="relative aspect-square rounded-lg overflow-hidden border">
                   <Image
                     src={preview}
-                    alt={`Bilde ${index + 1}`}
+                    alt={t("images.previewAlt", { index: index + 1 })}
                     fill
                     className="object-cover"
                   />
@@ -651,18 +658,18 @@ export function SjaForm({
       <Card className="border-2 border-green-300 bg-green-50">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg text-green-900">
-            6. Bekreftelse og innsending
+            {t("sections.confirm")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-green-900">
-            Ved å sende inn bekrefter du at:
+            {t("confirm.title")}
           </p>
           <ul className="list-disc list-inside text-sm text-green-800 space-y-1 ml-2">
-            <li>Alle deltakere har gjennomgått denne SJA-en sammen</li>
-            <li>Alle identifiserte farer er vurdert</li>
-            <li>Nødvendige tiltak er beskrevet og forstått</li>
-            <li>Alle vet hvem som er ansvarlig for hvert tiltak</li>
+            <li>{t("confirm.points.p1")}</li>
+            <li>{t("confirm.points.p2")}</li>
+            <li>{t("confirm.points.p3")}</li>
+            <li>{t("confirm.points.p4")}</li>
           </ul>
         </CardContent>
       </Card>
@@ -671,17 +678,17 @@ export function SjaForm({
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Sparkles className="h-4 w-4" />
-            AI-oppsummering
+            {t("ai.title")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <Button type="button" variant="outline" onClick={handleGenerateSummary} disabled={isGeneratingSummary}>
-            {isGeneratingSummary ? "Genererer..." : "Generer oppsummering"}
+            {isGeneratingSummary ? t("ai.generating") : t("ai.generate")}
           </Button>
           <Textarea
             value={aiSummary}
             onChange={(event) => setAiSummary(event.target.value)}
-            placeholder="AI-oppsummering av hovedfarer, tiltak og oppfølging vises her."
+            placeholder={t("ai.placeholder")}
             rows={4}
           />
         </CardContent>
@@ -697,10 +704,10 @@ export function SjaForm({
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Sender inn SJA...
+              {t("actions.submitting")}
             </>
           ) : (
-            "Send inn SJA for godkjenning"
+            t("actions.submit")
           )}
         </Button>
 
@@ -712,7 +719,7 @@ export function SjaForm({
           size="lg"
           className="w-full h-12"
         >
-          Avbryt
+          {t("actions.cancel")}
         </Button>
       </div>
     </form>

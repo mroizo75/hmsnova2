@@ -8,16 +8,23 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, FolderOpen, Building2, MapPin, User, CalendarDays, AlertCircle, HardHat, ClipboardCheck, ListTodo } from "lucide-react";
 import Link from "next/link";
 import type { ProjectStatus } from "@prisma/client";
+import { getLocale, getTranslations } from "next-intl/server";
 
-const statusConfig: Record<ProjectStatus, { label: string; color: string }> = {
-  PLANNING: { label: "Planlegging", color: "bg-blue-100 text-blue-800 border-blue-300" },
-  ACTIVE: { label: "Aktiv", color: "bg-green-100 text-green-800 border-green-300" },
-  ON_HOLD: { label: "På vent", color: "bg-amber-100 text-amber-800 border-amber-300" },
-  COMPLETED: { label: "Fullført", color: "bg-gray-100 text-gray-700 border-gray-300" },
-  ARCHIVED: { label: "Arkivert", color: "bg-gray-100 text-gray-500 border-gray-200" },
-};
+function getStatusConfig(
+  t: Awaited<ReturnType<typeof getTranslations>>
+): Record<ProjectStatus, { label: string; color: string }> {
+  return {
+    PLANNING: { label: t("status.planning"), color: "bg-blue-100 text-blue-800 border-blue-300" },
+    ACTIVE: { label: t("status.active"), color: "bg-green-100 text-green-800 border-green-300" },
+    ON_HOLD: { label: t("status.onHold"), color: "bg-amber-100 text-amber-800 border-amber-300" },
+    COMPLETED: { label: t("status.completed"), color: "bg-gray-100 text-gray-700 border-gray-300" },
+    ARCHIVED: { label: t("status.archived"), color: "bg-gray-100 text-gray-500 border-gray-200" },
+  };
+}
 
 export default async function ProjectsPage() {
+  const t = await getTranslations("dashboardProjectsPage");
+  const locale = await getLocale();
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) redirect("/login");
 
@@ -25,7 +32,7 @@ export default async function ProjectsPage() {
     where: { email: session.user.email },
     include: { tenants: true },
   });
-  if (!user || user.tenants.length === 0) return <div>Ingen tilgang</div>;
+  if (!user || user.tenants.length === 0) return <div>{t("noAccess")}</div>;
 
   const tenantId = user.tenants[0].tenantId;
 
@@ -43,6 +50,7 @@ export default async function ProjectsPage() {
   const active = projects.filter((p) => p.status === "ACTIVE").length;
   const planning = projects.filter((p) => p.status === "PLANNING").length;
   const completed = projects.filter((p) => p.status === "COMPLETED").length;
+  const statusConfig = getStatusConfig(t);
 
   return (
     <div className="space-y-6">
@@ -50,38 +58,37 @@ export default async function ProjectsPage() {
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <FolderOpen className="h-8 w-8 text-blue-600" />
-            Prosjekter / Jobber
+            {t("title")}
           </h1>
           <p className="text-muted-foreground">
-            Knytt avvik, SJA, vernerunder og tiltak til prosjekter for samlet HMS-rapportering
+            {t("description")}
           </p>
         </div>
         <Button asChild>
           <Link href="/dashboard/projects/new">
             <Plus className="mr-2 h-4 w-4" />
-            Nytt prosjekt
+            {t("actions.newProject")}
           </Link>
         </Button>
       </div>
 
-      {/* Statistikk-oversikt */}
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-green-700">{active}</div>
-            <p className="text-sm text-muted-foreground">Aktive prosjekter</p>
+            <p className="text-sm text-muted-foreground">{t("stats.activeProjects")}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-blue-700">{planning}</div>
-            <p className="text-sm text-muted-foreground">Under planlegging</p>
+            <p className="text-sm text-muted-foreground">{t("stats.inPlanning")}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold text-gray-600">{completed}</div>
-            <p className="text-sm text-muted-foreground">Fullførte</p>
+            <p className="text-sm text-muted-foreground">{t("stats.completed")}</p>
           </CardContent>
         </Card>
       </div>
@@ -91,14 +98,14 @@ export default async function ProjectsPage() {
         <Card>
           <CardContent className="py-16 text-center">
             <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-lg font-medium">Ingen prosjekter ennå</p>
+            <p className="text-lg font-medium">{t("empty.title")}</p>
             <p className="text-muted-foreground mt-1">
-              Opprett et prosjekt for å koble HMS-aktiviteter til en jobb eller oppdrag
+              {t("empty.description")}
             </p>
             <Button asChild className="mt-4">
               <Link href="/dashboard/projects/new">
                 <Plus className="mr-2 h-4 w-4" />
-                Opprett første prosjekt
+                {t("actions.createFirstProject")}
               </Link>
             </Button>
           </CardContent>
@@ -129,7 +136,7 @@ export default async function ProjectsPage() {
                       )}
                       {project.orderNumber && (
                         <div className="flex items-center gap-2 text-muted-foreground">
-                          <span className="text-xs font-mono">Ordre: {project.orderNumber}</span>
+                          <span className="text-xs font-mono">{t("orderNumber", { number: project.orderNumber })}</span>
                         </div>
                       )}
                       {project.location && (
@@ -151,34 +158,33 @@ export default async function ProjectsPage() {
                           <CalendarDays className="h-3.5 w-3.5 shrink-0" />
                           <span className="text-xs">
                             {project.startDate
-                              ? new Date(project.startDate).toLocaleDateString("nb-NO")
+                              ? new Date(project.startDate).toLocaleDateString(locale === "en" ? "en-US" : "nb-NO")
                               : "—"}
                             {" → "}
                             {project.endDate
-                              ? new Date(project.endDate).toLocaleDateString("nb-NO")
-                              : "Løpende"}
+                              ? new Date(project.endDate).toLocaleDateString(locale === "en" ? "en-US" : "nb-NO")
+                              : t("ongoing")}
                           </span>
                         </div>
                       )}
                     </div>
 
-                    {/* Aktivitets-tellere */}
                     <div className="flex gap-3 pt-1 border-t text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <AlertCircle className="h-3 w-3" />
-                        {project._count.incidents} avvik
+                        {t("counters.incidents", { count: project._count.incidents })}
                       </span>
                       <span className="flex items-center gap-1">
                         <HardHat className="h-3 w-3" />
-                        {project._count.sjaAnalyses} SJA
+                        {t("counters.sja", { count: project._count.sjaAnalyses })}
                       </span>
                       <span className="flex items-center gap-1">
                         <ClipboardCheck className="h-3 w-3" />
-                        {project._count.inspections} runder
+                        {t("counters.inspections", { count: project._count.inspections })}
                       </span>
                       <span className="flex items-center gap-1">
                         <ListTodo className="h-3 w-3" />
-                        {project._count.measures} tiltak
+                        {t("counters.measures", { count: project._count.measures })}
                       </span>
                     </div>
                   </CardContent>

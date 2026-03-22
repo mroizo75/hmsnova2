@@ -16,17 +16,17 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import {
-  getSjaStatusLabel,
   getSjaStatusColor,
-  getSjaConclusionLabel,
   getSjaConclusionColor,
   getRiskColor,
-  getRiskLabel,
 } from "@/features/sja/schemas/sja.schema";
 import { SjaCreateTemplateButton } from "@/components/sja/sja-create-template-button";
 import { SjaDeleteTemplateButton } from "@/components/sja/sja-delete-template-button";
+import { getLocale, getTranslations } from "next-intl/server";
 
 export default async function SjaDashboardPage() {
+  const t = await getTranslations("dashboardSjaPage");
+  const locale = await getLocale();
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.email) {
@@ -39,7 +39,7 @@ export default async function SjaDashboardPage() {
   });
 
   if (!user || user.tenants.length === 0) {
-    return <div>Ingen tilgang til tenant</div>;
+    return <div>{t("noTenantAccess")}</div>;
   }
 
   const tenantId = user.tenants[0].tenantId;
@@ -68,6 +68,28 @@ export default async function SjaDashboardPage() {
     cancelled: analyses.filter((a) => a.status === "CANCELLED").length,
     templates: templates.length,
   };
+  const statusLabel = (status: string): string => {
+    const labels: Record<string, string> = {
+      DRAFT: t("status.DRAFT"),
+      PENDING_APPROVAL: t("status.PENDING_APPROVAL"),
+      APPROVED: t("status.APPROVED"),
+      ACTIVE: t("status.ACTIVE"),
+      COMPLETED: t("status.COMPLETED"),
+      CANCELLED: t("status.CANCELLED"),
+    };
+    return labels[status] ?? status;
+  };
+  const conclusionLabel = (conclusion: string | null): string => {
+    if (!conclusion) {
+      return "-";
+    }
+    const labels: Record<string, string> = {
+      GO: t("conclusion.GO"),
+      GO_WITH_MEASURES: t("conclusion.GO_WITH_MEASURES"),
+      NO_GO: t("conclusion.NO_GO"),
+    };
+    return labels[conclusion] ?? conclusion;
+  };
 
   return (
     <div className="space-y-6">
@@ -75,16 +97,16 @@ export default async function SjaDashboardPage() {
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3">
             <HardHat className="h-8 w-8 text-orange-600" />
-            SJA – Sikker Jobb Analyse
+            {t("title")}
           </h1>
           <p className="text-muted-foreground">
-            Oversikt over alle SJA-analyser og maler
+            {t("description")}
           </p>
         </div>
         <Button asChild>
           <Link href="/dashboard/sja/new">
             <Plus className="h-4 w-4 mr-1" />
-            Ny SJA
+            {t("actions.new")}
           </Link>
         </Button>
       </div>
@@ -92,71 +114,71 @@ export default async function SjaDashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Totalt</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("stats.total.title")}</CardTitle>
             <HardHat className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">SJA-analyser</p>
+            <p className="text-xs text-muted-foreground">{t("stats.total.description")}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Utkast</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("stats.draft.title")}</CardTitle>
             <FileText className="h-4 w-4 text-gray-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-gray-600">{stats.draft}</div>
-            <p className="text-xs text-muted-foreground">Venter på godkjenning</p>
+            <p className="text-xs text-muted-foreground">{t("stats.draft.description")}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Aktive</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("stats.active.title")}</CardTitle>
             <Clock className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{stats.active}</div>
-            <p className="text-xs text-muted-foreground">Pågående arbeid</p>
+            <p className="text-xs text-muted-foreground">{t("stats.active.description")}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Fullført</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("stats.completed.title")}</CardTitle>
             <CheckCircle className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">{stats.completed}</div>
-            <p className="text-xs text-muted-foreground">Ferdig behandlet</p>
+            <p className="text-xs text-muted-foreground">{t("stats.completed.description")}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Maler</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("stats.templates.title")}</CardTitle>
             <BookTemplate className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-600">{stats.templates}</div>
-            <p className="text-xs text-muted-foreground">Gjenbrukbare maler</p>
+            <p className="text-xs text-muted-foreground">{t("stats.templates.description")}</p>
           </CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Alle SJA-analyser</CardTitle>
+          <CardTitle>{t("analyses.title")}</CardTitle>
         </CardHeader>
         <CardContent>
           {analyses.length === 0 ? (
             <div className="text-center py-12">
               <HardHat className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Ingen SJA-analyser</h3>
+              <h3 className="text-lg font-semibold mb-2">{t("analyses.emptyTitle")}</h3>
               <p className="text-muted-foreground">
-                Det er ikke opprettet noen SJA-analyser ennå.
+                {t("analyses.emptyDescription")}
               </p>
             </div>
           ) : (
@@ -164,14 +186,14 @@ export default async function SjaDashboardPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b text-left">
-                    <th className="pb-3 pr-4 text-sm font-medium text-muted-foreground">Nr.</th>
-                    <th className="pb-3 pr-4 text-sm font-medium text-muted-foreground">Tittel</th>
-                    <th className="pb-3 pr-4 text-sm font-medium text-muted-foreground">Sted</th>
-                    <th className="pb-3 pr-4 text-sm font-medium text-muted-foreground">Status</th>
-                    <th className="pb-3 pr-4 text-sm font-medium text-muted-foreground">Konklusjon</th>
-                    <th className="pb-3 pr-4 text-sm font-medium text-muted-foreground">Opprettet av</th>
-                    <th className="pb-3 pr-4 text-sm font-medium text-muted-foreground">Dato</th>
-                    <th className="pb-3 text-sm font-medium text-muted-foreground">Risiko</th>
+                    <th className="pb-3 pr-4 text-sm font-medium text-muted-foreground">{t("table.number")}</th>
+                    <th className="pb-3 pr-4 text-sm font-medium text-muted-foreground">{t("table.title")}</th>
+                    <th className="pb-3 pr-4 text-sm font-medium text-muted-foreground">{t("table.location")}</th>
+                    <th className="pb-3 pr-4 text-sm font-medium text-muted-foreground">{t("table.status")}</th>
+                    <th className="pb-3 pr-4 text-sm font-medium text-muted-foreground">{t("table.conclusion")}</th>
+                    <th className="pb-3 pr-4 text-sm font-medium text-muted-foreground">{t("table.createdBy")}</th>
+                    <th className="pb-3 pr-4 text-sm font-medium text-muted-foreground">{t("table.date")}</th>
+                    <th className="pb-3 text-sm font-medium text-muted-foreground">{t("table.risk")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -206,7 +228,7 @@ export default async function SjaDashboardPage() {
                             variant="outline"
                             className={`text-xs ${getSjaStatusColor(sja.status)}`}
                           >
-                            {getSjaStatusLabel(sja.status)}
+                            {statusLabel(sja.status)}
                           </Badge>
                         </td>
                         <td className="py-3 pr-4">
@@ -214,14 +236,14 @@ export default async function SjaDashboardPage() {
                             variant="outline"
                             className={`text-xs ${getSjaConclusionColor(sja.conclusion)}`}
                           >
-                            {getSjaConclusionLabel(sja.conclusion)}
+                            {conclusionLabel(sja.conclusion)}
                           </Badge>
                         </td>
                         <td className="py-3 pr-4 text-sm text-muted-foreground">
                           {sja.createdByName}
                         </td>
                         <td className="py-3 pr-4 text-sm text-muted-foreground">
-                          {new Date(sja.plannedDate).toLocaleDateString("nb-NO", {
+                          {new Date(sja.plannedDate).toLocaleDateString(locale === "en" ? "en-US" : "nb-NO", {
                             day: "numeric",
                             month: "short",
                             year: "numeric",
@@ -255,21 +277,21 @@ export default async function SjaDashboardPage() {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <BookTemplate className="h-5 w-5 text-purple-600" />
-              SJA-maler ({templates.length})
+              {t("templates.title", { count: templates.length })}
             </CardTitle>
             <SjaCreateTemplateButton tenantId={tenantId} />
           </div>
           <p className="text-sm text-muted-foreground">
-            Maler gjør det enkelt for ansatte å opprette SJA daglig med forhåndsdefinerte farer og tiltak
+            {t("templates.description")}
           </p>
         </CardHeader>
         <CardContent>
           {templates.length === 0 ? (
             <div className="text-center py-8">
               <BookTemplate className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <h3 className="text-base font-semibold mb-1">Ingen maler opprettet</h3>
+              <h3 className="text-base font-semibold mb-1">{t("templates.emptyTitle")}</h3>
               <p className="text-sm text-muted-foreground">
-                Opprett en mal slik at ansatte raskt kan lage SJA for gjentakende arbeidsoppgaver.
+                {t("templates.emptyDescription")}
               </p>
             </div>
           ) : (
@@ -286,16 +308,16 @@ export default async function SjaDashboardPage() {
                       )}
                       {template.workLocation && (
                         <p className="text-xs text-muted-foreground mt-1">
-                          Arbeidssted: {template.workLocation}
+                          {t("templates.workLocation", { value: template.workLocation })}
                         </p>
                       )}
                       <div className="flex flex-wrap gap-2 mt-2">
                         <Badge variant="secondary" className="text-xs">
-                          {template.hazards.length} fare{template.hazards.length !== 1 ? "r" : ""}
+                          {t("templates.hazards", { count: template.hazards.length })}
                         </Badge>
                         <span className="text-xs text-muted-foreground">
-                          Opprettet av {template.createdByName} •{" "}
-                          {new Date(template.createdAt).toLocaleDateString("nb-NO", {
+                          {t("templates.createdBy", { name: template.createdByName })} •{" "}
+                          {new Date(template.createdAt).toLocaleDateString(locale === "en" ? "en-US" : "nb-NO", {
                             day: "numeric",
                             month: "short",
                             year: "numeric",

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -76,6 +77,14 @@ interface IncidentAiPrefs {
   deselectedMeasureTitles: string[];
 }
 
+interface TemplatePresetDefaults {
+  type: IncidentType;
+  titleKey: string;
+  descriptionKey: string;
+  locationKey: string;
+  immediateActionKey: string;
+}
+
 const OFFLINE_INCIDENT_QUEUE_KEY = "hmsnova.offline.incidentQueue.v1";
 const getIncidentAiPrefsKey = (userId: string) => `hmsnova.incident.aiPrefs.v1.${userId}`;
 
@@ -87,61 +96,61 @@ const getIncidentAiPrefsKey = (userId: string) => `hmsnova.incident.aiPrefs.v1.$
  */
 const incidentTypes: Array<{
   value: IncidentType;
-  label: string;
-  desc: string;
-  badge?: string;
+  labelKey: string;
+  descKey: string;
+  badgeKey?: string;
   group: "hms" | "avvik" | "annet";
 }> = [
   {
     value: "ULYKKE",
-    label: "Arbeidsulykke / RUH",
-    desc: "Energi frigitt og skade/tap oppstod på person, materiell eller miljø",
-    badge: "AML § 5-2 – varslingspliktig",
+    labelKey: "types.ULYKKE.label",
+    descKey: "types.ULYKKE.desc",
+    badgeKey: "types.ULYKKE.badge",
     group: "hms",
   },
   {
     value: "NESTEN",
-    label: "Nestenulykke / RUH",
-    desc: "Energi frigitt, men ingen skade – under andre omstendigheter ville ulykke ha skjedd",
-    badge: "AML § 5-2 – tilløp til ulykke",
+    labelKey: "types.NESTEN.label",
+    descKey: "types.NESTEN.desc",
+    badgeKey: "types.NESTEN.badge",
     group: "hms",
   },
   {
     value: "FARLIG_SITUASJON",
-    label: "Farlig situasjon / Observasjon",
-    desc: "Farlig tilstand eller uønsket forhold som representerer en fare, men ingen energi frigitt",
-    badge: "AML § 2-3",
+    labelKey: "types.FARLIG_SITUASJON.label",
+    descKey: "types.FARLIG_SITUASJON.desc",
+    badgeKey: "types.FARLIG_SITUASJON.badge",
     group: "hms",
   },
   {
     value: "YRKESSYKDOM",
-    label: "Yrkessykdom / Arbeidsrelatert sykdom",
-    desc: "Sykdom som antas å ha sin grunn i arbeidet eller forholdene på arbeidsplassen",
-    badge: "AML § 5-1",
+    labelKey: "types.YRKESSYKDOM.label",
+    descKey: "types.YRKESSYKDOM.desc",
+    badgeKey: "types.YRKESSYKDOM.badge",
     group: "hms",
   },
   {
     value: "AVVIK",
-    label: "Avvik",
-    desc: "Brudd på lovgivning, interne krav, prosedyrer eller standarder (ISO 9001 kap. 10.2)",
+    labelKey: "types.AVVIK.label",
+    descKey: "types.AVVIK.desc",
     group: "avvik",
   },
   {
     value: "MILJO",
-    label: "Miljøavvik",
-    desc: "Utslipp, søl eller annet avvik fra miljøkrav (ISO 14001)",
+    labelKey: "types.MILJO.label",
+    descKey: "types.MILJO.desc",
     group: "avvik",
   },
   {
     value: "KVALITET",
-    label: "Kvalitetsavvik",
-    desc: "Produkt- eller tjenestekvalitet som ikke møter krav (ISO 9001)",
+    labelKey: "types.KVALITET.label",
+    descKey: "types.KVALITET.desc",
     group: "avvik",
   },
   {
     value: "CUSTOMER",
-    label: "Kundeklage",
-    desc: "Klage eller tilbakemelding fra kunde/bruker (ISO 10002)",
+    labelKey: "types.CUSTOMER.label",
+    descKey: "types.CUSTOMER.desc",
     group: "annet",
   },
 ];
@@ -152,11 +161,11 @@ const HMS_TYPES: IncidentType[] = ["ULYKKE", "NESTEN", "FARLIG_SITUASJON", "YRKE
 const HSE_STATS_TYPES: IncidentType[] = ["ULYKKE", "NESTEN", "YRKESSYKDOM"];
 
 const severityLevels = [
-  { value: 1, label: "1 - Ubetydelig", desc: "Ingen konsekvenser" },
-  { value: 2, label: "2 - Mindre", desc: "Små konsekvenser" },
-  { value: 3, label: "3 - Moderat", desc: "Merkbare konsekvenser" },
-  { value: 4, label: "4 - Alvorlig", desc: "Store konsekvenser" },
-  { value: 5, label: "5 - Kritisk", desc: "Svært alvorlige konsekvenser" },
+  { value: 1, labelKey: "severity.1.label", descKey: "severity.1.desc" },
+  { value: 2, labelKey: "severity.2.label", descKey: "severity.2.desc" },
+  { value: 3, labelKey: "severity.3.label", descKey: "severity.3.desc" },
+  { value: 4, labelKey: "severity.4.label", descKey: "severity.4.desc" },
+  { value: 5, labelKey: "severity.5.label", descKey: "severity.5.desc" },
 ];
 
 const NO_RISK_REFERENCE_VALUE = "__none_risk_reference__";
@@ -174,6 +183,7 @@ export function IncidentForm({
   isTabletMode = false,
   templatePreset,
 }: IncidentFormProps) {
+  const t = useTranslations("incidentForm");
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -214,31 +224,28 @@ export function IncidentForm({
 
   const templateDefaults: Record<
     NonNullable<IncidentFormProps["templatePreset"]>,
-    { type: IncidentType; title: string; description: string; location: string; immediateAction: string }
+    TemplatePresetDefaults
   > = {
     homeVisitRisk: {
       type: "FARLIG_SITUASJON",
-      title: "Risiko ved hjemmebesok",
-      description:
-        "Beskriv forhold i hjemmebesoket som ga forhoyet risiko for ansatt eller bruker.",
-      location: "Hjemmetjeneste / hjemmebesok",
-      immediateAction: "Arbeidet ble stanset og ansvarlig leder ble varslet.",
+      titleKey: "templates.homeVisitRisk.title",
+      descriptionKey: "templates.homeVisitRisk.description",
+      locationKey: "templates.homeVisitRisk.location",
+      immediateActionKey: "templates.homeVisitRisk.immediateAction",
     },
     violenceThreat: {
       type: "ULYKKE",
-      title: "Vold eller trussel i tjeneste",
-      description:
-        "Beskriv hendelsesforlop, hva som utløste situasjonen, og hvilke personer som var involvert.",
-      location: "Hjemmetjeneste / brukeradresse",
-      immediateAction: "Sikret ansatt, avbrutt oppdrag og varslet leder/politi ved behov.",
+      titleKey: "templates.violenceThreat.title",
+      descriptionKey: "templates.violenceThreat.description",
+      locationKey: "templates.violenceThreat.location",
+      immediateActionKey: "templates.violenceThreat.immediateAction",
     },
     infectionExposure: {
       type: "FARLIG_SITUASJON",
-      title: "Mistenkt smitteeksponering",
-      description:
-        "Beskriv eksponeringstype, varighet, verneutstyr brukt og hvilke tiltak som ble iverksatt.",
-      location: "Helse- og omsorgstjeneste",
-      immediateAction: "Smittevernrutine aktivert og hendelsen meldt til leder.",
+      titleKey: "templates.infectionExposure.title",
+      descriptionKey: "templates.infectionExposure.description",
+      locationKey: "templates.infectionExposure.location",
+      immediateActionKey: "templates.infectionExposure.immediateAction",
     },
   };
   const activeTemplate = templatePreset ? templateDefaults[templatePreset] : null;
@@ -267,10 +274,10 @@ export function IncidentForm({
   }, [activeTemplate, selectedType]);
 
   useEffect(() => {
-    if (activeTemplate?.immediateAction && immediateActionValue.length === 0) {
-      setImmediateActionValue(activeTemplate.immediateAction);
+    if (activeTemplate?.immediateActionKey && immediateActionValue.length === 0) {
+      setImmediateActionValue(t(activeTemplate.immediateActionKey));
     }
-  }, [activeTemplate, immediateActionValue.length]);
+  }, [activeTemplate, immediateActionValue.length, t]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -348,8 +355,8 @@ export function IncidentForm({
     if (!selectedType || titleInput.trim().length < 2 || descriptionInput.trim().length < 10) {
       toast({
         variant: "destructive",
-        title: "Mangler grunnlag",
-        description: "Velg type og fyll ut tittel + beskrivelse før AI-analyse.",
+        title: t("toasts.missingBasis.title"),
+        description: t("toasts.missingBasis.description"),
       });
       return;
     }
@@ -365,8 +372,8 @@ export function IncidentForm({
       if (!result.success || !result.data) {
         toast({
           variant: "destructive",
-          title: "AI-analyse feilet",
-          description: result.error || "Ukjent feil",
+          title: t("toasts.aiAnalysisFailed.title"),
+          description: result.error || t("toasts.unknownError"),
         });
         return;
       }
@@ -379,8 +386,8 @@ export function IncidentForm({
         }))
       );
       toast({
-        title: "AI-forslag klare",
-        description: "Utkast for tiltak og umiddelbar handling er fylt ut.",
+        title: t("toasts.aiSuggestionsReady.title"),
+        description: t("toasts.aiSuggestionsReady.description"),
       });
     } finally {
       setIsGeneratingAi(false);
@@ -448,8 +455,8 @@ export function IncidentForm({
     const queue = readOfflineQueue();
     if (queue.length === 0) {
       toast({
-        title: "Ingen lagrede hendelser",
-        description: "Offline-køen er tom.",
+        title: t("toasts.noStoredIncidents.title"),
+        description: t("toasts.noStoredIncidents.description"),
       });
       return;
     }
@@ -457,8 +464,8 @@ export function IncidentForm({
     if (!navigator.onLine) {
       toast({
         variant: "destructive",
-        title: "Ingen nettverk",
-        description: "Koble til nett for å synkronisere lagrede hendelser.",
+        title: t("toasts.noNetwork.title"),
+        description: t("toasts.noNetwork.description"),
       });
       return;
     }
@@ -489,8 +496,8 @@ export function IncidentForm({
 
     if (successCount > 0) {
       toast({
-        title: "Synkronisering fullfort",
-        description: `${successCount} hendelser er synkronisert.`,
+        title: t("toasts.syncCompleted.title"),
+        description: t("toasts.syncCompleted.description", { count: successCount }),
       });
       router.refresh();
     }
@@ -498,8 +505,8 @@ export function IncidentForm({
     if (failed.length > 0) {
       toast({
         variant: "destructive",
-        title: "Noen hendelser feilet",
-        description: `${failed.length} hendelser ligger fortsatt i offline-køen.`,
+        title: t("toasts.someIncidentsFailed.title"),
+        description: t("toasts.someIncidentsFailed.description", { count: failed.length }),
       });
     }
   }
@@ -573,11 +580,11 @@ export function IncidentForm({
       });
       writeOfflineQueue(queue);
       toast({
-        title: "Lagret offline",
+        title: t("toasts.savedOffline.title"),
         description:
           imageFiles.length > 0
-            ? "Hendelsen er lagret offline. Bilder synkroniseres ikke offline og ma legges ved etter synk."
-            : "Hendelsen blir synkronisert automatisk nar du er pa nett.",
+            ? t("toasts.savedOffline.withImages")
+            : t("toasts.savedOffline.withoutImages"),
       });
       setLoading(false);
       e.currentTarget.reset();
@@ -591,8 +598,8 @@ export function IncidentForm({
       if (!result.success) {
         toast({
           variant: "destructive",
-          title: "Feil",
-          description: result.error || "Kunne ikke rapportere avvik",
+          title: t("toasts.error.title"),
+          description: result.error || t("toasts.error.reportIncident"),
         });
         return;
       }
@@ -611,8 +618,8 @@ export function IncidentForm({
           ? "/dashboard/complaints"
           : "/dashboard/incidents";
       toast({
-        title: "Avvik rapportert",
-        description: "Avviket er registrert og vil bli fulgt opp",
+        title: t("toasts.incidentReported.title"),
+        description: t("toasts.incidentReported.description"),
         className: "bg-green-50 border-green-200",
       });
       router.push(redirectRoute);
@@ -620,8 +627,8 @@ export function IncidentForm({
     } catch {
       toast({
         variant: "destructive",
-        title: "Uventet feil",
-        description: "Noe gikk galt",
+        title: t("toasts.unexpectedError.title"),
+        description: t("toasts.unexpectedError.description"),
       });
     } finally {
       setLoading(false);
@@ -645,7 +652,7 @@ export function IncidentForm({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-sm text-blue-900">
                 <WifiOff className="h-4 w-4" />
-                Tabletmodus med offline-kø: {offlineQueueCount} usynkroniserte
+                {t("tabletMode.offlineQueue", { count: offlineQueueCount })}
               </div>
               <Button
                 type="button"
@@ -655,7 +662,7 @@ export function IncidentForm({
                 className="gap-2"
               >
                 <CloudUpload className="h-4 w-4" />
-                {isSyncingOfflineQueue ? "Synkroniserer..." : "Synkroniser lagrede"}
+                {isSyncingOfflineQueue ? t("tabletMode.syncing") : t("tabletMode.syncSaved")}
               </Button>
             </div>
           </CardContent>
@@ -665,15 +672,15 @@ export function IncidentForm({
       {/* ── Grunnleggende informasjon ── */}
       <Card>
         <CardHeader>
-          <CardTitle>Grunnleggende informasjon</CardTitle>
+          <CardTitle>{t("sections.basicInfo.title")}</CardTitle>
           <CardDescription>
-            AML § 5-2 / IK-HMS § 5 – Rapporter hva som skjedde
+            {t("sections.basicInfo.description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="type">Type hendelse *</Label>
+              <Label htmlFor="type">{t("fields.type.label")}</Label>
               <Select
                 name="type"
                 required
@@ -684,37 +691,37 @@ export function IncidentForm({
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Velg type" />
+                  <SelectValue placeholder={t("fields.type.placeholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    HMS / Personskade
+                    {t("fields.type.groupHms")}
                   </div>
                   {incidentTypes
                     .filter((t) => t.group === "hms")
                     .map((type) => (
                       <SelectItem key={type.value} value={type.value}>
-                        {type.label}
+                        {t(type.labelKey)}
                       </SelectItem>
                     ))}
                   <div className="px-2 py-1 mt-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-t">
-                    Avvik / Kvalitet
+                    {t("fields.type.groupDeviation")}
                   </div>
                   {incidentTypes
                     .filter((t) => t.group === "avvik")
                     .map((type) => (
                       <SelectItem key={type.value} value={type.value}>
-                        {type.label}
+                        {t(type.labelKey)}
                       </SelectItem>
                     ))}
                   <div className="px-2 py-1 mt-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-t">
-                    Annet
+                    {t("fields.type.groupOther")}
                   </div>
                   {incidentTypes
                     .filter((t) => t.group === "annet")
                     .map((type) => (
                       <SelectItem key={type.value} value={type.value}>
-                        {type.label}
+                        {t(type.labelKey)}
                       </SelectItem>
                     ))}
                 </SelectContent>
@@ -722,11 +729,11 @@ export function IncidentForm({
               {selectedTypeInfo && (
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">
-                    {selectedTypeInfo.desc}
+                    {t(selectedTypeInfo.descKey)}
                   </p>
-                  {selectedTypeInfo.badge && (
+                  {selectedTypeInfo.badgeKey && (
                     <span className="inline-block rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-medium text-blue-700">
-                      {selectedTypeInfo.badge}
+                      {t(selectedTypeInfo.badgeKey)}
                     </span>
                   )}
                 </div>
@@ -734,10 +741,10 @@ export function IncidentForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="severity">Alvorlighetsgrad *</Label>
+              <Label htmlFor="severity">{t("fields.severity.label")}</Label>
               <Select name="severity" required disabled={loading}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Velg alvorlighet" />
+                  <SelectValue placeholder={t("fields.severity.placeholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   {severityLevels.map((level) => (
@@ -745,7 +752,7 @@ export function IncidentForm({
                       key={level.value}
                       value={level.value.toString()}
                     >
-                      {level.label}
+                      {t(level.labelKey)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -756,19 +763,19 @@ export function IncidentForm({
           <div className="rounded-md border bg-muted/30 p-3 space-y-3">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" />
-              <p className="text-sm font-medium">AI-hjelp: hendelse til tiltak</p>
+              <p className="text-sm font-medium">{t("aiHelp.title")}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button type="button" variant="secondary" onClick={handleGenerateAi} disabled={loading || isGeneratingAi}>
-                {isGeneratingAi ? "Genererer..." : "Analyser og foreslå tiltak"}
+                {isGeneratingAi ? t("aiHelp.generating") : t("aiHelp.analyzeAndSuggest")}
               </Button>
               <Button type="button" variant="outline" onClick={handleQualityCheck} disabled={loading || isCheckingQuality}>
-                {isCheckingQuality ? "Sjekker..." : "AI-kvalitetssjekk"}
+                {isCheckingQuality ? t("aiHelp.checking") : t("aiHelp.qualityCheck")}
               </Button>
             </div>
             {qualityWarnings.length > 0 && (
               <div className="rounded-md border bg-amber-50 p-2 text-xs text-amber-900">
-                <p className="font-medium mb-1">Forbedringspunkter før lagring:</p>
+                <p className="font-medium mb-1">{t("aiHelp.improvementPoints")}</p>
                 <ul className="list-disc ml-4 space-y-1">
                   {qualityWarnings.map((warning) => (
                     <li key={warning}>{warning}</li>
@@ -780,7 +787,7 @@ export function IncidentForm({
               <div className="rounded-md border bg-green-50 p-2 text-xs text-green-900">
                 <p className="font-medium flex items-center gap-1 mb-1">
                   <CheckCircle2 className="h-3 w-3" />
-                  Velg hvilke AI-tiltak som skal opprettes ved lagring
+                  {t("aiHelp.selectMeasures")}
                 </p>
                 <div className="space-y-1">
                   {aiMeasureSuggestions.map((item) => (
@@ -800,17 +807,17 @@ export function IncidentForm({
           {/* ── Prosjektvelger ── */}
           {projects.length > 0 && (
             <div className="space-y-2">
-              <Label>Knytt til prosjekt / jobb</Label>
+              <Label>{t("fields.project.label")}</Label>
               <Select
                 value={selectedProjectId}
                 onValueChange={setSelectedProjectId}
                 disabled={loading}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Velg prosjekt (valgfritt)" />
+                  <SelectValue placeholder={t("fields.project.placeholder")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NO_PROJECT_VALUE}>— Ingen / ikke prosjektrelatert —</SelectItem>
+                  <SelectItem value={NO_PROJECT_VALUE}>{t("fields.project.noneOption")}</SelectItem>
                   {projects
                     .filter((p) => p.status === "ACTIVE" || p.status === "PLANNING")
                     .map((p) => (
@@ -822,7 +829,7 @@ export function IncidentForm({
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Kobling til prosjekt gir samlet HMS-rapport per jobb/oppdrag
+                {t("fields.project.help")}
               </p>
             </div>
           )}
@@ -831,13 +838,13 @@ export function IncidentForm({
           {selectedType && subcategoryOptions.length > 0 && (
             <div className="space-y-3">
               <Label>
-                Hendelsen dreier seg om
+                {t("fields.subcategories.label")}
                 <span className="ml-1 text-xs font-normal text-muted-foreground">
-                  (velg én eller flere)
+                  {t("fields.subcategories.hint")}
                 </span>
               </Label>
               {loadingSubcategories ? (
-                <p className="text-xs text-muted-foreground">Laster kategorier…</p>
+                <p className="text-xs text-muted-foreground">{t("fields.subcategories.loading")}</p>
               ) : (
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 rounded-lg border bg-muted/30 p-4">
                   {subcategoryOptions.map((opt) => (
@@ -859,24 +866,24 @@ export function IncidentForm({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="title">Tittel *</Label>
+            <Label htmlFor="title">{t("fields.title.label")}</Label>
             <Input
               id="title"
               name="title"
-              placeholder="F.eks. Fall fra stige ved lagerarbeid"
-              defaultValue={activeTemplate?.title}
+              placeholder={t("fields.title.placeholder")}
+              defaultValue={activeTemplate ? t(activeTemplate.titleKey) : undefined}
               required
               disabled={loading}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Beskrivelse av hendelse *</Label>
+            <Label htmlFor="description">{t("fields.description.label")}</Label>
             <Textarea
               id="description"
               name="description"
-              placeholder="Beskriv detaljert hva som skjedde, når, hvor og hvem som var involvert"
-              defaultValue={activeTemplate?.description}
+              placeholder={t("fields.description.placeholder")}
+              defaultValue={activeTemplate ? t(activeTemplate.descriptionKey) : undefined}
               required
               disabled={loading}
               rows={5}
@@ -885,7 +892,7 @@ export function IncidentForm({
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="occurredAt">Når skjedde det? *</Label>
+              <Label htmlFor="occurredAt">{t("fields.occurredAt.label")}</Label>
               <Input
                 id="occurredAt"
                 name="occurredAt"
@@ -897,23 +904,23 @@ export function IncidentForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="location">Hvor skjedde det?</Label>
+              <Label htmlFor="location">{t("fields.location.label")}</Label>
               <Input
                 id="location"
                 name="location"
-                placeholder="F.eks. Lager 2, Produksjonshall A"
-                defaultValue={activeTemplate?.location}
+                placeholder={t("fields.location.placeholder")}
+                defaultValue={activeTemplate ? t(activeTemplate.locationKey) : undefined}
                 disabled={loading}
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="witnessName">Vitner (navn)</Label>
+            <Label htmlFor="witnessName">{t("fields.witnessName.label")}</Label>
             <Input
               id="witnessName"
               name="witnessName"
-              placeholder="Navn på vitner til hendelsen"
+              placeholder={t("fields.witnessName.placeholder")}
               disabled={loading}
             />
           </div>
@@ -921,9 +928,9 @@ export function IncidentForm({
           {users.length > 0 && (
             <div className="space-y-2">
               <Label htmlFor="reportedForUserId">
-                Rapportert på vegne av
+                {t("fields.reportedForUser.label")}
                 <span className="ml-1 text-xs font-normal text-muted-foreground">
-                  (valgfritt – for leder/HMS som rapporterer for ansatt)
+                  {t("fields.reportedForUser.hint")}
                 </span>
               </Label>
               <Select
@@ -932,11 +939,11 @@ export function IncidentForm({
                 disabled={loading}
               >
                 <SelectTrigger id="reportedForUserId">
-                  <SelectValue placeholder="Velg ansatt (valgfritt)" />
+                  <SelectValue placeholder={t("fields.reportedForUser.placeholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NO_REPORTED_FOR_VALUE}>
-                    — Ingen (rapporterer for meg selv) —
+                    {t("fields.reportedForUser.noneOption")}
                   </SelectItem>
                   {users.map((u) => (
                     <SelectItem key={u.id} value={u.id}>
@@ -956,30 +963,30 @@ export function IncidentForm({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5 text-amber-600" />
-              Personinvolvering og resultat
+              {t("sections.hmsSpecific.title")}
             </CardTitle>
             <CardDescription>
-              AML § 5-2 – Rapport om uønsket hendelse (RUH)
+              {t("sections.hmsSpecific.description")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="involvedPersons">Involverte personer</Label>
+              <Label htmlFor="involvedPersons">{t("fields.involvedPersons.label")}</Label>
               <Textarea
                 id="involvedPersons"
                 name="involvedPersons"
-                placeholder="Navn og rolle på alle involverte personer"
+                placeholder={t("fields.involvedPersons.placeholder")}
                 disabled={loading}
                 rows={2}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="injuryDescription">Resultat av hendelse</Label>
+              <Label htmlFor="injuryDescription">{t("fields.injuryDescription.label")}</Label>
               <Textarea
                 id="injuryDescription"
                 name="injuryDescription"
-                placeholder="Beskriv eventuelle skader, skadeomfang og umiddelbare konsekvenser"
+                placeholder={t("fields.injuryDescription.placeholder")}
                 disabled={loading}
                 rows={3}
               />
@@ -987,16 +994,16 @@ export function IncidentForm({
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="injuryType">Type skade/eksponering</Label>
+                <Label htmlFor="injuryType">{t("fields.injuryTypeDetailed.label")}</Label>
                 <Input
                   id="injuryType"
                   name="injuryType"
-                  placeholder="F.eks. Kuttskade, fallskade, kjemisk eksponering"
+                  placeholder={t("fields.injuryType.placeholder")}
                   disabled={loading}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="riskReferenceId">Knytt til risikovurdering</Label>
+                <Label htmlFor="riskReferenceId">{t("fields.riskReference.label")}</Label>
                 <Select
                   name="riskReferenceId"
                   disabled={loading || risks.length === 0}
@@ -1005,18 +1012,18 @@ export function IncidentForm({
                     <SelectValue
                       placeholder={
                         risks.length
-                          ? "Velg risiko (valgfritt)"
-                          : "Ingen risikoer tilgjengelig"
+                          ? t("fields.riskReference.placeholder")
+                          : t("fields.riskReference.noneAvailable")
                       }
                     />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={NO_RISK_REFERENCE_VALUE}>
-                      Ingen
+                      {t("fields.riskReference.noneOption")}
                     </SelectItem>
                     {risks.map((risk) => (
                       <SelectItem key={risk.id} value={risk.id}>
-                        {risk.title} · Score {risk.score}
+                        {t("fields.riskReference.optionWithScore", { title: risk.title, score: risk.score })}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1025,11 +1032,11 @@ export function IncidentForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="suggestedActions">Foreslåtte forebyggende tiltak</Label>
+              <Label htmlFor="suggestedActions">{t("fields.suggestedActions.label")}</Label>
               <Textarea
                 id="suggestedActions"
                 name="suggestedActions"
-                placeholder="Hva mener du bør gjøres for å forhindre at dette skjer igjen?"
+                placeholder={t("fields.suggestedActions.placeholder")}
               value={suggestedActionsValue}
               onChange={(event) => setSuggestedActionsValue(event.target.value)}
                 disabled={loading}
@@ -1046,10 +1053,10 @@ export function IncidentForm({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-orange-600" />
-              HSE-statistikk
+              {t("sections.hseStats.title")}
             </CardTitle>
             <CardDescription>
-              Brukes til TRIR-beregning og rapportering til kunder/myndigheter
+              {t("sections.hseStats.description")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -1061,9 +1068,9 @@ export function IncidentForm({
                     onCheckedChange={(v) => setIsFatal(!!v)}
                     disabled={loading}
                   />
-                  <span className="text-sm font-medium">Dødsfall</span>
+                  <span className="text-sm font-medium">{t("hseMetrics.fatality.label")}</span>
                 </div>
-                <span className="text-xs text-muted-foreground">Fatality</span>
+                <span className="text-xs text-muted-foreground">{t("hseMetrics.fatality.short")}</span>
               </label>
 
               <label className="flex flex-col gap-2 rounded-lg border bg-background p-3 cursor-pointer">
@@ -1073,9 +1080,9 @@ export function IncidentForm({
                     onCheckedChange={(v) => setIsLostTimeIncident(!!v)}
                     disabled={loading}
                   />
-                  <span className="text-sm font-medium">Fraværsskade</span>
+                  <span className="text-sm font-medium">{t("hseMetrics.lti.label")}</span>
                 </div>
-                <span className="text-xs text-muted-foreground">LTI</span>
+                <span className="text-xs text-muted-foreground">{t("hseMetrics.lti.short")}</span>
               </label>
 
               <label className="flex flex-col gap-2 rounded-lg border bg-background p-3 cursor-pointer">
@@ -1085,10 +1092,10 @@ export function IncidentForm({
                     onCheckedChange={(v) => setIsRestrictedWork(!!v)}
                     disabled={loading}
                   />
-                  <span className="text-sm font-medium">Begrenset arbeid</span>
+                  <span className="text-sm font-medium">{t("hseMetrics.restrictedWork.label")}</span>
                 </div>
                 <span className="text-xs text-muted-foreground">
-                  Restricted work
+                  {t("hseMetrics.restrictedWork.short")}
                 </span>
               </label>
 
@@ -1101,44 +1108,44 @@ export function IncidentForm({
                     }
                     disabled={loading}
                   />
-                  <span className="text-sm font-medium">Legebehandling</span>
+                  <span className="text-sm font-medium">{t("hseMetrics.medicalTreatment.label")}</span>
                 </div>
                 <span className="text-xs text-muted-foreground">
-                  Medical treatment
+                  {t("hseMetrics.medicalTreatment.short")}
                 </span>
               </label>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="lostWorkdays">Fraværsdager</Label>
+                <Label htmlFor="lostWorkdays">{t("fields.lostWorkdays.label")}</Label>
                 <Input
                   id="lostWorkdays"
                   name="lostWorkdays"
                   type="number"
                   min={0}
-                  placeholder="Antall tapte arbeidsdager"
+                  placeholder={t("fields.lostWorkdays.placeholder")}
                   disabled={loading || !isLostTimeIncident}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Fyll ut hvis fraværsskade er valgt
+                  {t("fields.lostWorkdays.hint")}
                 </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lostTimeMinutes">Tapt tid (minutter)</Label>
+                <Label htmlFor="lostTimeMinutes">{t("fields.lostTimeMinutes.label")}</Label>
                 <Input
                   id="lostTimeMinutes"
                   name="lostTimeMinutes"
                   type="number"
                   min={0}
-                  placeholder="Presist antall minutter (valgfritt)"
+                  placeholder={t("fields.lostTimeMinutes.placeholder")}
                   disabled={loading}
                 />
               </div>
             </div>
 
             <div className="rounded-md bg-orange-100 border border-orange-200 px-4 py-3 text-xs text-orange-900">
-              <strong>TRIR-formel:</strong> (Dødsfall + Fraværsskader + Begrenset arbeid + Legebehandling) × 200 000 / Arbeidede timer
+              <strong>{t("sections.hseStats.trirLabel")}</strong> {t("sections.hseStats.trirFormula")}
             </div>
           </CardContent>
         </Card>
@@ -1148,24 +1155,24 @@ export function IncidentForm({
       {!isHseStatsType && !isCustomerType && (
         <Card>
           <CardHeader>
-            <CardTitle>Skade og oppfølging</CardTitle>
+            <CardTitle>{t("sections.injuryFollowUp.title")}</CardTitle>
             <CardDescription>
-              ISO 45001: dokumenter personskade og koble til risiko
+              {t("sections.injuryFollowUp.description")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="injuryType">Type skade</Label>
+                <Label htmlFor="injuryType">{t("fields.injuryType.label")}</Label>
                 <Input
                   id="injuryType"
                   name="injuryType"
-                  placeholder="F.eks. Kuttskade, fallskade, kjemisk eksponering"
+                  placeholder={t("fields.injuryType.placeholder")}
                   disabled={loading}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="riskReferenceId">Knytt til risikovurdering</Label>
+                <Label htmlFor="riskReferenceId">{t("fields.riskReference.label")}</Label>
                 <Select
                   name="riskReferenceId"
                   disabled={loading || risks.length === 0}
@@ -1174,18 +1181,18 @@ export function IncidentForm({
                     <SelectValue
                       placeholder={
                         risks.length
-                          ? "Velg risiko (valgfritt)"
-                          : "Ingen risikoer tilgjengelig"
+                          ? t("fields.riskReference.placeholder")
+                          : t("fields.riskReference.noneAvailable")
                       }
                     />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={NO_RISK_REFERENCE_VALUE}>
-                      Ingen
+                      {t("fields.riskReference.noneOption")}
                     </SelectItem>
                     {risks.map((risk) => (
                       <SelectItem key={risk.id} value={risk.id}>
-                        {risk.title} · Score {risk.score}
+                        {t("fields.riskReference.optionWithScore", { title: risk.title, score: risk.score })}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1200,57 +1207,57 @@ export function IncidentForm({
       {isCustomerType && (
         <Card>
           <CardHeader>
-            <CardTitle>Kundeklage</CardTitle>
+            <CardTitle>{t("sections.customerComplaint.title")}</CardTitle>
             <CardDescription>
-              ISO 10002: registrer hvem som klager og hvordan saken skal håndteres
+              {t("sections.customerComplaint.description")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="customerName">Kundenavn *</Label>
+                <Label htmlFor="customerName">{t("fields.customerName.label")}</Label>
                 <Input
                   id="customerName"
                   name="customerName"
-                  placeholder="Navn på kunde/bedrift"
+                  placeholder={t("fields.customerName.placeholder")}
                   disabled={loading}
                   required={isCustomerType}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="customerEmail">Kunde e-post</Label>
+                <Label htmlFor="customerEmail">{t("fields.customerEmail.label")}</Label>
                 <Input
                   id="customerEmail"
                   name="customerEmail"
                   type="email"
-                  placeholder="kunde@firma.no"
+                  placeholder={t("fields.customerEmail.placeholder")}
                   disabled={loading}
                 />
               </div>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="customerPhone">Telefon</Label>
+                <Label htmlFor="customerPhone">{t("fields.customerPhone.label")}</Label>
                 <Input
                   id="customerPhone"
                   name="customerPhone"
-                  placeholder="+47 99 99 99 99"
+                  placeholder={t("fields.customerPhone.placeholder")}
                   disabled={loading}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="customerTicketId">Referanse / saknr.</Label>
+                <Label htmlFor="customerTicketId">{t("fields.customerTicketId.label")}</Label>
                 <Input
                   id="customerTicketId"
                   name="customerTicketId"
-                  placeholder="F.eks. Zendesk #124"
+                  placeholder={t("fields.customerTicketId.placeholder")}
                   disabled={loading}
                 />
               </div>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="responseDeadline">Lovet svarfrist</Label>
+                <Label htmlFor="responseDeadline">{t("fields.responseDeadline.label")}</Label>
                 <Input
                   id="responseDeadline"
                   name="responseDeadline"
@@ -1259,10 +1266,10 @@ export function IncidentForm({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="customerSatisfaction">Tilfredshet (1-5)</Label>
+                <Label htmlFor="customerSatisfaction">{t("fields.customerSatisfaction.label")}</Label>
                 <Select name="customerSatisfaction" disabled={loading}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Velg vurdering" />
+                    <SelectValue placeholder={t("fields.customerSatisfaction.placeholder")} />
                   </SelectTrigger>
                   <SelectContent>
                     {[1, 2, 3, 4, 5].map((v) => (
@@ -1281,18 +1288,18 @@ export function IncidentForm({
       {/* ── Umiddelbare tiltak ── */}
       <Card>
         <CardHeader>
-          <CardTitle>Umiddelbare tiltak og årsak</CardTitle>
+          <CardTitle>{t("sections.immediateActions.title")}</CardTitle>
           <CardDescription>
-            ISO 9001 kap. 10.2 – Hva ble gjort umiddelbart, og hva er årsak?
+            {t("sections.immediateActions.description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="immediateAction">Umiddelbare tiltak</Label>
+            <Label htmlFor="immediateAction">{t("fields.immediateAction.label")}</Label>
             <Textarea
               id="immediateAction"
               name="immediateAction"
-              placeholder="F.eks. Stoppet arbeidet, ryddet området, sikret vitner, varslet leder..."
+              placeholder={t("fields.immediateAction.placeholder")}
               value={immediateActionValue}
               onChange={(event) => setImmediateActionValue(event.target.value)}
               disabled={loading}
@@ -1305,9 +1312,9 @@ export function IncidentForm({
       {/* ── Bilder ── */}
       <Card>
         <CardHeader>
-          <CardTitle>Bilder</CardTitle>
+          <CardTitle>{t("sections.images.title")}</CardTitle>
           <CardDescription>
-            Last opp bilder som dokumenterer hendelsen (valgfritt, maks 5)
+            {t("sections.images.description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -1331,13 +1338,13 @@ export function IncidentForm({
               <div className="text-center">
                 <p className="text-sm font-medium">
                   {imageFiles.length >= 5
-                    ? "Maks 5 bilder"
-                    : "Klikk for å legge til bilder"}
+                    ? t("sections.images.maxReached")
+                    : t("sections.images.clickToAdd")}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {imageFiles.length > 0
-                    ? `${imageFiles.length}/5 bilder valgt`
-                    : "PNG, JPG, HEIC støttes"}
+                    ? t("sections.images.selectedCount", { count: imageFiles.length })
+                    : t("sections.images.supportedFormats")}
                 </p>
               </div>
             </Label>
@@ -1352,7 +1359,7 @@ export function IncidentForm({
                 >
                   <Image
                     src={preview}
-                    alt={`Forhåndsvisning ${index + 1}`}
+                    alt={t("sections.images.previewAlt", { index: index + 1 })}
                     fill
                     className="object-cover"
                   />
@@ -1374,16 +1381,16 @@ export function IncidentForm({
       <div className="rounded-lg bg-blue-50 border border-blue-200 p-6">
         <h3 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
           <AlertTriangle className="h-4 w-4" />
-          Etter rapportering
+          {t("afterReporting.title")}
         </h3>
         <div className="text-sm text-blue-800 space-y-1">
           <ul className="space-y-1 list-disc list-inside ml-2">
-            <li>Leder vil utrede årsak (årsaksanalyse / ROT)</li>
-            <li>Korrigerende og forebyggende tiltak planlegges</li>
-            <li>Effektiviteten av tiltak vil bli evaluert (ISO 9001: 10.2)</li>
+            <li>{t("afterReporting.point1")}</li>
+            <li>{t("afterReporting.point2")}</li>
+            <li>{t("afterReporting.point3")}</li>
             {isHseStatsType && (
               <li className="font-medium">
-                Inngår i TRIR-statistikk og HSE-rapportering til oppdragsgivere
+                {t("afterReporting.point4Hse")}
               </li>
             )}
           </ul>
@@ -1392,7 +1399,7 @@ export function IncidentForm({
 
       <div className={cn("flex gap-4", isTabletMode && "sticky bottom-4 z-20 rounded-lg border bg-background p-3 shadow-lg")}>
         <Button type="submit" disabled={loading}>
-          {loading ? "Rapporterer..." : "Rapporter avvik"}
+          {loading ? t("actions.submitting") : t("actions.submit")}
         </Button>
         <Button
           type="button"
@@ -1400,7 +1407,7 @@ export function IncidentForm({
           onClick={() => router.back()}
           disabled={loading}
         >
-          Avbryt
+          {t("actions.cancel")}
         </Button>
       </div>
     </form>

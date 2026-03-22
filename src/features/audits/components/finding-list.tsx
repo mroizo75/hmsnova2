@@ -26,26 +26,23 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AlertTriangle, CheckCircle2, Trash2, Edit } from "lucide-react";
 import { deleteFinding, updateFinding, verifyFinding } from "@/server/actions/audit.actions";
 import { useToast } from "@/hooks/use-toast";
-import {
-  getFindingTypeLabel,
-  getFindingTypeColor,
-  getFindingStatusLabel,
-  getFindingStatusColor,
-} from "@/features/audits/schemas/audit.schema";
 import type { AuditFinding } from "@prisma/client";
+import { useLocale, useTranslations } from "next-intl";
 
 interface FindingListProps {
   findings: AuditFinding[];
 }
 
 export function FindingList({ findings }: FindingListProps) {
+  const t = useTranslations("dashboardAuditComponents.findingList");
+  const locale = useLocale();
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
   const [editingFinding, setEditingFinding] = useState<AuditFinding | null>(null);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Er du sikker på at du vil slette dette funnet?\n\nDette kan ikke angres.")) {
+    if (!confirm(t("confirmDelete"))) {
       return;
     }
 
@@ -53,15 +50,15 @@ export function FindingList({ findings }: FindingListProps) {
     const result = await deleteFinding(id);
     if (result.success) {
       toast({
-        title: "🗑️ Funn slettet",
-        description: "Revisjonsfunnet er fjernet",
+        title: t("toasts.deleted.title"),
+        description: t("toasts.deleted.description"),
       });
       router.refresh();
     } else {
       toast({
         variant: "destructive",
-        title: "Sletting feilet",
-        description: result.error || "Kunne ikke slette funn",
+        title: t("toasts.deleteError.title"),
+        description: result.error || t("toasts.deleteError.description"),
       });
     }
     setLoading(null);
@@ -73,22 +70,22 @@ export function FindingList({ findings }: FindingListProps) {
     if (result.success) {
       toast({
         title: "✅ Status oppdatert",
-        description: `Funnet er nå "${getFindingStatusLabel(status)}"`,
+        description: t("toasts.statusUpdated.description", { status: t(`status.${getStatusLabel(status)}`) }),
         className: "bg-green-50 border-green-200",
       });
       router.refresh();
     } else {
       toast({
         variant: "destructive",
-        title: "Feil",
-        description: result.error || "Kunne ikke oppdatere status",
+        title: t("toasts.error.title"),
+        description: result.error || t("toasts.error.updateStatus"),
       });
     }
     setLoading(null);
   };
 
   const handleVerify = async (id: string) => {
-    if (!confirm("Er du sikker på at dette funnet er løst og verifisert?")) {
+    if (!confirm(t("confirmVerify"))) {
       return;
     }
 
@@ -96,16 +93,16 @@ export function FindingList({ findings }: FindingListProps) {
     const result = await verifyFinding(id);
     if (result.success) {
       toast({
-        title: "✅ Funn verifisert",
-        description: "Funnet er nå lukket og verifisert",
+        title: t("toasts.verified.title"),
+        description: t("toasts.verified.description"),
         className: "bg-green-50 border-green-200",
       });
       router.refresh();
     } else {
       toast({
         variant: "destructive",
-        title: "Feil",
-        description: result.error || "Kunne ikke verifisere funn",
+        title: t("toasts.error.title"),
+        description: result.error || t("toasts.error.verify"),
       });
     }
     setLoading(null);
@@ -115,9 +112,9 @@ export function FindingList({ findings }: FindingListProps) {
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center">
         <CheckCircle2 className="mb-4 h-12 w-12 text-green-600" />
-        <h3 className="text-xl font-semibold">Ingen funn registrert</h3>
+        <h3 className="text-xl font-semibold">{t("empty.title")}</h3>
         <p className="text-muted-foreground">
-          Ingen avvik eller observasjoner er dokumentert for denne revisjonen.
+          {t("empty.description")}
         </p>
       </div>
     );
@@ -126,10 +123,10 @@ export function FindingList({ findings }: FindingListProps) {
   return (
     <div className="space-y-4">
       {findings.map((finding) => {
-        const typeLabel = getFindingTypeLabel(finding.findingType);
-        const typeColor = getFindingTypeColor(finding.findingType);
-        const statusLabel = getFindingStatusLabel(finding.status);
-        const statusColor = getFindingStatusColor(finding.status);
+        const typeLabel = t(`types.${getTypeLabel(finding.findingType)}`);
+        const typeColor = getTypeColor(finding.findingType);
+        const statusLabel = t(`status.${getStatusLabel(finding.status)}`);
+        const statusColor = getStatusColor(finding.status);
 
         const isOverdue =
           finding.dueDate &&
@@ -146,17 +143,17 @@ export function FindingList({ findings }: FindingListProps) {
                     <div className="flex items-center gap-2">
                       <Badge className={typeColor}>{typeLabel}</Badge>
                       <Badge className={statusColor}>{statusLabel}</Badge>
-                      <Badge variant="outline">Klausul {finding.clause}</Badge>
+                      <Badge variant="outline">{t("clause", { value: finding.clause })}</Badge>
                       {isOverdue && (
                         <Badge variant="destructive" className="flex items-center gap-1">
                           <AlertTriangle className="h-3 w-3" />
-                          Forfalt
+                          {t("overdue")}
                         </Badge>
                       )}
                     </div>
                     {finding.dueDate && (
                       <p className="text-sm text-muted-foreground">
-                        Frist: {new Date(finding.dueDate).toLocaleDateString("nb-NO")}
+                        {t("deadline", { date: new Date(finding.dueDate).toLocaleDateString(locale === "en" ? "en-US" : "nb-NO") })}
                       </p>
                     )}
                   </div>
@@ -170,9 +167,9 @@ export function FindingList({ findings }: FindingListProps) {
                       </DialogTrigger>
                       <DialogContent className="max-w-3xl">
                         <DialogHeader>
-                          <DialogTitle>Oppdater funn</DialogTitle>
+                          <DialogTitle>{t("updateDialog.title")}</DialogTitle>
                           <DialogDescription>
-                            Legg til korrigerende tiltak og årsaksanalyse
+                            {t("updateDialog.description")}
                           </DialogDescription>
                         </DialogHeader>
                         <CorrectiveActionForm finding={finding} />
@@ -193,15 +190,15 @@ export function FindingList({ findings }: FindingListProps) {
                 {/* Description */}
                 <div className="space-y-2">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Beskrivelse:</p>
+                    <p className="text-sm font-medium text-muted-foreground">{t("fields.description")}</p>
                     <p className="text-sm">{finding.description}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Bevis:</p>
+                    <p className="text-sm font-medium text-muted-foreground">{t("fields.evidence")}</p>
                     <p className="text-sm">{finding.evidence}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Krav:</p>
+                    <p className="text-sm font-medium text-muted-foreground">{t("fields.requirement")}</p>
                     <p className="text-sm">{finding.requirement}</p>
                   </div>
                 </div>
@@ -211,14 +208,14 @@ export function FindingList({ findings }: FindingListProps) {
                   <div className="space-y-2 border-t pt-4">
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">
-                        Korrigerende tiltak:
+                        {t("fields.correctiveAction")}
                       </p>
                       <p className="text-sm">{finding.correctiveAction}</p>
                     </div>
                     {finding.rootCause && (
                       <div>
                         <p className="text-sm font-medium text-muted-foreground">
-                          Årsaksanalyse:
+                          {t("fields.rootCause")}
                         </p>
                         <p className="text-sm">{finding.rootCause}</p>
                       </div>
@@ -236,7 +233,7 @@ export function FindingList({ findings }: FindingListProps) {
                         onClick={() => handleUpdateStatus(finding, "IN_PROGRESS")}
                         disabled={loading === finding.id}
                       >
-                        Start arbeid
+                        {t("actions.start")}
                       </Button>
                     )}
                     {finding.status === "IN_PROGRESS" && (
@@ -246,7 +243,7 @@ export function FindingList({ findings }: FindingListProps) {
                         onClick={() => handleUpdateStatus(finding, "RESOLVED")}
                         disabled={loading === finding.id}
                       >
-                        Marker som løst
+                        {t("actions.markResolved")}
                       </Button>
                     )}
                     {finding.status === "RESOLVED" && (
@@ -256,7 +253,7 @@ export function FindingList({ findings }: FindingListProps) {
                         disabled={loading === finding.id}
                       >
                         <CheckCircle2 className="mr-2 h-4 w-4" />
-                        Verifiser lukking
+                        {t("actions.verify")}
                       </Button>
                     )}
                   </div>
@@ -266,10 +263,10 @@ export function FindingList({ findings }: FindingListProps) {
                 {finding.status === "VERIFIED" && finding.verifiedAt && (
                   <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                     <p className="text-sm font-medium text-green-900">
-                      ✅ Verifisert lukket
+                      {t("verifiedTitle")}
                     </p>
                     <p className="text-sm text-green-800">
-                      {new Date(finding.verifiedAt).toLocaleDateString("nb-NO")}
+                      {new Date(finding.verifiedAt).toLocaleDateString(locale === "en" ? "en-US" : "nb-NO")}
                     </p>
                   </div>
                 )}
@@ -284,6 +281,7 @@ export function FindingList({ findings }: FindingListProps) {
 
 // Corrective Action Form Component
 function CorrectiveActionForm({ finding }: { finding: AuditFinding }) {
+  const t = useTranslations("dashboardAuditComponents.findingList");
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -303,16 +301,16 @@ function CorrectiveActionForm({ finding }: { finding: AuditFinding }) {
 
     if (result.success) {
       toast({
-        title: "✅ Funn oppdatert",
-        description: "Korrigerende tiltak er dokumentert",
+        title: t("toasts.updated.title"),
+        description: t("toasts.updated.description"),
         className: "bg-green-50 border-green-200",
       });
       router.refresh();
     } else {
       toast({
         variant: "destructive",
-        title: "Feil",
-        description: result.error || "Kunne ikke oppdatere funn",
+        title: t("toasts.error.title"),
+        description: result.error || t("toasts.error.update"),
       });
     }
 
@@ -322,12 +320,12 @@ function CorrectiveActionForm({ finding }: { finding: AuditFinding }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="correctiveAction">Korrigerende tiltak (ISO 9001) *</Label>
+        <Label htmlFor="correctiveAction">{t("correctiveForm.correctiveActionLabel")}</Label>
         <Textarea
           id="correctiveAction"
           name="correctiveAction"
           rows={4}
-          placeholder="Beskriv hvilke tiltak som er/skal iverksettes for å lukke funnet..."
+          placeholder={t("correctiveForm.correctiveActionPlaceholder")}
           required
           disabled={loading}
           minLength={20}
@@ -336,35 +334,74 @@ function CorrectiveActionForm({ finding }: { finding: AuditFinding }) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="rootCause">Årsaksanalyse (ISO 9001)</Label>
+        <Label htmlFor="rootCause">{t("correctiveForm.rootCauseLabel")}</Label>
         <Textarea
           id="rootCause"
           name="rootCause"
           rows={3}
-          placeholder="Hva er grunnårsaken til avviket?"
+          placeholder={t("correctiveForm.rootCausePlaceholder")}
           disabled={loading}
           defaultValue={finding.rootCause || ""}
         />
         <p className="text-sm text-muted-foreground">
-          ISO 9001: Identifiser og eliminer grunnårsaken
+          {t("correctiveForm.rootCauseHelp")}
         </p>
       </div>
 
       <Card className="bg-blue-50 border-blue-200">
         <CardContent className="pt-4">
           <p className="text-sm text-blue-900">
-            ISO 9001: Korrigerende tiltak skal eliminere årsaken til avviket for å forhindre
-            gjentakelse.
+            {t("correctiveForm.isoInfo")}
           </p>
         </CardContent>
       </Card>
 
       <div className="flex justify-end gap-4">
         <Button type="submit" disabled={loading}>
-          {loading ? "Lagrer..." : "Lagre tiltak"}
+          {loading ? t("actions.saving") : t("actions.saveMeasures")}
         </Button>
       </div>
     </form>
   );
+}
+
+function getTypeLabel(type: string): string {
+  const labels: Record<string, string> = {
+    MAJOR_NC: "major",
+    MINOR_NC: "minor",
+    OBSERVATION: "observation",
+    STRENGTH: "strength",
+  };
+  return labels[type] ?? type;
+}
+
+function getTypeColor(type: string): string {
+  const colors: Record<string, string> = {
+    MAJOR_NC: "bg-red-100 text-red-800",
+    MINOR_NC: "bg-orange-100 text-orange-800",
+    OBSERVATION: "bg-blue-100 text-blue-800",
+    STRENGTH: "bg-green-100 text-green-800",
+  };
+  return colors[type] ?? "bg-gray-100 text-gray-800";
+}
+
+function getStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    OPEN: "open",
+    IN_PROGRESS: "inProgress",
+    RESOLVED: "resolved",
+    VERIFIED: "verified",
+  };
+  return labels[status] ?? status;
+}
+
+function getStatusColor(status: string): string {
+  const colors: Record<string, string> = {
+    OPEN: "bg-red-100 text-red-800",
+    IN_PROGRESS: "bg-yellow-100 text-yellow-800",
+    RESOLVED: "bg-blue-100 text-blue-800",
+    VERIFIED: "bg-green-100 text-green-800",
+  };
+  return colors[status] ?? "bg-gray-100 text-gray-800";
 }
 

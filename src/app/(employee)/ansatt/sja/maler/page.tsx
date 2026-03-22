@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +11,7 @@ import { SjaTemplateActions } from "@/components/sja/sja-template-actions";
 
 export default async function AnsattSjaMaler() {
   const session = await getServerSession(authOptions);
+  const t = await getTranslations("employeeSjaTemplatesPage");
 
   if (!session?.user?.tenantId) {
     redirect("/login");
@@ -35,10 +37,10 @@ export default async function AnsattSjaMaler() {
         <div>
           <h1 className="text-2xl font-bold mb-1 flex items-center gap-2">
             <BookTemplate className="h-7 w-7 text-purple-600" />
-            SJA-maler
+            {t("title")}
           </h1>
           <p className="text-muted-foreground">
-            Bruk en mal for raskt å opprette SJA for gjentakende arbeidsoppgaver
+            {t("description")}
           </p>
         </div>
       </div>
@@ -46,8 +48,7 @@ export default async function AnsattSjaMaler() {
       <Card className="border-l-4 border-l-purple-500 bg-purple-50">
         <CardContent className="p-4">
           <p className="text-sm text-purple-900">
-            <strong>Daglig bruk:</strong> Velg en mal og klikk &quot;Bruk mal&quot; for å opprette en ny
-            SJA med forhåndsutfylte farer og tiltak. Du kan justere innholdet etter behov.
+            <strong>{t("dailyUse.title")}</strong> {t("dailyUse.description")}
           </p>
         </CardContent>
       </Card>
@@ -56,9 +57,9 @@ export default async function AnsattSjaMaler() {
         <Card>
           <CardContent className="py-12 text-center">
             <BookTemplate className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Ingen maler opprettet</h3>
+            <h3 className="text-lg font-semibold mb-2">{t("empty.title")}</h3>
             <p className="text-muted-foreground">
-              Administrator eller HMS-ansvarlig kan opprette SJA-maler fra dashboard.
+              {t("empty.description")}
             </p>
           </CardContent>
         </Card>
@@ -85,12 +86,14 @@ export default async function AnsattSjaMaler() {
               <CardContent>
                 {template.workLocation && (
                   <p className="text-sm text-muted-foreground mb-3">
-                    Arbeidssted: {template.workLocation}
+                    {t("workLocation", { value: template.workLocation })}
                   </p>
                 )}
                 <div className="space-y-2">
                   <p className="text-sm font-medium">
-                    {template.hazards.length} fare{template.hazards.length !== 1 ? "r" : ""} definert:
+                    {template.hazards.length === 1
+                      ? t("hazards.definedSingle", { count: template.hazards.length })
+                      : t("hazards.definedMultiple", { count: template.hazards.length })}
                   </p>
                   <div className="grid gap-2">
                     {template.hazards.map((hazard) => (
@@ -104,7 +107,7 @@ export default async function AnsattSjaMaler() {
                         <div className="flex-1 min-w-0">
                           <p className="font-medium">{hazard.hazard}</p>
                           <p className="text-xs text-muted-foreground truncate">
-                            Tiltak: {hazard.measures}
+                            {t("hazards.measures", { value: hazard.measures })}
                           </p>
                         </div>
                       </div>

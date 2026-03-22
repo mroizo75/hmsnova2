@@ -12,16 +12,17 @@ import { CloseIncidentForm } from "@/features/incidents/components/close-inciden
 import { IncidentTreatmentForm } from "@/components/incidents/incident-treatment-form";
 import { IncidentPDFExport } from "@/components/incidents/incident-pdf-export";
 import {
-  getIncidentTypeLabel,
   getIncidentTypeColor,
   getSeverityInfo,
-  getIncidentStatusLabel,
   getIncidentStatusColor,
 } from "@/features/incidents/schemas/incident.schema";
 import { ArrowLeft, AlertTriangle, User, MapPin, Eye, Clock, FileText } from "lucide-react";
 import Link from "next/link";
+import { getLocale, getTranslations } from "next-intl/server";
 
 export default async function IncidentDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getTranslations("dashboardIncidentDetailPage");
+  const locale = await getLocale();
   const { id } = await params;
   const session = await getServerSession(authOptions);
 
@@ -35,7 +36,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
   });
 
   if (!user || user.tenants.length === 0) {
-    return <div>Ingen tilgang til tenant</div>;
+    return <div>{t("errors.noTenantAccess")}</div>;
   }
 
   const tenantId = user.tenants[0].tenantId;
@@ -67,7 +68,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
   });
 
   if (!incident) {
-    return <div>Avvik ikke funnet</div>;
+    return <div>{t("errors.notFound")}</div>;
   }
 
   const parsedSubcategoryKeys = (() => {
@@ -106,15 +107,16 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
     orderBy: { name: "asc" },
   });
 
-  const typeLabel = getIncidentTypeLabel(incident.type);
+  const typeLabel = t(`labels.type.${incident.type}`);
   const typeColor = getIncidentTypeColor(incident.type);
-  const { label: severityLabel, bgColor: severityColor, textColor: severityTextColor } = getSeverityInfo(incident.severity);
-  const statusLabel = getIncidentStatusLabel(incident.status);
+  const { bgColor: severityColor, textColor: severityTextColor } = getSeverityInfo(incident.severity);
+  const severityLabel = t(`labels.severity.${incident.severity}`);
+  const statusLabel = t(`labels.status.${incident.status}`);
   const statusColor = getIncidentStatusColor(incident.status);
 
   const formatDate = (date: Date | null) => {
-    if (!date) return "-";
-    return new Date(date).toLocaleString("no-NO", {
+    if (!date) return t("dash");
+    return new Date(date).toLocaleString(locale === "en" ? "en-US" : "nb-NO", {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -166,7 +168,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
           <Button variant="ghost" asChild>
             <Link href="/dashboard/incidents">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Tilbake til avvik
+              {t("actions.backToIncidents")}
             </Link>
           </Button>
           <IncidentPDFExport
@@ -187,7 +189,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
               )}
               <Badge className={typeColor}>{typeLabel}</Badge>
               <Badge className={`${severityColor} ${severityTextColor}`}>
-                Alvorlighet: {incident.severity} - {severityLabel}
+                {t("labels.severityPrefix", { value: incident.severity, label: severityLabel })}
               </Badge>
               <Badge className={statusColor}>{statusLabel}</Badge>
             </div>
@@ -200,13 +202,13 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5" />
-            Hva skjedde?
+            {t("sections.whatHappened.title")}
           </CardTitle>
-          <CardDescription>ISO 9001: Natur av avvik</CardDescription>
+          <CardDescription>{t("sections.whatHappened.description")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <h4 className="font-semibold mb-2">Beskrivelse</h4>
+            <h4 className="font-semibold mb-2">{t("sections.whatHappened.descriptionLabel")}</h4>
             <p className="text-sm whitespace-pre-wrap">{incident.description}</p>
           </div>
 
@@ -214,7 +216,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
             <div>
               <h4 className="font-semibold mb-1 flex items-center gap-2">
                 <Clock className="h-4 w-4" />
-                Tidspunkt
+                {t("sections.whatHappened.time")}
               </h4>
               <p className="text-sm text-muted-foreground">{formatDate(incident.occurredAt)}</p>
             </div>
@@ -223,7 +225,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
               <div>
                 <h4 className="font-semibold mb-1 flex items-center gap-2">
                   <MapPin className="h-4 w-4" />
-                  Sted
+                  {t("sections.whatHappened.location")}
                 </h4>
                 <p className="text-sm text-muted-foreground">{incident.location}</p>
               </div>
@@ -233,7 +235,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
               <div>
                 <h4 className="font-semibold mb-1 flex items-center gap-2">
                   <Eye className="h-4 w-4" />
-                  Vitner
+                  {t("sections.whatHappened.witnesses")}
                 </h4>
                 <p className="text-sm text-muted-foreground">{incident.witnessName}</p>
               </div>
@@ -244,28 +246,30 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
             <div className="grid gap-4 md:grid-cols-3">
               {(incident.injuryType || incident.medicalAttentionRequired) && (
                 <div>
-                  <h4 className="font-semibold mb-1">Skade</h4>
+                  <h4 className="font-semibold mb-1">{t("sections.whatHappened.injury")}</h4>
                   <p className="text-sm text-muted-foreground">
-                    {incident.injuryType || "Ingen skade registrert"}
+                    {incident.injuryType || t("sections.whatHappened.noInjuryRegistered")}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {incident.medicalAttentionRequired ? "Legebehandling nødvendig" : "Ingen legebehandling"}
+                    {incident.medicalAttentionRequired
+                      ? t("sections.whatHappened.medicalRequired")
+                      : t("sections.whatHappened.noMedical")}
                   </p>
                 </div>
               )}
 
               {typeof incident.lostTimeMinutes === "number" && (
                 <div>
-                  <h4 className="font-semibold mb-1">Tapt tid</h4>
+                  <h4 className="font-semibold mb-1">{t("sections.whatHappened.lostTime")}</h4>
                   <p className="text-sm text-muted-foreground">
-                    {incident.lostTimeMinutes} minutter
+                    {t("sections.whatHappened.lostTimeMinutes", { minutes: incident.lostTimeMinutes })}
                   </p>
                 </div>
               )}
 
               {incident.risk && (
                 <div>
-                  <h4 className="font-semibold mb-1">Knyttet risiko</h4>
+                  <h4 className="font-semibold mb-1">{t("sections.whatHappened.linkedRisk")}</h4>
                   <Link
                     href={`/dashboard/risks/${incident.risk.id}`}
                     className="text-sm text-primary underline"
@@ -273,7 +277,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
                     {incident.risk.title}
                   </Link>
                   <p className="text-xs text-muted-foreground">
-                    Score {incident.risk.score}
+                    {t("sections.whatHappened.riskScore", { score: incident.risk.score })}
                   </p>
                 </div>
               )}
@@ -282,7 +286,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
 
           {incident.immediateAction && (
             <div>
-              <h4 className="font-semibold mb-2">Umiddelbare tiltak</h4>
+              <h4 className="font-semibold mb-2">{t("sections.whatHappened.immediateActions")}</h4>
               <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                 {incident.immediateAction}
               </p>
@@ -292,7 +296,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
           {/* Bilder og vedlegg */}
           {incident.attachments && incident.attachments.length > 0 && (
             <div>
-              <h4 className="font-semibold mb-3">Vedlegg ({incident.attachments.length})</h4>
+              <h4 className="font-semibold mb-3">{t("sections.whatHappened.attachments", { count: incident.attachments.length })}</h4>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {incident.attachments.map((attachment, index) => {
                   const isImage = attachment.mime.startsWith("image/");
@@ -335,8 +339,8 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
       {incident.status !== "CLOSED" && (
         <Card className="border-2 border-primary/20">
           <CardHeader>
-            <CardTitle>Behandle avvik</CardTitle>
-            <CardDescription>Oppdater type, prosjekt, status, alvorlighet og ansvarlig</CardDescription>
+            <CardTitle>{t("sections.treatment.title")}</CardTitle>
+            <CardDescription>{t("sections.treatment.description")}</CardDescription>
           </CardHeader>
           <CardContent>
             <IncidentTreatmentForm
@@ -365,18 +369,18 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
       ) : (
         <Card>
           <CardHeader>
-            <CardTitle>Årsaksanalyse (Root Cause Analysis)</CardTitle>
-            <CardDescription>ISO 9001: Identifisere årsaken til avviket</CardDescription>
+            <CardTitle>{t("sections.rootCause.title")}</CardTitle>
+            <CardDescription>{t("sections.rootCause.description")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <h4 className="font-semibold mb-2">Grunnårsak</h4>
+              <h4 className="font-semibold mb-2">{t("sections.rootCause.mainCause")}</h4>
               <p className="text-sm whitespace-pre-wrap">{incident.rootCause}</p>
             </div>
 
             {incident.contributingFactors && (
               <div>
-                <h4 className="font-semibold mb-2">Medvirkende faktorer</h4>
+                <h4 className="font-semibold mb-2">{t("sections.rootCause.contributingFactors")}</h4>
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                   {incident.contributingFactors}
                 </p>
@@ -385,7 +389,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
 
             {incident.investigatedAt && (
               <div className="text-sm text-muted-foreground">
-                Utredet: {formatDate(incident.investigatedAt)}
+                {t("sections.rootCause.investigatedAt", { date: formatDate(incident.investigatedAt) })}
               </div>
             )}
           </CardContent>
@@ -398,9 +402,9 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Korrigerende tiltak</CardTitle>
+                <CardTitle>{t("sections.measures.title")}</CardTitle>
                 <CardDescription>
-                  ISO 9001: Planlagte tiltak for å eliminere årsaken
+                  {t("sections.measures.description")}
                 </CardDescription>
               </div>
               {incident.status !== "CLOSED" && (
@@ -412,8 +416,8 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
             <MeasureList measures={incident.measures} />
             {incident.measures.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
-                <p>Ingen tiltak planlagt ennå</p>
-                <p className="text-xs mt-2">Klikk "Legg til tiltak" ovenfor</p>
+                <p>{t("sections.measures.empty")}</p>
+                <p className="text-xs mt-2">{t("sections.measures.emptyHint")}</p>
               </div>
             )}
           </CardContent>
@@ -426,20 +430,20 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
       ) : incident.status === "CLOSED" ? (
         <Card>
           <CardHeader>
-            <CardTitle>Avvik lukket</CardTitle>
-            <CardDescription>ISO 9001: Effektivitetsvurdering</CardDescription>
+            <CardTitle>{t("sections.closed.title")}</CardTitle>
+            <CardDescription>{t("sections.closed.description")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {incident.effectivenessReview && (
               <div>
-                <h4 className="font-semibold mb-2">Effektivitetsvurdering</h4>
+                <h4 className="font-semibold mb-2">{t("sections.closed.effectivenessReview")}</h4>
                 <p className="text-sm whitespace-pre-wrap">{incident.effectivenessReview}</p>
               </div>
             )}
 
             {incident.lessonsLearned && (
               <div>
-                <h4 className="font-semibold mb-2">Læringspunkter</h4>
+                <h4 className="font-semibold mb-2">{t("sections.closed.lessonsLearned")}</h4>
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                   {incident.lessonsLearned}
                 </p>
@@ -448,7 +452,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
 
             <div className="flex items-center gap-2 text-sm text-green-600">
               <User className="h-4 w-4" />
-              <span>Lukket: {formatDate(incident.closedAt)}</span>
+              <span>{t("sections.closed.closedAt", { date: formatDate(incident.closedAt) })}</span>
             </div>
           </CardContent>
         </Card>

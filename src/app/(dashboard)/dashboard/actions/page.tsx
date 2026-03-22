@@ -9,12 +9,14 @@ import { MeasureList } from "@/features/measures/components/measure-list";
 import { ListTodo, Clock, CheckCircle, AlertTriangle } from "lucide-react";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
 import { helpContent } from "@/lib/help-content";
+import { getTranslations } from "next-intl/server";
 
 interface ActionsPageProps {
   searchParams: Promise<{ projectId?: string }>;
 }
 
 export default async function ActionsPage({ searchParams }: ActionsPageProps) {
+  const t = await getTranslations("dashboardActionsPage");
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.email) {
@@ -27,7 +29,7 @@ export default async function ActionsPage({ searchParams }: ActionsPageProps) {
   });
 
   if (!user || user.tenants.length === 0) {
-    return <div>Ingen tilgang til tenant</div>;
+    return <div>{t("noTenantAccess")}</div>;
   }
 
   const tenantId = user.tenants[0].tenantId;
@@ -83,9 +85,9 @@ export default async function ActionsPage({ searchParams }: ActionsPageProps) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div>
-            <h1 className="text-3xl font-bold">Tiltak</h1>
+            <h1 className="text-3xl font-bold">{t("title")}</h1>
             <p className="text-muted-foreground">
-              ISO 9001: Planlagte tiltak med ansvarlige og tidsplaner
+              {t("description")}
             </p>
           </div>
           <PageHelpDialog content={helpContent.actions} />
@@ -94,25 +96,25 @@ export default async function ActionsPage({ searchParams }: ActionsPageProps) {
       </div>
       {selectedProject ? (
         <div className="rounded border border-blue-300 bg-blue-50 p-3 text-sm text-blue-900">
-          Nye tiltak opprettes for prosjekt: <strong>{selectedProject.name}</strong>
+          {t("projectInfo")} <strong>{selectedProject.name}</strong>
         </div>
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Totalt</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("stats.total.title")}</CardTitle>
             <ListTodo className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">Registrerte tiltak</p>
+            <p className="text-xs text-muted-foreground">{t("stats.total.description")}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pågående</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("stats.inProgress.title")}</CardTitle>
             <Clock className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
@@ -120,37 +122,40 @@ export default async function ActionsPage({ searchParams }: ActionsPageProps) {
               {stats.pending + stats.inProgress}
             </div>
             <p className="text-xs text-muted-foreground">
-              {stats.pending} ikke startet, {stats.inProgress} pågår
+              {t("stats.inProgress.description", {
+                pending: stats.pending,
+                inProgress: stats.inProgress,
+              })}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Fullført</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("stats.done.title")}</CardTitle>
             <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{stats.done}</div>
-            <p className="text-xs text-muted-foreground">Gjennomførte tiltak</p>
+            <p className="text-xs text-muted-foreground">{t("stats.done.description")}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Forfalte</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("stats.overdue.title")}</CardTitle>
             <AlertTriangle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">{stats.overdue}</div>
-            <p className="text-xs text-muted-foreground">Krever oppfølging</p>
+            <p className="text-xs text-muted-foreground">{t("stats.overdue.description")}</p>
           </CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Alle tiltak</CardTitle>
+          <CardTitle>{t("list.title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <MeasureList measures={measures} />
@@ -158,24 +163,24 @@ export default async function ActionsPage({ searchParams }: ActionsPageProps) {
       </Card>
 
       <div className="rounded-lg bg-blue-50 border border-blue-200 p-6">
-        <h3 className="font-semibold text-blue-900 mb-3">📋 ISO 9001 Krav til tiltak</h3>
+        <h3 className="font-semibold text-blue-900 mb-3">{t("iso.title")}</h3>
         <div className="grid md:grid-cols-2 gap-4 text-sm text-blue-800">
           <div>
-            <h4 className="font-medium mb-2">Planlegging:</h4>
+            <h4 className="font-medium mb-2">{t("iso.planningTitle")}</h4>
             <ul className="space-y-1 list-disc list-inside">
-              <li>Alle risikoer skal ha planlagte tiltak</li>
-              <li>Tiltak må ha tydelig beskrivelse</li>
-              <li>Ansvarlig person må være definert</li>
-              <li>Tidsplan/frist må være realistisk</li>
+              <li>{t("iso.planningList.i1")}</li>
+              <li>{t("iso.planningList.i2")}</li>
+              <li>{t("iso.planningList.i3")}</li>
+              <li>{t("iso.planningList.i4")}</li>
             </ul>
           </div>
           <div>
-            <h4 className="font-medium mb-2">Oppfølging:</h4>
+            <h4 className="font-medium mb-2">{t("iso.followUpTitle")}</h4>
             <ul className="space-y-1 list-disc list-inside">
-              <li>Tiltak må følges opp jevnlig</li>
-              <li>Status må oppdateres underveis</li>
-              <li>Tiltak må evalueres når fullført</li>
-              <li>Dokumentasjon må oppbevares</li>
+              <li>{t("iso.followUpList.i1")}</li>
+              <li>{t("iso.followUpList.i2")}</li>
+              <li>{t("iso.followUpList.i3")}</li>
+              <li>{t("iso.followUpList.i4")}</li>
             </ul>
           </div>
         </div>

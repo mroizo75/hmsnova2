@@ -70,6 +70,7 @@ export async function runScheduledAlerts(): Promise<TenantAlertSummary[]> {
       checkManagementReviewDue(tenant.id),
       checkInspectionFindings(tenant.id),
       checkConstructionDailyRosterControl(tenant.id),
+      checkRoutineReviews(tenant.id),
     ];
 
     const checkResults = await Promise.all(checks);
@@ -91,6 +92,74 @@ export async function runScheduledAlerts(): Promise<TenantAlertSummary[]> {
 
   console.log(`✅ Scheduled alerts completed. Processed ${tenants.length} tenants.`);
   return results;
+}
+
+async function checkRoutineReviews(tenantId: string): Promise<AlertResult> {
+  const now = new Date();
+  let notifications = 0;
+
+  const dueRoutines = await prisma.routine.findMany({
+    where: {
+      tenantId,
+      status: { in: ["ACTIVE", "NEEDS_REVIEW"] },
+      nextReviewAt: {
+        lte: endOfDay(addDays(now, 7)),
+      },
+    },
+    select: {
+      id: true,
+      title: true,
+      nextReviewAt: true,
+      responsibleId: true,
+    },
+  });
+
+  for (const routine of dueRoutines) {
+    const recentNotification = await prisma.notification.findFirst({
+      where: {
+        tenantId,
+        type: "ROUTINE_REVIEW_DUE",
+        link: { contains: routine.id },
+        createdAt: { gt: subDays(now, 5) },
+      },
+      select: { id: true },
+    });
+
+    if (recentNotification) {
+      continue;
+    }
+
+    const reviewDateText = routine.nextReviewAt
+      ? new Date(routine.nextReviewAt).toLocaleDateString("nb-NO")
+      : "snarest";
+
+    if (routine.responsibleId) {
+      await createNotification({
+        tenantId,
+        userId: routine.responsibleId,
+        type: "ROUTINE_REVIEW_DUE",
+        title: "Rutine krever revisjon",
+        message: `Rutinen "${routine.title}" skal revideres innen ${reviewDateText}.`,
+        link: `/dashboard/rutiner/${routine.id}`,
+      });
+    }
+
+    await notifyUsersByRole(tenantId, "LEDER", {
+      type: "ROUTINE_REVIEW_DUE",
+      title: "Lederoppfolging: rutine til revisjon",
+      message: `Rutinen "${routine.title}" trenger oppfolging innen ${reviewDateText}.`,
+      link: `/dashboard/rutiner/${routine.id}`,
+    });
+    await notifyUsersByRole(tenantId, "HMS", {
+      type: "ROUTINE_REVIEW_DUE",
+      title: "HMS-oppfolging: rutine til revisjon",
+      message: `Rutinen "${routine.title}" trenger oppfolging innen ${reviewDateText}.`,
+      link: `/dashboard/rutiner/${routine.id}`,
+    });
+    notifications += 1;
+  }
+
+  return { type: "ROUTINE_REVIEW_DUE", count: dueRoutines.length, notifications };
 }
 
 // ============================================

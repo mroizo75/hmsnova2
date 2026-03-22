@@ -120,6 +120,12 @@ export const authOptions: NextAuthOptions = {
           });
         }
 
+        if (!user.isSuperAdmin && !user.isSupport && user.tenants.length === 0) {
+          throw new Error(
+            "Kontoen er ikke koblet til en bedrift. Kontakt administrator eller support."
+          );
+        }
+
         // SIKKERHET: Sjekk om tenant er suspendert pga ubetalt faktura
         if (!user.isSuperAdmin && !user.isSupport && user.tenants.length > 0) {
           const tenant = user.tenants[0].tenant;
@@ -308,6 +314,7 @@ export const authOptions: NextAuthOptions = {
           token.isSuperAdmin = dbUser.isSuperAdmin;
           token.isSupport = dbUser.isSupport || false;
           token.hasMultipleTenants = dbUser.tenants.length > 1;
+          token.preferredLocale = dbUser.preferredLocale || "nb";
           
           // Velg tenant basert på lastTenantId hvis det finnes, ellers første aktive tenant
           let selectedTenant = dbUser.tenants[0];
@@ -363,6 +370,7 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role as any;
         session.user.tenantName = token.tenantName as string | null;
         session.user.hasMultipleTenants = token.hasMultipleTenants as boolean;
+        session.user.preferredLocale = (token.preferredLocale as string | undefined) ?? "nb";
       }
       return session;
     },

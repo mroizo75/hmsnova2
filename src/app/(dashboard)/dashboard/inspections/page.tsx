@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { nb } from "date-fns/locale";
+import { enUS, nb } from "date-fns/locale";
 import { Plus, Calendar, MapPin, User, Smartphone, BarChart3 } from "lucide-react";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
 import { helpContent } from "@/lib/help-content";
+import { matchesIndustryScope } from "@/lib/industry-scope";
 import {
   Table,
   TableBody,
@@ -20,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { getLocale, getTranslations } from "next-intl/server";
 
 async function getInspections(tenantId: string) {
   return await db.inspection.findMany({
@@ -30,12 +32,25 @@ async function getInspections(tenantId: string) {
           status: { in: ["OPEN", "IN_PROGRESS"] },
         },
       },
+      template: {
+        select: {
+          id: true,
+          industryScope: true,
+        },
+      },
     },
     orderBy: { scheduledDate: "desc" },
   });
 }
 
-export default async function InspectionsPage() {
+export default async function InspectionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>;
+}) {
+  const t = await getTranslations("dashboardInspectionsPage");
+  const locale = await getLocale();
+  const dateLocale = locale === "en" ? enUS : nb;
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.role || !session.user.tenantId) {
@@ -48,26 +63,41 @@ export default async function InspectionsPage() {
     redirect("/dashboard");
   }
 
-  const inspections = await getInspections(session.user.tenantId);
+  const params = await searchParams;
+  const showAll = params.view === "all";
+  const [inspectionsRaw, tenant] = await Promise.all([
+    getInspections(session.user.tenantId),
+    db.tenant.findUnique({
+      where: { id: session.user.tenantId },
+      select: { industry: true },
+    }),
+  ]);
+  const inspections = inspectionsRaw.filter((inspection) => {
+    if (showAll || !inspection.templateId) {
+      return true;
+    }
+
+    return matchesIndustryScope(inspection.template?.industryScope, tenant?.industry ?? null);
+  });
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
-      PLANNED: { label: "Planlagt", variant: "secondary" },
-      IN_PROGRESS: { label: "Pågår", variant: "default" },
-      COMPLETED: { label: "Fullført", variant: "outline" },
-      CANCELLED: { label: "Kansellert", variant: "outline" },
+      PLANNED: { label: t("status.planned"), variant: "secondary" },
+      IN_PROGRESS: { label: t("status.inProgress"), variant: "default" },
+      COMPLETED: { label: t("status.completed"), variant: "outline" },
+      CANCELLED: { label: t("status.cancelled"), variant: "outline" },
     };
     return variants[status] || variants.PLANNED;
   };
 
   const getTypeBadge = (type: string) => {
     const labels: Record<string, string> = {
-      VERNERUNDE: "Vernerunde",
-      HMS_INSPEKSJON: "HMS-inspeksjon",
-      BRANNØVELSE: "Brannøvelse",
-      SHA_PLAN: "SHA-plan",
-      SIKKERHETSVANDRING: "Sikkerhetsvandring",
-      ANDRE: "Annen",
+      VERNERUNDE: t("types.vernerunde"),
+      HMS_INSPEKSJON: t("types.hmsInspection"),
+      BRANNØVELSE: t("types.fireDrill"),
+      SHA_PLAN: t("types.shaPlan"),
+      SIKKERHETSVANDRING: t("types.safetyWalk"),
+      ANDRE: t("types.other"),
     };
     return labels[type] || type;
   };
@@ -77,25 +107,28 @@ export default async function InspectionsPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div>
-            <h1 className="text-3xl font-bold">Vernerunde</h1>
+            <h1 className="text-3xl font-bold">{t("title")}</h1>
             <p className="text-muted-foreground mt-1">
-              Gjennomfør og administrer vernerunder og HMS-inspeksjoner
+              {t("description")}
             </p>
           </div>
           <PageHelpDialog content={helpContent.inspections} />
         </div>
         <div className="flex items-center gap-2">
+          <Link href={showAll ? "/dashboard/inspections" : "/dashboard/inspections?view=all"}>
+            <Button variant="outline"> {showAll ? t("actions.showIndustry") : t("actions.showAll")} </Button>
+          </Link>
           <Link href="/dashboard/inspections/rapport">
             <Button variant="outline">
               <BarChart3 className="h-4 w-4 mr-2" />
-              Rapport
+              {t("actions.report")}
             </Button>
           </Link>
           {permissions.canCreateInspections && (
             <Link href="/dashboard/inspections/new">
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
-                Ny vernerunde
+                {t("actions.new")}
               </Button>
             </Link>
           )}
@@ -123,7 +156,7 @@ export default async function InspectionsPage() {
                         </CardTitle>
                         <CardDescription className="text-xs mt-1">
                           {format(new Date(inspection.scheduledDate), "d. MMM yyyy", {
-                            locale: nb,
+                            locale: dateLocale,
                           })}
                         </CardDescription>
                       </div>
@@ -137,7 +170,7 @@ export default async function InspectionsPage() {
                       </Badge>
                       {inspection.findings.length > 0 && (
                         <span className="text-xs text-orange-600 font-medium">
-                          {inspection.findings.length} åpne funn
+                          {t("openFindings", { count: inspection.findings.length })}
                         </span>
                       )}
                     </div>
@@ -152,13 +185,13 @@ export default async function InspectionsPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-3">
-            <CardDescription>Totalt</CardDescription>
+            <CardDescription>{t("stats.total")}</CardDescription>
             <CardTitle className="text-3xl">{inspections.length}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardDescription>Planlagt</CardDescription>
+            <CardDescription>{t("stats.planned")}</CardDescription>
             <CardTitle className="text-3xl text-blue-600">
               {inspections.filter((i) => i.status === "PLANNED").length}
             </CardTitle>
@@ -166,7 +199,7 @@ export default async function InspectionsPage() {
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardDescription>Pågår</CardDescription>
+            <CardDescription>{t("stats.inProgress")}</CardDescription>
             <CardTitle className="text-3xl text-orange-600">
               {inspections.filter((i) => i.status === "IN_PROGRESS").length}
             </CardTitle>
@@ -174,7 +207,7 @@ export default async function InspectionsPage() {
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardDescription>Åpne funn</CardDescription>
+            <CardDescription>{t("stats.openFindings")}</CardDescription>
             <CardTitle className="text-3xl text-red-600">
               {inspections.reduce((sum, i) => sum + i.findings.length, 0)}
             </CardTitle>
@@ -185,19 +218,19 @@ export default async function InspectionsPage() {
       {/* Inspections Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Alle vernerunder</CardTitle>
-          <CardDescription>Oversikt over gjennomførte og planlagte vernerunder</CardDescription>
+          <CardTitle>{t("list.title")}</CardTitle>
+          <CardDescription>{t("list.description")}</CardDescription>
         </CardHeader>
         <CardContent>
           {inspections.length === 0 ? (
             <div className="text-center py-12">
               <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">Ingen vernerunder registrert ennå</p>
+              <p className="text-muted-foreground">{t("list.empty")}</p>
               {permissions.canCreateInspections && (
                 <Link href="/dashboard/inspections/new">
                   <Button className="mt-4">
                     <Plus className="h-4 w-4 mr-2" />
-                    Opprett første vernerunde
+                    {t("actions.createFirst")}
                   </Button>
                 </Link>
               )}
@@ -207,13 +240,13 @@ export default async function InspectionsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Tittel</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Planlagt dato</TableHead>
-                    <TableHead>Lokasjon</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Åpne funn</TableHead>
-                    <TableHead className="text-right">Handlinger</TableHead>
+                    <TableHead>{t("table.title")}</TableHead>
+                    <TableHead>{t("table.type")}</TableHead>
+                    <TableHead>{t("table.scheduledDate")}</TableHead>
+                    <TableHead>{t("table.location")}</TableHead>
+                    <TableHead>{t("table.status")}</TableHead>
+                    <TableHead>{t("table.openFindings")}</TableHead>
+                    <TableHead className="text-right">{t("table.actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -225,7 +258,7 @@ export default async function InspectionsPage() {
                         <TableCell>{getTypeBadge(inspection.type)}</TableCell>
                         <TableCell>
                           {format(new Date(inspection.scheduledDate), "d. MMM yyyy", {
-                            locale: nb,
+                            locale: dateLocale,
                           })}
                         </TableCell>
                         <TableCell>
@@ -253,7 +286,7 @@ export default async function InspectionsPage() {
                         <TableCell className="text-right space-x-2">
                           <Link href={`/dashboard/inspections/${inspection.id}`}>
                             <Button variant="ghost" size="sm">
-                              Detaljer
+                              {t("actions.details")}
                             </Button>
                           </Link>
                         </TableCell>

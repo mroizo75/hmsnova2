@@ -6,7 +6,11 @@ import { Resend } from "resend";
 import { PricingTier, OnboardingStatus } from "@prisma/client";
 import { getCustomerWelcomeEmail, getAdminNotificationEmail } from "@/lib/email-templates";
 import { getBindingPrice } from "@/lib/subscription";
-import { getIndustryLabel } from "@/lib/industry-packages";
+import {
+  getIndustryLabel,
+  isSupportedIndustry,
+  normalizeIndustryValue,
+} from "@/lib/industry-packages";
 import { provisionIndustryPackage } from "@/server/actions/industry-provision.actions";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -15,7 +19,10 @@ const registrationSchema = z.object({
   companyName: z.string().min(2, "Bedriftsnavn må være minst 2 tegn"),
   orgNumber: z.string().regex(/^[0-9\s]{9,11}$/, "Ugyldig organisasjonsnummer"),
   employeeCount: z.enum(["1-20", "21-50", "51+"]),
-  industry: z.string().min(1, "Bransje er påkrevd"),
+  industry: z
+    .string()
+    .min(1, "Bransje er påkrevd")
+    .refine((value) => isSupportedIndustry(value), "Ugyldig bransje"),
   contactPerson: z.string().min(2, "Kontaktperson er påkrevd"),
   contactEmail: z.string().email("Ugyldig e-postadresse"),
   contactPhone: z.string().min(8, "Ugyldig telefonnummer"),
@@ -75,7 +82,7 @@ export async function submitRegistrationRequest(formData: FormData) {
     };
 
     const validated = registrationSchema.parse(data);
-    const normalizedIndustry = validated.industry.trim().toLowerCase();
+    const normalizedIndustry = normalizeIndustryValue(validated.industry);
     const farmTypeNote =
       normalizedIndustry === "agriculture" && validated.farmType
         ? `Gårdstype: ${validated.farmType}`

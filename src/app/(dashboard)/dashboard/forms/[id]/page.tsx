@@ -38,6 +38,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { getPermissions } from "@/lib/permissions";
+import { tenantCanUseGlobalFormTemplate } from "@/lib/form-template-industry";
 
 const ITEMS_PER_PAGE = 20;
 
@@ -46,7 +47,12 @@ export default async function FormDetailPage({
   searchParams,
 }: { 
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ page?: string; returnUrl?: string; projectId?: string }>;
+  searchParams: Promise<{
+    page?: string;
+    returnUrl?: string;
+    projectId?: string;
+    allTemplates?: string;
+  }>;
 }) {
   const session = await getServerSession(authOptions);
   const { id } = await params;
@@ -97,6 +103,46 @@ export default async function FormDetailPage({
   if (form.tenantId && form.tenantId !== session.user.tenantId) {
     redirect("/dashboard/forms");
   }
+
+  const tenantRow = await prisma.tenant.findUnique({
+    where: { id: session.user.tenantId },
+    select: { industry: true },
+  });
+  const allTemplatesView = queryParams.allTemplates === "1";
+  if (
+    !tenantCanUseGlobalFormTemplate(form, tenantRow?.industry ?? null, {
+      allTemplatesView,
+    })
+  ) {
+    redirect("/dashboard/forms");
+  }
+
+  const formDetailPreserved = new URLSearchParams();
+  if (queryParams.returnUrl) {
+    formDetailPreserved.set("returnUrl", queryParams.returnUrl);
+  }
+  if (projectId) {
+    formDetailPreserved.set("projectId", projectId);
+  }
+  if (allTemplatesView) {
+    formDetailPreserved.set("allTemplates", "1");
+  }
+  const withFormDetailPage = (page: number) => {
+    const next = new URLSearchParams(formDetailPreserved);
+    next.set("page", String(page));
+    return `/dashboard/forms/${id}?${next.toString()}`;
+  };
+
+  const fillSearchParams = new URLSearchParams({
+    returnUrl: projectId ? `/dashboard/projects/${projectId}` : `/dashboard/forms/${form.id}`,
+  });
+  if (projectId) {
+    fillSearchParams.set("projectId", projectId);
+  }
+  if (allTemplatesView) {
+    fillSearchParams.set("allTemplates", "1");
+  }
+
   const restrictedGlobalView = form.isGlobal && !permissions.canManageForms;
 
   // Hent submissions med paginering (KUN for denne tenanten)
@@ -193,12 +239,7 @@ export default async function FormDetailPage({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Link
-            href={`/dashboard/forms/${form.id}/fill?${new URLSearchParams({
-              returnUrl: projectId ? `/dashboard/projects/${projectId}` : `/dashboard/forms/${form.id}`,
-              ...(projectId ? { projectId } : {}),
-            }).toString()}`}
-          >
+          <Link href={`/dashboard/forms/${form.id}/fill?${fillSearchParams.toString()}`}>
             <Button variant="default" className="bg-green-600 hover:bg-green-700">
               <FileText className="h-4 w-4 mr-2" />
               Fyll ut skjema
@@ -208,18 +249,22 @@ export default async function FormDetailPage({
             <CopyFormButton formId={form.id} formTitle={form.title} />
           ) : (
             <>
-              <Link href={`/dashboard/forms/${form.id}/edit`}>
-                <Button variant="outline">
-                  <Pencil className="h-4 w-4 mr-2" />
-                  Rediger
-                </Button>
-              </Link>
-              <DeleteFormButton
-                formId={form.id}
-                formTitle={form.title}
-                submissionCount={form._count.submissions}
-                returnUrl={returnUrl}
-              />
+              {permissions.canManageForms && form.allowTenantDeletion ? (
+                <Link href={`/dashboard/forms/${form.id}/edit`}>
+                  <Button variant="outline">
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Rediger
+                  </Button>
+                </Link>
+              ) : null}
+              {permissions.canManageForms && form.allowTenantDeletion ? (
+                <DeleteFormButton
+                  formId={form.id}
+                  formTitle={form.title}
+                  submissionCount={form._count.submissions}
+                  returnUrl={returnUrl}
+                />
+              ) : null}
             </>
           )}
         </div>
@@ -389,10 +434,21 @@ export default async function FormDetailPage({
             </div>
             {visibleSubmissionCount > 0 &&
               (form.category === "TIMESHEET" ? (
-                <TimesheetExportDropdown formId={form.id} formTitle={form.title} />
+                <TimesheetExportDropdown
+                  formId={form.id}
+                  formTitle={form.title}
+                  allTemplatesView={allTemplatesView}
+                />
               ) : (
                 <Button size="sm" className="bg-green-600 hover:bg-green-700" asChild>
-                  <a href={`/api/forms/${form.id}/submissions/export`} download>
+                  <a
+                    href={
+                      allTemplatesView
+                        ? `/api/forms/${form.id}/submissions/export?allTemplates=1`
+                        : `/api/forms/${form.id}/submissions/export`
+                    }
+                    download
+                  >
                     <Download className="h-4 w-4 mr-2" />
                     Eksporter til Excel
                   </a>
@@ -500,7 +556,7 @@ export default async function FormDetailPage({
                     <PaginationContent>
                       <PaginationItem>
                         <PaginationPrevious
-                          href={currentPage > 1 ? `/dashboard/forms/${id}?page=${currentPage - 1}` : "#"}
+                          href={currentPage > 1 ? withFormDetailPage(currentPage - 1) : "#"}
                           aria-disabled={currentPage === 1}
                           className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
                         />
@@ -508,7 +564,7 @@ export default async function FormDetailPage({
 
                       {currentPage > 2 && (
                         <PaginationItem>
-                          <PaginationLink href={`/dashboard/forms/${id}?page=1`}>1</PaginationLink>
+                          <PaginationLink href={withFormDetailPage(1)}>1</PaginationLink>
                         </PaginationItem>
                       )}
 
@@ -520,21 +576,21 @@ export default async function FormDetailPage({
 
                       {currentPage > 1 && (
                         <PaginationItem>
-                          <PaginationLink href={`/dashboard/forms/${id}?page=${currentPage - 1}`}>
+                          <PaginationLink href={withFormDetailPage(currentPage - 1)}>
                             {currentPage - 1}
                           </PaginationLink>
                         </PaginationItem>
                       )}
 
                       <PaginationItem>
-                        <PaginationLink href={`/dashboard/forms/${id}?page=${currentPage}`} isActive>
+                        <PaginationLink href={withFormDetailPage(currentPage)} isActive>
                           {currentPage}
                         </PaginationLink>
                       </PaginationItem>
 
                       {currentPage < totalVisiblePages && (
                         <PaginationItem>
-                          <PaginationLink href={`/dashboard/forms/${id}?page=${currentPage + 1}`}>
+                          <PaginationLink href={withFormDetailPage(currentPage + 1)}>
                             {currentPage + 1}
                           </PaginationLink>
                         </PaginationItem>
@@ -548,7 +604,7 @@ export default async function FormDetailPage({
 
                       {currentPage < totalVisiblePages - 1 && (
                         <PaginationItem>
-                          <PaginationLink href={`/dashboard/forms/${id}?page=${totalVisiblePages}`}>
+                          <PaginationLink href={withFormDetailPage(totalVisiblePages)}>
                             {totalVisiblePages}
                           </PaginationLink>
                         </PaginationItem>
@@ -558,7 +614,7 @@ export default async function FormDetailPage({
                         <PaginationNext
                           href={
                             currentPage < totalVisiblePages
-                              ? `/dashboard/forms/${id}?page=${currentPage + 1}`
+                              ? withFormDetailPage(currentPage + 1)
                               : "#"
                           }
                           aria-disabled={currentPage === totalVisiblePages}

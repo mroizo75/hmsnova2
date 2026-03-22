@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,6 +50,7 @@ interface SjaCreateTemplateButtonProps {
 }
 
 export function SjaCreateTemplateButton({ tenantId }: SjaCreateTemplateButtonProps) {
+  const t = useTranslations("employeeSjaCreateTemplateButton");
   const router = useRouter();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -82,8 +84,8 @@ export function SjaCreateTemplateButton({ tenantId }: SjaCreateTemplateButtonPro
 
     if (validHazards.length === 0) {
       toast({
-        title: "Feil",
-        description: "Legg til minst én fare med aktivitet, fare og tiltak.",
+        title: t("toast.error.title"),
+        description: t("toast.error.noHazards"),
         variant: "destructive",
       });
       setIsSubmitting(false);
@@ -104,8 +106,8 @@ export function SjaCreateTemplateButton({ tenantId }: SjaCreateTemplateButtonPro
       }
 
       toast({
-        title: "SJA-mal opprettet",
-        description: "Malen kan nå brukes til å opprette nye SJA-analyser.",
+        title: t("toast.success.title"),
+        description: t("toast.success.description"),
       });
 
       setOpen(false);
@@ -113,8 +115,8 @@ export function SjaCreateTemplateButton({ tenantId }: SjaCreateTemplateButtonPro
       router.refresh();
     } catch (error: any) {
       toast({
-        title: "Feil",
-        description: error.message || "Kunne ikke opprette SJA-mal.",
+        title: t("toast.error.title"),
+        description: error.message || t("toast.error.createFailed"),
         variant: "destructive",
       });
     } finally {
@@ -127,43 +129,43 @@ export function SjaCreateTemplateButton({ tenantId }: SjaCreateTemplateButtonPro
       <DialogTrigger asChild>
         <Button>
           <BookTemplate className="h-4 w-4 mr-2" />
-          Ny SJA-mal
+          {t("newButton")}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <BookTemplate className="h-5 w-5 text-purple-600" />
-            Opprett SJA-mal
+            {t("dialogTitle")}
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1">
-              <Label className="text-sm">Malnavn *</Label>
+              <Label className="text-sm">{t("fields.name.label")} *</Label>
               <Input
                 name="name"
-                placeholder="F.eks: Arbeid i høyden"
+                placeholder={t("fields.name.placeholder")}
                 required
                 className="text-sm"
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-sm">Standard arbeidssted</Label>
+              <Label className="text-sm">{t("fields.workLocation.label")}</Label>
               <Input
                 name="workLocation"
-                placeholder="Valgfritt – bruker kan endre"
+                placeholder={t("fields.workLocation.placeholder")}
                 className="text-sm"
               />
             </div>
           </div>
 
           <div className="space-y-1">
-            <Label className="text-sm">Beskrivelse</Label>
+            <Label className="text-sm">{t("fields.description.label")}</Label>
             <Textarea
               name="description"
-              placeholder="Beskriv når denne malen skal brukes..."
+              placeholder={t("fields.description.placeholder")}
               rows={2}
               className="text-sm resize-none"
             />
@@ -171,10 +173,10 @@ export function SjaCreateTemplateButton({ tenantId }: SjaCreateTemplateButtonPro
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium">Farer og tiltak</Label>
+              <Label className="text-sm font-medium">{t("hazards.title")}</Label>
               <Button type="button" variant="outline" size="sm" onClick={addHazard}>
                 <Plus className="h-3 w-3 mr-1" />
-                Legg til
+                {t("hazards.add")}
               </Button>
             </div>
 
@@ -182,7 +184,7 @@ export function SjaCreateTemplateButton({ tenantId }: SjaCreateTemplateButtonPro
               <div key={index} className="border rounded-lg p-3 space-y-2 bg-muted/30">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-muted-foreground">
-                    Fare #{index + 1}
+                    {t("hazards.item", { index: index + 1 })}
                   </span>
                   {hazards.length > 1 && (
                     <Button
@@ -201,13 +203,13 @@ export function SjaCreateTemplateButton({ tenantId }: SjaCreateTemplateButtonPro
                   <Input
                     value={hazard.activity}
                     onChange={(e) => updateHazard(index, "activity", e.target.value)}
-                    placeholder="Aktivitet *"
+                    placeholder={t("hazards.activity")}
                     className="text-sm"
                   />
                   <Input
                     value={hazard.hazard}
                     onChange={(e) => updateHazard(index, "hazard", e.target.value)}
-                    placeholder="Fare/risiko *"
+                    placeholder={t("hazards.hazard")}
                     className="text-sm"
                   />
                 </div>
@@ -215,7 +217,7 @@ export function SjaCreateTemplateButton({ tenantId }: SjaCreateTemplateButtonPro
                 <Input
                   value={hazard.consequence}
                   onChange={(e) => updateHazard(index, "consequence", e.target.value)}
-                  placeholder="Mulig konsekvens"
+                  placeholder={t("hazards.consequence")}
                   className="text-sm"
                 />
 
@@ -225,14 +227,14 @@ export function SjaCreateTemplateButton({ tenantId }: SjaCreateTemplateButtonPro
                     onValueChange={(v) => updateHazard(index, "probability", Number(v))}
                   >
                     <SelectTrigger className="text-sm">
-                      <SelectValue placeholder="Sannsynlighet" />
+                      <SelectValue placeholder={t("hazards.probability")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">1 – Svært lav</SelectItem>
-                      <SelectItem value="2">2 – Lav</SelectItem>
-                      <SelectItem value="3">3 – Middels</SelectItem>
-                      <SelectItem value="4">4 – Høy</SelectItem>
-                      <SelectItem value="5">5 – Svært høy</SelectItem>
+                      <SelectItem value="1">{t("hazards.probabilityOptions.o1")}</SelectItem>
+                      <SelectItem value="2">{t("hazards.probabilityOptions.o2")}</SelectItem>
+                      <SelectItem value="3">{t("hazards.probabilityOptions.o3")}</SelectItem>
+                      <SelectItem value="4">{t("hazards.probabilityOptions.o4")}</SelectItem>
+                      <SelectItem value="5">{t("hazards.probabilityOptions.o5")}</SelectItem>
                     </SelectContent>
                   </Select>
 
@@ -241,21 +243,21 @@ export function SjaCreateTemplateButton({ tenantId }: SjaCreateTemplateButtonPro
                     onValueChange={(v) => updateHazard(index, "severity", Number(v))}
                   >
                     <SelectTrigger className="text-sm">
-                      <SelectValue placeholder="Konsekvens" />
+                      <SelectValue placeholder={t("hazards.severity")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">1 – Ubetydelig</SelectItem>
-                      <SelectItem value="2">2 – Liten</SelectItem>
-                      <SelectItem value="3">3 – Moderat</SelectItem>
-                      <SelectItem value="4">4 – Alvorlig</SelectItem>
-                      <SelectItem value="5">5 – Svært alvorlig</SelectItem>
+                      <SelectItem value="1">{t("hazards.severityOptions.o1")}</SelectItem>
+                      <SelectItem value="2">{t("hazards.severityOptions.o2")}</SelectItem>
+                      <SelectItem value="3">{t("hazards.severityOptions.o3")}</SelectItem>
+                      <SelectItem value="4">{t("hazards.severityOptions.o4")}</SelectItem>
+                      <SelectItem value="5">{t("hazards.severityOptions.o5")}</SelectItem>
                     </SelectContent>
                   </Select>
 
                   <Input
                     value={hazard.responsibleName}
                     onChange={(e) => updateHazard(index, "responsibleName", e.target.value)}
-                    placeholder="Ansvarlig"
+                    placeholder={t("hazards.responsible")}
                     className="text-sm"
                   />
                 </div>
@@ -263,7 +265,7 @@ export function SjaCreateTemplateButton({ tenantId }: SjaCreateTemplateButtonPro
                 <Textarea
                   value={hazard.measures}
                   onChange={(e) => updateHazard(index, "measures", e.target.value)}
-                  placeholder="Tiltak / barrierer *"
+                  placeholder={t("hazards.measures")}
                   rows={2}
                   className="text-sm resize-none"
                 />
@@ -278,7 +280,7 @@ export function SjaCreateTemplateButton({ tenantId }: SjaCreateTemplateButtonPro
               ) : (
                 <BookTemplate className="h-4 w-4 mr-2" />
               )}
-              Opprett mal
+              {t("actions.create")}
             </Button>
             <Button
               type="button"
@@ -286,7 +288,7 @@ export function SjaCreateTemplateButton({ tenantId }: SjaCreateTemplateButtonPro
               onClick={() => setOpen(false)}
               disabled={isSubmitting}
             >
-              Avbryt
+              {t("actions.cancel")}
             </Button>
           </div>
         </form>

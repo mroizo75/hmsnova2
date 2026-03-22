@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -48,17 +49,17 @@ interface IncidentContextPreset {
 
 const employeeIncidentTypeOptions: Array<{
   value: string;
-  label: string;
+  labelKey: string;
   group: "hms" | "avvik" | "annet";
 }> = [
-  { value: "ULYKKE", label: "Arbeidsulykke / RUH", group: "hms" },
-  { value: "NESTEN", label: "Nestenulykke / RUH", group: "hms" },
-  { value: "FARLIG_SITUASJON", label: "Farlig situasjon / Observasjon", group: "hms" },
-  { value: "YRKESSYKDOM", label: "Yrkessykdom / Arbeidsrelatert sykdom", group: "hms" },
-  { value: "AVVIK", label: "Avvik", group: "avvik" },
-  { value: "MILJO", label: "Miljoavvik", group: "avvik" },
-  { value: "KVALITET", label: "Kvalitetsavvik", group: "avvik" },
-  { value: "CUSTOMER", label: "Kundeklage", group: "annet" },
+  { value: "ULYKKE", labelKey: "incidentTypes.ULYKKE", group: "hms" },
+  { value: "NESTEN", labelKey: "incidentTypes.NESTEN", group: "hms" },
+  { value: "FARLIG_SITUASJON", labelKey: "incidentTypes.FARLIG_SITUASJON", group: "hms" },
+  { value: "YRKESSYKDOM", labelKey: "incidentTypes.YRKESSYKDOM", group: "hms" },
+  { value: "AVVIK", labelKey: "incidentTypes.AVVIK", group: "avvik" },
+  { value: "MILJO", labelKey: "incidentTypes.MILJO", group: "avvik" },
+  { value: "KVALITET", labelKey: "incidentTypes.KVALITET", group: "avvik" },
+  { value: "CUSTOMER", labelKey: "incidentTypes.CUSTOMER", group: "annet" },
 ];
 
 export function ReportIncidentForm({
@@ -74,6 +75,7 @@ export function ReportIncidentForm({
   successRedirectPath?: string;
   isHealthcareTenant?: boolean;
 }) {
+  const t = useTranslations("employeeIncidentForm");
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -93,38 +95,38 @@ export function ReportIncidentForm({
       general: {
         type: "AVVIK",
         subcategoryMatchTerms: [],
-        titlePlaceholder: "F.eks: Våt gulv uten varsling",
+        titlePlaceholder: t("contextPresets.general.titlePlaceholder"),
       },
       homeVisitRisk: {
         type: "FARLIG_SITUASJON",
         subcategoryMatchTerms: ["alenearbeid", "hjemmebesok", "risiko"],
-        titlePlaceholder: "F.eks: Utrygg situasjon ved hjemmebesøk",
-        detailsLabel: "Hva gjorde situasjonen risikofylt?",
-        detailsPlaceholder: "F.eks. manglende kontaktpunkt, trussel, utrygg adkomst, ingen kollegastøtte",
+        titlePlaceholder: t("contextPresets.homeVisitRisk.titlePlaceholder"),
+        detailsLabel: t("contextPresets.homeVisitRisk.detailsLabel"),
+        detailsPlaceholder: t("contextPresets.homeVisitRisk.detailsPlaceholder"),
       },
       infectionExposure: {
         type: "ULYKKE",
         subcategoryMatchTerms: ["smitte", "eksponering", "stikk", "kutt"],
-        titlePlaceholder: "F.eks: Smitteeksponering i oppdrag",
-        detailsLabel: "Beskriv eksponeringen",
-        detailsPlaceholder: "Hva ble du eksponert for, hvordan skjedde det, og hvilke tiltak ble gjort?",
+        titlePlaceholder: t("contextPresets.infectionExposure.titlePlaceholder"),
+        detailsLabel: t("contextPresets.infectionExposure.detailsLabel"),
+        detailsPlaceholder: t("contextPresets.infectionExposure.detailsPlaceholder"),
       },
       medicationNearMiss: {
         type: "NESTEN",
         subcategoryMatchTerms: ["medikament", "nesten", "feil"],
-        titlePlaceholder: "F.eks: Nesten-feil i medikamenthåndtering",
-        detailsLabel: "Hva stoppet feilen før den nådde pasient?",
-        detailsPlaceholder: "Beskriv kontrollpunktet og hvorfor feilen kunne oppstå",
+        titlePlaceholder: t("contextPresets.medicationNearMiss.titlePlaceholder"),
+        detailsLabel: t("contextPresets.medicationNearMiss.detailsLabel"),
+        detailsPlaceholder: t("contextPresets.medicationNearMiss.detailsPlaceholder"),
       },
       violenceThreat: {
         type: "ULYKKE",
         subcategoryMatchTerms: ["vold", "trussel"],
-        titlePlaceholder: "F.eks: Trussel fra bruker/pårørende",
-        detailsLabel: "Beskriv hendelsesforløpet",
-        detailsPlaceholder: "Hvem var til stede, hvordan ble situasjonen avverget, og om alarm/varsling ble brukt",
+        titlePlaceholder: t("contextPresets.violenceThreat.titlePlaceholder"),
+        detailsLabel: t("contextPresets.violenceThreat.detailsLabel"),
+        detailsPlaceholder: t("contextPresets.violenceThreat.detailsPlaceholder"),
       },
     }),
-    []
+    [t]
   );
 
   useEffect(() => {
@@ -247,19 +249,19 @@ export function ReportIncidentForm({
       });
 
       if (!response.ok) {
-        throw new Error("Kunne ikke sende rapport");
+        throw new Error(t("errors.submitFailed"));
       }
 
       toast({
-        title: "✅ Avvik rapportert",
-        description: "Takk for rapporten! HMS-ansvarlig er varslet.",
+        title: t("toast.success.title"),
+        description: t("toast.success.description"),
       });
 
       router.push(successRedirectPath);
     } catch (error) {
       toast({
-        title: "❌ Feil",
-        description: "Kunne ikke sende rapport. Prøv igjen.",
+        title: t("toast.error.title"),
+        description: t("toast.error.description"),
         variant: "destructive",
       });
     } finally {
@@ -272,17 +274,17 @@ export function ReportIncidentForm({
       {/* Prosjektvelger (kun om det finnes aktive prosjekter) */}
       {projects.length > 0 && (
         <div className="space-y-2">
-          <Label className="text-base">Prosjekt / jobb</Label>
+          <Label className="text-base">{t("fields.project.label")}</Label>
           <Select
             value={selectedProjectId}
             onValueChange={setSelectedProjectId}
             disabled={isSubmitting}
           >
             <SelectTrigger className="h-12 text-base">
-              <SelectValue placeholder="Velg prosjekt (valgfritt)" />
+              <SelectValue placeholder={t("fields.project.placeholder")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={NO_PROJECT}>— Ikke prosjektrelatert —</SelectItem>
+              <SelectItem value={NO_PROJECT}>{t("fields.project.none")}</SelectItem>
               {projects.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
                   {p.name}{p.code ? ` (${p.code})` : ""}
@@ -291,7 +293,7 @@ export function ReportIncidentForm({
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            Er avviket knyttet til et bestemt prosjekt eller oppdrag?
+            {t("fields.project.help")}
           </p>
         </div>
       )}
@@ -299,20 +301,20 @@ export function ReportIncidentForm({
       {/* Type */}
       <div className="space-y-2">
         <Label htmlFor="incidentContext" className="text-base">
-          Hendelseskontekst *
+          {t("fields.incidentContext.label")}
         </Label>
         <Select value={incidentContext} onValueChange={(value) => setIncidentContext(value as IncidentContext)}>
           <SelectTrigger className="h-12 text-base">
-            <SelectValue placeholder="Velg kontekst" />
+            <SelectValue placeholder={t("fields.incidentContext.placeholder")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="general">Generell hendelse</SelectItem>
+            <SelectItem value="general">{t("fields.incidentContext.options.general")}</SelectItem>
             {isHealthcareTenant && (
               <>
-                <SelectItem value="homeVisitRisk">Hjemmebesøk - risikosituasjon</SelectItem>
-                <SelectItem value="infectionExposure">Smitteeksponering</SelectItem>
-                <SelectItem value="medicationNearMiss">Nesten-feil medikament</SelectItem>
-                <SelectItem value="violenceThreat">Vold eller trusler</SelectItem>
+                <SelectItem value="homeVisitRisk">{t("fields.incidentContext.options.homeVisitRisk")}</SelectItem>
+                <SelectItem value="infectionExposure">{t("fields.incidentContext.options.infectionExposure")}</SelectItem>
+                <SelectItem value="medicationNearMiss">{t("fields.incidentContext.options.medicationNearMiss")}</SelectItem>
+                <SelectItem value="violenceThreat">{t("fields.incidentContext.options.violenceThreat")}</SelectItem>
               </>
             )}
           </SelectContent>
@@ -321,41 +323,41 @@ export function ReportIncidentForm({
 
       <div className="space-y-2">
         <Label htmlFor="type" className="text-base">
-          Type hendelse *
+          {t("fields.type.label")}
         </Label>
         <Select name="type" required value={selectedType} onValueChange={setSelectedType}>
           <SelectTrigger className="h-12 text-base">
-            <SelectValue placeholder="Velg type" />
+            <SelectValue placeholder={t("fields.type.placeholder")} />
           </SelectTrigger>
           <SelectContent>
             <div className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              HMS / Personskade
+              {t("fields.type.groups.hms")}
             </div>
             {employeeIncidentTypeOptions
               .filter((option) => option.group === "hms")
               .map((option) => (
                 <SelectItem key={option.value} value={option.value}>
-                  {option.label}
+                  {t(option.labelKey)}
                 </SelectItem>
               ))}
             <div className="mt-1 border-t px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Avvik / Kvalitet
+              {t("fields.type.groups.avvik")}
             </div>
             {employeeIncidentTypeOptions
               .filter((option) => option.group === "avvik")
               .map((option) => (
                 <SelectItem key={option.value} value={option.value}>
-                  {option.label}
+                  {t(option.labelKey)}
                 </SelectItem>
               ))}
             <div className="mt-1 border-t px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Annet
+              {t("fields.type.groups.other")}
             </div>
             {employeeIncidentTypeOptions
               .filter((option) => option.group === "annet")
               .map((option) => (
                 <SelectItem key={option.value} value={option.value}>
-                  {option.label}
+                  {t(option.labelKey)}
                 </SelectItem>
               ))}
           </SelectContent>
@@ -365,16 +367,16 @@ export function ReportIncidentForm({
       {selectedType && (
         <div className="space-y-3">
           <Label className="text-base">
-            Hva hendelsen dreier seg om
+            {t("fields.subcategories.label")}
             <span className="ml-1 text-xs font-normal text-muted-foreground">
-              (velg én eller flere)
+              {t("fields.subcategories.hint")}
             </span>
           </Label>
           {loadingSubcategories ? (
-            <p className="text-xs text-muted-foreground">Laster underkategorier...</p>
+            <p className="text-xs text-muted-foreground">{t("fields.subcategories.loading")}</p>
           ) : subcategoryOptions.length === 0 ? (
             <p className="text-xs text-muted-foreground">
-              Ingen underkategorier konfigurert for valgt type.
+              {t("fields.subcategories.empty")}
             </p>
           ) : (
             <div className="grid grid-cols-1 gap-2 rounded-lg border bg-muted/30 p-4 sm:grid-cols-2">
@@ -399,25 +401,25 @@ export function ReportIncidentForm({
       {/* Alvorlighetsgrad */}
       <div className="space-y-2">
         <Label htmlFor="severity" className="text-base">
-          Hvor alvorlig? *
+          {t("fields.severity.label")}
         </Label>
         <Select name="severity" required>
           <SelectTrigger className="h-12 text-base">
-            <SelectValue placeholder="Velg alvorlighetsgrad" />
+            <SelectValue placeholder={t("fields.severity.placeholder")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="5">🔴 Kritisk (5) - Umiddelbar fare</SelectItem>
-            <SelectItem value="4">🟠 Høy (4) - Alvorlig</SelectItem>
-            <SelectItem value="3">🟡 Middels (3)</SelectItem>
-            <SelectItem value="2">🟢 Lav (2)</SelectItem>
-            <SelectItem value="1">⚪ Svært lav (1)</SelectItem>
+            <SelectItem value="5">{t("fields.severity.options.s5")}</SelectItem>
+            <SelectItem value="4">{t("fields.severity.options.s4")}</SelectItem>
+            <SelectItem value="3">{t("fields.severity.options.s3")}</SelectItem>
+            <SelectItem value="2">{t("fields.severity.options.s2")}</SelectItem>
+            <SelectItem value="1">{t("fields.severity.options.s1")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="occurredAt" className="text-base">
-          Når skjedde det? *
+          {t("fields.occurredAt.label")}
         </Label>
         <Input
           id="occurredAt"
@@ -434,7 +436,7 @@ export function ReportIncidentForm({
       {/* Tittel */}
       <div className="space-y-2">
         <Label htmlFor="title" className="text-base">
-          Kort beskrivelse *
+          {t("fields.title.label")}
         </Label>
         <Input
           id="title"
@@ -448,12 +450,12 @@ export function ReportIncidentForm({
       {/* Sted */}
       <div className="space-y-2">
         <Label htmlFor="location" className="text-base">
-          Hvor skjedde det? *
+          {t("fields.location.label")}
         </Label>
         <Input
           id="location"
           name="location"
-          placeholder="F.eks: Verksted, bygg A"
+          placeholder={t("fields.location.placeholder")}
           required
           className="h-12 text-base"
         />
@@ -461,12 +463,12 @@ export function ReportIncidentForm({
 
       <div className="space-y-2">
         <Label htmlFor="witnessName" className="text-base">
-          Vitner
+          {t("fields.witnessName.label")}
         </Label>
         <Input
           id="witnessName"
           name="witnessName"
-          placeholder="Navn på eventuelle vitner"
+          placeholder={t("fields.witnessName.placeholder")}
           className="h-12 text-base"
         />
       </div>
@@ -474,18 +476,18 @@ export function ReportIncidentForm({
       {/* Beskrivelse */}
       <div className="space-y-2">
         <Label htmlFor="description" className="text-base">
-          Detaljert beskrivelse *
+          {t("fields.description.label")}
         </Label>
         <Textarea
           id="description"
           name="description"
-          placeholder="Beskriv hva som skjedde, hvem var involvert, hva var årsaken..."
+          placeholder={t("fields.description.placeholder")}
           required
           rows={6}
           className="text-base resize-none"
         />
         <p className="text-xs text-muted-foreground">
-          Jo mer detaljer, jo bedre kan vi forebygge lignende hendelser
+          {t("fields.description.help")}
         </p>
       </div>
 
@@ -504,19 +506,19 @@ export function ReportIncidentForm({
             className="text-base resize-none"
           />
           <p className="text-xs text-muted-foreground">
-            Notat lagres som kontekst i avviket (ikke pasientjournal).
+            {t("fields.contextDetails.help")}
           </p>
         </div>
       )}
 
       <div className="space-y-2">
         <Label htmlFor="involvedPersons" className="text-base">
-          Hvem var involvert?
+          {t("fields.involvedPersons.label")}
         </Label>
         <Textarea
           id="involvedPersons"
           name="involvedPersons"
-          placeholder="Navn eller roller på involverte personer"
+          placeholder={t("fields.involvedPersons.placeholder")}
           rows={2}
           className="text-base resize-none"
         />
@@ -524,40 +526,40 @@ export function ReportIncidentForm({
 
       <div className="space-y-2">
         <Label htmlFor="injuryType" className="text-base">
-          Type skade/eksponering (valgfritt)
+          {t("fields.injuryType.label")}
         </Label>
         <Input
           id="injuryType"
           name="injuryType"
-          placeholder="F.eks: Kuttskade, fallskade, kjemisk eksponering"
+          placeholder={t("fields.injuryType.placeholder")}
           className="h-12 text-base"
         />
       </div>
 
       {selectedType === "CUSTOMER" && (
         <div className="space-y-4 rounded-lg border p-4">
-          <Label className="text-base font-semibold">Kundeinformasjon</Label>
+          <Label className="text-base font-semibold">{t("fields.customer.title")}</Label>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="customerName" className="text-base">
-                Kundenavn
+                {t("fields.customer.customerName.label")}
               </Label>
               <Input
                 id="customerName"
                 name="customerName"
-                placeholder="Navn på kunde/bedrift"
+                placeholder={t("fields.customer.customerName.placeholder")}
                 className="h-12 text-base"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="customerEmail" className="text-base">
-                Kunde e-post
+                {t("fields.customer.customerEmail.label")}
               </Label>
               <Input
                 id="customerEmail"
                 name="customerEmail"
                 type="email"
-                placeholder="kunde@firma.no"
+                placeholder={t("fields.customer.customerEmail.placeholder")}
                 className="h-12 text-base"
               />
             </div>
@@ -565,23 +567,23 @@ export function ReportIncidentForm({
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="customerPhone" className="text-base">
-                Telefon
+                {t("fields.customer.customerPhone.label")}
               </Label>
               <Input
                 id="customerPhone"
                 name="customerPhone"
-                placeholder="+47 99 99 99 99"
+                placeholder={t("fields.customer.customerPhone.placeholder")}
                 className="h-12 text-base"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="customerTicketId" className="text-base">
-                Referanse/saksnummer
+                {t("fields.customer.customerTicketId.label")}
               </Label>
               <Input
                 id="customerTicketId"
                 name="customerTicketId"
-                placeholder="F.eks. #12345"
+                placeholder={t("fields.customer.customerTicketId.placeholder")}
                 className="h-12 text-base"
               />
             </div>
@@ -589,7 +591,7 @@ export function ReportIncidentForm({
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="responseDeadline" className="text-base">
-                Svarfrist
+                {t("fields.customer.responseDeadline.label")}
               </Label>
               <Input
                 id="responseDeadline"
@@ -600,11 +602,11 @@ export function ReportIncidentForm({
             </div>
             <div className="space-y-2">
               <Label htmlFor="customerSatisfaction" className="text-base">
-                Kundetilfredshet (1-5)
+                {t("fields.customer.customerSatisfaction.label")}
               </Label>
               <Select name="customerSatisfaction">
                 <SelectTrigger className="h-12 text-base">
-                  <SelectValue placeholder="Velg vurdering" />
+                  <SelectValue placeholder={t("fields.customer.customerSatisfaction.placeholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   {[1, 2, 3, 4, 5].map((value) => (
@@ -622,7 +624,7 @@ export function ReportIncidentForm({
       {/* Bildeopplasting */}
       <div className="space-y-3">
         <Label htmlFor="images" className="text-base">
-          📸 Bilder (valgfritt, maks 5)
+          {t("fields.images.label")}
         </Label>
         <div className="space-y-3">
           {/* Upload knapp */}
@@ -648,10 +650,12 @@ export function ReportIncidentForm({
               <Camera className="h-6 w-6 text-muted-foreground" />
               <div className="text-center">
                 <p className="text-sm font-medium">
-                  {imageFiles.length >= 5 ? "Maks 5 bilder" : "Ta bilde eller velg fra album"}
+                  {imageFiles.length >= 5 ? t("fields.images.maxReached") : t("fields.images.takeOrChoose")}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {imageFiles.length > 0 ? `${imageFiles.length}/5 bilder lagt til` : "Valgfritt"}
+                  {imageFiles.length > 0
+                    ? t("fields.images.count", { count: imageFiles.length })
+                    : t("fields.images.optional")}
                 </p>
               </div>
             </Label>
@@ -664,7 +668,7 @@ export function ReportIncidentForm({
                 <div key={index} className="relative aspect-square rounded-lg overflow-hidden border">
                   <Image
                     src={preview}
-                    alt={`Forhåndsvisning ${index + 1}`}
+                    alt={t("fields.images.previewAlt", { index: index + 1 })}
                     fill
                     className="object-cover"
                   />
@@ -681,7 +685,7 @@ export function ReportIncidentForm({
           )}
         </div>
         <p className="text-xs text-muted-foreground">
-          💡 Bilder hjelper oss å forstå situasjonen bedre og kan brukes til å forebygge lignende hendelser
+          {t("fields.images.help")}
         </p>
       </div>
 
@@ -696,10 +700,10 @@ export function ReportIncidentForm({
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Sender...
+              {t("actions.sending")}
             </>
           ) : (
-            "📤 Send rapport"
+            t("actions.submit")
           )}
         </Button>
 
@@ -711,7 +715,7 @@ export function ReportIncidentForm({
           size="lg"
           className="w-full h-12"
         >
-          Avbryt
+          {t("actions.cancel")}
         </Button>
       </div>
     </form>

@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Clock, Car, ArrowLeft } from "lucide-react";
@@ -14,6 +15,7 @@ import { RegistrationFormUnified } from "@/features/time-registration/components
 
 export default async function AnsattTimeregistreringPage() {
   const session = await getServerSession(authOptions);
+  const t = await getTranslations("employeeTimeRegistrationPage");
 
   if (!session?.user?.tenantId) {
     redirect("/login");
@@ -41,14 +43,14 @@ export default async function AnsattTimeregistreringPage() {
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          Tilbake
+          {t("back")}
         </Link>
         <Card>
           <CardContent className="py-12 text-center">
             <Clock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h2 className="text-lg font-semibold mb-2">Timeføring er ikke aktivert</h2>
+            <h2 className="text-lg font-semibold mb-2">{t("disabled.title")}</h2>
             <p className="text-sm text-muted-foreground">
-              Kontakt din leder eller administrator for å aktivere timeregistrering for bedriften.
+              {t("disabled.description")}
             </p>
           </CardContent>
         </Card>
@@ -73,12 +75,12 @@ export default async function AnsattTimeregistreringPage() {
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          Tilbake
+          {t("back")}
         </Link>
         <Card>
           <CardContent className="py-8">
             <p className="text-muted-foreground text-center">
-              Kunne ikke laste oversikt. Prøv igjen senere.
+              {t("loadError")}
             </p>
           </CardContent>
         </Card>
@@ -93,13 +95,13 @@ export default async function AnsattTimeregistreringPage() {
         className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" />
-        Tilbake til oversikt
+        {t("backToOverview")}
       </Link>
 
       <div>
-        <h1 className="text-2xl font-bold">Timeføring</h1>
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
         <p className="text-muted-foreground">
-          Registrer timer og km godtgjørelse per prosjekt
+          {t("description")}
         </p>
       </div>
 
@@ -107,10 +109,10 @@ export default async function AnsattTimeregistreringPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5" />
-            Registrer timer og kjøring
+            {t("form.title")}
           </CardTitle>
           <CardDescription>
-            Arbeid, reise, sykefravær og km godtgjørelse – ordinær og overtid beregnes automatisk
+            {t("form.description")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -128,9 +130,9 @@ export default async function AnsattTimeregistreringPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Mine registreringer</CardTitle>
+          <CardTitle>{t("overview.title")}</CardTitle>
           <CardDescription>
-            Ordinære timer og overtid for gjeldende måned – oversikt for lønn
+            {t("overview.description")}
           </CardDescription>
         </CardHeader>
         <CardContent>

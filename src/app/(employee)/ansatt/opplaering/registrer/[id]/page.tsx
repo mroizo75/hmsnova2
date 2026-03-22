@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +15,7 @@ import { createTraining } from "@/server/actions/training.actions";
 import { useToast } from "@/hooks/use-toast";
 
 export default function RegistrerOpplaeringPage() {
+  const t = useTranslations("employeeTrainingRegisterPage");
   const params = useParams();
   const router = useRouter();
   const { data: session } = useSession();
@@ -45,7 +47,7 @@ export default function RegistrerOpplaeringPage() {
         setProvider(data.provider || "");
       }
     } catch (error) {
-      console.error("Feil ved henting av opplæring:", error);
+      // Intentionally silent, UI keeps loading fallback states
     } finally {
       setLoading(false);
     }
@@ -61,8 +63,8 @@ export default function RegistrerOpplaeringPage() {
   const handleUpload = async () => {
     if (!file) {
       toast({
-        title: "Ingen fil valgt",
-        description: "Vennligst velg en fil å laste opp",
+        title: t("toasts.noFile.title"),
+        description: t("toasts.noFile.description"),
         variant: "destructive",
       });
       return;
@@ -80,21 +82,21 @@ export default function RegistrerOpplaeringPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Opplasting feilet");
+          throw new Error(error.error || t("toasts.uploadFailed.description"));
       }
 
       const { key } = await response.json();
       setUploadedKey(key);
 
       toast({
-        title: "✅ Fil lastet opp",
-        description: "Beviset er lastet opp",
+        title: t("toasts.uploadSuccess.title"),
+        description: t("toasts.uploadSuccess.description"),
       });
     } catch (error: any) {
-      console.error("Upload error:", error);
+      const message = error?.message || t("toasts.uploadFailed.description");
       toast({
-        title: "Opplasting feilet",
-        description: error.message,
+        title: t("toasts.uploadFailed.title"),
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -107,8 +109,8 @@ export default function RegistrerOpplaeringPage() {
 
     if (!session?.user?.id) {
       toast({
-        title: "Ikke innlogget",
-        description: "Du må være innlogget for å registrere opplæring",
+        title: t("toasts.notLoggedIn.title"),
+        description: t("toasts.notLoggedIn.description"),
         variant: "destructive",
       });
       return;
@@ -116,8 +118,8 @@ export default function RegistrerOpplaeringPage() {
 
     if (!completedAt) {
       toast({
-        title: "Mangler dato",
-        description: "Vennligst fyll ut når kurset ble gjennomført",
+        title: t("toasts.missingDate.title"),
+        description: t("toasts.missingDate.description"),
         variant: "destructive",
       });
       return;
@@ -125,8 +127,8 @@ export default function RegistrerOpplaeringPage() {
 
     if (!uploadedKey) {
       toast({
-        title: "Mangler bevis",
-        description: "Vennligst last opp bevis/diplom før du sender inn",
+        title: t("toasts.missingProof.title"),
+        description: t("toasts.missingProof.description"),
         variant: "destructive",
       });
       return;
@@ -148,18 +150,18 @@ export default function RegistrerOpplaeringPage() {
 
       if (result.success) {
         toast({
-          title: "✅ Opplæring registrert",
-          description: "Opplæringen er sendt til godkjenning hos din leder",
+          title: t("toasts.registered.title"),
+          description: t("toasts.registered.description"),
         });
         router.push("/ansatt/opplaering");
       } else {
         throw new Error(result.error);
       }
     } catch (error: any) {
-      console.error("Submit error:", error);
+      const message = error?.message || t("toasts.registrationFailed.description");
       toast({
-        title: "Registrering feilet",
-        description: error.message,
+        title: t("toasts.registrationFailed.title"),
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -178,11 +180,11 @@ export default function RegistrerOpplaeringPage() {
   if (!training) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold">Opplæring ikke funnet</h1>
+        <h1 className="text-3xl font-bold">{t("notFound.title")}</h1>
         <Button asChild>
           <Link href="/ansatt/opplaering">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Tilbake til opplæring
+            {t("notFound.back")}
           </Link>
         </Button>
       </div>
@@ -196,7 +198,7 @@ export default function RegistrerOpplaeringPage() {
         <Link href="/ansatt/opplaering">
           <Button variant="ghost" size="sm" className="mb-4">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Tilbake til opplæring
+            {t("header.back")}
           </Button>
         </Link>
         <div className="flex items-center gap-3 mb-2">
@@ -204,13 +206,13 @@ export default function RegistrerOpplaeringPage() {
             <GraduationCap className="h-6 w-6 text-blue-600" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold">Registrer opplæring</h1>
+            <h1 className="text-3xl font-bold">{t("header.title")}</h1>
             <p className="text-muted-foreground">{training.title}</p>
           </div>
         </div>
         {training.isRequired && (
           <Badge variant="destructive" className="mt-2">
-            Påkrevd kurs
+            {t("header.requiredBadge")}
           </Badge>
         )}
       </div>
@@ -219,8 +221,7 @@ export default function RegistrerOpplaeringPage() {
       <Card className="border-l-4 border-l-blue-500 bg-blue-50">
         <CardContent className="p-4">
           <p className="text-sm text-blue-900">
-            <strong>💡 Viktig:</strong> Last opp bevis (sertifikat, diplom, signert deltakerliste) 
-            for å dokumentere at du har gjennomført opplæringen. Din leder vil gjennomgå og godkjenne registreringen.
+            <strong>{t("info.title")}</strong> {t("info.description")}
           </p>
         </CardContent>
       </Card>
@@ -229,18 +230,18 @@ export default function RegistrerOpplaeringPage() {
       <form onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
-            <CardTitle>Opplysninger</CardTitle>
-            <CardDescription>Fyll ut informasjon om gjennomført opplæring</CardDescription>
+            <CardTitle>{t("form.title")}</CardTitle>
+            <CardDescription>{t("form.description")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Kursleverandør */}
             <div className="space-y-2">
-              <Label htmlFor="provider">Kursleverandør / Arrangør</Label>
+              <Label htmlFor="provider">{t("form.fields.provider.label")}</Label>
               <Input
                 id="provider"
                 value={provider}
                 onChange={(e) => setProvider(e.target.value)}
-                placeholder="F.eks. Røde Kors, HMS Nova, Internt"
+                placeholder={t("form.fields.provider.placeholder")}
                 required
               />
             </div>
@@ -248,7 +249,7 @@ export default function RegistrerOpplaeringPage() {
             {/* Gjennomføringsdato */}
             <div className="space-y-2">
               <Label htmlFor="completedAt">
-                Dato gjennomført <span className="text-destructive">*</span>
+                {t("form.fields.completedAt.label")} <span className="text-destructive">*</span>
               </Label>
               <Input
                 type="date"
@@ -261,7 +262,7 @@ export default function RegistrerOpplaeringPage() {
 
             {/* Gyldighet */}
             <div className="space-y-2">
-              <Label htmlFor="validUntil">Gyldig til (hvis aktuelt)</Label>
+              <Label htmlFor="validUntil">{t("form.fields.validUntil.label")}</Label>
               <Input
                 type="date"
                 id="validUntil"
@@ -269,14 +270,14 @@ export default function RegistrerOpplaeringPage() {
                 onChange={(e) => setValidUntil(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                Noen kurs har utløpsdato og må fornyes (f.eks. førstehjelpskurs)
+                {t("form.fields.validUntil.help")}
               </p>
             </div>
 
             {/* Fil-opplasting */}
             <div className="space-y-2">
               <Label htmlFor="file">
-                Last opp bevis (PDF eller bilde) <span className="text-destructive">*</span>
+                {t("form.fields.file.label")} <span className="text-destructive">*</span>
               </Label>
               <div className="space-y-3">
                 <Input
@@ -298,12 +299,12 @@ export default function RegistrerOpplaeringPage() {
                     {uploading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Laster opp...
+                        {t("form.fields.file.uploading")}
                       </>
                     ) : (
                       <>
                         <Upload className="mr-2 h-4 w-4" />
-                        Last opp fil
+                        {t("form.fields.file.upload")}
                       </>
                     )}
                   </Button>
@@ -312,12 +313,12 @@ export default function RegistrerOpplaeringPage() {
                 {uploadedKey && (
                   <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg p-3">
                     <CheckCircle className="h-4 w-4 flex-shrink-0" />
-                    <span>Fil lastet opp og klar for innsending</span>
+                    <span>{t("form.fields.file.ready")}</span>
                   </div>
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                Last opp sertifikat, diplom eller annen dokumentasjon. Maks 10MB.
+                {t("form.fields.file.help")}
               </p>
             </div>
           </CardContent>
@@ -333,12 +334,12 @@ export default function RegistrerOpplaeringPage() {
             {submitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Sender inn...
+                {t("form.actions.submitting")}
               </>
             ) : (
               <>
                 <CheckCircle className="mr-2 h-4 w-4" />
-                Send til godkjenning
+                {t("form.actions.submit")}
               </>
             )}
           </Button>
@@ -349,7 +350,7 @@ export default function RegistrerOpplaeringPage() {
             asChild
           >
             <Link href="/ansatt/opplaering">
-              Avbryt
+              {t("form.actions.cancel")}
             </Link>
           </Button>
         </div>
@@ -358,21 +359,20 @@ export default function RegistrerOpplaeringPage() {
       {/* Hjelp */}
       <Card className="bg-gray-50">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg">❓ Trenger du hjelp?</CardTitle>
+          <CardTitle className="text-lg">{t("help.title")}</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-2">
           <p>
-            <strong>Hva skjer etter innsending?</strong>
+            <strong>{t("help.afterSubmitTitle")}</strong>
           </p>
           <p>
-            Din leder vil motta en varsling og gjennomgå dokumentasjonen din.
-            De vil godkjenne opplæringen hvis alt er i orden, eller kontakte deg hvis noe mangler.
+            {t("help.afterSubmitText")}
           </p>
           <p className="pt-2">
-            <strong>Har du problemer med opplasting?</strong>
+            <strong>{t("help.uploadIssueTitle")}</strong>
           </p>
           <p>
-            Kontakt din leder eller HMS-ansvarlig hvis du har tekniske problemer eller spørsmål.
+            {t("help.uploadIssueText")}
           </p>
         </CardContent>
       </Card>

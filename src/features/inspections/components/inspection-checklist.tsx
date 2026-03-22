@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, X, Sparkles } from "lucide-react";
 import { generateAiInspectionSummary } from "@/server/actions/ai-assistant.actions";
+import { useTranslations } from "next-intl";
 
 type ChecklistEntry =
   | { type: "heading"; title: string }
@@ -91,6 +92,7 @@ function normalizeChecklistEntries(checklist: unknown): ChecklistEntry[] {
 }
 
 export function InspectionChecklist({ inspectionId, checklist }: InspectionChecklistProps) {
+  const t = useTranslations("dashboardInspectionComponents.checklist");
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
@@ -176,7 +178,7 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
           message?: string;
         };
         if (!response.ok || !result.data?.key) {
-          throw new Error(result.message || "Kunne ikke laste opp bilde");
+          throw new Error(result.message || t("errors.uploadImage"));
         }
         uploadedKeys.push(result.data.key);
       }
@@ -194,8 +196,8 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
     } catch {
       toast({
         variant: "destructive",
-        title: "Feil",
-        description: "Kunne ikke laste opp bilde til funnet.",
+        title: t("toasts.error.title"),
+        description: t("toasts.error.uploadImage"),
       });
     } finally {
       setUploadingIndex(null);
@@ -222,8 +224,8 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
     } catch {
       toast({
         variant: "destructive",
-        title: "Feil",
-        description: "Kunne ikke fjerne bilde.",
+        title: t("toasts.error.title"),
+        description: t("toasts.error.removeImage"),
       });
     }
   };
@@ -243,7 +245,7 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
         const findingTitle = (entry.findingTitle || entry.title).trim();
         const findingDescription = (entry.findingDescription || "").trim();
         if (findingDescription.length === 0) {
-          throw new Error(`Fyll ut beskrivelse for funn i punktet "${entry.title}".`);
+          throw new Error(t("errors.missingFindingDescription", { title: entry.title }));
         }
 
         if (!entry.linkedFindingId) {
@@ -263,7 +265,7 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
             message?: string;
           };
           if (!findingResponse.ok || !findingResult.data?.finding?.id) {
-            throw new Error(findingResult.message || "Kunne ikke opprette funn fra sjekkpunkt.");
+            throw new Error(findingResult.message || t("errors.createFindingFromCheckpoint"));
           }
           entriesWithLinkedFindings[index] = {
             ...entry,
@@ -284,22 +286,22 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
       });
       const result = await response.json();
       if (!response.ok) {
-        throw new Error(result?.message || "Kunne ikke lagre sjekkliste");
+        throw new Error(result?.message || t("errors.saveChecklist"));
       }
 
       setEntries(entriesWithLinkedFindings);
       toast({
-        title: "Sjekkliste lagret",
+        title: t("toasts.saved.title"),
         description:
           createdFindings > 0
-            ? `${createdFindings} funn ble opprettet fra punkter merket Ikke OK.`
-            : "Avhukingene er lagret på vernerunden.",
+            ? t("toasts.saved.withFindings", { count: createdFindings })
+            : t("toasts.saved.description"),
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Kunne ikke lagre sjekklisten.";
+      const message = error instanceof Error ? error.message : t("errors.saveChecklistFallback");
       toast({
         variant: "destructive",
-        title: "Feil",
+        title: t("toasts.error.title"),
         description: message,
       });
     } finally {
@@ -323,8 +325,8 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
       if (!result.success || !result.data) {
         toast({
           variant: "destructive",
-          title: "AI-oppsummering feilet",
-          description: result.error || "Ukjent feil",
+          title: t("toasts.aiFailed.title"),
+          description: result.error || t("toasts.aiFailed.description"),
         });
         return;
       }
@@ -335,13 +337,13 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
   };
 
   if (entries.length === 0) {
-    return <p className="text-sm text-muted-foreground">Ingen sjekkpunkter i denne malen.</p>;
+    return <p className="text-sm text-muted-foreground">{t("empty")}</p>;
   }
 
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        Ferdig: {progress.completed} av {progress.total} sjekkpunkter.
+        {t("progress", { completed: progress.completed, total: progress.total })}
       </p>
       <div className="space-y-2 rounded border p-3">
         {entries.map((entry, index) =>
@@ -358,12 +360,12 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
                     <span className="text-sm font-medium">{entry.title}</span>
                     {entry.status === "NOT_OK" && (
                       <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-medium text-red-800">
-                        Funn
+                        {t("badges.finding")}
                       </span>
                     )}
                     {entry.linkedFindingId && (
                       <span className="rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-medium text-green-800">
-                        Funn registrert
+                        {t("badges.findingRegistered")}
                       </span>
                     )}
                   </div>
@@ -374,7 +376,7 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
                       variant={entry.status === "OK" ? "default" : "outline"}
                       onClick={() => setItemStatus(index, "OK")}
                     >
-                      OK
+                      {t("actions.ok")}
                     </Button>
                     <Button
                       type="button"
@@ -382,7 +384,7 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
                       variant={entry.status === "NOT_OK" ? "destructive" : "outline"}
                       onClick={() => setItemStatus(index, "NOT_OK")}
                     >
-                      Ikke OK
+                      {t("actions.notOk")}
                     </Button>
                   </div>
                 </div>
@@ -391,25 +393,25 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
               {entry.status === "NOT_OK" && (
                 <div className="space-y-3 rounded border bg-red-50/40 p-3">
                   <div className="space-y-2">
-                    <Label>Funn-tittel</Label>
+                    <Label>{t("fields.findingTitle")}</Label>
                     <Input
                       value={entry.findingTitle || ""}
                       onChange={(event) => updateItemFindingField(index, "findingTitle", event.target.value)}
-                      placeholder="Kort tittel på funn"
+                      placeholder={t("placeholders.findingTitle")}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Beskrivelse av funn</Label>
+                    <Label>{t("fields.findingDescription")}</Label>
                     <Textarea
                       value={entry.findingDescription || ""}
                       onChange={(event) => updateItemFindingField(index, "findingDescription", event.target.value)}
-                      placeholder="Beskriv hva som ikke er OK og hvorfor"
+                      placeholder={t("placeholders.findingDescription")}
                       rows={3}
                     />
                   </div>
                   <div className="grid gap-3 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label>Alvorlighetsgrad (1-5)</Label>
+                      <Label>{t("fields.severity")}</Label>
                       <Input
                         type="number"
                         min={1}
@@ -423,17 +425,17 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Lokasjon</Label>
+                      <Label>{t("fields.location")}</Label>
                       <Input
                         value={entry.findingLocation || ""}
                         onChange={(event) => updateItemFindingField(index, "findingLocation", event.target.value)}
-                        placeholder="F.eks. Lager 2"
+                        placeholder={t("placeholders.location")}
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Bilder</Label>
+                    <Label>{t("fields.images")}</Label>
                     <div className="rounded border border-dashed bg-background p-3">
                       <input
                         type="file"
@@ -449,7 +451,7 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
                         className="flex cursor-pointer items-center justify-center gap-2 text-sm text-muted-foreground"
                       >
                         <Camera className="h-4 w-4" />
-                        {uploadingIndex === index ? "Laster opp..." : "Legg til bilde"}
+                        {uploadingIndex === index ? t("actions.uploading") : t("actions.addImage")}
                       </label>
                     </div>
                     {(entry.findingImageKeys || []).length > 0 && (
@@ -458,7 +460,7 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
                           <div key={imageKey} className="relative">
                             <img
                               src={`/api/inspections/images/${imageKey}`}
-                              alt="Funnbilde"
+                              alt={t("imageAlt")}
                               className="h-20 w-full rounded border object-cover"
                             />
                             <button
@@ -481,21 +483,21 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
       </div>
       <div className="flex justify-end">
         <Button size="sm" onClick={saveChecklist} disabled={saving}>
-          {saving ? "Lagrer..." : "Lagre sjekkliste"}
+          {saving ? t("actions.saving") : t("actions.saveChecklist")}
         </Button>
       </div>
       <div className="rounded-md border p-3 space-y-2">
         <div className="flex items-center gap-2 text-sm font-medium">
           <Sparkles className="h-4 w-4" />
-          AI-oppsummering av vernerunde
+          {t("ai.title")}
         </div>
         <Button type="button" size="sm" variant="outline" onClick={handleGenerateSummary} disabled={isGeneratingSummary}>
-          {isGeneratingSummary ? "Genererer..." : "Generer oppsummering"}
+          {isGeneratingSummary ? t("ai.generating") : t("ai.generate")}
         </Button>
         <Textarea
           value={aiSummary}
           onChange={(event) => setAiSummary(event.target.value)}
-          placeholder="Oppsummering av status, kritiske avvik og anbefalt oppfølging."
+          placeholder={t("ai.placeholder")}
           rows={4}
         />
       </div>

@@ -55,6 +55,7 @@ const getNextReviewDateForFrequency = (base: Date, frequency: ControlFrequency) 
 };
 
 const applyAiRiskSuggestionsSchema = z.object({
+  assessmentTitle: z.string().trim().min(2).max(200),
   suggestions: z
     .array(
       z.object({
@@ -501,6 +502,7 @@ export async function createRiskAssessment(input: {
 
 export async function updateRiskAssessment(input: {
   id: string;
+  title?: string;
   participants?: string;
   approvedById?: string | null;
   approvedAt?: string | null;
@@ -516,9 +518,17 @@ export async function updateRiskAssessment(input: {
     });
     if (!existing) return { success: false, error: "Risikovurdering ikke funnet" };
 
+    if (validated.title !== undefined) {
+      const permissions = getPermissions(user.tenants[0].role);
+      if (!permissions.canCreateRisks) {
+        return { success: false, error: "Ingen tilgang til å endre tittel på risikovurdering" };
+      }
+    }
+
     const assessment = await prisma.riskAssessment.update({
       where: { id: validated.id },
       data: {
+        ...(validated.title !== undefined && { title: validated.title }),
         participants: validated.participants !== undefined
           ? (validated.participants?.trim() || null)
           : undefined,
@@ -536,11 +546,15 @@ export async function updateRiskAssessment(input: {
         userId: user.id,
         action: "RISK_ASSESSMENT_UPDATED",
         resource: `RiskAssessment:${assessment.id}`,
-        metadata: JSON.stringify({ title: assessment.title }),
+        metadata: JSON.stringify({
+          title: assessment.title,
+          previousTitle: validated.title !== undefined ? existing.title : undefined,
+        }),
       },
     });
 
     revalidatePath(`/dashboard/risks/assessment/${assessment.id}`);
+    revalidatePath("/dashboard/risks");
     return { success: true, data: assessment };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Kunne ikke oppdatere risikovurdering";
@@ -852,6 +866,7 @@ export async function previewAiRiskSuggestions() {
 }
 
 export async function applyAiRiskSuggestions(input: {
+  assessmentTitle: string;
   suggestions: Array<{ title: string; severity: string; category: string }>;
 }) {
   try {
@@ -883,7 +898,7 @@ export async function applyAiRiskSuggestions(input: {
     }
 
     const currentYear = new Date().getFullYear();
-    const assessmentTitle = `AI risikoforslag ${currentYear}`;
+    const assessmentTitle = validated.assessmentTitle.trim();
     const industryLabel = resolveIndustryPromptLabel(tenant.industry);
     let created = 0;
     let skipped = 0;

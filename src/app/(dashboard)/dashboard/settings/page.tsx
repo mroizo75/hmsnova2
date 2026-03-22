@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TenantSettingsForm } from "@/features/settings/components/tenant-settings-form";
@@ -16,6 +17,7 @@ import { helpContent } from "@/lib/help-content";
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
+  const t = await getTranslations("dashboardSettingsPage");
 
   if (!session?.user?.email) {
     redirect("/login");
@@ -41,7 +43,7 @@ export default async function SettingsPage() {
   });
 
   if (!user || user.tenants.length === 0) {
-    return <div>Du er ikke tilknyttet en tenant.</div>;
+    return <div>{t("notLinkedTenant")}</div>;
   }
 
   const tenantId = user.tenants[0].tenantId;
@@ -80,9 +82,9 @@ export default async function SettingsPage() {
       {/* Header */}
       <div className="flex items-center gap-3">
         <div>
-          <h1 className="text-3xl font-bold">Innstillinger</h1>
+          <h1 className="text-3xl font-bold">{t("header.title")}</h1>
           <p className="text-muted-foreground">
-            Administrer bedrift, brukere og system
+            {t("header.description")}
           </p>
         </div>
         <PageHelpDialog content={helpContent.settings} />
@@ -93,31 +95,31 @@ export default async function SettingsPage() {
         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-7">
           <TabsTrigger value="company" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Bedrift</span>
+            <span className="hidden sm:inline">{t("tabs.company")}</span>
           </TabsTrigger>
           <TabsTrigger value="menu" className="flex items-center gap-2">
             <PanelLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Enkel meny</span>
+            <span className="hidden sm:inline">{t("tabs.menu")}</span>
           </TabsTrigger>
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="h-4 w-4" />
-            <span className="hidden sm:inline">Profil</span>
+            <span className="hidden sm:inline">{t("tabs.profile")}</span>
           </TabsTrigger>
           <TabsTrigger value="notifications" className="flex items-center gap-2">
             <Bell className="h-4 w-4" />
-            <span className="hidden sm:inline">Varsler</span>
+            <span className="hidden sm:inline">{t("tabs.notifications")}</span>
           </TabsTrigger>
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
-            <span className="hidden sm:inline">Brukere</span>
+            <span className="hidden sm:inline">{t("tabs.users")}</span>
           </TabsTrigger>
           <TabsTrigger value="sso" className="flex items-center gap-2">
             <Cloud className="h-4 w-4" />
-            <span className="hidden sm:inline">Office 365</span>
+            <span className="hidden sm:inline">{t("tabs.office365")}</span>
           </TabsTrigger>
           <TabsTrigger value="subscription" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
-            <span className="hidden sm:inline">Abonnement</span>
+            <span className="hidden sm:inline">{t("tabs.subscription")}</span>
           </TabsTrigger>
         </TabsList>
 

@@ -2,33 +2,28 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-export async function middleware(request: NextRequest) {
-  const pathname = request.nextUrl.pathname;
-
-  // Security Headers - legges til på alle responses
-  const response = NextResponse.next();
-  
+const applySecurityHeaders = (response: NextResponse): NextResponse => {
   // Strict-Transport-Security (HSTS)
   response.headers.set(
     "Strict-Transport-Security",
     "max-age=31536000; includeSubDomains; preload"
   );
-  
+
   // X-Frame-Options (Clickjacking protection)
   response.headers.set("X-Frame-Options", "SAMEORIGIN");
-  
+
   // X-Content-Type-Options (MIME sniffing protection)
   response.headers.set("X-Content-Type-Options", "nosniff");
-  
+
   // Referrer-Policy
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  
+
   // Permissions-Policy
   response.headers.set(
     "Permissions-Policy",
     "camera=(), microphone=(), geolocation=()"
   );
-  
+
   // X-DNS-Prefetch-Control
   response.headers.set("X-DNS-Prefetch-Control", "on");
 
@@ -50,8 +45,24 @@ export async function middleware(request: NextRequest) {
     "worker-src 'self' blob:",
     "manifest-src 'self'",
   ].join("; ");
-  
+
   response.headers.set("Content-Security-Policy", cspHeader);
+  return response;
+};
+
+export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+
+  // Tving alltid prefiks-frie URL-er (/dashboard, ikke /en/dashboard)
+  const localePrefixMatch = pathname.match(/^\/(nb|nn|en)(\/.*)?$/);
+  if (localePrefixMatch) {
+    const normalizedPath = localePrefixMatch[2] || "/";
+    const url = request.nextUrl.clone();
+    url.pathname = normalizedPath;
+    return NextResponse.redirect(url);
+  }
+
+  const response = NextResponse.next();
 
   // Beskyttede routes - krever autentisering
   const protectedRoutes = [
@@ -74,7 +85,7 @@ export async function middleware(request: NextRequest) {
       // Redirect til login hvis ikke autentisert
       const url = new URL("/login", request.url);
       url.searchParams.set("callbackUrl", pathname);
-      return NextResponse.redirect(url);
+      return applySecurityHeaders(NextResponse.redirect(url));
     }
 
     // Multi-tenant: Redirect til tenant-velger hvis brukeren har flere tenants og ingen tenant er valgt
@@ -84,7 +95,7 @@ export async function middleware(request: NextRequest) {
       !pathname.startsWith("/select-tenant") &&
       !pathname.startsWith("/api")
     ) {
-      return NextResponse.redirect(new URL("/select-tenant", request.url));
+      return applySecurityHeaders(NextResponse.redirect(new URL("/select-tenant", request.url)));
     }
 
     // Superadmin/Support access control
@@ -93,12 +104,12 @@ export async function middleware(request: NextRequest) {
       const isSupport = token.isSupport === true;
 
       if (!isSuperAdmin && !isSupport) {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
+        return applySecurityHeaders(NextResponse.redirect(new URL("/dashboard", request.url)));
       }
     }
   }
 
-  return response;
+  return applySecurityHeaders(response);
 }
 
 export const config = {
@@ -111,6 +122,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public files (images, etc)
      */
-    "/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!api/auth|_next/static|_next/image|favicon.ico|site.webmanifest|sw.js|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

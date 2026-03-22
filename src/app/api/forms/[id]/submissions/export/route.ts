@@ -14,6 +14,7 @@ import {
 } from "date-fns";
 import { nb } from "date-fns/locale";
 import { getPermissions } from "@/lib/permissions";
+import { tenantCanUseGlobalFormTemplate } from "@/lib/form-template-industry";
 
 // ── Hjelpefunksjoner ──────────────────────────────────────────────────────────
 
@@ -180,6 +181,20 @@ export async function GET(
     if (!canAccess) {
       return NextResponse.json({ error: "Ingen tilgang" }, { status: 403 });
     }
+
+    const allTemplates = searchParams.get("allTemplates") === "1";
+    const tenantForScope = await prisma.tenant.findUnique({
+      where: { id: session.user.tenantId },
+      select: { industry: true },
+    });
+    if (
+      !tenantCanUseGlobalFormTemplate(form, tenantForScope?.industry ?? null, {
+        allTemplatesView: allTemplates,
+      })
+    ) {
+      return NextResponse.json({ error: "Ingen tilgang" }, { status: 403 });
+    }
+
     const restrictedGlobalView = form.isGlobal && !permissions.canManageForms;
 
     const dateFilter = getDateFilter(period, year, month, week);

@@ -8,6 +8,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { IncidentType } from "@prisma/client";
 import { hasTenantFeature } from "@/lib/tenant-features";
+import { getTranslations } from "next-intl/server";
 
 type PageSearchParams =
   | Promise<{
@@ -25,6 +26,7 @@ type PageSearchParams =
   | undefined;
 
 export default async function NewIncidentPage({ searchParams }: { searchParams?: PageSearchParams }) {
+  const t = await getTranslations("dashboardIncidentNewPage");
   const resolvedSearchParams =
     typeof searchParams === "object" && searchParams !== null && "then" in searchParams
       ? await searchParams
@@ -56,7 +58,7 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
   });
 
   if (!user || user.tenants.length === 0) {
-    return <div>Ingen tilgang til tenant</div>;
+    return <div>{t("errors.noTenantAccess")}</div>;
   }
 
   const tenantId = user.tenants[0].tenantId;
@@ -95,16 +97,16 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
         <Button variant="ghost" asChild className="mb-4">
           <Link href="/dashboard/incidents">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Tilbake til avvik
+            {t("actions.backToIncidents")}
           </Link>
         </Button>
-        <h1 className="text-3xl font-bold">Rapporter hendelse / avvik</h1>
+        <h1 className="text-3xl font-bold">{t("title")}</h1>
         <p className="text-muted-foreground">
-          AML § 5-1/5-2 og IK-HMS § 5 – registrer ulykker, nestenulykker, farlige situasjoner og avvik
+          {t("description")}
         </p>
         {isTabletMode && (
           <p className="mt-2 text-sm font-medium text-blue-700">
-            Tabletmodus aktiv: optimalisert for rask registrering ute i felt.
+            {t("tabletModeActive")}
           </p>
         )}
       </div>

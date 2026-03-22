@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { tenantCanUseGlobalFormTemplate } from "@/lib/form-template-industry";
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,20 +12,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Hent tenantId fra session
-    const userTenants = await prisma.userTenant.findMany({
-      where: { userId: session.user.id },
-    });
-
-    if (userTenants.length === 0) {
+    const tenantId = session.user.tenantId;
+    if (!tenantId) {
       return NextResponse.json({ forms: [] });
     }
-
-    const tenantId = userTenants[0].tenantId;
 
     // Hent category fra query parameters
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");
+    const showAll = searchParams.get("view") === "all";
 
     // Bygg where-clause - hent både tenant-spesifikke og globale skjemaer
     const where: any = {
@@ -50,8 +46,21 @@ export async function GET(request: NextRequest) {
         createdAt: "desc",
       },
     });
+    if (showAll) {
+      return NextResponse.json({ forms });
+    }
 
-    return NextResponse.json({ forms });
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { industry: true },
+    });
+    const scopedForms = forms.filter((form) =>
+      tenantCanUseGlobalFormTemplate(form, tenant?.industry ?? null, {
+        allTemplatesView: showAll,
+      })
+    );
+
+    return NextResponse.json({ forms: scopedForms });
   } catch (error: any) {
     console.error("Get forms error:", error);
     return NextResponse.json(
@@ -145,6 +154,7 @@ export async function PUT(request: NextRequest) {
       },
       select: {
         id: true,
+        allowTenantDeletion: true,
         fields: {
           select: {
             id: true,
@@ -155,6 +165,13 @@ export async function PUT(request: NextRequest) {
     });
     if (!existingForm) {
       return NextResponse.json({ error: "Ingen tilgang til skjema" }, { status: 403 });
+    }
+
+    if (existingForm.allowTenantDeletion === false) {
+      return NextResponse.json(
+        { error: "Bransje- eller systemmaler kan ikke endres. Kopier skjemaet for å tilpasse." },
+        { status: 403 }
+      );
     }
 
     const incomingFields: Array<{

@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { getServerSession } from "next-auth";
+import { getLocale, getMessages } from "next-intl/server";
+import { authOptions } from "@/lib/auth";
 import { Providers } from "./providers";
 import { CookieConsent } from "@/components/cookie-consent";
 import { AITracker } from "@/components/ai-tracker";
@@ -61,13 +64,18 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+  const session = await getServerSession(authOptions);
+  const nowISO = new Date().toISOString();
+
   return (
-    <html lang="nb">
+    <html lang={locale}>
       <head>
         <MultipleStructuredData dataArray={[ORGANIZATION_SCHEMA, LOCAL_BUSINESS_SCHEMA]} />
       </head>
       <body>
-        <Providers>
+        <Providers locale={locale} messages={messages} session={session} nowISO={nowISO}>
           <AITracker />
           {children}
           <Toaster position="top-right" richColors />

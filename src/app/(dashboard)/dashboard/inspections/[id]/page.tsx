@@ -19,59 +19,60 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
-import { nb } from "date-fns/locale";
+import { enUS, nb } from "date-fns/locale";
 import { InspectionFindingList } from "@/features/inspections/components/inspection-finding-list";
 import { UpdateInspectionStatusForm } from "@/features/inspections/components/update-inspection-status-form";
 import { DeleteInspectionButton } from "@/features/inspections/components/delete-inspection-button";
+import { getLocale, getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
 import { getPermissions } from "@/lib/permissions";
 
-function getStatusBadge(status: string) {
+function getStatusBadge(status: string, t: Awaited<ReturnType<typeof getTranslations>>) {
   const variants: Record<
     string,
     { className: string; label: string }
   > = {
-    PLANNED: { className: "bg-blue-100 text-blue-800", label: "Planlagt" },
-    IN_PROGRESS: { className: "bg-yellow-100 text-yellow-800", label: "Pågår" },
-    COMPLETED: { className: "bg-green-100 text-green-800", label: "Fullført" },
-    CANCELLED: { className: "bg-red-100 text-red-800", label: "Avbrutt" },
+    PLANNED: { className: "bg-blue-100 text-blue-800", label: t("status.planned") },
+    IN_PROGRESS: { className: "bg-yellow-100 text-yellow-800", label: t("status.inProgress") },
+    COMPLETED: { className: "bg-green-100 text-green-800", label: t("status.completed") },
+    CANCELLED: { className: "bg-red-100 text-red-800", label: t("status.cancelled") },
   };
   const config = variants[status] || variants.PLANNED;
   return <Badge className={config.className}>{config.label}</Badge>;
 }
 
-function getTypeBadge(type: string) {
+function getTypeBadge(type: string, t: Awaited<ReturnType<typeof getTranslations>>) {
   const labels: Record<string, string> = {
-    VERNERUNDE: "Vernerunde",
-    HMS_INSPEKSJON: "HMS-inspeksjon",
-    BRANNØVELSE: "Brannøvelse",
-    SHA_PLAN: "SHA-plan",
-    SIKKERHETSVANDRING: "Sikkerhetsvandring",
-    ANDRE: "Annet",
+    VERNERUNDE: t("types.vernerunde"),
+    HMS_INSPEKSJON: t("types.hmsInspection"),
+    BRANNØVELSE: t("types.fireDrill"),
+    SHA_PLAN: t("types.shaPlan"),
+    SIKKERHETSVANDRING: t("types.safetyWalk"),
+    ANDRE: t("types.other"),
   };
   return <Badge variant="outline">{labels[type] || type}</Badge>;
 }
 
-function getSeverityBadge(severity: number) {
+function getSeverityBadge(severity: number, t: Awaited<ReturnType<typeof getTranslations>>) {
   const config: Record<number, { className: string; label: string }> = {
-    1: { className: "bg-blue-100 text-blue-800", label: "Lav" },
-    2: { className: "bg-green-100 text-green-800", label: "Moderat" },
-    3: { className: "bg-yellow-100 text-yellow-800", label: "Betydelig" },
-    4: { className: "bg-orange-100 text-orange-800", label: "Alvorlig" },
-    5: { className: "bg-red-100 text-red-800", label: "Kritisk" },
+    1: { className: "bg-blue-100 text-blue-800", label: t("severity.low") },
+    2: { className: "bg-green-100 text-green-800", label: t("severity.moderate") },
+    3: { className: "bg-yellow-100 text-yellow-800", label: t("severity.significant") },
+    4: { className: "bg-orange-100 text-orange-800", label: t("severity.serious") },
+    5: { className: "bg-red-100 text-red-800", label: t("severity.critical") },
   };
   const severityConfig = config[severity] || config[1];
   return <Badge className={severityConfig.className}>{severityConfig.label}</Badge>;
 }
 
-function getFindingStatusBadge(status: string) {
+function getFindingStatusBadge(status: string, t: Awaited<ReturnType<typeof getTranslations>>) {
   const config: Record<string, { className: string; label: string }> = {
-    OPEN: { className: "bg-red-100 text-red-800", label: "Åpen" },
-    IN_PROGRESS: { className: "bg-yellow-100 text-yellow-800", label: "Pågår" },
-    RESOLVED: { className: "bg-green-100 text-green-800", label: "Løst" },
-    CLOSED: { className: "bg-gray-100 text-gray-800", label: "Lukket" },
+    OPEN: { className: "bg-red-100 text-red-800", label: t("findingStatus.open") },
+    IN_PROGRESS: { className: "bg-yellow-100 text-yellow-800", label: t("findingStatus.inProgress") },
+    RESOLVED: { className: "bg-green-100 text-green-800", label: t("findingStatus.resolved") },
+    CLOSED: { className: "bg-gray-100 text-gray-800", label: t("findingStatus.closed") },
   };
   return <Badge className={config[status]?.className || config.OPEN.className}>
     {config[status]?.label || status}
@@ -83,6 +84,9 @@ export default async function InspectionDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = await getTranslations("dashboardInspectionDetailPage");
+  const locale = await getLocale();
+  const dateLocale = locale === "en" ? enUS : nb;
   const { id } = await params;
   const session = await getServerSession(authOptions);
 
@@ -98,7 +102,7 @@ export default async function InspectionDetailPage({
   });
 
   if (!currentUser || currentUser.tenants.length === 0) {
-    return <div>Ingen tilgang til tenant</div>;
+    return <div>{t("noTenantAccess")}</div>;
   }
 
   const tenantId = currentUser.tenants[0].tenantId;
@@ -125,7 +129,7 @@ export default async function InspectionDetailPage({
   });
 
   if (!inspection) {
-    return <div>Inspeksjon ikke funnet</div>;
+    return <div>{t("notFound")}</div>;
   }
 
   // Hent gjennomfører
@@ -159,28 +163,28 @@ export default async function InspectionDetailPage({
       <div>
         <Button variant="ghost" asChild className="mb-4">
           <Link href="/dashboard/inspections">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Tilbake til inspeksjoner
+            <ArrowLeft className="mr-2 h-4 w-4" /> {t("actions.back")}
           </Link>
         </Button>
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-3xl font-bold">{inspection.title}</h1>
-            <p className="text-muted-foreground">Inspeksjonsdetaljer</p>
+            <p className="text-muted-foreground">{t("details")}</p>
           </div>
           <div className="flex items-center gap-2">
-            {getTypeBadge(inspection.type)}
-            {getStatusBadge(inspection.status)}
+            {getTypeBadge(inspection.type, t)}
+            {getStatusBadge(inspection.status, t)}
             <UpdateInspectionStatusForm inspectionId={inspection.id} currentStatus={inspection.status} />
             <Link href={`/dashboard/inspections/${inspection.id}/mobil`}>
               <Button className="bg-green-600 hover:bg-green-700" size="sm">
                 <Smartphone className="mr-2 h-4 w-4" />
-                Mobilvisning
+                {t("actions.mobileView")}
               </Button>
             </Link>
             <Link href={`/dashboard/inspections/${inspection.id}/edit`}>
               <Button variant="outline" size="sm">
                 <Edit className="mr-2 h-4 w-4" />
-                Rediger
+                {t("actions.edit")}
               </Button>
             </Link>
             {permissions.canDeleteInspections && (
@@ -210,7 +214,7 @@ export default async function InspectionDetailPage({
               {inspection.formSubmission && (
                 <Badge className="bg-green-100 text-green-800">
                   <CheckCircle2 className="h-3 w-3 mr-1" />
-                  Utfylt
+                  {t("form.completed")}
                 </Badge>
               )}
             </div>
@@ -220,13 +224,13 @@ export default async function InspectionDetailPage({
               <div className="flex gap-3">
                 <Link href={`/dashboard/forms/${inspection.formTemplate.id}/submissions/${inspection.formSubmissionId}`} className="flex-1">
                   <Button variant="outline" className="w-full">
-                    Se utfylt skjema
+                    {t("form.view")}
                   </Button>
                 </Link>
                 <Link href={`/api/forms/${inspection.formTemplate.id}/submissions/${inspection.formSubmissionId}/pdf`} target="_blank">
                   <Button variant="outline">
                     <Download className="h-4 w-4 mr-2" />
-                    Last ned PDF
+                    {t("actions.downloadPdf")}
                   </Button>
                 </Link>
               </div>
@@ -235,13 +239,12 @@ export default async function InspectionDetailPage({
                 <div className="flex items-center gap-2 text-sm text-orange-600 bg-orange-50 p-3 rounded-md">
                   <AlertTriangle className="h-4 w-4" />
                   <span>
-                    Skjema må fylles ut og sendes inn for å fullføre vernerunden. Punkter merket "Ikke OK"
-                    skal registreres som funn.
+                    {t("form.warning")}
                   </span>
                 </div>
                 <Link href={`/dashboard/forms/${inspection.formTemplate.id}/fill?inspectionId=${id}`}>
                   <Button className="w-full">
-                    Fyll ut skjema nå
+                    {t("form.fillNow")}
                   </Button>
                 </Link>
               </div>
@@ -254,15 +257,15 @@ export default async function InspectionDetailPage({
         {/* Basic Info */}
         <Card>
           <CardHeader>
-            <CardTitle>Grunnleggende informasjon</CardTitle>
+            <CardTitle>{t("basicInfo.title")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-start gap-3">
               <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-muted-foreground">Planlagt dato</p>
+                <p className="text-sm font-medium text-muted-foreground">{t("basicInfo.scheduledDate")}</p>
                 <p className="font-medium">
-                  {format(new Date(inspection.scheduledDate), "d. MMMM yyyy", { locale: nb })}
+                  {format(new Date(inspection.scheduledDate), "d. MMMM yyyy", { locale: dateLocale })}
                 </p>
               </div>
             </div>
@@ -271,9 +274,9 @@ export default async function InspectionDetailPage({
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-muted-foreground">Fullført</p>
+                  <p className="text-sm font-medium text-muted-foreground">{t("basicInfo.completed")}</p>
                   <p className="font-medium">
-                    {format(new Date(inspection.completedDate), "d. MMMM yyyy", { locale: nb })}
+                    {format(new Date(inspection.completedDate), "d. MMMM yyyy", { locale: dateLocale })}
                   </p>
                 </div>
               </div>
@@ -283,7 +286,7 @@ export default async function InspectionDetailPage({
               <div className="flex items-start gap-3">
                 <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-muted-foreground">Lokasjon</p>
+                  <p className="text-sm font-medium text-muted-foreground">{t("basicInfo.location")}</p>
                   <p className="font-medium">{inspection.location}</p>
                 </div>
               </div>
@@ -294,14 +297,14 @@ export default async function InspectionDetailPage({
         {/* Team */}
         <Card>
           <CardHeader>
-            <CardTitle>Gjennomført av</CardTitle>
+            <CardTitle>{t("performedBy.title")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-start gap-3">
               <User className="h-5 w-5 text-muted-foreground mt-0.5" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-muted-foreground">Ansvarlig</p>
-                <p className="font-medium">{conductedByUser?.name || "Ukjent"}</p>
+                <p className="text-sm font-medium text-muted-foreground">{t("performedBy.responsible")}</p>
+                <p className="font-medium">{conductedByUser?.name || t("unknown")}</p>
                 <p className="text-sm text-muted-foreground">{conductedByUser?.email}</p>
               </div>
             </div>
@@ -310,10 +313,10 @@ export default async function InspectionDetailPage({
               <div className="flex items-start gap-3">
                 <Users className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-muted-foreground">Deltakere</p>
+                  <p className="text-sm font-medium text-muted-foreground">{t("performedBy.participants")}</p>
                   {participants.map((participant) => (
                     <div key={participant.id} className="mt-1">
-                      <p className="font-medium">{participant.name || "Ukjent"}</p>
+                      <p className="font-medium">{participant.name || t("unknown")}</p>
                       <p className="text-sm text-muted-foreground">{participant.email}</p>
                     </div>
                   ))}
@@ -328,7 +331,7 @@ export default async function InspectionDetailPage({
       {inspection.description && (
         <Card>
           <CardHeader>
-            <CardTitle>Beskrivelse</CardTitle>
+            <CardTitle>{t("descriptionTitle")}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm whitespace-pre-wrap">{inspection.description}</p>
@@ -340,43 +343,43 @@ export default async function InspectionDetailPage({
       {findingStats.total > 0 && (
         <Card className="border-orange-200 bg-orange-50">
           <CardHeader>
-            <CardTitle className="text-orange-900">Funn fra inspeksjon</CardTitle>
+            <CardTitle className="text-orange-900">{t("findingsStats.title")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-4">
               <div>
-                <p className="text-sm font-medium text-orange-900">Kritiske</p>
+                <p className="text-sm font-medium text-orange-900">{t("findingsStats.critical")}</p>
                 <p className="text-3xl font-bold text-red-600">{findingStats.critical}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-orange-900">Alvorlige</p>
+                <p className="text-sm font-medium text-orange-900">{t("findingsStats.high")}</p>
                 <p className="text-3xl font-bold text-orange-600">{findingStats.high}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-orange-900">Moderate</p>
+                <p className="text-sm font-medium text-orange-900">{t("findingsStats.medium")}</p>
                 <p className="text-3xl font-bold text-yellow-600">{findingStats.medium}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-orange-900">Lave</p>
+                <p className="text-sm font-medium text-orange-900">{t("findingsStats.low")}</p>
                 <p className="text-3xl font-bold text-green-600">{findingStats.low}</p>
               </div>
             </div>
             <div className="mt-4 pt-4 border-t border-orange-200">
               <div className="grid gap-4 md:grid-cols-4 text-sm">
                 <div>
-                  <p className="text-orange-900 font-medium">Åpne</p>
+                  <p className="text-orange-900 font-medium">{t("findingsStats.open")}</p>
                   <p className="text-2xl font-bold">{findingStats.open}</p>
                 </div>
                 <div>
-                  <p className="text-orange-900 font-medium">Pågår</p>
+                  <p className="text-orange-900 font-medium">{t("findingsStats.inProgress")}</p>
                   <p className="text-2xl font-bold">{findingStats.inProgress}</p>
                 </div>
                 <div>
-                  <p className="text-orange-900 font-medium">Løst</p>
+                  <p className="text-orange-900 font-medium">{t("findingsStats.resolved")}</p>
                   <p className="text-2xl font-bold">{findingStats.resolved}</p>
                 </div>
                 <div>
-                  <p className="text-orange-900 font-medium">Lukket</p>
+                  <p className="text-orange-900 font-medium">{t("findingsStats.closed")}</p>
                   <p className="text-2xl font-bold">{findingStats.closed}</p>
                 </div>
               </div>
@@ -388,18 +391,18 @@ export default async function InspectionDetailPage({
       {/* Findings */}
       <Card id="funn">
         <CardHeader>
-          <CardTitle>Funn og observasjoner</CardTitle>
+          <CardTitle>{t("findings.title")}</CardTitle>
           <CardDescription>
             {findingStats.total > 0
-              ? `${findingStats.total} funn registrert fra vernerunden`
-              : "Ingen funn registrert. Funn opprettes direkte under vernerunden ved svar \"Ikke OK\"."}
+              ? t("findings.registered", { count: findingStats.total })
+              : t("findings.noneDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {inspection.findings.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <p>Ingen funn registrert ennå</p>
-              <p className="text-sm mt-1">Funn registreres i vernerunden ved utfylling av punktene.</p>
+              <p>{t("findings.noneTitle")}</p>
+              <p className="text-sm mt-1">{t("findings.noneHelp")}</p>
             </div>
           ) : (
             <InspectionFindingList findings={inspection.findings} />
@@ -410,16 +413,16 @@ export default async function InspectionDetailPage({
       {/* Compliance */}
       <Card className="bg-blue-50 border-blue-200">
         <CardHeader>
-          <CardTitle className="text-blue-900">📋 HMS Compliance</CardTitle>
+          <CardTitle className="text-blue-900">{t("compliance.title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-blue-800">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-blue-600" />
-            <span>Inspeksjon planlagt og dokumentert</span>
+            <span>{t("compliance.i1")}</span>
           </div>
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-blue-600" />
-            <span>Ansvarlig person utnevnt</span>
+            <span>{t("compliance.i2")}</span>
           </div>
           <div className="flex items-center gap-2">
             {inspection.completedDate ? (
@@ -428,7 +431,7 @@ export default async function InspectionDetailPage({
               <AlertTriangle className="h-4 w-4 text-yellow-600" />
             )}
             <span>
-              Inspeksjon {inspection.completedDate ? "fullført" : "ikke fullført ennå"}
+              {inspection.completedDate ? t("compliance.completed") : t("compliance.notCompleted")}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -439,8 +442,8 @@ export default async function InspectionDetailPage({
             )}
             <span>
               {findingStats.total > 0
-                ? `${findingStats.total} funn dokumentert`
-                : "Ingen funn dokumentert"}
+                ? t("compliance.findingsDocumented", { count: findingStats.total })
+                : t("compliance.noFindings")}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -453,10 +456,10 @@ export default async function InspectionDetailPage({
             )}
             <span>
               {findingStats.open > 0
-                ? `${findingStats.open} åpne funn (krever oppfølging)`
+                ? t("compliance.openFindings", { count: findingStats.open })
                 : findingStats.total > 0
-                ? "Alle funn er lukket"
-                : "Ingen funn"}
+                ? t("compliance.allClosed")
+                : t("compliance.none")}
             </span>
           </div>
         </CardContent>

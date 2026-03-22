@@ -18,6 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { createDocument } from "@/server/actions/document.actions";
 import { Upload } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface DocumentFormProps {
   tenantId: string;
@@ -38,30 +39,14 @@ interface DocumentFormProps {
   }>;
 }
 
-const documentKinds = [
-  { value: "LAW", label: "Lover og regler" },
-  { value: "PLAN", label: "HMS-håndbok / Plan" },
-  { value: "PROCEDURE", label: "Prosedyre (ISO 9001)" },
-  { value: "CHECKLIST", label: "Sjekkliste" },
-  { value: "FORM", label: "Skjema" },
-  { value: "SDS", label: "Sikkerhetsdatablad (SDS)" },
-  { value: "OTHER", label: "Annet" },
-];
-
-const userRoles = [
-  { value: "ADMIN", label: "Admin" },
-  { value: "HMS", label: "HMS-leder" },
-  { value: "LEDER", label: "Leder" },
-  { value: "VERNEOMBUD", label: "Verneombud" },
-  { value: "ANSATT", label: "Ansatt" },
-  { value: "BHT", label: "BHT" },
-  { value: "REVISOR", label: "Revisor" },
-];
+const documentKinds = ["LAW", "PLAN", "PROCEDURE", "CHECKLIST", "FORM", "SDS", "OTHER"] as const;
+const userRoles = ["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "ANSATT", "BHT", "REVISOR"] as const;
 
 const NO_OWNER_VALUE = "__none_owner__";
 const NO_TEMPLATE_VALUE = "__none_template__";
 
 export function DocumentForm({ tenantId, owners, templates }: DocumentFormProps) {
+  const t = useTranslations("dashboardDocumentForm");
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -119,8 +104,10 @@ export function DocumentForm({ tenantId, owners, templates }: DocumentFormProps)
     if (selectedFile && selectedFile.size > MAX_FILE_SIZE) {
       toast({
         variant: "destructive",
-        title: "⚠️ Filen er for stor",
-        description: `Maksimal filstørrelse er 50 MB. Din fil er ${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB.`,
+        title: t("toasts.fileTooLarge.title"),
+        description: t("toasts.fileTooLarge.description", {
+          size: (selectedFile.size / (1024 * 1024)).toFixed(2),
+        }),
       });
       return;
     }
@@ -129,7 +116,7 @@ export function DocumentForm({ tenantId, owners, templates }: DocumentFormProps)
 
     const formData = new FormData(e.currentTarget);
     formData.append("tenantId", tenantId);
-    formData.append("changeComment", "Første versjon opprettet");
+    formData.append("changeComment", t("defaultChangeComment"));
     formData.delete("ownerId");
     formData.delete("templateId");
 
@@ -150,8 +137,8 @@ export function DocumentForm({ tenantId, owners, templates }: DocumentFormProps)
 
       if (result.success) {
         toast({
-          title: "📄 Dokument opprettet",
-          description: "Dokumentet er lastet opp og venter på godkjenning",
+          title: t("toasts.created.title"),
+          description: t("toasts.created.description"),
           className: "bg-green-50 border-green-200",
         });
         router.push("/dashboard/documents");
@@ -159,22 +146,22 @@ export function DocumentForm({ tenantId, owners, templates }: DocumentFormProps)
       } else {
         toast({
           variant: "destructive",
-          title: "Opplasting feilet",
-          description: result.error || "Kunne ikke laste opp dokument",
+          title: t("toasts.uploadFailed.title"),
+          description: result.error || t("toasts.uploadFailed.description"),
         });
       }
     } catch (error: any) {
       if (error?.message?.includes("413") || error?.status === 413) {
         toast({
           variant: "destructive",
-          title: "⚠️ Filen er for stor",
-          description: "Maksimal filstørrelse er 50 MB. Prøv å komprimere filen eller last opp en mindre versjon.",
+          title: t("toasts.fileTooLarge.title"),
+          description: t("toasts.fileTooLarge.serverDescription"),
         });
       } else {
         toast({
           variant: "destructive",
-          title: "Uventet feil",
-          description: "Noe gikk galt ved opplasting av dokument. Prøv igjen senere.",
+          title: t("toasts.unexpected.title"),
+          description: t("toasts.unexpected.description"),
         });
       }
     } finally {
@@ -185,19 +172,19 @@ export function DocumentForm({ tenantId, owners, templates }: DocumentFormProps)
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Last opp nytt dokument</CardTitle>
+        <CardTitle>{t("title")}</CardTitle>
         <CardDescription>
-          Dokumentet vil få status UTKAST og må godkjennes før bruk
+          {t("description")}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="title">Tittel *</Label>
+            <Label htmlFor="title">{t("fields.title")}</Label>
             <Input
               id="title"
               name="title"
-              placeholder="F.eks. HMS-håndbok 2025"
+              placeholder={t("placeholders.title")}
               required
               disabled={loading}
             />
@@ -205,15 +192,15 @@ export function DocumentForm({ tenantId, owners, templates }: DocumentFormProps)
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="kind">Type dokument *</Label>
+              <Label htmlFor="kind">{t("fields.kind")}</Label>
               <Select name="kind" required disabled={loading}>
                 <SelectTrigger>
-                  <SelectValue placeholder="F.eks. HMS-håndbok, Lover og regler, Prosedyre" />
+                  <SelectValue placeholder={t("placeholders.kind")} />
                 </SelectTrigger>
                 <SelectContent>
                   {documentKinds.map((kind) => (
-                    <SelectItem key={kind.value} value={kind.value}>
-                      {kind.label}
+                    <SelectItem key={kind} value={kind}>
+                      {t(`kinds.${kind}`)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -221,7 +208,7 @@ export function DocumentForm({ tenantId, owners, templates }: DocumentFormProps)
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="version">Versjon</Label>
+              <Label htmlFor="version">{t("fields.version")}</Label>
               <Input
                 id="version"
                 name="version"
@@ -234,7 +221,7 @@ export function DocumentForm({ tenantId, owners, templates }: DocumentFormProps)
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="ownerId">Prosesseier</Label>
+              <Label htmlFor="ownerId">{t("fields.owner")}</Label>
               <Select
                 name="ownerId"
                 value={selectedOwner}
@@ -242,10 +229,10 @@ export function DocumentForm({ tenantId, owners, templates }: DocumentFormProps)
                 disabled={loading || owners.length === 0}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={owners.length ? "Velg ansvarlig" : "Ingen brukere tilgjengelig"} />
+                  <SelectValue placeholder={owners.length ? t("placeholders.owner") : t("placeholders.noUsers")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NO_OWNER_VALUE}>Ingen</SelectItem>
+                  <SelectItem value={NO_OWNER_VALUE}>{t("none")}</SelectItem>
                   {owners.map((owner) => (
                     <SelectItem key={owner.id} value={owner.id}>
                       {owner.name || owner.email} ({owner.role})
@@ -256,7 +243,7 @@ export function DocumentForm({ tenantId, owners, templates }: DocumentFormProps)
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="templateId">Dokumentmal</Label>
+              <Label htmlFor="templateId">{t("fields.template")}</Label>
               <Select
                 name="templateId"
                 value={selectedTemplate}
@@ -264,20 +251,20 @@ export function DocumentForm({ tenantId, owners, templates }: DocumentFormProps)
                 disabled={loading || templates.length === 0}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={templates.length ? "Velg mal (valgfritt)" : "Ingen maler tilgjengelig"} />
+                  <SelectValue placeholder={templates.length ? t("placeholders.template") : t("placeholders.noTemplates")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NO_TEMPLATE_VALUE}>Ingen</SelectItem>
+                  <SelectItem value={NO_TEMPLATE_VALUE}>{t("none")}</SelectItem>
                   {templates.map((template) => (
                     <SelectItem key={template.id} value={template.id}>
-                      {template.name} {template.isGlobal ? "• Global" : ""}
+                      {template.name} {template.isGlobal ? `• ${t("global")}` : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               {selectedTemplate !== NO_TEMPLATE_VALUE && (
                 <p className="text-xs text-muted-foreground">
-                  {templateMap.get(selectedTemplate)?.description ?? "Mal valgt"}
+                  {templateMap.get(selectedTemplate)?.description ?? t("templateSelected")}
                 </p>
               )}
             </div>
@@ -285,7 +272,7 @@ export function DocumentForm({ tenantId, owners, templates }: DocumentFormProps)
 
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="reviewIntervalMonths">Revisjonsintervall (måneder)</Label>
+              <Label htmlFor="reviewIntervalMonths">{t("fields.reviewInterval")}</Label>
               <Input
                 id="reviewIntervalMonths"
                 name="reviewIntervalMonths"
@@ -301,7 +288,7 @@ export function DocumentForm({ tenantId, owners, templates }: DocumentFormProps)
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="effectiveFrom">Gyldig fra</Label>
+              <Label htmlFor="effectiveFrom">{t("fields.effectiveFrom")}</Label>
               <Input
                 id="effectiveFrom"
                 name="effectiveFrom"
@@ -312,7 +299,7 @@ export function DocumentForm({ tenantId, owners, templates }: DocumentFormProps)
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="effectiveTo">Gyldig til</Label>
+              <Label htmlFor="effectiveTo">{t("fields.effectiveTo")}</Label>
               <Input
                 id="effectiveTo"
                 name="effectiveTo"
@@ -325,7 +312,7 @@ export function DocumentForm({ tenantId, owners, templates }: DocumentFormProps)
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="file">Fil *</Label>
+            <Label htmlFor="file">{t("fields.file")}</Label>
             <div className="flex items-center gap-4">
               <Input
                 id="file"
@@ -339,34 +326,37 @@ export function DocumentForm({ tenantId, owners, templates }: DocumentFormProps)
             </div>
             {selectedFile && (
               <p className="text-sm text-muted-foreground">
-                Valgt: {selectedFile.name} ({(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)
+                {t("selectedFile", {
+                  name: selectedFile.name,
+                  size: (selectedFile.size / (1024 * 1024)).toFixed(2),
+                })}
               </p>
             )}
             <p className="text-xs text-muted-foreground">
-              Støttede formater: PDF, Word, Excel, TXT • Maks 50 MB
+              {t("fileHelp")}
             </p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="planSummary">Plan (Plan)</Label>
+              <Label htmlFor="planSummary">{t("fields.plan")}</Label>
               <Textarea
                 id="planSummary"
                 name="planSummary"
                 value={pdca.plan}
                 onChange={(event) => setPdca((prev) => ({ ...prev, plan: event.target.value }))}
-                placeholder="Hva er hensikten og rammen for prosessen?"
+                placeholder={t("placeholders.plan")}
                 disabled={loading}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="doSummary">Gjør (Do)</Label>
+              <Label htmlFor="doSummary">{t("fields.do")}</Label>
               <Textarea
                 id="doSummary"
                 name="doSummary"
                 value={pdca.do}
                 onChange={(event) => setPdca((prev) => ({ ...prev, do: event.target.value }))}
-                placeholder="Hvordan utføres prosessen i praksis?"
+                placeholder={t("placeholders.do")}
                 disabled={loading}
               />
             </div>
@@ -374,24 +364,24 @@ export function DocumentForm({ tenantId, owners, templates }: DocumentFormProps)
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="checkSummary">Kontroller (Check)</Label>
+              <Label htmlFor="checkSummary">{t("fields.check")}</Label>
               <Textarea
                 id="checkSummary"
                 name="checkSummary"
                 value={pdca.check}
                 onChange={(event) => setPdca((prev) => ({ ...prev, check: event.target.value }))}
-                placeholder="Hvordan følger vi opp at prosessen fungerer?"
+                placeholder={t("placeholders.check")}
                 disabled={loading}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="actSummary">Forbedre (Act)</Label>
+              <Label htmlFor="actSummary">{t("fields.act")}</Label>
               <Textarea
                 id="actSummary"
                 name="actSummary"
                 value={pdca.act}
                 onChange={(event) => setPdca((prev) => ({ ...prev, act: event.target.value }))}
-                placeholder="Hvilke forbedringer eller korrigerende tiltak planlegges?"
+                placeholder={t("placeholders.act")}
                 disabled={loading}
               />
             </div>
@@ -399,59 +389,61 @@ export function DocumentForm({ tenantId, owners, templates }: DocumentFormProps)
 
           <div className="space-y-3">
             <div>
-              <Label>Hvem skal se dokumentet?</Label>
+              <Label>{t("fields.visibleToRoles")}</Label>
               <p className="text-xs text-muted-foreground mt-1">
-                Velg hvilke roller som skal ha tilgang. Ingen valg = synlig for alle.
+                {t("visibleToHelp")}
               </p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {userRoles.map((role) => (
-                <div key={role.value} className="flex items-center space-x-2">
+                <div key={role} className="flex items-center space-x-2">
                   <Checkbox
-                    id={role.value}
-                    checked={selectedRoles.includes(role.value)}
+                    id={role}
+                    checked={selectedRoles.includes(role)}
                     onCheckedChange={(checked) => {
                       if (checked) {
-                        setSelectedRoles([...selectedRoles, role.value]);
+                        setSelectedRoles([...selectedRoles, role]);
                       } else {
-                        setSelectedRoles(selectedRoles.filter((r) => r !== role.value));
+                        setSelectedRoles(selectedRoles.filter((r) => r !== role));
                       }
                     }}
                     disabled={loading}
                   />
                   <Label
-                    htmlFor={role.value}
+                    htmlFor={role}
                     className="text-sm font-normal cursor-pointer"
                   >
-                    {role.label}
+                    {t(`roles.${role}`)}
                   </Label>
                 </div>
               ))}
             </div>
             {selectedRoles.length > 0 && (
               <p className="text-sm text-blue-600">
-                ✓ Valgt: {selectedRoles.map((role) => userRoles.find((r) => r.value === role)?.label).join(", ")}
+                {t("selectedRoles", {
+                  roles: selectedRoles.map((role) => t(`roles.${role as (typeof userRoles)[number]}`)).join(", "),
+                })}
               </p>
             )}
           </div>
 
           <div className="rounded-lg bg-muted/50 p-4">
-            <p className="text-sm font-medium mb-2">ℹ️ Viktig informasjon</p>
+            <p className="text-sm font-medium mb-2">{t("important.title")}</p>
             <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-              <li>Dokumentet får status <strong>UTKAST</strong> etter opplasting</li>
-              <li>Må <strong>godkjennes</strong> av HMS-leder/Admin før bruk</li>
-              <li>Alle versjoner lagres permanent for sporbarhet</li>
+              <li>{t.rich("important.i1", { strong: (chunks) => <strong>{chunks}</strong> })}</li>
+              <li>{t.rich("important.i2", { strong: (chunks) => <strong>{chunks}</strong> })}</li>
+              <li>{t("important.i3")}</li>
             </ul>
           </div>
 
           <div className="flex gap-4">
             <Button type="submit" disabled={loading}>
               {loading ? (
-                <>Laster opp...</>
+                <>{t("actions.uploading")}</>
               ) : (
                 <>
                   <Upload className="mr-2 h-4 w-4" />
-                  Last opp dokument
+                  {t("actions.upload")}
                 </>
               )}
             </Button>
@@ -461,7 +453,7 @@ export function DocumentForm({ tenantId, owners, templates }: DocumentFormProps)
               onClick={() => router.back()}
               disabled={loading}
             >
-              Avbryt
+              {t("actions.cancel")}
             </Button>
           </div>
         </form>

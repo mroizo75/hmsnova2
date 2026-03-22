@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import { ReportIncidentForm } from "@/components/ansatt/report-incident-form";
@@ -9,6 +10,7 @@ import { hasTenantFeature } from "@/lib/tenant-features";
 
 export default async function NyttAvvik() {
   const session = await getServerSession(authOptions);
+  const t = await getTranslations("employeeIncidentNewPage");
 
   if (!session?.user?.tenantId) {
     redirect("/login");
@@ -33,10 +35,10 @@ export default async function NyttAvvik() {
       <div>
         <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
           <AlertCircle className="h-7 w-7 text-red-600" />
-          Rapporter avvik
+          {t("title")}
         </h1>
         <p className="text-muted-foreground">
-          Meld fra om farlige situasjoner, ulykker eller nestenulykker
+          {t("description")}
         </p>
       </div>
 
@@ -44,8 +46,7 @@ export default async function NyttAvvik() {
       <Card className="border-l-4 border-l-red-500 bg-red-50">
         <CardContent className="p-4">
           <p className="text-sm text-red-900">
-            <strong>🚨 Ved akutt fare:</strong> Ring 110 (brann), 112 (politi) eller 113 (ambulanse) FØRST!
-            Rapporter deretter avviket her.
+            <strong>{t("emergency.title")}</strong> {t("emergency.description")}
           </p>
         </CardContent>
       </Card>
@@ -53,12 +54,12 @@ export default async function NyttAvvik() {
       {/* Skjema */}
       <Card>
         <CardHeader>
-          <CardTitle>Avviksskjema</CardTitle>
+          <CardTitle>{t("formTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           <ReportIncidentForm 
             tenantId={session.user.tenantId}
-            reportedBy={session.user.name || session.user.email || "Ansatt"}
+            reportedBy={session.user.name || session.user.email || t("employeeFallback")}
             projects={projects}
             isHealthcareTenant={isHealthcareTenant}
           />
@@ -68,26 +69,25 @@ export default async function NyttAvvik() {
       {/* Hjelp */}
       <Card className="border-l-4 border-l-blue-500 bg-blue-50">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg">💡 Hva skal jeg rapportere?</CardTitle>
+          <CardTitle className="text-lg">{t("help.title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <div>
-            <strong>✅ Rapporter alltid:</strong>
+            <strong>{t("help.reportAlways")}</strong>
             <ul className="list-disc list-inside mt-1 space-y-1 text-muted-foreground ml-2">
-              <li>Ulykker og personskader</li>
-              <li>Nestenulykker (kunne endt med skade)</li>
-              <li>Farlige situasjoner</li>
-              <li>Defekt utstyr eller verktøy</li>
-              <li>Manglende sikkerhetsutstyr</li>
-              <li>Forurensning eller utslipp</li>
+              <li>{t("help.items.i1")}</li>
+              <li>{t("help.items.i2")}</li>
+              <li>{t("help.items.i3")}</li>
+              <li>{t("help.items.i4")}</li>
+              <li>{t("help.items.i5")}</li>
+              <li>{t("help.items.i6")}</li>
             </ul>
           </div>
           
           <div className="pt-2">
-            <strong>📝 Husk:</strong>
+            <strong>{t("help.remember")}</strong>
             <p className="text-muted-foreground mt-1">
-              Jo mer detaljer du gir, jo bedre kan vi forebygge lignende hendelser.
-              Alle rapporter behandles konfidensielt.
+              {t("help.rememberDescription")}
             </p>
           </div>
         </CardContent>

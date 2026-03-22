@@ -21,6 +21,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { RefreshCw } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface UpdateInspectionStatusFormProps {
   inspectionId: string;
@@ -31,6 +32,7 @@ export function UpdateInspectionStatusForm({
   inspectionId,
   currentStatus,
 }: UpdateInspectionStatusFormProps) {
+  const t = useTranslations("dashboardInspectionComponents.updateStatus");
   const router = useRouter();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -60,19 +62,19 @@ export function UpdateInspectionStatusForm({
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.message || "Kunne ikke oppdatere status");
+        throw new Error(result.message || t("errors.update"));
       }
 
       toast({
-        title: "Status oppdatert",
-        description: "Inspeksjonsstatus er nå endret",
+        title: t("toasts.updated.title"),
+        description: t("toasts.updated.description"),
       });
 
       setOpen(false);
       router.refresh();
     } catch (error: any) {
       toast({
-        title: "Feil",
+        title: t("toasts.error.title"),
         description: error.message,
         variant: "destructive",
       });
@@ -86,26 +88,26 @@ export function UpdateInspectionStatusForm({
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <RefreshCw className="mr-2 h-4 w-4" />
-          Endre status
+          {t("actions.changeStatus")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Endre inspeksjonsstatus</DialogTitle>
-          <DialogDescription>Oppdater status for inspeksjonen</DialogDescription>
+          <DialogTitle>{t("title")}</DialogTitle>
+          <DialogDescription>{t("description")}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
+            <Label htmlFor="status">{t("statusLabel")}</Label>
             <Select name="status" defaultValue={currentStatus} required>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="PLANNED">Planlagt</SelectItem>
-                <SelectItem value="IN_PROGRESS">Pågår</SelectItem>
-                <SelectItem value="COMPLETED">Fullført</SelectItem>
-                <SelectItem value="CANCELLED">Avbrutt</SelectItem>
+                <SelectItem value="PLANNED">{t("status.planned")}</SelectItem>
+                <SelectItem value="IN_PROGRESS">{t("status.inProgress")}</SelectItem>
+                <SelectItem value="COMPLETED">{t("status.completed")}</SelectItem>
+                <SelectItem value="CANCELLED">{t("status.cancelled")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -117,10 +119,10 @@ export function UpdateInspectionStatusForm({
               onClick={() => setOpen(false)}
               disabled={loading}
             >
-              Avbryt
+              {t("actions.cancel")}
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? "Lagrer..." : "Lagre"}
+              {loading ? t("actions.saving") : t("actions.save")}
             </Button>
           </div>
         </form>

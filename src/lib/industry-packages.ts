@@ -79,6 +79,22 @@ export const SUPPORTED_INDUSTRIES: ReadonlyArray<SupportedIndustryOption> = [
   { value: "other", label: "Annet", templates: 8 },
 ];
 
+const INDUSTRY_ALIASES: Readonly<Record<string, string>> = {
+  bygg: "construction",
+  "bygg og anlegg": "construction",
+  helse: "healthcare",
+  helsevesen: "healthcare",
+  health: "healthcare",
+  "transport og logistikk": "transport",
+  "industri og produksjon": "manufacturing",
+  "handel og service": "retail",
+  "hotell og restaurant": "hospitality",
+  utdanning: "education",
+  "teknologi og it": "technology",
+  landbruk: "agriculture",
+  annet: "other",
+};
+
 export const AGRICULTURE_FARM_TYPES: ReadonlyArray<{ value: string; label: string }> = [
   { value: "milk_production", label: "Melkeproduksjon" },
   { value: "cattle_meat", label: "Storfe / kjøttproduksjon" },
@@ -366,12 +382,12 @@ export function getIndustryPackage(industry: string | null | undefined): Industr
     return null;
   }
 
-  const normalizedIndustry = industry.trim().toLowerCase();
+  const normalizedIndustry = normalizeIndustryValue(industry);
   return INDUSTRY_PACKAGES[normalizedIndustry] ?? null;
 }
 
 export function getIndustryLabel(industry: string): string {
-  const normalizedIndustry = industry.trim().toLowerCase();
+  const normalizedIndustry = normalizeIndustryValue(industry);
   const option = SUPPORTED_INDUSTRIES.find((item) => item.value === normalizedIndustry);
   return option?.label ?? industry;
 }
@@ -380,6 +396,15 @@ export function isSupportedIndustry(industry: string | null | undefined): boolea
   if (!industry) {
     return false;
   }
-  const normalizedIndustry = industry.trim().toLowerCase();
+  const normalizedIndustry = normalizeIndustryValue(industry);
   return SUPPORTED_INDUSTRIES.some((item) => item.value === normalizedIndustry);
+}
+
+export function normalizeIndustryValue(industry: string | null | undefined): string {
+  if (!industry) {
+    return "";
+  }
+
+  const normalized = industry.trim().toLowerCase();
+  return INDUSTRY_ALIASES[normalized] ?? normalized;
 }

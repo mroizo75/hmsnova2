@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,6 +23,7 @@ export function SjaStatusActions({
   currentStatus,
   currentConclusion,
 }: SjaStatusActionsProps) {
+  const t = useTranslations("employeeSjaStatusActions");
   const router = useRouter();
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
@@ -41,16 +43,16 @@ export function SjaStatusActions({
       }
 
       toast({
-        title: "SJA oppdatert",
-        description: "Statusen er endret.",
+        title: t("toast.success.title"),
+        description: t("toast.success.description"),
       });
 
       setComment("");
       router.refresh();
     } catch (error: any) {
       toast({
-        title: "Feil",
-        description: error.message || "Kunne ikke oppdatere SJA.",
+        title: t("toast.error.title"),
+        description: error.message || t("toast.error.description"),
         variant: "destructive",
       });
     } finally {
@@ -61,17 +63,17 @@ export function SjaStatusActions({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-sm">Handlinger</CardTitle>
+        <CardTitle className="text-sm">{t("title")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {currentStatus === "DRAFT" && (
           <>
             <div className="space-y-2">
-              <Label className="text-sm">Kommentar (valgfritt)</Label>
+              <Label className="text-sm">{t("commentLabel")}</Label>
               <Textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
-                placeholder="Evt. kommentar til godkjenning..."
+                placeholder={t("commentPlaceholder")}
                 rows={2}
                 className="text-sm resize-none"
               />
@@ -87,7 +89,7 @@ export function SjaStatusActions({
               ) : (
                 <CheckCircle className="h-4 w-4 mr-2" />
               )}
-              Godkjenn – arbeid kan starte
+              {t("approve")}
             </Button>
 
             <Button
@@ -97,7 +99,7 @@ export function SjaStatusActions({
               className="w-full border-yellow-500 text-yellow-700 hover:bg-yellow-50"
             >
               <Play className="h-4 w-4 mr-2" />
-              Betinget godkjent
+              {t("conditional")}
             </Button>
 
             <Button
@@ -107,7 +109,7 @@ export function SjaStatusActions({
               className="w-full border-red-500 text-red-700 hover:bg-red-50"
             >
               <XCircle className="h-4 w-4 mr-2" />
-              Avvis – arbeid kan IKKE starte
+              {t("reject")}
             </Button>
           </>
         )}
@@ -123,13 +125,15 @@ export function SjaStatusActions({
             ) : (
               <Square className="h-4 w-4 mr-2" />
             )}
-            Fullfør SJA – arbeid er avsluttet
+            {t("complete")}
           </Button>
         )}
 
         {(currentStatus === "COMPLETED" || currentStatus === "CANCELLED") && (
           <p className="text-sm text-muted-foreground text-center py-2">
-            Denne SJA-en er {currentStatus === "COMPLETED" ? "fullført" : "kansellert"}.
+            {t("done", {
+              status: currentStatus === "COMPLETED" ? t("status.completed") : t("status.cancelled"),
+            })}
           </p>
         )}
       </CardContent>

@@ -18,6 +18,7 @@ import { deleteDocument, getDocumentDownloadUrl, approveDocument, convertDocumen
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useLocale, useTranslations } from "next-intl";
 
 type DocumentWithMeta = Document & {
   owner?: {
@@ -37,46 +38,22 @@ interface DocumentListProps {
   currentUserId?: string;
 }
 
-const kindLabels: Record<string, string> = {
-  LAW: "Lover og regler",
-  PROCEDURE: "Prosedyre (ISO 9001)",
-  CHECKLIST: "Sjekkliste",
-  FORM: "Skjema",
-  SDS: "Sikkerhetsdatablad (SDS)",
-  PLAN: "HMS-håndbok / Plan",
-  OTHER: "Annet",
-};
-
 const statusVariants: Record<string, "default" | "secondary" | "destructive"> = {
   DRAFT: "secondary",
   APPROVED: "default",
   ARCHIVED: "destructive",
 };
 
-const statusLabels: Record<string, string> = {
-  DRAFT: "Utkast",
-  APPROVED: "Godkjent",
-  ARCHIVED: "Arkivert",
-};
-
-const roleLabels: Record<string, string> = {
-  ADMIN: "Admin",
-  HMS: "HMS",
-  LEDER: "Leder",
-  VERNEOMBUD: "Verneombud",
-  ANSATT: "Ansatt",
-  BHT: "BHT",
-  REVISOR: "Revisor",
-};
-
-const formatDate = (value?: string | Date | null) => {
+const formatDate = (value: string | Date | null | undefined, locale: string) => {
   if (!value) return null;
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString("no-NO");
+  return date.toLocaleDateString(locale === "en" ? "en-US" : "nb-NO");
 };
 
 export function DocumentList({ documents, tenantId, currentUserId }: DocumentListProps) {
+  const t = useTranslations("dashboardDocumentsList");
+  const locale = useLocale();
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
@@ -86,14 +63,14 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
     if (result.success && result.data) {
       window.open(result.data.url, "_blank");
       toast({
-        title: "Dokument lastes ned",
-        description: "Filen åpnes i en ny fane",
+        title: t("toasts.downloading.title"),
+        description: t("toasts.downloading.description"),
       });
     } else {
       toast({
         variant: "destructive",
-        title: "Nedlasting feilet",
-        description: result.error || "Kunne ikke laste ned dokument",
+        title: t("toasts.downloadError.title"),
+        description: result.error || t("toasts.downloadError.description"),
       });
     }
   };
@@ -101,8 +78,8 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
   const handleConvertToPDF = async (id: string, title: string) => {
     setLoading(id);
     toast({
-      title: "Konverterer til PDF",
-      description: "Vennligst vent...",
+      title: t("toasts.converting.title"),
+      description: t("toasts.converting.description"),
     });
 
     const result = await convertDocumentToPDFAction(id);
@@ -110,22 +87,22 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
     if (result.success && result.data) {
       window.open(result.data.url, "_blank");
       toast({
-        title: "✅ PDF generert",
-        description: `"${title}" ble konvertert til PDF`,
+        title: t("toasts.converted.title"),
+        description: t("toasts.converted.description", { title }),
         className: "bg-green-50 border-green-200",
       });
     } else {
       toast({
         variant: "destructive",
-        title: "Konvertering feilet",
-        description: result.error || "Kunne ikke konvertere til PDF",
+        title: t("toasts.convertError.title"),
+        description: result.error || t("toasts.convertError.description"),
       });
     }
     setLoading(null);
   };
 
   const handleApprove = async (id: string, title: string) => {
-    if (!confirm(`Godkjenn "${title}"?\n\nDette vil aktivere dokumentet for bruk.`)) {
+    if (!confirm(t("confirmApprove", { title }))) {
       return;
     }
 
@@ -137,23 +114,23 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
 
     if (result.success) {
       toast({
-        title: "✅ Dokument godkjent",
-        description: `"${title}" er nå aktivert for bruk`,
+        title: t("toasts.approved.title"),
+        description: t("toasts.approved.description", { title }),
         className: "bg-green-50 border-green-200",
       });
       router.refresh();
     } else {
       toast({
         variant: "destructive",
-        title: "Godkjenning feilet",
-        description: result.error || "Kunne ikke godkjenne dokument",
+        title: t("toasts.approveError.title"),
+        description: result.error || t("toasts.approveError.description"),
       });
     }
     setLoading(null);
   };
 
   const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Er du sikker på at du vil slette "${title}"?\n\nDette kan ikke angres.`)) {
+    if (!confirm(t("confirmDelete", { title }))) {
       return;
     }
 
@@ -161,15 +138,15 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
     const result = await deleteDocument(id);
     if (result.success) {
       toast({
-        title: "🗑️ Dokument slettet",
-        description: `"${title}" er permanent fjernet`,
+        title: t("toasts.deleted.title"),
+        description: t("toasts.deleted.description", { title }),
       });
       router.refresh();
     } else {
       toast({
         variant: "destructive",
-        title: "Sletting feilet",
-        description: result.error || "Kunne ikke slette dokument",
+        title: t("toasts.deleteError.title"),
+        description: result.error || t("toasts.deleteError.description"),
       });
     }
     setLoading(null);
@@ -179,12 +156,12 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center">
         <FileText className="mb-4 h-12 w-12 text-muted-foreground" />
-        <h3 className="mb-2 text-lg font-semibold">Ingen dokumenter</h3>
+        <h3 className="mb-2 text-lg font-semibold">{t("empty.title")}</h3>
         <p className="mb-4 text-sm text-muted-foreground">
-          Last opp ditt første dokument for å komme i gang
+          {t("empty.description")}
         </p>
         <Button asChild>
-          <Link href={`/dashboard/documents/new`}>Last opp dokument</Link>
+          <Link href={`/dashboard/documents/new`}>{t("empty.action")}</Link>
         </Button>
       </div>
     );
@@ -197,15 +174,15 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
         <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Tittel</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Versjon</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Prosesseier</TableHead>
-            <TableHead>Neste revisjon</TableHead>
-            <TableHead>Synlig for</TableHead>
-            <TableHead>Godkjent</TableHead>
-            <TableHead className="text-right">Handlinger</TableHead>
+            <TableHead>{t("table.title")}</TableHead>
+            <TableHead>{t("table.type")}</TableHead>
+            <TableHead>{t("table.version")}</TableHead>
+            <TableHead>{t("table.status")}</TableHead>
+            <TableHead>{t("table.owner")}</TableHead>
+            <TableHead>{t("table.nextReview")}</TableHead>
+            <TableHead>{t("table.visibleTo")}</TableHead>
+            <TableHead>{t("table.approved")}</TableHead>
+            <TableHead className="text-right">{t("table.actions")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -227,13 +204,11 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
                 </div>
               </TableCell>
               <TableCell>
-                <Badge variant="outline">{kindLabels[doc.kind]}</Badge>
+                <Badge variant="outline">{t(`kind.${doc.kind}`)}</Badge>
               </TableCell>
               <TableCell>{doc.version}</TableCell>
               <TableCell>
-                <Badge variant={statusVariants[doc.status]}>
-                  {statusLabels[doc.status]}
-                </Badge>
+                <Badge variant={statusVariants[doc.status]}>{t(`status.${doc.status}`)}</Badge>
               </TableCell>
               <TableCell>
                 {doc.owner?.name || doc.owner?.email ? (
@@ -246,16 +221,16 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
                     )}
                   </div>
                 ) : (
-                  <span className="text-sm text-muted-foreground">Ikke satt</span>
+                  <span className="text-sm text-muted-foreground">{t("notSet")}</span>
                 )}
               </TableCell>
               <TableCell>
                 {nextReviewDate ? (
                   <span className={`text-sm ${isReviewOverdue ? "text-destructive font-medium" : ""}`}>
-                    {formatDate(nextReviewDate)}
+                    {formatDate(nextReviewDate, locale)}
                   </span>
                 ) : (
-                  <span className="text-sm text-muted-foreground">-</span>
+                  <span className="text-sm text-muted-foreground">{t("dash")}</span>
                 )}
               </TableCell>
               <TableCell>
@@ -263,13 +238,13 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
                   try {
                     const roles = doc.visibleToRoles ? (typeof doc.visibleToRoles === "string" ? JSON.parse(doc.visibleToRoles) : doc.visibleToRoles) : null;
                     if (!roles || roles.length === 0) {
-                      return <span className="text-sm text-muted-foreground">Alle</span>;
+                      return <span className="text-sm text-muted-foreground">{t("all")}</span>;
                     }
                     return (
                       <div className="flex flex-wrap gap-1">
                         {roles.slice(0, 2).map((role: string) => (
                           <Badge key={role} variant="outline" className="text-xs">
-                            {roleLabels[role] || role}
+                            {t(`roles.${role}`)}
                           </Badge>
                         ))}
                         {roles.length > 2 && (
@@ -278,25 +253,25 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
                       </div>
                     );
                   } catch {
-                    return <span className="text-sm text-muted-foreground">Alle</span>;
+                    return <span className="text-sm text-muted-foreground">{t("all")}</span>;
                   }
                 })()}
               </TableCell>
               <TableCell>
                 {doc.approvedAt ? (
-                  <span className="text-sm text-muted-foreground">{formatDate(doc.approvedAt)}</span>
+                  <span className="text-sm text-muted-foreground">{formatDate(doc.approvedAt, locale)}</span>
                 ) : (
-                  <span className="text-sm text-muted-foreground">-</span>
+                  <span className="text-sm text-muted-foreground">{t("dash")}</span>
                 )}
               </TableCell>
-              <TableCell>{formatDate(doc.createdAt)}</TableCell>
+              <TableCell>{formatDate(doc.createdAt, locale)}</TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => handleDownload(doc.id)}
-                    title="Last ned"
+                      title={t("actions.download")}
                   >
                     <Download className="h-4 w-4" />
                   </Button>
@@ -308,7 +283,7 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
                       size="sm"
                       onClick={() => handleConvertToPDF(doc.id, doc.title)}
                       disabled={loading === doc.id}
-                      title="Konverter til PDF"
+                      title={t("actions.convertPdf")}
                     >
                       <FileDown className="h-4 w-4 text-blue-600" />
                     </Button>
@@ -318,7 +293,7 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
                     variant="ghost"
                     size="sm"
                     asChild
-                    title="Rediger dokument"
+                    title={t("actions.edit")}
                   >
                     <Link href={`/dashboard/documents/${doc.id}/edit`}>
                       <Edit className="h-4 w-4" />
@@ -331,7 +306,7 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
                       size="sm"
                       onClick={() => handleApprove(doc.id, doc.title)}
                       disabled={loading === doc.id}
-                      title="Godkjenn dokument"
+                      title={t("actions.approve")}
                     >
                       <CheckCircle className="h-4 w-4 text-green-600" />
                     </Button>
@@ -342,7 +317,7 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
                       variant="ghost"
                       size="sm"
                       asChild
-                      title="Last opp ny versjon"
+                      title={t("actions.newVersion")}
                     >
                       <Link href={`/dashboard/documents/${doc.id}/new-version`}>
                         <Upload className="h-4 w-4" />
@@ -355,7 +330,7 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
                     size="sm"
                     onClick={() => handleDelete(doc.id, doc.title)}
                     disabled={doc.kind === "LAW" || loading === doc.id}
-                    title={doc.kind === "LAW" ? "Lover og regler kan ikke slettes" : "Slett"}
+                    title={doc.kind === "LAW" ? t("cannotDeleteLaw") : t("actions.delete")}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -386,17 +361,17 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
                       <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                         <span>v{doc.version}</span>
                         <span>•</span>
-                        <span>{formatDate(doc.createdAt)}</span>
+                        <span>{formatDate(doc.createdAt, locale)}</span>
                       </div>
                     </div>
                   </div>
                   <Badge variant={statusVariants[doc.status]} className="shrink-0">
-                    {statusLabels[doc.status]}
+                    {t(`status.${doc.status}`)}
                   </Badge>
                 </div>
 
             <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline">{kindLabels[doc.kind]}</Badge>
+                  <Badge variant="outline">{t(`kind.${doc.kind}`)}</Badge>
                 {doc.template?.name && (
                   <Badge variant="secondary" className="text-xs">
                     {doc.template.name}
@@ -405,7 +380,7 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
                   {doc.approvedAt && (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Calendar className="h-3 w-3" />
-                    Godkjent {formatDate(doc.approvedAt)}
+                    {t("approvedAt", { date: formatDate(doc.approvedAt, locale) })}
                     </div>
                   )}
                 </div>
@@ -418,7 +393,7 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
                       if (!roles || roles.length === 0) {
                         return (
                           <span className="text-xs text-muted-foreground">
-                            👥 Synlig for alle
+                            👥 {t("visibleForAll")}
                           </span>
                         );
                       }
@@ -427,7 +402,7 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
                           <span className="text-xs text-muted-foreground">👥</span>
                           {roles.map((role: string, idx: number) => (
                             <Badge key={idx} variant="outline" className="text-xs">
-                              {roleLabels[role] || role}
+                              {t(`roles.${role}`)}
                             </Badge>
                           ))}
                         </div>
@@ -435,7 +410,7 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
                     } catch {
                       return (
                         <span className="text-xs text-muted-foreground">
-                          👥 Synlig for alle
+                          👥 {t("visibleForAll")}
                         </span>
                       );
                     }
@@ -443,16 +418,16 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
                 </div>
 
                 <div className="border-t pt-3 text-sm">
-                  <p className="text-xs text-muted-foreground">Prosesseier</p>
+                  <p className="text-xs text-muted-foreground">{t("owner")}</p>
                   <p className="font-medium">
-                    {doc.owner?.name || doc.owner?.email || "Ikke satt"}
+                    {doc.owner?.name || doc.owner?.email || t("notSet")}
                   </p>
                 </div>
 
                 <div className="border-t pt-3 text-sm">
-                  <p className="text-xs text-muted-foreground">Neste revisjon</p>
+                  <p className="text-xs text-muted-foreground">{t("nextReview")}</p>
                   <p className={`font-medium ${isReviewOverdue ? "text-destructive" : ""}`}>
-                    {formatDate(nextReviewDate) ?? "Ikke satt"}
+                    {formatDate(nextReviewDate, locale) ?? t("notSet")}
                   </p>
                 </div>
 
@@ -465,7 +440,7 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
                       className="flex-1"
                     >
                       <Download className="h-4 w-4 mr-2" />
-                      Last ned
+                      {t("actions.download")}
                     </Button>
 
                     {(doc.mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
@@ -487,7 +462,7 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
                     <Button variant="outline" size="sm" asChild className="flex-1">
                       <Link href={`/dashboard/documents/${doc.id}/edit`}>
                         <Edit className="h-4 w-4 mr-2" />
-                        Rediger
+                        {t("actions.edit")}
                       </Link>
                     </Button>
                     
@@ -500,7 +475,7 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
                         className="bg-green-600 hover:bg-green-700 flex-1"
                       >
                         <CheckCircle className="h-4 w-4 mr-2" />
-                        Godkjenn
+                        {t("actions.approve")}
                       </Button>
                     )}
 
@@ -508,7 +483,7 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
                       <Button variant="outline" size="sm" asChild className="flex-1">
                         <Link href={`/dashboard/documents/${doc.id}/new-version`}>
                           <Upload className="h-4 w-4 mr-2" />
-                          Ny versjon
+                          {t("actions.newVersion")}
                         </Link>
                       </Button>
                     )}

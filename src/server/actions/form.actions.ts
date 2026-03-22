@@ -7,6 +7,7 @@
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { getPermissions } from "@/lib/permissions";
 
 /**
  * Kopierer et globalt skjema til tenant som en egendefinert kopi
@@ -79,6 +80,7 @@ export async function copyGlobalFormTemplate(formId: string) {
         accessType: globalForm.accessType,
         allowedRoles: globalForm.allowedRoles,
         allowedUsers: globalForm.allowedUsers,
+        allowTenantDeletion: true,
         createdBy: session.user.id,
         fields: {
           create: globalForm.fields.map((field) => ({
@@ -115,6 +117,14 @@ export async function deleteFormTemplate(formId: string, force = false) {
       return { success: false, error: "Ikke autentisert" };
     }
 
+    const userTenant = await prisma.userTenant.findFirst({
+      where: { userId: session.user.id, tenantId: session.user.tenantId },
+      select: { role: true },
+    });
+    if (!getPermissions(userTenant?.role ?? "ANSATT").canManageForms) {
+      return { success: false, error: "Ingen tilgang til å slette skjemaer" };
+    }
+
     const form = await prisma.formTemplate.findUnique({
       where: { id: formId },
       include: {
@@ -134,6 +144,14 @@ export async function deleteFormTemplate(formId: string, force = false) {
 
     if (form.isGlobal) {
       return { success: false, error: "Kan ikke slette globale skjemaer" };
+    }
+
+    if (form.allowTenantDeletion === false) {
+      return {
+        success: false,
+        error:
+          "Dette skjemaet er en bransje- eller systemmal og kan ikke slettes. Opprett en kopi eller deaktiver skjemaet om du ikke skal bruke det.",
+      };
     }
 
     if (form._count.submissions > 0 && !force) {
@@ -165,6 +183,14 @@ export async function toggleFormTemplateActive(formId: string, isActive: boolean
 
     if (!session?.user?.tenantId) {
       return { success: false, error: "Ikke autentisert" };
+    }
+
+    const ut = await prisma.userTenant.findFirst({
+      where: { userId: session.user.id, tenantId: session.user.tenantId },
+      select: { role: true },
+    });
+    if (!getPermissions(ut?.role ?? "ANSATT").canManageForms) {
+      return { success: false, error: "Ingen tilgang" };
     }
 
     // Hent skjemaet

@@ -44,3 +44,19 @@ test("shouldSendImmediateEmailForType krever e-post aktivert og viktig type", ()
   assert.equal(shouldSendImmediateEmailForType(immediateType, userTenant), true);
   assert.equal(shouldSendImmediateEmailForType(nonImmediateType, userTenant), false);
 });
+
+test("rutinevarsler bruker dokumentpreferanse", () => {
+  const userTenant = {
+    notifyIncidents: true,
+    notifyMeasures: true,
+    notifyAudits: true,
+    notifyMeetings: true,
+    notifyInspections: true,
+    notifyRisks: true,
+    notifyDocuments: false,
+    notifyTraining: true,
+  };
+
+  assert.equal(isNotificationTypeEnabledForUser("ROUTINE_ASSIGNED", userTenant), false);
+  assert.equal(isNotificationTypeEnabledForUser("ROUTINE_REVIEW_DUE", userTenant), false);
+});

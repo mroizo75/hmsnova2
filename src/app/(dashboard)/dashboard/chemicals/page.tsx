@@ -9,12 +9,14 @@ import Link from "next/link";
 import { ChemicalList } from "@/features/chemicals/components/chemical-list";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
 import { helpContent } from "@/lib/help-content";
+import { getTranslations } from "next-intl/server";
 
 export default async function ChemicalsPage({
   searchParams,
 }: {
   searchParams: Promise<{ isocyanates?: string; filter?: string }>;
 }) {
+  const t = await getTranslations("dashboardChemicalsPage");
   const params = await searchParams;
   const initialIsocyanateFilter = params?.isocyanates === "1" ? "only" : undefined;
   const initialQuickFilter =
@@ -43,7 +45,7 @@ export default async function ChemicalsPage({
   });
 
   if (!user || user.tenants.length === 0) {
-    return <div>Du er ikke tilknyttet en tenant.</div>;
+    return <div>{t("notLinkedTenant")}</div>;
   }
 
   const tenantId = user.tenants[0].tenantId;
@@ -79,9 +81,9 @@ export default async function ChemicalsPage({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
-            <h1 className="text-2xl sm:text-3xl font-bold truncate">Stoffkartotek</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold truncate">{t("title")}</h1>
             <p className="text-sm text-muted-foreground">
-              HMS - Oversikt over kjemikalier og sikkerhetsdatablad
+              {t("description")}
             </p>
           </div>
           <PageHelpDialog content={helpContent.chemicals} />
@@ -90,14 +92,14 @@ export default async function ChemicalsPage({
           <Link href="/dashboard/chemicals/isocyanate-scan">
             <Button variant="outline" className="w-full sm:w-auto">
               <Search className="mr-2 h-4 w-4" />
-              <span className="hidden sm:inline">Skann for isocyanater</span>
-              <span className="sm:hidden">Skann</span>
+              <span className="hidden sm:inline">{t("actions.scanIsocyanates")}</span>
+              <span className="sm:hidden">{t("actions.scanShort")}</span>
             </Button>
           </Link>
           <Link href="/dashboard/chemicals/new">
             <Button className="w-full sm:w-auto">
               <Plus className="mr-2 h-4 w-4" />
-              Registrer
+              {t("actions.register")}
             </Button>
           </Link>
         </div>
@@ -110,14 +112,14 @@ export default async function ChemicalsPage({
             <FileText className="h-5 w-5 text-blue-600 mt-0.5" />
             <div>
               <p className="font-medium text-blue-900 mb-2">
-                HMS-krav til stoffkartotek
+                {t("requirements.title")}
               </p>
               <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-                <li>Alle farlige kjemikalier skal være registrert i stoffkartoteket</li>
-                <li>Oppdaterte sikkerhetsdatablad må være tilgjengelige for ansatte</li>
-                <li>Databladene skal gjennomgås minimum årlig</li>
-                <li>Ansatte skal ha opplæring i sikker håndtering</li>
-                <li>Stoffkartoteket skal kontrolleres ved interne revisjoner</li>
+                <li>{t("requirements.r1")}</li>
+                <li>{t("requirements.r2")}</li>
+                <li>{t("requirements.r3")}</li>
+                <li>{t("requirements.r4")}</li>
+                <li>{t("requirements.r5")}</li>
               </ul>
             </div>
           </div>
@@ -128,35 +130,35 @@ export default async function ChemicalsPage({
       <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Totalt</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("stats.total.title")}</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">kjemikalier</p>
+            <p className="text-xs text-muted-foreground">{t("stats.total.description")}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">I bruk</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("stats.active.title")}</CardTitle>
             <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{stats.active}</div>
-            <p className="text-xs text-muted-foreground">aktive produkter</p>
+            <p className="text-xs text-muted-foreground">{t("stats.active.description")}</p>
           </CardContent>
         </Card>
 
         <Link href="/dashboard/chemicals?isocyanates=1">
           <Card className="hover:bg-accent/50 transition-colors h-full cursor-pointer">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Diisocyanater</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("stats.isocyanates.title")}</CardTitle>
               <AlertTriangle className="h-4 w-4 text-orange-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-orange-600">{stats.withIsocyanates}</div>
-              <p className="text-xs text-muted-foreground">krever spesialkurs</p>
+              <p className="text-xs text-muted-foreground">{t("stats.isocyanates.description")}</p>
             </CardContent>
           </Card>
         </Link>
@@ -171,12 +173,12 @@ export default async function ChemicalsPage({
             }`}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Mangler datablad</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("stats.missingSds.title")}</CardTitle>
               <AlertTriangle className="h-4 w-4 text-red-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">{stats.missingSDS}</div>
-              <p className="text-xs text-muted-foreground">må lastes opp</p>
+              <p className="text-xs text-muted-foreground">{t("stats.missingSds.description")}</p>
             </CardContent>
           </Card>
         </Link>
@@ -191,12 +193,12 @@ export default async function ChemicalsPage({
             }`}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Trenger revisjon</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("stats.needsReview.title")}</CardTitle>
               <Clock className="h-4 w-4 text-yellow-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-yellow-600">{stats.needsReview}</div>
-              <p className="text-xs text-muted-foreground">neste 30 dager</p>
+              <p className="text-xs text-muted-foreground">{t("stats.needsReview.description")}</p>
             </CardContent>
           </Card>
         </Link>
@@ -211,12 +213,12 @@ export default async function ChemicalsPage({
             }`}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Forfalt revisjon</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("stats.overdue.title")}</CardTitle>
               <AlertTriangle className="h-4 w-4 text-red-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">{stats.overdue}</div>
-              <p className="text-xs text-muted-foreground">krever handling</p>
+              <p className="text-xs text-muted-foreground">{t("stats.overdue.description")}</p>
             </CardContent>
           </Card>
         </Link>
@@ -225,8 +227,8 @@ export default async function ChemicalsPage({
       {/* Chemicals List */}
       <Card className="w-full min-w-0 overflow-hidden">
         <CardHeader>
-          <CardTitle>Alle kjemikalier</CardTitle>
-          <CardDescription>Oversikt over registrerte produkter i stoffkartoteket</CardDescription>
+          <CardTitle>{t("list.title")}</CardTitle>
+          <CardDescription>{t("list.description")}</CardDescription>
         </CardHeader>
         <CardContent className="min-w-0">
           <ChemicalList

@@ -11,6 +11,7 @@ declare module "next-auth" {
     tenantName?: string | null;
     role?: Role;
     hasMultipleTenants?: boolean;
+    preferredLocale?: string;
   }
 
   interface Session {
@@ -25,6 +26,7 @@ declare module "next-auth" {
       tenantName?: string | null;
       role?: Role;
       hasMultipleTenants?: boolean;
+      preferredLocale?: string;
     };
   }
 }
@@ -38,5 +40,6 @@ declare module "next-auth/jwt" {
     tenantName?: string | null;
     role?: Role;
     hasMultipleTenants?: boolean;
+    preferredLocale?: string;
   }
 }

@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +11,9 @@ import Link from "next/link";
 
 export default async function AnsattOpplaering() {
   const session = await getServerSession(authOptions);
+  const t = await getTranslations("employeeTrainingPage");
+  const locale = await getLocale();
+  const dateLocale = locale === "en" ? "en-US" : "nb-NO";
 
   if (!session?.user?.tenantId) {
     redirect("/login");
@@ -51,16 +55,16 @@ export default async function AnsattOpplaering() {
         <div>
           <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
             <GraduationCap className="h-7 w-7 text-blue-600" />
-            Min opplæring
+            {t("header.title")}
           </h1>
           <p className="text-muted-foreground">
-            Oversikt over påkrevd og gjennomført opplæring
+            {t("header.description")}
           </p>
         </div>
         <Link href="/ansatt/opplaering/ny">
           <Button>
             <GraduationCap className="h-4 w-4 mr-2" />
-            Legg til egen kompetanse
+            {t("header.addCompetence")}
           </Button>
         </Link>
       </div>
@@ -69,8 +73,7 @@ export default async function AnsattOpplaering() {
       <Card className="border-l-4 border-l-blue-500 bg-blue-50">
         <CardContent className="p-4">
           <p className="text-sm text-blue-900">
-            <strong>💡 Viktig:</strong> Når du registrerer gjennomført opplæring, må den godkjennes 
-            av din leder før den blir aktiv i systemet.
+            <strong>{t("approvalInfo.title")}</strong> {t("approvalInfo.description")}
           </p>
         </CardContent>
       </Card>
@@ -79,14 +82,14 @@ export default async function AnsattOpplaering() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Påkrevd opplæring</span>
-            <Badge variant="destructive">{availableTrainings.length} kurs</Badge>
+            <span>{t("required.title")}</span>
+            <Badge variant="destructive">{t("required.count", { count: availableTrainings.length })}</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
           {availableTrainings.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              Ingen påkrevd opplæring for øyeblikket
+              {t("required.empty")}
             </div>
           ) : (
             <div className="space-y-3">
@@ -114,12 +117,12 @@ export default async function AnsattOpplaering() {
                     
                     {hasCompleted ? (
                       <Badge variant="secondary" className="bg-green-100 text-green-700">
-                        ✓ Gjennomført
+                        {t("required.completed")}
                       </Badge>
                     ) : (
                       <Link href={`/ansatt/opplaering/registrer/${training.id}`}>
                         <Button size="sm" variant="outline">
-                          Registrer
+                          {t("required.register")}
                         </Button>
                       </Link>
                     )}
@@ -134,12 +137,12 @@ export default async function AnsattOpplaering() {
       {/* Mine registrerte opplæringer */}
       <Card>
         <CardHeader>
-          <CardTitle>Mine registreringer</CardTitle>
+          <CardTitle>{t("myRecords.title")}</CardTitle>
         </CardHeader>
         <CardContent>
           {myTrainings.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              Du har ikke registrert noen opplæring ennå
+              {t("myRecords.empty")}
             </div>
           ) : (
             <div className="space-y-3">
@@ -157,7 +160,9 @@ export default async function AnsattOpplaering() {
                         {training.completedAt && (
                           <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            Gjennomført: {new Date(training.completedAt).toLocaleDateString("nb-NO")}
+                            {t("myRecords.completedAt", {
+                              date: new Date(training.completedAt).toLocaleDateString(dateLocale),
+                            })}
                           </span>
                         )}
                       </div>
@@ -166,17 +171,17 @@ export default async function AnsattOpplaering() {
                       {training.effectiveness === null ? (
                         <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
                           <AlertCircle className="h-3 w-3 mr-1" />
-                          Venter på godkjenning
+                          {t("myRecords.pendingApproval")}
                         </Badge>
                       ) : (
                         <div className="flex flex-col gap-1">
                           <Badge variant="secondary" className="bg-green-100 text-green-700 w-fit">
                             <CheckCircle className="h-3 w-3 mr-1" />
-                            Godkjent
+                            {t("myRecords.approved")}
                           </Badge>
                           {training.evaluatedBy && (
                             <span className="text-xs text-muted-foreground">
-                              Godkjent av: {training.evaluatedBy}
+                              {t("myRecords.approvedBy", { name: training.evaluatedBy })}
                             </span>
                           )}
                         </div>
@@ -193,20 +198,20 @@ export default async function AnsattOpplaering() {
       {/* Hjelp */}
       <Card className="border-l-4 border-l-blue-500 bg-blue-50">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg">📚 Hvordan fungerer det?</CardTitle>
+          <CardTitle className="text-lg">{t("help.title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-blue-900">
           <p>
-            <strong>1. Gjennomfør opplæring:</strong> Delta på kurs eller les gjennom materiell.
+            <strong>{t("help.step1.label")}</strong> {t("help.step1.text")}
           </p>
           <p>
-            <strong>2. Registrer:</strong> Klikk "Registrer" og last opp bevis (sertifikat, signert liste, etc.).
+            <strong>{t("help.step2.label")}</strong> {t("help.step2.text")}
           </p>
           <p>
-            <strong>3. Venter godkjenning:</strong> Din leder vil gjennomgå og godkjenne opplæringen.
+            <strong>{t("help.step3.label")}</strong> {t("help.step3.text")}
           </p>
           <p>
-            <strong>4. Godkjent:</strong> Opplæringen er nå registrert i ditt HMS-profil.
+            <strong>{t("help.step4.label")}</strong> {t("help.step4.text")}
           </p>
         </CardContent>
       </Card>

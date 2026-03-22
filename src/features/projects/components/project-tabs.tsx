@@ -8,6 +8,7 @@ import Link from "next/link";
 import { getIncidentTypeLabel, getIncidentStatusLabel } from "@/features/incidents/schemas/incident.schema";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useLocale, useTranslations } from "next-intl";
 
 interface Incident {
   id: string;
@@ -95,34 +96,6 @@ interface ProjectTabsProps {
   formSubmissions: ProjectFormSubmission[];
 }
 
-const sjaStatusMap: Record<string, { label: string; color: string }> = {
-  DRAFT: { label: "Utkast", color: "bg-gray-100 text-gray-700 border-gray-300" },
-  SUBMITTED: { label: "Innsendt", color: "bg-blue-100 text-blue-800 border-blue-300" },
-  APPROVED: { label: "Godkjent", color: "bg-green-100 text-green-800 border-green-300" },
-  REJECTED: { label: "Avvist", color: "bg-red-100 text-red-800 border-red-300" },
-};
-
-const inspectionStatusMap: Record<string, { label: string; color: string }> = {
-  PLANNED: { label: "Planlagt", color: "bg-blue-100 text-blue-800 border-blue-300" },
-  IN_PROGRESS: { label: "Pågår", color: "bg-amber-100 text-amber-800 border-amber-300" },
-  COMPLETED: { label: "Fullført", color: "bg-green-100 text-green-800 border-green-300" },
-  CANCELLED: { label: "Avlyst", color: "bg-gray-100 text-gray-700 border-gray-300" },
-};
-
-const measureStatusMap: Record<string, { label: string; color: string }> = {
-  PENDING: { label: "Venter", color: "bg-gray-100 text-gray-700 border-gray-300" },
-  IN_PROGRESS: { label: "Pågår", color: "bg-blue-100 text-blue-800 border-blue-300" },
-  DONE: { label: "Fullført", color: "bg-green-100 text-green-800 border-green-300" },
-  CANCELLED: { label: "Kansellert", color: "bg-gray-100 text-gray-500 border-gray-200" },
-};
-
-const formSubmissionStatusMap: Record<string, string> = {
-  DRAFT: "Kladd",
-  SUBMITTED: "Innsendt",
-  APPROVED: "Godkjent",
-  REJECTED: "Avvist",
-};
-
 export function ProjectTabs({
   projectId,
   incidents,
@@ -133,6 +106,8 @@ export function ProjectTabs({
   attachments,
   formSubmissions,
 }: ProjectTabsProps) {
+  const t = useTranslations("dashboardProjectTabs");
+  const locale = useLocale();
   const { toast } = useToast();
   const [projectAttachments, setProjectAttachments] = useState<ProjectAttachment[]>(attachments);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -140,7 +115,7 @@ export function ProjectTabs({
   const [deletingAttachmentId, setDeletingAttachmentId] = useState<string | null>(null);
 
   const formatFileSize = (size: number | null) => {
-    if (!size || size <= 0) return "Ukjent størrelse";
+    if (!size || size <= 0) return t("unknownSize");
     if (size < 1024) return `${size} B`;
     if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
     return `${(size / (1024 * 1024)).toFixed(1)} MB`;
@@ -156,8 +131,8 @@ export function ProjectTabs({
     if (selectedFiles.length === 0) {
       toast({
         variant: "destructive",
-        title: "Ingen filer valgt",
-        description: "Velg minst én fil før opplasting",
+        title: t("toasts.noFiles.title"),
+        description: t("toasts.noFiles.description"),
       });
       return;
     }
@@ -176,7 +151,7 @@ export function ProjectTabs({
 
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload?.message || payload?.error || "Kunne ikke laste opp filer");
+        throw new Error(payload?.message || payload?.error || t("errors.upload"));
       }
 
       const createdAttachments = (payload.attachments || []) as ProjectAttachment[];
@@ -186,14 +161,14 @@ export function ProjectTabs({
       if (input) input.value = "";
 
       toast({
-        title: "Vedlegg lastet opp",
-        description: `${createdAttachments.length} fil(er) er lagt til prosjektet`,
+        title: t("toasts.uploaded.title"),
+        description: t("toasts.uploaded.description", { count: createdAttachments.length }),
       });
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Opplasting feilet",
-        description: error?.message || "Kunne ikke laste opp vedlegg",
+        title: t("toasts.uploadError.title"),
+        description: error?.message || t("toasts.uploadError.description"),
       });
     } finally {
       setIsUploading(false);
@@ -201,7 +176,7 @@ export function ProjectTabs({
   };
 
   const handleDeleteAttachment = async (attachmentId: string, attachmentName: string) => {
-    if (!confirm(`Slette vedlegg "${attachmentName}"?`)) {
+    if (!confirm(t("confirmDeleteAttachment", { name: attachmentName }))) {
       return;
     }
 
@@ -212,19 +187,19 @@ export function ProjectTabs({
       });
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload?.message || payload?.error || "Kunne ikke slette vedlegg");
+        throw new Error(payload?.message || payload?.error || t("errors.deleteAttachment"));
       }
 
       setProjectAttachments((prev) => prev.filter((attachment) => attachment.id !== attachmentId));
       toast({
-        title: "Vedlegg slettet",
-        description: `"${attachmentName}" er fjernet fra prosjektet`,
+        title: t("toasts.deleted.title"),
+        description: t("toasts.deleted.description", { name: attachmentName }),
       });
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Sletting feilet",
-        description: error?.message || "Kunne ikke slette vedlegg",
+        title: t("toasts.deleteError.title"),
+        description: error?.message || t("toasts.deleteError.description"),
       });
     } finally {
       setDeletingAttachmentId(null);
@@ -237,14 +212,14 @@ export function ProjectTabs({
         <Button variant="outline" size="sm" asChild>
           <Link href={`/dashboard/projects/${projectId}/construction-compliance`}>
             <ShieldCheck className="mr-1 h-3.5 w-3.5" />
-            Bygg/anlegg-compliance
+            {t("actions.constructionCompliance")}
           </Link>
         </Button>
       </div>
       <TabsList className="grid w-full grid-cols-7">
         <TabsTrigger value="incidents" className="flex items-center gap-1.5">
           <AlertCircle className="h-3.5 w-3.5" />
-          Avvik
+          {t("tabs.incidents")}
           {incidents.length > 0 && (
             <Badge variant="secondary" className="ml-1 text-xs h-4 px-1">{incidents.length}</Badge>
           )}
@@ -258,35 +233,35 @@ export function ProjectTabs({
         </TabsTrigger>
         <TabsTrigger value="inspections" className="flex items-center gap-1.5">
           <ClipboardCheck className="h-3.5 w-3.5" />
-          Vernerunder
+          {t("tabs.inspections")}
           {inspections.length > 0 && (
             <Badge variant="secondary" className="ml-1 text-xs h-4 px-1">{inspections.length}</Badge>
           )}
         </TabsTrigger>
         <TabsTrigger value="measures" className="flex items-center gap-1.5">
           <ListTodo className="h-3.5 w-3.5" />
-          Tiltak
+          {t("tabs.measures")}
           {measures.length > 0 && (
             <Badge variant="secondary" className="ml-1 text-xs h-4 px-1">{measures.length}</Badge>
           )}
         </TabsTrigger>
         <TabsTrigger value="time" className="flex items-center gap-1.5">
           <Clock className="h-3.5 w-3.5" />
-          Timer
+          {t("tabs.time")}
           {timeEntries.length > 0 && (
             <Badge variant="secondary" className="ml-1 text-xs h-4 px-1">{timeEntries.length}</Badge>
           )}
         </TabsTrigger>
         <TabsTrigger value="attachments" className="flex items-center gap-1.5">
           <Paperclip className="h-3.5 w-3.5" />
-          Vedlegg
+          {t("tabs.attachments")}
           {projectAttachments.length > 0 && (
             <Badge variant="secondary" className="ml-1 text-xs h-4 px-1">{projectAttachments.length}</Badge>
           )}
         </TabsTrigger>
         <TabsTrigger value="forms" className="flex items-center gap-1.5">
           <FileCheck2 className="h-3.5 w-3.5" />
-          Skjema
+          {t("tabs.forms")}
           {formSubmissions.length > 0 && (
             <Badge variant="secondary" className="ml-1 text-xs h-4 px-1">{formSubmissions.length}</Badge>
           )}
@@ -296,16 +271,16 @@ export function ProjectTabs({
       {/* ── Avvik ── */}
       <TabsContent value="incidents" className="mt-4">
         <div className="flex justify-between items-center mb-3">
-          <p className="text-sm text-muted-foreground">Avvik og hendelser registrert på dette prosjektet</p>
+          <p className="text-sm text-muted-foreground">{t("incidents.description")}</p>
           <Button size="sm" asChild>
             <Link href={`/dashboard/incidents/new?projectId=${projectId}`}>
               <Plus className="mr-1 h-3.5 w-3.5" />
-              Registrer avvik
+              {t("incidents.actions.new")}
             </Link>
           </Button>
         </div>
         {incidents.length === 0 ? (
-          <EmptyState icon={<AlertCircle className="h-8 w-8 text-muted-foreground" />} text="Ingen avvik registrert på dette prosjektet" />
+          <EmptyState icon={<AlertCircle className="h-8 w-8 text-muted-foreground" />} text={t("incidents.empty")} />
         ) : (
           <div className="divide-y rounded-lg border">
             {incidents.map((inc) => (
@@ -318,7 +293,7 @@ export function ProjectTabs({
                     <span className="text-sm font-medium truncate">{inc.title}</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {getIncidentTypeLabel(inc.type as any)} · {new Date(inc.occurredAt).toLocaleDateString("nb-NO")}
+                    {getIncidentTypeLabel(inc.type as any)} · {new Date(inc.occurredAt).toLocaleDateString(locale === "en" ? "en-US" : "nb-NO")}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -334,20 +309,20 @@ export function ProjectTabs({
       {/* ── SJA ── */}
       <TabsContent value="sja" className="mt-4">
         <div className="flex justify-between items-center mb-3">
-          <p className="text-sm text-muted-foreground">Sikker Jobb Analyser for dette prosjektet</p>
+          <p className="text-sm text-muted-foreground">{t("sja.description")}</p>
           <Button size="sm" asChild>
             <Link href={`/dashboard/sja/new?projectId=${projectId}`}>
               <Plus className="mr-1 h-3.5 w-3.5" />
-              Ny SJA
+              {t("sja.actions.new")}
             </Link>
           </Button>
         </div>
         {sjaAnalyses.length === 0 ? (
-          <EmptyState icon={<HardHat className="h-8 w-8 text-muted-foreground" />} text="Ingen SJA-analyser registrert på dette prosjektet" />
+          <EmptyState icon={<HardHat className="h-8 w-8 text-muted-foreground" />} text={t("sja.empty")} />
         ) : (
           <div className="divide-y rounded-lg border">
             {sjaAnalyses.map((sja) => {
-              const sc = sjaStatusMap[sja.status] ?? { label: sja.status, color: "" };
+              const sc = getSjaStatusMap(t)[sja.status] ?? { label: sja.status, color: "" };
               return (
                 <Link key={sja.id} href={`/dashboard/sja/${sja.id}`} className="flex items-center justify-between px-4 py-3 hover:bg-muted/40 transition-colors">
                   <div>
@@ -358,7 +333,7 @@ export function ProjectTabs({
                       <span className="text-sm font-medium">{sja.title}</span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {sja.workLocation} · {new Date(sja.plannedDate).toLocaleDateString("nb-NO")}
+                      {sja.workLocation} · {new Date(sja.plannedDate).toLocaleDateString(locale === "en" ? "en-US" : "nb-NO")}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -375,26 +350,26 @@ export function ProjectTabs({
       {/* ── Vernerunder ── */}
       <TabsContent value="inspections" className="mt-4">
         <div className="flex justify-between items-center mb-3">
-          <p className="text-sm text-muted-foreground">Vernerunder og inspeksjoner på prosjektstedet</p>
+          <p className="text-sm text-muted-foreground">{t("inspections.description")}</p>
           <Button size="sm" asChild>
             <Link href={`/dashboard/inspections/new?projectId=${projectId}`}>
               <Plus className="mr-1 h-3.5 w-3.5" />
-              Ny vernerunde
+              {t("inspections.actions.new")}
             </Link>
           </Button>
         </div>
         {inspections.length === 0 ? (
-          <EmptyState icon={<ClipboardCheck className="h-8 w-8 text-muted-foreground" />} text="Ingen vernerunder registrert på dette prosjektet" />
+          <EmptyState icon={<ClipboardCheck className="h-8 w-8 text-muted-foreground" />} text={t("inspections.empty")} />
         ) : (
           <div className="divide-y rounded-lg border">
             {inspections.map((insp) => {
-              const sc = inspectionStatusMap[insp.status] ?? { label: insp.status, color: "" };
+              const sc = getInspectionStatusMap(t)[insp.status] ?? { label: insp.status, color: "" };
               return (
                 <Link key={insp.id} href={`/dashboard/inspections/${insp.id}`} className="flex items-center justify-between px-4 py-3 hover:bg-muted/40 transition-colors">
                   <div>
                     <span className="text-sm font-medium">{insp.title}</span>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {insp.location ?? "—"} · {new Date(insp.scheduledDate).toLocaleDateString("nb-NO")}
+                      {insp.location ?? "—"} · {new Date(insp.scheduledDate).toLocaleDateString(locale === "en" ? "en-US" : "nb-NO")}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -411,31 +386,31 @@ export function ProjectTabs({
       {/* ── Tiltak ── */}
       <TabsContent value="measures" className="mt-4">
         <div className="flex justify-between items-center mb-3">
-          <p className="text-sm text-muted-foreground">Tiltak knyttet direkte til prosjektet</p>
+          <p className="text-sm text-muted-foreground">{t("measures.description")}</p>
           <Button size="sm" asChild>
             <Link href={`/dashboard/actions?projectId=${projectId}`}>
               <Plus className="mr-1 h-3.5 w-3.5" />
-              Nytt tiltak
+              {t("measures.actions.new")}
             </Link>
           </Button>
         </div>
         {measures.length === 0 ? (
-          <EmptyState icon={<ListTodo className="h-8 w-8 text-muted-foreground" />} text="Ingen tiltak registrert direkte på dette prosjektet" />
+          <EmptyState icon={<ListTodo className="h-8 w-8 text-muted-foreground" />} text={t("measures.empty")} />
         ) : (
           <div className="divide-y rounded-lg border">
             {measures.map((m) => {
-              const sc = measureStatusMap[m.status] ?? { label: m.status, color: "" };
+              const sc = getMeasureStatusMap(t)[m.status] ?? { label: m.status, color: "" };
               const overdue = m.status !== "DONE" && m.status !== "CANCELLED" && new Date(m.dueAt) < new Date();
               return (
                 <Link key={m.id} href={`/dashboard/actions`} className="flex items-center justify-between px-4 py-3 hover:bg-muted/40 transition-colors">
                   <div>
                     <span className="text-sm font-medium">{m.title}</span>
                     <p className={`text-xs mt-0.5 ${overdue ? "text-red-600 font-medium" : "text-muted-foreground"}`}>
-                      Frist: {new Date(m.dueAt).toLocaleDateString("nb-NO")}
-                      {overdue && " — forfalt"}
+                      {t("measures.deadline", { date: new Date(m.dueAt).toLocaleDateString(locale === "en" ? "en-US" : "nb-NO") })}
+                      {overdue && ` ${t("measures.overdue")}`}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Kilde: {m.incidentId ? "Avvik" : m.riskId ? "Risiko" : "Prosjekt"}
+                      {t("measures.sourceLabel")}: {m.incidentId ? t("measures.sourceIncident") : m.riskId ? t("measures.sourceRisk") : t("measures.sourceProject")}
                     </p>
                   </div>
                   <Badge variant="outline" className={`text-xs border ${sc.color}`}>{sc.label}</Badge>
@@ -448,16 +423,16 @@ export function ProjectTabs({
 
       <TabsContent value="time" className="mt-4">
         <div className="flex justify-between items-center mb-3">
-          <p className="text-sm text-muted-foreground">Timeregistreringer på prosjektet</p>
+          <p className="text-sm text-muted-foreground">{t("time.description")}</p>
           <Button size="sm" asChild>
             <Link href={`/dashboard/time-registration?projectId=${projectId}`}>
               <Plus className="mr-1 h-3.5 w-3.5" />
-              Stemple timer
+              {t("time.actions.stamp")}
             </Link>
           </Button>
         </div>
         {timeEntries.length === 0 ? (
-          <EmptyState icon={<Clock className="h-8 w-8 text-muted-foreground" />} text="Ingen timer registrert på dette prosjektet" />
+          <EmptyState icon={<Clock className="h-8 w-8 text-muted-foreground" />} text={t("time.empty")} />
         ) : (
           <div className="divide-y rounded-lg border">
             {timeEntries.map((entry) => (
@@ -467,11 +442,11 @@ export function ProjectTabs({
                     {entry.user.name || entry.user.email}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {new Date(entry.date).toLocaleDateString("nb-NO")} · {entry.timeType}
+                    {new Date(entry.date).toLocaleDateString(locale === "en" ? "en-US" : "nb-NO")} · {entry.timeType}
                     {entry.comment ? ` · ${entry.comment}` : ""}
                   </p>
                 </div>
-                <span className="text-sm font-semibold">{Number(entry.hours).toFixed(1)} t</span>
+                <span className="text-sm font-semibold">{Number(entry.hours).toFixed(1)} {t("time.hoursSuffix")}</span>
               </div>
             ))}
           </div>
@@ -481,7 +456,7 @@ export function ProjectTabs({
       <TabsContent value="attachments" className="mt-4 space-y-4">
         <div className="rounded-lg border p-4">
           <p className="text-sm text-muted-foreground mb-3">
-            Last opp prosjektdokumentasjon som skal med i sluttrapporten (bilder, samsvar, målinger, signerte skjema).
+            {t("attachments.description")}
           </p>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <input
@@ -496,18 +471,18 @@ export function ProjectTabs({
             />
             <Button size="sm" onClick={handleUpload} disabled={isUploading || selectedFiles.length === 0}>
               <Upload className="mr-1 h-3.5 w-3.5" />
-              {isUploading ? "Laster opp..." : "Last opp"}
+              {isUploading ? t("attachments.actions.uploading") : t("attachments.actions.upload")}
             </Button>
           </div>
           {selectedFiles.length > 0 && (
             <p className="mt-2 text-xs text-muted-foreground">
-              Valgt: {selectedFiles.map((file) => file.name).join(", ")}
+              {t("attachments.selected")}: {selectedFiles.map((file) => file.name).join(", ")}
             </p>
           )}
         </div>
 
         {projectAttachments.length === 0 ? (
-          <EmptyState icon={<Paperclip className="h-8 w-8 text-muted-foreground" />} text="Ingen vedlegg på prosjektet ennå" />
+          <EmptyState icon={<Paperclip className="h-8 w-8 text-muted-foreground" />} text={t("attachments.empty")} />
         ) : (
           <div className="divide-y rounded-lg border">
             {projectAttachments.map((attachment) => {
@@ -525,10 +500,10 @@ export function ProjectTabs({
                       >
                         {attachment.name}
                       </a>
-                      {isImage && <Badge variant="outline" className="text-[10px]">Bilde</Badge>}
+                      {isImage && <Badge variant="outline" className="text-[10px]">{t("attachments.imageBadge")}</Badge>}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {formatFileSize(attachment.size)} · {new Date(attachment.createdAt).toLocaleDateString("nb-NO")}
+                      {formatFileSize(attachment.size)} · {new Date(attachment.createdAt).toLocaleDateString(locale === "en" ? "en-US" : "nb-NO")}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -555,16 +530,16 @@ export function ProjectTabs({
 
       <TabsContent value="forms" className="mt-4">
         <div className="flex justify-between items-center mb-3">
-          <p className="text-sm text-muted-foreground">Skjemainnsendinger koblet til dette prosjektet</p>
+          <p className="text-sm text-muted-foreground">{t("forms.description")}</p>
           <Button size="sm" asChild>
             <Link href={`/dashboard/forms?projectId=${projectId}`}>
               <Plus className="mr-1 h-3.5 w-3.5" />
-              Fyll ut skjema
+              {t("forms.actions.fill")}
             </Link>
           </Button>
         </div>
         {formSubmissions.length === 0 ? (
-          <EmptyState icon={<FileCheck2 className="h-8 w-8 text-muted-foreground" />} text="Ingen skjemainnsendinger koblet til prosjektet" />
+          <EmptyState icon={<FileCheck2 className="h-8 w-8 text-muted-foreground" />} text={t("forms.empty")} />
         ) : (
           <div className="divide-y rounded-lg border">
             {formSubmissions.map((submission) => (
@@ -581,13 +556,13 @@ export function ProjectTabs({
                     <span className="text-sm font-medium truncate">{submission.formTemplate.title}</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {submission.submittedBy?.name || submission.submittedBy?.email || "Anonym"} ·{" "}
-                    {new Date(submission.createdAt).toLocaleDateString("nb-NO")}
+                    {submission.submittedBy?.name || submission.submittedBy?.email || t("forms.anonymous")} ·{" "}
+                    {new Date(submission.createdAt).toLocaleDateString(locale === "en" ? "en-US" : "nb-NO")}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <Badge variant="outline" className="text-xs">
-                    {formSubmissionStatusMap[submission.status] ?? submission.status}
+                    {getFormSubmissionStatusMap(t)[submission.status] ?? submission.status}
                   </Badge>
                   <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
                 </div>
@@ -598,6 +573,42 @@ export function ProjectTabs({
       </TabsContent>
     </Tabs>
   );
+}
+
+function getSjaStatusMap(t: ReturnType<typeof useTranslations>): Record<string, { label: string; color: string }> {
+  return {
+    DRAFT: { label: t("status.sja.draft"), color: "bg-gray-100 text-gray-700 border-gray-300" },
+    SUBMITTED: { label: t("status.sja.submitted"), color: "bg-blue-100 text-blue-800 border-blue-300" },
+    APPROVED: { label: t("status.sja.approved"), color: "bg-green-100 text-green-800 border-green-300" },
+    REJECTED: { label: t("status.sja.rejected"), color: "bg-red-100 text-red-800 border-red-300" },
+  };
+}
+
+function getInspectionStatusMap(t: ReturnType<typeof useTranslations>): Record<string, { label: string; color: string }> {
+  return {
+    PLANNED: { label: t("status.inspection.planned"), color: "bg-blue-100 text-blue-800 border-blue-300" },
+    IN_PROGRESS: { label: t("status.inspection.inProgress"), color: "bg-amber-100 text-amber-800 border-amber-300" },
+    COMPLETED: { label: t("status.inspection.completed"), color: "bg-green-100 text-green-800 border-green-300" },
+    CANCELLED: { label: t("status.inspection.cancelled"), color: "bg-gray-100 text-gray-700 border-gray-300" },
+  };
+}
+
+function getMeasureStatusMap(t: ReturnType<typeof useTranslations>): Record<string, { label: string; color: string }> {
+  return {
+    PENDING: { label: t("status.measure.pending"), color: "bg-gray-100 text-gray-700 border-gray-300" },
+    IN_PROGRESS: { label: t("status.measure.inProgress"), color: "bg-blue-100 text-blue-800 border-blue-300" },
+    DONE: { label: t("status.measure.done"), color: "bg-green-100 text-green-800 border-green-300" },
+    CANCELLED: { label: t("status.measure.cancelled"), color: "bg-gray-100 text-gray-500 border-gray-200" },
+  };
+}
+
+function getFormSubmissionStatusMap(t: ReturnType<typeof useTranslations>): Record<string, string> {
+  return {
+    DRAFT: t("status.form.draft"),
+    SUBMITTED: t("status.form.submitted"),
+    APPROVED: t("status.form.approved"),
+    REJECTED: t("status.form.rejected"),
+  };
 }
 
 function EmptyState({ icon, text }: { icon: React.ReactNode; text: string }) {

@@ -25,7 +25,8 @@ import {
 import { MapPin, Calendar, CheckCircle2, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { nb } from "date-fns/locale";
+import { enUS, nb } from "date-fns/locale";
+import { useLocale, useTranslations } from "next-intl";
 
 interface Finding {
   id: string;
@@ -44,24 +45,24 @@ interface InspectionFindingListProps {
   findings: Finding[];
 }
 
-function getSeverityBadge(severity: number) {
+function getSeverityBadge(severity: number, t: ReturnType<typeof useTranslations>) {
   const config: Record<number, { className: string; label: string }> = {
-    1: { className: "bg-blue-100 text-blue-900 border-blue-200", label: "Lav" },
-    2: { className: "bg-green-100 text-green-900 border-green-200", label: "Moderat" },
-    3: { className: "bg-yellow-100 text-yellow-900 border-yellow-200", label: "Betydelig" },
-    4: { className: "bg-orange-100 text-orange-900 border-orange-200", label: "Alvorlig" },
-    5: { className: "bg-red-100 text-red-900 border-red-200", label: "Kritisk" },
+    1: { className: "bg-blue-100 text-blue-900 border-blue-200", label: t("severity.low") },
+    2: { className: "bg-green-100 text-green-900 border-green-200", label: t("severity.moderate") },
+    3: { className: "bg-yellow-100 text-yellow-900 border-yellow-200", label: t("severity.significant") },
+    4: { className: "bg-orange-100 text-orange-900 border-orange-200", label: t("severity.serious") },
+    5: { className: "bg-red-100 text-red-900 border-red-200", label: t("severity.critical") },
   };
   const severityConfig = config[severity] || config[1];
   return <Badge className={severityConfig.className}>{severityConfig.label}</Badge>;
 }
 
-function getStatusBadge(status: string) {
+function getStatusBadge(status: string, t: ReturnType<typeof useTranslations>) {
   const config: Record<string, { className: string; label: string }> = {
-    OPEN: { className: "bg-red-100 text-red-900 border-red-200", label: "Åpen" },
-    IN_PROGRESS: { className: "bg-yellow-100 text-yellow-900 border-yellow-200", label: "Pågår" },
-    RESOLVED: { className: "bg-green-100 text-green-900 border-green-200", label: "Løst" },
-    CLOSED: { className: "bg-gray-100 text-gray-900 border-gray-200", label: "Lukket" },
+    OPEN: { className: "bg-red-100 text-red-900 border-red-200", label: t("status.open") },
+    IN_PROGRESS: { className: "bg-yellow-100 text-yellow-900 border-yellow-200", label: t("status.inProgress") },
+    RESOLVED: { className: "bg-green-100 text-green-900 border-green-200", label: t("status.resolved") },
+    CLOSED: { className: "bg-gray-100 text-gray-900 border-gray-200", label: t("status.closed") },
   };
   return <Badge className={config[status]?.className || config.OPEN.className}>
     {config[status]?.label || status}
@@ -69,6 +70,7 @@ function getStatusBadge(status: string) {
 }
 
 function UpdateFindingStatusDialog({ finding }: { finding: Finding }) {
+  const t = useTranslations("dashboardInspectionComponents.findingList");
   const router = useRouter();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -94,19 +96,19 @@ function UpdateFindingStatusDialog({ finding }: { finding: Finding }) {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.message || "Kunne ikke oppdatere funn");
+        throw new Error(result.message || t("errors.update"));
       }
 
       toast({
-        title: "Funn oppdatert",
-        description: "Status er nå endret",
+        title: t("toasts.updated.title"),
+        description: t("toasts.updated.description"),
       });
 
       setOpen(false);
       router.refresh();
     } catch (error: any) {
       toast({
-        title: "Feil",
+        title: t("toasts.error.title"),
         description: error.message,
         variant: "destructive",
       });
@@ -120,37 +122,37 @@ function UpdateFindingStatusDialog({ finding }: { finding: Finding }) {
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <Edit className="mr-2 h-4 w-4" />
-          Oppdater
+          {t("actions.update")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Oppdater funn</DialogTitle>
-          <DialogDescription>Endre status og legg til løsningsnotat</DialogDescription>
+          <DialogTitle>{t("updateDialog.title")}</DialogTitle>
+          <DialogDescription>{t("updateDialog.description")}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
+            <Label htmlFor="status">{t("labels.status")}</Label>
             <Select name="status" defaultValue={finding.status} required>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="OPEN">Åpen</SelectItem>
-                <SelectItem value="IN_PROGRESS">Pågår</SelectItem>
-                <SelectItem value="RESOLVED">Løst</SelectItem>
-                <SelectItem value="CLOSED">Lukket</SelectItem>
+                <SelectItem value="OPEN">{t("status.open")}</SelectItem>
+                <SelectItem value="IN_PROGRESS">{t("status.inProgress")}</SelectItem>
+                <SelectItem value="RESOLVED">{t("status.resolved")}</SelectItem>
+                <SelectItem value="CLOSED">{t("status.closed")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="resolutionNotes">Løsningsnotat</Label>
+            <Label htmlFor="resolutionNotes">{t("labels.resolutionNotes")}</Label>
             <Textarea
               id="resolutionNotes"
               name="resolutionNotes"
               defaultValue={finding.resolutionNotes || ""}
-              placeholder="Beskriv hvordan funnet er håndtert..."
+              placeholder={t("placeholders.resolutionNotes")}
               rows={4}
             />
           </div>
@@ -162,10 +164,10 @@ function UpdateFindingStatusDialog({ finding }: { finding: Finding }) {
               onClick={() => setOpen(false)}
               disabled={loading}
             >
-              Avbryt
+              {t("actions.cancel")}
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? "Lagrer..." : "Lagre"}
+              {loading ? t("actions.saving") : t("actions.save")}
             </Button>
           </div>
         </form>
@@ -175,12 +177,15 @@ function UpdateFindingStatusDialog({ finding }: { finding: Finding }) {
 }
 
 export function InspectionFindingList({ findings }: InspectionFindingListProps) {
+  const t = useTranslations("dashboardInspectionComponents.findingList");
+  const locale = useLocale();
+  const dateLocale = locale === "en" ? enUS : nb;
   const router = useRouter();
   const { toast } = useToast();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Er du sikker på at du vil slette "${title}"?`)) {
+    if (!confirm(t("confirmDelete", { title }))) {
       return;
     }
 
@@ -192,17 +197,17 @@ export function InspectionFindingList({ findings }: InspectionFindingListProps) 
       });
 
       if (!response.ok) {
-        throw new Error("Kunne ikke slette funn");
+        throw new Error(t("errors.delete"));
       }
 
       toast({
-        title: "Funn slettet",
+        title: t("toasts.deleted.title"),
       });
 
       router.refresh();
     } catch (error: any) {
       toast({
-        title: "Feil",
+        title: t("toasts.error.title"),
         description: error.message,
         variant: "destructive",
       });
@@ -234,14 +239,14 @@ export function InspectionFindingList({ findings }: InspectionFindingListProps) 
                   )}
                 </div>
                 <div className="flex flex-col gap-2 items-end">
-                  {getSeverityBadge(finding.severity)}
-                  {getStatusBadge(finding.status)}
+                  {getSeverityBadge(finding.severity, t)}
+                  {getStatusBadge(finding.status, t)}
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Beskrivelse:</p>
+                <p className="text-sm font-medium text-muted-foreground mb-1">{t("labels.description")}</p>
                 <p className="text-sm whitespace-pre-wrap">{finding.description}</p>
               </div>
 
@@ -251,7 +256,7 @@ export function InspectionFindingList({ findings }: InspectionFindingListProps) 
                     <img
                       key={idx}
                       src={`/api/inspections/images/${imageKey}`}
-                      alt="Bilde fra funn"
+                      alt={t("imageAlt")}
                       className="w-full h-24 object-cover rounded border"
                     />
                   ))}
@@ -260,7 +265,7 @@ export function InspectionFindingList({ findings }: InspectionFindingListProps) 
 
               {finding.resolutionNotes && (
                 <div className="pt-3 border-t">
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Løsning:</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">{t("labels.solution")}</p>
                   <p className="text-sm whitespace-pre-wrap text-green-800">
                     {finding.resolutionNotes}
                   </p>
@@ -272,14 +277,14 @@ export function InspectionFindingList({ findings }: InspectionFindingListProps) 
                   {finding.dueDate && (
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
-                      <span>Frist: {format(new Date(finding.dueDate), "d. MMM yyyy", { locale: nb })}</span>
+                      <span>{t("deadline", { date: format(new Date(finding.dueDate), "d. MMM yyyy", { locale: dateLocale }) })}</span>
                     </div>
                   )}
 
                   {finding.resolvedAt && (
                     <div className="flex items-center gap-2 text-green-600">
                       <CheckCircle2 className="h-4 w-4" />
-                      <span>Løst: {format(new Date(finding.resolvedAt), "d. MMM yyyy", { locale: nb })}</span>
+                      <span>{t("resolved", { date: format(new Date(finding.resolvedAt), "d. MMM yyyy", { locale: dateLocale }) })}</span>
                     </div>
                   )}
                 </div>
@@ -293,7 +298,7 @@ export function InspectionFindingList({ findings }: InspectionFindingListProps) 
                     disabled={deletingId === finding.id}
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
-                    Slett
+                    {t("actions.delete")}
                   </Button>
                 </div>
               </div>

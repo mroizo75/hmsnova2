@@ -19,7 +19,7 @@ import {
 import { CheckCircle2, ArrowLeft, Building2, Mail, Phone, User, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { submitRegistrationRequest } from "@/server/actions/registration.actions";
-import { AGRICULTURE_FARM_TYPES } from "@/lib/industry-packages";
+import { AGRICULTURE_FARM_TYPES, SUPPORTED_INDUSTRIES } from "@/lib/industry-packages";
 
 export default function RegistrerBedriftPage() {
   const router = useRouter();
@@ -137,7 +137,6 @@ export default function RegistrerBedriftPage() {
                     Hva driver du med? <span className="text-destructive">*</span>
                   </Label>
                   <Select
-                    name="industry"
                     required
                     onValueChange={(value) => setIndustry(value)}
                   >
@@ -145,18 +144,14 @@ export default function RegistrerBedriftPage() {
                       <SelectValue placeholder="Velg bransje" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="construction">Bygg og anlegg</SelectItem>
-                      <SelectItem value="healthcare">Helsevesen</SelectItem>
-                      <SelectItem value="transport">Transport og logistikk</SelectItem>
-                      <SelectItem value="manufacturing">Industri og produksjon</SelectItem>
-                      <SelectItem value="retail">Handel og service</SelectItem>
-                      <SelectItem value="hospitality">Hotell og restaurant</SelectItem>
-                      <SelectItem value="education">Utdanning</SelectItem>
-                      <SelectItem value="technology">Teknologi og IT</SelectItem>
-                      <SelectItem value="agriculture">Landbruk (gårdsdrift)</SelectItem>
-                      <SelectItem value="other">Annet</SelectItem>
+                      {SUPPORTED_INDUSTRIES.map((industryOption) => (
+                        <SelectItem key={industryOption.value} value={industryOption.value}>
+                          {industryOption.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
+                  <input type="hidden" name="industry" value={industry} />
                 </div>
 
                 {industry === "agriculture" && (

@@ -13,8 +13,10 @@ import { helpContent } from "@/lib/help-content";
 import { getPermissions } from "@/lib/permissions";
 import { AiRiskSuggestionsCard } from "@/features/risks/components/ai-risk-suggestions-card";
 import { RiskAssessmentDeleteButton } from "@/features/risks/components/risk-assessment-delete-button";
+import { getTranslations } from "next-intl/server";
 
 export default async function RisksPage() {
+  const t = await getTranslations("dashboardRisksPage");
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.email) {
@@ -27,7 +29,7 @@ export default async function RisksPage() {
   });
 
   if (!user || user.tenants.length === 0) {
-    return <div>Ingen tilgang til tenant</div>;
+    return <div>{t("noTenantAccess")}</div>;
   }
 
   const tenantId = user.tenants[0].tenantId;
@@ -82,9 +84,9 @@ export default async function RisksPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div>
-            <h1 className="text-3xl font-bold">Risikovurdering</h1>
+            <h1 className="text-3xl font-bold">{t("title")}</h1>
             <p className="text-muted-foreground">
-              5x5 risikomatrise for systematisk vurdering av HMS-risikoer
+              {t("description")}
             </p>
           </div>
           <PageHelpDialog content={helpContent.risks} />
@@ -92,7 +94,7 @@ export default async function RisksPage() {
         <Button asChild>
           <Link href="/dashboard/risks/new">
             <Plus className="mr-2 h-4 w-4" />
-            Ny risikovurdering
+            {t("actions.newRisk")}
           </Link>
         </Button>
       </div>
@@ -102,18 +104,18 @@ export default async function RisksPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Risikopunkter totalt</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("stats.totalRiskPoints.title")}</CardTitle>
             <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">Punkter i risikoregisteret</p>
+            <p className="text-xs text-muted-foreground">{t("stats.totalRiskPoints.description")}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Kritisk/Høy (nå)</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("stats.criticalHigh.title")}</CardTitle>
             <AlertTriangle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
@@ -121,30 +123,30 @@ export default async function RisksPage() {
               {stats.critical + stats.high}
             </div>
             <p className="text-xs text-muted-foreground">
-              {stats.critical} kritisk, {stats.high} høy
+              {t("stats.criticalHigh.description", { critical: stats.critical, high: stats.high })}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Åpne</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("stats.open.title")}</CardTitle>
             <Clock className="h-4 w-4 text-orange-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.open}</div>
-            <p className="text-xs text-muted-foreground">Venter på håndtering</p>
+            <p className="text-xs text-muted-foreground">{t("stats.open.description")}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Forbedret etter tiltak</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("stats.improved.title")}</CardTitle>
             <CheckCircle className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{risksImprovedCount}</div>
-            <p className="text-xs text-muted-foreground">Risikoer med lavere rest-risiko</p>
+            <p className="text-xs text-muted-foreground">{t("stats.improved.description")}</p>
           </CardContent>
         </Card>
       </div>
@@ -154,10 +156,10 @@ export default async function RisksPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Årlige risikovurderinger (dokumenter)
+              {t("annualAssessments.title")}
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              Hver vurdering er et årsdokument med egne risikopunkter.
+              {t("annualAssessments.description")}
             </p>
           </CardHeader>
           <CardContent>
@@ -171,7 +173,7 @@ export default async function RisksPage() {
                     >
                       <span className="font-medium truncate">{a.title}</span>
                       <span className="text-muted-foreground text-sm whitespace-nowrap">
-                        {a._count.risks} risikopunkt{a._count.risks !== 1 ? "er" : ""}
+                        {t("annualAssessments.riskPoints", { count: a._count.risks })}
                       </span>
                     </Link>
                     {canDeleteRiskAssessments && (
@@ -194,9 +196,9 @@ export default async function RisksPage() {
       </div>
 
       <div>
-        <h2 className="text-xl font-semibold mb-1">Risikoregister (alle risikopunkter)</h2>
+        <h2 className="text-xl font-semibold mb-1">{t("registry.title")}</h2>
         <p className="mb-4 text-sm text-muted-foreground">
-          Viser alle risikopunkter på tvers av vurderinger, med status og oppfølging av tiltak.
+          {t("registry.description")}
         </p>
         <RiskList risks={risks} />
       </div>

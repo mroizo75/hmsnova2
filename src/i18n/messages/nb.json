@@ -1,1 +1,5021 @@
-{"common":{"save":"Lagre","cancel":"Avbryt","delete":"Slett","edit":"Rediger","create":"Opprett","search":"Søk","loading":"Laster...","error":"Noe gikk galt","success":"Vellykket"},"nav":{"dashboard":"Oversikt","documents":"Dokumenter","legalRegister":"Juridisk register","forms":"Skjemaer","risks":"Risikovurderinger","riskRegister":"Risiko-register","incidents":"Avvik og hendelser","projects":"Prosjekter","constructionCompliance":"Bygg/anlegg-compliance","hseStatistics":"HSE-statistikk","sja":"SJA","inspections":"Vernerunde","chemicals":"Stoffkartotek","environment":"Miljø","wellbeing":"Psykososial puls","complaints":"Kundeklager","feedback":"Tilbakemeldinger","bcm":"Beredskap","training":"Opplæring","audits":"Revisjoner","managementReviews":"Ledelsens gjennomgang","annualHmsPlan":"Årlig HMS-plan","meetings":"Møter (AMU/VO)","timeRegistration":"Timeregistrering","exposureRegister":"Eksponeringsregister","whistleblowing":"Varslinger","actions":"Tiltak","goals":"Mål","settings":"Innstillinger"},"auth":{"login":"Logg inn","logout":"Logg ut","email":"E-post","password":"Passord","forgotPassword":"Glemt passord?"}}
+{
+  "common": {
+    "save": "Lagre",
+    "cancel": "Avbryt",
+    "delete": "Slett",
+    "edit": "Rediger",
+    "create": "Opprett",
+    "search": "Søk",
+    "loading": "Laster...",
+    "error": "Noe gikk galt",
+    "success": "Vellykket"
+  },
+  "nav": {
+    "dashboard": "Oversikt",
+    "documents": "Dokumenter",
+    "routines": "Rutiner",
+    "legalRegister": "Juridisk register",
+    "forms": "Skjemaer",
+    "risks": "Risikovurderinger",
+    "riskRegister": "Risiko-register",
+    "incidents": "Avvik og hendelser",
+    "projects": "Prosjekter",
+    "constructionCompliance": "Bygg/anlegg-compliance",
+    "hseStatistics": "HSE-statistikk",
+    "sja": "SJA",
+    "inspections": "Vernerunde",
+    "chemicals": "Stoffkartotek",
+    "environment": "Miljø",
+    "wellbeing": "Psykososial puls",
+    "complaints": "Kundeklager",
+    "feedback": "Tilbakemeldinger",
+    "bcm": "Beredskap",
+    "training": "Opplæring",
+    "audits": "Revisjoner",
+    "managementReviews": "Ledelsens gjennomgang",
+    "annualHmsPlan": "Årlig HMS-plan",
+    "meetings": "Møter (AMU/VO)",
+    "timeRegistration": "Timeregistrering",
+    "exposureRegister": "Eksponeringsregister",
+    "whistleblowing": "Varslinger",
+    "actions": "Tiltak",
+    "goals": "Mål",
+    "settings": "Innstillinger"
+  },
+  "auth": {
+    "login": "Logg inn",
+    "logout": "Logg ut",
+    "email": "E-post",
+    "password": "Passord",
+    "forgotPassword": "Glemt passord?"
+  },
+  "dashboardNav": {
+    "simpleMode": "Enkel",
+    "advancedMode": "Avansert",
+    "simpleDescription": "Grunnleggende HMS-funksjoner",
+    "advancedDescription": "Alle funksjoner inkl. ISO"
+  },
+  "mobileNav": {
+    "navigationMenu": "Navigasjonsmeny",
+    "simpleMode": "Enkel modus",
+    "advancedMode": "Avansert"
+  },
+  "settingsSimpleMenu": {
+    "noAccessTitle": "Ingen tilgang",
+    "noAccessDescription": "Kun administratorer kan endre enkel meny",
+    "savedTitle": "Enkel meny lagret",
+    "savedDescription": "Menyvalgene gjelder når brukere velger «Enkel» modus i dashboard.",
+    "saveFailedTitle": "Kunne ikke lagre",
+    "onlyAdminDescription": "Kun administratorer kan velge hvilke menypunkter som vises i enkel modus.",
+    "title": "Enkel meny",
+    "cardDescription": "Velg hvilke menypunkter som skal vises når brukere har «Enkel» modus aktivert i dashboard. Avansert modus viser alltid alle punkter du har tilgang til.",
+    "saving": "Lagrer…",
+    "saveButton": "Lagre valg",
+    "resetButton": "Tilbakestill til standard"
+  },
+  "incidentForm": {
+    "types": {
+      "ULYKKE": {
+        "label": "Arbeidsulykke / RUH",
+        "desc": "Energi frigitt og skade/tap oppstod på person, materiell eller miljø",
+        "badge": "AML § 5-2 – varslingspliktig"
+      },
+      "NESTEN": {
+        "label": "Nestenulykke / RUH",
+        "desc": "Energi frigitt, men ingen skade – under andre omstendigheter ville ulykke ha skjedd",
+        "badge": "AML § 5-2 – tilløp til ulykke"
+      },
+      "FARLIG_SITUASJON": {
+        "label": "Farlig situasjon / Observasjon",
+        "desc": "Farlig tilstand eller uønsket forhold som representerer en fare, men ingen energi frigitt",
+        "badge": "AML § 2-3"
+      },
+      "YRKESSYKDOM": {
+        "label": "Yrkessykdom / Arbeidsrelatert sykdom",
+        "desc": "Sykdom som antas å ha sin grunn i arbeidet eller forholdene på arbeidsplassen",
+        "badge": "AML § 5-1"
+      },
+      "AVVIK": {
+        "label": "Avvik",
+        "desc": "Brudd på lovgivning, interne krav, prosedyrer eller standarder (ISO 9001 kap. 10.2)"
+      },
+      "MILJO": {
+        "label": "Miljøavvik",
+        "desc": "Utslipp, søl eller annet avvik fra miljøkrav (ISO 14001)"
+      },
+      "KVALITET": {
+        "label": "Kvalitetsavvik",
+        "desc": "Produkt- eller tjenestekvalitet som ikke møter krav (ISO 9001)"
+      },
+      "CUSTOMER": {
+        "label": "Kundeklage",
+        "desc": "Klage eller tilbakemelding fra kunde/bruker (ISO 10002)"
+      }
+    },
+    "severity": {
+      "1": { "label": "1 - Ubetydelig", "desc": "Ingen konsekvenser" },
+      "2": { "label": "2 - Mindre", "desc": "Små konsekvenser" },
+      "3": { "label": "3 - Moderat", "desc": "Merkbare konsekvenser" },
+      "4": { "label": "4 - Alvorlig", "desc": "Store konsekvenser" },
+      "5": { "label": "5 - Kritisk", "desc": "Svært alvorlige konsekvenser" }
+    },
+    "templates": {
+      "homeVisitRisk": {
+        "title": "Risiko ved hjemmebesok",
+        "description": "Beskriv forhold i hjemmebesoket som ga forhoyet risiko for ansatt eller bruker.",
+        "location": "Hjemmetjeneste / hjemmebesok",
+        "immediateAction": "Arbeidet ble stanset og ansvarlig leder ble varslet."
+      },
+      "violenceThreat": {
+        "title": "Vold eller trussel i tjeneste",
+        "description": "Beskriv hendelsesforlop, hva som utløste situasjonen, og hvilke personer som var involvert.",
+        "location": "Hjemmetjeneste / brukeradresse",
+        "immediateAction": "Sikret ansatt, avbrutt oppdrag og varslet leder/politi ved behov."
+      },
+      "infectionExposure": {
+        "title": "Mistenkt smitteeksponering",
+        "description": "Beskriv eksponeringstype, varighet, verneutstyr brukt og hvilke tiltak som ble iverksatt.",
+        "location": "Helse- og omsorgstjeneste",
+        "immediateAction": "Smittevernrutine aktivert og hendelsen meldt til leder."
+      }
+    },
+    "toasts": {
+      "unknownError": "Ukjent feil",
+      "missingBasis": {
+        "title": "Mangler grunnlag",
+        "description": "Velg type og fyll ut tittel + beskrivelse før AI-analyse."
+      },
+      "aiAnalysisFailed": { "title": "AI-analyse feilet" },
+      "aiSuggestionsReady": {
+        "title": "AI-forslag klare",
+        "description": "Utkast for tiltak og umiddelbar handling er fylt ut."
+      },
+      "noStoredIncidents": {
+        "title": "Ingen lagrede hendelser",
+        "description": "Offline-køen er tom."
+      },
+      "noNetwork": {
+        "title": "Ingen nettverk",
+        "description": "Koble til nett for å synkronisere lagrede hendelser."
+      },
+      "syncCompleted": {
+        "title": "Synkronisering fullfort",
+        "description": "{count} hendelser er synkronisert."
+      },
+      "someIncidentsFailed": {
+        "title": "Noen hendelser feilet",
+        "description": "{count} hendelser ligger fortsatt i offline-køen."
+      },
+      "savedOffline": {
+        "title": "Lagret offline",
+        "withImages": "Hendelsen er lagret offline. Bilder synkroniseres ikke offline og ma legges ved etter synk.",
+        "withoutImages": "Hendelsen blir synkronisert automatisk nar du er pa nett."
+      },
+      "error": {
+        "title": "Feil",
+        "reportIncident": "Kunne ikke rapportere avvik"
+      },
+      "incidentReported": {
+        "title": "Avvik rapportert",
+        "description": "Avviket er registrert og vil bli fulgt opp"
+      },
+      "unexpectedError": {
+        "title": "Uventet feil",
+        "description": "Noe gikk galt"
+      }
+    },
+    "tabletMode": {
+      "offlineQueue": "Tabletmodus med offline-kø: {count} usynkroniserte",
+      "syncing": "Synkroniserer...",
+      "syncSaved": "Synkroniser lagrede"
+    },
+    "sections": {
+      "basicInfo": {
+        "title": "Grunnleggende informasjon",
+        "description": "AML § 5-2 / IK-HMS § 5 – Rapporter hva som skjedde"
+      },
+      "hmsSpecific": {
+        "title": "Personinvolvering og resultat",
+        "description": "AML § 5-2 – Rapport om uønsket hendelse (RUH)"
+      },
+      "hseStats": {
+        "title": "HSE-statistikk",
+        "description": "Brukes til TRIR-beregning og rapportering til kunder/myndigheter",
+        "trirLabel": "TRIR-formel:",
+        "trirFormula": "(Dødsfall + Fraværsskader + Begrenset arbeid + Legebehandling) × 200 000 / Arbeidede timer"
+      },
+      "injuryFollowUp": {
+        "title": "Skade og oppfølging",
+        "description": "ISO 45001: dokumenter personskade og koble til risiko"
+      },
+      "customerComplaint": {
+        "title": "Kundeklage",
+        "description": "ISO 10002: registrer hvem som klager og hvordan saken skal håndteres"
+      },
+      "immediateActions": {
+        "title": "Umiddelbare tiltak og årsak",
+        "description": "ISO 9001 kap. 10.2 – Hva ble gjort umiddelbart, og hva er årsak?"
+      },
+      "images": {
+        "title": "Bilder",
+        "description": "Last opp bilder som dokumenterer hendelsen (valgfritt, maks 5)",
+        "maxReached": "Maks 5 bilder",
+        "clickToAdd": "Klikk for å legge til bilder",
+        "selectedCount": "{count}/5 bilder valgt",
+        "supportedFormats": "PNG, JPG, HEIC støttes",
+        "previewAlt": "Forhåndsvisning {index}"
+      }
+    },
+    "fields": {
+      "type": {
+        "label": "Type hendelse *",
+        "placeholder": "Velg type",
+        "groupHms": "HMS / Personskade",
+        "groupDeviation": "Avvik / Kvalitet",
+        "groupOther": "Annet"
+      },
+      "severity": {
+        "label": "Alvorlighetsgrad *",
+        "placeholder": "Velg alvorlighet"
+      },
+      "project": {
+        "label": "Knytt til prosjekt / jobb",
+        "placeholder": "Velg prosjekt (valgfritt)",
+        "noneOption": "— Ingen / ikke prosjektrelatert —",
+        "help": "Kobling til prosjekt gir samlet HMS-rapport per jobb/oppdrag"
+      },
+      "title": {
+        "label": "Tittel *",
+        "placeholder": "F.eks. Fall fra stige ved lagerarbeid"
+      },
+      "description": {
+        "label": "Beskrivelse av hendelse *",
+        "placeholder": "Beskriv detaljert hva som skjedde, når, hvor og hvem som var involvert"
+      },
+      "occurredAt": { "label": "Når skjedde det? *" },
+      "location": {
+        "label": "Hvor skjedde det?",
+        "placeholder": "F.eks. Lager 2, Produksjonshall A"
+      },
+      "witnessName": {
+        "label": "Vitner (navn)",
+        "placeholder": "Navn på vitner til hendelsen"
+      },
+      "reportedForUser": {
+        "label": "Rapportert på vegne av",
+        "hint": "(valgfritt – for leder/HMS som rapporterer for ansatt)",
+        "placeholder": "Velg ansatt (valgfritt)",
+        "noneOption": "— Ingen (rapporterer for meg selv) —"
+      },
+      "involvedPersons": {
+        "label": "Involverte personer",
+        "placeholder": "Navn og rolle på alle involverte personer"
+      },
+      "injuryDescription": {
+        "label": "Resultat av hendelse",
+        "placeholder": "Beskriv eventuelle skader, skadeomfang og umiddelbare konsekvenser"
+      },
+      "injuryType": {
+        "label": "Type skade",
+        "placeholder": "F.eks. Kuttskade, fallskade, kjemisk eksponering"
+      },
+      "injuryTypeDetailed": {
+        "label": "Type skade/eksponering"
+      },
+      "riskReference": {
+        "label": "Knytt til risikovurdering",
+        "placeholder": "Velg risiko (valgfritt)",
+        "noneAvailable": "Ingen risikoer tilgjengelig",
+        "noneOption": "Ingen",
+        "optionWithScore": "{title} · Score {score}"
+      },
+      "subcategories": {
+        "label": "Hendelsen dreier seg om",
+        "hint": "(velg én eller flere)",
+        "loading": "Laster kategorier…"
+      },
+      "suggestedActions": {
+        "label": "Foreslåtte forebyggende tiltak",
+        "placeholder": "Hva mener du bør gjøres for å forhindre at dette skjer igjen?"
+      },
+      "lostWorkdays": {
+        "label": "Fraværsdager",
+        "placeholder": "Antall tapte arbeidsdager",
+        "hint": "Fyll ut hvis fraværsskade er valgt"
+      },
+      "lostTimeMinutes": {
+        "label": "Tapt tid (minutter)",
+        "placeholder": "Presist antall minutter (valgfritt)"
+      },
+      "customerName": {
+        "label": "Kundenavn *",
+        "placeholder": "Navn på kunde/bedrift"
+      },
+      "customerEmail": {
+        "label": "Kunde e-post",
+        "placeholder": "kunde@firma.no"
+      },
+      "customerPhone": {
+        "label": "Telefon",
+        "placeholder": "+47 99 99 99 99"
+      },
+      "customerTicketId": {
+        "label": "Referanse / saknr.",
+        "placeholder": "F.eks. Zendesk #124"
+      },
+      "responseDeadline": {
+        "label": "Lovet svarfrist"
+      },
+      "customerSatisfaction": {
+        "label": "Tilfredshet (1-5)",
+        "placeholder": "Velg vurdering"
+      },
+      "immediateAction": {
+        "label": "Umiddelbare tiltak",
+        "placeholder": "F.eks. Stoppet arbeidet, ryddet området, sikret vitner, varslet leder..."
+      }
+    },
+    "hseMetrics": {
+      "fatality": { "label": "Dødsfall", "short": "Fatality" },
+      "lti": { "label": "Fraværsskade", "short": "LTI" },
+      "restrictedWork": { "label": "Begrenset arbeid", "short": "Restricted work" },
+      "medicalTreatment": { "label": "Legebehandling", "short": "Medical treatment" }
+    },
+    "aiHelp": {
+      "title": "AI-hjelp: hendelse til tiltak",
+      "generating": "Genererer...",
+      "analyzeAndSuggest": "Analyser og foreslå tiltak",
+      "checking": "Sjekker...",
+      "qualityCheck": "AI-kvalitetssjekk",
+      "improvementPoints": "Forbedringspunkter før lagring:",
+      "selectMeasures": "Velg hvilke AI-tiltak som skal opprettes ved lagring"
+    },
+    "actions": {
+      "submitting": "Rapporterer...",
+      "submit": "Rapporter avvik",
+      "cancel": "Avbryt"
+    },
+    "afterReporting": {
+      "title": "Etter rapportering",
+      "point1": "Leder vil utrede årsak (årsaksanalyse / ROT)",
+      "point2": "Korrigerende og forebyggende tiltak planlegges",
+      "point3": "Effektiviteten av tiltak vil bli evaluert (ISO 9001: 10.2)",
+      "point4Hse": "Inngår i TRIR-statistikk og HSE-rapportering til oppdragsgivere"
+    }
+  },
+  "dashboardIncidentNewPage": {
+    "title": "Rapporter hendelse / avvik",
+    "description": "AML § 5-1/5-2 og IK-HMS § 5 – registrer ulykker, nestenulykker, farlige situasjoner og avvik",
+    "tabletModeActive": "Tabletmodus aktiv: optimalisert for rask registrering ute i felt.",
+    "actions": {
+      "backToIncidents": "Tilbake til avvik"
+    },
+    "errors": {
+      "noTenantAccess": "Ingen tilgang til tenant"
+    }
+  },
+  "riskForm": {
+    "status": {
+      "OPEN": "Identifisert",
+      "MITIGATING": "Tiltak iverksatt",
+      "ACCEPTED": "Akseptert",
+      "CLOSED": "Lukket"
+    },
+    "categories": {
+      "OPERATIONAL": "Operasjonell",
+      "SAFETY": "Sikkerhet",
+      "HEALTH": "Helse",
+      "ENVIRONMENTAL": "Miljø",
+      "INFORMATION_SECURITY": "Informasjonssikkerhet",
+      "LEGAL": "Juridisk/Compliance",
+      "STRATEGIC": "Strategisk",
+      "PSYCHOSOCIAL": "Psykososialt",
+      "ERGONOMIC": "Ergonomisk",
+      "ORGANISATIONAL": "Organisatorisk",
+      "PHYSICAL": "Fysisk"
+    },
+    "frequency": {
+      "WEEKLY": "Ukentlig",
+      "MONTHLY": "Månedlig",
+      "QUARTERLY": "Kvartalsvis",
+      "ANNUAL": "Årlig",
+      "BIENNIAL": "Annet hvert år"
+    },
+    "response": {
+      "AVOID": {
+        "label": "Unngå",
+        "description": "Stopp aktiviteten eller endre prosess for å fjerne risikoen"
+      },
+      "REDUCE": {
+        "label": "Reduser",
+        "description": "Implementer kontroller for å senke sannsynlighet eller konsekvens"
+      },
+      "TRANSFER": {
+        "label": "Overfør",
+        "description": "Flytt risiko via forsikring, kontrakter eller leverandører"
+      },
+      "ACCEPT": {
+        "label": "Aksepter",
+        "description": "Aksepter risikoen innenfor definert toleranse"
+      }
+    },
+    "trend": {
+      "INCREASING": "Økende",
+      "STABLE": "Stabil",
+      "DECREASING": "Synkende"
+    },
+    "toasts": {
+      "createSuccess": { "title": "✅ Risiko opprettet" },
+      "updateSuccess": { "title": "✅ Risiko oppdatert" },
+      "successDescription": "Risikonivå: {level} ({score})",
+      "error": {
+        "title": "Feil",
+        "saveRisk": "Kunne ikke lagre risiko"
+      },
+      "unexpectedError": {
+        "title": "Uventet feil",
+        "description": "Noe gikk galt"
+      }
+    },
+    "sections": {
+      "basic": {
+        "title": "Grunnleggende informasjon",
+        "description": "Beskriv risikoen og hvem som eier den — IK-HMS § 5 nr. 6 krever skriftlig dokumentasjon av alle identifiserte farer."
+      },
+      "description": {
+        "title": "Beskrivelse og konsekvens",
+        "description": "Beskriv situasjonen og hva som kan skje (konsekvens). Eksisterende kontroller og notater under."
+      },
+      "riskLevel": {
+        "title": "Risikonivå (AML § 3-1)",
+        "tipsButtonTitle": "Tips",
+        "tipsTitle": "Tips for {level} risiko",
+        "tipsEdit": "ISO 45001 anbefaler tiltak for å redusere risikoen. Scroll ned til «Tiltak for å redusere risiko» og legg til konkrete tiltak med ansvarlig person og frist.",
+        "tipsCreate": "Etter lagring kan du legge til tiltak for å redusere risikoen. ISO 45001 krever planlagte tiltak ved medium og høy risiko.",
+        "descriptionReadOnly": "Satt da risikopunktet ble lagt inn. Endres på oversiktssiden ved behov.",
+        "descriptionEditable": "Sannsynlighet og konsekvens (1–5). Risikomatrisen vises på oversiktssiden /dashboard/risks",
+        "scoreEquation": "Sannsynlighet: {likelihood} × Konsekvens: {consequence} = {score}",
+        "likelihoodLabel": "Sannsynlighet (1–5)",
+        "consequenceLabel": "Konsekvens (1–5)",
+        "levels": {
+          "critical": "kritisk",
+          "high": "høy",
+          "medium": "medium"
+        }
+      },
+      "residual": {
+        "title": "Rest-risiko etter tiltak",
+        "description": "Vurder restrisiko når tiltak er gjennomført – skal bli lavere etter innførte tiltak (ISO 45001).",
+        "likelihoodLabel": "Residual Sannsynlighet",
+        "consequenceLabel": "Residual Konsekvens",
+        "value": "Verdi: {value}",
+        "selectValue": "Velg en verdi 1-5",
+        "level": "Residual nivå: {level} ({score})"
+      },
+      "followUp": {
+        "title": "Oppfølging",
+        "description": "Frekvens og neste gjennomgangsdato — IK-HMS § 5 nr. 8 krever at risikovurderingen gjennomgås regelmessig."
+      }
+    },
+    "fields": {
+      "title": {
+        "label": "Tittel *",
+        "placeholder": "F.eks. Fall fra høyde ved arbeid på tak"
+      },
+      "category": {
+        "label": "Kategori *",
+        "placeholder": "Velg kategori"
+      },
+      "owner": {
+        "label": "Risiko-eier *",
+        "placeholder": "Velg risiko-eier"
+      },
+      "status": {
+        "label": "Status",
+        "placeholder": "Velg status"
+      },
+      "location": {
+        "label": "Lokasjon",
+        "placeholder": "F.eks. Produksjonshall A"
+      },
+      "area": {
+        "label": "Område / Prosess",
+        "placeholder": "Byggeplass, lager, etc."
+      },
+      "context": {
+        "label": "Beskrivelse *",
+        "placeholder": "Beskriv situasjonen, hvor det kan skje, hvem som er utsatt, etc."
+      },
+      "riskStatement": {
+        "label": "Konsekvens",
+        "placeholder": "Hva kan skje dersom risikoscenarioet inntreffer? Beskriv konsekvensen."
+      },
+      "existingControls": {
+        "label": "Eksisterende kontroller",
+        "placeholder": "Hvilke barrierer eller kontroller finnes i dag?"
+      },
+      "description": {
+        "label": "Tilleggsnotater",
+        "placeholder": "Andre relevante detaljer, referanser eller observasjoner"
+      },
+      "controlFrequency": {
+        "label": "Oppfølgingsfrekvens *",
+        "placeholder": "Velg frekvens"
+      },
+      "nextReviewDate": {
+        "label": "Neste gjennomgang *"
+      },
+      "responseStrategy": {
+        "label": "Responsstrategi",
+        "placeholder": "Velg strategi"
+      }
+    },
+    "advanced": {
+      "title": "Avansert – ISO 31000 / virksomhetsrisiko",
+      "description": "Risikoappetitt, KPI-kobling, inspeksjonsmal m.m. — ikke nødvendig for standard AML-vurdering",
+      "fields": {
+        "linkedProcess": {
+          "label": "Knyttet til prosess",
+          "placeholder": "F.eks. Vedlikehold, Montasje"
+        },
+        "goal": {
+          "label": "Koble til mål/KPI",
+          "placeholder": "Velg mål (valgfritt)",
+          "noneAvailable": "Ingen mål tilgjengelig",
+          "noneOption": "Ingen"
+        },
+        "template": {
+          "label": "Inspeksjonsmal",
+          "placeholder": "Velg mal (valgfritt)",
+          "noneAvailable": "Ingen maler tilgjengelig",
+          "noneOption": "Ingen"
+        },
+        "riskAppetite": {
+          "label": "Risikoappetitt",
+          "placeholder": "Beskriv hvilket nivå av risiko virksomheten aksepterer"
+        },
+        "riskTolerance": {
+          "label": "Risiko-toleranse",
+          "placeholder": "Beskriv hvilke avvik/indikatorer som utløser tiltak"
+        },
+        "trend": {
+          "label": "Trend",
+          "placeholder": "Velg trend"
+        },
+        "reviewedAt": {
+          "label": "Sist gjennomgått (ISO 31000)"
+        }
+      }
+    },
+    "actions": {
+      "saving": "Lagrer...",
+      "create": "Opprett risiko",
+      "saveChanges": "Lagre endringer",
+      "cancel": "Avbryt"
+    }
+  },
+  "hmsCoursesPage": {
+    "hero": {
+      "badge": "HMS-kurs & Førstehjelp",
+      "titleLine1": "Kompetente ansatte.",
+      "titleLine2": "Tryggere arbeidsplass.",
+      "memberStrong": "HMS Nova-medlemmer",
+      "memberTextPrefix": "får",
+      "discountStrong": "20% rabatt",
+      "memberTextSuffix": "på alle HMS-kurs! Alle kurs er sertifiserte og følger Arbeidstilsynets krav – med automatisk kompetansestyring i HMS Nova.",
+      "ctaPrimary": "Bestill HMS-kurs",
+      "ctaSecondary": "Se kurskatalog",
+      "points": {
+        "p1": "Godkjent kursleverandør (ISO 9001)",
+        "p2": "Fysiske, digitale og hybride løsninger",
+        "p3": "Sertifikater integrert i HMS Nova",
+        "p4": "Spesialist på førstehjelp barn og voksne"
+      },
+      "specialist": {
+        "title": "Førstehjelp-spesialist",
+        "subtitle": "Sykepleier/jordmor",
+        "items": {
+          "children": {
+            "title": "Førstehjelp for barn",
+            "description": "Spesialtilpasset for barnehager og skoler"
+          },
+          "adults": {
+            "title": "Førstehjelp for voksne",
+            "description": "HLR, brannskader, forgiftninger"
+          },
+          "certified": {
+            "title": "Sertifisert opplæring",
+            "description": "Godkjent av Norsk Førstehjelpsråd"
+          }
+        },
+        "footer": "🎓 Kurs på din arbeidsplass eller digitalt"
+      }
+    },
+    "problem": {
+      "title": "Uten riktig HMS-opplæring risikerer bedriften din",
+      "description": "Manglende kompetanse er den vanligste årsaken til arbeidsulykker og Arbeidstilsynets pålegg",
+      "cards": {
+        "law": {
+          "title": "Brudd på lovkrav",
+          "textPrefix": "Arbeidsmiljøloven krever dokumentert opplæring. Manglende kurs kan gi",
+          "textStrong": "bøter inntil 15% av omsetning",
+          "textSuffix": "og stans i virksomheten."
+        },
+        "incidents": {
+          "title": "Arbeidsulykker og sykefravær",
+          "textPrefix": "60% av arbeidsulykker skyldes manglende opplæring. Dette koster norske bedrifter",
+          "textStrong": "over 30 milliarder kr årlig",
+          "textSuffix": "i sykefravær og erstatninger."
+        },
+        "employees": {
+          "title": "Ansatte føler seg utrygge",
+          "textPrefix": "Bedrifter uten god HMS-opplæring har",
+          "textStrong": "50% høyere turnover",
+          "textSuffix": "Ansatte slutter fordi de ikke føler seg trygge på jobb."
+        },
+        "documentation": {
+          "title": "Manglende dokumentasjon",
+          "textPrefix": "Uten system for å spore kurs og sertifikater mister du oversikten.",
+          "textStrong": "Utgåtte kurs oppdages først av Arbeidstilsynet",
+          "textSuffix": "– da er det for sent."
+        }
+      }
+    },
+    "solution": {
+      "badge": "Løsningen",
+      "title": "HMS Nova = Komplett kursløsning + Automatisk sporing",
+      "textPrefix": "Vi leverer",
+      "textStrong": "alle lovpålagte HMS-kurs",
+      "textSuffix": "og holder oversikt over hvem som må ta hva – når",
+      "steps": {
+        "step1": {
+          "title": "1. Bestill kurs",
+          "description": "Velg kurs fra katalogen, eller få anbefaling basert på din bransje. Fysisk på arbeidsplassen eller digitalt."
+        },
+        "step2": {
+          "title": "2. Gjennomfør opplæring",
+          "description": "Godkjente instruktører med lang erfaring. Praktisk, engasjerende og tilpasset din virksomhet."
+        },
+        "step3": {
+          "title": "3. Automatisk oppfølging",
+          "description": "Sertifikater legges inn i HMS Nova. Du får automatisk varsel når kurs går ut – ingen manuelt arbeid."
+        }
+      }
+    },
+    "catalog": {
+      "title": "Kurs tilpasset din bransje",
+      "description": "Alle kurs er godkjent og oppfyller lovkrav fra Arbeidstilsynet",
+      "availableCourses": "{count} tilgjengelige kurs",
+      "requiredBadge": "Lovpålagt",
+      "labels": {
+        "format": "Format:",
+        "target": "Målgruppe:",
+        "why": "Hvorfor:"
+      },
+      "orderFromCompany": "Bestill hos HMS Nova AS",
+      "order": "Bestill"
+    },
+    "toasts": {
+      "genericError": "Noe gikk galt",
+      "submitSuccess": {
+        "memberTitle": "🎉 Kursbestilling sendt - 20% rabatt aktivert!",
+        "defaultTitle": "✅ Kursbestilling sendt!",
+        "memberDescription": "Vi kontakter deg innen 24 timer. Du spar {amount} kr med medlemsrabatten!",
+        "defaultDescription": "Vi kontakter deg innen 24 timer for å avtale dato og opplegg."
+      },
+      "submitError": {
+        "title": "❌ Kunne ikke sende bestilling",
+        "description": "Vennligst prøv igjen eller ring oss direkte."
+      }
+    },
+    "booking": {
+      "title": "Bestill HMS-kurs",
+      "description": "Fyll ut skjemaet nedenfor, så kontakter vi deg innen 24 timer for å avtale dato og opplegg.",
+      "fields": {
+        "company": {
+          "label": "Bedriftsnavn *",
+          "placeholder": "Eksempel AS"
+        },
+        "orgNr": {
+          "label": "Org.nr (for medlemsrabatt)",
+          "placeholder": "123 456 789"
+        },
+        "name": {
+          "label": "Kontaktperson *",
+          "placeholder": "Ola Nordmann"
+        },
+        "email": {
+          "label": "E-post *",
+          "placeholder": "ola@eksempel.no"
+        },
+        "phone": {
+          "label": "Telefon *",
+          "placeholder": "+47 123 45 678"
+        },
+        "courseType": {
+          "label": "Hvilket kurs er du interessert i? *",
+          "options": {
+            "default": "Velg kurs...",
+            "verneombud": "Grunnleggende HMS for verneombud (40t)",
+            "leder": "Lovpålagt HMS for ledere",
+            "psykososialt": "Psykososialt arbeidsmiljø",
+            "fallsikring": "Fallsikring og høydearbeid",
+            "asbest": "Asbest og farlige materialer",
+            "maskinsikkerhet": "Maskinsikkerhet og verneutstyr",
+            "kjemikalie": "Kjemikaliehåndtering",
+            "vold": "Vold og trusler",
+            "ergonomi": "Ergonomi og forflytningsteknikk",
+            "trafikk": "Trafikksikkerhet og lastsikring",
+            "truck": "Truck- og maskinførerbevis",
+            "digital": "Digital sikkerhet",
+            "inneklima": "Inneklima og psykososialt miljø",
+            "forstehjelpBarn": "Førstehjelp for barn",
+            "forstehjelpVoksne": "Førstehjelp for voksne",
+            "other": "Annet (spesifiser i meldingen)"
+          }
+        },
+        "participants": {
+          "label": "Antall deltakere",
+          "placeholder": "5"
+        },
+        "format": {
+          "label": "Foretrukket format *",
+          "options": {
+            "default": "Velg format...",
+            "fysiskHosOss": "Fysisk kurs hos oss (Akershus)",
+            "fysiskHosDere": "Fysisk kurs på vår arbeidsplass",
+            "nettbasert": "Nettbasert / E-læring",
+            "hybrid": "Hybrid (kombinasjon)",
+            "unknown": "Vet ikke / Ønsker veiledning"
+          }
+        },
+        "message": {
+          "label": "Melding / spesielle behov",
+          "placeholder": "Fortell oss om spesielle ønsker, tidsrammer, eller spørsmål..."
+        }
+      },
+      "memberDiscount": {
+        "title": "HMS Nova medlemmer får 20% rabatt automatisk.",
+        "description": "Oppgi ditt org.nr eller medlemsnummer i skjemaet."
+      },
+      "submit": {
+        "sending": "Sender...",
+        "default": "Send bestilling"
+      },
+      "contact": {
+        "title": "Eller ring oss direkte:",
+        "courseLabel": "Kurs:",
+        "softwareLabel": "Software:"
+      }
+    }
+  },
+  "employeeDashboard": {
+    "welcome": {
+      "title": "Velkommen, {name}! 👋",
+      "subtitle": "Her finner du alt du trenger for trygt arbeid"
+    },
+    "alerts": {
+      "title": "Viktig melding",
+      "agricultureMessage": "Husk sikker sjekk før gårdsarbeid: maskin, dyr og arbeidsområde.",
+      "defaultMessage": "Husk å lese gjennom HMS-håndboken før du starter arbeidsdag."
+    },
+    "agricultureQuickStart": {
+      "title": "Rask start i felt",
+      "cards": {
+        "incident": {
+          "title": "Registrer hendelse",
+          "description": "Traktor, dyr eller nesten-ulykke"
+        },
+        "inspection": {
+          "title": "Gjennomfør kontroll",
+          "description": "Fjøs, maskiner og brannvern"
+        },
+        "sja": {
+          "title": "Sikker jobb analyse",
+          "description": "Velg mal og start arbeid"
+        }
+      }
+    },
+    "cards": {
+      "documents": {
+        "title": "Dokumenter",
+        "description": "HMS-håndbok og prosedyrer"
+      },
+      "report": {
+        "agricultureTitle": "Noe farlig skjedde?",
+        "defaultTitle": "Rapporter",
+        "agricultureDescription": "Meld hendelse raskt",
+        "defaultDescription": "Meld fra om avvik",
+        "badge": "Viktig!"
+      },
+      "routines": {
+        "title": "Rutiner",
+        "description": "Les gjeldende rutiner"
+      },
+      "ruh": {
+        "agricultureDescription": "Nesten-hendelse på gården",
+        "defaultDescription": "Uønsket hendelse"
+      },
+      "sja": {
+        "agricultureDescription": "Velg mal og start arbeid",
+        "defaultDescription": "Sikker Jobb Analyse"
+      },
+      "chemicals": {
+        "title": "Stoffer",
+        "description": "Farlige stoffer og SDS"
+      },
+      "training": {
+        "title": "Opplæring",
+        "description": "Registrer gjennomført kurs"
+      },
+      "forms": {
+        "title": "Skjemaer",
+        "description": "Fyll ut skjemaer"
+      },
+      "whistleblowing": {
+        "title": "Varsling",
+        "description": "Anonymt varslingssystem"
+      },
+      "timeRegistration": {
+        "title": "Timeføring",
+        "description": "Timer og km godtgjørelse"
+      }
+    },
+    "tasks": {
+      "title": "Mine oppgaver",
+      "item": {
+        "title": "Årlig HMS-opplæring",
+        "deadline": "Frist: 15. des",
+        "status": "Venter"
+      },
+      "empty": "Du har ingen andre ventende oppgaver 👍"
+    },
+    "emergency": {
+      "title": "🚨 Nødkontakter",
+      "fire": "Brann:",
+      "police": "Politi:",
+      "ambulance": "Ambulanse:",
+      "hmsResponsible": "HMS-ansvarlig:",
+      "phone": "Telefon:",
+      "email": "E-post:"
+    }
+  },
+  "employeeIncidentsPage": {
+    "header": {
+      "title": "Mine avvik",
+      "description": "Oversikt over dine rapporterte avvik",
+      "newReport": "Rapporter nytt"
+    },
+    "stats": {
+      "reported": "Rapportert",
+      "underReview": "Undersøkes",
+      "closed": "Lukket"
+    },
+    "tip": {
+      "title": "💡 Tips:",
+      "description": "Du kan se status på dine rapporter her. HMS-ansvarlig vil behandle avviket. Avvik skal lukkes når tiltak er gjennomført og effekt er verifisert (ISO 9001/45001 kap. 10.2). Du får beskjed når avviket er lukket."
+    },
+    "list": {
+      "title": "Mine rapporter ({count})",
+      "emptyTitle": "Ingen rapporter ennå",
+      "emptyDescription": "Du har ikke rapportert noen avvik ennå.",
+      "emptyCta": "Rapporter første avvik",
+      "location": "📍 Sted: {location}",
+      "reportedAt": "🕐 Rapportert: {date}"
+    },
+    "badges": {
+      "reported": "🕐 Rapportert",
+      "underReview": "🔍 Undersøkes",
+      "actions": "🛠 Tiltak",
+      "closed": "✓ Lukket",
+      "severity": "Alvorlighet: {severity}"
+    },
+    "type": {
+      "AVVIK": "⚠️ Avvik",
+      "NESTEN": "🟡 Nestenulykke",
+      "SKADE": "🔴 Skade",
+      "FARLIG_SITUASJON": "🟠 Farlig situasjon",
+      "YRKESSYKDOM": "🩺 Yrkessykdom",
+      "MILJO": "🌍 Miljø",
+      "KVALITET": "📋 Kvalitet"
+    },
+    "statusHelp": {
+      "title": "📚 Status-forklaring",
+      "reportedLabel": "🕐 Rapportert:",
+      "reportedText": "Avviket er mottatt og venter på behandling.",
+      "underReviewLabel": "🔍 Undersøkes:",
+      "underReviewText": "HMS-ansvarlig jobber med saken.",
+      "closedLabel": "✓ Lukket:",
+      "closedText": "Avviket er behandlet og tiltak er gjennomført."
+    },
+    "emergency": {
+      "title": "🚨 Ved akutt fare",
+      "description": "Ring 110 (brann), 112 (politi) eller 113 (ambulanse) FØRST! Rapporter deretter avviket her."
+    }
+  },
+  "employeeFormsPage": {
+    "header": {
+      "title": "Digitale skjemaer",
+      "description": "Fyll ut og signer skjemaer digitalt",
+      "toggleScoped": "Vis bransjetilpasset",
+      "toggleAll": "Vis alle skjemaer"
+    },
+    "empty": "Ingen skjemaer tilgjengelig for øyeblikket",
+    "fieldCount": "{count} felt",
+    "badges": {
+      "requiresSignature": "✍️ Krever signatur",
+      "requiresApproval": "✅ Krever godkjenning"
+    },
+    "tip": {
+      "title": "💡 Tips:",
+      "description": "Trykk på et skjema for å fylle det ut. Hvis skjemaet krever signatur, vil du kunne signere digitalt på slutten."
+    },
+    "categories": {
+      "CUSTOM": "Egendefinert",
+      "MEETING": "Møtereferat",
+      "INSPECTION": "Inspeksjon",
+      "INCIDENT": "Hendelsesrapport",
+      "RISK": "Risikovurdering",
+      "TRAINING": "Opplæring",
+      "CHECKLIST": "Sjekkliste",
+      "TIMESHEET": "Timeliste",
+      "WELLBEING": "Psykososialt arbeidsmiljø"
+    }
+  },
+  "employeeInspectionsPage": {
+    "status": {
+      "planned": "Planlagt",
+      "inProgress": "Pågår",
+      "completed": "Fullført",
+      "cancelled": "Avbrutt"
+    },
+    "header": {
+      "title": "Vernerunder",
+      "description": "Planlagte og gjennomførte vernerunder du er involvert i"
+    },
+    "sections": {
+      "upcoming": "Planlagte / pågående",
+      "previous": "Tidligere vernerunder"
+    },
+    "empty": {
+      "upcoming": "Ingen planlagte vernerunder for øyeblikket"
+    },
+    "labels": {
+      "responsible": "Ansvarlig",
+      "responsibleWithName": "Ansvarlig: {name}",
+      "unknown": "Ukjent"
+    },
+    "actions": {
+      "fillOut": "Fyll ut",
+      "viewReport": "Se rapport"
+    },
+    "info": {
+      "title": "📋 Vernerunde (AML § 6-2):",
+      "description": "Regelmessige vernerunder er påkrevd for å kartlegge arbeidsmiljøet. Du vises her fordi du er ansvarlig for eller deltaker i disse rundene."
+    }
+  },
+  "employeeProfilePage": {
+    "header": {
+      "title": "Min profil",
+      "description": "Administrer din profil og kontaktinformasjon"
+    },
+    "profileInfo": {
+      "title": "Profilinformasjon"
+    },
+    "companyInfo": {
+      "title": "Bedriftsinformasjon",
+      "role": "Rolle: {role}",
+      "department": "Avdeling: {department}",
+      "employeeNumber": "Ansattnr.:"
+    },
+    "exposure": {
+      "title": "Eksponeringsregister",
+      "subtitle": "Dine registrerte eksponeringer for helseskadelige stoffer og faktorer",
+      "downloadPdf": "Last ned PDF",
+      "empty": "Du er ikke registrert i eksponeringsregisteret. Har du spørsmål om dette, ta kontakt med din HMS-ansvarlig.",
+      "warning": "Du er registrert i eksponeringsregisteret. Disse opplysningene oppbevares i {year} og kan brukes som dokumentasjon ved eventuell yrkessykdom.",
+      "status": {
+        "active": "Pågående",
+        "closed": "Avsluttet"
+      },
+      "labels": {
+        "type": "Type:",
+        "from": "Fra:",
+        "to": "Til:",
+        "ppe": "Verneutstyr:",
+        "retentionUntil": "Oppbevares til:"
+      },
+      "types": {
+        "INHALATION": "Innånding",
+        "SKIN": "Hudkontakt",
+        "NOISE": "Støy",
+        "VIBRATION": "Vibrasjon",
+        "BIOLOGICAL": "Biologisk",
+        "RADIATION": "Stråling",
+        "OTHER": "Annet"
+      },
+      "healthCheck": {
+        "done": "Helsekontroll gjennomført{date}",
+        "pending": "Helsekontroll er påkrevd – ikke gjennomført ennå"
+      },
+      "footer": "Har du spørsmål om registreringene? Kontakt din HMS-ansvarlig. Du har rett til innsyn i egne opplysninger etter arbeidsmiljøloven."
+    }
+  },
+  "employeeDocumentsPage": {
+    "header": {
+      "title": "📄 Dokumenter",
+      "description": "HMS-dokumenter og prosedyrer du har tilgang til"
+    },
+    "empty": "Ingen dokumenter tilgjengelig ennå",
+    "kind": {
+      "LAW": "⚖️ Lover og regler",
+      "PROCEDURE": "📋 Prosedyre (ISO 9001)",
+      "CHECKLIST": "✅ Sjekkliste",
+      "FORM": "📝 Skjema",
+      "SDS": "⚠️ Sikkerhetsdatablad (SDS)",
+      "PLAN": "📖 HMS-håndbok / Plan",
+      "OTHER": "📄 Annet"
+    },
+    "approvedBadge": "✓ Godkjent",
+    "approvedBy": "av {name}",
+    "tip": {
+      "title": "💡 Tips:",
+      "description": "Trykk på et dokument for å lese det eller laste det ned. Alle dokumenter er godkjent og oppdatert."
+    }
+  },
+  "employeeTrainingPage": {
+    "header": {
+      "title": "Min opplæring",
+      "description": "Oversikt over påkrevd og gjennomført opplæring",
+      "addCompetence": "Legg til egen kompetanse"
+    },
+    "approvalInfo": {
+      "title": "💡 Viktig:",
+      "description": "Når du registrerer gjennomført opplæring, må den godkjennes av din leder før den blir aktiv i systemet."
+    },
+    "required": {
+      "title": "Påkrevd opplæring",
+      "count": "{count} kurs",
+      "empty": "Ingen påkrevd opplæring for øyeblikket",
+      "completed": "✓ Gjennomført",
+      "register": "Registrer"
+    },
+    "myRecords": {
+      "title": "Mine registreringer",
+      "empty": "Du har ikke registrert noen opplæring ennå",
+      "completedAt": "Gjennomført: {date}",
+      "pendingApproval": "Venter på godkjenning",
+      "approved": "Godkjent",
+      "approvedBy": "Godkjent av: {name}"
+    },
+    "help": {
+      "title": "📚 Hvordan fungerer det?",
+      "step1": {
+        "label": "1. Gjennomfør opplæring:",
+        "text": "Delta på kurs eller les gjennom materiell."
+      },
+      "step2": {
+        "label": "2. Registrer:",
+        "text": "Klikk \"Registrer\" og last opp bevis (sertifikat, signert liste, etc.)."
+      },
+      "step3": {
+        "label": "3. Venter godkjenning:",
+        "text": "Din leder vil gjennomgå og godkjenne opplæringen."
+      },
+      "step4": {
+        "label": "4. Godkjent:",
+        "text": "Opplæringen er nå registrert i ditt HMS-profil."
+      }
+    }
+  },
+  "employeeTrainingNewPage": {
+    "errors": {
+      "fileTooLarge": "Filen er for stor. Maks 10MB.",
+      "requiredFields": "Fyll ut alle obligatoriske felt",
+      "fileUploadFailed": "Feil ved opplasting av fil",
+      "registrationFailed": "Feil ved registrering",
+      "generic": "Noe gikk galt. Prøv igjen."
+    },
+    "success": {
+      "registeredPendingApproval": "Kompetansen er registrert! Venter på godkjenning fra leder."
+    },
+    "header": {
+      "back": "Tilbake til min opplæring",
+      "title": "Legg til egen kompetanse",
+      "description": "Registrer kurs, sertifikater eller annen kompetanse du har oppnådd"
+    },
+    "info": {
+      "title": "💡 Viktig:",
+      "description": "Kompetansen må godkjennes av din leder før den blir aktiv i HMS-systemet. Du vil få en bekreftelse når den er godkjent."
+    },
+    "form": {
+      "title": "Registrer kompetanse",
+      "description": "Fyll ut informasjon om kurset eller sertifikatet du har gjennomført",
+      "fields": {
+        "title": {
+          "label": "Kurstittel / Sertifikat",
+          "placeholder": "F.eks. Førstehjelp, HMS-kurs, Verneombud, etc."
+        },
+        "description": {
+          "label": "Beskrivelse",
+          "placeholder": "Kort beskrivelse av hva kurset omfattet..."
+        },
+        "provider": {
+          "label": "Kursholder / Leverandør",
+          "placeholder": "F.eks. Norsk Førstehjelpsråd, Arbeidstilsynet, etc."
+        },
+        "completedAt": {
+          "label": "Gjennomført dato"
+        },
+        "certificate": {
+          "label": "Last opp bevis (sertifikat, diplom, etc.)",
+          "uploadCta": "Klikk for å laste opp fil",
+          "help": "PDF, JPG eller PNG (maks 10MB)"
+        }
+      },
+      "actions": {
+        "submitting": "Registrerer...",
+        "submit": "Registrer kompetanse",
+        "cancel": "Avbryt"
+      }
+    },
+    "help": {
+      "title": "📚 Hva kan registreres?",
+      "items": {
+        "i1": "✅ HMS-relaterte kurs (førstehjelp, brannvern, etc.)",
+        "i2": "✅ Faglige sertifiseringer og kompetansebevis",
+        "i3": "✅ Sikkerhetskurs og opplæring",
+        "i4": "✅ Verneombudopplæring",
+        "i5": "✅ Annen relevant kompetanse for din stilling"
+      }
+    }
+  },
+  "employeeTrainingDetailPage": {
+    "header": {
+      "back": "Tilbake til opplæring"
+    },
+    "badges": {
+      "required": "Påkrevd kurs",
+      "approved": "Godkjent",
+      "pending": "Venter på godkjenning",
+      "expired": "Utløpt",
+      "expiringSoon": "Utløper snart"
+    },
+    "alerts": {
+      "pending": {
+        "title": "⏳ Venter på godkjenning:",
+        "description": "Din leder vil gjennomgå og godkjenne opplæringen din."
+      },
+      "expired": {
+        "title": "⚠️ Kurset er utløpt:",
+        "description": "Dette kurset må fornyes. Ta kontakt med din leder."
+      },
+      "expiringSoon": {
+        "title": "🔔 Kurset utløper snart:",
+        "description": "Dette kurset må snart fornyes. Planlegg fornyelse i god tid."
+      }
+    },
+    "documentation": {
+      "title": "Dokumentasjon",
+      "description": "Ditt opplastede bevis",
+      "download": "Last ned bevis/diplom"
+    },
+    "details": {
+      "title": "Opplæringsinformasjon",
+      "description": "Detaljer om gjennomført opplæring",
+      "provider": "Kursleverandør",
+      "completedAt": "Gjennomført",
+      "validUntil": "Gyldig til",
+      "createdAt": "Registrert",
+      "approvedBy": "Godkjent av",
+      "approvedDate": "Godkjent dato",
+      "trainingDescription": "Beskrivelse",
+      "effectiveness": "Effektivitetsvurdering"
+    },
+    "tip": {
+      "title": "💡 Tips:",
+      "description": "Hvis du har spørsmål om opplæringen eller trenger å fornye kurset, ta kontakt med din leder eller HMS-ansvarlig."
+    }
+  },
+  "employeeTrainingRegisterPage": {
+    "toasts": {
+      "noFile": {
+        "title": "Ingen fil valgt",
+        "description": "Vennligst velg en fil å laste opp"
+      },
+      "uploadSuccess": {
+        "title": "✅ Fil lastet opp",
+        "description": "Beviset er lastet opp"
+      },
+      "uploadFailed": {
+        "title": "Opplasting feilet",
+        "description": "Opplasting feilet"
+      },
+      "notLoggedIn": {
+        "title": "Ikke innlogget",
+        "description": "Du må være innlogget for å registrere opplæring"
+      },
+      "missingDate": {
+        "title": "Mangler dato",
+        "description": "Vennligst fyll ut når kurset ble gjennomført"
+      },
+      "missingProof": {
+        "title": "Mangler bevis",
+        "description": "Vennligst last opp bevis/diplom før du sender inn"
+      },
+      "registered": {
+        "title": "✅ Opplæring registrert",
+        "description": "Opplæringen er sendt til godkjenning hos din leder"
+      },
+      "registrationFailed": {
+        "title": "Registrering feilet",
+        "description": "Registrering feilet"
+      }
+    },
+    "notFound": {
+      "title": "Opplæring ikke funnet",
+      "back": "Tilbake til opplæring"
+    },
+    "header": {
+      "back": "Tilbake til opplæring",
+      "title": "Registrer opplæring",
+      "requiredBadge": "Påkrevd kurs"
+    },
+    "info": {
+      "title": "💡 Viktig:",
+      "description": "Last opp bevis (sertifikat, diplom, signert deltakerliste) for å dokumentere at du har gjennomført opplæringen. Din leder vil gjennomgå og godkjenne registreringen."
+    },
+    "form": {
+      "title": "Opplysninger",
+      "description": "Fyll ut informasjon om gjennomført opplæring",
+      "fields": {
+        "provider": {
+          "label": "Kursleverandør / Arrangør",
+          "placeholder": "F.eks. Røde Kors, HMS Nova, Internt"
+        },
+        "completedAt": {
+          "label": "Dato gjennomført"
+        },
+        "validUntil": {
+          "label": "Gyldig til (hvis aktuelt)",
+          "help": "Noen kurs har utløpsdato og må fornyes (f.eks. førstehjelpskurs)"
+        },
+        "file": {
+          "label": "Last opp bevis (PDF eller bilde)",
+          "uploading": "Laster opp...",
+          "upload": "Last opp fil",
+          "ready": "Fil lastet opp og klar for innsending",
+          "help": "Last opp sertifikat, diplom eller annen dokumentasjon. Maks 10MB."
+        }
+      },
+      "actions": {
+        "submitting": "Sender inn...",
+        "submit": "Send til godkjenning",
+        "cancel": "Avbryt"
+      }
+    },
+    "help": {
+      "title": "❓ Trenger du hjelp?",
+      "afterSubmitTitle": "Hva skjer etter innsending?",
+      "afterSubmitText": "Din leder vil motta en varsling og gjennomgå dokumentasjonen din. De vil godkjenne opplæringen hvis alt er i orden, eller kontakte deg hvis noe mangler.",
+      "uploadIssueTitle": "Har du problemer med opplasting?",
+      "uploadIssueText": "Kontakt din leder eller HMS-ansvarlig hvis du har tekniske problemer eller spørsmål."
+    }
+  },
+  "employeeDocumentDetailPage": {
+    "header": {
+      "back": "Tilbake til dokumenter"
+    },
+    "kind": {
+      "LAW": "⚖️ Lover og regler",
+      "PROCEDURE": "📋 Prosedyre (ISO 9001)",
+      "CHECKLIST": "✅ Sjekkliste",
+      "FORM": "📝 Skjema",
+      "SDS": "⚠️ Sikkerhetsdatablad (SDS)",
+      "PLAN": "📖 HMS-håndbok / Plan",
+      "OTHER": "📄 Annet"
+    },
+    "approvedBadge": "✓ Godkjent",
+    "documentCard": {
+      "title": "Dokument",
+      "descriptionWord": "Åpne dokumentet som PDF i nettleser, eller last ned original Word-fil.",
+      "descriptionDefault": "Åpne i nettleser eller last ned.",
+      "view": "Se dokument",
+      "download": "Last ned dokument",
+      "downloadOriginal": "Last ned original (.docx)"
+    },
+    "details": {
+      "title": "Dokumentinformasjon",
+      "description": "Metadata og detaljer",
+      "version": "Versjon",
+      "approvedBy": "Godkjent av",
+      "approvedAt": "Godkjent dato",
+      "nextReview": "Neste revisjon",
+      "updatedAt": "Sist oppdatert"
+    },
+    "tip": {
+      "title": "💡 Tips:",
+      "description": "Dette er et godkjent dokument som du kan laste ned og bruke. Hvis du har spørsmål om dokumentet, kontakt HMS-ansvarlig."
+    }
+  },
+  "employeeChemicalsPage": {
+    "searchPlaceholder": "Søk etter produktnavn, leverandør eller CAS-nummer...",
+    "showingCount": "Viser {filtered} av {total} kjemikalier",
+    "emptySearch": "Ingen kjemikalier funnet",
+    "emptyAll": "Ingen kjemikalier registrert ennå",
+    "labels": {
+      "supplier": "Leverandør: {supplier}",
+      "hStatements": "H-setninger (Faresetninger):",
+      "hazardPictogramAlt": "Farepiktogram",
+      "notes": "Notater:",
+      "ppe": "Verneutstyr:",
+      "ppeAlt": "PPE",
+      "sds": "SDS"
+    }
+  },
+  "employeeWhistleblowingPage": {
+    "tenantFallback": "din bedrift",
+    "hero": {
+      "title": "Anonym varsling",
+      "description": "Trygg og konfidensiell kanal for å varsle om kritiske forhold"
+    },
+    "confidential": {
+      "title": "100% konfidensiell og trygg",
+      "description": "Alle varslinger behandles konfidensielt. Du kan velge å være helt anonym eller oppgi kontaktinformasjon hvis du ønsker tilbakemelding."
+    },
+    "whatToReport": {
+      "title": "Hva kan jeg varsle om?",
+      "description": "Varslingskanalen kan brukes til å melde fra om kritiske forhold",
+      "items": {
+        "harassment": {
+          "title": "Trakassering & diskriminering",
+          "description": "Mobbing, seksuell trakassering, diskriminering"
+        },
+        "hse": {
+          "title": "HMS & sikkerhet",
+          "description": "Farlige arbeidsforhold, manglende sikkerhet"
+        },
+        "corruption": {
+          "title": "Korrupsjon & underslag",
+          "description": "Økonomisk kriminalitet, interessekonflikter"
+        },
+        "ethics": {
+          "title": "Etikk & lovbrudd",
+          "description": "Brudd på lover, etiske retningslinjer"
+        }
+      }
+    },
+    "howItWorks": {
+      "title": "Slik fungerer det",
+      "step1": {
+        "title": "Fyll ut varslingssskjemaet",
+        "description": "Beskriv situasjonen så detaljert som mulig. Du kan velge å være anonym."
+      },
+      "step2": {
+        "title": "Motta saksnummer og tilgangskode",
+        "description": "Du får et unikt saksnummer og tilgangskode for å følge opp saken."
+      },
+      "step3": {
+        "title": "Saken behandles konfidensielt",
+        "description": "HMS-ansvarlig eller annen saksbehandler tar saken videre."
+      },
+      "step4": {
+        "title": "Kommuniser anonymt",
+        "description": "Du kan sende og motta meldinger via sporingssiden uten å avsløre identitet."
+      }
+    },
+    "tenantChannel": {
+      "title": "{tenantName} sin unike varslingskanal",
+      "description": "Dette er din bedrifts egen, private varslingskanal",
+      "alertTitle": "✅ Varslinger går direkte til {tenantName}",
+      "alertDescriptionPrefix": "Alle varslinger som sendes via denne lenken går",
+      "only": "kun",
+      "alertDescriptionSuffix": "til din bedrifts HMS-ansvarlige eller ledelse. Ingen andre bedrifter eller HMS Nova ser disse varslingene.",
+      "linkLabel": "Din bedrifts varslingslenke:",
+      "howTitle": "💡 Slik fungerer det:",
+      "points": {
+        "p1": "• Varslinger lagres kun i {tenantName} sin database",
+        "p2": "• Kun autoriserte personer i {tenantName} kan lese varslingene",
+        "p3": "• Varsler kan være 100% anonyme med kommunikasjon via saksnummer",
+        "p4": "• Lenken kan trygt deles med ansatte og eksterne"
+      }
+    },
+    "actions": {
+      "new": {
+        "title": "Send ny varsling",
+        "description": "Opprett en ny anonym varsling",
+        "button": "Send varsling",
+        "unavailable": "Varslingslenke ikke tilgjengelig"
+      },
+      "track": {
+        "title": "Spor eksisterende sak",
+        "description": "Følg opp en tidligere varsling",
+        "button": "Spor saken min"
+      }
+    },
+    "legal": {
+      "title": "Juridisk beskyttelse",
+      "descriptionPrefix": "Som varslere er du beskyttet av arbeidsmiljølovens § 2A (varslingsreglene). Du har rett til å varsle om kritiske forhold uten å risikere gjengjeldelse. Les mer om dine rettigheter på",
+      "linkText": "Arbeidstilsynet.no"
+    }
+  },
+  "employeeChemicalDetailPage": {
+    "back": "Tilbake til stoffkartotek",
+    "supplier": "Leverandør: {name}",
+    "overdue": {
+      "title": "⚠️ Varsel",
+      "description": "Dette kjemikaliet har forfalt revisjonsdato. Kontakt HMS-ansvarlig før bruk."
+    },
+    "sds": {
+      "title": "Sikkerhetsdatablad (SDS)",
+      "description": "Les alltid sikkerhetsdatabladet før bruk!",
+      "version": "Versjon",
+      "date": "Dato",
+      "nextReview": "Neste revisjon",
+      "overdueBadge": "Forfalt!",
+      "download": "Last ned sikkerhetsdatablad (PDF)",
+      "missing": "⚠️ Sikkerhetsdatablad mangler - kontakt HMS-ansvarlig"
+    },
+    "product": {
+      "title": "Produktinformasjon",
+      "description": "Detaljer om produktet",
+      "cas": "CAS-nummer",
+      "location": "Lagringssted",
+      "quantity": "Mengde"
+    },
+    "hazard": {
+      "title": "Faremarkering",
+      "description": "GHS/CLP-klassifisering",
+      "hStatements": "H-setninger (Faresetninger)",
+      "pictograms": "Faresymboler",
+      "pictogramAlt": "Faresymbol"
+    },
+    "ppe": {
+      "title": "🛡️ Påkrevd personlig verneutstyr (PPE)",
+      "description": "Dette verneutstyret MÅ benyttes ved bruk av dette produktet",
+      "alt": "PPE-krav"
+    },
+    "notes": {
+      "title": "Tilleggsinfo",
+      "description": "Notater"
+    },
+    "tip": {
+      "title": "💡 Husk:",
+      "description": "Ved usikkerhet eller spørsmål, kontakt HMS-ansvarlig før bruk. Les alltid sikkerhetsdatabladet grundig!"
+    }
+  },
+  "employeeTimeRegistrationPage": {
+    "back": "Tilbake",
+    "backToOverview": "Tilbake til oversikt",
+    "title": "Timeføring",
+    "description": "Registrer timer og km godtgjørelse per prosjekt",
+    "loadError": "Kunne ikke laste oversikt. Prøv igjen senere.",
+    "disabled": {
+      "title": "Timeføring er ikke aktivert",
+      "description": "Kontakt din leder eller administrator for å aktivere timeregistrering for bedriften."
+    },
+    "form": {
+      "title": "Registrer timer og kjøring",
+      "description": "Arbeid, reise, sykefravær og km godtgjørelse – ordinær og overtid beregnes automatisk"
+    },
+    "overview": {
+      "title": "Mine registreringer",
+      "description": "Ordinære timer og overtid for gjeldende måned – oversikt for lønn"
+    }
+  },
+  "employeeRuhThanksPage": {
+    "title": "Takk for rapporten!",
+    "description": "Din RUH-rapport er registrert og HMS-ansvarlig er varslet. Du vil få beskjed når rapporten er behandlet.",
+    "backHome": "Tilbake til forsiden",
+    "newReport": "Send ny RUH-rapport"
+  },
+  "employeeIncidentThanksPage": {
+    "title": "Takk for rapporten!",
+    "description": "Avviket er registrert og HMS-ansvarlig er varslet. Du vil få beskjed når avviket er behandlet.",
+    "backHome": "Tilbake til forsiden",
+    "newReport": "Rapporter nytt avvik"
+  },
+  "employeeNotificationsPage": {
+    "title": "Alle varslinger"
+  },
+  "employeeRuhPage": {
+    "title": "Mine RUH-rapporter",
+    "description": "Rapport om uønskede hendelser",
+    "newReport": "Ny rapport",
+    "stats": {
+      "submitted": "Innsendt",
+      "underReview": "Behandles",
+      "completed": "Ferdig"
+    },
+    "info": {
+      "title": "Hva er RUH?",
+      "description": "En RUH (Rapport om Uønsket Hendelse) brukes til å rapportere hendelser som kunne ha ført til, eller førte til, personskade, materiell skade eller miljøskade. Ved å rapportere bidrar du til et tryggere arbeidsmiljø."
+    },
+    "reports": {
+      "title": "Mine rapporter ({count})",
+      "empty": {
+        "title": "Ingen rapporter ennå",
+        "description": "Du har ikke sendt inn noen RUH-rapporter ennå.",
+        "cta": "Send din første rapport"
+      }
+    },
+    "status": {
+      "submitted": "Innsendt",
+      "underReview": "Under behandling",
+      "completed": "Behandlet"
+    },
+    "categories": {
+      "PERSONSKADE": "Personskade",
+      "NESTENULYKKE": "Nestenulykke",
+      "MATERIELL_SKADE": "Materiell skade",
+      "BRANN_EKSPLOSJON": "Brann / Eksplosjon",
+      "UTSLIPP_MILJO": "Utslipp / Miljø",
+      "TRUSLER_VOLD": "Trusler / Vold",
+      "ERGONOMI": "Ergonomi",
+      "ANNET": "Annet"
+    },
+    "injuryOccurred": "Personskade",
+    "location": "Sted: {location}",
+    "occurredAtLabel": "Hendelsesdato:"
+  },
+  "employeeSjaPage": {
+    "title": "Mine SJA-analyser",
+    "description": "Sikker Jobb Analyse - identifiser farer før arbeidet starter",
+    "new": "Ny SJA",
+    "stats": {
+      "draft": "Utkast",
+      "active": "Aktive",
+      "completed": "Fullført"
+    },
+    "templates": {
+      "button": "Maler",
+      "availableSingle": "{count} SJA-mal tilgjengelig",
+      "availableMultiple": "{count} SJA-maler tilgjengelig",
+      "description": "Bruk en mal for å raskt opprette SJA for gjentakende arbeidsoppgaver",
+      "view": "Se maler"
+    },
+    "info": {
+      "title": "Hva er SJA?",
+      "description": "En Sikker Jobb Analyse (SJA) er en systematisk gjennomgang av faremomentene ved en arbeidsoppgave. SJA skal gjennomføres FØR arbeidet starter, og alle involverte skal delta i gjennomgangen."
+    },
+    "analyses": {
+      "title": "Mine analyser ({count})",
+      "empty": {
+        "title": "Ingen SJA-analyser ennå",
+        "description": "Opprett din første SJA for å sikre trygt arbeid.",
+        "cta": "Opprett din første SJA"
+      }
+    },
+    "status": {
+      "DRAFT": "Utkast",
+      "ACTIVE": "Aktiv",
+      "COMPLETED": "Fullført",
+      "CANCELLED": "Kansellert"
+    },
+    "conclusion": {
+      "NOT_DECIDED": "Ikke avgjort",
+      "APPROVED": "Godkjent - arbeid kan starte",
+      "CONDITIONAL": "Betinget godkjent",
+      "REJECTED": "Avvist - arbeid kan IKKE starte"
+    },
+    "hazards": {
+      "single": "{count} fare",
+      "multiple": "{count} farer"
+    },
+    "highRisk": "Høy risiko ({level})",
+    "location": "Sted: {value}",
+    "planned": "Planlagt"
+  },
+  "employeeSjaNewPage": {
+    "title": "Ny Sikker Jobb Analyse (SJA)",
+    "titleFromTemplate": "Fyll ut SJA",
+    "description": "Gjennomfør en SJA før arbeidet starter for å identifisere og håndtere farer",
+    "template": {
+      "title": "Mal: {name}",
+      "description": "- Farer og tiltak er forhåndsutfylt. Du MÅ fylle ut dato, deltakere og vurdere om det er spesielle forhold i dag. Du kan også legge til eller fjerne farer."
+    },
+    "important": {
+      "title": "Viktig:",
+      "description": "SJA skal gjennomføres i fellesskap med alle som deltar i arbeidet. Alle farer skal identifiseres og tiltak beskrives FØR arbeidet starter. Alle deltakere skal bekrefte at de har forstått farene og tiltakene."
+    },
+    "project": "Registreres på prosjekt: {name}",
+    "formTitle": "SJA-skjema",
+    "employeeFallback": "Ansatt",
+    "howTo": {
+      "title": "Slik fyller du ut SJA",
+      "stepsTitle": "Steg for steg:",
+      "steps": {
+        "s1": "Fyll inn dato, arbeidssted og alle deltakere",
+        "s2": "Vurder om det er spesielle forhold i dag (vær, nye folk, endringer)",
+        "s3": "Gå gjennom alle farer - legg til nye om nødvendig",
+        "s4": "Sørg for at tiltak er beskrevet for hver fare",
+        "s5": "Ta bilder av arbeidsområdet hvis relevant",
+        "s6": "Alle deltakere skal bekrefte at de har forstått"
+      },
+      "repeatTitle": "Når skal SJA gjøres på nytt?",
+      "repeat": {
+        "r1": "Selv om du bruker en mal, skal SJA alltid fylles ut på nytt hver dag",
+        "r2": "Forholdene kan endre seg (vær, personell, utstyr)",
+        "r3": "Nye farer kan ha oppstått siden sist"
+      }
+    }
+  },
+  "employeeSjaTemplatesPage": {
+    "title": "SJA-maler",
+    "description": "Bruk en mal for raskt å opprette SJA for gjentakende arbeidsoppgaver",
+    "dailyUse": {
+      "title": "Daglig bruk:",
+      "description": "Velg en mal og klikk \"Bruk mal\" for å opprette en ny SJA med forhåndsutfylte farer og tiltak. Du kan justere innholdet etter behov."
+    },
+    "empty": {
+      "title": "Ingen maler opprettet",
+      "description": "Administrator eller HMS-ansvarlig kan opprette SJA-maler fra dashboard."
+    },
+    "workLocation": "Arbeidssted: {value}",
+    "hazards": {
+      "definedSingle": "{count} fare definert:",
+      "definedMultiple": "{count} farer definert:",
+      "measures": "Tiltak: {value}"
+    }
+  },
+  "employeeIncidentNewPage": {
+    "title": "Rapporter avvik",
+    "description": "Meld fra om farlige situasjoner, ulykker eller nestenulykker",
+    "emergency": {
+      "title": "🚨 Ved akutt fare:",
+      "description": "Ring 110 (brann), 112 (politi) eller 113 (ambulanse) FØRST! Rapporter deretter avviket her."
+    },
+    "formTitle": "Avviksskjema",
+    "employeeFallback": "Ansatt",
+    "help": {
+      "title": "💡 Hva skal jeg rapportere?",
+      "reportAlways": "✅ Rapporter alltid:",
+      "items": {
+        "i1": "Ulykker og personskader",
+        "i2": "Nestenulykker (kunne endt med skade)",
+        "i3": "Farlige situasjoner",
+        "i4": "Defekt utstyr eller verktøy",
+        "i5": "Manglende sikkerhetsutstyr",
+        "i6": "Forurensning eller utslipp"
+      },
+      "remember": "📝 Husk:",
+      "rememberDescription": "Jo mer detaljer du gir, jo bedre kan vi forebygge lignende hendelser. Alle rapporter behandles konfidensielt."
+    }
+  },
+  "employeeRuhNewPage": {
+    "title": "Rapport om uønsket hendelse (RUH)",
+    "description": "Meld fra om uønskede hendelser for å bidra til et tryggere arbeidsmiljø",
+    "emergency": {
+      "title": "Ved akutt fare:",
+      "description": "Ring 110 (brann), 112 (politi) eller 113 (ambulanse) FØRST! Rapporter deretter hendelsen her."
+    },
+    "formTitle": "RUH-skjema",
+    "employeeFallback": "Ansatt",
+    "help": {
+      "title": "Hva skal rapporteres?",
+      "reportAlways": "Rapporter alltid:",
+      "items": {
+        "i1": "Personskader (stor eller liten)",
+        "i2": "Nestenulykker (kunne endt med skade)",
+        "i3": "Materiell skade (utstyr, bygning)",
+        "i4": "Brann eller eksplosjon",
+        "i5": "Utslipp eller miljøskade",
+        "i6": "Trusler eller vold",
+        "i7": "Ergonomiske forhold som gir plager"
+      },
+      "remember": "Husk:",
+      "rememberDescription": "Detaljerte rapporter gir bedre forebygging. Alle rapporter behandles konfidensielt."
+    }
+  },
+  "employeeRuhForm": {
+    "errors": {
+      "submitFailed": "Kunne ikke sende rapport"
+    },
+    "toast": {
+      "success": {
+        "title": "RUH-rapport sendt",
+        "description": "Takk for rapporten! HMS-ansvarlig er varslet."
+      },
+      "error": {
+        "title": "Feil",
+        "description": "Kunne ikke sende rapport. Prøv igjen."
+      }
+    },
+    "contextPresets": {
+      "general": {
+        "titlePlaceholder": "F.eks: Fall fra stige på lager"
+      },
+      "homeVisitRisk": {
+        "titlePlaceholder": "F.eks: Utrygg situasjon ved hjemmebesøk",
+        "detailsLabel": "Hva gjorde situasjonen risikofylt?",
+        "detailsPlaceholder": "F.eks. alenearbeid uten støtte, utrygg adkomst, trusselsignal"
+      },
+      "infectionExposure": {
+        "titlePlaceholder": "F.eks: Mulig smitteeksponering i oppdrag",
+        "detailsLabel": "Beskriv eksponeringen",
+        "detailsPlaceholder": "Hva ble du eksponert for, hvordan, og hvilke strakstiltak ble gjort?"
+      },
+      "medicationNearMiss": {
+        "titlePlaceholder": "F.eks: Nesten-feil i medikamenthåndtering",
+        "detailsLabel": "Hva stoppet feilen?",
+        "detailsPlaceholder": "Beskriv kontrollpunktet og hva som sviktet i prosessen"
+      },
+      "violenceThreat": {
+        "titlePlaceholder": "F.eks: Trussel fra bruker/pårørende",
+        "detailsLabel": "Beskriv hendelsesforløpet",
+        "detailsPlaceholder": "Hvem var til stede, hvordan ble situasjonen håndtert, og om alarm ble brukt"
+      }
+    },
+    "fields": {
+      "ruhContext": {
+        "label": "Hendelseskontekst *",
+        "placeholder": "Velg kontekst",
+        "options": {
+          "general": "Generell RUH",
+          "homeVisitRisk": "Hjemmebesøk - risikosituasjon",
+          "infectionExposure": "Smitteeksponering",
+          "medicationNearMiss": "Nesten-feil medikament",
+          "violenceThreat": "Vold eller trusler"
+        }
+      },
+      "category": {
+        "label": "Kategori *",
+        "placeholder": "Velg kategori",
+        "options": {
+          "PERSONSKADE": "Personskade",
+          "NESTENULYKKE": "Nestenulykke",
+          "MATERIELL_SKADE": "Materiell skade",
+          "BRANN_EKSPLOSJON": "Brann / Eksplosjon",
+          "UTSLIPP_MILJO": "Utslipp / Miljø",
+          "TRUSLER_VOLD": "Trusler / Vold",
+          "ERGONOMI": "Ergonomi",
+          "ANNET": "Annet"
+        }
+      },
+      "title": {
+        "label": "Kort beskrivelse av hendelsen *"
+      },
+      "location": {
+        "label": "Hvor skjedde hendelsen? *",
+        "placeholder": "F.eks: Verksted, bygg A, 2. etasje"
+      },
+      "description": {
+        "label": "Detaljert beskrivelse *",
+        "placeholder": "Beskriv hendelsen i detalj: hva skjedde, hvordan, under hvilke omstendigheter...",
+        "help": "Jo mer detaljer, jo bedre kan vi forebygge lignende hendelser"
+      },
+      "contextDetails": {
+        "help": "Notat lagres som RUH-kontekst (ikke pasientjournal)."
+      },
+      "involvedPersons": {
+        "label": "Hvem var involvert?",
+        "placeholder": "Navn og rolle på involverte personer"
+      },
+      "witnessName": {
+        "label": "Vitner",
+        "placeholder": "Navn på eventuelle vitner"
+      },
+      "injuryOccurred": {
+        "label": "Ble noen skadet?",
+        "help": "Oppgi om hendelsen medførte personskade"
+      },
+      "injuryDescription": {
+        "label": "Beskriv skaden",
+        "placeholder": "Type skade, kroppsdel, behandling gitt..."
+      },
+      "immediateAction": {
+        "label": "Umiddelbare tiltak som ble iverksatt",
+        "placeholder": "Hva ble gjort på stedet for å håndtere situasjonen?"
+      },
+      "suggestedActions": {
+        "label": "Foreslåtte tiltak for å forebygge",
+        "placeholder": "Hva kan gjøres for å unngå at dette skjer igjen?"
+      },
+      "images": {
+        "label": "Bilder (valgfritt, maks 5)",
+        "maxReached": "Maks 5 bilder",
+        "takeOrChoose": "Ta bilde eller velg fra album",
+        "count": "{count}/5 bilder lagt til",
+        "optional": "Valgfritt",
+        "previewAlt": "Forhåndsvisning {index}"
+      }
+    },
+    "actions": {
+      "sending": "Sender...",
+      "submit": "Send RUH-rapport",
+      "cancel": "Avbryt"
+    }
+  },
+  "employeeIncidentForm": {
+    "errors": {
+      "submitFailed": "Kunne ikke sende rapport"
+    },
+    "toast": {
+      "success": {
+        "title": "✅ Avvik rapportert",
+        "description": "Takk for rapporten! HMS-ansvarlig er varslet."
+      },
+      "error": {
+        "title": "❌ Feil",
+        "description": "Kunne ikke sende rapport. Prøv igjen."
+      }
+    },
+    "incidentTypes": {
+      "ULYKKE": "Arbeidsulykke / RUH",
+      "NESTEN": "Nestenulykke / RUH",
+      "FARLIG_SITUASJON": "Farlig situasjon / Observasjon",
+      "YRKESSYKDOM": "Yrkessykdom / Arbeidsrelatert sykdom",
+      "AVVIK": "Avvik",
+      "MILJO": "Miljøavvik",
+      "KVALITET": "Kvalitetsavvik",
+      "CUSTOMER": "Kundeklage"
+    },
+    "contextPresets": {
+      "general": {
+        "titlePlaceholder": "F.eks: Våt gulv uten varsling"
+      },
+      "homeVisitRisk": {
+        "titlePlaceholder": "F.eks: Utrygg situasjon ved hjemmebesøk",
+        "detailsLabel": "Hva gjorde situasjonen risikofylt?",
+        "detailsPlaceholder": "F.eks. manglende kontaktpunkt, trussel, utrygg adkomst, ingen kollegastøtte"
+      },
+      "infectionExposure": {
+        "titlePlaceholder": "F.eks: Smitteeksponering i oppdrag",
+        "detailsLabel": "Beskriv eksponeringen",
+        "detailsPlaceholder": "Hva ble du eksponert for, hvordan skjedde det, og hvilke tiltak ble gjort?"
+      },
+      "medicationNearMiss": {
+        "titlePlaceholder": "F.eks: Nesten-feil i medikamenthåndtering",
+        "detailsLabel": "Hva stoppet feilen før den nådde pasient?",
+        "detailsPlaceholder": "Beskriv kontrollpunktet og hvorfor feilen kunne oppstå"
+      },
+      "violenceThreat": {
+        "titlePlaceholder": "F.eks: Trussel fra bruker/pårørende",
+        "detailsLabel": "Beskriv hendelsesforløpet",
+        "detailsPlaceholder": "Hvem var til stede, hvordan ble situasjonen avverget, og om alarm/varsling ble brukt"
+      }
+    },
+    "fields": {
+      "project": {
+        "label": "Prosjekt / jobb",
+        "placeholder": "Velg prosjekt (valgfritt)",
+        "none": "— Ikke prosjektrelatert —",
+        "help": "Er avviket knyttet til et bestemt prosjekt eller oppdrag?"
+      },
+      "incidentContext": {
+        "label": "Hendelseskontekst *",
+        "placeholder": "Velg kontekst",
+        "options": {
+          "general": "Generell hendelse",
+          "homeVisitRisk": "Hjemmebesøk - risikosituasjon",
+          "infectionExposure": "Smitteeksponering",
+          "medicationNearMiss": "Nesten-feil medikament",
+          "violenceThreat": "Vold eller trusler"
+        }
+      },
+      "type": {
+        "label": "Type hendelse *",
+        "placeholder": "Velg type",
+        "groups": {
+          "hms": "HMS / Personskade",
+          "avvik": "Avvik / Kvalitet",
+          "other": "Annet"
+        }
+      },
+      "subcategories": {
+        "label": "Hva hendelsen dreier seg om",
+        "hint": "(velg én eller flere)",
+        "loading": "Laster underkategorier...",
+        "empty": "Ingen underkategorier konfigurert for valgt type."
+      },
+      "severity": {
+        "label": "Hvor alvorlig? *",
+        "placeholder": "Velg alvorlighetsgrad",
+        "options": {
+          "s5": "🔴 Kritisk (5) - Umiddelbar fare",
+          "s4": "🟠 Høy (4) - Alvorlig",
+          "s3": "🟡 Middels (3)",
+          "s2": "🟢 Lav (2)",
+          "s1": "⚪ Svært lav (1)"
+        }
+      },
+      "occurredAt": {
+        "label": "Når skjedde det? *"
+      },
+      "title": {
+        "label": "Kort beskrivelse *"
+      },
+      "location": {
+        "label": "Hvor skjedde det? *",
+        "placeholder": "F.eks: Verksted, bygg A"
+      },
+      "witnessName": {
+        "label": "Vitner",
+        "placeholder": "Navn på eventuelle vitner"
+      },
+      "description": {
+        "label": "Detaljert beskrivelse *",
+        "placeholder": "Beskriv hva som skjedde, hvem var involvert, hva var årsaken...",
+        "help": "Jo mer detaljer, jo bedre kan vi forebygge lignende hendelser"
+      },
+      "contextDetails": {
+        "help": "Notat lagres som kontekst i avviket (ikke pasientjournal)."
+      },
+      "involvedPersons": {
+        "label": "Hvem var involvert?",
+        "placeholder": "Navn eller roller på involverte personer"
+      },
+      "injuryType": {
+        "label": "Type skade/eksponering (valgfritt)",
+        "placeholder": "F.eks: Kuttskade, fallskade, kjemisk eksponering"
+      },
+      "customer": {
+        "title": "Kundeinformasjon",
+        "customerName": {
+          "label": "Kundenavn",
+          "placeholder": "Navn på kunde/bedrift"
+        },
+        "customerEmail": {
+          "label": "Kunde e-post",
+          "placeholder": "kunde@firma.no"
+        },
+        "customerPhone": {
+          "label": "Telefon",
+          "placeholder": "+47 99 99 99 99"
+        },
+        "customerTicketId": {
+          "label": "Referanse/saksnummer",
+          "placeholder": "F.eks. #12345"
+        },
+        "responseDeadline": {
+          "label": "Svarfrist"
+        },
+        "customerSatisfaction": {
+          "label": "Kundetilfredshet (1-5)",
+          "placeholder": "Velg vurdering"
+        }
+      },
+      "images": {
+        "label": "📸 Bilder (valgfritt, maks 5)",
+        "maxReached": "Maks 5 bilder",
+        "takeOrChoose": "Ta bilde eller velg fra album",
+        "count": "{count}/5 bilder lagt til",
+        "optional": "Valgfritt",
+        "previewAlt": "Forhåndsvisning {index}",
+        "help": "💡 Bilder hjelper oss å forstå situasjonen bedre og kan brukes til å forebygge lignende hendelser"
+      }
+    },
+    "actions": {
+      "sending": "Sender...",
+      "submit": "📤 Send rapport",
+      "cancel": "Avbryt"
+    }
+  },
+  "employeeRoutinesPage": {
+    "title": "Rutiner",
+    "description": "Les gjeldende rutiner for din bedrift.",
+    "goToForms": "Gå til skjemaer",
+    "empty": "Ingen rutiner tilgjengelig enda.",
+    "noDescription": "Ingen beskrivelse",
+    "status": {
+      "active": "Aktiv",
+      "draft": "Utkast",
+      "archived": "Arkivert"
+    }
+  },
+  "employeeRoutineDetailPage": {
+    "back": "Tilbake",
+    "legalReference": "Lovreferanse",
+    "status": {
+      "active": "Aktiv",
+      "draft": "Utkast",
+      "archived": "Arkivert"
+    }
+  },
+  "employeeLogoutButton": {
+    "title": "Logg ut",
+    "dialogTitle": "Logg ut?",
+    "dialogDescription": "Er du sikker på at du vil logge ut av HMS Nova?",
+    "cancel": "Avbryt",
+    "confirm": "Ja, logg ut"
+  },
+  "employeeProfileForm": {
+    "errors": {
+      "updateProfile": "Kunne ikke oppdatere profil",
+      "changePassword": "Kunne ikke endre passord"
+    },
+    "toast": {
+      "profileSuccess": {
+        "title": "✅ Profil oppdatert",
+        "description": "Dine endringer er lagret"
+      },
+      "passwordSuccess": {
+        "title": "✅ Passord endret",
+        "description": "Ditt nye passord er lagret"
+      },
+      "error": {
+        "title": "❌ Feil",
+        "profileDescription": "Kunne ikke oppdatere profil. Prøv igjen.",
+        "passwordDescription": "Kunne ikke endre passord. Prøv igjen.",
+        "passwordMismatch": "Nye passord matcher ikke"
+      }
+    },
+    "avatar": {
+      "alt": "Profilbilde",
+      "help": "Klikk på kamera-ikonet for å endre profilbilde"
+    },
+    "fields": {
+      "name": "Navn",
+      "email": "E-post",
+      "emailHelp": "E-postadressen kan ikke endres",
+      "phone": "Telefon",
+      "address": "Adresse",
+      "addressPlaceholder": "Eksempel: Storgata 1",
+      "postalCode": "Postnummer",
+      "city": "Poststed",
+      "preferredLocale": "Språk"
+    },
+    "password": {
+      "title": "Endre passord",
+      "current": "Nåværende passord",
+      "new": "Nytt passord",
+      "confirm": "Bekreft nytt passord",
+      "minLength": "Minimum 8 tegn"
+    },
+    "actions": {
+      "saving": "Lagrer...",
+      "save": "💾 Lagre endringer",
+      "changingPassword": "Endrer...",
+      "changePassword": "🔒 Endre passord"
+    }
+  },
+  "employeeSjaTemplateActions": {
+    "fill": "Fyll ut SJA"
+  },
+  "employeeSjaDeleteTemplateButton": {
+    "toast": {
+      "success": {
+        "title": "Mal slettet",
+        "description": "Malen \"{templateName}\" er fjernet."
+      },
+      "error": {
+        "title": "Feil",
+        "description": "Kunne ikke slette malen."
+      }
+    },
+    "dialog": {
+      "title": "Slett SJA-mal?",
+      "description": "Er du sikker på at du vil slette malen \"{templateName}\"? Malen vil ikke lenger være tilgjengelig for ansatte. Eksisterende SJA-er som er opprettet fra denne malen påvirkes ikke.",
+      "cancel": "Avbryt",
+      "confirm": "Slett mal"
+    }
+  },
+  "employeeSjaStatusActions": {
+    "title": "Handlinger",
+    "commentLabel": "Kommentar (valgfritt)",
+    "commentPlaceholder": "Evt. kommentar til godkjenning...",
+    "approve": "Godkjenn - arbeid kan starte",
+    "conditional": "Betinget godkjent",
+    "reject": "Avvis - arbeid kan IKKE starte",
+    "complete": "Fullfør SJA - arbeid er avsluttet",
+    "done": "Denne SJA-en er {status}.",
+    "status": {
+      "completed": "fullført",
+      "cancelled": "kansellert"
+    },
+    "toast": {
+      "success": {
+        "title": "SJA oppdatert",
+        "description": "Statusen er endret."
+      },
+      "error": {
+        "title": "Feil",
+        "description": "Kunne ikke oppdatere SJA."
+      }
+    }
+  },
+  "employeeSjaCreateTemplateButton": {
+    "newButton": "Ny SJA-mal",
+    "dialogTitle": "Opprett SJA-mal",
+    "fields": {
+      "name": {
+        "label": "Malnavn",
+        "placeholder": "F.eks: Arbeid i høyden"
+      },
+      "workLocation": {
+        "label": "Standard arbeidssted",
+        "placeholder": "Valgfritt - bruker kan endre"
+      },
+      "description": {
+        "label": "Beskrivelse",
+        "placeholder": "Beskriv når denne malen skal brukes..."
+      }
+    },
+    "hazards": {
+      "title": "Farer og tiltak",
+      "add": "Legg til",
+      "item": "Fare #{index}",
+      "activity": "Aktivitet *",
+      "hazard": "Fare/risiko *",
+      "consequence": "Mulig konsekvens",
+      "probability": "Sannsynlighet",
+      "severity": "Konsekvens",
+      "responsible": "Ansvarlig",
+      "measures": "Tiltak / barrierer *",
+      "probabilityOptions": {
+        "o1": "1 - Svært lav",
+        "o2": "2 - Lav",
+        "o3": "3 - Middels",
+        "o4": "4 - Høy",
+        "o5": "5 - Svært høy"
+      },
+      "severityOptions": {
+        "o1": "1 - Ubetydelig",
+        "o2": "2 - Liten",
+        "o3": "3 - Moderat",
+        "o4": "4 - Alvorlig",
+        "o5": "5 - Svært alvorlig"
+      }
+    },
+    "actions": {
+      "create": "Opprett mal",
+      "cancel": "Avbryt"
+    },
+    "toast": {
+      "success": {
+        "title": "SJA-mal opprettet",
+        "description": "Malen kan nå brukes til å opprette nye SJA-analyser."
+      },
+      "error": {
+        "title": "Feil",
+        "noHazards": "Legg til minst én fare med aktivitet, fare og tiltak.",
+        "createFailed": "Kunne ikke opprette SJA-mal."
+      }
+    }
+  },
+  "employeeSjaForm": {
+    "sections": {
+      "general": "1. Generell informasjon",
+      "participants": "2. Deltakere",
+      "specialConditions": "3. Spesielle forhold i dag",
+      "hazards": "4. Fareidentifikasjon og tiltak",
+      "images": "5. Bilder av arbeidsområdet",
+      "confirm": "6. Bekreftelse og innsending"
+    },
+    "fields": {
+      "title": {
+        "label": "Arbeidsoppgave / Tittel",
+        "placeholder": "F.eks: Arbeid i høyden - tak bygg C"
+      },
+      "plannedDate": {
+        "label": "Dato for arbeidet"
+      },
+      "project": {
+        "label": "Prosjekt",
+        "placeholder": "Velg prosjekt (valgfritt)",
+        "none": "Ingen prosjektkobling"
+      },
+      "workLocation": {
+        "label": "Arbeidssted",
+        "placeholder": "F.eks: Bygg C, 3. etasje, tak"
+      },
+      "weatherConditions": {
+        "label": "Værforhold",
+        "placeholder": "F.eks: Regn, vind 10 m/s, glatt"
+      },
+      "description": {
+        "label": "Beskrivelse av arbeidet",
+        "placeholder": "Beskriv arbeidet som skal utføres..."
+      },
+      "participants": {
+        "label": "Alle som deltar i arbeidet",
+        "placeholder": "Skriv navn på alle deltakere, én per linje. Alle som deltar i arbeidet SKAL registreres.",
+        "help": "Alle deltakere bekrefter at de har gjennomgått SJA-en og forstått farene og tiltakene"
+      },
+      "additionalConditions": {
+        "title": "Tenk gjennom:",
+        "help": "Er det noe som er annerledes i dag? Nye folk, endret utstyr, dårlig vær, tidspress, samarbeid med andre firma, endrede planer?",
+        "placeholder": "Beskriv eventuelle spesielle forhold, endringer eller tilleggsrisikoer som gjelder i dag..."
+      }
+    },
+    "templatePrefill": "Forhåndsutfylt fra mal. Gjennomgå alle punkter - legg til eller fjern etter behov.",
+    "hazards": {
+      "item": "Fare #{index}",
+      "risk": "Risiko",
+      "activity": "Aktivitet / arbeidsoperasjon",
+      "activityPlaceholder": "Hva skal gjøres?",
+      "hazard": "Fare / risiko",
+      "hazardPlaceholder": "Hva kan gå galt?",
+      "consequence": "Mulig konsekvens",
+      "consequencePlaceholder": "Hva er verst tenkelig utfall?",
+      "probability": "Sannsynlighet (1-5)",
+      "severity": "Konsekvens (1-5)",
+      "responsible": "Ansvarlig for tiltak",
+      "responsiblePlaceholder": "Hvem er ansvarlig?",
+      "measures": "Tiltak / barrierer",
+      "measuresPlaceholder": "Hvilke tiltak skal iverksettes for å redusere risikoen?",
+      "addMore": "Legg til flere farer",
+      "probabilityOptions": {
+        "o1": "1 - Svært lav",
+        "o2": "2 - Lav",
+        "o3": "3 - Middels",
+        "o4": "4 - Høy",
+        "o5": "5 - Svært høy"
+      },
+      "severityOptions": {
+        "o1": "1 - Ubetydelig",
+        "o2": "2 - Liten",
+        "o3": "3 - Moderat",
+        "o4": "4 - Alvorlig",
+        "o5": "5 - Svært alvorlig"
+      }
+    },
+    "risk": {
+      "veryHigh": "Svært høy",
+      "high": "Høy",
+      "medium": "Middels",
+      "low": "Lav"
+    },
+    "images": {
+      "help": "Ta bilder av arbeidsområdet, utstyr eller forhold som er relevante for SJA-en (valgfritt, maks 5)",
+      "maxReached": "Maks 5 bilder",
+      "takeOrChoose": "Ta bilde eller velg fra album",
+      "count": "{count}/5 bilder lagt til",
+      "optional": "Valgfritt",
+      "previewAlt": "Bilde {index}"
+    },
+    "confirm": {
+      "title": "Ved å sende inn bekrefter du at:",
+      "points": {
+        "p1": "Alle deltakere har gjennomgått denne SJA-en sammen",
+        "p2": "Alle identifiserte farer er vurdert",
+        "p3": "Nødvendige tiltak er beskrevet og forstått",
+        "p4": "Alle vet hvem som er ansvarlig for hvert tiltak"
+      }
+    },
+    "ai": {
+      "title": "AI-oppsummering",
+      "generate": "Generer oppsummering",
+      "generating": "Genererer...",
+      "placeholder": "AI-oppsummering av hovedfarer, tiltak og oppfølging vises her."
+    },
+    "actions": {
+      "submitting": "Sender inn SJA...",
+      "submit": "Send inn SJA for godkjenning",
+      "cancel": "Avbryt"
+    },
+    "toast": {
+      "participantsMissing": {
+        "title": "Deltakere mangler",
+        "description": "Alle som deltar i arbeidet må registreres."
+      },
+      "noHazards": {
+        "title": "Ingen farer registrert",
+        "description": "Legg til minst én fare med aktivitet, fare og tiltak."
+      },
+      "dateMissing": {
+        "title": "Dato mangler",
+        "description": "Velg dato for når arbeidet skal utføres."
+      },
+      "submitSuccess": {
+        "title": "SJA innsendt",
+        "description": "Sikker jobb-analysen er registrert og klar for godkjenning."
+      },
+      "aiMissingData": {
+        "title": "Mangler grunnlag",
+        "description": "Fyll ut tittel, sted, deltakere og minst én fare før AI-oppsummering."
+      },
+      "aiFailed": {
+        "title": "AI-oppsummering feilet",
+        "description": "Ukjent feil"
+      },
+      "error": {
+        "title": "Feil",
+        "description": "Kunne ikke opprette SJA. Prøv igjen."
+      }
+    }
+  },
+  "dashboardUserProfileForm": {
+    "profile": {
+      "title": "Brukerinformasjon",
+      "description": "Oppdater din personlige informasjon"
+    },
+    "fields": {
+      "name": {
+        "label": "Navn",
+        "placeholder": "Ditt navn"
+      },
+      "email": {
+        "label": "E-post (pålogging)",
+        "placeholder": "din@epost.no",
+        "help": "⚠️ OBS: E-post brukes til pålogging og deles på tvers av alle bedrifter du er med i. Endring av e-post vil påvirke ALLE dine bedrifter."
+      },
+      "preferredLocale": {
+        "label": "Språk",
+        "placeholder": "Velg språk",
+        "options": {
+          "nb": "Norsk",
+          "en": "English"
+        }
+      }
+    },
+    "password": {
+      "title": "Endre passord",
+      "description": "Oppdater ditt passord for økt sikkerhet",
+      "currentPassword": "Nåværende passord",
+      "newPassword": "Nytt passord",
+      "confirmPassword": "Bekreft nytt passord",
+      "minLength": "Minimum 8 tegn"
+    },
+    "actions": {
+      "save": "Lagre endringer",
+      "saving": "Lagrer...",
+      "changePassword": "Endre passord",
+      "changingPassword": "Endrer..."
+    },
+    "toast": {
+      "profileSuccess": {
+        "title": "✅ Profil oppdatert",
+        "description": "Endringene dine er lagret"
+      },
+      "passwordSuccess": {
+        "title": "✅ Passord endret",
+        "description": "Ditt passord er oppdatert"
+      },
+      "error": {
+        "title": "Feil",
+        "profileFailed": "Kunne ikke oppdatere profil",
+        "passwordFailed": "Kunne ikke endre passord",
+        "passwordMismatch": "Nye passord stemmer ikke overens",
+        "passwordTooShort": "Passord må være minst 8 tegn"
+      }
+    }
+  },
+  "dashboardSettingsPage": {
+    "notLinkedTenant": "Du er ikke tilknyttet en tenant.",
+    "header": {
+      "title": "Innstillinger",
+      "description": "Administrer bedrift, brukere og system"
+    },
+    "tabs": {
+      "company": "Bedrift",
+      "menu": "Enkel meny",
+      "profile": "Profil",
+      "notifications": "Varsler",
+      "users": "Brukere",
+      "office365": "Office 365",
+      "subscription": "Abonnement"
+    }
+  },
+  "dashboardIncidentsPage": {
+    "noTenantAccess": "Ingen tilgang til tenant",
+    "title": "Avvik og hendelser",
+    "description": "ISO 9001: Rapporter og følg opp avvik systematisk",
+    "actions": {
+      "reportIncident": "Rapporter avvik"
+    },
+    "stats": {
+      "total": {
+        "title": "Totalt",
+        "description": "Registrerte avvik"
+      },
+      "open": {
+        "title": "Åpne",
+        "description": "Venter på utredning"
+      },
+      "inProgress": {
+        "title": "Under håndtering",
+        "description": "{investigating} utredning, {actionTaken} tiltak"
+      },
+      "closed": {
+        "title": "Lukket",
+        "description": "Avsluttede avvik"
+      }
+    },
+    "allIncidents": "Alle avvik",
+    "iso": {
+      "title": "📋 ISO 9001 - 10.2 Avvik og korrigerende tiltak",
+      "organizationShould": "Organisasjonen skal:",
+      "documentation": "Dokumentasjon:",
+      "organizationList": {
+        "react": "Reagere på avvik (umiddelbare tiltak)",
+        "assess": "Vurdere behov for korrigerende tiltak",
+        "implement": "Implementere nødvendige tiltak",
+        "review": "Gjennomgå effektiviteten av tiltak"
+      },
+      "documentationList": {
+        "nature": "Natur av avvik og påfølgende tiltak",
+        "results": "Resultater av korrigerende tiltak",
+        "rootCause": "Årsaksanalyse (root cause)",
+        "learning": "Læringspunkter for forbedring"
+      }
+    }
+  },
+  "dashboardIncidentList": {
+    "confirmDelete": "Er du sikker på at du vil slette \"{title}\"?\n\nDette kan ikke angres.",
+    "empty": "Ingen avvik registrert",
+    "dash": "-",
+    "risk": "Risiko",
+    "table": {
+      "number": "Nr",
+      "incident": "Avvik",
+      "type": "Type",
+      "severity": "Alvorlighet",
+      "stage": "Steg",
+      "injury": "Skade",
+      "date": "Dato",
+      "status": "Status",
+      "measures": "Tiltak",
+      "actions": "Handlinger"
+    },
+    "actions": {
+      "viewDetails": "Se detaljer"
+    },
+    "types": {
+      "AVVIK": "Avvik",
+      "NESTEN": "Nestenulykke",
+      "ULYKKE": "Arbeidsulykke",
+      "FARLIG_SITUASJON": "Farlig situasjon",
+      "YRKESSYKDOM": "Yrkessykdom",
+      "SKADE": "Personskade",
+      "MILJO": "Miljøavvik",
+      "KVALITET": "Kvalitetsavvik",
+      "HMS": "HMS-avvik",
+      "CUSTOMER": "Kundeklage"
+    },
+    "status": {
+      "OPEN": "Registrert",
+      "INVESTIGATING": "Under utredning",
+      "ACTION_TAKEN": "Tiltak iverksatt",
+      "CLOSED": "Lukket"
+    },
+    "stage": {
+      "REPORTED": "Rapportert",
+      "UNDER_REVIEW": "Under vurdering",
+      "ROOT_CAUSE": "Årsak funnet",
+      "ACTIONS_DEFINED": "Tiltak planlagt",
+      "ACTIONS_COMPLETE": "Tiltak utført",
+      "VERIFIED": "Verifisert"
+    },
+    "severity": {
+      "1": "Ubetydelig",
+      "2": "Mindre",
+      "3": "Moderat",
+      "4": "Alvorlig",
+      "5": "Kritisk"
+    },
+    "injury": {
+      "noneRegistered": "Ingen skade registrert",
+      "medicalTreatment": "Legebehandling",
+      "noMedicalTreatment": "Ingen legebehandling",
+      "lostTimeMinutes": "Tapt tid: {minutes} min",
+      "minutesLostShort": "{minutes} min tap"
+    },
+    "customer": {
+      "label": "Kunde",
+      "unknown": "Ukjent",
+      "satisfaction": "Tilfredshet {value}/5",
+      "deadline": "Frist {date}"
+    },
+    "measuresLabel": "Tiltak: {completed}/{total}",
+    "toasts": {
+      "deleted": {
+        "title": "🗑️ Avvik slettet",
+        "description": "\"{title}\" er fjernet"
+      },
+      "error": {
+        "title": "Feil",
+        "description": "Kunne ikke slette avvik"
+      }
+    }
+  },
+  "dashboardIncidentDetailPage": {
+    "dash": "-",
+    "errors": {
+      "noTenantAccess": "Ingen tilgang til tenant",
+      "notFound": "Avvik ikke funnet"
+    },
+    "actions": {
+      "backToIncidents": "Tilbake til avvik"
+    },
+    "labels": {
+      "severityPrefix": "Alvorlighet: {value} - {label}",
+      "type": {
+        "AVVIK": "Avvik",
+        "NESTEN": "Nestenulykke",
+        "ULYKKE": "Arbeidsulykke",
+        "FARLIG_SITUASJON": "Farlig situasjon",
+        "YRKESSYKDOM": "Yrkessykdom",
+        "SKADE": "Personskade",
+        "MILJO": "Miljøavvik",
+        "KVALITET": "Kvalitetsavvik",
+        "HMS": "HMS-avvik",
+        "CUSTOMER": "Kundeklage"
+      },
+      "status": {
+        "OPEN": "Registrert",
+        "INVESTIGATING": "Under utredning",
+        "ACTION_TAKEN": "Tiltak iverksatt",
+        "CLOSED": "Lukket"
+      },
+      "severity": {
+        "1": "Ubetydelig",
+        "2": "Mindre",
+        "3": "Moderat",
+        "4": "Alvorlig",
+        "5": "Kritisk"
+      }
+    },
+    "sections": {
+      "whatHappened": {
+        "title": "Hva skjedde?",
+        "description": "ISO 9001: Natur av avvik",
+        "descriptionLabel": "Beskrivelse",
+        "time": "Tidspunkt",
+        "location": "Sted",
+        "witnesses": "Vitner",
+        "injury": "Skade",
+        "noInjuryRegistered": "Ingen skade registrert",
+        "medicalRequired": "Legebehandling nødvendig",
+        "noMedical": "Ingen legebehandling",
+        "lostTime": "Tapt tid",
+        "lostTimeMinutes": "{minutes} minutter",
+        "linkedRisk": "Knyttet risiko",
+        "riskScore": "Score {score}",
+        "immediateActions": "Umiddelbare tiltak",
+        "attachments": "Vedlegg ({count})"
+      },
+      "treatment": {
+        "title": "Behandle avvik",
+        "description": "Oppdater type, prosjekt, status, alvorlighet og ansvarlig"
+      },
+      "rootCause": {
+        "title": "Årsaksanalyse (Root Cause Analysis)",
+        "description": "ISO 9001: Identifisere årsaken til avviket",
+        "mainCause": "Grunnårsak",
+        "contributingFactors": "Medvirkende faktorer",
+        "investigatedAt": "Utredet: {date}"
+      },
+      "measures": {
+        "title": "Korrigerende tiltak",
+        "description": "ISO 9001: Planlagte tiltak for å eliminere årsaken",
+        "empty": "Ingen tiltak planlagt ennå",
+        "emptyHint": "Klikk \"Legg til tiltak\" ovenfor"
+      },
+      "closed": {
+        "title": "Avvik lukket",
+        "description": "ISO 9001: Effektivitetsvurdering",
+        "effectivenessReview": "Effektivitetsvurdering",
+        "lessonsLearned": "Læringspunkter",
+        "closedAt": "Lukket: {date}"
+      }
+    }
+  },
+  "dashboardIncidentInvestigationForm": {
+    "title": "Årsaksanalyse (Root Cause Analysis)",
+    "description": "ISO 9001: Vurder behov for tiltak for å eliminere årsaken",
+    "fiveWhy": {
+      "title": "🔍 5 Hvorfor-metoden",
+      "description": "Spør \"hvorfor\" gjentatte ganger for å finne grunnårsaken. F.eks:",
+      "steps": {
+        "s1": "Hvorfor skjedde ulykken? → Personen falt fra stige",
+        "s2": "Hvorfor falt personen? → Stigen sto ustabilt",
+        "s3": "Hvorfor sto stigen ustabilt? → Gulvet var glatt/ujevnt",
+        "s4": "Hvorfor var gulvet glatt? → Ingen risikovurdering utført",
+        "s5": "Grunnårsak: Mangelfull planlegging og risikovurdering"
+      }
+    },
+    "fields": {
+      "rootCause": "Grunnårsak (Root Cause) *",
+      "contributingFactors": "Medvirkende faktorer",
+      "investigatedBy": "Utredet av *"
+    },
+    "placeholders": {
+      "rootCause": "Hva er den underliggende årsaken til at dette skjedde? Bruk 5 Hvorfor-metoden.",
+      "contributingFactors": "Andre faktorer som bidro til hendelsen (f.eks. tidpress, manglende opplæring, dårlig kommunikasjon)",
+      "investigatedBy": "Velg ansvarlig for utredning"
+    },
+    "hints": {
+      "rootCause": "Beskriv grunnårsaken, ikke bare symptomet"
+    },
+    "actions": {
+      "saving": "Lagrer...",
+      "complete": "Fullfør årsaksanalyse"
+    },
+    "toasts": {
+      "success": {
+        "title": "✅ Årsaksanalyse fullført",
+        "description": "Nå kan du planlegge korrigerende tiltak"
+      },
+      "error": {
+        "title": "Feil",
+        "description": "Kunne ikke lagre årsaksanalyse"
+      },
+      "unexpected": {
+        "title": "Uventet feil",
+        "description": "Noe gikk galt"
+      }
+    }
+  },
+  "dashboardIncidentCloseForm": {
+    "title": "Lukk avvik",
+    "description": "ISO 9001: Gjennomgå effektiviteten av korrigerende tiltak",
+    "ready": {
+      "title": "✅ Klart for lukking",
+      "items": {
+        "i1": "Årsaksanalyse er fullført",
+        "i2": "Alle korrigerende tiltak er gjennomført",
+        "i3": "Nå må du evaluere om tiltakene var effektive"
+      }
+    },
+    "fields": {
+      "effectivenessReview": "Effektivitetsvurdering *",
+      "measureEffectiveness": "Effekt av tiltak",
+      "lessonsLearned": "Læringspunkter"
+    },
+    "placeholders": {
+      "effectivenessReview": "Har tiltakene eliminert grunnårsaken? Vil lignende hendelser kunne forebygges nå? Beskriv evalueringen.",
+      "measureEffectiveness": "Velg vurdering",
+      "lessonsLearned": "Hva har vi lært av denne hendelsen? Hva kan vi forbedre i fremtiden?"
+    },
+    "hints": {
+      "effectivenessReview": "Vurder om de korrigerende tiltakene har vært effektive",
+      "lessonsLearned": "Dokumenter læring for fremtidig forbedring"
+    },
+    "effectiveness": {
+      "effective": "Tiltakene var effektive",
+      "partiallyEffective": "Delvis effektive",
+      "ineffective": "Ikke effektive",
+      "notEvaluated": "Ikke evaluert"
+    },
+    "compliance": {
+      "title": "📋 ISO 9001 Compliance",
+      "description": "Ved å lukke avviket bekrefter du at:",
+      "items": {
+        "i1": "Grunnårsaken er identifisert og dokumentert",
+        "i2": "Korrigerende tiltak er implementert",
+        "i3": "Effektiviteten av tiltakene er vurdert",
+        "i4": "Dokumentasjonen er komplett og bevares"
+      }
+    },
+    "actions": {
+      "closing": "Lukker...",
+      "close": "Lukk avvik"
+    },
+    "toasts": {
+      "success": {
+        "title": "✅ Avvik lukket",
+        "description": "Avviket er nå fullstendig håndtert og dokumentert"
+      },
+      "error": {
+        "title": "Feil",
+        "description": "Kunne ikke lukke avvik"
+      },
+      "unexpected": {
+        "title": "Uventet feil",
+        "description": "Noe gikk galt"
+      }
+    }
+  },
+  "dashboardChemicalsPage": {
+    "notLinkedTenant": "Du er ikke tilknyttet en tenant.",
+    "title": "Stoffkartotek",
+    "description": "HMS - Oversikt over kjemikalier og sikkerhetsdatablad",
+    "actions": {
+      "scanIsocyanates": "Skann for isocyanater",
+      "scanShort": "Skann",
+      "register": "Registrer"
+    },
+    "requirements": {
+      "title": "HMS-krav til stoffkartotek",
+      "r1": "Alle farlige kjemikalier skal være registrert i stoffkartoteket",
+      "r2": "Oppdaterte sikkerhetsdatablad må være tilgjengelige for ansatte",
+      "r3": "Databladene skal gjennomgås minimum årlig",
+      "r4": "Ansatte skal ha opplæring i sikker håndtering",
+      "r5": "Stoffkartoteket skal kontrolleres ved interne revisjoner"
+    },
+    "stats": {
+      "total": {
+        "title": "Totalt",
+        "description": "kjemikalier"
+      },
+      "active": {
+        "title": "I bruk",
+        "description": "aktive produkter"
+      },
+      "isocyanates": {
+        "title": "Diisocyanater",
+        "description": "krever spesialkurs"
+      },
+      "missingSds": {
+        "title": "Mangler datablad",
+        "description": "må lastes opp"
+      },
+      "needsReview": {
+        "title": "Trenger revisjon",
+        "description": "neste 30 dager"
+      },
+      "overdue": {
+        "title": "Forfalt revisjon",
+        "description": "krever handling"
+      }
+    },
+    "list": {
+      "title": "Alle kjemikalier",
+      "description": "Oversikt over registrerte produkter i stoffkartoteket"
+    }
+  },
+  "dashboardInspectionsPage": {
+    "title": "Vernerunde",
+    "description": "Gjennomfør og administrer vernerunder og HMS-inspeksjoner",
+    "status": {
+      "planned": "Planlagt",
+      "inProgress": "Pågår",
+      "completed": "Fullført",
+      "cancelled": "Kansellert"
+    },
+    "types": {
+      "vernerunde": "Vernerunde",
+      "hmsInspection": "HMS-inspeksjon",
+      "fireDrill": "Brannøvelse",
+      "shaPlan": "SHA-plan",
+      "safetyWalk": "Sikkerhetsvandring",
+      "other": "Annen"
+    },
+    "actions": {
+      "showIndustry": "Vis bransjetilpasset",
+      "showAll": "Vis alle",
+      "report": "Rapport",
+      "new": "Ny vernerunde",
+      "createFirst": "Opprett første vernerunde",
+      "details": "Detaljer"
+    },
+    "openFindings": "{count} åpne funn",
+    "stats": {
+      "total": "Totalt",
+      "planned": "Planlagt",
+      "inProgress": "Pågår",
+      "openFindings": "Åpne funn"
+    },
+    "list": {
+      "title": "Alle vernerunder",
+      "description": "Oversikt over gjennomførte og planlagte vernerunder",
+      "empty": "Ingen vernerunder registrert ennå"
+    },
+    "table": {
+      "title": "Tittel",
+      "type": "Type",
+      "scheduledDate": "Planlagt dato",
+      "location": "Lokasjon",
+      "status": "Status",
+      "openFindings": "Åpne funn",
+      "actions": "Handlinger"
+    }
+  },
+  "dashboardWhistleblowingPage": {
+    "title": "Varslinger",
+    "description": "Saksbehandling av mottatte varslinger",
+    "actions": {
+      "publicPage": "Offentlig varslingsside",
+      "process": "Behandle"
+    },
+    "stats": {
+      "total": "Totalt",
+      "new": "Nye",
+      "inProgress": "Under behandling",
+      "closed": "Avsluttet"
+    },
+    "empty": {
+      "title": "Ingen varslinger",
+      "description": "Ingen varslinger er mottatt ennå."
+    },
+    "table": {
+      "caseNumber": "Saksnr.",
+      "title": "Tittel",
+      "category": "Kategori",
+      "severity": "Alvorlighet",
+      "status": "Status",
+      "received": "Mottatt",
+      "actions": "Handlinger"
+    },
+    "status": {
+      "received": "Mottatt",
+      "acknowledged": "Bekreftet",
+      "underInvestigation": "Under etterforskning",
+      "actionTaken": "Tiltak iverksatt",
+      "resolved": "Løst",
+      "closed": "Avsluttet",
+      "dismissed": "Avvist"
+    },
+    "severity": {
+      "low": "Lav",
+      "medium": "Medium",
+      "high": "Høy",
+      "critical": "Kritisk"
+    },
+    "categories": {
+      "harassment": "Trakassering",
+      "discrimination": "Diskriminering",
+      "workEnvironment": "Arbeidsmiljø",
+      "safety": "HMS/Sikkerhet",
+      "corruption": "Korrupsjon",
+      "ethics": "Etikk",
+      "legal": "Lovbrudd",
+      "other": "Annet"
+    }
+  },
+  "dashboardIncidentStatisticsPage": {
+    "noTenantAccess": "Ingen tilgang til tenant",
+    "title": "HSE-statistikk",
+    "description": "TRIR · Fraværsskader · Skadefrekvens – 3-årshistorikk",
+    "missingHours": {
+      "title": "Manntimer ikke registrert",
+      "descriptionStart": "TRIR krever arbeidede timer. Aktiver",
+      "timeRegistration": "timeregistrering",
+      "descriptionEnd": "eller legg inn timer manuelt for å beregne TRIR korrekt."
+    },
+    "ytd": "Hittil i år ({year})",
+    "cards": {
+      "trirSubtitle": "Total registrerbar skadefrekvens",
+      "lti": {
+        "title": "Fraværsskader (LTI)",
+        "subtitle": "{count} tapte arbeidsdager"
+      },
+      "workedHours": {
+        "title": "Arbeidede timer",
+        "subtitle": "Fra timeregistrering"
+      },
+      "recordable": {
+        "title": "Recordable hendelser",
+        "subtitle": "Dødsfall + LTI + begrenset arbeid + legebehandling"
+      }
+    },
+    "history": {
+      "title": "3-årshistorikk",
+      "description": "Standardformat for HSE-rapportering til kunder og oppdragsgivere"
+    },
+    "trir": {
+      "title": "Hva betyr TRIR?",
+      "description": "Total Recordable Injury Rate (TRIR) måler alle registrerbare skader per 200 000 arbeidede timer (tilsvarer 100 fulltidsansatte i ett år).",
+      "formula": "TRIR = (Dødsfall + LTI + Begrenset arbeid + Legebehandling) × 200 000 / Arbeidede timer",
+      "incidentTypes": "Hendelsestyper i telleren:",
+      "incidents": {
+        "fatalities": "Fatalities – Dødsfall",
+        "lti": "LTI – Lost Time Incident (fraværsskade)",
+        "restrictedWork": "Restricted Work – Begrenset arbeid",
+        "medicalTreatment": "Medical Treatment – Legebehandling"
+      },
+      "benchmarks": "Typiske bransjemål:",
+      "benchmarkList": {
+        "b1": "TRIR < 1.0 – Excellent (offshore-standard)",
+        "b2": "TRIR < 3.0 – Godt (industri)",
+        "b3": "TRIR < 5.0 – Akseptabelt (bygg)",
+        "b4": "TRIR > 5.0 – Krever tiltak"
+      }
+    }
+  },
+  "dashboardActionsPage": {
+    "noTenantAccess": "Ingen tilgang til tenant",
+    "title": "Tiltak",
+    "description": "ISO 9001: Planlagte tiltak med ansvarlige og tidsplaner",
+    "projectInfo": "Nye tiltak opprettes for prosjekt:",
+    "stats": {
+      "total": {
+        "title": "Totalt",
+        "description": "Registrerte tiltak"
+      },
+      "inProgress": {
+        "title": "Pågående",
+        "description": "{pending} ikke startet, {inProgress} pågår"
+      },
+      "done": {
+        "title": "Fullført",
+        "description": "Gjennomførte tiltak"
+      },
+      "overdue": {
+        "title": "Forfalte",
+        "description": "Krever oppfølging"
+      }
+    },
+    "list": {
+      "title": "Alle tiltak"
+    },
+    "iso": {
+      "title": "📋 ISO 9001 Krav til tiltak",
+      "planningTitle": "Planlegging:",
+      "followUpTitle": "Oppfølging:",
+      "planningList": {
+        "i1": "Alle risikoer skal ha planlagte tiltak",
+        "i2": "Tiltak må ha tydelig beskrivelse",
+        "i3": "Ansvarlig person må være definert",
+        "i4": "Tidsplan/frist må være realistisk"
+      },
+      "followUpList": {
+        "i1": "Tiltak må følges opp jevnlig",
+        "i2": "Status må oppdateres underveis",
+        "i3": "Tiltak må evalueres når fullført",
+        "i4": "Dokumentasjon må oppbevares"
+      }
+    }
+  },
+  "dashboardGoalsPage": {
+    "notLinkedTenant": "Du er ikke tilknyttet en tenant.",
+    "title": "Mål og KPIer",
+    "description": "ISO 9001 - 6.2 Kvalitetsmål og planlegging",
+    "actions": {
+      "newGoal": "Nytt mål"
+    },
+    "iso": {
+      "title": "ISO 9001 - 6.2 Kvalitetsmål",
+      "points": {
+        "p1": "Organisasjonen skal etablere kvalitetsmål på relevante nivåer",
+        "p2": "Målene skal være målbare og overvåkbare",
+        "p3": "Målene skal være i samsvar med kvalitetspolitikken",
+        "p4": "Fremgang mot mål skal dokumenteres og kommuniseres"
+      }
+    },
+    "stats": {
+      "total": {
+        "title": "Totalt",
+        "description": "mål"
+      },
+      "active": {
+        "title": "Aktive",
+        "description": "pågående"
+      },
+      "achieved": {
+        "title": "Oppnådd",
+        "description": "fullført"
+      },
+      "atRisk": {
+        "title": "I risiko",
+        "description": "krever handling"
+      },
+      "failed": {
+        "title": "Ikke oppnådd",
+        "description": "avsluttet"
+      }
+    },
+    "list": {
+      "title": "Alle mål",
+      "description": "Oversikt over kvalitetsmål og KPIer"
+    }
+  },
+  "dashboardRoutinesPage": {
+    "title": "Rutiner",
+    "description": "HMS Nova tilrettelegger med maler og varsling. Leder/HMS følger opp hendelser og avvik i virksomheten.",
+    "loadFailed": "Kunne ikke hente rutiner akkurat nå.",
+    "status": {
+      "active": "Aktiv",
+      "draft": "Kladd",
+      "needsReview": "Krever revisjon",
+      "archived": "Arkivert"
+    },
+    "actions": {
+      "templateLibrary": "Malbibliotek",
+      "createFromTemplate": "Opprett fra mal",
+      "viewDetails": "Se detaljer"
+    },
+    "list": {
+      "title": "Mine rutiner",
+      "description": "Rutiner eies av virksomheten din. Globale maler endres aldri direkte.",
+      "empty": "Ingen rutiner ennå. Gå til malbiblioteket og velg en mal som passer bransjen din."
+    },
+    "table": {
+      "routine": "Rutine",
+      "status": "Status",
+      "responsible": "Ansvarlig",
+      "nextReview": "Neste revisjon",
+      "action": "Handling"
+    },
+    "notSet": "Ikke satt"
+  },
+  "dashboardRoutineTemplatesPage": {
+    "title": "Rutinemaler",
+    "loadFailed": "Kunne ikke hente rutinemaler akkurat nå.",
+    "descriptionAll": "Viser hele biblioteket på tvers av bransjer.",
+    "descriptionRecommended": "Viser anbefalte maler for din bransje + generelle maler.",
+    "info": "HMS Nova tilrettelegger med bransjetilpassede maler, varsling og oppfølgingsstøtte. Virksomhetens leder/HMS-roller har ansvar for faktisk oppfølging av hendelser og avvik.",
+    "actions": {
+      "showRecommended": "Vis anbefalte",
+      "showAll": "Vis alle maler",
+      "saveAsMine": "Lagre som min rutine",
+      "savingCopy": "Legger inn…"
+    },
+    "toasts": {
+      "successTitle": "«{title}» er lagt inn",
+      "successDescription": "Rutinen finnes nå under Rutiner.",
+      "openRoutine": "Åpne rutinen",
+      "errorGeneric": "Kunne ikke legge inn malen. Prøv igjen."
+    },
+    "list": {
+      "title": "Tilgjengelige maler",
+      "description": "Velg en mal og lagre den som din egen rutine.",
+      "empty": "Ingen maler funnet for valgt filter."
+    },
+    "table": {
+      "template": "Mal",
+      "category": "Kategori",
+      "legalReference": "Lovreferanse",
+      "action": "Handling"
+    },
+    "badges": {
+      "global": "Global mal",
+      "tenant": "Virksomhetsmal"
+    }
+  },
+  "dashboardSjaPage": {
+    "noTenantAccess": "Ingen tilgang til tenant",
+    "title": "SJA – Sikker Jobb Analyse",
+    "description": "Oversikt over alle SJA-analyser og maler",
+    "actions": {
+      "new": "Ny SJA"
+    },
+    "stats": {
+      "total": {
+        "title": "Totalt",
+        "description": "SJA-analyser"
+      },
+      "draft": {
+        "title": "Utkast",
+        "description": "Venter på godkjenning"
+      },
+      "active": {
+        "title": "Aktive",
+        "description": "Pågående arbeid"
+      },
+      "completed": {
+        "title": "Fullført",
+        "description": "Ferdig behandlet"
+      },
+      "templates": {
+        "title": "Maler",
+        "description": "Gjenbrukbare maler"
+      }
+    },
+    "analyses": {
+      "title": "Alle SJA-analyser",
+      "emptyTitle": "Ingen SJA-analyser",
+      "emptyDescription": "Det er ikke opprettet noen SJA-analyser ennå."
+    },
+    "table": {
+      "number": "Nr.",
+      "title": "Tittel",
+      "location": "Sted",
+      "status": "Status",
+      "conclusion": "Konklusjon",
+      "createdBy": "Opprettet av",
+      "date": "Dato",
+      "risk": "Risiko"
+    },
+    "status": {
+      "DRAFT": "Utkast",
+      "PENDING_APPROVAL": "Til godkjenning",
+      "APPROVED": "Godkjent",
+      "ACTIVE": "Aktiv",
+      "COMPLETED": "Fullført",
+      "CANCELLED": "Avbrutt"
+    },
+    "conclusion": {
+      "GO": "Kan gjennomføres",
+      "GO_WITH_MEASURES": "Kan gjennomføres med tiltak",
+      "NO_GO": "Kan ikke gjennomføres"
+    },
+    "templates": {
+      "title": "SJA-maler ({count})",
+      "description": "Maler gjør det enkelt for ansatte å opprette SJA daglig med forhåndsdefinerte farer og tiltak",
+      "emptyTitle": "Ingen maler opprettet",
+      "emptyDescription": "Opprett en mal slik at ansatte raskt kan lage SJA for gjentakende arbeidsoppgaver.",
+      "workLocation": "Arbeidssted: {value}",
+      "hazards": "{count} farer",
+      "createdBy": "Opprettet av {name}"
+    }
+  },
+  "dashboardTrainingPage": {
+    "noTenantAccess": "Ingen tilgang til tenant",
+    "title": "Opplæring og kompetanse",
+    "description": "ISO 9001 - 7.2: Dokumenter og følg opp kompetanse",
+    "stats": {
+      "total": {
+        "title": "Totalt",
+        "description": "Registrerte opplæringer"
+      },
+      "completed": {
+        "title": "Fullført",
+        "percentOfTotal": "{percent}% av totalt",
+        "zero": "0% av totalt"
+      },
+      "expiringSoon": {
+        "title": "Utløper snart",
+        "description": "Innen 30 dager"
+      },
+      "expired": {
+        "title": "Utløpt",
+        "description": "Må fornyes"
+      },
+      "evaluated": {
+        "title": "Evaluert",
+        "percentOfCompleted": "{percent}% av fullført",
+        "zero": "0% av fullført"
+      }
+    },
+    "iso": {
+      "title": "📋 ISO 9001 - 7.2 Kompetanse",
+      "description": "Krav til kompetansestyring",
+      "points": {
+        "a": {
+          "title": "a) Bestemme kompetanse:",
+          "description": "Definer nødvendig kompetanse for arbeid som påvirker kvalitet"
+        },
+        "b": {
+          "title": "b) Sikre kompetanse:",
+          "description": "Dokumenter utdanning, opplæring eller erfaring"
+        },
+        "c": {
+          "title": "c) Evaluere effektivitet:",
+          "description": "Vurder om opplæringen har gitt ønsket kompetanse"
+        },
+        "d": {
+          "title": "d) Dokumentert informasjon:",
+          "description": "Bevar bevis på kompetanse (sertifikater, kursbevis)"
+        }
+      }
+    },
+    "healthcareAlerts": {
+      "title": "Helseforetak varsler - kompetanse utløper",
+      "description": "Påkrevde kurs som er utløpt eller utløper innen 30 dager.",
+      "unknownEmployee": "Ukjent ansatt",
+      "expired": "Utløpt",
+      "daysLeft": "{days} dager igjen"
+    },
+    "list": {
+      "title": "Alle opplæringer",
+      "description": "Oversikt over registrert kompetanse for alle ansatte"
+    }
+  },
+  "dashboardProjectsPage": {
+    "noAccess": "Ingen tilgang",
+    "title": "Prosjekter / Jobber",
+    "description": "Knytt avvik, SJA, vernerunder og tiltak til prosjekter for samlet HMS-rapportering",
+    "status": {
+      "planning": "Planlegging",
+      "active": "Aktiv",
+      "onHold": "På vent",
+      "completed": "Fullført",
+      "archived": "Arkivert"
+    },
+    "actions": {
+      "newProject": "Nytt prosjekt",
+      "createFirstProject": "Opprett første prosjekt"
+    },
+    "stats": {
+      "activeProjects": "Aktive prosjekter",
+      "inPlanning": "Under planlegging",
+      "completed": "Fullførte"
+    },
+    "empty": {
+      "title": "Ingen prosjekter ennå",
+      "description": "Opprett et prosjekt for å koble HMS-aktiviteter til en jobb eller oppdrag"
+    },
+    "orderNumber": "Ordre: {number}",
+    "ongoing": "Løpende",
+    "counters": {
+      "incidents": "{count} avvik",
+      "sja": "{count} SJA",
+      "inspections": "{count} runder",
+      "measures": "{count} tiltak"
+    }
+  },
+  "dashboardMeetingsPage": {
+    "title": "Møter (AMU/VO)",
+    "description": "Arbeidsmiljøutvalg, verneombudsmøter og HMS-komitéer",
+    "types": {
+      "vo": "Verneombud",
+      "hmsCommittee": "HMS-utvalg",
+      "other": "Annet"
+    },
+    "status": {
+      "planned": "Planlagt",
+      "inProgress": "Pågår",
+      "completed": "Fullført",
+      "cancelled": "Avlyst"
+    },
+    "actions": {
+      "newMeeting": "Nytt møte",
+      "createMeeting": "Opprett møte",
+      "details": "Detaljer"
+    },
+    "stats": {
+      "total": "Totalt",
+      "planned": "Planlagt",
+      "completed": "Fullført",
+      "decisions": "Vedtak"
+    },
+    "empty": {
+      "title": "Ingen møter",
+      "description": "Opprett ditt første møte for å komme i gang."
+    },
+    "table": {
+      "title": "Tittel",
+      "type": "Type",
+      "date": "Dato",
+      "participants": "Deltakere",
+      "decisions": "Vedtak",
+      "status": "Status",
+      "actions": "Handlinger"
+    }
+  },
+  "dashboardDocumentsPage": {
+    "title": "Dokumenter",
+    "noTenantAccess": "Ingen tilgang til tenant",
+    "description": "Administrer lover, prosedyrer, sjekklister og mer",
+    "actions": {
+      "newDocument": "Nytt dokument"
+    },
+    "stats": {
+      "total": "Totalt",
+      "draft": "Utkast",
+      "approved": "Godkjent",
+      "archived": "Arkivert"
+    }
+  },
+  "dashboardFormsPage": {
+    "title": "Digitale skjemaer",
+    "description": "Lag, administrer og analyser egendefinerte skjemaer",
+    "filteredOn": "Filtrert på:",
+    "projectLinkActive": "Prosjektkobling aktiv: utfylling vil knyttes til valgt prosjekt.",
+    "industryDefault": "Viser bransjetilpassede maler som standard.",
+    "actions": {
+      "showIndustry": "Vis bransjetilpasset",
+      "showAllTemplates": "Vis alle maler",
+      "newForm": "Nytt skjema",
+      "createForm": "Opprett skjema"
+    },
+    "stats": {
+      "totalForms": {
+        "title": "Totalt antall skjemaer",
+        "active": "{count} aktive"
+      },
+      "totalSubmissions": {
+        "title": "Totalt antall utfyllinger",
+        "description": "Alle skjemaer"
+      },
+      "averagePerForm": {
+        "title": "Gjennomsnitt per skjema",
+        "description": "Utfyllinger"
+      }
+    },
+    "tips": {
+      "title": "💡 Tips:",
+      "text1": "Klikk på et skjema for å se alle utfyllinger, statistikk og laste ned PDF-er. Bruk målinger for å følge med på hvor ofte skjemaene brukes!",
+      "examplesTitle": "Eksempelmaler:",
+      "text2": "Skjema merket som global er standardmaler. Bruk Kopier hvis du vil endre eller legge til punkter. For globale maler ser vanlige brukere kun egne utfyllinger, mens skjemaansvarlige i bedriften ser alle."
+    },
+    "empty": {
+      "title": "Ingen skjemaer ennå",
+      "description": "Opprett ditt første digitale skjema med vår drag-and-drop builder"
+    },
+    "list": {
+      "title": "Alle skjemaer",
+      "showing": "Viser {from}-{to} av {total}"
+    },
+    "table": {
+      "formName": "Skjemanavn",
+      "category": "Kategori",
+      "status": "Status",
+      "access": "Tilgang",
+      "fields": "Felt",
+      "submissions": "Utfyllinger",
+      "lastUsed": "Sist brukt",
+      "actions": "Handlinger"
+    },
+    "badges": {
+      "exampleTemplate": "Eksempelmal"
+    },
+    "status": {
+      "active": "Aktiv",
+      "inactive": "Inaktiv"
+    },
+    "never": "Aldri",
+    "titles": {
+      "viewDetails": "Se detaljer og statistikk",
+      "fillForm": "Fyll ut skjema",
+      "editForm": "Rediger skjema",
+      "export": "Eksporter alle svar til Excel"
+    },
+    "categories": {
+      "custom": "Egendefinert",
+      "meeting": "Møtereferat",
+      "inspection": "Inspeksjon",
+      "incident": "Hendelsesrapport",
+      "risk": "Risikovurdering",
+      "training": "Opplæring",
+      "checklist": "Sjekkliste",
+      "timesheet": "Timeliste"
+    },
+    "roles": {
+      "admin": "Admin",
+      "leader": "Leder",
+      "safetyRep": "Verneombud",
+      "employee": "Ansatt",
+      "auditor": "Revisor"
+    },
+    "access": {
+      "all": "Alle",
+      "none": "Ingen",
+      "users": "{count} bruker{count, plural, one {} other {e}}"
+    }
+  },
+  "dashboardAuditsPage": {
+    "title": "Revisjoner",
+    "description": "Internrevisjoner, ISO 9001, ISO 14001 og andre revisjoner",
+    "loading": "Laster revisjoner...",
+    "noTenantAccess": "Ingen tenant tilgang",
+    "actions": {
+      "newAudit": "Ny revisjon",
+      "details": "Se detaljer"
+    },
+    "empty": {
+      "title": "Ingen revisjoner ennå",
+      "description": "Opprett din første revisjon (internrevisjon, ISO 9001, etc.)"
+    },
+    "list": {
+      "title": "Revisjoner",
+      "total": "{count} revisjoner totalt"
+    },
+    "table": {
+      "title": "Tittel",
+      "type": "Type",
+      "area": "Område",
+      "date": "Dato",
+      "status": "Status",
+      "findings": "Funn",
+      "actions": "Handlinger"
+    },
+    "status": {
+      "planned": "Planlagt",
+      "inProgress": "Pågår",
+      "completed": "Fullført",
+      "cancelled": "Avbrutt"
+    },
+    "types": {
+      "internal": "Internrevisjon",
+      "external": "Eksternrevisjon",
+      "certification": "Sertifisering",
+      "supplier": "Leverandørrevisjon",
+      "followUp": "Oppfølging"
+    },
+    "findings": {
+      "major": "{count} større avvik",
+      "minor": "{count} mindre avvik",
+      "none": "Ingen funn"
+    }
+  },
+  "dashboardAuditDetailPage": {
+    "noTenantAccess": "Ingen tilgang til tenant",
+    "notFound": "Revisjon ikke funnet",
+    "unknown": "Ukjent",
+    "details": "Revisjonsdetaljer",
+    "actions": {
+      "back": "Tilbake til revisjoner",
+      "edit": "Rediger"
+    },
+    "basicInfo": {
+      "title": "Grunnleggende informasjon",
+      "scheduledDate": "Planlagt dato",
+      "completed": "Fullført",
+      "area": "Område",
+      "department": "Avdeling: {value}"
+    },
+    "team": {
+      "title": "Revisjonsteam",
+      "leadAuditor": "Hovedrevisor",
+      "members": "Revisjonsteam"
+    },
+    "scope": {
+      "title": "Omfang og kriterier (ISO 9001)",
+      "scope": "Omfang:",
+      "criteria": "Revisjonskriterier:"
+    },
+    "summary": {
+      "title": "Oppsummering og konklusjon",
+      "summary": "Oppsummering:",
+      "conclusion": "Konklusjon:"
+    },
+    "findingsStats": {
+      "title": "Funn fra revisjon",
+      "major": "Større avvik",
+      "minor": "Mindre avvik",
+      "observations": "Observasjoner",
+      "strengths": "Styrker"
+    },
+    "findings": {
+      "title": "Funn og observasjoner",
+      "description": "Dokumenter avvik, observasjoner og styrker fra revisjonen"
+    },
+    "compliance": {
+      "title": "📋 ISO 9001 Compliance",
+      "i1": "Omfang og kriterier definert",
+      "i2": "Hovedrevisor utnevnt (objektivitet sikret)",
+      "completed": "Revisjon fullført",
+      "notCompleted": "Revisjon ikke fullført ennå",
+      "findingsDocumented": "{count} funn dokumentert",
+      "noFindings": "Ingen funn dokumentert",
+      "openFindings": "{count} åpne funn (krever korrigerende tiltak)",
+      "allClosed": "Alle funn er lukket"
+    }
+  },
+  "dashboardInspectionDetailPage": {
+    "noTenantAccess": "Ingen tilgang til tenant",
+    "notFound": "Inspeksjon ikke funnet",
+    "unknown": "Ukjent",
+    "details": "Inspeksjonsdetaljer",
+    "actions": {
+      "back": "Tilbake til inspeksjoner",
+      "edit": "Rediger",
+      "mobileView": "Mobilvisning",
+      "downloadPdf": "Last ned PDF"
+    },
+    "status": {
+      "planned": "Planlagt",
+      "inProgress": "Pågår",
+      "completed": "Fullført",
+      "cancelled": "Avbrutt"
+    },
+    "types": {
+      "vernerunde": "Vernerunde",
+      "hmsInspection": "HMS-inspeksjon",
+      "fireDrill": "Brannøvelse",
+      "shaPlan": "SHA-plan",
+      "safetyWalk": "Sikkerhetsvandring",
+      "other": "Annet"
+    },
+    "riskCategories": {
+      "safety": "Sikkerhet",
+      "health": "Helse",
+      "environmental": "Miljø",
+      "operational": "Operasjonell",
+      "legal": "Juridisk",
+      "informationSecurity": "Informasjonssikkerhet"
+    },
+    "severity": {
+      "low": "Lav",
+      "moderate": "Moderat",
+      "significant": "Betydelig",
+      "serious": "Alvorlig",
+      "critical": "Kritisk"
+    },
+    "findingStatus": {
+      "open": "Åpen",
+      "inProgress": "Pågår",
+      "resolved": "Løst",
+      "closed": "Lukket"
+    },
+    "form": {
+      "completed": "Utfylt",
+      "view": "Se utfylt skjema",
+      "warning": "Skjema må fylles ut og sendes inn for å fullføre vernerunden. Punkter merket \"Ikke OK\" skal registreres som funn.",
+      "fillNow": "Fyll ut skjema nå"
+    },
+    "basicInfo": {
+      "title": "Grunnleggende informasjon",
+      "scheduledDate": "Planlagt dato",
+      "completed": "Fullført",
+      "location": "Lokasjon"
+    },
+    "performedBy": {
+      "title": "Gjennomført av",
+      "responsible": "Ansvarlig",
+      "participants": "Deltakere"
+    },
+    "descriptionTitle": "Beskrivelse",
+    "findingsStats": {
+      "title": "Funn fra inspeksjon",
+      "critical": "Kritiske",
+      "high": "Alvorlige",
+      "medium": "Moderate",
+      "low": "Lave",
+      "open": "Åpne",
+      "inProgress": "Pågår",
+      "resolved": "Løst",
+      "closed": "Lukket"
+    },
+    "findings": {
+      "title": "Funn og observasjoner",
+      "registered": "{count} funn registrert fra vernerunden",
+      "noneDescription": "Ingen funn registrert. Funn opprettes direkte under vernerunden ved svar \"Ikke OK\".",
+      "noneTitle": "Ingen funn registrert ennå",
+      "noneHelp": "Funn registreres i vernerunden ved utfylling av punktene."
+    },
+    "compliance": {
+      "title": "📋 HMS Compliance",
+      "i1": "Inspeksjon planlagt og dokumentert",
+      "i2": "Ansvarlig person utnevnt",
+      "completed": "Inspeksjon fullført",
+      "notCompleted": "Inspeksjon ikke fullført ennå",
+      "findingsDocumented": "{count} funn dokumentert",
+      "noFindings": "Ingen funn dokumentert",
+      "openFindings": "{count} åpne funn (krever oppfølging)",
+      "allClosed": "Alle funn er lukket",
+      "none": "Ingen funn"
+    }
+  },
+  "dashboardRisksPage": {
+    "title": "Risikovurdering",
+    "description": "5x5 risikomatrise for systematisk vurdering av HMS-risikoer",
+    "noTenantAccess": "Ingen tilgang til tenant",
+    "actions": {
+      "newRisk": "Ny risikovurdering"
+    },
+    "stats": {
+      "totalRiskPoints": {
+        "title": "Risikopunkter totalt",
+        "description": "Punkter i risikoregisteret"
+      },
+      "criticalHigh": {
+        "title": "Kritisk/Høy (nå)",
+        "description": "{critical} kritisk, {high} høy"
+      },
+      "open": {
+        "title": "Åpne",
+        "description": "Venter på håndtering"
+      },
+      "improved": {
+        "title": "Forbedret etter tiltak",
+        "description": "Risikoer med lavere rest-risiko"
+      }
+    },
+    "annualAssessments": {
+      "title": "Årlige risikovurderinger (dokumenter)",
+      "description": "Hver vurdering er et årsdokument med egne risikopunkter.",
+      "riskPoints": "{count} risikopunkt{count, plural, one {} other {er}}"
+    },
+    "registry": {
+      "title": "Risikoregister (alle risikopunkter)",
+      "description": "Viser alle risikopunkter på tvers av vurderinger, med status og oppfølging av tiltak."
+    }
+  },
+  "dashboardRiskDetailPage": {
+    "title": "Rediger risikovurdering",
+    "noTenantAccess": "Ingen tilgang til tenant",
+    "notFound": "Risiko ikke funnet",
+    "actions": {
+      "back": "Tilbake til risikoer"
+    },
+    "measures": {
+      "title": "Tiltak for å redusere risiko",
+      "description": "ISO 9001: Planlagte tiltak med ansvarlig person og tidsplan"
+    },
+    "controls": {
+      "title": "Kontroller",
+      "description": "ISO 31000: dokumenter eierskap og effekt for sentrale kontroller"
+    },
+    "documents": {
+      "title": "Dokumentkoblinger",
+      "description": "Viser prosedyrer, instrukser og rapporter som støtter risikostyringen"
+    },
+    "audits": {
+      "title": "Revisjoner og tester",
+      "description": "Knytt interne revisjoner og kontrolltester til risikoen"
+    }
+  },
+  "dashboardProjectDetailPage": {
+    "noAccess": "Ingen tilgang",
+    "ongoing": "Løpende",
+    "orderNumber": "Ordre: {number}",
+    "actions": {
+      "edit": "Rediger",
+      "pdfReport": "PDF-rapport"
+    },
+    "status": {
+      "planning": "Planlegging",
+      "active": "Aktiv",
+      "onHold": "På vent",
+      "completed": "Fullført",
+      "archived": "Arkivert"
+    },
+    "cards": {
+      "incidents": {
+        "title": "Avvik",
+        "description": "registrert"
+      },
+      "inspections": {
+        "title": "Vernerunder",
+        "description": "gjennomført"
+      },
+      "openMeasures": {
+        "title": "Åpne tiltak",
+        "description": "av {total} totalt"
+      },
+      "hours": {
+        "title": "Timer",
+        "description": "arbeidet"
+      },
+      "trir": {
+        "title": "TRIR",
+        "requiresHours": "Krever timer",
+        "perHours": "per 200 000 t"
+      }
+    }
+  },
+  "dashboardMeetingDetailPage": {
+    "common": {
+      "error": "Feil",
+      "role": "Rolle",
+      "title": "Tittel",
+      "description": "Beskrivelse",
+      "responsible": "Ansvarlig",
+      "deadline": "Frist"
+    },
+    "loading": "Laster...",
+    "loadingUsers": "Laster brukere...",
+    "noneSelected": "Ingen valgt",
+    "noneExternal": "Ingen (ekstern deltaker)",
+    "actions": {
+      "openLink": "Åpne lenke",
+      "add": "Legg til",
+      "cancel": "Avbryt",
+      "newDecision": "Nytt vedtak",
+      "addDecision": "Legg til vedtak"
+    },
+    "status": {
+      "planned": "Planlagt",
+      "inProgress": "Pågår",
+      "completed": "Fullført",
+      "cancelled": "Avlyst"
+    },
+    "decisionStatus": {
+      "pending": "Ikke startet",
+      "inProgress": "Pågår",
+      "completed": "Fullført",
+      "cancelled": "Avbrutt"
+    },
+    "roles": {
+      "chair": "Møteleder",
+      "secretary": "Referent",
+      "member": "Medlem",
+      "observer": "Observatør"
+    },
+    "attendance": {
+      "present": "Til stede",
+      "absent": "Ikke møtt"
+    },
+    "errors": {
+      "fetchMeeting": "Kunne ikke hente møte",
+      "participantRequired": "Fyll inn enten bruker-ID eller eksternt navn",
+      "addParticipant": "Kunne ikke legge til deltaker",
+      "decisionRequired": "Fyll inn tittel og beskrivelse",
+      "addDecision": "Kunne ikke legge til vedtak"
+    },
+    "toasts": {
+      "participantAdded": {
+        "title": "Deltaker lagt til",
+        "description": "Deltakeren er lagt til møtet"
+      },
+      "decisionAdded": {
+        "title": "Vedtak lagt til",
+        "description": "Vedtaket er lagt til møtet"
+      }
+    },
+    "sections": {
+      "details": {
+        "title": "Møtedetaljer",
+        "dateTime": "Dato og tid",
+        "location": "Sted",
+        "meetingLink": "Møtelenke",
+        "organizer": "Møteleder",
+        "agenda": "Agenda",
+        "summary": "Oppsummering",
+        "notes": "Notater"
+      },
+      "participants": {
+        "title": "Deltakere",
+        "description": "Oversikt over møtedeltakere",
+        "empty": "Ingen deltakere lagt til"
+      },
+      "decisions": {
+        "title": "Vedtak",
+        "description": "Beslutninger og oppfølgingspunkter",
+        "empty": "Ingen vedtak lagt til"
+      }
+    },
+    "dialogs": {
+      "addParticipant": {
+        "title": "Legg til deltaker",
+        "description": "Legg til en intern bruker eller ekstern deltaker",
+        "internalUser": "Bruker (intern)",
+        "selectUser": "Velg bruker",
+        "noneExternal": "Ingen (ekstern deltaker)",
+        "externalName": "Navn (ekstern)",
+        "externalEmail": "E-post (ekstern)",
+        "externalOnly": "Kun hvis ekstern"
+      },
+      "addDecision": {
+        "title": "Nytt vedtak",
+        "description": "Legg til en beslutning fra møtet",
+        "titlePlaceholder": "F.eks. Oppgradering av verneutstyr",
+        "descriptionPlaceholder": "Detaljert beskrivelse av vedtaket...",
+        "selectResponsible": "Velg ansvarlig (valgfritt)"
+      }
+    },
+    "table": {
+      "name": "Navn",
+      "role": "Rolle",
+      "attendance": "Oppmøte"
+    }
+  },
+  "dashboardDocumentDetailPage": {
+    "document": "Dokument",
+    "dash": "—",
+    "version": "Versjon {version}",
+    "actions": {
+      "edit": "Rediger",
+      "download": "Last ned"
+    },
+    "status": {
+      "title": "Status",
+      "draft": "Utkast",
+      "underReview": "Under gjennomgang",
+      "approved": "Godkjent",
+      "obsolete": "Utgått"
+    },
+    "documentType": {
+      "title": "Dokumenttype"
+    },
+    "category": {
+      "title": "Kategori"
+    },
+    "details": {
+      "title": "Dokumentdetaljer",
+      "owner": "Eier",
+      "created": "Opprettet {date}",
+      "approvedBy": "Godkjent av",
+      "lastUpdated": "Sist oppdatert",
+      "nextReview": "Neste gjennomgang",
+      "everyMonths": "(Hvert {months} måned)"
+    },
+    "history": {
+      "title": "Versjonshistorikk",
+      "latest": "Siste {count} versjoner",
+      "onlyLastFive": "Viser kun de 5 siste versjonene"
+    },
+    "kinds": {
+      "LAW": "Lover og regler",
+      "PROCEDURE": "Prosedyre (ISO 9001)",
+      "CHECKLIST": "Sjekkliste",
+      "FORM": "Skjema",
+      "SDS": "Sikkerhetsdatablad (SDS)",
+      "PLAN": "HMS-håndbok / Plan",
+      "OTHER": "Annet"
+    }
+  },
+  "dashboardInspectionsReportPage": {
+    "title": "Inspeksjonsrapport",
+    "yearReport": "Årsrapport {year}",
+    "actions": {
+      "back": "Tilbake",
+      "downloadPdf": "Last ned PDF"
+    },
+    "summary": {
+      "totalInPeriod": "Totalt i perioden",
+      "completionRate": "{percent} % gjennomføringsgrad",
+      "completed": "Fullført",
+      "plannedCount": "{count} planlagt",
+      "inProgressCount": "{count} pågår",
+      "openFindings": "Åpne funn",
+      "ofTotalFindings": "av {count} totalt",
+      "criticalOrSevere": "Kritiske/alvorlige funn",
+      "resolvedTotal": "{count} løst totalt"
+    },
+    "analysis": {
+      "title": "Analyse og oversikt",
+      "description": "Distribusjon av inspeksjoner og funn i perioden"
+    },
+    "openActions": {
+      "title": "Åpne tiltak som krever oppfølging ({count})",
+      "description": "Jf. AML § 3-1 og IK-HMS-forskriften § 5 – disse funnene krever at tiltak gjennomføres"
+    },
+    "labels": {
+      "types": {
+        "vernerunde": "Vernerunde",
+        "hmsInspection": "HMS-inspeksjon",
+        "fireDrill": "Brannøvelse",
+        "shaPlan": "SHA-plan",
+        "safetyWalk": "Sikkerhetsvandring",
+        "other": "Annet"
+      },
+      "status": {
+        "planned": "Planlagt",
+        "inProgress": "Pågår",
+        "completed": "Fullført",
+        "cancelled": "Avbrutt"
+      },
+      "findingStatus": {
+        "open": "Åpen",
+        "inProgress": "Under arbeid",
+        "resolved": "Løst",
+        "closed": "Lukket"
+      },
+      "severity": {
+        "low": "Lav",
+        "moderate": "Moderat",
+        "significant": "Betydelig",
+        "serious": "Alvorlig",
+        "critical": "Kritisk"
+      }
+    },
+    "table": {
+      "inspection": "Inspeksjon",
+      "finding": "Funn",
+      "severity": "Alvorlighet",
+      "status": "Status",
+      "responsible": "Ansvarlig",
+      "deadline": "Frist",
+      "title": "Tittel",
+      "type": "Type",
+      "planned": "Planlagt",
+      "completed": "Gjennomført",
+      "location": "Lokasjon",
+      "performedBy": "Gjennomført av",
+      "findings": "Funn",
+      "measureNote": "Tiltak/Merknad"
+    },
+    "dash": "–",
+    "overdue": " ⚠ Forfalt",
+    "noneOpenInPeriod": "Ingen åpne funn i valgt periode – alle registrerte tiltak er lukket.",
+    "inspectionsInPeriod": "Inspeksjoner i perioden ({count})",
+    "inspectionsDescription": "Komplett oversikt over alle inspeksjoner",
+    "noInspections": "Ingen inspeksjoner i valgt periode",
+    "allFindingsAndMeasures": "Alle funn og tiltak ({count})",
+    "allFindingsDescription": "Detaljert oversikt med alvorlighet, ansvarlig og tiltak",
+    "legal": "Jf. Arbeidsmiljøloven § 5-1 (registreringsplikt), § 5-2 (varslingsplikt), § 3-1 (systematisk HMS-arbeid) og IK-HMS-forskriften § 5. ISO 45001:2018 kap. 9.1."
+  },
+  "dashboardAuditComponents": {
+    "updateStatus": {
+      "title": "Endre revisjonsstatus",
+      "description": "Oppdater statusen for revisjonen",
+      "newStatus": "Ny status *",
+      "selectStatus": "Velg status",
+      "tipLabel": "Tips:",
+      "tipText": "Bruk \"Fullfør revisjon\"-knappen for å legge til oppsummering og konklusjon når revisjonen er ferdig.",
+      "status": {
+        "planned": "Planlagt",
+        "inProgress": "Pågår",
+        "completed": "Fullført",
+        "cancelled": "Avbrutt"
+      },
+      "actions": {
+        "changeStatus": "Endre status",
+        "cancel": "Avbryt",
+        "updating": "Oppdaterer...",
+        "updateStatus": "Oppdater status"
+      },
+      "toasts": {
+        "updated": {
+          "title": "✅ Status oppdatert",
+          "description": "Revisjonsstatusen er endret til \"{status}\""
+        },
+        "error": {
+          "title": "Feil",
+          "description": "Kunne ikke oppdatere status"
+        }
+      }
+    },
+    "completeAudit": {
+      "title": "Fullfør revisjon",
+      "description": "ISO 9001: Rapporter resultatene til relevant ledelse",
+      "summary": {
+        "label": "Oppsummering av revisjon *",
+        "placeholder": "Oppsummer hva som ble gjennomgått, hvilke områder som ble revidert, og hovedfunn.",
+        "help": "Minimum 50 tegn. Gi en god oversikt over revisjonen."
+      },
+      "conclusion": {
+        "label": "Konklusjon og anbefalinger *",
+        "placeholder": "Konkluder om ledelsessystemet er i samsvar med krav, og kom med anbefalinger.",
+        "help": "Minimum 50 tegn. ISO 9001: Vurder om systemet er effektivt implementert."
+      },
+      "iso": {
+        "title": "📋 ISO 9001 - 9.2 Rapportering",
+        "i1": "Oppsummer omfang og funn fra revisjonen",
+        "i2": "Vurder om ledelsessystemet er i samsvar med krav",
+        "i3": "Evaluer om systemet er effektivt implementert",
+        "i4": "Rapporter resultatene til relevant ledelse",
+        "i5": "Anbefal forbedringsområder"
+      },
+      "tips": {
+        "title": "💡 Tips til oppsummering:",
+        "i1": "Hvilke områder/avdelinger ble revidert?",
+        "i2": "Hvilke ISO 9001 klausuler ble dekket?",
+        "i3": "Antall funn (større/mindre avvik, observasjoner, styrker)",
+        "i4": "Generelt inntrykk av HMS-kulturen",
+        "i5": "Positive observasjoner og forbedringsområder"
+      },
+      "actions": {
+        "cancel": "Avbryt",
+        "complete": "Fullfør revisjon",
+        "completing": "Fullfører..."
+      },
+      "toasts": {
+        "completed": {
+          "title": "✅ Revisjon fullført",
+          "description": "Revisjonen er markert som fullført med oppsummering og konklusjon"
+        },
+        "error": {
+          "title": "Feil",
+          "description": "Kunne ikke fullføre revisjon"
+        }
+      }
+    },
+    "findingList": {
+      "confirmDelete": "Er du sikker på at du vil slette dette funnet?\n\nDette kan ikke angres.",
+      "confirmVerify": "Er du sikker på at dette funnet er løst og verifisert?",
+      "empty": {
+        "title": "Ingen funn registrert",
+        "description": "Ingen avvik eller observasjoner er dokumentert for denne revisjonen."
+      },
+      "types": {
+        "major": "Større avvik",
+        "minor": "Mindre avvik",
+        "observation": "Observasjon",
+        "strength": "Styrke"
+      },
+      "status": {
+        "open": "Åpen",
+        "inProgress": "Pågår",
+        "resolved": "Løst",
+        "verified": "Verifisert"
+      },
+      "clause": "Klausul {value}",
+      "overdue": "Forfalt",
+      "deadline": "Frist: {date}",
+      "updateDialog": {
+        "title": "Oppdater funn",
+        "description": "Legg til korrigerende tiltak og årsaksanalyse"
+      },
+      "fields": {
+        "description": "Beskrivelse:",
+        "evidence": "Bevis:",
+        "requirement": "Krav:",
+        "correctiveAction": "Korrigerende tiltak:",
+        "rootCause": "Årsaksanalyse:"
+      },
+      "actions": {
+        "start": "Start arbeid",
+        "markResolved": "Marker som løst",
+        "verify": "Verifiser lukking",
+        "saving": "Lagrer...",
+        "saveMeasures": "Lagre tiltak"
+      },
+      "verifiedTitle": "✅ Verifisert lukket",
+      "correctiveForm": {
+        "correctiveActionLabel": "Korrigerende tiltak (ISO 9001) *",
+        "correctiveActionPlaceholder": "Beskriv hvilke tiltak som er/skal iverksettes for å lukke funnet...",
+        "rootCauseLabel": "Årsaksanalyse (ISO 9001)",
+        "rootCausePlaceholder": "Hva er grunnårsaken til avviket?",
+        "rootCauseHelp": "ISO 9001: Identifiser og eliminer grunnårsaken",
+        "isoInfo": "ISO 9001: Korrigerende tiltak skal eliminere årsaken til avviket for å forhindre gjentakelse."
+      },
+      "toasts": {
+        "deleted": {
+          "title": "🗑️ Funn slettet",
+          "description": "Revisjonsfunnet er fjernet"
+        },
+        "deleteError": {
+          "title": "Sletting feilet",
+          "description": "Kunne ikke slette funn"
+        },
+        "statusUpdated": {
+          "description": "Funnet er nå \"{status}\""
+        },
+        "verified": {
+          "title": "✅ Funn verifisert",
+          "description": "Funnet er nå lukket og verifisert"
+        },
+        "updated": {
+          "title": "✅ Funn oppdatert",
+          "description": "Korrigerende tiltak er dokumentert"
+        },
+        "error": {
+          "title": "Feil",
+          "updateStatus": "Kunne ikke oppdatere status",
+          "verify": "Kunne ikke verifisere funn",
+          "update": "Kunne ikke oppdatere funn"
+        }
+      }
+    }
+  },
+  "dashboardInspectionComponentsExtra": {
+    "updateStatus": {
+      "title": "Endre inspeksjonsstatus",
+      "description": "Oppdater status for inspeksjonen",
+      "statusLabel": "Status",
+      "status": {
+        "planned": "Planlagt",
+        "inProgress": "Pågår",
+        "completed": "Fullført",
+        "cancelled": "Avbrutt"
+      },
+      "actions": {
+        "changeStatus": "Endre status",
+        "cancel": "Avbryt",
+        "save": "Lagre",
+        "saving": "Lagrer..."
+      },
+      "toasts": {
+        "updated": {
+          "title": "Status oppdatert",
+          "description": "Inspeksjonsstatus er nå endret"
+        },
+        "error": {
+          "title": "Feil"
+        }
+      },
+      "errors": {
+        "update": "Kunne ikke oppdatere status"
+      }
+    },
+    "findingList": {
+      "labels": {
+        "status": "Status",
+        "resolutionNotes": "Løsningsnotat",
+        "description": "Beskrivelse:",
+        "solution": "Løsning:"
+      },
+      "status": {
+        "open": "Åpen",
+        "inProgress": "Pågår",
+        "resolved": "Løst",
+        "closed": "Lukket"
+      },
+      "severity": {
+        "low": "Lav",
+        "moderate": "Moderat",
+        "significant": "Betydelig",
+        "serious": "Alvorlig",
+        "critical": "Kritisk"
+      },
+      "updateDialog": {
+        "title": "Oppdater funn",
+        "description": "Endre status og legg til løsningsnotat"
+      },
+      "placeholders": {
+        "resolutionNotes": "Beskriv hvordan funnet er håndtert..."
+      },
+      "confirmDelete": "Er du sikker på at du vil slette \"{title}\"?",
+      "imageAlt": "Bilde fra funn",
+      "deadline": "Frist: {date}",
+      "resolved": "Løst: {date}",
+      "actions": {
+        "update": "Oppdater",
+        "delete": "Slett",
+        "cancel": "Avbryt",
+        "save": "Lagre",
+        "saving": "Lagrer..."
+      },
+      "toasts": {
+        "updated": {
+          "title": "Funn oppdatert",
+          "description": "Status er nå endret"
+        },
+        "deleted": {
+          "title": "Funn slettet"
+        },
+        "error": {
+          "title": "Feil"
+        }
+      },
+      "errors": {
+        "update": "Kunne ikke oppdatere funn",
+        "delete": "Kunne ikke slette funn"
+      }
+    }
+  },
+  "dashboardProjectTabs": {
+    "unknownSize": "Ukjent størrelse",
+    "confirmDeleteAttachment": "Slette vedlegg \"{name}\"?",
+    "errors": {
+      "upload": "Kunne ikke laste opp filer",
+      "deleteAttachment": "Kunne ikke slette vedlegg"
+    },
+    "tabs": {
+      "incidents": "Avvik",
+      "inspections": "Vernerunder",
+      "measures": "Tiltak",
+      "time": "Timer",
+      "attachments": "Vedlegg",
+      "forms": "Skjema"
+    },
+    "actions": {
+      "constructionCompliance": "Bygg/anlegg-compliance"
+    },
+    "incidents": {
+      "description": "Avvik og hendelser registrert på dette prosjektet",
+      "empty": "Ingen avvik registrert på dette prosjektet",
+      "actions": { "new": "Registrer avvik" }
+    },
+    "sja": {
+      "description": "Sikker Jobb Analyser for dette prosjektet",
+      "empty": "Ingen SJA-analyser registrert på dette prosjektet",
+      "actions": { "new": "Ny SJA" }
+    },
+    "inspections": {
+      "description": "Vernerunder og inspeksjoner på prosjektstedet",
+      "empty": "Ingen vernerunder registrert på dette prosjektet",
+      "actions": { "new": "Ny vernerunde" }
+    },
+    "measures": {
+      "description": "Tiltak knyttet direkte til prosjektet",
+      "empty": "Ingen tiltak registrert direkte på dette prosjektet",
+      "deadline": "Frist: {date}",
+      "overdue": "— forfalt",
+      "sourceLabel": "Kilde",
+      "sourceIncident": "Avvik",
+      "sourceRisk": "Risiko",
+      "sourceProject": "Prosjekt",
+      "actions": { "new": "Nytt tiltak" }
+    },
+    "time": {
+      "description": "Timeregistreringer på prosjektet",
+      "empty": "Ingen timer registrert på dette prosjektet",
+      "hoursSuffix": "t",
+      "actions": { "stamp": "Stemple timer" }
+    },
+    "attachments": {
+      "description": "Last opp prosjektdokumentasjon som skal med i sluttrapporten (bilder, samsvar, målinger, signerte skjema).",
+      "empty": "Ingen vedlegg på prosjektet ennå",
+      "imageBadge": "Bilde",
+      "selected": "Valgt",
+      "actions": {
+        "upload": "Last opp",
+        "uploading": "Laster opp..."
+      }
+    },
+    "forms": {
+      "description": "Skjemainnsendinger koblet til dette prosjektet",
+      "empty": "Ingen skjemainnsendinger koblet til prosjektet",
+      "anonymous": "Anonym",
+      "actions": { "fill": "Fyll ut skjema" }
+    },
+    "status": {
+      "sja": {
+        "draft": "Utkast",
+        "submitted": "Innsendt",
+        "approved": "Godkjent",
+        "rejected": "Avvist"
+      },
+      "inspection": {
+        "planned": "Planlagt",
+        "inProgress": "Pågår",
+        "completed": "Fullført",
+        "cancelled": "Avlyst"
+      },
+      "measure": {
+        "pending": "Venter",
+        "inProgress": "Pågår",
+        "done": "Fullført",
+        "cancelled": "Kansellert"
+      },
+      "form": {
+        "draft": "Kladd",
+        "submitted": "Innsendt",
+        "approved": "Godkjent",
+        "rejected": "Avvist"
+      }
+    },
+    "toasts": {
+      "noFiles": {
+        "title": "Ingen filer valgt",
+        "description": "Velg minst én fil før opplasting"
+      },
+      "uploaded": {
+        "title": "Vedlegg lastet opp",
+        "description": "{count} fil(er) er lagt til prosjektet"
+      },
+      "uploadError": {
+        "title": "Opplasting feilet",
+        "description": "Kunne ikke laste opp vedlegg"
+      },
+      "deleted": {
+        "title": "Vedlegg slettet",
+        "description": "\"{name}\" er fjernet fra prosjektet"
+      },
+      "deleteError": {
+        "title": "Sletting feilet",
+        "description": "Kunne ikke slette vedlegg"
+      }
+    }
+  },
+  "dashboardAuditNewPage": {
+    "title": "Ny revisjon",
+    "description": "Opprett en ny internrevisjon eller ISO-revisjon",
+    "loadingUsers": "Laster brukere...",
+    "card": {
+      "title": "Revisjonsdetaljer",
+      "description": "Fyll ut informasjonen nedenfor i henhold til ISO 9001 krav"
+    },
+    "fields": {
+      "title": "Tittel",
+      "auditType": "Type revisjon",
+      "leadAuditor": "Hovedrevisor",
+      "scheduledDate": "Planlagt dato",
+      "area": "Område",
+      "department": "Avdeling",
+      "scope": "Omfang (ISO 9001)",
+      "criteria": "Kriterier (ISO 9001)"
+    },
+    "types": {
+      "internal": "Internrevisjon",
+      "external": "Eksternrevisjon",
+      "certification": "Sertifisering",
+      "supplier": "Leverandørrevisjon",
+      "followUp": "Oppfølging"
+    },
+    "placeholders": {
+      "title": "F.eks. Q1 2025 Internrevisjon - Produksjon",
+      "selectAuditor": "Velg revisor",
+      "area": "F.eks. HMS, Kvalitet, Miljø",
+      "department": "F.eks. Produksjon, Lager",
+      "scope": "Beskriv revisjonens omfang...",
+      "criteria": "F.eks. ISO 9001:2015 krav 7.1-7.5..."
+    },
+    "hints": {
+      "scope": "Hva skal revideres? Hvilke prosesser/områder?",
+      "criteria": "Hvilke krav skal vurderes? ISO-klausuler, lover, interne krav?"
+    },
+    "actions": {
+      "cancel": "Avbryt",
+      "creating": "Oppretter...",
+      "create": "Opprett revisjon"
+    },
+    "toasts": {
+      "created": {
+        "title": "Revisjon opprettet",
+        "description": "Revisjonen er nå opprettet og klar for gjennomføring"
+      },
+      "error": {
+        "title": "Feil"
+      }
+    }
+  },
+  "dashboardInspectionNewPage": {
+    "title": "Ny inspeksjon",
+    "description": "Opprett en ny vernerunde eller HMS-inspeksjon",
+    "card": {
+      "title": "Inspeksjonsdetaljer",
+      "description": "Fyll ut informasjonen nedenfor for å planlegge inspeksjonen"
+    },
+    "projectNotice": "Denne vernerunden blir registrert på valgt prosjekt.",
+    "loadingUsers": "Laster brukere...",
+    "loadingTemplates": "Laster skjemaer...",
+    "noneCategory": "Ingen kategori",
+    "noneSelected": "Ingen valgt",
+    "fields": {
+      "title": "Tittel",
+      "type": "Type",
+      "template": "📋 Mal (skjemabuilder) *",
+      "conductedBy": "Gjennomført av",
+      "scheduledDate": "Planlagt dato",
+      "description": "Beskrivelse",
+      "riskCategory": "Risiko-kategori",
+      "followUpBy": "Oppfølging ansvarlig",
+      "location": "Lokasjon",
+      "area": "Område / prosess",
+      "durationMinutes": "Estimert varighet (min)",
+      "nextInspection": "Neste inspeksjon"
+    },
+    "types": {
+      "vernerunde": "Vernerunde",
+      "hmsInspection": "HMS-inspeksjon",
+      "fireDrill": "Brannøvelse",
+      "shaPlan": "SHA-plan",
+      "safetyWalk": "Sikkerhetsvandring",
+      "other": "Annet"
+    },
+    "placeholders": {
+      "title": "F.eks. Kvartalsvis vernerunde - Produksjon",
+      "selectTemplate": "Velg mal-skjema",
+      "selectUser": "Velg bruker",
+      "description": "Beskriv hva som skal inspiseres...",
+      "selectOptionalCategory": "Velg kategori (valgfritt)",
+      "selectResponsibleOptional": "Velg ansvarlig (valgfritt)",
+      "location": "F.eks. Produksjonshall A",
+      "area": "F.eks. Lager, Verksted",
+      "duration": "F.eks. 90"
+    },
+    "actions": {
+      "cancel": "Avbryt",
+      "creating": "Oppretter...",
+      "create": "Opprett vernerunde",
+      "selectTemplate": "Velg mal"
+    },
+    "toasts": {
+      "missingTemplate": {
+        "title": "Mangler mal",
+        "description": "Du må velge et vernerunde-skjema fra malbiblioteket."
+      },
+      "created": {
+        "title": "Inspeksjon opprettet",
+        "description": "Inspeksjonen er nå opprettet og klar for gjennomføring"
+      },
+      "error": {
+        "title": "Feil"
+      }
+    },
+    "errors": {
+      "create": "Kunne ikke opprette inspeksjon"
+    },
+    "noTemplates": {
+      "title": "Ingen vernerunde-skjemaer funnet",
+      "subtitle": "Opprett først et skjema:",
+      "s1": "1. Gå til Skjemaer → Nytt skjema",
+      "s2": "2. Velg kategori \"Inspeksjon / Vernerunde\"",
+      "s3": "3. Bygg skjemaet og lagre",
+      "s4": "4. Kom tilbake hit og velg skjemaet"
+    },
+    "template": {
+      "exampleTemplate": "Eksempelmal",
+      "globalInfo": "Dette er en global eksempelmal. Lag en kopi under Skjemaer hvis du vil endre eller legge til punkter.",
+      "fieldsCount": "Felter i malen: {count}",
+      "requiredSuffix": "(påkrevd)",
+      "moreFields": "+{count} flere felter i skjemaet.",
+      "createOwnTitle": "💡 Opprett ditt eget vernerunde-skjema",
+      "createOwnDescription": "Gå til Skjemaer → Nytt skjema og velg kategori \"Inspeksjon / Vernerunde\"",
+      "availableCount": "✅ {count} vernerunde-skjema tilgjengelig"
+    }
+  },
+  "dashboardInspectionEditPage": {
+    "title": "Rediger inspeksjon",
+    "description": "Oppdater informasjon om inspeksjonen",
+    "loading": "Laster inspeksjon...",
+    "loadingUsers": "Laster brukere...",
+    "card": {
+      "title": "Inspeksjonsdetaljer",
+      "description": "Oppdater informasjonen nedenfor for å endre inspeksjonen"
+    },
+    "fields": {
+      "title": "Tittel *",
+      "type": "Type *",
+      "status": "Status *",
+      "conductedBy": "Gjennomført av *",
+      "scheduledDate": "Planlagt dato *",
+      "completedDate": "Fullført dato",
+      "location": "Lokasjon",
+      "description": "Beskrivelse"
+    },
+    "types": {
+      "vernerunde": "Vernerunde",
+      "hmsInspection": "HMS-inspeksjon",
+      "fireDrill": "Brannøvelse",
+      "shaPlan": "SHA-plan",
+      "safetyWalk": "Sikkerhetsvandring",
+      "other": "Annet"
+    },
+    "status": {
+      "planned": "Planlagt",
+      "inProgress": "Pågår",
+      "completed": "Fullført",
+      "cancelled": "Avbrutt"
+    },
+    "placeholders": {
+      "title": "F.eks. Kvartalsvis vernerunde Q1 2025",
+      "selectUser": "Velg bruker",
+      "location": "F.eks. Produksjonshall A",
+      "description": "Skriv en beskrivelse av inspeksjonen..."
+    },
+    "hints": {
+      "completedDate": "Sett kun hvis inspeksjonen er fullført"
+    },
+    "actions": {
+      "saveChanges": "Lagre endringer",
+      "cancel": "Avbryt"
+    },
+    "toasts": {
+      "updated": {
+        "title": "Inspeksjon oppdatert",
+        "description": "Inspeksjonen er nå oppdatert"
+      },
+      "error": {
+        "title": "Feil"
+      }
+    },
+    "errors": {
+      "fetch": "Kunne ikke hente inspeksjon",
+      "update": "Kunne ikke oppdatere inspeksjon"
+    }
+  },
+  "dashboardInspectionMobilePage": {
+    "status": {
+      "planned": "Planlagt",
+      "inProgress": "Pågår",
+      "completed": "Fullført",
+      "cancelled": "Kansellert"
+    },
+    "form": {
+      "completed": "Skjema er utfylt",
+      "view": "Se utfylt skjema",
+      "warning": "Skjema må fylles ut og sendes inn. Punkter merket \"Ikke OK\" skal registreres som funn.",
+      "fill": "Fyll ut skjema"
+    },
+    "stats": {
+      "registeredFindings": "Registrerte funn",
+      "openFindings": "Åpne funn"
+    }
+  },
+  "dashboardDocumentsList": {
+    "dash": "-",
+    "all": "Alle",
+    "notSet": "Ikke satt",
+    "owner": "Prosesseier",
+    "nextReview": "Neste revisjon",
+    "visibleForAll": "Synlig for alle",
+    "approvedAt": "Godkjent {date}",
+    "cannotDeleteLaw": "Lover og regler kan ikke slettes",
+    "actions": {
+      "download": "Last ned",
+      "convertPdf": "Konverter til PDF",
+      "edit": "Rediger dokument",
+      "approve": "Godkjenn dokument",
+      "newVersion": "Last opp ny versjon",
+      "delete": "Slett"
+    },
+    "kind": {
+      "LAW": "Lover og regler",
+      "PROCEDURE": "Prosedyre (ISO 9001)",
+      "CHECKLIST": "Sjekkliste",
+      "FORM": "Skjema",
+      "SDS": "Sikkerhetsdatablad (SDS)",
+      "PLAN": "HMS-håndbok / Plan",
+      "OTHER": "Annet"
+    },
+    "status": {
+      "DRAFT": "Utkast",
+      "APPROVED": "Godkjent",
+      "ARCHIVED": "Arkivert"
+    },
+    "roles": {
+      "ADMIN": "Admin",
+      "HMS": "HMS",
+      "LEDER": "Leder",
+      "VERNEOMBUD": "Verneombud",
+      "ANSATT": "Ansatt",
+      "BHT": "BHT",
+      "REVISOR": "Revisor"
+    },
+    "table": {
+      "title": "Tittel",
+      "type": "Type",
+      "version": "Versjon",
+      "status": "Status",
+      "owner": "Prosesseier",
+      "nextReview": "Neste revisjon",
+      "visibleTo": "Synlig for",
+      "approved": "Godkjent",
+      "actions": "Handlinger"
+    },
+    "empty": {
+      "title": "Ingen dokumenter",
+      "description": "Last opp ditt første dokument for å komme i gang",
+      "action": "Last opp dokument"
+    },
+    "confirmApprove": "Godkjenn \"{title}\"?\n\nDette vil aktivere dokumentet for bruk.",
+    "confirmDelete": "Er du sikker på at du vil slette \"{title}\"?\n\nDette kan ikke angres.",
+    "toasts": {
+      "downloading": {
+        "title": "Dokument lastes ned",
+        "description": "Filen åpnes i en ny fane"
+      },
+      "downloadError": {
+        "title": "Nedlasting feilet",
+        "description": "Kunne ikke laste ned dokument"
+      },
+      "converting": {
+        "title": "Konverterer til PDF",
+        "description": "Vennligst vent..."
+      },
+      "converted": {
+        "title": "✅ PDF generert",
+        "description": "\"{title}\" ble konvertert til PDF"
+      },
+      "convertError": {
+        "title": "Konvertering feilet",
+        "description": "Kunne ikke konvertere til PDF"
+      },
+      "approved": {
+        "title": "✅ Dokument godkjent",
+        "description": "\"{title}\" er nå aktivert for bruk"
+      },
+      "approveError": {
+        "title": "Godkjenning feilet",
+        "description": "Kunne ikke godkjenne dokument"
+      },
+      "deleted": {
+        "title": "🗑️ Dokument slettet",
+        "description": "\"{title}\" er permanent fjernet"
+      },
+      "deleteError": {
+        "title": "Sletting feilet",
+        "description": "Kunne ikke slette dokument"
+      }
+    }
+  },
+  "dashboardDocumentForm": {
+    "title": "Last opp nytt dokument",
+    "description": "Dokumentet vil få status UTKAST og må godkjennes før bruk",
+    "none": "Ingen",
+    "global": "Global",
+    "templateSelected": "Mal valgt",
+    "defaultChangeComment": "Første versjon opprettet",
+    "fields": {
+      "title": "Tittel *",
+      "kind": "Type dokument *",
+      "version": "Versjon",
+      "owner": "Prosesseier",
+      "template": "Dokumentmal",
+      "reviewInterval": "Revisjonsintervall (måneder)",
+      "effectiveFrom": "Gyldig fra",
+      "effectiveTo": "Gyldig til",
+      "file": "Fil *",
+      "plan": "Plan (Plan)",
+      "do": "Gjør (Do)",
+      "check": "Kontroller (Check)",
+      "act": "Forbedre (Act)",
+      "visibleToRoles": "Hvem skal se dokumentet?"
+    },
+    "kinds": {
+      "LAW": "Lover og regler",
+      "PLAN": "HMS-håndbok / Plan",
+      "PROCEDURE": "Prosedyre (ISO 9001)",
+      "CHECKLIST": "Sjekkliste",
+      "FORM": "Skjema",
+      "SDS": "Sikkerhetsdatablad (SDS)",
+      "OTHER": "Annet"
+    },
+    "roles": {
+      "ADMIN": "Admin",
+      "HMS": "HMS-leder",
+      "LEDER": "Leder",
+      "VERNEOMBUD": "Verneombud",
+      "ANSATT": "Ansatt",
+      "BHT": "BHT",
+      "REVISOR": "Revisor"
+    },
+    "placeholders": {
+      "title": "F.eks. HMS-håndbok 2025",
+      "kind": "F.eks. HMS-håndbok, Lover og regler, Prosedyre",
+      "owner": "Velg ansvarlig",
+      "noUsers": "Ingen brukere tilgjengelig",
+      "template": "Velg mal (valgfritt)",
+      "noTemplates": "Ingen maler tilgjengelig",
+      "plan": "Hva er hensikten og rammen for prosessen?",
+      "do": "Hvordan utføres prosessen i praksis?",
+      "check": "Hvordan følger vi opp at prosessen fungerer?",
+      "act": "Hvilke forbedringer eller korrigerende tiltak planlegges?"
+    },
+    "selectedFile": "Valgt: {name} ({size} MB)",
+    "selectedRoles": "✓ Valgt: {roles}",
+    "visibleToHelp": "Velg hvilke roller som skal ha tilgang. Ingen valg = synlig for alle.",
+    "fileHelp": "Støttede formater: PDF, Word, Excel, TXT • Maks 50 MB",
+    "important": {
+      "title": "ℹ️ Viktig informasjon",
+      "i1": "Dokumentet får status <strong>UTKAST</strong> etter opplasting",
+      "i2": "Må <strong>godkjennes</strong> av HMS-leder/Admin før bruk",
+      "i3": "Alle versjoner lagres permanent for sporbarhet"
+    },
+    "actions": {
+      "uploading": "Laster opp...",
+      "upload": "Last opp dokument",
+      "cancel": "Avbryt"
+    },
+    "toasts": {
+      "created": {
+        "title": "📄 Dokument opprettet",
+        "description": "Dokumentet er lastet opp og venter på godkjenning"
+      },
+      "uploadFailed": {
+        "title": "Opplasting feilet",
+        "description": "Kunne ikke laste opp dokument"
+      },
+      "fileTooLarge": {
+        "title": "⚠️ Filen er for stor",
+        "description": "Maksimal filstørrelse er 50 MB. Din fil er {size} MB.",
+        "serverDescription": "Maksimal filstørrelse er 50 MB. Prøv å komprimere filen eller last opp en mindre versjon."
+      },
+      "unexpected": {
+        "title": "Uventet feil",
+        "description": "Noe gikk galt ved opplasting av dokument. Prøv igjen senere."
+      }
+    }
+  },
+  "dashboardDocumentEditForm": {
+    "title": "Rediger dokument",
+    "description": "Oppdater metadata og tilgangskontroll. For å endre fil, bruk \"Last opp ny versjon\".",
+    "none": "Ingen",
+    "global": "Global",
+    "templateSelected": "Mal valgt",
+    "visibleForAll": "📢 Synlig for alle roller",
+    "fields": {
+      "title": "Tittel *",
+      "kind": "Type dokument *",
+      "version": "Versjon",
+      "owner": "Prosesseier",
+      "template": "Dokumentmal",
+      "reviewInterval": "Revisjonsintervall (måneder)",
+      "effectiveFrom": "Gyldig fra",
+      "effectiveTo": "Gyldig til",
+      "plan": "Plan (Plan)",
+      "do": "Gjør (Do)",
+      "check": "Kontroller (Check)",
+      "act": "Forbedre (Act)",
+      "visibleToRoles": "Hvem skal se dokumentet?"
+    },
+    "kinds": {
+      "LAW": "Lover og regler",
+      "PLAN": "HMS-håndbok / Plan",
+      "PROCEDURE": "Prosedyre (ISO 9001)",
+      "CHECKLIST": "Sjekkliste",
+      "FORM": "Skjema",
+      "SDS": "Sikkerhetsdatablad (SDS)",
+      "OTHER": "Annet"
+    },
+    "roles": {
+      "ADMIN": "Admin",
+      "HMS": "HMS-leder",
+      "LEDER": "Leder",
+      "VERNEOMBUD": "Verneombud",
+      "ANSATT": "Ansatt",
+      "BHT": "BHT",
+      "REVISOR": "Revisor"
+    },
+    "placeholders": {
+      "title": "F.eks. HMS-håndbok 2025",
+      "kind": "Velg type",
+      "owner": "Velg ansvarlig",
+      "noUsers": "Ingen brukere tilgjengelig",
+      "template": "Velg mal (valgfritt)",
+      "noTemplates": "Ingen maler tilgjengelig"
+    },
+    "selectedRoles": "✓ Valgt: {roles}",
+    "visibleToHelp": "Velg hvilke roller som skal ha tilgang. Ingen valg = synlig for alle.",
+    "important": {
+      "title": "ℹ️ Viktig informasjon",
+      "i1": "Endringer påvirker kun metadata og tilgangskontroll",
+      "i2": "For å endre selve filen, bruk <strong>\"Last opp ny versjon\"</strong>",
+      "i3": "Status og godkjenning endres ikke her"
+    },
+    "actions": {
+      "saving": "Lagrer...",
+      "saveChanges": "Lagre endringer",
+      "cancel": "Avbryt"
+    },
+    "toasts": {
+      "updated": {
+        "title": "✅ Dokument oppdatert",
+        "description": "Endringene er lagret"
+      },
+      "updateFailed": {
+        "title": "Oppdatering feilet",
+        "description": "Kunne ikke oppdatere dokument"
+      },
+      "unexpected": {
+        "title": "Uventet feil",
+        "description": "Noe gikk galt ved oppdatering av dokument"
+      }
+    }
+  },
+  "dashboardDocumentNewVersionForm": {
+    "title": "Last opp ny versjon",
+    "description": "Gammel versjon ({version}) lagres i historikken. Ny versjon må godkjennes.",
+    "fields": {
+      "version": "Versjonsnummer *",
+      "changeComment": "Hva er endret? *",
+      "file": "Ny fil *"
+    },
+    "placeholders": {
+      "version": "v1.1 eller v2.0",
+      "changeComment": "F.eks. Oppdatert sikkerhetsprosedyrer i kap. 3"
+    },
+    "hints": {
+      "version": "Gjeldende: {version}. Bruk f.eks. v1.1 for mindre endringer, v2.0 for større.",
+      "changeComment": "Beskriv kort hva som er endret (påkrevd for sporbarhet)"
+    },
+    "selectedFile": "Valgt: {name} ({size} KB)",
+    "important": {
+      "title": "⚠️ Viktig",
+      "i1": "Dokumentet får status <strong>UTKAST</strong> og må godkjennes på nytt",
+      "i2": "Gammel versjon lagres permanent i historikken",
+      "i3": "Endringskommentar er <strong>påkrevd</strong> (HMS-compliance)"
+    },
+    "actions": {
+      "uploading": "Laster opp...",
+      "upload": "Last opp ny versjon",
+      "cancel": "Avbryt"
+    },
+    "toasts": {
+      "uploaded": {
+        "title": "🔄 Ny versjon lastet opp",
+        "description": "Dokumentet må godkjennes på nytt før det kan brukes"
+      },
+      "uploadFailed": {
+        "title": "Opplasting feilet",
+        "description": "Kunne ikke laste opp ny versjon"
+      },
+      "unexpected": {
+        "title": "Uventet feil",
+        "description": "Noe gikk galt ved opplasting av ny versjon"
+      }
+    }
+  },
+  "dashboardInspectionComponents": {
+    "updateStatus": {
+      "title": "Endre inspeksjonsstatus",
+      "description": "Oppdater status for inspeksjonen",
+      "statusLabel": "Status",
+      "status": {
+        "planned": "Planlagt",
+        "inProgress": "Pågår",
+        "completed": "Fullført",
+        "cancelled": "Avbrutt"
+      },
+      "actions": {
+        "changeStatus": "Endre status",
+        "cancel": "Avbryt",
+        "save": "Lagre",
+        "saving": "Lagrer..."
+      },
+      "toasts": {
+        "updated": {
+          "title": "Status oppdatert",
+          "description": "Inspeksjonsstatus er nå endret"
+        },
+        "error": {
+          "title": "Feil"
+        }
+      },
+      "errors": {
+        "update": "Kunne ikke oppdatere status"
+      }
+    },
+    "findingList": {
+      "labels": {
+        "status": "Status",
+        "resolutionNotes": "Løsningsnotat",
+        "description": "Beskrivelse:",
+        "solution": "Løsning:"
+      },
+      "status": {
+        "open": "Åpen",
+        "inProgress": "Pågår",
+        "resolved": "Løst",
+        "closed": "Lukket"
+      },
+      "severity": {
+        "low": "Lav",
+        "moderate": "Moderat",
+        "significant": "Betydelig",
+        "serious": "Alvorlig",
+        "critical": "Kritisk"
+      },
+      "updateDialog": {
+        "title": "Oppdater funn",
+        "description": "Endre status og legg til løsningsnotat"
+      },
+      "placeholders": {
+        "resolutionNotes": "Beskriv hvordan funnet er håndtert..."
+      },
+      "confirmDelete": "Er du sikker på at du vil slette \"{title}\"?",
+      "imageAlt": "Bilde fra funn",
+      "deadline": "Frist: {date}",
+      "resolved": "Løst: {date}",
+      "actions": {
+        "update": "Oppdater",
+        "delete": "Slett",
+        "cancel": "Avbryt",
+        "save": "Lagre",
+        "saving": "Lagrer..."
+      },
+      "toasts": {
+        "updated": {
+          "title": "Funn oppdatert",
+          "description": "Status er nå endret"
+        },
+        "deleted": {
+          "title": "Funn slettet"
+        },
+        "error": {
+          "title": "Feil"
+        }
+      },
+      "errors": {
+        "update": "Kunne ikke oppdatere funn",
+        "delete": "Kunne ikke slette funn"
+      }
+    },
+    "completeButton": {
+      "errors": {
+        "complete": "Kunne ikke fullføre vernerunde"
+      },
+      "actions": {
+        "saving": "Lagrer...",
+        "complete": "Fullfør vernerunde",
+        "completeWithoutFindings": "Ingen funn - fullfør vernerunde"
+      },
+      "toasts": {
+        "completedWithFindings": {
+          "title": "Vernerunde fullført",
+          "description": "Status er satt til fullført."
+        },
+        "completedWithoutFindings": {
+          "title": "Vernerunde fullført uten funn",
+          "description": "Status er satt til fullført. Ingen funn ble registrert."
+        },
+        "error": {
+          "title": "Feil",
+          "description": "Kunne ikke fullføre vernerunden."
+        }
+      }
+    },
+    "findingForm": {
+      "title": "Registrer nytt funn",
+      "description": "Dokumenter avvik, observasjoner eller forbedringsområder fra inspeksjonen",
+      "imageAlt": "Opplastet bilde",
+      "fields": {
+        "title": "Tittel",
+        "description": "Beskrivelse",
+        "severity": "Alvorlighetsgrad",
+        "location": "Lokasjon",
+        "responsible": "Ansvarlig for oppfølging",
+        "dueDate": "Frist for lukking",
+        "images": "Bilder"
+      },
+      "placeholders": {
+        "title": "F.eks. Manglende verneutstyr",
+        "description": "Beskriv funnet i detalj...",
+        "selectSeverity": "Velg alvorlighetsgrad",
+        "location": "F.eks. Produksjonshall A",
+        "selectResponsible": "Velg ansvarlig"
+      },
+      "severity": {
+        "s1": "1 - Lav",
+        "s2": "2 - Moderat",
+        "s3": "3 - Betydelig",
+        "s4": "4 - Alvorlig",
+        "s5": "5 - Kritisk"
+      },
+      "actions": {
+        "add": "Legg til funn",
+        "uploading": "Laster opp...",
+        "clickUpload": "Klikk for å laste opp bilder",
+        "cancel": "Avbryt",
+        "creating": "Oppretter...",
+        "create": "Opprett funn"
+      },
+      "errors": {
+        "uploadImage": "Kunne ikke laste opp bilde",
+        "create": "Kunne ikke opprette funn"
+      },
+      "toasts": {
+        "imageUploaded": {
+          "title": "Bilde lastet opp",
+          "description": "Bildet er nå lagt til funnet"
+        },
+        "uploadError": {
+          "title": "Feil ved opplasting"
+        },
+        "imageRemoved": "Bilde fjernet",
+        "removeImageError": "Kunne ikke fjerne bilde",
+        "created": {
+          "title": "Funn opprettet",
+          "description": "Funnet er nå registrert"
+        },
+        "error": {
+          "title": "Feil"
+        }
+      }
+    },
+    "mobileFindingForm": {
+      "imageAlt": "Bilde",
+      "errors": {
+        "uploadImage": "Kunne ikke laste opp bilde",
+        "create": "Kunne ikke opprette funn"
+      },
+      "severity": {
+        "low": "Lav",
+        "moderate": "Moderat",
+        "significant": "Betydelig",
+        "serious": "Alvorlig",
+        "critical": "Kritisk"
+      },
+      "fields": {
+        "title": "Tittel",
+        "description": "Beskrivelse",
+        "locationOptional": "Lokasjon (valgfritt)"
+      },
+      "placeholders": {
+        "title": "F.eks. Manglende verneutstyr",
+        "description": "Beskriv funnet i detalj...",
+        "location": "F.eks. Produksjonshall A"
+      },
+      "step1": {
+        "title": "Steg 1: Ta bilder",
+        "description": "Dokumenter funnet med bilder (valgfritt)",
+        "cameraHint": "Trykk for å åpne kamera",
+        "next": "Neste: Beskriv funnet"
+      },
+      "step2": {
+        "title": "Steg 2: Beskriv funnet",
+        "description": "Hva er funnet?"
+      },
+      "step3": {
+        "title": "Steg 3: Alvorlighetsgrad",
+        "description": "Hvor alvorlig er funnet?"
+      },
+      "actions": {
+        "uploading": "Laster opp...",
+        "takePhoto": "Ta bilde",
+        "back": "Tilbake",
+        "next": "Neste",
+        "saving": "Lagrer...",
+        "saveFinding": "✅ Lagre funn"
+      },
+      "toasts": {
+        "imageSaved": {
+          "title": "📸 Bilde lagret",
+          "description": "Bildet er lagt til funnet"
+        },
+        "uploadError": {
+          "title": "Feil ved opplasting"
+        },
+        "removeImageError": "Kunne ikke fjerne bilde",
+        "missingInfo": {
+          "title": "Mangler informasjon",
+          "description": "Vennligst fyll ut tittel og beskrivelse"
+        },
+        "created": {
+          "title": "✅ Funn registrert",
+          "description": "Funnet er nå lagret"
+        },
+        "error": {
+          "title": "Feil"
+        }
+      }
+    },
+    "checklist": {
+      "empty": "Ingen sjekkpunkter i denne malen.",
+      "progress": "Ferdig: {completed} av {total} sjekkpunkter.",
+      "imageAlt": "Funnbilde",
+      "fields": {
+        "findingTitle": "Funn-tittel",
+        "findingDescription": "Beskrivelse av funn",
+        "severity": "Alvorlighetsgrad (1-5)",
+        "location": "Lokasjon",
+        "images": "Bilder"
+      },
+      "placeholders": {
+        "findingTitle": "Kort tittel på funn",
+        "findingDescription": "Beskriv hva som ikke er OK og hvorfor",
+        "location": "F.eks. Lager 2"
+      },
+      "badges": {
+        "finding": "Funn",
+        "findingRegistered": "Funn registrert"
+      },
+      "actions": {
+        "ok": "OK",
+        "notOk": "Ikke OK",
+        "uploading": "Laster opp...",
+        "addImage": "Legg til bilde",
+        "saving": "Lagrer...",
+        "saveChecklist": "Lagre sjekkliste"
+      },
+      "ai": {
+        "title": "AI-oppsummering av vernerunde",
+        "generating": "Genererer...",
+        "generate": "Generer oppsummering",
+        "placeholder": "Oppsummering av status, kritiske avvik og anbefalt oppfølging."
+      },
+      "errors": {
+        "uploadImage": "Kunne ikke laste opp bilde",
+        "missingFindingDescription": "Fyll ut beskrivelse for funn i punktet \"{title}\".",
+        "createFindingFromCheckpoint": "Kunne ikke opprette funn fra sjekkpunkt.",
+        "saveChecklist": "Kunne ikke lagre sjekkliste",
+        "saveChecklistFallback": "Kunne ikke lagre sjekklisten."
+      },
+      "toasts": {
+        "saved": {
+          "title": "Sjekkliste lagret",
+          "description": "Avhukingene er lagret på vernerunden.",
+          "withFindings": "{count} funn ble opprettet fra punkter merket Ikke OK."
+        },
+        "aiFailed": {
+          "title": "AI-oppsummering feilet",
+          "description": "Ukjent feil"
+        },
+        "error": {
+          "title": "Feil",
+          "uploadImage": "Kunne ikke laste opp bilde til funnet.",
+          "removeImage": "Kunne ikke fjerne bilde."
+        }
+      }
+    }
+  }
+}

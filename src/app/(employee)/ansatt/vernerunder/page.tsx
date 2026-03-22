@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,29 +9,32 @@ import { Button } from "@/components/ui/button";
 import { ShieldCheck, Calendar, MapPin, User, ClipboardList, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
-import { nb } from "date-fns/locale";
+import { enUS, nb } from "date-fns/locale";
 
 export const dynamic = "force-dynamic";
 
-function getStatusConfig(status: string) {
+function getStatusConfig(
+  status: string,
+  t: (key: string) => string
+) {
   const map: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
     PLANNED: {
-      label: "Planlagt",
+      label: t("status.planned"),
       className: "bg-blue-100 text-blue-800",
       icon: <Clock className="h-3 w-3" />,
     },
     IN_PROGRESS: {
-      label: "Pågår",
+      label: t("status.inProgress"),
       className: "bg-yellow-100 text-yellow-800",
       icon: <AlertTriangle className="h-3 w-3" />,
     },
     COMPLETED: {
-      label: "Fullført",
+      label: t("status.completed"),
       className: "bg-green-100 text-green-800",
       icon: <CheckCircle2 className="h-3 w-3" />,
     },
     CANCELLED: {
-      label: "Avbrutt",
+      label: t("status.cancelled"),
       className: "bg-gray-100 text-gray-600",
       icon: null,
     },
@@ -40,6 +44,9 @@ function getStatusConfig(status: string) {
 
 export default async function AnsattVernerunderPage() {
   const session = await getServerSession(authOptions);
+  const t = await getTranslations("employeeInspectionsPage");
+  const locale = await getLocale();
+  const dateLocale = locale === "en" ? enUS : nb;
 
   if (!session?.user?.tenantId) {
     redirect("/login");
@@ -86,10 +93,10 @@ export default async function AnsattVernerunderPage() {
       <div>
         <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
           <ShieldCheck className="h-7 w-7 text-green-600" />
-          Vernerunder
+          {t("header.title")}
         </h1>
         <p className="text-muted-foreground text-sm">
-          Planlagte og gjennomførte vernerunder du er involvert i
+          {t("header.description")}
         </p>
       </div>
 
@@ -97,7 +104,7 @@ export default async function AnsattVernerunderPage() {
       <div>
         <h2 className="text-base font-semibold mb-3 flex items-center gap-2">
           <Clock className="h-4 w-4 text-blue-600" />
-          Planlagte / pågående
+          {t("sections.upcoming")}
         </h2>
         <div className="space-y-3">
           {upcoming.length === 0 ? (
@@ -105,13 +112,13 @@ export default async function AnsattVernerunderPage() {
               <CardContent className="text-center py-10">
                 <ShieldCheck className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
                 <p className="text-muted-foreground text-sm">
-                  Ingen planlagte vernerunder for øyeblikket
+                  {t("empty.upcoming")}
                 </p>
               </CardContent>
             </Card>
           ) : (
             upcoming.map((inspection) => {
-              const statusCfg = getStatusConfig(inspection.status);
+              const statusCfg = getStatusConfig(inspection.status, t);
               const isResponsible = inspection.conductedBy === userId;
               const canFill =
                 inspection.formTemplate && !inspection.formSubmission;
@@ -129,7 +136,7 @@ export default async function AnsattVernerunderPage() {
                           </Badge>
                           {isResponsible && (
                             <Badge variant="outline" className="text-xs">
-                              Ansvarlig
+                              {t("labels.responsible")}
                             </Badge>
                           )}
                         </div>
@@ -138,7 +145,9 @@ export default async function AnsattVernerunderPage() {
                           <div className="flex items-center gap-2">
                             <Calendar className="h-3.5 w-3.5 shrink-0" />
                             <span>
-                              {format(new Date(inspection.scheduledDate), "EEEE d. MMMM yyyy", { locale: nb })}
+                              {format(new Date(inspection.scheduledDate), "EEEE d. MMMM yyyy", {
+                                locale: dateLocale,
+                              })}
                             </span>
                           </div>
                           {inspection.location && (
@@ -149,7 +158,11 @@ export default async function AnsattVernerunderPage() {
                           )}
                           <div className="flex items-center gap-2">
                             <User className="h-3.5 w-3.5 shrink-0" />
-                            <span>Ansvarlig: {conductedByMap.get(inspection.conductedBy) || "Ukjent"}</span>
+                            <span>
+                              {t("labels.responsibleWithName", {
+                                name: conductedByMap.get(inspection.conductedBy) || t("labels.unknown"),
+                              })}
+                            </span>
                           </div>
                           {inspection.formTemplate && (
                             <div className="flex items-center gap-2">
@@ -166,7 +179,7 @@ export default async function AnsattVernerunderPage() {
                           className="shrink-0"
                         >
                           <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                            Fyll ut
+                            {t("actions.fillOut")}
                           </Button>
                         </Link>
                       )}
@@ -190,11 +203,11 @@ export default async function AnsattVernerunderPage() {
         <div>
           <h2 className="text-base font-semibold mb-3 flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-green-600" />
-            Tidligere vernerunder
+            {t("sections.previous")}
           </h2>
           <div className="space-y-3">
             {completed.map((inspection) => {
-              const statusCfg = getStatusConfig(inspection.status);
+              const statusCfg = getStatusConfig(inspection.status, t);
               return (
                 <Card key={inspection.id} className="opacity-80">
                   <CardContent className="p-4">
@@ -211,7 +224,9 @@ export default async function AnsattVernerunderPage() {
                           <div className="flex items-center gap-2">
                             <Calendar className="h-3.5 w-3.5 shrink-0" />
                             <span>
-                              {format(new Date(inspection.scheduledDate), "d. MMMM yyyy", { locale: nb })}
+                              {format(new Date(inspection.scheduledDate), "d. MMMM yyyy", {
+                                locale: dateLocale,
+                              })}
                             </span>
                           </div>
                           {inspection.location && (
@@ -229,7 +244,7 @@ export default async function AnsattVernerunderPage() {
                           className="shrink-0"
                         >
                           <Button size="sm" variant="outline">
-                            Se rapport
+                            {t("actions.viewReport")}
                           </Button>
                         </Link>
                       )}
@@ -246,8 +261,7 @@ export default async function AnsattVernerunderPage() {
       <Card className="border-l-4 border-l-green-500 bg-green-50">
         <CardContent className="p-4">
           <p className="text-sm text-green-900">
-            <strong>📋 Vernerunde (AML § 6-2):</strong> Regelmessige vernerunder er påkrevd for å kartlegge
-            arbeidsmiljøet. Du vises her fordi du er ansvarlig for eller deltaker i disse rundene.
+            <strong>{t("info.title")}</strong> {t("info.description")}
           </p>
         </CardContent>
       </Card>

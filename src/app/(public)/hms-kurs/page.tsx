@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +34,8 @@ import {
 } from "lucide-react";
 
 export default function HMSKursPage() {
+  const t = useTranslations("hmsCoursesPage");
+  const locale = useLocale();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -66,14 +69,18 @@ export default function HMSKursPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Noe gikk galt");
+        throw new Error(data.error || t("toasts.genericError"));
       }
 
       toast({
-        title: data.isMember ? "🎉 Kursbestilling sendt - 20% rabatt aktivert!" : "✅ Kursbestilling sendt!",
+        title: data.isMember
+          ? t("toasts.submitSuccess.memberTitle")
+          : t("toasts.submitSuccess.defaultTitle"),
         description: data.isMember 
-          ? `Vi kontakter deg innen 24 timer. Du spar ${data.discountAmount?.toLocaleString('nb-NO')} kr med medlemsrabatten!`
-          : "Vi kontakter deg innen 24 timer for å avtale dato og opplegg.",
+          ? t("toasts.submitSuccess.memberDescription", {
+              amount: Number(data.discountAmount ?? 0).toLocaleString(locale === "en" ? "en-US" : "nb-NO"),
+            })
+          : t("toasts.submitSuccess.defaultDescription"),
       });
 
       // Reset form
@@ -91,8 +98,8 @@ export default function HMSKursPage() {
 
     } catch (error) {
       toast({
-        title: "❌ Kunne ikke sende bestilling",
-        description: error instanceof Error ? error.message : "Vennligst prøv igjen eller ring oss direkte.",
+        title: t("toasts.submitError.title"),
+        description: error instanceof Error ? error.message : t("toasts.submitError.description"),
         variant: "destructive",
       });
     } finally {
@@ -255,35 +262,35 @@ export default function HMSKursPage() {
           <div>
             <Badge variant="default" className="mb-6">
               <GraduationCap className="h-3 w-3 mr-2" />
-              HMS-kurs & Førstehjelp
+              {t("hero.badge")}
             </Badge>
             <h1 className="text-5xl md:text-6xl font-bold mb-6">
-              Kompetente ansatte.<br />
-              <span className="text-primary">Tryggere arbeidsplass.</span>
+              {t("hero.titleLine1")}<br />
+              <span className="text-primary">{t("hero.titleLine2")}</span>
             </h1>
             <p className="text-xl text-muted-foreground mb-8">
-              <strong>HMS Nova-medlemmer</strong> får <strong className="text-primary">20% rabatt</strong> på alle HMS-kurs! 
-              Alle kurs er sertifiserte og følger Arbeidstilsynets krav – med automatisk kompetansestyring i HMS Nova.
+              <strong>{t("hero.memberStrong")}</strong> {t("hero.memberTextPrefix")}{" "}
+              <strong className="text-primary">{t("hero.discountStrong")}</strong> {t("hero.memberTextSuffix")}
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Button size="lg" asChild>
                 <Link href="#bestill-kurs">
                   <Award className="mr-2 h-5 w-5" />
-                  Bestill HMS-kurs
+                  {t("hero.ctaPrimary")}
                 </Link>
               </Button>
               <Link href="#kursoversikt">
                 <Button size="lg" variant="outline">
-                  Se kurskatalog
+                  {t("hero.ctaSecondary")}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
             </div>
             <p className="text-sm text-muted-foreground mt-6">
-              ✓ Godkjent kursleverandør (ISO 9001)<br/>
-              ✓ Fysiske, digitale og hybride løsninger<br/>
-              ✓ Sertifikater integrert i HMS Nova<br/>
-              ✓ Spesialist på førstehjelp barn og voksne
+              ✓ {t("hero.points.p1")}<br/>
+              ✓ {t("hero.points.p2")}<br/>
+              ✓ {t("hero.points.p3")}<br/>
+              ✓ {t("hero.points.p4")}
             </p>
           </div>
           <div className="relative">
@@ -294,36 +301,36 @@ export default function HMSKursPage() {
                     <Heart className="h-8 w-8 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-xl">Førstehjelp-spesialist</h3>
-                    <p className="text-sm text-muted-foreground">Sykepleier/jordmor</p>
+                    <h3 className="font-bold text-xl">{t("hero.specialist.title")}</h3>
+                    <p className="text-sm text-muted-foreground">{t("hero.specialist.subtitle")}</p>
                   </div>
                 </div>
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
                     <Baby className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="font-semibold">Førstehjelp for barn</p>
-                      <p className="text-sm text-muted-foreground">Spesialtilpasset for barnehager og skoler</p>
+                      <p className="font-semibold">{t("hero.specialist.items.children.title")}</p>
+                      <p className="text-sm text-muted-foreground">{t("hero.specialist.items.children.description")}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
                     <Heart className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="font-semibold">Førstehjelp for voksne</p>
-                      <p className="text-sm text-muted-foreground">HLR, brannskader, forgiftninger</p>
+                      <p className="font-semibold">{t("hero.specialist.items.adults.title")}</p>
+                      <p className="text-sm text-muted-foreground">{t("hero.specialist.items.adults.description")}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
                     <Award className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="font-semibold">Sertifisert opplæring</p>
-                      <p className="text-sm text-muted-foreground">Godkjent av Norsk Førstehjelpsråd</p>
+                      <p className="font-semibold">{t("hero.specialist.items.certified.title")}</p>
+                      <p className="text-sm text-muted-foreground">{t("hero.specialist.items.certified.description")}</p>
                     </div>
                   </div>
                 </div>
                 <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/10">
                   <p className="text-sm font-semibold text-primary text-center">
-                    🎓 Kurs på din arbeidsplass eller digitalt
+                    {t("hero.specialist.footer")}
                   </p>
                 </div>
               </CardContent>
@@ -338,10 +345,10 @@ export default function HMSKursPage() {
           <div className="text-center mb-12">
             <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
             <h2 className="text-3xl font-bold mb-4">
-              Uten riktig HMS-opplæring risikerer bedriften din
+              {t("problem.title")}
             </h2>
             <p className="text-muted-foreground">
-              Manglende kompetanse er den vanligste årsaken til arbeidsulykker og Arbeidstilsynets pålegg
+              {t("problem.description")}
             </p>
           </div>
 
@@ -349,10 +356,9 @@ export default function HMSKursPage() {
             <Card className="border-destructive/20">
               <CardContent className="pt-6">
                 <Shield className="h-8 w-8 text-destructive mb-3" />
-                <h3 className="font-semibold mb-2">Brudd på lovkrav</h3>
+                <h3 className="font-semibold mb-2">{t("problem.cards.law.title")}</h3>
                 <p className="text-sm text-muted-foreground">
-                  Arbeidsmiljøloven krever dokumentert opplæring. Manglende kurs kan gi <strong>bøter 
-                  inntil 15% av omsetning</strong> og stans i virksomheten.
+                  {t("problem.cards.law.textPrefix")} <strong>{t("problem.cards.law.textStrong")}</strong> {t("problem.cards.law.textSuffix")}
                 </p>
               </CardContent>
             </Card>
@@ -360,10 +366,9 @@ export default function HMSKursPage() {
             <Card className="border-destructive/20">
               <CardContent className="pt-6">
                 <TrendingDown className="h-8 w-8 text-destructive mb-3" />
-                <h3 className="font-semibold mb-2">Arbeidsulykker og sykefravær</h3>
+                <h3 className="font-semibold mb-2">{t("problem.cards.incidents.title")}</h3>
                 <p className="text-sm text-muted-foreground">
-                  60% av arbeidsulykker skyldes manglende opplæring. Dette koster norske bedrifter 
-                  <strong> over 30 milliarder kr årlig</strong> i sykefravær og erstatninger.
+                  {t("problem.cards.incidents.textPrefix")} <strong>{t("problem.cards.incidents.textStrong")}</strong> {t("problem.cards.incidents.textSuffix")}
                 </p>
               </CardContent>
             </Card>
@@ -371,10 +376,9 @@ export default function HMSKursPage() {
             <Card className="border-destructive/20">
               <CardContent className="pt-6">
                 <Users className="h-8 w-8 text-destructive mb-3" />
-                <h3 className="font-semibold mb-2">Ansatte føler seg utrygge</h3>
+                <h3 className="font-semibold mb-2">{t("problem.cards.employees.title")}</h3>
                 <p className="text-sm text-muted-foreground">
-                  Bedrifter uten god HMS-opplæring har <strong>50% høyere turnover</strong>. 
-                  Ansatte slutter fordi de ikke føler seg trygge på jobb.
+                  {t("problem.cards.employees.textPrefix")} <strong>{t("problem.cards.employees.textStrong")}</strong> {t("problem.cards.employees.textSuffix")}
                 </p>
               </CardContent>
             </Card>
@@ -382,10 +386,9 @@ export default function HMSKursPage() {
             <Card className="border-destructive/20">
               <CardContent className="pt-6">
                 <FileText className="h-8 w-8 text-destructive mb-3" />
-                <h3 className="font-semibold mb-2">Manglende dokumentasjon</h3>
+                <h3 className="font-semibold mb-2">{t("problem.cards.documentation.title")}</h3>
                 <p className="text-sm text-muted-foreground">
-                  Uten system for å spore kurs og sertifikater mister du oversikten. 
-                  <strong> Utgåtte kurs oppdages først av Arbeidstilsynet</strong> – da er det for sent.
+                  {t("problem.cards.documentation.textPrefix")} <strong>{t("problem.cards.documentation.textStrong")}</strong> {t("problem.cards.documentation.textSuffix")}
                 </p>
               </CardContent>
             </Card>
@@ -397,13 +400,13 @@ export default function HMSKursPage() {
       <section className="container mx-auto px-4 py-20">
         <div className="max-w-4xl mx-auto text-center mb-12">
           <Badge variant="default" className="mb-4">
-            Løsningen
+            {t("solution.badge")}
           </Badge>
           <h2 className="text-4xl font-bold mb-4">
-            HMS Nova = Komplett kursløsning + Automatisk sporing
+            {t("solution.title")}
           </h2>
           <p className="text-xl text-muted-foreground">
-            Vi leverer <strong>alle lovpålagte HMS-kurs</strong> og holder oversikt over hvem som må ta hva – når
+            {t("solution.textPrefix")} <strong>{t("solution.textStrong")}</strong> {t("solution.textSuffix")}
           </p>
         </div>
 
@@ -413,10 +416,9 @@ export default function HMSKursPage() {
               <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                 <Calendar className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="font-bold text-lg mb-2">1. Bestill kurs</h3>
+              <h3 className="font-bold text-lg mb-2">{t("solution.steps.step1.title")}</h3>
               <p className="text-sm text-muted-foreground">
-                Velg kurs fra katalogen, eller få anbefaling basert på din bransje. 
-                Fysisk på arbeidsplassen eller digitalt.
+                {t("solution.steps.step1.description")}
               </p>
             </CardContent>
           </Card>
@@ -426,10 +428,9 @@ export default function HMSKursPage() {
               <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                 <GraduationCap className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="font-bold text-lg mb-2">2. Gjennomfør opplæring</h3>
+              <h3 className="font-bold text-lg mb-2">{t("solution.steps.step2.title")}</h3>
               <p className="text-sm text-muted-foreground">
-                Godkjente instruktører med lang erfaring. Praktisk, engasjerende 
-                og tilpasset din virksomhet.
+                {t("solution.steps.step2.description")}
               </p>
             </CardContent>
           </Card>
@@ -439,10 +440,9 @@ export default function HMSKursPage() {
               <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                 <CheckCircle2 className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="font-bold text-lg mb-2">3. Automatisk oppfølging</h3>
+              <h3 className="font-bold text-lg mb-2">{t("solution.steps.step3.title")}</h3>
               <p className="text-sm text-muted-foreground">
-                Sertifikater legges inn i HMS Nova. Du får automatisk varsel når 
-                kurs går ut – ingen manuelt arbeid.
+                {t("solution.steps.step3.description")}
               </p>
             </CardContent>
           </Card>
@@ -453,9 +453,9 @@ export default function HMSKursPage() {
       <section id="kursoversikt" className="container mx-auto px-4 py-20 bg-muted/30">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Kurs tilpasset din bransje</h2>
+            <h2 className="text-3xl font-bold mb-4">{t("catalog.title")}</h2>
             <p className="text-muted-foreground">
-              Alle kurs er godkjent og oppfyller lovkrav fra Arbeidstilsynet
+              {t("catalog.description")}
             </p>
           </div>
 
@@ -469,7 +469,7 @@ export default function HMSKursPage() {
                     </div>
                     <div>
                       <CardTitle>{category.category}</CardTitle>
-                      <CardDescription>{category.items.length} tilgjengelige kurs</CardDescription>
+                      <CardDescription>{t("catalog.availableCourses", { count: category.items.length })}</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
@@ -483,31 +483,31 @@ export default function HMSKursPage() {
                               <div className="flex items-start gap-2 mb-2">
                                 <h4 className="font-semibold">{course.title}</h4>
                                 {course.required && (
-                                  <Badge variant="destructive" className="text-xs">Lovpålagt</Badge>
+                                  <Badge variant="destructive" className="text-xs">{t("catalog.requiredBadge")}</Badge>
                                 )}
                               </div>
                               <div className="grid md:grid-cols-3 gap-2 text-sm text-muted-foreground">
                                 <div>
-                                  <span className="font-medium">Format:</span> {course.format}
+                                  <span className="font-medium">{t("catalog.labels.format")}</span> {course.format}
                                 </div>
                                 <div>
-                                  <span className="font-medium">Målgruppe:</span> {course.target}
+                                  <span className="font-medium">{t("catalog.labels.target")}</span> {course.target}
                                 </div>
                                 <div className="md:col-span-3">
-                                  <span className="font-medium">Hvorfor:</span> {course.reason}
+                                  <span className="font-medium">{t("catalog.labels.why")}</span> {course.reason}
                                 </div>
                               </div>
                             </div>
                             {course.title.toLowerCase().includes("diisocyanater") ? (
                               <Button size="sm" variant="outline" asChild>
                                 <a href="#bestill-kurs">
-                                  Bestill hos HMS Nova AS
+                                  {t("catalog.orderFromCompany")}
                                 </a>
                               </Button>
                             ) : (
                               <Button size="sm" variant="outline" asChild>
                                 <Link href="#bestill-kurs">
-                                  Bestill
+                                  {t("catalog.order")}
                                 </Link>
                               </Button>
                             )}
@@ -859,9 +859,9 @@ export default function HMSKursPage() {
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
             <Calendar className="h-12 w-12 text-primary mx-auto mb-4" />
-            <h2 className="text-3xl font-bold mb-4">Bestill HMS-kurs</h2>
+            <h2 className="text-3xl font-bold mb-4">{t("booking.title")}</h2>
             <p className="text-muted-foreground">
-              Fyll ut skjemaet nedenfor, så kontakter vi deg innen 24 timer for å avtale dato og opplegg.
+              {t("booking.description")}
             </p>
           </div>
 
@@ -871,7 +871,7 @@ export default function HMSKursPage() {
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label htmlFor="company" className="block text-sm font-medium mb-2">
-                      Bedriftsnavn *
+                      {t("booking.fields.company.label")}
                     </label>
                     <input
                       type="text"
@@ -879,14 +879,14 @@ export default function HMSKursPage() {
                       value={formData.company}
                       onChange={handleChange}
                       className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                      placeholder="Eksempel AS"
+                      placeholder={t("booking.fields.company.placeholder")}
                       required
                       disabled={isSubmitting}
                     />
                   </div>
                   <div>
                     <label htmlFor="orgNr" className="block text-sm font-medium mb-2">
-                      Org.nr (for medlemsrabatt)
+                      {t("booking.fields.orgNr.label")}
                     </label>
                     <input
                       type="text"
@@ -894,7 +894,7 @@ export default function HMSKursPage() {
                       value={formData.orgNr}
                       onChange={handleChange}
                       className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                      placeholder="123 456 789"
+                      placeholder={t("booking.fields.orgNr.placeholder")}
                       disabled={isSubmitting}
                     />
                   </div>
@@ -903,7 +903,7 @@ export default function HMSKursPage() {
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label htmlFor="name" className="block text-sm font-medium mb-2">
-                      Kontaktperson *
+                      {t("booking.fields.name.label")}
                     </label>
                     <input
                       type="text"
@@ -911,14 +911,14 @@ export default function HMSKursPage() {
                       value={formData.name}
                       onChange={handleChange}
                       className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                      placeholder="Ola Nordmann"
+                      placeholder={t("booking.fields.name.placeholder")}
                       required
                       disabled={isSubmitting}
                     />
                   </div>
                   <div>
                     <label htmlFor="email" className="block text-sm font-medium mb-2">
-                      E-post *
+                      {t("booking.fields.email.label")}
                     </label>
                     <input
                       type="email"
@@ -926,7 +926,7 @@ export default function HMSKursPage() {
                       value={formData.email}
                       onChange={handleChange}
                       className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                      placeholder="ola@eksempel.no"
+                      placeholder={t("booking.fields.email.placeholder")}
                       required
                       disabled={isSubmitting}
                     />
@@ -935,7 +935,7 @@ export default function HMSKursPage() {
 
                 <div>
                   <label htmlFor="phone" className="block text-sm font-medium mb-2">
-                    Telefon *
+                    {t("booking.fields.phone.label")}
                   </label>
                   <input
                     type="tel"
@@ -943,7 +943,7 @@ export default function HMSKursPage() {
                     value={formData.phone}
                     onChange={handleChange}
                     className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="+47 123 45 678"
+                    placeholder={t("booking.fields.phone.placeholder")}
                     required
                     disabled={isSubmitting}
                   />
@@ -951,7 +951,7 @@ export default function HMSKursPage() {
 
                 <div>
                   <label htmlFor="courseType" className="block text-sm font-medium mb-2">
-                    Hvilket kurs er du interessert i? *
+                    {t("booking.fields.courseType.label")}
                   </label>
                   <select
                     id="courseType"
@@ -961,29 +961,29 @@ export default function HMSKursPage() {
                     required
                     disabled={isSubmitting}
                   >
-                    <option value="">Velg kurs...</option>
-                    <option value="verneombud">Grunnleggende HMS for verneombud (40t)</option>
-                    <option value="leder">Lovpålagt HMS for ledere</option>
-                    <option value="psykososialt">Psykososialt arbeidsmiljø</option>
-                    <option value="fallsikring">Fallsikring og høydearbeid</option>
-                    <option value="asbest">Asbest og farlige materialer</option>
-                    <option value="maskinsikkerhet">Maskinsikkerhet og verneutstyr</option>
-                    <option value="kjemikalie">Kjemikaliehåndtering</option>
-                    <option value="vold">Vold og trusler</option>
-                    <option value="ergonomi">Ergonomi og forflytningsteknikk</option>
-                    <option value="trafikk">Trafikksikkerhet og lastsikring</option>
-                    <option value="truck">Truck- og maskinførerbevis</option>
-                    <option value="digital">Digital sikkerhet</option>
-                    <option value="inneklima">Inneklima og psykososialt miljø</option>
-                    <option value="forstehjelp-barn">Førstehjelp for barn</option>
-                    <option value="forstehjelp-voksne">Førstehjelp for voksne</option>
-                    <option value="annet">Annet (spesifiser i meldingen)</option>
+                    <option value="">{t("booking.fields.courseType.options.default")}</option>
+                    <option value="verneombud">{t("booking.fields.courseType.options.verneombud")}</option>
+                    <option value="leder">{t("booking.fields.courseType.options.leder")}</option>
+                    <option value="psykososialt">{t("booking.fields.courseType.options.psykososialt")}</option>
+                    <option value="fallsikring">{t("booking.fields.courseType.options.fallsikring")}</option>
+                    <option value="asbest">{t("booking.fields.courseType.options.asbest")}</option>
+                    <option value="maskinsikkerhet">{t("booking.fields.courseType.options.maskinsikkerhet")}</option>
+                    <option value="kjemikalie">{t("booking.fields.courseType.options.kjemikalie")}</option>
+                    <option value="vold">{t("booking.fields.courseType.options.vold")}</option>
+                    <option value="ergonomi">{t("booking.fields.courseType.options.ergonomi")}</option>
+                    <option value="trafikk">{t("booking.fields.courseType.options.trafikk")}</option>
+                    <option value="truck">{t("booking.fields.courseType.options.truck")}</option>
+                    <option value="digital">{t("booking.fields.courseType.options.digital")}</option>
+                    <option value="inneklima">{t("booking.fields.courseType.options.inneklima")}</option>
+                    <option value="forstehjelp-barn">{t("booking.fields.courseType.options.forstehjelpBarn")}</option>
+                    <option value="forstehjelp-voksne">{t("booking.fields.courseType.options.forstehjelpVoksne")}</option>
+                    <option value="annet">{t("booking.fields.courseType.options.other")}</option>
                   </select>
                 </div>
 
                 <div>
                   <label htmlFor="participants" className="block text-sm font-medium mb-2">
-                    Antall deltakere
+                    {t("booking.fields.participants.label")}
                   </label>
                   <input
                     type="number"
@@ -991,7 +991,7 @@ export default function HMSKursPage() {
                     value={formData.participants}
                     onChange={handleChange}
                     className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="5"
+                    placeholder={t("booking.fields.participants.placeholder")}
                     min="1"
                     disabled={isSubmitting}
                   />
@@ -999,7 +999,7 @@ export default function HMSKursPage() {
 
                 <div>
                   <label htmlFor="format" className="block text-sm font-medium mb-2">
-                    Foretrukket format *
+                    {t("booking.fields.format.label")}
                   </label>
                   <select
                     id="format"
@@ -1009,18 +1009,18 @@ export default function HMSKursPage() {
                     required
                     disabled={isSubmitting}
                   >
-                    <option value="">Velg format...</option>
-                    <option value="fysisk-hos-oss">Fysisk kurs hos oss (Akershus)</option>
-                    <option value="fysisk-hos-dere">Fysisk kurs på vår arbeidsplass</option>
-                    <option value="nettbasert">Nettbasert / E-læring</option>
-                    <option value="hybrid">Hybrid (kombinasjon)</option>
-                    <option value="vet-ikke">Vet ikke / Ønsker veiledning</option>
+                    <option value="">{t("booking.fields.format.options.default")}</option>
+                    <option value="fysisk-hos-oss">{t("booking.fields.format.options.fysiskHosOss")}</option>
+                    <option value="fysisk-hos-dere">{t("booking.fields.format.options.fysiskHosDere")}</option>
+                    <option value="nettbasert">{t("booking.fields.format.options.nettbasert")}</option>
+                    <option value="hybrid">{t("booking.fields.format.options.hybrid")}</option>
+                    <option value="vet-ikke">{t("booking.fields.format.options.unknown")}</option>
                   </select>
                 </div>
 
                 <div>
                   <label htmlFor="message" className="block text-sm font-medium mb-2">
-                    Melding / spesielle behov
+                    {t("booking.fields.message.label")}
                   </label>
                   <textarea
                     id="message"
@@ -1028,14 +1028,14 @@ export default function HMSKursPage() {
                     onChange={handleChange}
                     rows={4}
                     className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="Fortell oss om spesielle ønsker, tidsrammer, eller spørsmål..."
+                    placeholder={t("booking.fields.message.placeholder")}
                     disabled={isSubmitting}
                   ></textarea>
                 </div>
 
                 <div className="bg-muted/50 p-4 rounded-lg">
                   <p className="text-sm text-muted-foreground">
-                    <strong>HMS Nova medlemmer får 20% rabatt automatisk.</strong> Oppgi ditt org.nr eller medlemsnummer i skjemaet.
+                    <strong>{t("booking.memberDiscount.title")}</strong> {t("booking.memberDiscount.description")}
                   </p>
                 </div>
 
@@ -1043,20 +1043,22 @@ export default function HMSKursPage() {
                   {isSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Sender...
+                      {t("booking.submit.sending")}
                     </>
                   ) : (
                     <>
                       <Calendar className="mr-2 h-5 w-5" />
-                      Send bestilling
+                      {t("booking.submit.default")}
                     </>
                   )}
                 </Button>
 
                 <p className="text-xs text-center text-muted-foreground">
-                  Eller ring oss direkte: <br />
-                  <strong>Kurs:</strong> <a href="tel:+4791540824" className="text-primary hover:underline">+47 91 54 08 24</a> | {" "}
-                  <strong>Software:</strong> <a href="tel:+4799112916" className="text-primary hover:underline">+47 99 11 29 16</a>
+                  {t("booking.contact.title")} <br />
+                  <strong>{t("booking.contact.courseLabel")}</strong>{" "}
+                  <a href="tel:+4791540824" className="text-primary hover:underline">+47 91 54 08 24</a> | {" "}
+                  <strong>{t("booking.contact.softwareLabel")}</strong>{" "}
+                  <a href="tel:+4799112916" className="text-primary hover:underline">+47 99 11 29 16</a>
                 </p>
               </form>
             </CardContent>

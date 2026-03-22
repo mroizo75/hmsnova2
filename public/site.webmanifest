@@ -1,4 +1,13 @@
 {
+  "name": "HMS Nova",
+  "short_name": "HMS Nova",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "icons": []
+}
+{
   "name": "HMS Nova - Norges beste HMS-system",
   "short_name": "HMS Nova",
   "description": "HMS Nova bygger trygghet gjennom moderne HMS-styring. Digital signatur, 7 roller, ISO 9001 compliant.",

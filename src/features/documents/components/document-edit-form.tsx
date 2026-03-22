@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { updateDocument } from "@/server/actions/document.actions";
 import { Save } from "lucide-react";
 import { Document } from "@prisma/client";
+import { useTranslations } from "next-intl";
 
 interface DocumentEditFormProps {
   document: Document;
@@ -39,25 +40,8 @@ interface DocumentEditFormProps {
   }>;
 }
 
-const documentKinds = [
-  { value: "LAW", label: "Lover og regler" },
-  { value: "PLAN", label: "HMS-håndbok / Plan" },
-  { value: "PROCEDURE", label: "Prosedyre (ISO 9001)" },
-  { value: "CHECKLIST", label: "Sjekkliste" },
-  { value: "FORM", label: "Skjema" },
-  { value: "SDS", label: "Sikkerhetsdatablad (SDS)" },
-  { value: "OTHER", label: "Annet" },
-];
-
-const userRoles = [
-  { value: "ADMIN", label: "Admin" },
-  { value: "HMS", label: "HMS-leder" },
-  { value: "LEDER", label: "Leder" },
-  { value: "VERNEOMBUD", label: "Verneombud" },
-  { value: "ANSATT", label: "Ansatt" },
-  { value: "BHT", label: "BHT" },
-  { value: "REVISOR", label: "Revisor" },
-];
+const documentKinds = ["LAW", "PLAN", "PROCEDURE", "CHECKLIST", "FORM", "SDS", "OTHER"] as const;
+const userRoles = ["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "ANSATT", "BHT", "REVISOR"] as const;
 
 const NO_OWNER_VALUE = "__none_owner__";
 const NO_TEMPLATE_VALUE = "__none_template__";
@@ -70,6 +54,7 @@ const formatDateInput = (value?: Date | string | null) => {
 };
 
 export function DocumentEditForm({ document, owners, templates }: DocumentEditFormProps) {
+  const t = useTranslations("dashboardDocumentEditForm");
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -159,8 +144,8 @@ export function DocumentEditForm({ document, owners, templates }: DocumentEditFo
 
       if (result.success) {
         toast({
-          title: "✅ Dokument oppdatert",
-          description: "Endringene er lagret",
+          title: t("toasts.updated.title"),
+          description: t("toasts.updated.description"),
           className: "bg-green-50 border-green-200",
         });
         router.push("/dashboard/documents");
@@ -168,15 +153,15 @@ export function DocumentEditForm({ document, owners, templates }: DocumentEditFo
       } else {
         toast({
           variant: "destructive",
-          title: "Oppdatering feilet",
-          description: result.error || "Kunne ikke oppdatere dokument",
+          title: t("toasts.updateFailed.title"),
+          description: result.error || t("toasts.updateFailed.description"),
         });
       }
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Uventet feil",
-        description: "Noe gikk galt ved oppdatering av dokument",
+        title: t("toasts.unexpected.title"),
+        description: t("toasts.unexpected.description"),
       });
     } finally {
       setLoading(false);
@@ -186,21 +171,21 @@ export function DocumentEditForm({ document, owners, templates }: DocumentEditFo
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Rediger dokument</CardTitle>
+        <CardTitle>{t("title")}</CardTitle>
         <CardDescription>
-          Oppdater metadata og tilgangskontroll. For å endre fil, bruk "Last opp ny versjon".
+          {t("description")}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="title">Tittel *</Label>
+            <Label htmlFor="title">{t("fields.title")}</Label>
             <Input
               id="title"
               name="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="F.eks. HMS-håndbok 2025"
+              placeholder={t("placeholders.title")}
               required
               disabled={loading}
             />
@@ -208,15 +193,15 @@ export function DocumentEditForm({ document, owners, templates }: DocumentEditFo
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="kind">Type dokument *</Label>
+              <Label htmlFor="kind">{t("fields.kind")}</Label>
               <Select value={kind} onValueChange={(value: any) => setKind(value)} disabled={loading}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Velg type" />
+                  <SelectValue placeholder={t("placeholders.kind")} />
                 </SelectTrigger>
                 <SelectContent>
                   {documentKinds.map((k) => (
-                    <SelectItem key={k.value} value={k.value}>
-                      {k.label}
+                    <SelectItem key={k} value={k}>
+                      {t(`kinds.${k}`)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -224,7 +209,7 @@ export function DocumentEditForm({ document, owners, templates }: DocumentEditFo
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="version">Versjon</Label>
+              <Label htmlFor="version">{t("fields.version")}</Label>
               <Input
                 id="version"
                 name="version"
@@ -238,17 +223,17 @@ export function DocumentEditForm({ document, owners, templates }: DocumentEditFo
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="ownerId">Prosesseier</Label>
+              <Label htmlFor="ownerId">{t("fields.owner")}</Label>
               <Select
                 value={selectedOwner}
                 onValueChange={setSelectedOwner}
                 disabled={loading || owners.length === 0}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={owners.length ? "Velg ansvarlig" : "Ingen brukere tilgjengelig"} />
+                  <SelectValue placeholder={owners.length ? t("placeholders.owner") : t("placeholders.noUsers")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NO_OWNER_VALUE}>Ingen</SelectItem>
+                  <SelectItem value={NO_OWNER_VALUE}>{t("none")}</SelectItem>
                   {owners.map((owner) => (
                     <SelectItem key={owner.id} value={owner.id}>
                       {owner.name || owner.email} ({owner.role})
@@ -259,27 +244,27 @@ export function DocumentEditForm({ document, owners, templates }: DocumentEditFo
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="templateId">Dokumentmal</Label>
+              <Label htmlFor="templateId">{t("fields.template")}</Label>
               <Select
                 value={selectedTemplate}
                 onValueChange={handleTemplateChange}
                 disabled={loading || templates.length === 0}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={templates.length ? "Velg mal (valgfritt)" : "Ingen maler tilgjengelig"} />
+                  <SelectValue placeholder={templates.length ? t("placeholders.template") : t("placeholders.noTemplates")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NO_TEMPLATE_VALUE}>Ingen</SelectItem>
+                  <SelectItem value={NO_TEMPLATE_VALUE}>{t("none")}</SelectItem>
                   {templates.map((template) => (
                     <SelectItem key={template.id} value={template.id}>
-                      {template.name} {template.isGlobal ? "• Global" : ""}
+                      {template.name} {template.isGlobal ? `• ${t("global")}` : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               {selectedTemplate !== NO_TEMPLATE_VALUE && (
                 <p className="text-xs text-muted-foreground">
-                  {templateMap.get(selectedTemplate)?.description ?? "Mal valgt"}
+                  {templateMap.get(selectedTemplate)?.description ?? t("templateSelected")}
                 </p>
               )}
             </div>
@@ -287,7 +272,7 @@ export function DocumentEditForm({ document, owners, templates }: DocumentEditFo
 
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="reviewIntervalMonths">Revisjonsintervall (måneder)</Label>
+              <Label htmlFor="reviewIntervalMonths">{t("fields.reviewInterval")}</Label>
               <Input
                 id="reviewIntervalMonths"
                 name="reviewIntervalMonths"
@@ -303,7 +288,7 @@ export function DocumentEditForm({ document, owners, templates }: DocumentEditFo
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="effectiveFrom">Gyldig fra</Label>
+              <Label htmlFor="effectiveFrom">{t("fields.effectiveFrom")}</Label>
               <Input
                 id="effectiveFrom"
                 name="effectiveFrom"
@@ -314,7 +299,7 @@ export function DocumentEditForm({ document, owners, templates }: DocumentEditFo
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="effectiveTo">Gyldig til</Label>
+              <Label htmlFor="effectiveTo">{t("fields.effectiveTo")}</Label>
               <Input
                 id="effectiveTo"
                 name="effectiveTo"
@@ -328,7 +313,7 @@ export function DocumentEditForm({ document, owners, templates }: DocumentEditFo
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="planSummary">Plan (Plan)</Label>
+              <Label htmlFor="planSummary">{t("fields.plan")}</Label>
               <Textarea
                 id="planSummary"
                 name="planSummary"
@@ -338,7 +323,7 @@ export function DocumentEditForm({ document, owners, templates }: DocumentEditFo
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="doSummary">Gjør (Do)</Label>
+              <Label htmlFor="doSummary">{t("fields.do")}</Label>
               <Textarea
                 id="doSummary"
                 name="doSummary"
@@ -351,7 +336,7 @@ export function DocumentEditForm({ document, owners, templates }: DocumentEditFo
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="checkSummary">Kontroller (Check)</Label>
+              <Label htmlFor="checkSummary">{t("fields.check")}</Label>
               <Textarea
                 id="checkSummary"
                 name="checkSummary"
@@ -361,7 +346,7 @@ export function DocumentEditForm({ document, owners, templates }: DocumentEditFo
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="actSummary">Forbedre (Act)</Label>
+              <Label htmlFor="actSummary">{t("fields.act")}</Label>
               <Textarea
                 id="actSummary"
                 name="actSummary"
@@ -374,61 +359,63 @@ export function DocumentEditForm({ document, owners, templates }: DocumentEditFo
 
           <div className="space-y-3">
             <div>
-              <Label>Hvem skal se dokumentet?</Label>
+              <Label>{t("fields.visibleToRoles")}</Label>
               <p className="text-xs text-muted-foreground mt-1">
-                Velg hvilke roller som skal ha tilgang. Ingen valg = synlig for alle.
+                {t("visibleToHelp")}
               </p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {userRoles.map((role) => (
-                <div key={role.value} className="flex items-center space-x-2">
+                <div key={role} className="flex items-center space-x-2">
                   <Checkbox
-                    id={role.value}
-                    checked={selectedRoles.includes(role.value)}
+                    id={role}
+                    checked={selectedRoles.includes(role)}
                     onCheckedChange={(checked) => {
                       if (checked) {
-                        setSelectedRoles([...selectedRoles, role.value]);
+                        setSelectedRoles([...selectedRoles, role]);
                       } else {
-                        setSelectedRoles(selectedRoles.filter((r) => r !== role.value));
+                        setSelectedRoles(selectedRoles.filter((r) => r !== role));
                       }
                     }}
                     disabled={loading}
                   />
                   <Label
-                    htmlFor={role.value}
+                    htmlFor={role}
                     className="text-sm font-normal cursor-pointer"
                   >
-                    {role.label}
+                    {t(`roles.${role}`)}
                   </Label>
                 </div>
               ))}
             </div>
             {selectedRoles.length > 0 ? (
               <p className="text-sm text-blue-600">
-                ✓ Valgt: {selectedRoles.map((role) => userRoles.find((r) => r.value === role)?.label).join(", ")}
+                {t("selectedRoles", {
+                  roles: selectedRoles.map((role) => t(`roles.${role as (typeof userRoles)[number]}`)).join(", "),
+                })}
               </p>
             ) : (
-              <p className="text-sm text-muted-foreground">📢 Synlig for alle roller</p>
+              <p className="text-sm text-muted-foreground">{t("visibleForAll")}</p>
             )}
           </div>
 
           <div className="rounded-lg bg-muted/50 p-4">
-            <p className="text-sm font-medium mb-2">ℹ️ Viktig informasjon</p>
+            <p className="text-sm font-medium mb-2">{t("important.title")}</p>
             <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-              <li>Endringer påvirker kun metadata og tilgangskontroll</li>
-              <li>For å endre selve filen, bruk <strong>"Last opp ny versjon"</strong></li>
-              <li>Status og godkjenning endres ikke her</li>
+              <li>{t("important.i1")}</li>
+              <li>{t.rich("important.i2", { strong: (chunks) => <strong>{chunks}</strong> })}</li>
+              <li>{t("important.i3")}</li>
             </ul>
           </div>
 
           <div className="flex gap-4">
             <Button type="submit" disabled={loading}>
               {loading ? (
-                <>Lagrer...</>
+                <>{t("actions.saving")}</>
               ) : (
                 <>
                   <Save className="mr-2 h-4 w-4" />
-                  Lagre endringer
+                  {t("actions.saveChanges")}
                 </>
               )}
             </Button>
@@ -438,7 +425,7 @@ export function DocumentEditForm({ document, owners, templates }: DocumentEditFo
               onClick={() => router.back()}
               disabled={loading}
             >
-              Avbryt
+              {t("actions.cancel")}
             </Button>
           </div>
         </form>

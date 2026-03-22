@@ -34,6 +34,8 @@ const notificationTypePreferenceMap: Partial<Record<NotificationType, Notificati
   DOCUMENT_REVIEW_DUE: "notifyDocuments",
   DOCUMENT_EXPIRED: "notifyDocuments",
   DOCUMENT_APPROVED: "notifyDocuments",
+  ROUTINE_ASSIGNED: "notifyDocuments",
+  ROUTINE_REVIEW_DUE: "notifyDocuments",
   TRAINING_DUE: "notifyTraining",
   TRAINING_EXPIRED: "notifyTraining",
   TRAINING_ASSIGNED: "notifyTraining",

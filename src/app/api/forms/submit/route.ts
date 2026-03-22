@@ -7,8 +7,9 @@ import {
   generateSequenceNumber,
   getFormSequenceType,
 } from "@/lib/sequence";
-import { notifyUsersByRole } from "@/server/actions/notification.actions";
+import { notifyUsersByRoles } from "@/server/actions/notification.actions";
 import { analyzeWellbeingSubmission } from "@/server/actions/wellbeing.actions";
+import { tenantCanUseGlobalFormTemplate } from "@/lib/form-template-industry";
 
 interface SubmittedInspectionFindingInput {
   fieldId?: string;
@@ -63,6 +64,24 @@ export async function POST(request: NextRequest) {
       form.tenantId === sessionTenantId || (form.isGlobal === true && form.tenantId === null);
     if (!canAccessForm) {
       return NextResponse.json({ error: "Ingen tilgang til skjema" }, { status: 403 });
+    }
+
+    if (form.isGlobal && form.tenantId === null) {
+      const scopeBypass = formData.get("industryScopeBypass") === "1";
+      const tenantForScope = await prisma.tenant.findUnique({
+        where: { id: sessionTenantId },
+        select: { industry: true },
+      });
+      if (
+        !tenantCanUseGlobalFormTemplate(form, tenantForScope?.industry ?? null, {
+          allTemplatesView: scopeBypass,
+        })
+      ) {
+        return NextResponse.json(
+          { error: "Skjemaet er ikke tilgjengelig for virksomhetens bransje" },
+          { status: 403 }
+        );
+      }
     }
 
     const sequenceType = getFormSequenceType(form.numberPrefix ?? null);
@@ -274,9 +293,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Send varsling til HMS-ansvarlige hvis skjemaet sendes inn (ikke kladd)
+    // Send varsling til lederroller hvis skjemaet sendes inn (ikke kladd)
     if (status === "SUBMITTED" && form.requiresApproval) {
-      await notifyUsersByRole(tenantId, "HMS", {
+      await notifyUsersByRoles(tenantId, ["ADMIN", "HMS", "LEDER"], {
         type: "FORM_SUBMITTED",
         title: "Nytt skjema sendt inn",
         message: `${form.title} - venter på godkjenning`,

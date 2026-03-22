@@ -1,6 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { getIndustryPackage } from "../src/lib/industry-packages";
+import { getGlobalFormTemplateLibrary } from "../src/lib/form-template-library";
+import { getGlobalRoutineTemplateLibrary } from "../src/lib/routine-template-library";
+import { toIndustryScopeJson } from "../src/lib/industry-scope";
 
 const prisma = new PrismaClient();
 
@@ -298,6 +301,8 @@ async function main() {
 
   console.log("✅ Admin bruker opprettet:", adminUser.email);
   await seedGlobalInspectionTemplates(adminUser.id);
+  await seedGlobalFormTemplateLibrary(adminUser.id);
+  await seedGlobalRoutineTemplates();
 
   // Opprett HMS-ansvarlig
   const hmsPassword = await bcrypt.hash("hms123", 10);
@@ -1817,12 +1822,22 @@ async function main() {
 }
 
 async function seedGlobalInspectionTemplates(createdById: string) {
-  const templates = [
+  const templates: Array<{
+    name: string;
+    description: string;
+    category: string;
+    riskCategory: "SAFETY" | "HEALTH" | "ENVIRONMENTAL" | "OPERATIONAL";
+    industryScope: string[];
+    checklist: {
+      items: Array<{ type: "heading" | "item"; title: string; checked?: boolean }>;
+    };
+  }> = [
     {
       name: "Brannrunde",
       description: "Kontroll av brannsikkerhet, rømningsveier og slokkeutstyr.",
       category: "BRANNRUNDE",
       riskCategory: "SAFETY" as const,
+      industryScope: ["all"],
       checklist: {
         items: [
           { type: "heading", title: "Brannsikkerhet" },
@@ -1846,6 +1861,7 @@ async function seedGlobalInspectionTemplates(createdById: string) {
       description: "Generell HMS-gjennomgang av kontor og fellesarealer.",
       category: "LOKALER",
       riskCategory: "HEALTH" as const,
+      industryScope: ["all"],
       checklist: {
         items: [
           { type: "heading", title: "Arbeidsmiljø" },
@@ -1869,6 +1885,15 @@ async function seedGlobalInspectionTemplates(createdById: string) {
       description: "Sikker vernerunde for verksted og tekniske arbeidsplasser.",
       category: "VERKSTED",
       riskCategory: "SAFETY" as const,
+      industryScope: [
+        "manufacturing",
+        "construction",
+        "agriculture",
+        "transport",
+        "technology",
+        "healthcare",
+        "other",
+      ],
       checklist: {
         items: [
           { type: "heading", title: "Maskinsikkerhet" },
@@ -1892,6 +1917,18 @@ async function seedGlobalInspectionTemplates(createdById: string) {
       description: "Kontroll av lagersikkerhet, logistikk og truckområder.",
       category: "LAGER",
       riskCategory: "OPERATIONAL" as const,
+      industryScope: [
+        "transport",
+        "retail",
+        "manufacturing",
+        "construction",
+        "healthcare",
+        "hospitality",
+        "agriculture",
+        "education",
+        "technology",
+        "other",
+      ],
       checklist: {
         items: [
           { type: "heading", title: "Lagersikkerhet" },
@@ -1915,6 +1952,7 @@ async function seedGlobalInspectionTemplates(createdById: string) {
       description: "Prosjektorientert vernerunde for bygg- og anleggsplass.",
       category: "BYGG_ANLEGG",
       riskCategory: "SAFETY" as const,
+      industryScope: ["construction"],
       checklist: {
         items: [
           { type: "heading", title: "Plan og koordinering" },
@@ -1945,6 +1983,8 @@ async function seedGlobalInspectionTemplates(createdById: string) {
       select: { id: true },
     });
 
+    const scopeJson = toIndustryScopeJson(template.industryScope);
+
     if (existing) {
       await prisma.inspectionTemplate.update({
         where: { id: existing.id },
@@ -1953,6 +1993,7 @@ async function seedGlobalInspectionTemplates(createdById: string) {
           category: template.category,
           riskCategory: template.riskCategory,
           checklist: template.checklist,
+          industryScope: scopeJson,
         },
       });
     } else {
@@ -1965,6 +2006,7 @@ async function seedGlobalInspectionTemplates(createdById: string) {
           category: template.category,
           riskCategory: template.riskCategory,
           checklist: template.checklist,
+          industryScope: scopeJson,
         },
       });
     }
@@ -2013,6 +2055,7 @@ async function seedGlobalInspectionTemplates(createdById: string) {
           requiresApproval: false,
           accessType: "ALL",
           isActive: true,
+          industryScope: scopeJson,
         },
       });
 
@@ -2043,6 +2086,7 @@ async function seedGlobalInspectionTemplates(createdById: string) {
           requiresSignature: false,
           requiresApproval: false,
           accessType: "ALL",
+          industryScope: scopeJson,
           createdBy: createdById,
           fields: {
             create: formFields.map((field) => ({
@@ -2061,6 +2105,128 @@ async function seedGlobalInspectionTemplates(createdById: string) {
   }
 
   console.log("✅ Globale vernerunde-maler og skjema-maler oppdatert");
+}
+
+async function seedGlobalFormTemplateLibrary(createdById: string) {
+  const entries = getGlobalFormTemplateLibrary();
+
+  for (const entry of entries) {
+    const scopeJson = toIndustryScopeJson(entry.industryScope);
+    const existing = await prisma.formTemplate.findFirst({
+      where: {
+        tenantId: null,
+        isGlobal: true,
+        title: entry.title,
+        category: entry.category,
+      },
+      select: { id: true },
+    });
+
+    const fieldRows = entry.fields.map((f, index) => ({
+      fieldType: f.fieldType,
+      label: f.label,
+      helpText: f.helpText ?? null,
+      placeholder: f.placeholder ?? null,
+      isRequired: f.isRequired ?? false,
+      order: index + 1,
+      options:
+        f.options && f.options.length > 0 ? JSON.stringify(f.options) : null,
+    }));
+
+    if (existing) {
+      await prisma.formTemplate.update({
+        where: { id: existing.id },
+        data: {
+          description: entry.description,
+          requiresSignature: entry.requiresSignature ?? false,
+          requiresApproval: false,
+          accessType: "ALL",
+          isActive: true,
+          industryScope: scopeJson,
+        },
+      });
+
+      await prisma.formField.deleteMany({
+        where: { formTemplateId: existing.id },
+      });
+
+      await prisma.formField.createMany({
+        data: fieldRows.map((row) => ({
+          formTemplateId: existing.id,
+          ...row,
+        })),
+      });
+    } else {
+      await prisma.formTemplate.create({
+        data: {
+          tenantId: null,
+          isGlobal: true,
+          title: entry.title,
+          description: entry.description,
+          category: entry.category,
+          requiresSignature: entry.requiresSignature ?? false,
+          requiresApproval: false,
+          accessType: "ALL",
+          isActive: true,
+          industryScope: scopeJson,
+          createdBy: createdById,
+          fields: {
+            create: fieldRows,
+          },
+        },
+      });
+    }
+  }
+
+  console.log("✅ Globale skjemamaler (bransjebibliotek) oppdatert");
+}
+
+async function seedGlobalRoutineTemplates() {
+  const templates = getGlobalRoutineTemplateLibrary();
+  let created = 0;
+  let updated = 0;
+
+  for (const template of templates) {
+    const existing = await prisma.routineTemplate.findFirst({
+      where: {
+        tenantId: null,
+        isGlobal: true,
+        title: template.title,
+      },
+      select: { id: true },
+    });
+
+    const data = {
+      title: template.title,
+      description: template.description,
+      category: template.category,
+      content: template.content as any,
+      legalReference: template.legalReference,
+      isGlobal: true,
+      isActive: true,
+      industryScope: toIndustryScopeJson(template.industryScope),
+      createdBy: "SYSTEM_ROUTINE_LIBRARY",
+    };
+
+    if (!existing) {
+      await prisma.routineTemplate.create({
+        data: {
+          tenantId: null,
+          ...data,
+        },
+      });
+      created += 1;
+      continue;
+    }
+
+    await prisma.routineTemplate.update({
+      where: { id: existing.id },
+      data,
+    });
+    updated += 1;
+  }
+
+  console.log(`✅ Globale rutinemaler oppdatert: ${created} opprettet, ${updated} oppdatert`);
 }
 
 async function seedIncidentSubcategories() {

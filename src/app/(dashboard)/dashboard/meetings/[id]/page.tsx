@@ -51,6 +51,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useLocale, useTranslations } from "next-intl";
 
 type MeetingStatus = "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
 type MeetingType = "AMU" | "VO" | "BHT" | "HMS_COMMITTEE" | "OTHER";
@@ -114,48 +115,50 @@ interface Decision {
   notes?: string;
 }
 
-function getStatusBadge(status: MeetingStatus) {
+function getStatusBadge(status: MeetingStatus, t: ReturnType<typeof useTranslations>) {
   switch (status) {
     case "PLANNED":
-      return <Badge variant="secondary">Planlagt</Badge>;
+      return <Badge variant="secondary">{t("status.planned")}</Badge>;
     case "IN_PROGRESS":
-      return <Badge className="bg-blue-500 hover:bg-blue-500">Pågår</Badge>;
+      return <Badge className="bg-blue-500 hover:bg-blue-500">{t("status.inProgress")}</Badge>;
     case "COMPLETED":
-      return <Badge className="bg-green-600 hover:bg-green-600">Fullført</Badge>;
+      return <Badge className="bg-green-600 hover:bg-green-600">{t("status.completed")}</Badge>;
     case "CANCELLED":
-      return <Badge variant="destructive">Avlyst</Badge>;
+      return <Badge variant="destructive">{t("status.cancelled")}</Badge>;
   }
 }
 
-function getDecisionStatusBadge(status: DecisionStatus) {
+function getDecisionStatusBadge(status: DecisionStatus, t: ReturnType<typeof useTranslations>) {
   switch (status) {
     case "PENDING":
-      return <Badge variant="secondary">Ikke startet</Badge>;
+      return <Badge variant="secondary">{t("decisionStatus.pending")}</Badge>;
     case "IN_PROGRESS":
-      return <Badge className="bg-blue-500 hover:bg-blue-500">Pågår</Badge>;
+      return <Badge className="bg-blue-500 hover:bg-blue-500">{t("decisionStatus.inProgress")}</Badge>;
     case "COMPLETED":
-      return <Badge className="bg-green-600 hover:bg-green-600">Fullført</Badge>;
+      return <Badge className="bg-green-600 hover:bg-green-600">{t("decisionStatus.completed")}</Badge>;
     case "CANCELLED":
-      return <Badge variant="destructive">Avbrutt</Badge>;
+      return <Badge variant="destructive">{t("decisionStatus.cancelled")}</Badge>;
   }
 }
 
-function getRoleLabel(role: ParticipantRole) {
+function getRoleLabel(role: ParticipantRole, t: ReturnType<typeof useTranslations>) {
   switch (role) {
     case "CHAIR":
-      return "Møteleder";
+      return t("roles.chair");
     case "SECRETARY":
-      return "Referent";
+      return t("roles.secretary");
     case "MEMBER":
-      return "Medlem";
+      return t("roles.member");
     case "OBSERVER":
-      return "Observatør";
+      return t("roles.observer");
   }
 }
 
 const NO_DECISION_RESPONSIBLE_VALUE = "__none_decision_responsible__";
 
 export default function MeetingDetailPage() {
+  const t = useTranslations("dashboardMeetingDetailPage");
+  const locale = useLocale();
   const router = useRouter();
   const params = useParams();
   const { toast } = useToast();
@@ -210,13 +213,13 @@ export default function MeetingDetailPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Kunne ikke hente møte");
+        throw new Error(data.error || t("errors.fetchMeeting"));
       }
 
       setMeeting(data.data);
     } catch (error: any) {
       toast({
-        title: "Feil",
+        title: t("common.error"),
         description: error.message,
         variant: "destructive",
       });
@@ -240,7 +243,7 @@ export default function MeetingDetailPage() {
           payload.externalEmail = participantForm.externalEmail;
         }
       } else {
-        throw new Error("Fyll inn enten bruker-ID eller eksternt navn");
+        throw new Error(t("errors.participantRequired"));
       }
 
       const response = await fetch(`/api/meetings/${params.id}/participants`, {
@@ -252,12 +255,12 @@ export default function MeetingDetailPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Kunne ikke legge til deltaker");
+        throw new Error(data.error || t("errors.addParticipant"));
       }
 
       toast({
-        title: "Deltaker lagt til",
-        description: "Deltakeren er lagt til møtet",
+        title: t("toasts.participantAdded.title"),
+        description: t("toasts.participantAdded.description"),
       });
 
       setShowParticipantDialog(false);
@@ -270,7 +273,7 @@ export default function MeetingDetailPage() {
       fetchMeeting();
     } catch (error: any) {
       toast({
-        title: "Feil",
+        title: t("common.error"),
         description: error.message,
         variant: "destructive",
       });
@@ -280,7 +283,7 @@ export default function MeetingDetailPage() {
   const addDecision = async () => {
     try {
       if (!decisionForm.title || !decisionForm.description) {
-        throw new Error("Fyll inn tittel og beskrivelse");
+        throw new Error(t("errors.decisionRequired"));
       }
 
       const payload: any = {
@@ -305,12 +308,12 @@ export default function MeetingDetailPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Kunne ikke legge til vedtak");
+        throw new Error(data.error || t("errors.addDecision"));
       }
 
       toast({
-        title: "Vedtak lagt til",
-        description: "Vedtaket er lagt til møtet",
+        title: t("toasts.decisionAdded.title"),
+        description: t("toasts.decisionAdded.description"),
       });
 
       setShowDecisionDialog(false);
@@ -323,7 +326,7 @@ export default function MeetingDetailPage() {
       fetchMeeting();
     } catch (error: any) {
       toast({
-        title: "Feil",
+        title: t("common.error"),
         description: error.message,
         variant: "destructive",
       });
@@ -333,7 +336,7 @@ export default function MeetingDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p>Laster...</p>
+        <p>{t("loading")}</p>
       </div>
     );
   }
@@ -355,28 +358,28 @@ export default function MeetingDetailPage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{meeting.title}</h1>
             <p className="text-muted-foreground">
-              {format(new Date(meeting.scheduledDate), "dd. MMMM yyyy 'kl.' HH:mm", { locale: nb })}
+              {format(new Date(meeting.scheduledDate), "dd. MMMM yyyy 'kl.' HH:mm", { locale: locale === "en" ? undefined : nb })}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {getStatusBadge(meeting.status)}
+          {getStatusBadge(meeting.status, t)}
         </div>
       </div>
 
       {/* Møtedetaljer */}
       <Card>
         <CardHeader>
-          <CardTitle>Møtedetaljer</CardTitle>
+          <CardTitle>{t("sections.details.title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-6 md:grid-cols-2">
             <div className="flex items-center gap-3">
               <Calendar className="h-5 w-5 text-muted-foreground" />
               <div>
-                <p className="text-sm font-medium">Dato og tid</p>
+                <p className="text-sm font-medium">{t("sections.details.dateTime")}</p>
                 <p className="text-sm text-muted-foreground">
-                  {format(new Date(meeting.scheduledDate), "dd. MMMM yyyy 'kl.' HH:mm", { locale: nb })}
+                  {format(new Date(meeting.scheduledDate), "dd. MMMM yyyy 'kl.' HH:mm", { locale: locale === "en" ? undefined : nb })}
                 </p>
               </div>
             </div>
@@ -385,7 +388,7 @@ export default function MeetingDetailPage() {
               <div className="flex items-center gap-3">
                 <MapPin className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-medium">Sted</p>
+                  <p className="text-sm font-medium">{t("sections.details.location")}</p>
                   <p className="text-sm text-muted-foreground">{meeting.location}</p>
                 </div>
               </div>
@@ -395,14 +398,14 @@ export default function MeetingDetailPage() {
               <div className="flex items-center gap-3">
                 <Video className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-medium">Møtelenke</p>
+                  <p className="text-sm font-medium">{t("sections.details.meetingLink")}</p>
                   <a
                     href={meeting.meetingLink}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-blue-600 hover:underline"
                   >
-                    Åpne lenke
+                    {t("actions.openLink")}
                   </a>
                 </div>
               </div>
@@ -411,7 +414,7 @@ export default function MeetingDetailPage() {
             <div className="flex items-center gap-3">
               <Users className="h-5 w-5 text-muted-foreground" />
               <div>
-                <p className="text-sm font-medium">Møteleder</p>
+                <p className="text-sm font-medium">{t("sections.details.organizer")}</p>
                 <p className="text-sm text-muted-foreground">{meeting.organizer}</p>
               </div>
             </div>
@@ -421,7 +424,7 @@ export default function MeetingDetailPage() {
             <>
               <Separator />
               <div>
-                <h3 className="mb-2 font-semibold">Agenda</h3>
+                <h3 className="mb-2 font-semibold">{t("sections.details.agenda")}</h3>
                 <p className="whitespace-pre-wrap text-sm text-muted-foreground">
                   {meeting.agenda}
                 </p>
@@ -433,7 +436,7 @@ export default function MeetingDetailPage() {
             <>
               <Separator />
               <div>
-                <h3 className="mb-2 font-semibold">Oppsummering</h3>
+                <h3 className="mb-2 font-semibold">{t("sections.details.summary")}</h3>
                 <p className="whitespace-pre-wrap text-sm text-muted-foreground">
                   {meeting.summary}
                 </p>
@@ -445,7 +448,7 @@ export default function MeetingDetailPage() {
             <>
               <Separator />
               <div>
-                <h3 className="mb-2 font-semibold">Notater</h3>
+                <h3 className="mb-2 font-semibold">{t("sections.details.notes")}</h3>
                 <p className="whitespace-pre-wrap text-sm text-muted-foreground">
                   {meeting.notes}
                 </p>
@@ -460,26 +463,26 @@ export default function MeetingDetailPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Deltakere</CardTitle>
-              <CardDescription>Oversikt over møtedeltakere</CardDescription>
+              <CardTitle>{t("sections.participants.title")}</CardTitle>
+              <CardDescription>{t("sections.participants.description")}</CardDescription>
             </div>
             <Dialog open={showParticipantDialog} onOpenChange={setShowParticipantDialog}>
               <DialogTrigger asChild>
                 <Button size="sm">
                   <Plus className="mr-2 h-4 w-4" />
-                  Legg til
+                  {t("actions.add")}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Legg til deltaker</DialogTitle>
+                  <DialogTitle>{t("dialogs.addParticipant.title")}</DialogTitle>
                   <DialogDescription>
-                    Legg til en intern bruker eller ekstern deltaker
+                    {t("dialogs.addParticipant.description")}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="userId">Bruker (intern)</Label>
+                    <Label htmlFor="userId">{t("dialogs.addParticipant.internalUser")}</Label>
                     <Select
                       value={participantForm.userId || "NONE"}
                       onValueChange={(value) =>
@@ -488,10 +491,10 @@ export default function MeetingDetailPage() {
                       disabled={loadingUsers}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder={loadingUsers ? "Laster brukere..." : "Velg bruker"} />
+                        <SelectValue placeholder={loadingUsers ? t("loadingUsers") : t("dialogs.addParticipant.selectUser")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="NONE">Ingen (ekstern deltaker)</SelectItem>
+                        <SelectItem value="NONE">{t("dialogs.addParticipant.noneExternal")}</SelectItem>
                         {users.map((u) => (
                           <SelectItem key={u.user.id} value={u.user.id}>
                             {u.user.name || u.user.email}
@@ -504,19 +507,19 @@ export default function MeetingDetailPage() {
                   <Separator />
 
                   <div className="space-y-2">
-                    <Label htmlFor="externalName">Navn (ekstern)</Label>
+                    <Label htmlFor="externalName">{t("dialogs.addParticipant.externalName")}</Label>
                     <Input
                       id="externalName"
                       value={participantForm.externalName}
                       onChange={(e) =>
                         setParticipantForm({ ...participantForm, externalName: e.target.value })
                       }
-                      placeholder="Kun hvis ekstern"
+                      placeholder={t("dialogs.addParticipant.externalOnly")}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="externalEmail">E-post (ekstern)</Label>
+                    <Label htmlFor="externalEmail">{t("dialogs.addParticipant.externalEmail")}</Label>
                     <Input
                       id="externalEmail"
                       type="email"
@@ -524,12 +527,12 @@ export default function MeetingDetailPage() {
                       onChange={(e) =>
                         setParticipantForm({ ...participantForm, externalEmail: e.target.value })
                       }
-                      placeholder="Kun hvis ekstern"
+                      placeholder={t("dialogs.addParticipant.externalOnly")}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="role">Rolle</Label>
+                    <Label htmlFor="role">{t("common.role")}</Label>
                     <Select
                       value={participantForm.role}
                       onValueChange={(value: ParticipantRole) =>
@@ -540,19 +543,19 @@ export default function MeetingDetailPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="CHAIR">Møteleder</SelectItem>
-                        <SelectItem value="SECRETARY">Referent</SelectItem>
-                        <SelectItem value="MEMBER">Medlem</SelectItem>
-                        <SelectItem value="OBSERVER">Observatør</SelectItem>
+                        <SelectItem value="CHAIR">{t("roles.chair")}</SelectItem>
+                        <SelectItem value="SECRETARY">{t("roles.secretary")}</SelectItem>
+                        <SelectItem value="MEMBER">{t("roles.member")}</SelectItem>
+                        <SelectItem value="OBSERVER">{t("roles.observer")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setShowParticipantDialog(false)}>
-                    Avbryt
+                    {t("actions.cancel")}
                   </Button>
-                  <Button onClick={addParticipant}>Legg til</Button>
+                  <Button onClick={addParticipant}>{t("actions.add")}</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -560,14 +563,14 @@ export default function MeetingDetailPage() {
         </CardHeader>
         <CardContent>
           {meeting.participants.length === 0 ? (
-            <p className="text-center text-sm text-muted-foreground">Ingen deltakere lagt til</p>
+            <p className="text-center text-sm text-muted-foreground">{t("sections.participants.empty")}</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Navn</TableHead>
-                  <TableHead>Rolle</TableHead>
-                  <TableHead>Oppmøte</TableHead>
+                  <TableHead>{t("table.name")}</TableHead>
+                  <TableHead>{t("table.role")}</TableHead>
+                  <TableHead>{t("table.attendance")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -581,17 +584,17 @@ export default function MeetingDetailPage() {
                         </span>
                       )}
                     </TableCell>
-                    <TableCell>{getRoleLabel(p.role)}</TableCell>
+                    <TableCell>{getRoleLabel(p.role, t)}</TableCell>
                     <TableCell>
                       {p.attended ? (
                         <Badge className="bg-green-600 hover:bg-green-600">
                           <Check className="mr-1 h-3 w-3" />
-                          Til stede
+                          {t("attendance.present")}
                         </Badge>
                       ) : (
                         <Badge variant="secondary">
                           <X className="mr-1 h-3 w-3" />
-                          Ikke møtt
+                          {t("attendance.absent")}
                         </Badge>
                       )}
                     </TableCell>
@@ -608,25 +611,25 @@ export default function MeetingDetailPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Vedtak</CardTitle>
-              <CardDescription>Beslutninger og oppfølgingspunkter</CardDescription>
+              <CardTitle>{t("sections.decisions.title")}</CardTitle>
+              <CardDescription>{t("sections.decisions.description")}</CardDescription>
             </div>
             <Dialog open={showDecisionDialog} onOpenChange={setShowDecisionDialog}>
               <DialogTrigger asChild>
                 <Button size="sm">
                   <Plus className="mr-2 h-4 w-4" />
-                  Nytt vedtak
+                  {t("actions.newDecision")}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Nytt vedtak</DialogTitle>
-                  <DialogDescription>Legg til en beslutning fra møtet</DialogDescription>
+                  <DialogTitle>{t("dialogs.addDecision.title")}</DialogTitle>
+                  <DialogDescription>{t("dialogs.addDecision.description")}</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="decisionTitle">
-                      Tittel <span className="text-destructive">*</span>
+                      {t("common.title")} <span className="text-destructive">*</span>
                     </Label>
                     <Input
                       id="decisionTitle"
@@ -634,13 +637,13 @@ export default function MeetingDetailPage() {
                       onChange={(e) =>
                         setDecisionForm({ ...decisionForm, title: e.target.value })
                       }
-                      placeholder="F.eks. Oppgradering av verneutstyr"
+                      placeholder={t("dialogs.addDecision.titlePlaceholder")}
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="decisionDescription">
-                      Beskrivelse <span className="text-destructive">*</span>
+                      {t("common.description")} <span className="text-destructive">*</span>
                     </Label>
                     <Textarea
                       id="decisionDescription"
@@ -648,13 +651,13 @@ export default function MeetingDetailPage() {
                       onChange={(e) =>
                         setDecisionForm({ ...decisionForm, description: e.target.value })
                       }
-                      placeholder="Detaljert beskrivelse av vedtaket..."
+                      placeholder={t("dialogs.addDecision.descriptionPlaceholder")}
                       rows={4}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="responsibleId">Ansvarlig</Label>
+                    <Label htmlFor="responsibleId">{t("common.responsible")}</Label>
                     <Select
                       value={decisionForm.responsibleId}
                       onValueChange={(value) =>
@@ -663,10 +666,10 @@ export default function MeetingDetailPage() {
                       disabled={loadingUsers}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder={loadingUsers ? "Laster brukere..." : "Velg ansvarlig (valgfritt)"} />
+                        <SelectValue placeholder={loadingUsers ? t("loadingUsers") : t("dialogs.addDecision.selectResponsible")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={NO_DECISION_RESPONSIBLE_VALUE}>Ingen valgt</SelectItem>
+                        <SelectItem value={NO_DECISION_RESPONSIBLE_VALUE}>{t("noneSelected")}</SelectItem>
                         {users.map((u) => (
                           <SelectItem key={u.user.id} value={u.user.id}>
                             {u.user.name || u.user.email}
@@ -677,7 +680,7 @@ export default function MeetingDetailPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="dueDate">Frist</Label>
+                    <Label htmlFor="dueDate">{t("common.deadline")}</Label>
                     <Input
                       id="dueDate"
                       type="datetime-local"
@@ -690,9 +693,9 @@ export default function MeetingDetailPage() {
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setShowDecisionDialog(false)}>
-                    Avbryt
+                    {t("actions.cancel")}
                   </Button>
-                  <Button onClick={addDecision}>Legg til vedtak</Button>
+                  <Button onClick={addDecision}>{t("actions.addDecision")}</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -700,7 +703,7 @@ export default function MeetingDetailPage() {
         </CardHeader>
         <CardContent>
           {meeting.decisions.length === 0 ? (
-            <p className="text-center text-sm text-muted-foreground">Ingen vedtak lagt til</p>
+            <p className="text-center text-sm text-muted-foreground">{t("sections.decisions.empty")}</p>
           ) : (
             <div className="space-y-4">
               {meeting.decisions.map((decision) => (
@@ -714,16 +717,16 @@ export default function MeetingDetailPage() {
                       <p className="mt-2 text-sm text-muted-foreground">{decision.description}</p>
                       <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
                         {decision.responsible && (
-                          <span>Ansvarlig: {decision.responsible.name || decision.responsible.email}</span>
+                          <span>{t("common.responsible")}: {decision.responsible.name || decision.responsible.email}</span>
                         )}
                         {decision.dueDate && (
                           <span>
-                            Frist: {format(new Date(decision.dueDate), "dd. MMM yyyy", { locale: nb })}
+                            {t("common.deadline")}: {format(new Date(decision.dueDate), "dd. MMM yyyy", { locale: locale === "en" ? undefined : nb })}
                           </span>
                         )}
                       </div>
                     </div>
-                    {getDecisionStatusBadge(decision.status)}
+                    {getDecisionStatusBadge(decision.status, t)}
                   </div>
                 </div>
               ))}

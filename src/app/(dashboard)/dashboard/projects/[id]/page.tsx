@@ -13,20 +13,27 @@ import {
 import Link from "next/link";
 import type { ProjectStatus } from "@prisma/client";
 import { ProjectTabs } from "@/features/projects/components/project-tabs";
+import { getLocale, getTranslations } from "next-intl/server";
 
-const statusConfig: Record<ProjectStatus, { label: string; color: string }> = {
-  PLANNING: { label: "Planlegging", color: "bg-blue-100 text-blue-800 border-blue-300" },
-  ACTIVE: { label: "Aktiv", color: "bg-green-100 text-green-800 border-green-300" },
-  ON_HOLD: { label: "På vent", color: "bg-amber-100 text-amber-800 border-amber-300" },
-  COMPLETED: { label: "Fullført", color: "bg-gray-100 text-gray-700 border-gray-300" },
-  ARCHIVED: { label: "Arkivert", color: "bg-gray-100 text-gray-500 border-gray-200" },
-};
+function getStatusConfig(
+  t: Awaited<ReturnType<typeof getTranslations>>
+): Record<ProjectStatus, { label: string; color: string }> {
+  return {
+    PLANNING: { label: t("status.planning"), color: "bg-blue-100 text-blue-800 border-blue-300" },
+    ACTIVE: { label: t("status.active"), color: "bg-green-100 text-green-800 border-green-300" },
+    ON_HOLD: { label: t("status.onHold"), color: "bg-amber-100 text-amber-800 border-amber-300" },
+    COMPLETED: { label: t("status.completed"), color: "bg-gray-100 text-gray-700 border-gray-300" },
+    ARCHIVED: { label: t("status.archived"), color: "bg-gray-100 text-gray-500 border-gray-200" },
+  };
+}
 
 export default async function ProjectDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = await getTranslations("dashboardProjectDetailPage");
+  const locale = await getLocale();
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) redirect("/login");
 
@@ -34,7 +41,7 @@ export default async function ProjectDetailPage({
     where: { email: session.user.email },
     include: { tenants: true },
   });
-  if (!user || user.tenants.length === 0) return <div>Ingen tilgang</div>;
+  if (!user || user.tenants.length === 0) return <div>{t("noAccess")}</div>;
 
   const tenantId = user.tenants[0].tenantId;
   const { id } = await params;
@@ -131,7 +138,7 @@ export default async function ProjectDetailPage({
     orderBy: { createdAt: "desc" },
   });
 
-  const sc = statusConfig[project.status];
+  const sc = getStatusConfig(t)[project.status];
   const manHours = project.timeEntries.reduce((s, e) => s + e.hours, 0);
 
   // HSE-statistikk for prosjektet
@@ -178,7 +185,7 @@ export default async function ProjectDetailPage({
                 </span>
               )}
               {project.orderNumber && (
-                <span className="font-mono text-xs">Ordre: {project.orderNumber}</span>
+                <span className="font-mono text-xs">{t("orderNumber", { number: project.orderNumber })}</span>
               )}
               {project.location && (
                 <span className="flex items-center gap-1">
@@ -196,12 +203,12 @@ export default async function ProjectDetailPage({
                 <span className="flex items-center gap-1">
                   <CalendarDays className="h-3.5 w-3.5" />
                   {project.startDate
-                    ? new Date(project.startDate).toLocaleDateString("nb-NO")
+                    ? new Date(project.startDate).toLocaleDateString(locale === "en" ? "en-US" : "nb-NO")
                     : "—"}
                   {" → "}
                   {project.endDate
-                    ? new Date(project.endDate).toLocaleDateString("nb-NO")
-                    : "Løpende"}
+                    ? new Date(project.endDate).toLocaleDateString(locale === "en" ? "en-US" : "nb-NO")
+                    : t("ongoing")}
                 </span>
               )}
             </div>
@@ -211,13 +218,13 @@ export default async function ProjectDetailPage({
           <Button variant="outline" size="sm" asChild>
             <Link href={`/dashboard/projects/${project.id}/edit`}>
               <Edit className="mr-1 h-3.5 w-3.5" />
-              Rediger
+              {t("actions.edit")}
             </Link>
           </Button>
           <Button size="sm" asChild>
             <a href={`/api/projects/${project.id}/report`} target="_blank">
               <FileText className="mr-1 h-3.5 w-3.5" />
-              PDF-rapport
+              {t("actions.pdfReport")}
             </a>
           </Button>
         </div>
@@ -227,9 +234,9 @@ export default async function ProjectDetailPage({
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
         <Card className="lg:col-span-1">
           <CardContent className="pt-4 pb-3">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Avvik</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">{t("cards.incidents.title")}</p>
             <p className="text-2xl font-bold text-red-600 mt-0.5">{project.incidents.length}</p>
-            <p className="text-xs text-muted-foreground">registrert</p>
+            <p className="text-xs text-muted-foreground">{t("cards.incidents.description")}</p>
           </CardContent>
         </Card>
         <Card className="lg:col-span-1">
@@ -241,32 +248,32 @@ export default async function ProjectDetailPage({
         </Card>
         <Card className="lg:col-span-1">
           <CardContent className="pt-4 pb-3">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Vernerunder</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">{t("cards.inspections.title")}</p>
             <p className="text-2xl font-bold text-blue-600 mt-0.5">{project.inspections.length}</p>
-            <p className="text-xs text-muted-foreground">gjennomført</p>
+            <p className="text-xs text-muted-foreground">{t("cards.inspections.description")}</p>
           </CardContent>
         </Card>
         <Card className="lg:col-span-1">
           <CardContent className="pt-4 pb-3">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Åpne tiltak</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">{t("cards.openMeasures.title")}</p>
             <p className={`text-2xl font-bold mt-0.5 ${openMeasures > 0 ? "text-orange-600" : "text-green-600"}`}>
               {openMeasures}
             </p>
-            <p className="text-xs text-muted-foreground">av {project.measures.length} totalt</p>
+            <p className="text-xs text-muted-foreground">{t("cards.openMeasures.description", { total: project.measures.length })}</p>
           </CardContent>
         </Card>
         <Card className="lg:col-span-1">
           <CardContent className="pt-4 pb-3">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Timer</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">{t("cards.hours.title")}</p>
             <p className="text-2xl font-bold mt-0.5">
-              {manHours > 0 ? Math.round(manHours).toLocaleString("nb-NO") : "—"}
+              {manHours > 0 ? Math.round(manHours).toLocaleString(locale === "en" ? "en-US" : "nb-NO") : "—"}
             </p>
-            <p className="text-xs text-muted-foreground">arbeidet</p>
+            <p className="text-xs text-muted-foreground">{t("cards.hours.description")}</p>
           </CardContent>
         </Card>
         <Card className={`lg:col-span-1 ${trir !== null && trir > 5 ? "border-red-200 bg-red-50/30" : ""}`}>
           <CardContent className="pt-4 pb-3">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">TRIR</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">{t("cards.trir.title")}</p>
             <p className={`text-2xl font-bold mt-0.5 ${
               trir === null ? "text-muted-foreground" :
               trir === 0 ? "text-green-600" :
@@ -276,7 +283,7 @@ export default async function ProjectDetailPage({
               {trir !== null ? trir.toFixed(2) : "—"}
             </p>
             <p className="text-xs text-muted-foreground">
-              {trir === null ? "Krever timer" : "per 200 000 t"}
+              {trir === null ? t("cards.trir.requiresHours") : t("cards.trir.perHours")}
             </p>
           </CardContent>
         </Card>

@@ -67,6 +67,7 @@ const navItems: Array<{
   // === GRUNNLEGGENDE HMS (vises alltid) ===
   { href: "/dashboard", label: "nav.dashboard", icon: LayoutDashboard, permission: "dashboard" as const, simple: true },
   { href: "/dashboard/documents", label: "nav.documents", icon: FileText, permission: "documents" as const, simple: true },
+  { href: "/dashboard/rutiner", label: "nav.routines", icon: ListChecks, permission: "routines" as const, simple: true },
   { href: "/dashboard/juridisk-register", label: "nav.legalRegister", icon: Scale, permission: "legalRegister" as const, simple: true },
   { href: "/dashboard/incidents", label: "nav.incidents", icon: AlertCircle, permission: "incidents" as const, simple: true },
   { href: "/dashboard/projects", label: "nav.projects", icon: FolderOpen, permission: "incidents" as const, simple: true },
@@ -198,7 +199,7 @@ export function DashboardNav() {
                 <Sparkles className="h-4 w-4 text-purple-500" />
               )}
               <span className="text-xs font-medium">
-                {isSimpleMode ? "Enkel" : "Avansert"}
+                {isSimpleMode ? t("dashboardNav.simpleMode") : t("dashboardNav.advancedMode")}
               </span>
             </div>
             <Switch
@@ -209,8 +210,8 @@ export function DashboardNav() {
           </div>
           <p className="text-[10px] text-muted-foreground mt-1">
             {isSimpleMode 
-              ? "Grunnleggende HMS-funksjoner" 
-              : "Alle funksjoner inkl. ISO"}
+              ? t("dashboardNav.simpleDescription")
+              : t("dashboardNav.advancedDescription")}
           </p>
         </div>
 

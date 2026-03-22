@@ -13,8 +13,10 @@ import { RiskControlForm } from "@/features/risks/components/risk-control-form";
 import { RiskControlList } from "@/features/risks/components/risk-control-list";
 import { RiskDocumentLinks } from "@/features/risks/components/risk-document-links";
 import { RiskAuditLinks } from "@/features/risks/components/risk-audit-links";
+import { getTranslations } from "next-intl/server";
 
 export default async function EditRiskPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getTranslations("dashboardRiskDetailPage");
   const { id } = await params;
   const session = await getServerSession(authOptions);
 
@@ -28,7 +30,7 @@ export default async function EditRiskPage({ params }: { params: Promise<{ id: s
   });
 
   if (!user || user.tenants.length === 0) {
-    return <div>Ingen tilgang til tenant</div>;
+    return <div>{t("noTenantAccess")}</div>;
   }
 
   const tenantId = user.tenants[0].tenantId;
@@ -71,7 +73,7 @@ export default async function EditRiskPage({ params }: { params: Promise<{ id: s
   });
 
   if (!risk) {
-    return <div>Risiko ikke funnet</div>;
+    return <div>{t("notFound")}</div>;
   }
 
   // Hent alle brukere for tenant (for ansvarlig person)
@@ -125,10 +127,10 @@ export default async function EditRiskPage({ params }: { params: Promise<{ id: s
         <Button variant="ghost" asChild className="mb-4">
           <Link href="/dashboard/risks">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Tilbake til risikoer
+            {t("actions.back")}
           </Link>
         </Button>
-        <h1 className="text-3xl font-bold">Rediger risikovurdering</h1>
+        <h1 className="text-3xl font-bold">{t("title")}</h1>
         <p className="text-muted-foreground">{risk.title}</p>
       </div>
 
@@ -145,9 +147,9 @@ export default async function EditRiskPage({ params }: { params: Promise<{ id: s
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Tiltak for å redusere risiko</CardTitle>
+                  <CardTitle>{t("measures.title")}</CardTitle>
                   <CardDescription>
-                    ISO 9001: Planlagte tiltak med ansvarlig person og tidsplan
+                    {t("measures.description")}
                   </CardDescription>
                 </div>
                 <MeasureForm tenantId={tenantId} riskId={risk.id} users={tenantUsers} />
@@ -164,8 +166,8 @@ export default async function EditRiskPage({ params }: { params: Promise<{ id: s
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Kontroller</CardTitle>
-              <CardDescription>ISO 31000: dokumenter eierskap og effekt for sentrale kontroller</CardDescription>
+              <CardTitle>{t("controls.title")}</CardTitle>
+              <CardDescription>{t("controls.description")}</CardDescription>
             </div>
             <RiskControlForm riskId={risk.id} users={tenantUsers} documents={documents} />
           </div>
@@ -177,8 +179,8 @@ export default async function EditRiskPage({ params }: { params: Promise<{ id: s
 
       <Card>
         <CardHeader>
-          <CardTitle>Dokumentkoblinger</CardTitle>
-          <CardDescription>Viser prosedyrer, instrukser og rapporter som støtter risikostyringen</CardDescription>
+          <CardTitle>{t("documents.title")}</CardTitle>
+          <CardDescription>{t("documents.description")}</CardDescription>
         </CardHeader>
         <CardContent>
           <RiskDocumentLinks riskId={risk.id} documents={documents} links={risk.documentLinks} />
@@ -187,8 +189,8 @@ export default async function EditRiskPage({ params }: { params: Promise<{ id: s
 
       <Card>
         <CardHeader>
-          <CardTitle>Revisjoner og tester</CardTitle>
-          <CardDescription>Knytt interne revisjoner og kontrolltester til risikoen</CardDescription>
+          <CardTitle>{t("audits.title")}</CardTitle>
+          <CardDescription>{t("audits.description")}</CardDescription>
         </CardHeader>
         <CardContent>
           <RiskAuditLinks riskId={risk.id} audits={audits} links={risk.auditLinks} />

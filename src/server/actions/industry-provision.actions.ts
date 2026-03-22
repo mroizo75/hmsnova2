@@ -60,7 +60,7 @@ export async function provisionIndustryPackage(
     }
 
     const currentYear = new Date().getFullYear();
-    const assessmentTitle = `Landbruk risikovurdering ${currentYear}`;
+    const assessmentTitle = `${packageConfig.displayName} risikovurdering ${currentYear}`;
 
     await prisma.$transaction(async (tx) => {
       let assessment = await tx.riskAssessment.findFirst({
@@ -165,6 +165,14 @@ export async function provisionIndustryPackage(
               riskCategory: inspectionTemplate.riskCategory,
               checklist: inspectionTemplate.checklist,
               isGlobal: false,
+              industryScope: [packageConfig.industry],
+            },
+          });
+        } else {
+          await tx.inspectionTemplate.update({
+            where: { id: existingInspectionTemplate.id },
+            data: {
+              industryScope: [packageConfig.industry],
             },
           });
         }
@@ -233,15 +241,25 @@ export async function provisionIndustryPackage(
         }
       }
 
-      if (!tenant.simpleMenuItems) {
+      const existingSimpleMenuItems = Array.isArray(tenant.simpleMenuItems)
+        ? (tenant.simpleMenuItems as string[])
+        : [];
+      const mergedSimpleMenuItems = [
+        ...new Set([...existingSimpleMenuItems, ...packageConfig.simpleMenuHrefs]),
+      ];
+
+      if (mergedSimpleMenuItems.length > existingSimpleMenuItems.length) {
         await tx.tenant.update({
           where: { id: tenantId },
           data: {
-            simpleMenuItems: [...packageConfig.simpleMenuHrefs],
+            simpleMenuItems: mergedSimpleMenuItems,
           },
         });
       }
     });
+
+    // Ved fremtidig opprettelse av FormTemplate for tenant fra bransjepakke: sett allowTenantDeletion: false
+    // slik at malen ikke kan slettes (samme intensjon som globale maler, men tenant-eid).
 
     return {
       success: true,

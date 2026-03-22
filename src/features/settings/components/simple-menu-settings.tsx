@@ -64,8 +64,8 @@ export function SimpleMenuSettings({
     if (!isAdmin) {
       toast({
         variant: "destructive",
-        title: "Ingen tilgang",
-        description: "Kun administratorer kan endre enkel meny",
+        title: t("settingsSimpleMenu.noAccessTitle"),
+        description: t("settingsSimpleMenu.noAccessDescription"),
       });
       return;
     }
@@ -75,14 +75,14 @@ export function SimpleMenuSettings({
     setLoading(false);
     if (result.success) {
       toast({
-        title: "Enkel meny lagret",
-        description: "Menyvalgene gjelder når brukere velger «Enkel» modus i dashboard.",
+        title: t("settingsSimpleMenu.savedTitle"),
+        description: t("settingsSimpleMenu.savedDescription"),
       });
       router.refresh();
     } else {
       toast({
         variant: "destructive",
-        title: "Kunne ikke lagre",
+        title: t("settingsSimpleMenu.saveFailedTitle"),
         description: result.error,
       });
     }
@@ -93,7 +93,7 @@ export function SimpleMenuSettings({
       <Card>
         <CardContent className="pt-6">
           <p className="text-sm text-muted-foreground">
-            Kun administratorer kan velge hvilke menypunkter som vises i enkel modus.
+            {t("settingsSimpleMenu.onlyAdminDescription")}
           </p>
         </CardContent>
       </Card>
@@ -105,11 +105,10 @@ export function SimpleMenuSettings({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <PanelLeft className="h-5 w-5" />
-          Enkel meny
+          {t("settingsSimpleMenu.title")}
         </CardTitle>
         <CardDescription>
-          Velg hvilke menypunkter som skal vises når brukere har «Enkel» modus aktivert i
-          dashboard. Avansert modus viser alltid alle punkter du har tilgang til.
+          {t("settingsSimpleMenu.cardDescription")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -135,11 +134,11 @@ export function SimpleMenuSettings({
         </div>
         <div className="flex flex-wrap gap-2">
           <Button onClick={handleSave} disabled={loading}>
-            {loading ? "Lagrer…" : "Lagre valg"}
+            {loading ? t("settingsSimpleMenu.saving") : t("settingsSimpleMenu.saveButton")}
           </Button>
           <Button variant="outline" onClick={resetToDefault} disabled={loading}>
             <RotateCcw className="mr-2 h-4 w-4" />
-            Tilbakestill til standard
+            {t("settingsSimpleMenu.resetButton")}
           </Button>
         </div>
       </CardContent>

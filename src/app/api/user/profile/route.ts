@@ -20,7 +20,9 @@ export async function PUT(request: NextRequest) {
     const address = formData.get("address") as string | null;
     const postalCode = formData.get("postalCode") as string | null;
     const city = formData.get("city") as string | null;
+    const preferredLocaleRaw = formData.get("preferredLocale") as string | null;
     const avatarFile = formData.get("avatar") as File | null;
+    const preferredLocale = preferredLocaleRaw === "en" ? "en" : "nb";
 
     // Håndter avatar-opplasting
     let imageUrl = undefined;
@@ -44,6 +46,7 @@ export async function PUT(request: NextRequest) {
         address: address || null,
         postalCode: postalCode || null,
         city: city || null,
+        preferredLocale,
         ...(imageUrl && { image: imageUrl }),
       },
     });

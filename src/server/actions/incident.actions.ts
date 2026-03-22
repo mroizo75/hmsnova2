@@ -11,7 +11,7 @@ import {
   investigateIncidentSchema,
   closeIncidentSchema,
 } from "@/features/incidents/schemas/incident.schema";
-import { createNotification, notifyUsersByRole } from "./notification.actions";
+import { createNotification, notifyUsersByRoles } from "./notification.actions";
 import { IncidentStage, IncidentStatus } from "@prisma/client";
 
 async function getSessionContext() {
@@ -282,8 +282,8 @@ export async function createIncident(input: any) {
       },
     });
     
-    // Send varsling til HMS-ansvarlige
-    await notifyUsersByRole(tenantId, "HMS", {
+    // Send varsling til lederroller for oppfolging
+    await notifyUsersByRoles(tenantId, ["ADMIN", "HMS", "LEDER"], {
       type: "NEW_INCIDENT",
       title: "Nytt avvik registrert",
       message: `${incident.type}: ${incident.title}`,
@@ -394,7 +394,7 @@ export async function updateIncident(input: any) {
     
     // Send varsling hvis status endres
     if (existingIncident.status !== incident.status) {
-      await notifyUsersByRole(tenantId, "HMS", {
+      await notifyUsersByRoles(tenantId, ["ADMIN", "HMS", "LEDER"], {
         type: "INCIDENT_UPDATED",
         title: "Avvik oppdatert",
         message: `${incident.type}: ${incident.title} - Status endret til ${incident.status}`,
@@ -500,7 +500,7 @@ export async function closeIncident(input: any) {
     });
     
     // Send varsling om lukket avvik
-    await notifyUsersByRole(tenantId, "HMS", {
+    await notifyUsersByRoles(tenantId, ["ADMIN", "HMS", "LEDER"], {
       type: "INCIDENT_CLOSED",
       title: "Avvik lukket",
       message: `${incident.type}: ${incident.title} er nå lukket`,

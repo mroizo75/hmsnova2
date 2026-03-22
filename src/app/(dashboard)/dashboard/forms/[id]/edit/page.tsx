@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { FormBuilder } from "@/components/forms/form-builder";
+import { getPermissions } from "@/lib/permissions";
 
 export default async function EditFormPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -10,6 +11,14 @@ export default async function EditFormPage({ params }: { params: Promise<{ id: s
 
   if (!session?.user?.tenantId) {
     redirect("/login");
+  }
+
+  const userTenant = await prisma.userTenant.findFirst({
+    where: { userId: session.user.id, tenantId: session.user.tenantId },
+    select: { role: true },
+  });
+  if (!getPermissions(userTenant?.role ?? "ANSATT").canManageForms) {
+    redirect("/dashboard/forms");
   }
 
   const form = await prisma.formTemplate.findUnique({
@@ -28,6 +37,10 @@ export default async function EditFormPage({ params }: { params: Promise<{ id: s
   // Hindre redigering av globale skjemaer
   if (form.isGlobal) {
     redirect("/dashboard/forms");
+  }
+
+  if (form.allowTenantDeletion === false) {
+    redirect(`/dashboard/forms/${id}`);
   }
 
   // Transform data for form builder

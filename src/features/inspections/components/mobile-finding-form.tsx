@@ -16,6 +16,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, Upload, X, MapPin, AlertTriangle, CheckCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface MobileFindingFormProps {
   inspectionId: string;
@@ -23,6 +24,7 @@ interface MobileFindingFormProps {
 }
 
 export function MobileFindingForm({ inspectionId, onSuccess }: MobileFindingFormProps) {
+  const t = useTranslations("dashboardInspectionComponents.mobileFindingForm");
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -56,19 +58,19 @@ export function MobileFindingForm({ inspectionId, onSuccess }: MobileFindingForm
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.message || "Kunne ikke laste opp bilde");
+          throw new Error(data.message || t("errors.uploadImage"));
         }
 
         setImages((prev) => [...prev, data.data.key]);
       }
 
       toast({
-        title: "📸 Bilde lagret",
-        description: "Bildet er lagt til funnet",
+        title: t("toasts.imageSaved.title"),
+        description: t("toasts.imageSaved.description"),
       });
     } catch (error: any) {
       toast({
-        title: "Feil ved opplasting",
+        title: t("toasts.uploadError.title"),
         description: error.message,
         variant: "destructive",
       });
@@ -88,7 +90,7 @@ export function MobileFindingForm({ inspectionId, onSuccess }: MobileFindingForm
       setImages((prev) => prev.filter((key) => key !== imageKey));
     } catch (error) {
       toast({
-        title: "Kunne ikke fjerne bilde",
+        title: t("toasts.removeImageError"),
         variant: "destructive",
       });
     }
@@ -97,8 +99,8 @@ export function MobileFindingForm({ inspectionId, onSuccess }: MobileFindingForm
   const handleSubmit = async () => {
     if (!formData.title || !formData.description) {
       toast({
-        title: "Mangler informasjon",
-        description: "Vennligst fyll ut tittel og beskrivelse",
+        title: t("toasts.missingInfo.title"),
+        description: t("toasts.missingInfo.description"),
         variant: "destructive",
       });
       return;
@@ -126,12 +128,12 @@ export function MobileFindingForm({ inspectionId, onSuccess }: MobileFindingForm
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.message || "Kunne ikke opprette funn");
+        throw new Error(result.message || t("errors.create"));
       }
 
       toast({
-        title: "✅ Funn registrert",
-        description: "Funnet er nå lagret",
+        title: t("toasts.created.title"),
+        description: t("toasts.created.description"),
       });
 
       // Reset form
@@ -143,7 +145,7 @@ export function MobileFindingForm({ inspectionId, onSuccess }: MobileFindingForm
       router.refresh();
     } catch (error: any) {
       toast({
-        title: "Feil",
+        title: t("toasts.error.title"),
         description: error.message,
         variant: "destructive",
       });
@@ -165,13 +167,13 @@ export function MobileFindingForm({ inspectionId, onSuccess }: MobileFindingForm
 
   const getSeverityLabel = (severity: string) => {
     const labels: Record<string, string> = {
-      "1": "Lav",
-      "2": "Moderat",
-      "3": "Betydelig",
-      "4": "Alvorlig",
-      "5": "Kritisk",
+      "1": t("severity.low"),
+      "2": t("severity.moderate"),
+      "3": t("severity.significant"),
+      "4": t("severity.serious"),
+      "5": t("severity.critical"),
     };
-    return labels[severity] || "Betydelig";
+    return labels[severity] || t("severity.significant");
   };
 
   return (
@@ -197,15 +199,15 @@ export function MobileFindingForm({ inspectionId, onSuccess }: MobileFindingForm
         </div>
       </div>
 
-      {/* Step 1: Ta bilder */}
+      {/* Step 1 */}
       {step === 1 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Camera className="h-5 w-5" />
-              Steg 1: Ta bilder
+              {t("step1.title")}
             </CardTitle>
-            <CardDescription>Dokumenter funnet med bilder (valgfritt)</CardDescription>
+            <CardDescription>{t("step1.description")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Camera Input */}
@@ -224,10 +226,10 @@ export function MobileFindingForm({ inspectionId, onSuccess }: MobileFindingForm
                 <div className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors active:scale-95">
                   <Camera className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
                   <p className="font-medium text-lg">
-                    {uploadingImage ? "Laster opp..." : "Ta bilde"}
+                    {uploadingImage ? t("actions.uploading") : t("actions.takePhoto")}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Trykk for å åpne kamera
+                    {t("step1.cameraHint")}
                   </p>
                 </div>
               </label>
@@ -238,7 +240,7 @@ export function MobileFindingForm({ inspectionId, onSuccess }: MobileFindingForm
                     <div key={imageKey} className="relative group aspect-square">
                       <img
                         src={`/api/inspections/images/${imageKey}`}
-                        alt="Bilde"
+                        alt={t("imageAlt")}
                         className="w-full h-full object-cover rounded-lg border-2 border-gray-200"
                       />
                       <Button
@@ -261,41 +263,41 @@ export function MobileFindingForm({ inspectionId, onSuccess }: MobileFindingForm
               size="lg"
               className="w-full text-lg h-14"
             >
-              Neste: Beskriv funnet
+              {t("step1.next")}
             </Button>
           </CardContent>
         </Card>
       )}
 
-      {/* Step 2: Beskriv funnet */}
+      {/* Step 2 */}
       {step === 2 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5" />
-              Steg 2: Beskriv funnet
+              {t("step2.title")}
             </CardTitle>
-            <CardDescription>Hva er funnet?</CardDescription>
+            <CardDescription>{t("step2.description")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="title" className="text-base">Tittel</Label>
+              <Label htmlFor="title" className="text-base">{t("fields.title")}</Label>
               <Input
                 id="title"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="F.eks. Manglende verneutstyr"
+                placeholder={t("placeholders.title")}
                 className="text-base h-12"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-base">Beskrivelse</Label>
+              <Label htmlFor="description" className="text-base">{t("fields.description")}</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Beskriv funnet i detalj..."
+                placeholder={t("placeholders.description")}
                 rows={5}
                 className="text-base resize-none"
               />
@@ -304,13 +306,13 @@ export function MobileFindingForm({ inspectionId, onSuccess }: MobileFindingForm
             <div className="space-y-2">
               <Label htmlFor="location" className="text-base flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
-                Lokasjon (valgfritt)
+                {t("fields.locationOptional")}
               </Label>
               <Input
                 id="location"
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                placeholder="F.eks. Produksjonshall A"
+                placeholder={t("placeholders.location")}
                 className="text-base h-12"
               />
             </div>
@@ -322,7 +324,7 @@ export function MobileFindingForm({ inspectionId, onSuccess }: MobileFindingForm
                 size="lg"
                 className="flex-1 text-base h-12"
               >
-                Tilbake
+                {t("actions.back")}
               </Button>
               <Button
                 onClick={() => setStep(3)}
@@ -330,22 +332,22 @@ export function MobileFindingForm({ inspectionId, onSuccess }: MobileFindingForm
                 className="flex-1 text-base h-12"
                 disabled={!formData.title || !formData.description}
               >
-                Neste
+                {t("actions.next")}
               </Button>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Step 3: Alvorlighetsgrad */}
+      {/* Step 3 */}
       {step === 3 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5" />
-              Steg 3: Alvorlighetsgrad
+              {t("step3.title")}
             </CardTitle>
-            <CardDescription>Hvor alvorlig er funnet?</CardDescription>
+            <CardDescription>{t("step3.description")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3">
@@ -375,7 +377,7 @@ export function MobileFindingForm({ inspectionId, onSuccess }: MobileFindingForm
                 size="lg"
                 className="w-full text-base h-12"
               >
-                Tilbake
+                {t("actions.back")}
               </Button>
               <Button
                 onClick={handleSubmit}
@@ -383,7 +385,7 @@ export function MobileFindingForm({ inspectionId, onSuccess }: MobileFindingForm
                 className="w-full text-base h-14 bg-green-600 hover:bg-green-700"
                 disabled={loading}
               >
-                {loading ? "Lagrer..." : "✅ Lagre funn"}
+                {loading ? t("actions.saving") : t("actions.saveFinding")}
               </Button>
             </div>
           </CardContent>

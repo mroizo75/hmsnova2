@@ -3,17 +3,23 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { FormFiller } from "@/components/forms/form-filler";
+import { tenantCanUseGlobalFormTemplate } from "@/lib/form-template-industry";
 
 export default async function AnsattFillFormPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ inspectionId?: string; projectId?: string }>;
+  searchParams: Promise<{
+    inspectionId?: string;
+    projectId?: string;
+    allTemplates?: string;
+  }>;
 }) {
   const session = await getServerSession(authOptions);
   const { id } = await params;
-  const { inspectionId, projectId } = await searchParams;
+  const { inspectionId, projectId, allTemplates } = await searchParams;
+  const allTemplatesView = allTemplates === "1";
 
   if (!session?.user?.tenantId) {
     redirect("/login");
@@ -50,6 +56,18 @@ export default async function AnsattFillFormPage({
 
   // Sjekk at skjemaet enten er globalt eller tilhører tenant
   if (form.tenantId && form.tenantId !== session.user.tenantId) {
+    redirect("/ansatt/skjemaer");
+  }
+
+  const tenantRow = await prisma.tenant.findUnique({
+    where: { id: session.user.tenantId },
+    select: { industry: true },
+  });
+  if (
+    !tenantCanUseGlobalFormTemplate(form, tenantRow?.industry ?? null, {
+      allTemplatesView,
+    })
+  ) {
     redirect("/ansatt/skjemaer");
   }
 
@@ -122,6 +140,7 @@ export default async function AnsattFillFormPage({
       inspectionId={inspectionId}
       projects={projects}
       initialProjectId={projectId}
+      industryScopeBypass={allTemplatesView}
     />
   );
 }

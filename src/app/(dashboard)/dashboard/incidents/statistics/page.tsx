@@ -9,8 +9,11 @@ import { ArrowLeft, BarChart3, AlertTriangle, Info } from "lucide-react";
 import Link from "next/link";
 import { HseStatisticsTable } from "@/features/incidents/components/hse-statistics-table";
 import { hasTenantFeature } from "@/lib/tenant-features";
+import { getLocale, getTranslations } from "next-intl/server";
 
 export default async function HseStatisticsPage() {
+  const t = await getTranslations("dashboardIncidentStatisticsPage");
+  const locale = await getLocale();
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.email) {
@@ -31,7 +34,7 @@ export default async function HseStatisticsPage() {
   });
 
   if (!user || user.tenants.length === 0) {
-    return <div>Ingen tilgang til tenant</div>;
+    return <div>{t("noTenantAccess")}</div>;
   }
 
   const tenantId = user.tenants[0].tenantId;
@@ -111,10 +114,10 @@ export default async function HseStatisticsPage() {
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2">
               <BarChart3 className="h-8 w-8 text-orange-600" />
-              HSE-statistikk
+              {t("title")}
             </h1>
             <p className="text-muted-foreground">
-              TRIR · Fraværsskader · Skadefrekvens – 3-årshistorikk
+              {t("description")}
             </p>
           </div>
         </div>
@@ -125,13 +128,13 @@ export default async function HseStatisticsPage() {
         <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
           <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
           <div className="text-sm text-amber-900">
-            <p className="font-semibold">Manntimer ikke registrert</p>
+            <p className="font-semibold">{t("missingHours.title")}</p>
             <p className="mt-0.5">
-              TRIR krever arbeidede timer. Aktiver{" "}
+              {t("missingHours.descriptionStart")}{" "}
               <Link href="/dashboard/time-registration" className="underline font-medium">
-                timeregistrering
+                {t("missingHours.timeRegistration")}
               </Link>{" "}
-              eller legg inn timer manuelt for å beregne TRIR korrekt.
+              {t("missingHours.descriptionEnd")}
             </p>
           </div>
         </div>
@@ -140,31 +143,31 @@ export default async function HseStatisticsPage() {
       {/* YTD-kort øverst */}
       <div>
         <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-          Hittil i år ({ytd.year})
+          {t("ytd", { year: ytd.year })}
         </p>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
             label="TRIR"
             value={ytd.trir !== null ? ytd.trir.toString() : "—"}
-            sub="Total Recordable Injury Rate"
+            sub={t("cards.trirSubtitle")}
             highlight={ytd.trir !== null && ytd.trir > 5 ? "red" : ytd.trir !== null ? "green" : "gray"}
           />
           <StatCard
-            label="Fraværsskader (LTI)"
+            label={t("cards.lti.title")}
             value={ytd.lostTimeIncidents.toString()}
-            sub={`${ytd.lostWorkdays} tapte arbeidsdager`}
+            sub={t("cards.lti.subtitle", { count: ytd.lostWorkdays })}
             highlight={ytd.lostTimeIncidents > 0 ? "red" : "green"}
           />
           <StatCard
-            label="Arbeidede timer"
-            value={ytd.manHours > 0 ? ytd.manHours.toLocaleString("nb-NO") : "—"}
-            sub="Fra timeregistrering"
+            label={t("cards.workedHours.title")}
+            value={ytd.manHours > 0 ? ytd.manHours.toLocaleString(locale === "en" ? "en-US" : "nb-NO") : "—"}
+            sub={t("cards.workedHours.subtitle")}
             highlight="gray"
           />
           <StatCard
-            label="Recordable hendelser"
+            label={t("cards.recordable.title")}
             value={ytd.totalRecordable.toString()}
-            sub="Fatality + LTI + RW + MT"
+            sub={t("cards.recordable.subtitle")}
             highlight={ytd.totalRecordable > 0 ? "amber" : "green"}
           />
         </div>
@@ -173,9 +176,9 @@ export default async function HseStatisticsPage() {
       {/* 3-årshistorikk tabell */}
       <Card>
         <CardHeader>
-          <CardTitle>3-årshistorikk</CardTitle>
+          <CardTitle>{t("history.title")}</CardTitle>
           <CardDescription>
-            Standardformat for HSE-rapportering til kunder og oppdragsgivere
+            {t("history.description")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -188,35 +191,33 @@ export default async function HseStatisticsPage() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Info className="h-4 w-4 text-blue-600" />
-            Hva betyr TRIR?
+            {t("trir.title")}
           </CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-blue-900 space-y-3">
           <p>
-            <strong>Total Recordable Injury Rate (TRIR)</strong> måler alle
-            registrerbare skader per 200 000 arbeidede timer (tilsvarer 100
-            fulltidsansatte i ett år).
+            {t("trir.description")}
           </p>
           <div className="rounded-md bg-blue-100 border border-blue-200 px-4 py-3 font-mono text-xs">
-            TRIR = (Fatalities + LTI + Restricted Work + Medical Treatment) × 200 000 / Arbeidede timer
+            {t("trir.formula")}
           </div>
           <div className="grid sm:grid-cols-2 gap-3 text-xs">
             <div>
-              <p className="font-semibold mb-1">Hendelsestyper i telleren:</p>
+              <p className="font-semibold mb-1">{t("trir.incidentTypes")}</p>
               <ul className="space-y-0.5 list-disc list-inside text-blue-800">
-                <li><strong>Fatalities</strong> – Dødsfall</li>
-                <li><strong>LTI</strong> – Lost Time Incident (fraværsskade)</li>
-                <li><strong>Restricted Work</strong> – Begrenset arbeid</li>
-                <li><strong>Medical Treatment</strong> – Legebehandling</li>
+                <li>{t("trir.incidents.fatalities")}</li>
+                <li>{t("trir.incidents.lti")}</li>
+                <li>{t("trir.incidents.restrictedWork")}</li>
+                <li>{t("trir.incidents.medicalTreatment")}</li>
               </ul>
             </div>
             <div>
-              <p className="font-semibold mb-1">Typiske bransjemål:</p>
+              <p className="font-semibold mb-1">{t("trir.benchmarks")}</p>
               <ul className="space-y-0.5 list-disc list-inside text-blue-800">
-                <li>TRIR &lt; 1.0 – Excellent (offshore-standard)</li>
-                <li>TRIR &lt; 3.0 – Godt (industri)</li>
-                <li>TRIR &lt; 5.0 – Akseptabelt (bygg)</li>
-                <li>TRIR &gt; 5.0 – Krever tiltak</li>
+                <li>{t("trir.benchmarkList.b1")}</li>
+                <li>{t("trir.benchmarkList.b2")}</li>
+                <li>{t("trir.benchmarkList.b3")}</li>
+                <li>{t("trir.benchmarkList.b4")}</li>
               </ul>
             </div>
           </div>

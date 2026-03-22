@@ -13,9 +13,11 @@
   "nav": {
     "dashboard": "Dashboard",
     "documents": "Documents",
+    "routines": "Routines",
     "legalRegister": "Legal Register",
     "forms": "Forms",
     "risks": "Risk Assessments",
+    "riskRegister": "Risk Register",
     "incidents": "Incidents & Events",
     "projects": "Projects",
     "constructionCompliance": "Construction Compliance",
@@ -23,11 +25,18 @@
     "sja": "Safe Job Analysis",
     "inspections": "Inspections",
     "chemicals": "Chemical Registry",
+    "environment": "Environment",
+    "wellbeing": "Psychosocial Pulse",
+    "complaints": "Customer Complaints",
+    "feedback": "Feedback",
+    "bcm": "Emergency Preparedness",
     "training": "Training",
     "audits": "Audits",
     "managementReviews": "Management Reviews",
     "annualHmsPlan": "Annual H&S Plan",
     "meetings": "Meetings (WEC/SRs)",
+    "timeRegistration": "Time Registration",
+    "exposureRegister": "Exposure Register",
     "whistleblowing": "Whistleblowing",
     "actions": "Actions",
     "goals": "Goals",
@@ -39,6 +48,5040 @@
     "email": "Email",
     "password": "Password",
     "forgotPassword": "Forgot password?"
+  },
+  "dashboardNav": {
+    "simpleMode": "Simple",
+    "advancedMode": "Advanced",
+    "simpleDescription": "Core HSE features",
+    "advancedDescription": "All features including ISO"
+  },
+  "mobileNav": {
+    "navigationMenu": "Navigation menu",
+    "simpleMode": "Simple mode",
+    "advancedMode": "Advanced"
+  },
+  "settingsSimpleMenu": {
+    "noAccessTitle": "No access",
+    "noAccessDescription": "Only administrators can change the simple menu",
+    "savedTitle": "Simple menu saved",
+    "savedDescription": "These menu choices apply when users select \"Simple\" mode in the dashboard.",
+    "saveFailedTitle": "Could not save",
+    "onlyAdminDescription": "Only administrators can choose which menu items are shown in simple mode.",
+    "title": "Simple menu",
+    "cardDescription": "Choose which menu items are shown when users have \"Simple\" mode enabled in the dashboard. Advanced mode always shows all items you have access to.",
+    "saving": "Saving…",
+    "saveButton": "Save selection",
+    "resetButton": "Reset to default"
+  },
+  "incidentForm": {
+    "types": {
+      "ULYKKE": {
+        "label": "Work accident / RUH",
+        "desc": "Energy was released and caused injury/loss to person, equipment, or environment",
+        "badge": "Working Environment Act § 5-2 – mandatory notification"
+      },
+      "NESTEN": {
+        "label": "Near miss / RUH",
+        "desc": "Energy was released, but no injury occurred - under different circumstances an accident would have happened",
+        "badge": "Working Environment Act § 5-2 – near accident"
+      },
+      "FARLIG_SITUASJON": {
+        "label": "Hazardous situation / Observation",
+        "desc": "Hazardous condition or unwanted circumstance that represents danger, but no energy released",
+        "badge": "Working Environment Act § 2-3"
+      },
+      "YRKESSYKDOM": {
+        "label": "Occupational disease / Work-related illness",
+        "desc": "Illness assumed to be caused by work or workplace conditions",
+        "badge": "Working Environment Act § 5-1"
+      },
+      "AVVIK": {
+        "label": "Deviation",
+        "desc": "Breach of legislation, internal requirements, procedures, or standards (ISO 9001 ch. 10.2)"
+      },
+      "MILJO": {
+        "label": "Environmental deviation",
+        "desc": "Emission, spill, or other deviation from environmental requirements (ISO 14001)"
+      },
+      "KVALITET": {
+        "label": "Quality deviation",
+        "desc": "Product or service quality does not meet requirements (ISO 9001)"
+      },
+      "CUSTOMER": {
+        "label": "Customer complaint",
+        "desc": "Complaint or feedback from customer/user (ISO 10002)"
+      }
+    },
+    "severity": {
+      "1": { "label": "1 - Insignificant", "desc": "No consequences" },
+      "2": { "label": "2 - Minor", "desc": "Small consequences" },
+      "3": { "label": "3 - Moderate", "desc": "Noticeable consequences" },
+      "4": { "label": "4 - Serious", "desc": "Major consequences" },
+      "5": { "label": "5 - Critical", "desc": "Very serious consequences" }
+    },
+    "templates": {
+      "homeVisitRisk": {
+        "title": "Risk during home visit",
+        "description": "Describe conditions in the home visit that increased risk for employee or user.",
+        "location": "Home care service / home visit",
+        "immediateAction": "Work was stopped and responsible manager was notified."
+      },
+      "violenceThreat": {
+        "title": "Violence or threat in service",
+        "description": "Describe the incident sequence, what triggered the situation, and which persons were involved.",
+        "location": "Home care service / user address",
+        "immediateAction": "Secured employee, stopped assignment, and notified manager/police as needed."
+      },
+      "infectionExposure": {
+        "title": "Suspected infection exposure",
+        "description": "Describe exposure type, duration, protective equipment used, and measures implemented.",
+        "location": "Health and care service",
+        "immediateAction": "Infection control routine activated and incident reported to manager."
+      }
+    },
+    "toasts": {
+      "unknownError": "Unknown error",
+      "missingBasis": {
+        "title": "Missing required input",
+        "description": "Select type and fill in title + description before AI analysis."
+      },
+      "aiAnalysisFailed": { "title": "AI analysis failed" },
+      "aiSuggestionsReady": {
+        "title": "AI suggestions ready",
+        "description": "Draft for actions and immediate response has been filled in."
+      },
+      "noStoredIncidents": {
+        "title": "No stored incidents",
+        "description": "The offline queue is empty."
+      },
+      "noNetwork": {
+        "title": "No network",
+        "description": "Connect to network to sync stored incidents."
+      },
+      "syncCompleted": {
+        "title": "Sync completed",
+        "description": "{count} incidents have been synchronized."
+      },
+      "someIncidentsFailed": {
+        "title": "Some incidents failed",
+        "description": "{count} incidents are still in the offline queue."
+      },
+      "savedOffline": {
+        "title": "Saved offline",
+        "withImages": "The incident is saved offline. Images are not synchronized offline and must be added after sync.",
+        "withoutImages": "The incident will synchronize automatically when you are online."
+      },
+      "error": {
+        "title": "Error",
+        "reportIncident": "Could not report deviation"
+      },
+      "incidentReported": {
+        "title": "Incident reported",
+        "description": "The incident is registered and will be followed up"
+      },
+      "unexpectedError": {
+        "title": "Unexpected error",
+        "description": "Something went wrong"
+      }
+    },
+    "tabletMode": {
+      "offlineQueue": "Tablet mode with offline queue: {count} unsynced",
+      "syncing": "Syncing...",
+      "syncSaved": "Sync saved"
+    },
+    "sections": {
+      "basicInfo": {
+        "title": "Basic information",
+        "description": "Working Environment Act § 5-2 / Internal Control Regulations § 5 - Report what happened"
+      },
+      "hmsSpecific": {
+        "title": "People involved and outcome",
+        "description": "Working Environment Act § 5-2 - Report of unwanted incident (RUH)"
+      },
+      "hseStats": {
+        "title": "HSE statistics",
+        "description": "Used for TRIR calculations and reporting to customers/authorities",
+        "trirLabel": "TRIR formula:",
+        "trirFormula": "(Fatalities + LTIs + Restricted work + Medical treatment) × 200,000 / Hours worked"
+      },
+      "injuryFollowUp": {
+        "title": "Injury and follow-up",
+        "description": "ISO 45001: document personal injury and link to risk"
+      },
+      "customerComplaint": {
+        "title": "Customer complaint",
+        "description": "ISO 10002: register who complains and how the case should be handled"
+      },
+      "immediateActions": {
+        "title": "Immediate actions and cause",
+        "description": "ISO 9001 ch. 10.2 - What was done immediately, and what is the cause?"
+      },
+      "images": {
+        "title": "Images",
+        "description": "Upload images documenting the incident (optional, max 5)",
+        "maxReached": "Max 5 images",
+        "clickToAdd": "Click to add images",
+        "selectedCount": "{count}/5 images selected",
+        "supportedFormats": "PNG, JPG, HEIC supported",
+        "previewAlt": "Preview {index}"
+      }
+    },
+    "fields": {
+      "type": {
+        "label": "Incident type *",
+        "placeholder": "Select type",
+        "groupHms": "HSE / Personal injury",
+        "groupDeviation": "Deviation / Quality",
+        "groupOther": "Other"
+      },
+      "severity": {
+        "label": "Severity *",
+        "placeholder": "Select severity"
+      },
+      "project": {
+        "label": "Link to project / job",
+        "placeholder": "Select project (optional)",
+        "noneOption": "- None / not project-related -",
+        "help": "Project link provides aggregated HSE reporting per job/assignment"
+      },
+      "title": {
+        "label": "Title *",
+        "placeholder": "E.g. Fall from ladder during warehouse work"
+      },
+      "description": {
+        "label": "Incident description *",
+        "placeholder": "Describe in detail what happened, when, where, and who was involved"
+      },
+      "occurredAt": { "label": "When did it happen? *" },
+      "location": {
+        "label": "Where did it happen?",
+        "placeholder": "E.g. Warehouse 2, Production Hall A"
+      },
+      "witnessName": {
+        "label": "Witnesses (name)",
+        "placeholder": "Names of witnesses to the incident"
+      },
+      "reportedForUser": {
+        "label": "Reported on behalf of",
+        "hint": "(optional - for manager/HSE reporting for employee)",
+        "placeholder": "Select employee (optional)",
+        "noneOption": "- None (reporting for myself) -"
+      },
+      "involvedPersons": {
+        "label": "Involved persons",
+        "placeholder": "Name and role of all involved persons"
+      },
+      "injuryDescription": {
+        "label": "Incident outcome",
+        "placeholder": "Describe any injuries, extent of damage, and immediate consequences"
+      },
+      "injuryType": {
+        "label": "Injury type",
+        "placeholder": "E.g. Cut injury, fall injury, chemical exposure"
+      },
+      "injuryTypeDetailed": {
+        "label": "Injury/exposure type"
+      },
+      "riskReference": {
+        "label": "Link to risk assessment",
+        "placeholder": "Select risk (optional)",
+        "noneAvailable": "No risks available",
+        "noneOption": "None",
+        "optionWithScore": "{title} · Score {score}"
+      },
+      "subcategories": {
+        "label": "The incident concerns",
+        "hint": "(select one or more)",
+        "loading": "Loading categories..."
+      },
+      "suggestedActions": {
+        "label": "Suggested preventive actions",
+        "placeholder": "What should be done to prevent this from happening again?"
+      },
+      "lostWorkdays": {
+        "label": "Lost workdays",
+        "placeholder": "Number of lost workdays",
+        "hint": "Fill in if LTI is selected"
+      },
+      "lostTimeMinutes": {
+        "label": "Lost time (minutes)",
+        "placeholder": "Exact number of minutes (optional)"
+      },
+      "customerName": {
+        "label": "Customer name *",
+        "placeholder": "Name of customer/company"
+      },
+      "customerEmail": {
+        "label": "Customer email",
+        "placeholder": "customer@company.com"
+      },
+      "customerPhone": {
+        "label": "Phone",
+        "placeholder": "+47 99 99 99 99"
+      },
+      "customerTicketId": {
+        "label": "Reference / ticket no.",
+        "placeholder": "E.g. Zendesk #124"
+      },
+      "responseDeadline": {
+        "label": "Promised response deadline"
+      },
+      "customerSatisfaction": {
+        "label": "Satisfaction (1-5)",
+        "placeholder": "Select rating"
+      },
+      "immediateAction": {
+        "label": "Immediate actions",
+        "placeholder": "E.g. Stopped work, cleared area, secured witnesses, notified manager..."
+      }
+    },
+    "hseMetrics": {
+      "fatality": { "label": "Fatality", "short": "Fatality" },
+      "lti": { "label": "Lost time injury", "short": "LTI" },
+      "restrictedWork": { "label": "Restricted work", "short": "Restricted work" },
+      "medicalTreatment": { "label": "Medical treatment", "short": "Medical treatment" }
+    },
+    "aiHelp": {
+      "title": "AI support: incident to actions",
+      "generating": "Generating...",
+      "analyzeAndSuggest": "Analyze and suggest actions",
+      "checking": "Checking...",
+      "qualityCheck": "AI quality check",
+      "improvementPoints": "Improvement points before save:",
+      "selectMeasures": "Select which AI actions should be created when saving"
+    },
+    "actions": {
+      "submitting": "Reporting...",
+      "submit": "Report incident",
+      "cancel": "Cancel"
+    },
+    "afterReporting": {
+      "title": "After reporting",
+      "point1": "Manager will investigate the cause (root cause analysis / ROT)",
+      "point2": "Corrective and preventive actions will be planned",
+      "point3": "Effectiveness of actions will be evaluated (ISO 9001: 10.2)",
+      "point4Hse": "Included in TRIR statistics and HSE reporting to clients"
+    }
+  },
+  "dashboardIncidentNewPage": {
+    "title": "Report incident / deviation",
+    "description": "Working Environment Act § 5-1/5-2 and Internal Control Regulations § 5 - register accidents, near misses, hazardous situations and deviations",
+    "tabletModeActive": "Tablet mode active: optimized for fast registration in the field.",
+    "actions": {
+      "backToIncidents": "Back to incidents"
+    },
+    "errors": {
+      "noTenantAccess": "No tenant access"
+    }
+  },
+  "riskForm": {
+    "status": {
+      "OPEN": "Identified",
+      "MITIGATING": "Mitigation in progress",
+      "ACCEPTED": "Accepted",
+      "CLOSED": "Closed"
+    },
+    "categories": {
+      "OPERATIONAL": "Operational",
+      "SAFETY": "Safety",
+      "HEALTH": "Health",
+      "ENVIRONMENTAL": "Environmental",
+      "INFORMATION_SECURITY": "Information security",
+      "LEGAL": "Legal/Compliance",
+      "STRATEGIC": "Strategic",
+      "PSYCHOSOCIAL": "Psychosocial",
+      "ERGONOMIC": "Ergonomic",
+      "ORGANISATIONAL": "Organisational",
+      "PHYSICAL": "Physical"
+    },
+    "frequency": {
+      "WEEKLY": "Weekly",
+      "MONTHLY": "Monthly",
+      "QUARTERLY": "Quarterly",
+      "ANNUAL": "Annual",
+      "BIENNIAL": "Every two years"
+    },
+    "response": {
+      "AVOID": {
+        "label": "Avoid",
+        "description": "Stop activity or change process to remove the risk"
+      },
+      "REDUCE": {
+        "label": "Reduce",
+        "description": "Implement controls to reduce likelihood or consequence"
+      },
+      "TRANSFER": {
+        "label": "Transfer",
+        "description": "Transfer risk via insurance, contracts, or suppliers"
+      },
+      "ACCEPT": {
+        "label": "Accept",
+        "description": "Accept risk within defined tolerance"
+      }
+    },
+    "trend": {
+      "INCREASING": "Increasing",
+      "STABLE": "Stable",
+      "DECREASING": "Decreasing"
+    },
+    "toasts": {
+      "createSuccess": { "title": "✅ Risk created" },
+      "updateSuccess": { "title": "✅ Risk updated" },
+      "successDescription": "Risk level: {level} ({score})",
+      "error": {
+        "title": "Error",
+        "saveRisk": "Could not save risk"
+      },
+      "unexpectedError": {
+        "title": "Unexpected error",
+        "description": "Something went wrong"
+      }
+    },
+    "sections": {
+      "basic": {
+        "title": "Basic information",
+        "description": "Describe the risk and who owns it — Internal Control Regulations § 5 no. 6 requires written documentation of all identified hazards."
+      },
+      "description": {
+        "title": "Description and consequence",
+        "description": "Describe the situation and what may happen (consequence). Existing controls and notes below."
+      },
+      "riskLevel": {
+        "title": "Risk level (Working Environment Act § 3-1)",
+        "tipsButtonTitle": "Tips",
+        "tipsTitle": "Tips for {level} risk",
+        "tipsEdit": "ISO 45001 recommends actions to reduce risk. Scroll down to \"Actions to reduce risk\" and add concrete actions with owner and deadline.",
+        "tipsCreate": "After saving, you can add actions to reduce risk. ISO 45001 requires planned actions for medium and high risk.",
+        "descriptionReadOnly": "Set when the risk point was created. Can be changed on the overview page if needed.",
+        "descriptionEditable": "Likelihood and consequence (1–5). The risk matrix is shown on the overview page /dashboard/risks",
+        "scoreEquation": "Likelihood: {likelihood} × Consequence: {consequence} = {score}",
+        "likelihoodLabel": "Likelihood (1–5)",
+        "consequenceLabel": "Consequence (1–5)",
+        "levels": {
+          "critical": "critical",
+          "high": "high",
+          "medium": "medium"
+        }
+      },
+      "residual": {
+        "title": "Residual risk after actions",
+        "description": "Assess residual risk when actions are implemented - it should be lower after implemented actions (ISO 45001).",
+        "likelihoodLabel": "Residual likelihood",
+        "consequenceLabel": "Residual consequence",
+        "value": "Value: {value}",
+        "selectValue": "Select a value 1-5",
+        "level": "Residual level: {level} ({score})"
+      },
+      "followUp": {
+        "title": "Follow-up",
+        "description": "Frequency and next review date — Internal Control Regulations § 5 no. 8 requires regular review of risk assessments."
+      }
+    },
+    "fields": {
+      "title": {
+        "label": "Title *",
+        "placeholder": "E.g. Fall from height during roof work"
+      },
+      "category": {
+        "label": "Category *",
+        "placeholder": "Select category"
+      },
+      "owner": {
+        "label": "Risk owner *",
+        "placeholder": "Select risk owner"
+      },
+      "status": {
+        "label": "Status",
+        "placeholder": "Select status"
+      },
+      "location": {
+        "label": "Location",
+        "placeholder": "E.g. Production hall A"
+      },
+      "area": {
+        "label": "Area / Process",
+        "placeholder": "Construction site, warehouse, etc."
+      },
+      "context": {
+        "label": "Description *",
+        "placeholder": "Describe the situation, where it may occur, who is exposed, etc."
+      },
+      "riskStatement": {
+        "label": "Consequence",
+        "placeholder": "What may happen if the risk scenario occurs? Describe the consequence."
+      },
+      "existingControls": {
+        "label": "Existing controls",
+        "placeholder": "What barriers or controls exist today?"
+      },
+      "description": {
+        "label": "Additional notes",
+        "placeholder": "Other relevant details, references, or observations"
+      },
+      "controlFrequency": {
+        "label": "Follow-up frequency *",
+        "placeholder": "Select frequency"
+      },
+      "nextReviewDate": {
+        "label": "Next review *"
+      },
+      "responseStrategy": {
+        "label": "Response strategy",
+        "placeholder": "Select strategy"
+      }
+    },
+    "advanced": {
+      "title": "Advanced - ISO 31000 / enterprise risk",
+      "description": "Risk appetite, KPI linkage, inspection template, etc. - not required for standard Working Environment Act assessments",
+      "fields": {
+        "linkedProcess": {
+          "label": "Linked to process",
+          "placeholder": "E.g. Maintenance, Assembly"
+        },
+        "goal": {
+          "label": "Link to goal/KPI",
+          "placeholder": "Select goal (optional)",
+          "noneAvailable": "No goals available",
+          "noneOption": "None"
+        },
+        "template": {
+          "label": "Inspection template",
+          "placeholder": "Select template (optional)",
+          "noneAvailable": "No templates available",
+          "noneOption": "None"
+        },
+        "riskAppetite": {
+          "label": "Risk appetite",
+          "placeholder": "Describe what level of risk the organization accepts"
+        },
+        "riskTolerance": {
+          "label": "Risk tolerance",
+          "placeholder": "Describe which deviations/indicators trigger actions"
+        },
+        "trend": {
+          "label": "Trend",
+          "placeholder": "Select trend"
+        },
+        "reviewedAt": {
+          "label": "Last reviewed (ISO 31000)"
+        }
+      }
+    },
+    "actions": {
+      "saving": "Saving...",
+      "create": "Create risk",
+      "saveChanges": "Save changes",
+      "cancel": "Cancel"
+    }
+  },
+  "hmsCoursesPage": {
+    "hero": {
+      "badge": "HSE Courses & First Aid",
+      "titleLine1": "Competent employees.",
+      "titleLine2": "Safer workplace.",
+      "memberStrong": "HMS Nova members",
+      "memberTextPrefix": "get",
+      "discountStrong": "20% discount",
+      "memberTextSuffix": "on all HSE courses! All courses are certified and follow Labour Inspection Authority requirements - with automatic competence tracking in HMS Nova.",
+      "ctaPrimary": "Order HSE course",
+      "ctaSecondary": "See course catalog",
+      "points": {
+        "p1": "Approved course provider (ISO 9001)",
+        "p2": "Physical, digital, and hybrid solutions",
+        "p3": "Certificates integrated in HMS Nova",
+        "p4": "Specialist in first aid for children and adults"
+      },
+      "specialist": {
+        "title": "First aid specialist",
+        "subtitle": "Nurse/midwife",
+        "items": {
+          "children": {
+            "title": "First aid for children",
+            "description": "Tailored for kindergartens and schools"
+          },
+          "adults": {
+            "title": "First aid for adults",
+            "description": "CPR, burns, poisoning"
+          },
+          "certified": {
+            "title": "Certified training",
+            "description": "Approved by Norwegian First Aid Council"
+          }
+        },
+        "footer": "🎓 Courses at your workplace or online"
+      }
+    },
+    "problem": {
+      "title": "Without proper HSE training, your company risks",
+      "description": "Lack of competence is the most common cause of workplace accidents and Labour Inspection Authority orders",
+      "cards": {
+        "law": {
+          "title": "Violation of legal requirements",
+          "textPrefix": "The Working Environment Act requires documented training. Missing courses can lead to",
+          "textStrong": "fines up to 15% of turnover",
+          "textSuffix": "and business shutdown."
+        },
+        "incidents": {
+          "title": "Workplace accidents and sick leave",
+          "textPrefix": "60% of workplace accidents are caused by insufficient training. This costs Norwegian businesses",
+          "textStrong": "over NOK 30 billion annually",
+          "textSuffix": "in sick leave and compensation."
+        },
+        "employees": {
+          "title": "Employees feel unsafe",
+          "textPrefix": "Companies without proper HSE training have",
+          "textStrong": "50% higher turnover",
+          "textSuffix": "Employees leave because they do not feel safe at work."
+        },
+        "documentation": {
+          "title": "Missing documentation",
+          "textPrefix": "Without a system to track courses and certificates, you lose overview.",
+          "textStrong": "Expired courses are only discovered by the Labour Inspection Authority",
+          "textSuffix": "- then it is too late."
+        }
+      }
+    },
+    "solution": {
+      "badge": "The solution",
+      "title": "HMS Nova = Complete course solution + Automatic tracking",
+      "textPrefix": "We deliver",
+      "textStrong": "all mandatory HSE courses",
+      "textSuffix": "and keep track of who needs what - and when",
+      "steps": {
+        "step1": {
+          "title": "1. Order course",
+          "description": "Choose courses from the catalog, or get recommendations based on your industry. On-site or online."
+        },
+        "step2": {
+          "title": "2. Complete training",
+          "description": "Approved instructors with extensive experience. Practical, engaging, and tailored to your business."
+        },
+        "step3": {
+          "title": "3. Automatic follow-up",
+          "description": "Certificates are added to HMS Nova. You get automatic alerts when courses expire - no manual work."
+        }
+      }
+    },
+    "catalog": {
+      "title": "Courses tailored to your industry",
+      "description": "All courses are approved and meet legal requirements from the Labour Inspection Authority",
+      "availableCourses": "{count} available courses",
+      "requiredBadge": "Mandatory",
+      "labels": {
+        "format": "Format:",
+        "target": "Target group:",
+        "why": "Why:"
+      },
+      "orderFromCompany": "Order from HMS Nova AS",
+      "order": "Order"
+    },
+    "toasts": {
+      "genericError": "Something went wrong",
+      "submitSuccess": {
+        "memberTitle": "🎉 Course order sent - 20% discount activated!",
+        "defaultTitle": "✅ Course order sent!",
+        "memberDescription": "We will contact you within 24 hours. You save NOK {amount} with the member discount!",
+        "defaultDescription": "We will contact you within 24 hours to agree on date and setup."
+      },
+      "submitError": {
+        "title": "❌ Could not send order",
+        "description": "Please try again or call us directly."
+      }
+    },
+    "booking": {
+      "title": "Order HSE course",
+      "description": "Fill in the form below, and we will contact you within 24 hours to agree on date and setup.",
+      "fields": {
+        "company": {
+          "label": "Company name *",
+          "placeholder": "Example AS"
+        },
+        "orgNr": {
+          "label": "Org. no. (for member discount)",
+          "placeholder": "123 456 789"
+        },
+        "name": {
+          "label": "Contact person *",
+          "placeholder": "John Doe"
+        },
+        "email": {
+          "label": "Email *",
+          "placeholder": "john@example.com"
+        },
+        "phone": {
+          "label": "Phone *",
+          "placeholder": "+47 123 45 678"
+        },
+        "courseType": {
+          "label": "Which course are you interested in? *",
+          "options": {
+            "default": "Select course...",
+            "verneombud": "Basic HSE for safety representatives (40h)",
+            "leder": "Mandatory HSE for managers",
+            "psykososialt": "Psychosocial work environment",
+            "fallsikring": "Fall protection and work at height",
+            "asbest": "Asbestos and hazardous materials",
+            "maskinsikkerhet": "Machine safety and protective equipment",
+            "kjemikalie": "Chemical handling",
+            "vold": "Violence and threats",
+            "ergonomi": "Ergonomics and moving technique",
+            "trafikk": "Traffic safety and load securing",
+            "truck": "Forklift and machine operator certificate",
+            "digital": "Digital security",
+            "inneklima": "Indoor climate and psychosocial environment",
+            "forstehjelpBarn": "First aid for children",
+            "forstehjelpVoksne": "First aid for adults",
+            "other": "Other (specify in message)"
+          }
+        },
+        "participants": {
+          "label": "Number of participants",
+          "placeholder": "5"
+        },
+        "format": {
+          "label": "Preferred format *",
+          "options": {
+            "default": "Select format...",
+            "fysiskHosOss": "On-site course at our location (Akershus)",
+            "fysiskHosDere": "On-site course at your workplace",
+            "nettbasert": "Online / E-learning",
+            "hybrid": "Hybrid (combination)",
+            "unknown": "Not sure / need guidance"
+          }
+        },
+        "message": {
+          "label": "Message / special needs",
+          "placeholder": "Tell us about special requests, timelines, or questions..."
+        }
+      },
+      "memberDiscount": {
+        "title": "HMS Nova members get 20% discount automatically.",
+        "description": "Provide your org. no. or member number in the form."
+      },
+      "submit": {
+        "sending": "Sending...",
+        "default": "Send order"
+      },
+      "contact": {
+        "title": "Or call us directly:",
+        "courseLabel": "Course:",
+        "softwareLabel": "Software:"
+      }
+    }
+  },
+  "employeeDashboard": {
+    "welcome": {
+      "title": "Welcome, {name}! 👋",
+      "subtitle": "Here you will find everything you need for safe work"
+    },
+    "alerts": {
+      "title": "Important message",
+      "agricultureMessage": "Remember safety checks before farm work: machinery, animals, and work area.",
+      "defaultMessage": "Remember to read the HSE handbook before starting your workday."
+    },
+    "agricultureQuickStart": {
+      "title": "Quick start in the field",
+      "cards": {
+        "incident": {
+          "title": "Register incident",
+          "description": "Tractor, animals, or near-miss"
+        },
+        "inspection": {
+          "title": "Run inspection",
+          "description": "Barn, machinery, and fire safety"
+        },
+        "sja": {
+          "title": "Safe job analysis",
+          "description": "Select template and start work"
+        }
+      }
+    },
+    "cards": {
+      "documents": {
+        "title": "Documents",
+        "description": "HSE handbook and procedures"
+      },
+      "report": {
+        "agricultureTitle": "Did something dangerous happen?",
+        "defaultTitle": "Report",
+        "agricultureDescription": "Report incident quickly",
+        "defaultDescription": "Report a deviation",
+        "badge": "Important!"
+      },
+      "routines": {
+        "title": "Routines",
+        "description": "Read current routines"
+      },
+      "ruh": {
+        "agricultureDescription": "Near-miss on the farm",
+        "defaultDescription": "Unwanted incident"
+      },
+      "sja": {
+        "agricultureDescription": "Select template and start work",
+        "defaultDescription": "Safe Job Analysis"
+      },
+      "chemicals": {
+        "title": "Chemicals",
+        "description": "Hazardous substances and SDS"
+      },
+      "training": {
+        "title": "Training",
+        "description": "Register completed course"
+      },
+      "forms": {
+        "title": "Forms",
+        "description": "Fill out forms"
+      },
+      "whistleblowing": {
+        "title": "Whistleblowing",
+        "description": "Anonymous whistleblowing system"
+      },
+      "timeRegistration": {
+        "title": "Time registration",
+        "description": "Hours and mileage reimbursement"
+      }
+    },
+    "tasks": {
+      "title": "My tasks",
+      "item": {
+        "title": "Annual HSE training",
+        "deadline": "Deadline: 15 Dec",
+        "status": "Pending"
+      },
+      "empty": "You have no other pending tasks 👍"
+    },
+    "emergency": {
+      "title": "🚨 Emergency contacts",
+      "fire": "Fire:",
+      "police": "Police:",
+      "ambulance": "Ambulance:",
+      "hmsResponsible": "HSE responsible:",
+      "phone": "Phone:",
+      "email": "Email:"
+    }
+  },
+  "employeeIncidentsPage": {
+    "header": {
+      "title": "My incidents",
+      "description": "Overview of your reported incidents",
+      "newReport": "Report new"
+    },
+    "stats": {
+      "reported": "Reported",
+      "underReview": "Under review",
+      "closed": "Closed"
+    },
+    "tip": {
+      "title": "💡 Tip:",
+      "description": "You can see the status of your reports here. The HSE manager will process the incident. Incidents should be closed when actions are completed and effect is verified (ISO 9001/45001 ch. 10.2). You will be notified when the incident is closed."
+    },
+    "list": {
+      "title": "My reports ({count})",
+      "emptyTitle": "No reports yet",
+      "emptyDescription": "You have not reported any incidents yet.",
+      "emptyCta": "Report first incident",
+      "location": "📍 Location: {location}",
+      "reportedAt": "🕐 Reported: {date}"
+    },
+    "badges": {
+      "reported": "🕐 Reported",
+      "underReview": "🔍 Under review",
+      "actions": "🛠 Actions",
+      "closed": "✓ Closed",
+      "severity": "Severity: {severity}"
+    },
+    "type": {
+      "AVVIK": "⚠️ Deviation",
+      "NESTEN": "🟡 Near miss",
+      "SKADE": "🔴 Injury",
+      "FARLIG_SITUASJON": "🟠 Hazardous situation",
+      "YRKESSYKDOM": "🩺 Occupational disease",
+      "MILJO": "🌍 Environment",
+      "KVALITET": "📋 Quality"
+    },
+    "statusHelp": {
+      "title": "📚 Status explanation",
+      "reportedLabel": "🕐 Reported:",
+      "reportedText": "The incident is received and waiting for processing.",
+      "underReviewLabel": "🔍 Under review:",
+      "underReviewText": "The HSE manager is working on the case.",
+      "closedLabel": "✓ Closed:",
+      "closedText": "The incident is processed and actions are completed."
+    },
+    "emergency": {
+      "title": "🚨 In acute danger",
+      "description": "Call 110 (fire), 112 (police) or 113 (ambulance) FIRST! Then report the incident here."
+    }
+  },
+  "employeeFormsPage": {
+    "header": {
+      "title": "Digital forms",
+      "description": "Fill out and sign forms digitally",
+      "toggleScoped": "Show industry-specific",
+      "toggleAll": "Show all forms"
+    },
+    "empty": "No forms available at the moment",
+    "fieldCount": "{count} fields",
+    "badges": {
+      "requiresSignature": "✍️ Requires signature",
+      "requiresApproval": "✅ Requires approval"
+    },
+    "tip": {
+      "title": "💡 Tip:",
+      "description": "Tap a form to fill it out. If the form requires signature, you can sign digitally at the end."
+    },
+    "categories": {
+      "CUSTOM": "Custom",
+      "MEETING": "Meeting minutes",
+      "INSPECTION": "Inspection",
+      "INCIDENT": "Incident report",
+      "RISK": "Risk assessment",
+      "TRAINING": "Training",
+      "CHECKLIST": "Checklist",
+      "TIMESHEET": "Timesheet",
+      "WELLBEING": "Psychosocial work environment"
+    }
+  },
+  "employeeInspectionsPage": {
+    "status": {
+      "planned": "Planned",
+      "inProgress": "In progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "header": {
+      "title": "Safety inspections",
+      "description": "Planned and completed safety inspections you are involved in"
+    },
+    "sections": {
+      "upcoming": "Planned / ongoing",
+      "previous": "Previous safety inspections"
+    },
+    "empty": {
+      "upcoming": "No planned safety inspections at the moment"
+    },
+    "labels": {
+      "responsible": "Responsible",
+      "responsibleWithName": "Responsible: {name}",
+      "unknown": "Unknown"
+    },
+    "actions": {
+      "fillOut": "Fill out",
+      "viewReport": "View report"
+    },
+    "info": {
+      "title": "📋 Safety inspection (Working Environment Act § 6-2):",
+      "description": "Regular safety inspections are required to map the working environment. You are shown here because you are responsible for or a participant in these inspections."
+    }
+  },
+  "employeeProfilePage": {
+    "header": {
+      "title": "My profile",
+      "description": "Manage your profile and contact information"
+    },
+    "profileInfo": {
+      "title": "Profile information"
+    },
+    "companyInfo": {
+      "title": "Company information",
+      "role": "Role: {role}",
+      "department": "Department: {department}",
+      "employeeNumber": "Employee no.:"
+    },
+    "exposure": {
+      "title": "Exposure register",
+      "subtitle": "Your registered exposures to hazardous substances and factors",
+      "downloadPdf": "Download PDF",
+      "empty": "You are not registered in the exposure register. If you have questions, contact your HSE manager.",
+      "warning": "You are registered in the exposure register. These details are retained until {year} and may be used as documentation in case of occupational disease.",
+      "status": {
+        "active": "Active",
+        "closed": "Closed"
+      },
+      "labels": {
+        "type": "Type:",
+        "from": "From:",
+        "to": "To:",
+        "ppe": "PPE:",
+        "retentionUntil": "Retained until:"
+      },
+      "types": {
+        "INHALATION": "Inhalation",
+        "SKIN": "Skin contact",
+        "NOISE": "Noise",
+        "VIBRATION": "Vibration",
+        "BIOLOGICAL": "Biological",
+        "RADIATION": "Radiation",
+        "OTHER": "Other"
+      },
+      "healthCheck": {
+        "done": "Health check completed{date}",
+        "pending": "Health check is required – not completed yet"
+      },
+      "footer": "Questions about these registrations? Contact your HSE manager. You have the right to access your own information under the Working Environment Act."
+    }
+  },
+  "employeeDocumentsPage": {
+    "header": {
+      "title": "📄 Documents",
+      "description": "HSE documents and procedures you have access to"
+    },
+    "empty": "No documents available yet",
+    "kind": {
+      "LAW": "⚖️ Laws and regulations",
+      "PROCEDURE": "📋 Procedure (ISO 9001)",
+      "CHECKLIST": "✅ Checklist",
+      "FORM": "📝 Form",
+      "SDS": "⚠️ Safety Data Sheet (SDS)",
+      "PLAN": "📖 HSE handbook / Plan",
+      "OTHER": "📄 Other"
+    },
+    "approvedBadge": "✓ Approved",
+    "approvedBy": "by {name}",
+    "tip": {
+      "title": "💡 Tip:",
+      "description": "Tap a document to read it or download it. All documents are approved and up to date."
+    }
+  },
+  "employeeTrainingPage": {
+    "header": {
+      "title": "My training",
+      "description": "Overview of required and completed training",
+      "addCompetence": "Add own competence"
+    },
+    "approvalInfo": {
+      "title": "💡 Important:",
+      "description": "When you register completed training, it must be approved by your manager before it becomes active in the system."
+    },
+    "required": {
+      "title": "Required training",
+      "count": "{count} courses",
+      "empty": "No required training at the moment",
+      "completed": "✓ Completed",
+      "register": "Register"
+    },
+    "myRecords": {
+      "title": "My registrations",
+      "empty": "You have not registered any training yet",
+      "completedAt": "Completed: {date}",
+      "pendingApproval": "Pending approval",
+      "approved": "Approved",
+      "approvedBy": "Approved by: {name}"
+    },
+    "help": {
+      "title": "📚 How does it work?",
+      "step1": {
+        "label": "1. Complete training:",
+        "text": "Attend courses or review material."
+      },
+      "step2": {
+        "label": "2. Register:",
+        "text": "Click \"Register\" and upload proof (certificate, signed list, etc.)."
+      },
+      "step3": {
+        "label": "3. Pending approval:",
+        "text": "Your manager will review and approve the training."
+      },
+      "step4": {
+        "label": "4. Approved:",
+        "text": "The training is now registered in your HSE profile."
+      }
+    }
+  },
+  "employeeTrainingNewPage": {
+    "errors": {
+      "fileTooLarge": "The file is too large. Max 10MB.",
+      "requiredFields": "Fill out all required fields",
+      "fileUploadFailed": "File upload failed",
+      "registrationFailed": "Registration failed",
+      "generic": "Something went wrong. Please try again."
+    },
+    "success": {
+      "registeredPendingApproval": "Competence has been registered! Pending manager approval."
+    },
+    "header": {
+      "back": "Back to my training",
+      "title": "Add own competence",
+      "description": "Register courses, certificates, or other competence you have obtained"
+    },
+    "info": {
+      "title": "💡 Important:",
+      "description": "The competence must be approved by your manager before it becomes active in the HSE system. You will receive confirmation when approved."
+    },
+    "form": {
+      "title": "Register competence",
+      "description": "Fill out information about the course or certificate you have completed",
+      "fields": {
+        "title": {
+          "label": "Course title / Certificate",
+          "placeholder": "E.g. First aid, HSE course, Safety representative, etc."
+        },
+        "description": {
+          "label": "Description",
+          "placeholder": "Short description of what the course covered..."
+        },
+        "provider": {
+          "label": "Instructor / Provider",
+          "placeholder": "E.g. Norwegian First Aid Council, Labour Inspection Authority, etc."
+        },
+        "completedAt": {
+          "label": "Completion date"
+        },
+        "certificate": {
+          "label": "Upload proof (certificate, diploma, etc.)",
+          "uploadCta": "Click to upload file",
+          "help": "PDF, JPG or PNG (max 10MB)"
+        }
+      },
+      "actions": {
+        "submitting": "Registering...",
+        "submit": "Register competence",
+        "cancel": "Cancel"
+      }
+    },
+    "help": {
+      "title": "📚 What can be registered?",
+      "items": {
+        "i1": "✅ HSE-related courses (first aid, fire safety, etc.)",
+        "i2": "✅ Professional certifications and competence certificates",
+        "i3": "✅ Safety courses and training",
+        "i4": "✅ Safety representative training",
+        "i5": "✅ Other relevant competence for your role"
+      }
+    }
+  },
+  "employeeTrainingDetailPage": {
+    "header": {
+      "back": "Back to training"
+    },
+    "badges": {
+      "required": "Required course",
+      "approved": "Approved",
+      "pending": "Pending approval",
+      "expired": "Expired",
+      "expiringSoon": "Expiring soon"
+    },
+    "alerts": {
+      "pending": {
+        "title": "⏳ Pending approval:",
+        "description": "Your manager will review and approve your training."
+      },
+      "expired": {
+        "title": "⚠️ Course expired:",
+        "description": "This course must be renewed. Contact your manager."
+      },
+      "expiringSoon": {
+        "title": "🔔 Course expiring soon:",
+        "description": "This course must soon be renewed. Plan renewal in good time."
+      }
+    },
+    "documentation": {
+      "title": "Documentation",
+      "description": "Your uploaded proof",
+      "download": "Download proof/diploma"
+    },
+    "details": {
+      "title": "Training information",
+      "description": "Details about completed training",
+      "provider": "Course provider",
+      "completedAt": "Completed",
+      "validUntil": "Valid until",
+      "createdAt": "Registered",
+      "approvedBy": "Approved by",
+      "approvedDate": "Approval date",
+      "trainingDescription": "Description",
+      "effectiveness": "Effectiveness assessment"
+    },
+    "tip": {
+      "title": "💡 Tip:",
+      "description": "If you have questions about the training or need to renew the course, contact your manager or HSE responsible."
+    }
+  },
+  "employeeTrainingRegisterPage": {
+    "toasts": {
+      "noFile": {
+        "title": "No file selected",
+        "description": "Please select a file to upload"
+      },
+      "uploadSuccess": {
+        "title": "✅ File uploaded",
+        "description": "Proof has been uploaded"
+      },
+      "uploadFailed": {
+        "title": "Upload failed",
+        "description": "Upload failed"
+      },
+      "notLoggedIn": {
+        "title": "Not logged in",
+        "description": "You must be logged in to register training"
+      },
+      "missingDate": {
+        "title": "Missing date",
+        "description": "Please fill out when the course was completed"
+      },
+      "missingProof": {
+        "title": "Missing proof",
+        "description": "Please upload proof/diploma before submitting"
+      },
+      "registered": {
+        "title": "✅ Training registered",
+        "description": "The training has been sent to your manager for approval"
+      },
+      "registrationFailed": {
+        "title": "Registration failed",
+        "description": "Registration failed"
+      }
+    },
+    "notFound": {
+      "title": "Training not found",
+      "back": "Back to training"
+    },
+    "header": {
+      "back": "Back to training",
+      "title": "Register training",
+      "requiredBadge": "Required course"
+    },
+    "info": {
+      "title": "💡 Important:",
+      "description": "Upload proof (certificate, diploma, signed attendance list) to document that you have completed the training. Your manager will review and approve the registration."
+    },
+    "form": {
+      "title": "Details",
+      "description": "Fill out information about completed training",
+      "fields": {
+        "provider": {
+          "label": "Course provider / Organizer",
+          "placeholder": "E.g. Red Cross, HMS Nova, Internal"
+        },
+        "completedAt": {
+          "label": "Completion date"
+        },
+        "validUntil": {
+          "label": "Valid until (if relevant)",
+          "help": "Some courses have expiry dates and must be renewed (e.g. first aid courses)"
+        },
+        "file": {
+          "label": "Upload proof (PDF or image)",
+          "uploading": "Uploading...",
+          "upload": "Upload file",
+          "ready": "File uploaded and ready for submission",
+          "help": "Upload certificate, diploma, or other documentation. Max 10MB."
+        }
+      },
+      "actions": {
+        "submitting": "Submitting...",
+        "submit": "Send for approval",
+        "cancel": "Cancel"
+      }
+    },
+    "help": {
+      "title": "❓ Need help?",
+      "afterSubmitTitle": "What happens after submission?",
+      "afterSubmitText": "Your manager will receive a notification and review your documentation. They will approve the training if everything is in order, or contact you if something is missing.",
+      "uploadIssueTitle": "Having upload problems?",
+      "uploadIssueText": "Contact your manager or HSE responsible if you have technical issues or questions."
+    }
+  },
+  "employeeDocumentDetailPage": {
+    "header": {
+      "back": "Back to documents"
+    },
+    "kind": {
+      "LAW": "⚖️ Laws and regulations",
+      "PROCEDURE": "📋 Procedure (ISO 9001)",
+      "CHECKLIST": "✅ Checklist",
+      "FORM": "📝 Form",
+      "SDS": "⚠️ Safety Data Sheet (SDS)",
+      "PLAN": "📖 HSE handbook / Plan",
+      "OTHER": "📄 Other"
+    },
+    "approvedBadge": "✓ Approved",
+    "documentCard": {
+      "title": "Document",
+      "descriptionWord": "Open the document as PDF in browser, or download the original Word file.",
+      "descriptionDefault": "Open in browser or download.",
+      "view": "View document",
+      "download": "Download document",
+      "downloadOriginal": "Download original (.docx)"
+    },
+    "details": {
+      "title": "Document information",
+      "description": "Metadata and details",
+      "version": "Version",
+      "approvedBy": "Approved by",
+      "approvedAt": "Approval date",
+      "nextReview": "Next review",
+      "updatedAt": "Last updated"
+    },
+    "tip": {
+      "title": "💡 Tip:",
+      "description": "This is an approved document you can download and use. If you have questions about the document, contact the HSE responsible."
+    }
+  },
+  "employeeChemicalsPage": {
+    "searchPlaceholder": "Search by product name, supplier, or CAS number...",
+    "showingCount": "Showing {filtered} of {total} chemicals",
+    "emptySearch": "No chemicals found",
+    "emptyAll": "No chemicals registered yet",
+    "labels": {
+      "supplier": "Supplier: {supplier}",
+      "hStatements": "H-statements (Hazard statements):",
+      "hazardPictogramAlt": "Hazard pictogram",
+      "notes": "Notes:",
+      "ppe": "PPE:",
+      "ppeAlt": "PPE",
+      "sds": "SDS"
+    }
+  },
+  "employeeWhistleblowingPage": {
+    "tenantFallback": "your company",
+    "hero": {
+      "title": "Anonymous whistleblowing",
+      "description": "Safe and confidential channel for reporting critical issues"
+    },
+    "confidential": {
+      "title": "100% confidential and secure",
+      "description": "All reports are handled confidentially. You can choose to stay fully anonymous or provide contact information if you want feedback."
+    },
+    "whatToReport": {
+      "title": "What can I report?",
+      "description": "The whistleblowing channel can be used to report critical issues",
+      "items": {
+        "harassment": {
+          "title": "Harassment & discrimination",
+          "description": "Bullying, sexual harassment, discrimination"
+        },
+        "hse": {
+          "title": "HSE & safety",
+          "description": "Unsafe working conditions, missing safety measures"
+        },
+        "corruption": {
+          "title": "Corruption & embezzlement",
+          "description": "Financial crime, conflicts of interest"
+        },
+        "ethics": {
+          "title": "Ethics & legal violations",
+          "description": "Violations of laws and ethical guidelines"
+        }
+      }
+    },
+    "howItWorks": {
+      "title": "How it works",
+      "step1": {
+        "title": "Fill out the whistleblowing form",
+        "description": "Describe the situation in as much detail as possible. You may choose to remain anonymous."
+      },
+      "step2": {
+        "title": "Receive case number and access code",
+        "description": "You get a unique case number and access code to follow up your case."
+      },
+      "step3": {
+        "title": "Case is handled confidentially",
+        "description": "HSE responsible or another case handler will take the case forward."
+      },
+      "step4": {
+        "title": "Communicate anonymously",
+        "description": "You can send and receive messages via the tracking page without revealing your identity."
+      }
+    },
+    "tenantChannel": {
+      "title": "{tenantName}'s unique whistleblowing channel",
+      "description": "This is your company's own private whistleblowing channel",
+      "alertTitle": "✅ Reports go directly to {tenantName}",
+      "alertDescriptionPrefix": "All reports sent through this link go",
+      "only": "only",
+      "alertDescriptionSuffix": "to your company's HSE responsible or management. No other companies or HMS Nova can see these reports.",
+      "linkLabel": "Your company's whistleblowing link:",
+      "howTitle": "💡 How this works:",
+      "points": {
+        "p1": "• Reports are stored only in {tenantName}'s database",
+        "p2": "• Only authorized persons in {tenantName} can read the reports",
+        "p3": "• Reports can be 100% anonymous with communication via case number",
+        "p4": "• The link can safely be shared with employees and external parties"
+      }
+    },
+    "actions": {
+      "new": {
+        "title": "Send new report",
+        "description": "Create a new anonymous report",
+        "button": "Send report",
+        "unavailable": "Whistleblowing link unavailable"
+      },
+      "track": {
+        "title": "Track existing case",
+        "description": "Follow up a previous report",
+        "button": "Track my case"
+      }
+    },
+    "legal": {
+      "title": "Legal protection",
+      "descriptionPrefix": "As a whistleblower, you are protected by the Working Environment Act § 2A (whistleblowing rules). You have the right to report critical issues without risking retaliation. Read more about your rights at",
+      "linkText": "arbeidstilsynet.no"
+    }
+  },
+  "employeeChemicalDetailPage": {
+    "back": "Back to chemical register",
+    "supplier": "Supplier: {name}",
+    "overdue": {
+      "title": "⚠️ Warning",
+      "description": "This chemical has an overdue review date. Contact the HSE responsible before use."
+    },
+    "sds": {
+      "title": "Safety Data Sheet (SDS)",
+      "description": "Always read the safety data sheet before use!",
+      "version": "Version",
+      "date": "Date",
+      "nextReview": "Next review",
+      "overdueBadge": "Overdue!",
+      "download": "Download safety data sheet (PDF)",
+      "missing": "⚠️ Safety data sheet is missing - contact the HSE responsible"
+    },
+    "product": {
+      "title": "Product information",
+      "description": "Details about the product",
+      "cas": "CAS number",
+      "location": "Storage location",
+      "quantity": "Quantity"
+    },
+    "hazard": {
+      "title": "Hazard labeling",
+      "description": "GHS/CLP classification",
+      "hStatements": "H-statements (Hazard statements)",
+      "pictograms": "Hazard pictograms",
+      "pictogramAlt": "Hazard pictogram"
+    },
+    "ppe": {
+      "title": "🛡️ Required personal protective equipment (PPE)",
+      "description": "This protective equipment MUST be used when handling this product",
+      "alt": "PPE requirement"
+    },
+    "notes": {
+      "title": "Additional info",
+      "description": "Notes"
+    },
+    "tip": {
+      "title": "💡 Remember:",
+      "description": "If uncertain or if you have questions, contact the HSE responsible before use. Always read the safety data sheet carefully!"
+    }
+  },
+  "employeeTimeRegistrationPage": {
+    "back": "Back",
+    "backToOverview": "Back to overview",
+    "title": "Time registration",
+    "description": "Register hours and mileage compensation per project",
+    "loadError": "Could not load overview. Please try again later.",
+    "disabled": {
+      "title": "Time registration is not enabled",
+      "description": "Contact your manager or administrator to enable time registration for the company."
+    },
+    "form": {
+      "title": "Register hours and driving",
+      "description": "Work, travel, sick leave and mileage compensation - regular and overtime are calculated automatically"
+    },
+    "overview": {
+      "title": "My registrations",
+      "description": "Regular hours and overtime for the current month - payroll overview"
+    }
+  },
+  "employeeRuhThanksPage": {
+    "title": "Thank you for the report!",
+    "description": "Your RUH report has been registered and the HSE responsible has been notified. You will be informed when the report has been processed.",
+    "backHome": "Back to home",
+    "newReport": "Send new RUH report"
+  },
+  "employeeIncidentThanksPage": {
+    "title": "Thank you for the report!",
+    "description": "The incident has been registered and the HSE responsible has been notified. You will be informed when the incident has been processed.",
+    "backHome": "Back to home",
+    "newReport": "Report new incident"
+  },
+  "employeeNotificationsPage": {
+    "title": "All notifications"
+  },
+  "employeeRuhPage": {
+    "title": "My RUH reports",
+    "description": "Report of unwanted incidents",
+    "newReport": "New report",
+    "stats": {
+      "submitted": "Submitted",
+      "underReview": "In review",
+      "completed": "Done"
+    },
+    "info": {
+      "title": "What is RUH?",
+      "description": "An RUH (Unwanted Incident Report) is used to report incidents that could have led to, or did lead to, personal injury, material damage or environmental damage. By reporting, you contribute to a safer working environment."
+    },
+    "reports": {
+      "title": "My reports ({count})",
+      "empty": {
+        "title": "No reports yet",
+        "description": "You have not submitted any RUH reports yet.",
+        "cta": "Submit your first report"
+      }
+    },
+    "status": {
+      "submitted": "Submitted",
+      "underReview": "Under review",
+      "completed": "Processed"
+    },
+    "categories": {
+      "PERSONSKADE": "Personal injury",
+      "NESTENULYKKE": "Near miss",
+      "MATERIELL_SKADE": "Property damage",
+      "BRANN_EKSPLOSJON": "Fire / Explosion",
+      "UTSLIPP_MILJO": "Spill / Environment",
+      "TRUSLER_VOLD": "Threats / Violence",
+      "ERGONOMI": "Ergonomics",
+      "ANNET": "Other"
+    },
+    "injuryOccurred": "Personal injury",
+    "location": "Location: {location}",
+    "occurredAtLabel": "Incident date:"
+  },
+  "employeeSjaPage": {
+    "title": "My SJA analyses",
+    "description": "Safe Job Analysis - identify hazards before work starts",
+    "new": "New SJA",
+    "stats": {
+      "draft": "Draft",
+      "active": "Active",
+      "completed": "Completed"
+    },
+    "templates": {
+      "button": "Templates",
+      "availableSingle": "{count} SJA template available",
+      "availableMultiple": "{count} SJA templates available",
+      "description": "Use a template to quickly create SJA for recurring work tasks",
+      "view": "View templates"
+    },
+    "info": {
+      "title": "What is SJA?",
+      "description": "A Safe Job Analysis (SJA) is a systematic review of hazard factors in a work task. SJA must be completed BEFORE work starts, and everyone involved must participate in the review."
+    },
+    "analyses": {
+      "title": "My analyses ({count})",
+      "empty": {
+        "title": "No SJA analyses yet",
+        "description": "Create your first SJA to ensure safe work.",
+        "cta": "Create your first SJA"
+      }
+    },
+    "status": {
+      "DRAFT": "Draft",
+      "ACTIVE": "Active",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled"
+    },
+    "conclusion": {
+      "NOT_DECIDED": "Not decided",
+      "APPROVED": "Approved - work can start",
+      "CONDITIONAL": "Conditionally approved",
+      "REJECTED": "Rejected - work cannot start"
+    },
+    "hazards": {
+      "single": "{count} hazard",
+      "multiple": "{count} hazards"
+    },
+    "highRisk": "High risk ({level})",
+    "location": "Location: {value}",
+    "planned": "Planned"
+  },
+  "employeeSjaNewPage": {
+    "title": "New Safe Job Analysis (SJA)",
+    "titleFromTemplate": "Complete SJA",
+    "description": "Perform an SJA before work starts to identify and manage hazards",
+    "template": {
+      "title": "Template: {name}",
+      "description": "- Hazards and measures are pre-filled. You MUST fill in date, participants, and assess whether there are special conditions today. You can also add or remove hazards."
+    },
+    "important": {
+      "title": "Important:",
+      "description": "SJA must be carried out together with everyone participating in the work. All hazards must be identified and measures described BEFORE work starts. All participants must confirm that they understand the hazards and measures."
+    },
+    "project": "Registered on project: {name}",
+    "formTitle": "SJA form",
+    "employeeFallback": "Employee",
+    "howTo": {
+      "title": "How to complete SJA",
+      "stepsTitle": "Step by step:",
+      "steps": {
+        "s1": "Fill in date, work location, and all participants",
+        "s2": "Assess whether there are special conditions today (weather, new people, changes)",
+        "s3": "Review all hazards - add new ones if needed",
+        "s4": "Ensure measures are described for each hazard",
+        "s5": "Take photos of the work area if relevant",
+        "s6": "All participants must confirm that they understand"
+      },
+      "repeatTitle": "When should SJA be redone?",
+      "repeat": {
+        "r1": "Even if you use a template, SJA must always be completed again each day",
+        "r2": "Conditions can change (weather, personnel, equipment)",
+        "r3": "New hazards may have appeared since last time"
+      }
+    }
+  },
+  "employeeSjaTemplatesPage": {
+    "title": "SJA templates",
+    "description": "Use a template to quickly create SJA for recurring work tasks",
+    "dailyUse": {
+      "title": "Daily use:",
+      "description": "Choose a template and click \"Use template\" to create a new SJA with pre-filled hazards and measures. You can adjust the content as needed."
+    },
+    "empty": {
+      "title": "No templates created",
+      "description": "An administrator or HSE responsible can create SJA templates from the dashboard."
+    },
+    "workLocation": "Work location: {value}",
+    "hazards": {
+      "definedSingle": "{count} hazard defined:",
+      "definedMultiple": "{count} hazards defined:",
+      "measures": "Measures: {value}"
+    }
+  },
+  "employeeIncidentNewPage": {
+    "title": "Report incident",
+    "description": "Report dangerous situations, accidents or near misses",
+    "emergency": {
+      "title": "🚨 In acute danger:",
+      "description": "Call 110 (fire), 112 (police) or 113 (ambulance) FIRST! Then report the incident here."
+    },
+    "formTitle": "Incident form",
+    "employeeFallback": "Employee",
+    "help": {
+      "title": "💡 What should I report?",
+      "reportAlways": "✅ Always report:",
+      "items": {
+        "i1": "Accidents and personal injuries",
+        "i2": "Near misses (could have resulted in injury)",
+        "i3": "Dangerous situations",
+        "i4": "Defective equipment or tools",
+        "i5": "Missing safety equipment",
+        "i6": "Pollution or emissions"
+      },
+      "remember": "📝 Remember:",
+      "rememberDescription": "The more details you provide, the better we can prevent similar incidents. All reports are handled confidentially."
+    }
+  },
+  "employeeRuhNewPage": {
+    "title": "Unwanted incident report (RUH)",
+    "description": "Report unwanted incidents to contribute to a safer working environment",
+    "emergency": {
+      "title": "In acute danger:",
+      "description": "Call 110 (fire), 112 (police) or 113 (ambulance) FIRST! Then report the incident here."
+    },
+    "formTitle": "RUH form",
+    "employeeFallback": "Employee",
+    "help": {
+      "title": "What should be reported?",
+      "reportAlways": "Always report:",
+      "items": {
+        "i1": "Personal injuries (large or small)",
+        "i2": "Near misses (could have resulted in injury)",
+        "i3": "Property damage (equipment, building)",
+        "i4": "Fire or explosion",
+        "i5": "Spills or environmental damage",
+        "i6": "Threats or violence",
+        "i7": "Ergonomic conditions causing discomfort"
+      },
+      "remember": "Remember:",
+      "rememberDescription": "Detailed reports provide better prevention. All reports are handled confidentially."
+    }
+  },
+  "employeeRuhForm": {
+    "errors": {
+      "submitFailed": "Could not submit report"
+    },
+    "toast": {
+      "success": {
+        "title": "RUH report sent",
+        "description": "Thank you for the report! HSE responsible has been notified."
+      },
+      "error": {
+        "title": "Error",
+        "description": "Could not submit report. Please try again."
+      }
+    },
+    "contextPresets": {
+      "general": {
+        "titlePlaceholder": "E.g.: Fall from ladder in warehouse"
+      },
+      "homeVisitRisk": {
+        "titlePlaceholder": "E.g.: Unsafe situation during home visit",
+        "detailsLabel": "What made the situation risky?",
+        "detailsPlaceholder": "E.g. lone work without support, unsafe access, threat signal"
+      },
+      "infectionExposure": {
+        "titlePlaceholder": "E.g.: Possible infection exposure during assignment",
+        "detailsLabel": "Describe the exposure",
+        "detailsPlaceholder": "What were you exposed to, how, and what immediate actions were taken?"
+      },
+      "medicationNearMiss": {
+        "titlePlaceholder": "E.g.: Near miss in medication handling",
+        "detailsLabel": "What stopped the error?",
+        "detailsPlaceholder": "Describe the control point and what failed in the process"
+      },
+      "violenceThreat": {
+        "titlePlaceholder": "E.g.: Threat from user/relative",
+        "detailsLabel": "Describe the sequence of events",
+        "detailsPlaceholder": "Who was present, how the situation was handled, and whether alarm was used"
+      }
+    },
+    "fields": {
+      "ruhContext": {
+        "label": "Incident context *",
+        "placeholder": "Select context",
+        "options": {
+          "general": "General RUH",
+          "homeVisitRisk": "Home visit - risk situation",
+          "infectionExposure": "Infection exposure",
+          "medicationNearMiss": "Medication near miss",
+          "violenceThreat": "Violence or threats"
+        }
+      },
+      "category": {
+        "label": "Category *",
+        "placeholder": "Select category",
+        "options": {
+          "PERSONSKADE": "Personal injury",
+          "NESTENULYKKE": "Near miss",
+          "MATERIELL_SKADE": "Property damage",
+          "BRANN_EKSPLOSJON": "Fire / Explosion",
+          "UTSLIPP_MILJO": "Spill / Environment",
+          "TRUSLER_VOLD": "Threats / Violence",
+          "ERGONOMI": "Ergonomics",
+          "ANNET": "Other"
+        }
+      },
+      "title": {
+        "label": "Short incident description *"
+      },
+      "location": {
+        "label": "Where did the incident happen? *",
+        "placeholder": "E.g.: Workshop, Building A, 2nd floor"
+      },
+      "description": {
+        "label": "Detailed description *",
+        "placeholder": "Describe the incident in detail: what happened, how, under which circumstances...",
+        "help": "The more details, the better we can prevent similar incidents"
+      },
+      "contextDetails": {
+        "help": "Note is stored as RUH context (not patient journal)."
+      },
+      "involvedPersons": {
+        "label": "Who was involved?",
+        "placeholder": "Names and roles of involved persons"
+      },
+      "witnessName": {
+        "label": "Witnesses",
+        "placeholder": "Names of any witnesses"
+      },
+      "injuryOccurred": {
+        "label": "Was anyone injured?",
+        "help": "Specify whether the incident resulted in personal injury"
+      },
+      "injuryDescription": {
+        "label": "Describe the injury",
+        "placeholder": "Type of injury, body part, treatment provided..."
+      },
+      "immediateAction": {
+        "label": "Immediate actions taken",
+        "placeholder": "What was done on site to handle the situation?"
+      },
+      "suggestedActions": {
+        "label": "Suggested preventive actions",
+        "placeholder": "What can be done to avoid this happening again?"
+      },
+      "images": {
+        "label": "Images (optional, max 5)",
+        "maxReached": "Max 5 images",
+        "takeOrChoose": "Take photo or choose from album",
+        "count": "{count}/5 images added",
+        "optional": "Optional",
+        "previewAlt": "Preview {index}"
+      }
+    },
+    "actions": {
+      "sending": "Sending...",
+      "submit": "Send RUH report",
+      "cancel": "Cancel"
+    }
+  },
+  "employeeIncidentForm": {
+    "errors": {
+      "submitFailed": "Could not submit report"
+    },
+    "toast": {
+      "success": {
+        "title": "✅ Incident reported",
+        "description": "Thank you for the report! HSE responsible has been notified."
+      },
+      "error": {
+        "title": "❌ Error",
+        "description": "Could not submit report. Please try again."
+      }
+    },
+    "incidentTypes": {
+      "ULYKKE": "Work accident / RUH",
+      "NESTEN": "Near miss / RUH",
+      "FARLIG_SITUASJON": "Dangerous situation / Observation",
+      "YRKESSYKDOM": "Occupational disease / Work-related illness",
+      "AVVIK": "Incident",
+      "MILJO": "Environmental incident",
+      "KVALITET": "Quality incident",
+      "CUSTOMER": "Customer complaint"
+    },
+    "contextPresets": {
+      "general": {
+        "titlePlaceholder": "E.g.: Wet floor without warning"
+      },
+      "homeVisitRisk": {
+        "titlePlaceholder": "E.g.: Unsafe situation during home visit",
+        "detailsLabel": "What made the situation risky?",
+        "detailsPlaceholder": "E.g. missing contact point, threat, unsafe access, no colleague support"
+      },
+      "infectionExposure": {
+        "titlePlaceholder": "E.g.: Infection exposure during assignment",
+        "detailsLabel": "Describe the exposure",
+        "detailsPlaceholder": "What were you exposed to, how did it happen, and what actions were taken?"
+      },
+      "medicationNearMiss": {
+        "titlePlaceholder": "E.g.: Near miss in medication handling",
+        "detailsLabel": "What stopped the error before it reached patient?",
+        "detailsPlaceholder": "Describe the control point and why the error could occur"
+      },
+      "violenceThreat": {
+        "titlePlaceholder": "E.g.: Threat from user/relative",
+        "detailsLabel": "Describe the sequence of events",
+        "detailsPlaceholder": "Who was present, how the situation was prevented, and whether alarm/notification was used"
+      }
+    },
+    "fields": {
+      "project": {
+        "label": "Project / job",
+        "placeholder": "Select project (optional)",
+        "none": "- Not project-related -",
+        "help": "Is the incident related to a specific project or assignment?"
+      },
+      "incidentContext": {
+        "label": "Incident context *",
+        "placeholder": "Select context",
+        "options": {
+          "general": "General incident",
+          "homeVisitRisk": "Home visit - risk situation",
+          "infectionExposure": "Infection exposure",
+          "medicationNearMiss": "Medication near miss",
+          "violenceThreat": "Violence or threats"
+        }
+      },
+      "type": {
+        "label": "Incident type *",
+        "placeholder": "Select type",
+        "groups": {
+          "hms": "HSE / Personal injury",
+          "avvik": "Incident / Quality",
+          "other": "Other"
+        }
+      },
+      "subcategories": {
+        "label": "What the incident is about",
+        "hint": "(select one or more)",
+        "loading": "Loading subcategories...",
+        "empty": "No subcategories configured for selected type."
+      },
+      "severity": {
+        "label": "How severe? *",
+        "placeholder": "Select severity",
+        "options": {
+          "s5": "🔴 Critical (5) - Immediate danger",
+          "s4": "🟠 High (4) - Serious",
+          "s3": "🟡 Medium (3)",
+          "s2": "🟢 Low (2)",
+          "s1": "⚪ Very low (1)"
+        }
+      },
+      "occurredAt": {
+        "label": "When did it happen? *"
+      },
+      "title": {
+        "label": "Short description *"
+      },
+      "location": {
+        "label": "Where did it happen? *",
+        "placeholder": "E.g.: Workshop, Building A"
+      },
+      "witnessName": {
+        "label": "Witnesses",
+        "placeholder": "Names of any witnesses"
+      },
+      "description": {
+        "label": "Detailed description *",
+        "placeholder": "Describe what happened, who was involved, what was the cause...",
+        "help": "The more details, the better we can prevent similar incidents"
+      },
+      "contextDetails": {
+        "help": "Note is stored as context in the incident (not patient journal)."
+      },
+      "involvedPersons": {
+        "label": "Who was involved?",
+        "placeholder": "Names or roles of involved persons"
+      },
+      "injuryType": {
+        "label": "Type of injury/exposure (optional)",
+        "placeholder": "E.g.: Cut injury, fall injury, chemical exposure"
+      },
+      "customer": {
+        "title": "Customer information",
+        "customerName": {
+          "label": "Customer name",
+          "placeholder": "Name of customer/company"
+        },
+        "customerEmail": {
+          "label": "Customer email",
+          "placeholder": "customer@company.com"
+        },
+        "customerPhone": {
+          "label": "Phone",
+          "placeholder": "+47 99 99 99 99"
+        },
+        "customerTicketId": {
+          "label": "Reference/case number",
+          "placeholder": "E.g. #12345"
+        },
+        "responseDeadline": {
+          "label": "Response deadline"
+        },
+        "customerSatisfaction": {
+          "label": "Customer satisfaction (1-5)",
+          "placeholder": "Select rating"
+        }
+      },
+      "images": {
+        "label": "📸 Images (optional, max 5)",
+        "maxReached": "Max 5 images",
+        "takeOrChoose": "Take photo or choose from album",
+        "count": "{count}/5 images added",
+        "optional": "Optional",
+        "previewAlt": "Preview {index}",
+        "help": "💡 Images help us understand the situation better and can be used to prevent similar incidents"
+      }
+    },
+    "actions": {
+      "sending": "Sending...",
+      "submit": "📤 Send report",
+      "cancel": "Cancel"
+    }
+  },
+  "employeeRoutinesPage": {
+    "title": "Routines",
+    "description": "Read current routines for your company.",
+    "goToForms": "Go to forms",
+    "empty": "No routines available yet.",
+    "noDescription": "No description",
+    "status": {
+      "active": "Active",
+      "draft": "Draft",
+      "archived": "Archived"
+    }
+  },
+  "employeeRoutineDetailPage": {
+    "back": "Back",
+    "legalReference": "Legal reference",
+    "status": {
+      "active": "Active",
+      "draft": "Draft",
+      "archived": "Archived"
+    }
+  },
+  "employeeLogoutButton": {
+    "title": "Log out",
+    "dialogTitle": "Log out?",
+    "dialogDescription": "Are you sure you want to log out of HMS Nova?",
+    "cancel": "Cancel",
+    "confirm": "Yes, log out"
+  },
+  "employeeProfileForm": {
+    "errors": {
+      "updateProfile": "Could not update profile",
+      "changePassword": "Could not change password"
+    },
+    "toast": {
+      "profileSuccess": {
+        "title": "✅ Profile updated",
+        "description": "Your changes have been saved"
+      },
+      "passwordSuccess": {
+        "title": "✅ Password changed",
+        "description": "Your new password has been saved"
+      },
+      "error": {
+        "title": "❌ Error",
+        "profileDescription": "Could not update profile. Please try again.",
+        "passwordDescription": "Could not change password. Please try again.",
+        "passwordMismatch": "New passwords do not match"
+      }
+    },
+    "avatar": {
+      "alt": "Profile image",
+      "help": "Click the camera icon to change profile image"
+    },
+    "fields": {
+      "name": "Name",
+      "email": "Email",
+      "emailHelp": "Email address cannot be changed",
+      "phone": "Phone",
+      "address": "Address",
+      "addressPlaceholder": "Example: Main Street 1",
+      "postalCode": "Postal code",
+      "city": "City",
+      "preferredLocale": "Language"
+    },
+    "password": {
+      "title": "Change password",
+      "current": "Current password",
+      "new": "New password",
+      "confirm": "Confirm new password",
+      "minLength": "Minimum 8 characters"
+    },
+    "actions": {
+      "saving": "Saving...",
+      "save": "💾 Save changes",
+      "changingPassword": "Changing...",
+      "changePassword": "🔒 Change password"
+    }
+  },
+  "employeeSjaTemplateActions": {
+    "fill": "Fill in SJA"
+  },
+  "employeeSjaDeleteTemplateButton": {
+    "toast": {
+      "success": {
+        "title": "Template deleted",
+        "description": "Template \"{templateName}\" has been removed."
+      },
+      "error": {
+        "title": "Error",
+        "description": "Could not delete template."
+      }
+    },
+    "dialog": {
+      "title": "Delete SJA template?",
+      "description": "Are you sure you want to delete template \"{templateName}\"? The template will no longer be available to employees. Existing SJAs created from this template are not affected.",
+      "cancel": "Cancel",
+      "confirm": "Delete template"
+    }
+  },
+  "employeeSjaStatusActions": {
+    "title": "Actions",
+    "commentLabel": "Comment (optional)",
+    "commentPlaceholder": "Optional comment for approval...",
+    "approve": "Approve - work can start",
+    "conditional": "Conditionally approved",
+    "reject": "Reject - work CANNOT start",
+    "complete": "Complete SJA - work finished",
+    "done": "This SJA is {status}.",
+    "status": {
+      "completed": "completed",
+      "cancelled": "cancelled"
+    },
+    "toast": {
+      "success": {
+        "title": "SJA updated",
+        "description": "Status has been changed."
+      },
+      "error": {
+        "title": "Error",
+        "description": "Could not update SJA."
+      }
+    }
+  },
+  "employeeSjaCreateTemplateButton": {
+    "newButton": "New SJA template",
+    "dialogTitle": "Create SJA template",
+    "fields": {
+      "name": {
+        "label": "Template name",
+        "placeholder": "E.g.: Working at height"
+      },
+      "workLocation": {
+        "label": "Default work location",
+        "placeholder": "Optional - user can change"
+      },
+      "description": {
+        "label": "Description",
+        "placeholder": "Describe when this template should be used..."
+      }
+    },
+    "hazards": {
+      "title": "Hazards and measures",
+      "add": "Add",
+      "item": "Hazard #{index}",
+      "activity": "Activity *",
+      "hazard": "Hazard/risk *",
+      "consequence": "Possible consequence",
+      "probability": "Probability",
+      "severity": "Severity",
+      "responsible": "Responsible",
+      "measures": "Measures / barriers *",
+      "probabilityOptions": {
+        "o1": "1 - Very low",
+        "o2": "2 - Low",
+        "o3": "3 - Medium",
+        "o4": "4 - High",
+        "o5": "5 - Very high"
+      },
+      "severityOptions": {
+        "o1": "1 - Insignificant",
+        "o2": "2 - Minor",
+        "o3": "3 - Moderate",
+        "o4": "4 - Serious",
+        "o5": "5 - Very serious"
+      }
+    },
+    "actions": {
+      "create": "Create template",
+      "cancel": "Cancel"
+    },
+    "toast": {
+      "success": {
+        "title": "SJA template created",
+        "description": "Template can now be used to create new SJA analyses."
+      },
+      "error": {
+        "title": "Error",
+        "noHazards": "Add at least one hazard with activity, hazard and measures.",
+        "createFailed": "Could not create SJA template."
+      }
+    }
+  },
+  "employeeSjaForm": {
+    "sections": {
+      "general": "1. General information",
+      "participants": "2. Participants",
+      "specialConditions": "3. Special conditions today",
+      "hazards": "4. Hazard identification and measures",
+      "images": "5. Images of the work area",
+      "confirm": "6. Confirmation and submission"
+    },
+    "fields": {
+      "title": {
+        "label": "Task / Title",
+        "placeholder": "E.g.: Working at height - roof building C"
+      },
+      "plannedDate": {
+        "label": "Work date"
+      },
+      "project": {
+        "label": "Project",
+        "placeholder": "Select project (optional)",
+        "none": "No project link"
+      },
+      "workLocation": {
+        "label": "Work location",
+        "placeholder": "E.g.: Building C, 3rd floor, roof"
+      },
+      "weatherConditions": {
+        "label": "Weather conditions",
+        "placeholder": "E.g.: Rain, wind 10 m/s, slippery"
+      },
+      "description": {
+        "label": "Work description",
+        "placeholder": "Describe the work to be performed..."
+      },
+      "participants": {
+        "label": "All participants in the work",
+        "placeholder": "Write names of all participants, one per line. Everyone participating in the work MUST be registered.",
+        "help": "All participants confirm that they have reviewed the SJA and understood hazards and measures"
+      },
+      "additionalConditions": {
+        "title": "Consider this:",
+        "help": "Is anything different today? New people, changed equipment, bad weather, time pressure, collaboration with other companies, changed plans?",
+        "placeholder": "Describe any special conditions, changes or additional risks that apply today..."
+      }
+    },
+    "templatePrefill": "Pre-filled from template. Review all points - add or remove as needed.",
+    "hazards": {
+      "item": "Hazard #{index}",
+      "risk": "Risk",
+      "activity": "Activity / work operation",
+      "activityPlaceholder": "What will be done?",
+      "hazard": "Hazard / risk",
+      "hazardPlaceholder": "What can go wrong?",
+      "consequence": "Possible consequence",
+      "consequencePlaceholder": "What is the worst-case outcome?",
+      "probability": "Probability (1-5)",
+      "severity": "Severity (1-5)",
+      "responsible": "Responsible for measures",
+      "responsiblePlaceholder": "Who is responsible?",
+      "measures": "Measures / barriers",
+      "measuresPlaceholder": "What measures should be implemented to reduce risk?",
+      "addMore": "Add more hazards",
+      "probabilityOptions": {
+        "o1": "1 - Very low",
+        "o2": "2 - Low",
+        "o3": "3 - Medium",
+        "o4": "4 - High",
+        "o5": "5 - Very high"
+      },
+      "severityOptions": {
+        "o1": "1 - Insignificant",
+        "o2": "2 - Minor",
+        "o3": "3 - Moderate",
+        "o4": "4 - Serious",
+        "o5": "5 - Very serious"
+      }
+    },
+    "risk": {
+      "veryHigh": "Very high",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "images": {
+      "help": "Take photos of the work area, equipment or conditions relevant to the SJA (optional, max 5)",
+      "maxReached": "Max 5 images",
+      "takeOrChoose": "Take photo or choose from album",
+      "count": "{count}/5 images added",
+      "optional": "Optional",
+      "previewAlt": "Image {index}"
+    },
+    "confirm": {
+      "title": "By submitting, you confirm that:",
+      "points": {
+        "p1": "All participants have reviewed this SJA together",
+        "p2": "All identified hazards have been assessed",
+        "p3": "Necessary measures are described and understood",
+        "p4": "Everyone knows who is responsible for each measure"
+      }
+    },
+    "ai": {
+      "title": "AI summary",
+      "generate": "Generate summary",
+      "generating": "Generating...",
+      "placeholder": "AI summary of key hazards, measures and follow-up is shown here."
+    },
+    "actions": {
+      "submitting": "Submitting SJA...",
+      "submit": "Submit SJA for approval",
+      "cancel": "Cancel"
+    },
+    "toast": {
+      "participantsMissing": {
+        "title": "Participants missing",
+        "description": "Everyone participating in the work must be registered."
+      },
+      "noHazards": {
+        "title": "No hazards registered",
+        "description": "Add at least one hazard with activity, hazard and measures."
+      },
+      "dateMissing": {
+        "title": "Date missing",
+        "description": "Select the date when the work will be performed."
+      },
+      "submitSuccess": {
+        "title": "SJA submitted",
+        "description": "Safe job analysis is registered and ready for approval."
+      },
+      "aiMissingData": {
+        "title": "Missing input",
+        "description": "Fill in title, location, participants and at least one hazard before AI summary."
+      },
+      "aiFailed": {
+        "title": "AI summary failed",
+        "description": "Unknown error"
+      },
+      "error": {
+        "title": "Error",
+        "description": "Could not create SJA. Please try again."
+      }
+    }
+  },
+  "dashboardUserProfileForm": {
+    "profile": {
+      "title": "User information",
+      "description": "Update your personal information"
+    },
+    "fields": {
+      "name": {
+        "label": "Name",
+        "placeholder": "Your name"
+      },
+      "email": {
+        "label": "Email (login)",
+        "placeholder": "you@email.com",
+        "help": "⚠️ NOTE: Email is used for login and shared across all companies you belong to. Changing email will affect ALL your companies."
+      },
+      "preferredLocale": {
+        "label": "Language",
+        "placeholder": "Select language",
+        "options": {
+          "nb": "Norwegian",
+          "en": "English"
+        }
+      }
+    },
+    "password": {
+      "title": "Change password",
+      "description": "Update your password for increased security",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm new password",
+      "minLength": "Minimum 8 characters"
+    },
+    "actions": {
+      "save": "Save changes",
+      "saving": "Saving...",
+      "changePassword": "Change password",
+      "changingPassword": "Changing..."
+    },
+    "toast": {
+      "profileSuccess": {
+        "title": "✅ Profile updated",
+        "description": "Your changes have been saved"
+      },
+      "passwordSuccess": {
+        "title": "✅ Password changed",
+        "description": "Your password has been updated"
+      },
+      "error": {
+        "title": "Error",
+        "profileFailed": "Could not update profile",
+        "passwordFailed": "Could not change password",
+        "passwordMismatch": "New passwords do not match",
+        "passwordTooShort": "Password must be at least 8 characters"
+      }
+    }
+  },
+  "dashboardSettingsPage": {
+    "notLinkedTenant": "You are not linked to a tenant.",
+    "header": {
+      "title": "Settings",
+      "description": "Manage company, users and system"
+    },
+    "tabs": {
+      "company": "Company",
+      "menu": "Simple menu",
+      "profile": "Profile",
+      "notifications": "Notifications",
+      "users": "Users",
+      "office365": "Office 365",
+      "subscription": "Subscription"
+    }
+  },
+  "dashboardIncidentsPage": {
+    "noTenantAccess": "No tenant access",
+    "title": "Incidents and deviations",
+    "description": "ISO 9001: Report and follow up deviations systematically",
+    "actions": {
+      "reportIncident": "Report deviation"
+    },
+    "stats": {
+      "total": {
+        "title": "Total",
+        "description": "Registered deviations"
+      },
+      "open": {
+        "title": "Open",
+        "description": "Awaiting investigation"
+      },
+      "inProgress": {
+        "title": "In progress",
+        "description": "{investigating} investigating, {actionTaken} actions"
+      },
+      "closed": {
+        "title": "Closed",
+        "description": "Closed deviations"
+      }
+    },
+    "allIncidents": "All deviations",
+    "iso": {
+      "title": "📋 ISO 9001 - 10.2 Nonconformity and corrective action",
+      "organizationShould": "The organization shall:",
+      "documentation": "Documentation:",
+      "organizationList": {
+        "react": "React to nonconformities (immediate actions)",
+        "assess": "Assess need for corrective actions",
+        "implement": "Implement necessary actions",
+        "review": "Review the effectiveness of actions"
+      },
+      "documentationList": {
+        "nature": "Nature of nonconformities and subsequent actions",
+        "results": "Results of corrective actions",
+        "rootCause": "Root cause analysis",
+        "learning": "Lessons learned for improvement"
+      }
+    }
+  },
+  "dashboardIncidentList": {
+    "confirmDelete": "Are you sure you want to delete \"{title}\"?\n\nThis cannot be undone.",
+    "empty": "No incidents registered",
+    "dash": "-",
+    "risk": "Risk",
+    "table": {
+      "number": "No.",
+      "incident": "Incident",
+      "type": "Type",
+      "severity": "Severity",
+      "stage": "Stage",
+      "injury": "Injury",
+      "date": "Date",
+      "status": "Status",
+      "measures": "Measures",
+      "actions": "Actions"
+    },
+    "actions": {
+      "viewDetails": "View details"
+    },
+    "types": {
+      "AVVIK": "Deviation",
+      "NESTEN": "Near miss",
+      "ULYKKE": "Work accident",
+      "FARLIG_SITUASJON": "Dangerous situation",
+      "YRKESSYKDOM": "Occupational disease",
+      "SKADE": "Personal injury",
+      "MILJO": "Environmental deviation",
+      "KVALITET": "Quality deviation",
+      "HMS": "HSE deviation",
+      "CUSTOMER": "Customer complaint"
+    },
+    "status": {
+      "OPEN": "Registered",
+      "INVESTIGATING": "Under investigation",
+      "ACTION_TAKEN": "Action taken",
+      "CLOSED": "Closed"
+    },
+    "stage": {
+      "REPORTED": "Reported",
+      "UNDER_REVIEW": "Under review",
+      "ROOT_CAUSE": "Root cause found",
+      "ACTIONS_DEFINED": "Actions planned",
+      "ACTIONS_COMPLETE": "Actions completed",
+      "VERIFIED": "Verified"
+    },
+    "severity": {
+      "1": "Negligible",
+      "2": "Minor",
+      "3": "Moderate",
+      "4": "Serious",
+      "5": "Critical"
+    },
+    "injury": {
+      "noneRegistered": "No injury registered",
+      "medicalTreatment": "Medical treatment",
+      "noMedicalTreatment": "No medical treatment",
+      "lostTimeMinutes": "Lost time: {minutes} min",
+      "minutesLostShort": "{minutes} min lost"
+    },
+    "customer": {
+      "label": "Customer",
+      "unknown": "Unknown",
+      "satisfaction": "Satisfaction {value}/5",
+      "deadline": "Deadline {date}"
+    },
+    "measuresLabel": "Measures: {completed}/{total}",
+    "toasts": {
+      "deleted": {
+        "title": "🗑️ Incident deleted",
+        "description": "\"{title}\" was removed"
+      },
+      "error": {
+        "title": "Error",
+        "description": "Could not delete incident"
+      }
+    }
+  },
+  "dashboardIncidentDetailPage": {
+    "dash": "-",
+    "errors": {
+      "noTenantAccess": "No tenant access",
+      "notFound": "Incident not found"
+    },
+    "actions": {
+      "backToIncidents": "Back to incidents"
+    },
+    "labels": {
+      "severityPrefix": "Severity: {value} - {label}",
+      "type": {
+        "AVVIK": "Deviation",
+        "NESTEN": "Near miss",
+        "ULYKKE": "Work accident",
+        "FARLIG_SITUASJON": "Dangerous situation",
+        "YRKESSYKDOM": "Occupational disease",
+        "SKADE": "Personal injury",
+        "MILJO": "Environmental deviation",
+        "KVALITET": "Quality deviation",
+        "HMS": "HSE deviation",
+        "CUSTOMER": "Customer complaint"
+      },
+      "status": {
+        "OPEN": "Registered",
+        "INVESTIGATING": "Under investigation",
+        "ACTION_TAKEN": "Action taken",
+        "CLOSED": "Closed"
+      },
+      "severity": {
+        "1": "Negligible",
+        "2": "Minor",
+        "3": "Moderate",
+        "4": "Serious",
+        "5": "Critical"
+      }
+    },
+    "sections": {
+      "whatHappened": {
+        "title": "What happened?",
+        "description": "ISO 9001: Nature of nonconformity",
+        "descriptionLabel": "Description",
+        "time": "Time",
+        "location": "Location",
+        "witnesses": "Witnesses",
+        "injury": "Injury",
+        "noInjuryRegistered": "No injury registered",
+        "medicalRequired": "Medical treatment required",
+        "noMedical": "No medical treatment",
+        "lostTime": "Lost time",
+        "lostTimeMinutes": "{minutes} minutes",
+        "linkedRisk": "Linked risk",
+        "riskScore": "Score {score}",
+        "immediateActions": "Immediate actions",
+        "attachments": "Attachments ({count})"
+      },
+      "treatment": {
+        "title": "Process incident",
+        "description": "Update type, project, status, severity and responsible person"
+      },
+      "rootCause": {
+        "title": "Root Cause Analysis",
+        "description": "ISO 9001: Identify the cause of the nonconformity",
+        "mainCause": "Root cause",
+        "contributingFactors": "Contributing factors",
+        "investigatedAt": "Investigated: {date}"
+      },
+      "measures": {
+        "title": "Corrective actions",
+        "description": "ISO 9001: Planned actions to eliminate the cause",
+        "empty": "No actions planned yet",
+        "emptyHint": "Click \"Add action\" above"
+      },
+      "closed": {
+        "title": "Incident closed",
+        "description": "ISO 9001: Effectiveness review",
+        "effectivenessReview": "Effectiveness review",
+        "lessonsLearned": "Lessons learned",
+        "closedAt": "Closed: {date}"
+      }
+    }
+  },
+  "dashboardIncidentInvestigationForm": {
+    "title": "Root Cause Analysis",
+    "description": "ISO 9001: Assess need for actions to eliminate the cause",
+    "fiveWhy": {
+      "title": "🔍 5 Whys method",
+      "description": "Ask \"why\" repeatedly to find the root cause. For example:",
+      "steps": {
+        "s1": "Why did the accident happen? → The person fell from a ladder",
+        "s2": "Why did the person fall? → The ladder was unstable",
+        "s3": "Why was the ladder unstable? → The floor was slippery/uneven",
+        "s4": "Why was the floor slippery? → No risk assessment was performed",
+        "s5": "Root cause: Inadequate planning and risk assessment"
+      }
+    },
+    "fields": {
+      "rootCause": "Root cause *",
+      "contributingFactors": "Contributing factors",
+      "investigatedBy": "Investigated by *"
+    },
+    "placeholders": {
+      "rootCause": "What is the underlying cause of this? Use the 5 Whys method.",
+      "contributingFactors": "Other factors that contributed to the event (e.g. time pressure, lack of training, poor communication)",
+      "investigatedBy": "Select person responsible for investigation"
+    },
+    "hints": {
+      "rootCause": "Describe the root cause, not only the symptom"
+    },
+    "actions": {
+      "saving": "Saving...",
+      "complete": "Complete root cause analysis"
+    },
+    "toasts": {
+      "success": {
+        "title": "✅ Root cause analysis completed",
+        "description": "You can now plan corrective actions"
+      },
+      "error": {
+        "title": "Error",
+        "description": "Could not save root cause analysis"
+      },
+      "unexpected": {
+        "title": "Unexpected error",
+        "description": "Something went wrong"
+      }
+    }
+  },
+  "dashboardIncidentCloseForm": {
+    "title": "Close incident",
+    "description": "ISO 9001: Review effectiveness of corrective actions",
+    "ready": {
+      "title": "✅ Ready to close",
+      "items": {
+        "i1": "Root cause analysis is completed",
+        "i2": "All corrective actions are completed",
+        "i3": "Now evaluate whether the actions were effective"
+      }
+    },
+    "fields": {
+      "effectivenessReview": "Effectiveness review *",
+      "measureEffectiveness": "Action effectiveness",
+      "lessonsLearned": "Lessons learned"
+    },
+    "placeholders": {
+      "effectivenessReview": "Did the actions eliminate the root cause? Can similar incidents now be prevented? Describe the evaluation.",
+      "measureEffectiveness": "Select evaluation",
+      "lessonsLearned": "What did we learn from this incident? What can we improve in the future?"
+    },
+    "hints": {
+      "effectivenessReview": "Assess whether the corrective actions have been effective",
+      "lessonsLearned": "Document learning for future improvement"
+    },
+    "effectiveness": {
+      "effective": "Actions were effective",
+      "partiallyEffective": "Partially effective",
+      "ineffective": "Not effective",
+      "notEvaluated": "Not evaluated"
+    },
+    "compliance": {
+      "title": "📋 ISO 9001 Compliance",
+      "description": "By closing the incident, you confirm that:",
+      "items": {
+        "i1": "Root cause is identified and documented",
+        "i2": "Corrective actions are implemented",
+        "i3": "Effectiveness of actions is evaluated",
+        "i4": "Documentation is complete and retained"
+      }
+    },
+    "actions": {
+      "closing": "Closing...",
+      "close": "Close incident"
+    },
+    "toasts": {
+      "success": {
+        "title": "✅ Incident closed",
+        "description": "The incident is now fully handled and documented"
+      },
+      "error": {
+        "title": "Error",
+        "description": "Could not close incident"
+      },
+      "unexpected": {
+        "title": "Unexpected error",
+        "description": "Something went wrong"
+      }
+    }
+  },
+  "dashboardChemicalsPage": {
+    "notLinkedTenant": "You are not linked to a tenant.",
+    "title": "Chemical register",
+    "description": "HSE - Overview of chemicals and safety data sheets",
+    "actions": {
+      "scanIsocyanates": "Scan for isocyanates",
+      "scanShort": "Scan",
+      "register": "Register"
+    },
+    "requirements": {
+      "title": "HSE requirements for chemical register",
+      "r1": "All hazardous chemicals must be registered in the chemical register",
+      "r2": "Updated safety data sheets must be available to employees",
+      "r3": "Data sheets must be reviewed at least annually",
+      "r4": "Employees must be trained in safe handling",
+      "r5": "The chemical register must be reviewed during internal audits"
+    },
+    "stats": {
+      "total": {
+        "title": "Total",
+        "description": "chemicals"
+      },
+      "active": {
+        "title": "Active",
+        "description": "active products"
+      },
+      "isocyanates": {
+        "title": "Diisocyanates",
+        "description": "requires special training"
+      },
+      "missingSds": {
+        "title": "Missing data sheet",
+        "description": "must be uploaded"
+      },
+      "needsReview": {
+        "title": "Needs review",
+        "description": "next 30 days"
+      },
+      "overdue": {
+        "title": "Overdue review",
+        "description": "requires action"
+      }
+    },
+    "list": {
+      "title": "All chemicals",
+      "description": "Overview of registered products in the chemical register"
+    }
+  },
+  "dashboardInspectionsPage": {
+    "title": "Safety inspections",
+    "description": "Perform and manage safety rounds and HSE inspections",
+    "status": {
+      "planned": "Planned",
+      "inProgress": "In progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "types": {
+      "vernerunde": "Safety round",
+      "hmsInspection": "HSE inspection",
+      "fireDrill": "Fire drill",
+      "shaPlan": "SHA plan",
+      "safetyWalk": "Safety walk",
+      "other": "Other"
+    },
+    "actions": {
+      "showIndustry": "Show industry-specific",
+      "showAll": "Show all",
+      "report": "Report",
+      "new": "New inspection",
+      "createFirst": "Create first inspection",
+      "details": "Details"
+    },
+    "openFindings": "{count} open findings",
+    "stats": {
+      "total": "Total",
+      "planned": "Planned",
+      "inProgress": "In progress",
+      "openFindings": "Open findings"
+    },
+    "list": {
+      "title": "All inspections",
+      "description": "Overview of completed and planned inspections",
+      "empty": "No inspections registered yet"
+    },
+    "table": {
+      "title": "Title",
+      "type": "Type",
+      "scheduledDate": "Scheduled date",
+      "location": "Location",
+      "status": "Status",
+      "openFindings": "Open findings",
+      "actions": "Actions"
+    }
+  },
+  "dashboardWhistleblowingPage": {
+    "title": "Whistleblowing cases",
+    "description": "Case management of received reports",
+    "actions": {
+      "publicPage": "Public whistleblowing page",
+      "process": "Process"
+    },
+    "stats": {
+      "total": "Total",
+      "new": "New",
+      "inProgress": "In progress",
+      "closed": "Closed"
+    },
+    "empty": {
+      "title": "No cases",
+      "description": "No whistleblowing reports have been received yet."
+    },
+    "table": {
+      "caseNumber": "Case no.",
+      "title": "Title",
+      "category": "Category",
+      "severity": "Severity",
+      "status": "Status",
+      "received": "Received",
+      "actions": "Actions"
+    },
+    "status": {
+      "received": "Received",
+      "acknowledged": "Acknowledged",
+      "underInvestigation": "Under investigation",
+      "actionTaken": "Action taken",
+      "resolved": "Resolved",
+      "closed": "Closed",
+      "dismissed": "Dismissed"
+    },
+    "severity": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "critical": "Critical"
+    },
+    "categories": {
+      "harassment": "Harassment",
+      "discrimination": "Discrimination",
+      "workEnvironment": "Work environment",
+      "safety": "HSE/Safety",
+      "corruption": "Corruption",
+      "ethics": "Ethics",
+      "legal": "Legal violation",
+      "other": "Other"
+    }
+  },
+  "dashboardIncidentStatisticsPage": {
+    "noTenantAccess": "No tenant access",
+    "title": "HSE statistics",
+    "description": "TRIR · Lost time injuries · Injury frequency - 3-year history",
+    "missingHours": {
+      "title": "Man-hours not registered",
+      "descriptionStart": "TRIR requires worked hours. Enable",
+      "timeRegistration": "time registration",
+      "descriptionEnd": "or add hours manually to calculate TRIR correctly."
+    },
+    "ytd": "Year to date ({year})",
+    "cards": {
+      "trirSubtitle": "Total Recordable Injury Rate",
+      "lti": {
+        "title": "Lost time injuries (LTI)",
+        "subtitle": "{count} lost workdays"
+      },
+      "workedHours": {
+        "title": "Worked hours",
+        "subtitle": "From time registration"
+      },
+      "recordable": {
+        "title": "Recordable incidents",
+        "subtitle": "Fatalities + LTI + Restricted Work + Medical Treatment"
+      }
+    },
+    "history": {
+      "title": "3-year history",
+      "description": "Standard format for HSE reporting to customers and clients"
+    },
+    "trir": {
+      "title": "What does TRIR mean?",
+      "description": "Total Recordable Injury Rate (TRIR) measures all recordable injuries per 200,000 worked hours (equivalent to 100 full-time employees in one year).",
+      "formula": "TRIR = (Fatalities + LTI + Restricted Work + Medical Treatment) × 200,000 / Hours worked",
+      "incidentTypes": "Incident types in the numerator:",
+      "incidents": {
+        "fatalities": "Fatalities - Deaths",
+        "lti": "LTI - Lost Time Incident",
+        "restrictedWork": "Restricted Work",
+        "medicalTreatment": "Medical Treatment"
+      },
+      "benchmarks": "Typical industry targets:",
+      "benchmarkList": {
+        "b1": "TRIR < 1.0 - Excellent (offshore standard)",
+        "b2": "TRIR < 3.0 - Good (industry)",
+        "b3": "TRIR < 5.0 - Acceptable (construction)",
+        "b4": "TRIR > 5.0 - Requires actions"
+      }
+    }
+  },
+  "dashboardActionsPage": {
+    "noTenantAccess": "No tenant access",
+    "title": "Actions",
+    "description": "ISO 9001: Planned actions with owners and timelines",
+    "projectInfo": "New actions are created for project:",
+    "stats": {
+      "total": {
+        "title": "Total",
+        "description": "Registered actions"
+      },
+      "inProgress": {
+        "title": "In progress",
+        "description": "{pending} not started, {inProgress} in progress"
+      },
+      "done": {
+        "title": "Completed",
+        "description": "Completed actions"
+      },
+      "overdue": {
+        "title": "Overdue",
+        "description": "Requires follow-up"
+      }
+    },
+    "list": {
+      "title": "All actions"
+    },
+    "iso": {
+      "title": "📋 ISO 9001 Requirements for actions",
+      "planningTitle": "Planning:",
+      "followUpTitle": "Follow-up:",
+      "planningList": {
+        "i1": "All risks should have planned actions",
+        "i2": "Actions must have a clear description",
+        "i3": "An owner must be defined",
+        "i4": "Timeline/deadline must be realistic"
+      },
+      "followUpList": {
+        "i1": "Actions must be followed up regularly",
+        "i2": "Status must be updated along the way",
+        "i3": "Actions must be evaluated when completed",
+        "i4": "Documentation must be retained"
+      }
+    }
+  },
+  "dashboardGoalsPage": {
+    "notLinkedTenant": "You are not linked to a tenant.",
+    "title": "Goals and KPIs",
+    "description": "ISO 9001 - 6.2 Quality objectives and planning",
+    "actions": {
+      "newGoal": "New goal"
+    },
+    "iso": {
+      "title": "ISO 9001 - 6.2 Quality objectives",
+      "points": {
+        "p1": "The organization shall establish quality objectives at relevant levels",
+        "p2": "Objectives shall be measurable and monitored",
+        "p3": "Objectives shall be consistent with the quality policy",
+        "p4": "Progress toward objectives shall be documented and communicated"
+      }
+    },
+    "stats": {
+      "total": {
+        "title": "Total",
+        "description": "goals"
+      },
+      "active": {
+        "title": "Active",
+        "description": "in progress"
+      },
+      "achieved": {
+        "title": "Achieved",
+        "description": "completed"
+      },
+      "atRisk": {
+        "title": "At risk",
+        "description": "requires action"
+      },
+      "failed": {
+        "title": "Not achieved",
+        "description": "closed"
+      }
+    },
+    "list": {
+      "title": "All goals",
+      "description": "Overview of quality objectives and KPIs"
+    }
+  },
+  "dashboardRoutinesPage": {
+    "title": "Routines",
+    "description": "HMS Nova provides templates and alerts. Leader/HSE roles follow up incidents and deviations in the company.",
+    "loadFailed": "Could not load routines right now.",
+    "status": {
+      "active": "Active",
+      "draft": "Draft",
+      "needsReview": "Needs review",
+      "archived": "Archived"
+    },
+    "actions": {
+      "templateLibrary": "Template library",
+      "createFromTemplate": "Create from template",
+      "viewDetails": "View details"
+    },
+    "list": {
+      "title": "My routines",
+      "description": "Routines are owned by your company. Global templates are never changed directly.",
+      "empty": "No routines yet. Go to the template library and pick a template that fits your industry."
+    },
+    "table": {
+      "routine": "Routine",
+      "status": "Status",
+      "responsible": "Responsible",
+      "nextReview": "Next review",
+      "action": "Action"
+    },
+    "notSet": "Not set"
+  },
+  "dashboardRoutineTemplatesPage": {
+    "title": "Routine templates",
+    "loadFailed": "Could not load routine templates right now.",
+    "descriptionAll": "Showing the full library across industries.",
+    "descriptionRecommended": "Showing recommended templates for your industry + general templates.",
+    "info": "HMS Nova provides industry-adapted templates, alerts and follow-up support. Company leader/HSE roles are responsible for actual follow-up of incidents and deviations.",
+    "actions": {
+      "showRecommended": "Show recommended",
+      "showAll": "Show all templates",
+      "saveAsMine": "Save as my routine",
+      "savingCopy": "Adding…"
+    },
+    "toasts": {
+      "successTitle": "\"{title}\" has been added",
+      "successDescription": "The routine is now available under Routines.",
+      "openRoutine": "Open routine",
+      "errorGeneric": "Could not add the template. Please try again."
+    },
+    "list": {
+      "title": "Available templates",
+      "description": "Choose a template and save it as your own routine.",
+      "empty": "No templates found for selected filter."
+    },
+    "table": {
+      "template": "Template",
+      "category": "Category",
+      "legalReference": "Legal reference",
+      "action": "Action"
+    },
+    "badges": {
+      "global": "Global template",
+      "tenant": "Company template"
+    }
+  },
+  "dashboardSjaPage": {
+    "noTenantAccess": "No tenant access",
+    "title": "SJA - Safe Job Analysis",
+    "description": "Overview of all SJA analyses and templates",
+    "actions": {
+      "new": "New SJA"
+    },
+    "stats": {
+      "total": {
+        "title": "Total",
+        "description": "SJA analyses"
+      },
+      "draft": {
+        "title": "Draft",
+        "description": "Waiting for approval"
+      },
+      "active": {
+        "title": "Active",
+        "description": "Ongoing work"
+      },
+      "completed": {
+        "title": "Completed",
+        "description": "Fully processed"
+      },
+      "templates": {
+        "title": "Templates",
+        "description": "Reusable templates"
+      }
+    },
+    "analyses": {
+      "title": "All SJA analyses",
+      "emptyTitle": "No SJA analyses",
+      "emptyDescription": "No SJA analyses have been created yet."
+    },
+    "table": {
+      "number": "No.",
+      "title": "Title",
+      "location": "Location",
+      "status": "Status",
+      "conclusion": "Conclusion",
+      "createdBy": "Created by",
+      "date": "Date",
+      "risk": "Risk"
+    },
+    "status": {
+      "DRAFT": "Draft",
+      "PENDING_APPROVAL": "Pending approval",
+      "APPROVED": "Approved",
+      "ACTIVE": "Active",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled"
+    },
+    "conclusion": {
+      "GO": "Can proceed",
+      "GO_WITH_MEASURES": "Can proceed with measures",
+      "NO_GO": "Cannot proceed"
+    },
+    "templates": {
+      "title": "SJA templates ({count})",
+      "description": "Templates make it easy for employees to create daily SJA with predefined hazards and measures",
+      "emptyTitle": "No templates created",
+      "emptyDescription": "Create a template so employees can quickly create SJA for recurring tasks.",
+      "workLocation": "Work location: {value}",
+      "hazards": "{count} hazards",
+      "createdBy": "Created by {name}"
+    }
+  },
+  "dashboardTrainingPage": {
+    "noTenantAccess": "No tenant access",
+    "title": "Training and competence",
+    "description": "ISO 9001 - 7.2: Document and follow up competence",
+    "stats": {
+      "total": {
+        "title": "Total",
+        "description": "Registered trainings"
+      },
+      "completed": {
+        "title": "Completed",
+        "percentOfTotal": "{percent}% of total",
+        "zero": "0% of total"
+      },
+      "expiringSoon": {
+        "title": "Expiring soon",
+        "description": "Within 30 days"
+      },
+      "expired": {
+        "title": "Expired",
+        "description": "Must be renewed"
+      },
+      "evaluated": {
+        "title": "Evaluated",
+        "percentOfCompleted": "{percent}% of completed",
+        "zero": "0% of completed"
+      }
+    },
+    "iso": {
+      "title": "📋 ISO 9001 - 7.2 Competence",
+      "description": "Requirements for competence management",
+      "points": {
+        "a": {
+          "title": "a) Determine competence:",
+          "description": "Define required competence for work affecting quality"
+        },
+        "b": {
+          "title": "b) Ensure competence:",
+          "description": "Document education, training or experience"
+        },
+        "c": {
+          "title": "c) Evaluate effectiveness:",
+          "description": "Assess whether training has produced desired competence"
+        },
+        "d": {
+          "title": "d) Documented information:",
+          "description": "Retain evidence of competence (certificates, course proof)"
+        }
+      }
+    },
+    "healthcareAlerts": {
+      "title": "Healthcare alerts - competence expiring",
+      "description": "Required courses that are expired or will expire within 30 days.",
+      "unknownEmployee": "Unknown employee",
+      "expired": "Expired",
+      "daysLeft": "{days} days left"
+    },
+    "list": {
+      "title": "All trainings",
+      "description": "Overview of registered competence for all employees"
+    }
+  },
+  "dashboardProjectsPage": {
+    "noAccess": "No access",
+    "title": "Projects / Jobs",
+    "description": "Link incidents, SJA, safety inspections and actions to projects for consolidated HSE reporting",
+    "status": {
+      "planning": "Planning",
+      "active": "Active",
+      "onHold": "On hold",
+      "completed": "Completed",
+      "archived": "Archived"
+    },
+    "actions": {
+      "newProject": "New project",
+      "createFirstProject": "Create first project"
+    },
+    "stats": {
+      "activeProjects": "Active projects",
+      "inPlanning": "In planning",
+      "completed": "Completed"
+    },
+    "empty": {
+      "title": "No projects yet",
+      "description": "Create a project to connect HSE activities to a job or assignment"
+    },
+    "orderNumber": "Order: {number}",
+    "ongoing": "Ongoing",
+    "counters": {
+      "incidents": "{count} incidents",
+      "sja": "{count} SJA",
+      "inspections": "{count} inspections",
+      "measures": "{count} actions"
+    }
+  },
+  "dashboardMeetingsPage": {
+    "title": "Meetings (AMU/VO)",
+    "description": "Working environment committee, safety representative meetings and HSE committees",
+    "types": {
+      "vo": "Safety representative",
+      "hmsCommittee": "HSE committee",
+      "other": "Other"
+    },
+    "status": {
+      "planned": "Planned",
+      "inProgress": "In progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "actions": {
+      "newMeeting": "New meeting",
+      "createMeeting": "Create meeting",
+      "details": "Details"
+    },
+    "stats": {
+      "total": "Total",
+      "planned": "Planned",
+      "completed": "Completed",
+      "decisions": "Decisions"
+    },
+    "empty": {
+      "title": "No meetings",
+      "description": "Create your first meeting to get started."
+    },
+    "table": {
+      "title": "Title",
+      "type": "Type",
+      "date": "Date",
+      "participants": "Participants",
+      "decisions": "Decisions",
+      "status": "Status",
+      "actions": "Actions"
+    }
+  },
+  "dashboardDocumentsPage": {
+    "title": "Documents",
+    "noTenantAccess": "No tenant access",
+    "description": "Manage laws, procedures, checklists and more",
+    "actions": {
+      "newDocument": "New document"
+    },
+    "stats": {
+      "total": "Total",
+      "draft": "Draft",
+      "approved": "Approved",
+      "archived": "Archived"
+    }
+  },
+  "dashboardFormsPage": {
+    "title": "Digital forms",
+    "description": "Create, manage and analyze custom forms",
+    "filteredOn": "Filtered on:",
+    "projectLinkActive": "Project link active: submissions will be linked to selected project.",
+    "industryDefault": "Showing industry-adapted templates by default.",
+    "actions": {
+      "showIndustry": "Show industry-adapted",
+      "showAllTemplates": "Show all templates",
+      "newForm": "New form",
+      "createForm": "Create form"
+    },
+    "stats": {
+      "totalForms": {
+        "title": "Total number of forms",
+        "active": "{count} active"
+      },
+      "totalSubmissions": {
+        "title": "Total submissions",
+        "description": "All forms"
+      },
+      "averagePerForm": {
+        "title": "Average per form",
+        "description": "Submissions"
+      }
+    },
+    "tips": {
+      "title": "💡 Tip:",
+      "text1": "Click a form to view all submissions, statistics and download PDFs. Use metrics to track how often forms are used.",
+      "examplesTitle": "Example templates:",
+      "text2": "Forms marked as global are standard templates. Use Copy if you want to edit or add fields. For global templates, regular users only see their own submissions, while form managers in the company see all."
+    },
+    "empty": {
+      "title": "No forms yet",
+      "description": "Create your first digital form with our drag-and-drop builder"
+    },
+    "list": {
+      "title": "All forms",
+      "showing": "Showing {from}-{to} of {total}"
+    },
+    "table": {
+      "formName": "Form name",
+      "category": "Category",
+      "status": "Status",
+      "access": "Access",
+      "fields": "Fields",
+      "submissions": "Submissions",
+      "lastUsed": "Last used",
+      "actions": "Actions"
+    },
+    "badges": {
+      "exampleTemplate": "Example template"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "never": "Never",
+    "titles": {
+      "viewDetails": "View details and statistics",
+      "fillForm": "Fill form",
+      "editForm": "Edit form",
+      "export": "Export all answers to Excel"
+    },
+    "categories": {
+      "custom": "Custom",
+      "meeting": "Meeting minutes",
+      "inspection": "Inspection",
+      "incident": "Incident report",
+      "risk": "Risk assessment",
+      "training": "Training",
+      "checklist": "Checklist",
+      "timesheet": "Timesheet"
+    },
+    "roles": {
+      "admin": "Admin",
+      "leader": "Leader",
+      "safetyRep": "Safety representative",
+      "employee": "Employee",
+      "auditor": "Auditor"
+    },
+    "access": {
+      "all": "All",
+      "none": "None",
+      "users": "{count} user{count, plural, one {} other {s}}"
+    }
+  },
+  "dashboardAuditsPage": {
+    "title": "Audits",
+    "description": "Internal audits, ISO 9001, ISO 14001 and other audits",
+    "loading": "Loading audits...",
+    "noTenantAccess": "No tenant access",
+    "actions": {
+      "newAudit": "New audit",
+      "details": "View details"
+    },
+    "empty": {
+      "title": "No audits yet",
+      "description": "Create your first audit (internal audit, ISO 9001, etc.)"
+    },
+    "list": {
+      "title": "Audits",
+      "total": "{count} audits total"
+    },
+    "table": {
+      "title": "Title",
+      "type": "Type",
+      "area": "Area",
+      "date": "Date",
+      "status": "Status",
+      "findings": "Findings",
+      "actions": "Actions"
+    },
+    "status": {
+      "planned": "Planned",
+      "inProgress": "In progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "types": {
+      "internal": "Internal audit",
+      "external": "External audit",
+      "certification": "Certification",
+      "supplier": "Supplier audit",
+      "followUp": "Follow-up"
+    },
+    "findings": {
+      "major": "{count} major nonconformities",
+      "minor": "{count} minor nonconformities",
+      "none": "No findings"
+    }
+  },
+  "dashboardAuditDetailPage": {
+    "noTenantAccess": "No tenant access",
+    "notFound": "Audit not found",
+    "unknown": "Unknown",
+    "details": "Audit details",
+    "actions": {
+      "back": "Back to audits",
+      "edit": "Edit"
+    },
+    "basicInfo": {
+      "title": "Basic information",
+      "scheduledDate": "Scheduled date",
+      "completed": "Completed",
+      "area": "Area",
+      "department": "Department: {value}"
+    },
+    "team": {
+      "title": "Audit team",
+      "leadAuditor": "Lead auditor",
+      "members": "Audit team"
+    },
+    "scope": {
+      "title": "Scope and criteria (ISO 9001)",
+      "scope": "Scope:",
+      "criteria": "Audit criteria:"
+    },
+    "summary": {
+      "title": "Summary and conclusion",
+      "summary": "Summary:",
+      "conclusion": "Conclusion:"
+    },
+    "findingsStats": {
+      "title": "Audit findings",
+      "major": "Major nonconformities",
+      "minor": "Minor nonconformities",
+      "observations": "Observations",
+      "strengths": "Strengths"
+    },
+    "findings": {
+      "title": "Findings and observations",
+      "description": "Document nonconformities, observations and strengths from the audit"
+    },
+    "compliance": {
+      "title": "📋 ISO 9001 Compliance",
+      "i1": "Scope and criteria defined",
+      "i2": "Lead auditor appointed (objectivity ensured)",
+      "completed": "Audit completed",
+      "notCompleted": "Audit not completed yet",
+      "findingsDocumented": "{count} findings documented",
+      "noFindings": "No findings documented",
+      "openFindings": "{count} open findings (requires corrective actions)",
+      "allClosed": "All findings are closed"
+    }
+  },
+  "dashboardInspectionDetailPage": {
+    "noTenantAccess": "No tenant access",
+    "notFound": "Inspection not found",
+    "unknown": "Unknown",
+    "details": "Inspection details",
+    "actions": {
+      "back": "Back to inspections",
+      "edit": "Edit",
+      "mobileView": "Mobile view",
+      "downloadPdf": "Download PDF"
+    },
+    "status": {
+      "planned": "Planned",
+      "inProgress": "In progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "types": {
+      "vernerunde": "Safety round",
+      "hmsInspection": "HSE inspection",
+      "fireDrill": "Fire drill",
+      "shaPlan": "HSE plan",
+      "safetyWalk": "Safety walk",
+      "other": "Other"
+    },
+    "riskCategories": {
+      "safety": "Safety",
+      "health": "Health",
+      "environmental": "Environmental",
+      "operational": "Operational",
+      "legal": "Legal",
+      "informationSecurity": "Information security"
+    },
+    "severity": {
+      "low": "Low",
+      "moderate": "Moderate",
+      "significant": "Significant",
+      "serious": "Serious",
+      "critical": "Critical"
+    },
+    "findingStatus": {
+      "open": "Open",
+      "inProgress": "In progress",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "form": {
+      "completed": "Completed",
+      "view": "View completed form",
+      "warning": "The form must be completed and submitted to complete the safety round. Items marked \"Not OK\" must be registered as findings.",
+      "fillNow": "Fill out form now"
+    },
+    "basicInfo": {
+      "title": "Basic information",
+      "scheduledDate": "Scheduled date",
+      "completed": "Completed",
+      "location": "Location"
+    },
+    "performedBy": {
+      "title": "Performed by",
+      "responsible": "Responsible",
+      "participants": "Participants"
+    },
+    "descriptionTitle": "Description",
+    "findingsStats": {
+      "title": "Inspection findings",
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low",
+      "open": "Open",
+      "inProgress": "In progress",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "findings": {
+      "title": "Findings and observations",
+      "registered": "{count} findings registered from the safety round",
+      "noneDescription": "No findings registered. Findings are created directly in the safety round when answering \"Not OK\".",
+      "noneTitle": "No findings registered yet",
+      "noneHelp": "Findings are registered in the safety round when filling out items."
+    },
+    "compliance": {
+      "title": "📋 HSE Compliance",
+      "i1": "Inspection planned and documented",
+      "i2": "Responsible person appointed",
+      "completed": "Inspection completed",
+      "notCompleted": "Inspection not completed yet",
+      "findingsDocumented": "{count} findings documented",
+      "noFindings": "No findings documented",
+      "openFindings": "{count} open findings (requires follow-up)",
+      "allClosed": "All findings are closed",
+      "none": "No findings"
+    }
+  },
+  "dashboardRisksPage": {
+    "title": "Risk assessment",
+    "description": "5x5 risk matrix for systematic assessment of HSE risks",
+    "noTenantAccess": "No tenant access",
+    "actions": {
+      "newRisk": "New risk assessment"
+    },
+    "stats": {
+      "totalRiskPoints": {
+        "title": "Total risk points",
+        "description": "Points in the risk register"
+      },
+      "criticalHigh": {
+        "title": "Critical/High (current)",
+        "description": "{critical} critical, {high} high"
+      },
+      "open": {
+        "title": "Open",
+        "description": "Pending handling"
+      },
+      "improved": {
+        "title": "Improved after measures",
+        "description": "Risks with lower residual risk"
+      }
+    },
+    "annualAssessments": {
+      "title": "Annual risk assessments (documents)",
+      "description": "Each assessment is an annual document with its own risk points.",
+      "riskPoints": "{count} risk point{count, plural, one {} other {s}}"
+    },
+    "registry": {
+      "title": "Risk register (all risk points)",
+      "description": "Shows all risk points across assessments, with status and follow-up of measures."
+    }
+  },
+  "dashboardRiskDetailPage": {
+    "title": "Edit risk assessment",
+    "noTenantAccess": "No tenant access",
+    "notFound": "Risk not found",
+    "actions": {
+      "back": "Back to risks"
+    },
+    "measures": {
+      "title": "Measures to reduce risk",
+      "description": "ISO 9001: Planned measures with responsible person and timeline"
+    },
+    "controls": {
+      "title": "Controls",
+      "description": "ISO 31000: document ownership and effectiveness of key controls"
+    },
+    "documents": {
+      "title": "Document links",
+      "description": "Shows procedures, instructions and reports supporting risk management"
+    },
+    "audits": {
+      "title": "Audits and tests",
+      "description": "Link internal audits and control tests to the risk"
+    }
+  },
+  "dashboardProjectDetailPage": {
+    "noAccess": "No access",
+    "ongoing": "Ongoing",
+    "orderNumber": "Order: {number}",
+    "actions": {
+      "edit": "Edit",
+      "pdfReport": "PDF report"
+    },
+    "status": {
+      "planning": "Planning",
+      "active": "Active",
+      "onHold": "On hold",
+      "completed": "Completed",
+      "archived": "Archived"
+    },
+    "cards": {
+      "incidents": {
+        "title": "Incidents",
+        "description": "registered"
+      },
+      "inspections": {
+        "title": "Safety rounds",
+        "description": "completed"
+      },
+      "openMeasures": {
+        "title": "Open measures",
+        "description": "of {total} total"
+      },
+      "hours": {
+        "title": "Hours",
+        "description": "worked"
+      },
+      "trir": {
+        "title": "TRIR",
+        "requiresHours": "Requires hours",
+        "perHours": "per 200,000 h"
+      }
+    }
+  },
+  "dashboardMeetingDetailPage": {
+    "common": {
+      "error": "Error",
+      "role": "Role",
+      "title": "Title",
+      "description": "Description",
+      "responsible": "Responsible",
+      "deadline": "Deadline"
+    },
+    "loading": "Loading...",
+    "loadingUsers": "Loading users...",
+    "noneSelected": "None selected",
+    "noneExternal": "None (external participant)",
+    "actions": {
+      "openLink": "Open link",
+      "add": "Add",
+      "cancel": "Cancel",
+      "newDecision": "New decision",
+      "addDecision": "Add decision"
+    },
+    "status": {
+      "planned": "Planned",
+      "inProgress": "In progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "decisionStatus": {
+      "pending": "Not started",
+      "inProgress": "In progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "roles": {
+      "chair": "Chair",
+      "secretary": "Secretary",
+      "member": "Member",
+      "observer": "Observer"
+    },
+    "attendance": {
+      "present": "Present",
+      "absent": "Absent"
+    },
+    "errors": {
+      "fetchMeeting": "Could not fetch meeting",
+      "participantRequired": "Fill in either user ID or external name",
+      "addParticipant": "Could not add participant",
+      "decisionRequired": "Fill in title and description",
+      "addDecision": "Could not add decision"
+    },
+    "toasts": {
+      "participantAdded": {
+        "title": "Participant added",
+        "description": "The participant has been added to the meeting"
+      },
+      "decisionAdded": {
+        "title": "Decision added",
+        "description": "The decision has been added to the meeting"
+      }
+    },
+    "sections": {
+      "details": {
+        "title": "Meeting details",
+        "dateTime": "Date and time",
+        "location": "Location",
+        "meetingLink": "Meeting link",
+        "organizer": "Chair",
+        "agenda": "Agenda",
+        "summary": "Summary",
+        "notes": "Notes"
+      },
+      "participants": {
+        "title": "Participants",
+        "description": "Overview of meeting participants",
+        "empty": "No participants added"
+      },
+      "decisions": {
+        "title": "Decisions",
+        "description": "Decisions and follow-up points",
+        "empty": "No decisions added"
+      }
+    },
+    "dialogs": {
+      "addParticipant": {
+        "title": "Add participant",
+        "description": "Add an internal user or external participant",
+        "internalUser": "User (internal)",
+        "selectUser": "Select user",
+        "noneExternal": "None (external participant)",
+        "externalName": "Name (external)",
+        "externalEmail": "Email (external)",
+        "externalOnly": "Only if external"
+      },
+      "addDecision": {
+        "title": "New decision",
+        "description": "Add a decision from the meeting",
+        "titlePlaceholder": "E.g. Upgrade protective equipment",
+        "descriptionPlaceholder": "Detailed description of the decision...",
+        "selectResponsible": "Select responsible (optional)"
+      }
+    },
+    "table": {
+      "name": "Name",
+      "role": "Role",
+      "attendance": "Attendance"
+    }
+  },
+  "dashboardDocumentDetailPage": {
+    "document": "Document",
+    "dash": "—",
+    "version": "Version {version}",
+    "actions": {
+      "edit": "Edit",
+      "download": "Download"
+    },
+    "status": {
+      "title": "Status",
+      "draft": "Draft",
+      "underReview": "Under review",
+      "approved": "Approved",
+      "obsolete": "Obsolete"
+    },
+    "documentType": {
+      "title": "Document type"
+    },
+    "category": {
+      "title": "Category"
+    },
+    "details": {
+      "title": "Document details",
+      "owner": "Owner",
+      "created": "Created {date}",
+      "approvedBy": "Approved by",
+      "lastUpdated": "Last updated",
+      "nextReview": "Next review",
+      "everyMonths": "(Every {months} month)"
+    },
+    "history": {
+      "title": "Version history",
+      "latest": "Latest {count} versions",
+      "onlyLastFive": "Showing only the 5 latest versions"
+    },
+    "kinds": {
+      "LAW": "Laws and regulations",
+      "PROCEDURE": "Procedure (ISO 9001)",
+      "CHECKLIST": "Checklist",
+      "FORM": "Form",
+      "SDS": "Safety data sheet (SDS)",
+      "PLAN": "HSE handbook / Plan",
+      "OTHER": "Other"
+    }
+  },
+  "dashboardInspectionsReportPage": {
+    "title": "Inspection report",
+    "yearReport": "Annual report {year}",
+    "actions": {
+      "back": "Back",
+      "downloadPdf": "Download PDF"
+    },
+    "summary": {
+      "totalInPeriod": "Total in period",
+      "completionRate": "{percent}% completion rate",
+      "completed": "Completed",
+      "plannedCount": "{count} planned",
+      "inProgressCount": "{count} in progress",
+      "openFindings": "Open findings",
+      "ofTotalFindings": "of {count} total",
+      "criticalOrSevere": "Critical/severe findings",
+      "resolvedTotal": "{count} resolved total"
+    },
+    "analysis": {
+      "title": "Analysis and overview",
+      "description": "Distribution of inspections and findings in the period"
+    },
+    "openActions": {
+      "title": "Open actions requiring follow-up ({count})",
+      "description": "Ref. Working Environment Act § 3-1 and Internal Control Regulation § 5 – these findings require actions to be implemented"
+    },
+    "labels": {
+      "types": {
+        "vernerunde": "Safety round",
+        "hmsInspection": "HSE inspection",
+        "fireDrill": "Fire drill",
+        "shaPlan": "HSE plan",
+        "safetyWalk": "Safety walk",
+        "other": "Other"
+      },
+      "status": {
+        "planned": "Planned",
+        "inProgress": "In progress",
+        "completed": "Completed",
+        "cancelled": "Cancelled"
+      },
+      "findingStatus": {
+        "open": "Open",
+        "inProgress": "In progress",
+        "resolved": "Resolved",
+        "closed": "Closed"
+      },
+      "severity": {
+        "low": "Low",
+        "moderate": "Moderate",
+        "significant": "Significant",
+        "serious": "Serious",
+        "critical": "Critical"
+      }
+    },
+    "table": {
+      "inspection": "Inspection",
+      "finding": "Finding",
+      "severity": "Severity",
+      "status": "Status",
+      "responsible": "Responsible",
+      "deadline": "Deadline",
+      "title": "Title",
+      "type": "Type",
+      "planned": "Planned",
+      "completed": "Completed",
+      "location": "Location",
+      "performedBy": "Performed by",
+      "findings": "Findings",
+      "measureNote": "Measure/Note"
+    },
+    "dash": "–",
+    "overdue": " ⚠ Overdue",
+    "noneOpenInPeriod": "No open findings in selected period – all registered actions are closed.",
+    "inspectionsInPeriod": "Inspections in period ({count})",
+    "inspectionsDescription": "Complete overview of all inspections",
+    "noInspections": "No inspections in selected period",
+    "allFindingsAndMeasures": "All findings and actions ({count})",
+    "allFindingsDescription": "Detailed overview with severity, responsible and actions",
+    "legal": "Ref. Working Environment Act § 5-1 (registration duty), § 5-2 (notification duty), § 3-1 (systematic HSE work) and Internal Control Regulation § 5. ISO 45001:2018 section 9.1."
+  },
+  "dashboardAuditComponents": {
+    "updateStatus": {
+      "title": "Change audit status",
+      "description": "Update the audit status",
+      "newStatus": "New status *",
+      "selectStatus": "Select status",
+      "tipLabel": "Tip:",
+      "tipText": "Use the \"Complete audit\" button to add summary and conclusion when the audit is done.",
+      "status": {
+        "planned": "Planned",
+        "inProgress": "In progress",
+        "completed": "Completed",
+        "cancelled": "Cancelled"
+      },
+      "actions": {
+        "changeStatus": "Change status",
+        "cancel": "Cancel",
+        "updating": "Updating...",
+        "updateStatus": "Update status"
+      },
+      "toasts": {
+        "updated": {
+          "title": "✅ Status updated",
+          "description": "The audit status has been changed to \"{status}\""
+        },
+        "error": {
+          "title": "Error",
+          "description": "Could not update status"
+        }
+      }
+    },
+    "completeAudit": {
+      "title": "Complete audit",
+      "description": "ISO 9001: Report results to relevant management",
+      "summary": {
+        "label": "Audit summary *",
+        "placeholder": "Summarize what was reviewed, which areas were audited, and key findings.",
+        "help": "Minimum 50 characters. Provide a clear overview of the audit."
+      },
+      "conclusion": {
+        "label": "Conclusion and recommendations *",
+        "placeholder": "Conclude whether the management system complies with requirements and provide recommendations.",
+        "help": "Minimum 50 characters. ISO 9001: Assess whether the system is effectively implemented."
+      },
+      "iso": {
+        "title": "📋 ISO 9001 - 9.2 Reporting",
+        "i1": "Summarize scope and findings from the audit",
+        "i2": "Assess whether the management system complies with requirements",
+        "i3": "Evaluate whether the system is effectively implemented",
+        "i4": "Report results to relevant management",
+        "i5": "Recommend improvement areas"
+      },
+      "tips": {
+        "title": "💡 Summary tips:",
+        "i1": "Which areas/departments were audited?",
+        "i2": "Which ISO 9001 clauses were covered?",
+        "i3": "Number of findings (major/minor nonconformities, observations, strengths)",
+        "i4": "Overall impression of HSE culture",
+        "i5": "Positive observations and improvement areas"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "complete": "Complete audit",
+        "completing": "Completing..."
+      },
+      "toasts": {
+        "completed": {
+          "title": "✅ Audit completed",
+          "description": "The audit is marked as completed with summary and conclusion"
+        },
+        "error": {
+          "title": "Error",
+          "description": "Could not complete audit"
+        }
+      }
+    },
+    "findingList": {
+      "confirmDelete": "Are you sure you want to delete this finding?\n\nThis cannot be undone.",
+      "confirmVerify": "Are you sure this finding is resolved and verified?",
+      "empty": {
+        "title": "No findings registered",
+        "description": "No nonconformities or observations are documented for this audit."
+      },
+      "types": {
+        "major": "Major nonconformity",
+        "minor": "Minor nonconformity",
+        "observation": "Observation",
+        "strength": "Strength"
+      },
+      "status": {
+        "open": "Open",
+        "inProgress": "In progress",
+        "resolved": "Resolved",
+        "verified": "Verified"
+      },
+      "clause": "Clause {value}",
+      "overdue": "Overdue",
+      "deadline": "Deadline: {date}",
+      "updateDialog": {
+        "title": "Update finding",
+        "description": "Add corrective actions and root cause analysis"
+      },
+      "fields": {
+        "description": "Description:",
+        "evidence": "Evidence:",
+        "requirement": "Requirement:",
+        "correctiveAction": "Corrective action:",
+        "rootCause": "Root cause analysis:"
+      },
+      "actions": {
+        "start": "Start work",
+        "markResolved": "Mark as resolved",
+        "verify": "Verify closure",
+        "saving": "Saving...",
+        "saveMeasures": "Save measures"
+      },
+      "verifiedTitle": "✅ Verified closed",
+      "correctiveForm": {
+        "correctiveActionLabel": "Corrective action (ISO 9001) *",
+        "correctiveActionPlaceholder": "Describe what actions are/will be implemented to close the finding...",
+        "rootCauseLabel": "Root cause analysis (ISO 9001)",
+        "rootCausePlaceholder": "What is the root cause of the nonconformity?",
+        "rootCauseHelp": "ISO 9001: Identify and eliminate the root cause",
+        "isoInfo": "ISO 9001: Corrective actions should eliminate the cause of the nonconformity to prevent recurrence."
+      },
+      "toasts": {
+        "deleted": {
+          "title": "🗑️ Finding deleted",
+          "description": "The audit finding has been removed"
+        },
+        "deleteError": {
+          "title": "Delete failed",
+          "description": "Could not delete finding"
+        },
+        "statusUpdated": {
+          "description": "The finding is now \"{status}\""
+        },
+        "verified": {
+          "title": "✅ Finding verified",
+          "description": "The finding is now closed and verified"
+        },
+        "updated": {
+          "title": "✅ Finding updated",
+          "description": "Corrective actions are documented"
+        },
+        "error": {
+          "title": "Error",
+          "updateStatus": "Could not update status",
+          "verify": "Could not verify finding",
+          "update": "Could not update finding"
+        }
+      }
+    }
+  },
+  "dashboardInspectionComponents": {
+    "updateStatus": {
+      "title": "Change inspection status",
+      "description": "Update status for the inspection",
+      "statusLabel": "Status",
+      "status": {
+        "planned": "Planned",
+        "inProgress": "In progress",
+        "completed": "Completed",
+        "cancelled": "Cancelled"
+      },
+      "actions": {
+        "changeStatus": "Change status",
+        "cancel": "Cancel",
+        "save": "Save",
+        "saving": "Saving..."
+      },
+      "toasts": {
+        "updated": {
+          "title": "Status updated",
+          "description": "Inspection status has now changed"
+        },
+        "error": {
+          "title": "Error"
+        }
+      },
+      "errors": {
+        "update": "Could not update status"
+      }
+    },
+    "findingList": {
+      "labels": {
+        "status": "Status",
+        "resolutionNotes": "Resolution notes",
+        "description": "Description:",
+        "solution": "Solution:"
+      },
+      "status": {
+        "open": "Open",
+        "inProgress": "In progress",
+        "resolved": "Resolved",
+        "closed": "Closed"
+      },
+      "severity": {
+        "low": "Low",
+        "moderate": "Moderate",
+        "significant": "Significant",
+        "serious": "Serious",
+        "critical": "Critical"
+      },
+      "updateDialog": {
+        "title": "Update finding",
+        "description": "Change status and add resolution notes"
+      },
+      "placeholders": {
+        "resolutionNotes": "Describe how the finding was handled..."
+      },
+      "confirmDelete": "Are you sure you want to delete \"{title}\"?",
+      "imageAlt": "Image from finding",
+      "deadline": "Deadline: {date}",
+      "resolved": "Resolved: {date}",
+      "actions": {
+        "update": "Update",
+        "delete": "Delete",
+        "cancel": "Cancel",
+        "save": "Save",
+        "saving": "Saving..."
+      },
+      "toasts": {
+        "updated": {
+          "title": "Finding updated",
+          "description": "Status has now changed"
+        },
+        "deleted": {
+          "title": "Finding deleted"
+        },
+        "error": {
+          "title": "Error"
+        }
+      },
+      "errors": {
+        "update": "Could not update finding",
+        "delete": "Could not delete finding"
+      }
+    },
+    "completeButton": {
+      "errors": {
+        "complete": "Could not complete safety round"
+      },
+      "actions": {
+        "saving": "Saving...",
+        "complete": "Complete safety round",
+        "completeWithoutFindings": "No findings - complete safety round"
+      },
+      "toasts": {
+        "completedWithFindings": {
+          "title": "Safety round completed",
+          "description": "Status is set to completed."
+        },
+        "completedWithoutFindings": {
+          "title": "Safety round completed without findings",
+          "description": "Status is set to completed. No findings were registered."
+        },
+        "error": {
+          "title": "Error",
+          "description": "Could not complete safety round."
+        }
+      }
+    },
+    "findingForm": {
+      "title": "Register new finding",
+      "description": "Document non-conformities, observations, or improvement areas from the inspection",
+      "imageAlt": "Uploaded image",
+      "fields": {
+        "title": "Title",
+        "description": "Description",
+        "severity": "Severity",
+        "location": "Location",
+        "responsible": "Responsible for follow-up",
+        "dueDate": "Due date for closure",
+        "images": "Images"
+      },
+      "placeholders": {
+        "title": "E.g. Missing protective equipment",
+        "description": "Describe the finding in detail...",
+        "selectSeverity": "Select severity",
+        "location": "E.g. Production hall A",
+        "selectResponsible": "Select responsible person"
+      },
+      "severity": {
+        "s1": "1 - Low",
+        "s2": "2 - Moderate",
+        "s3": "3 - Significant",
+        "s4": "4 - Serious",
+        "s5": "5 - Critical"
+      },
+      "actions": {
+        "add": "Add finding",
+        "uploading": "Uploading...",
+        "clickUpload": "Click to upload images",
+        "cancel": "Cancel",
+        "creating": "Creating...",
+        "create": "Create finding"
+      },
+      "errors": {
+        "uploadImage": "Could not upload image",
+        "create": "Could not create finding"
+      },
+      "toasts": {
+        "imageUploaded": {
+          "title": "Image uploaded",
+          "description": "The image is now added to the finding"
+        },
+        "uploadError": {
+          "title": "Upload error"
+        },
+        "imageRemoved": "Image removed",
+        "removeImageError": "Could not remove image",
+        "created": {
+          "title": "Finding created",
+          "description": "The finding is now registered"
+        },
+        "error": {
+          "title": "Error"
+        }
+      }
+    },
+    "mobileFindingForm": {
+      "imageAlt": "Image",
+      "errors": {
+        "uploadImage": "Could not upload image",
+        "create": "Could not create finding"
+      },
+      "severity": {
+        "low": "Low",
+        "moderate": "Moderate",
+        "significant": "Significant",
+        "serious": "Serious",
+        "critical": "Critical"
+      },
+      "fields": {
+        "title": "Title",
+        "description": "Description",
+        "locationOptional": "Location (optional)"
+      },
+      "placeholders": {
+        "title": "E.g. Missing protective equipment",
+        "description": "Describe the finding in detail...",
+        "location": "E.g. Production hall A"
+      },
+      "step1": {
+        "title": "Step 1: Take pictures",
+        "description": "Document the finding with images (optional)",
+        "cameraHint": "Tap to open camera",
+        "next": "Next: Describe finding"
+      },
+      "step2": {
+        "title": "Step 2: Describe finding",
+        "description": "What was found?"
+      },
+      "step3": {
+        "title": "Step 3: Severity",
+        "description": "How serious is the finding?"
+      },
+      "actions": {
+        "uploading": "Uploading...",
+        "takePhoto": "Take photo",
+        "back": "Back",
+        "next": "Next",
+        "saving": "Saving...",
+        "saveFinding": "✅ Save finding"
+      },
+      "toasts": {
+        "imageSaved": {
+          "title": "📸 Image saved",
+          "description": "Image has been added to the finding"
+        },
+        "uploadError": {
+          "title": "Upload error"
+        },
+        "removeImageError": "Could not remove image",
+        "missingInfo": {
+          "title": "Missing information",
+          "description": "Please fill in title and description"
+        },
+        "created": {
+          "title": "✅ Finding registered",
+          "description": "The finding is now saved"
+        },
+        "error": {
+          "title": "Error"
+        }
+      }
+    },
+    "checklist": {
+      "empty": "No checklist points in this template.",
+      "progress": "Completed: {completed} of {total} checklist points.",
+      "imageAlt": "Finding image",
+      "fields": {
+        "findingTitle": "Finding title",
+        "findingDescription": "Finding description",
+        "severity": "Severity (1-5)",
+        "location": "Location",
+        "images": "Images"
+      },
+      "placeholders": {
+        "findingTitle": "Short title for the finding",
+        "findingDescription": "Describe what is not OK and why",
+        "location": "E.g. Warehouse 2"
+      },
+      "badges": {
+        "finding": "Finding",
+        "findingRegistered": "Finding registered"
+      },
+      "actions": {
+        "ok": "OK",
+        "notOk": "Not OK",
+        "uploading": "Uploading...",
+        "addImage": "Add image",
+        "saving": "Saving...",
+        "saveChecklist": "Save checklist"
+      },
+      "ai": {
+        "title": "AI summary of safety round",
+        "generating": "Generating...",
+        "generate": "Generate summary",
+        "placeholder": "Summary of status, critical findings, and recommended follow-up."
+      },
+      "errors": {
+        "uploadImage": "Could not upload image",
+        "missingFindingDescription": "Fill in finding description for point \"{title}\".",
+        "createFindingFromCheckpoint": "Could not create finding from checklist point.",
+        "saveChecklist": "Could not save checklist",
+        "saveChecklistFallback": "Could not save the checklist."
+      },
+      "toasts": {
+        "saved": {
+          "title": "Checklist saved",
+          "description": "Checklist selections are saved on the safety round.",
+          "withFindings": "{count} findings were created from points marked Not OK."
+        },
+        "aiFailed": {
+          "title": "AI summary failed",
+          "description": "Unknown error"
+        },
+        "error": {
+          "title": "Error",
+          "uploadImage": "Could not upload image to the finding.",
+          "removeImage": "Could not remove image."
+        }
+      }
+    }
+  },
+  "dashboardInspectionComponentsExtra": {
+    "completeButton": {
+      "errors": {
+        "complete": "Could not complete safety round"
+      },
+      "actions": {
+        "saving": "Saving...",
+        "complete": "Complete safety round",
+        "completeWithoutFindings": "No findings - complete safety round"
+      },
+      "toasts": {
+        "completedWithFindings": {
+          "title": "Safety round completed",
+          "description": "Status is set to completed."
+        },
+        "completedWithoutFindings": {
+          "title": "Safety round completed without findings",
+          "description": "Status is set to completed. No findings were registered."
+        },
+        "error": {
+          "title": "Error",
+          "description": "Could not complete safety round."
+        }
+      }
+    },
+    "findingForm": {
+      "title": "Register new finding",
+      "description": "Document non-conformities, observations, or improvement areas from the inspection",
+      "imageAlt": "Uploaded image",
+      "fields": {
+        "title": "Title",
+        "description": "Description",
+        "severity": "Severity",
+        "location": "Location",
+        "responsible": "Responsible for follow-up",
+        "dueDate": "Due date for closure",
+        "images": "Images"
+      },
+      "placeholders": {
+        "title": "E.g. Missing protective equipment",
+        "description": "Describe the finding in detail...",
+        "selectSeverity": "Select severity",
+        "location": "E.g. Production hall A",
+        "selectResponsible": "Select responsible person"
+      },
+      "severity": {
+        "s1": "1 - Low",
+        "s2": "2 - Moderate",
+        "s3": "3 - Significant",
+        "s4": "4 - Serious",
+        "s5": "5 - Critical"
+      },
+      "actions": {
+        "add": "Add finding",
+        "uploading": "Uploading...",
+        "clickUpload": "Click to upload images",
+        "cancel": "Cancel",
+        "creating": "Creating...",
+        "create": "Create finding"
+      },
+      "errors": {
+        "uploadImage": "Could not upload image",
+        "create": "Could not create finding"
+      },
+      "toasts": {
+        "imageUploaded": {
+          "title": "Image uploaded",
+          "description": "The image is now added to the finding"
+        },
+        "uploadError": {
+          "title": "Upload error"
+        },
+        "imageRemoved": "Image removed",
+        "removeImageError": "Could not remove image",
+        "created": {
+          "title": "Finding created",
+          "description": "The finding is now registered"
+        },
+        "error": {
+          "title": "Error"
+        }
+      }
+    },
+    "mobileFindingForm": {
+      "imageAlt": "Image",
+      "errors": {
+        "uploadImage": "Could not upload image",
+        "create": "Could not create finding"
+      },
+      "severity": {
+        "low": "Low",
+        "moderate": "Moderate",
+        "significant": "Significant",
+        "serious": "Serious",
+        "critical": "Critical"
+      },
+      "fields": {
+        "title": "Title",
+        "description": "Description",
+        "locationOptional": "Location (optional)"
+      },
+      "placeholders": {
+        "title": "E.g. Missing protective equipment",
+        "description": "Describe the finding in detail...",
+        "location": "E.g. Production hall A"
+      },
+      "step1": {
+        "title": "Step 1: Take pictures",
+        "description": "Document the finding with images (optional)",
+        "cameraHint": "Tap to open camera",
+        "next": "Next: Describe finding"
+      },
+      "step2": {
+        "title": "Step 2: Describe finding",
+        "description": "What was found?"
+      },
+      "step3": {
+        "title": "Step 3: Severity",
+        "description": "How serious is the finding?"
+      },
+      "actions": {
+        "uploading": "Uploading...",
+        "takePhoto": "Take photo",
+        "back": "Back",
+        "next": "Next",
+        "saving": "Saving...",
+        "saveFinding": "✅ Save finding"
+      },
+      "toasts": {
+        "imageSaved": {
+          "title": "📸 Image saved",
+          "description": "Image has been added to the finding"
+        },
+        "uploadError": {
+          "title": "Upload error"
+        },
+        "removeImageError": "Could not remove image",
+        "missingInfo": {
+          "title": "Missing information",
+          "description": "Please fill in title and description"
+        },
+        "created": {
+          "title": "✅ Finding registered",
+          "description": "The finding is now saved"
+        },
+        "error": {
+          "title": "Error"
+        }
+      }
+    }
+  },
+  "dashboardProjectTabs": {
+    "unknownSize": "Unknown size",
+    "confirmDeleteAttachment": "Delete attachment \"{name}\"?",
+    "errors": {
+      "upload": "Could not upload files",
+      "deleteAttachment": "Could not delete attachment"
+    },
+    "tabs": {
+      "incidents": "Incidents",
+      "inspections": "Inspections",
+      "measures": "Measures",
+      "time": "Time",
+      "attachments": "Attachments",
+      "forms": "Forms"
+    },
+    "actions": {
+      "constructionCompliance": "Construction compliance"
+    },
+    "incidents": {
+      "description": "Incidents and events registered on this project",
+      "empty": "No incidents registered for this project",
+      "actions": { "new": "Register incident" }
+    },
+    "sja": {
+      "description": "Safe Job Analyses for this project",
+      "empty": "No SJA analyses registered for this project",
+      "actions": { "new": "New SJA" }
+    },
+    "inspections": {
+      "description": "Safety rounds and inspections on project site",
+      "empty": "No safety rounds registered for this project",
+      "actions": { "new": "New safety round" }
+    },
+    "measures": {
+      "description": "Measures linked directly to the project",
+      "empty": "No measures registered directly on this project",
+      "deadline": "Deadline: {date}",
+      "overdue": "— overdue",
+      "sourceLabel": "Source",
+      "sourceIncident": "Incident",
+      "sourceRisk": "Risk",
+      "sourceProject": "Project",
+      "actions": { "new": "New measure" }
+    },
+    "time": {
+      "description": "Time registrations on the project",
+      "empty": "No hours registered on this project",
+      "hoursSuffix": "h",
+      "actions": { "stamp": "Log hours" }
+    },
+    "attachments": {
+      "description": "Upload project documentation to include in final report (images, compliance, measurements, signed forms).",
+      "empty": "No attachments on this project yet",
+      "imageBadge": "Image",
+      "selected": "Selected",
+      "actions": {
+        "upload": "Upload",
+        "uploading": "Uploading..."
+      }
+    },
+    "forms": {
+      "description": "Form submissions linked to this project",
+      "empty": "No form submissions linked to this project",
+      "anonymous": "Anonymous",
+      "actions": { "fill": "Fill form" }
+    },
+    "status": {
+      "sja": {
+        "draft": "Draft",
+        "submitted": "Submitted",
+        "approved": "Approved",
+        "rejected": "Rejected"
+      },
+      "inspection": {
+        "planned": "Planned",
+        "inProgress": "In progress",
+        "completed": "Completed",
+        "cancelled": "Cancelled"
+      },
+      "measure": {
+        "pending": "Pending",
+        "inProgress": "In progress",
+        "done": "Done",
+        "cancelled": "Cancelled"
+      },
+      "form": {
+        "draft": "Draft",
+        "submitted": "Submitted",
+        "approved": "Approved",
+        "rejected": "Rejected"
+      }
+    },
+    "toasts": {
+      "noFiles": {
+        "title": "No files selected",
+        "description": "Select at least one file before upload"
+      },
+      "uploaded": {
+        "title": "Attachments uploaded",
+        "description": "{count} file(s) added to project"
+      },
+      "uploadError": {
+        "title": "Upload failed",
+        "description": "Could not upload attachments"
+      },
+      "deleted": {
+        "title": "Attachment deleted",
+        "description": "\"{name}\" has been removed from project"
+      },
+      "deleteError": {
+        "title": "Delete failed",
+        "description": "Could not delete attachment"
+      }
+    }
+  },
+  "dashboardAuditNewPage": {
+    "title": "New audit",
+    "description": "Create a new internal audit or ISO audit",
+    "loadingUsers": "Loading users...",
+    "card": {
+      "title": "Audit details",
+      "description": "Fill in the information below according to ISO 9001 requirements"
+    },
+    "fields": {
+      "title": "Title",
+      "auditType": "Audit type",
+      "leadAuditor": "Lead auditor",
+      "scheduledDate": "Scheduled date",
+      "area": "Area",
+      "department": "Department",
+      "scope": "Scope (ISO 9001)",
+      "criteria": "Criteria (ISO 9001)"
+    },
+    "types": {
+      "internal": "Internal audit",
+      "external": "External audit",
+      "certification": "Certification",
+      "supplier": "Supplier audit",
+      "followUp": "Follow-up"
+    },
+    "placeholders": {
+      "title": "E.g. Q1 2025 Internal audit - Production",
+      "selectAuditor": "Select auditor",
+      "area": "E.g. HSE, Quality, Environment",
+      "department": "E.g. Production, Warehouse",
+      "scope": "Describe audit scope...",
+      "criteria": "E.g. ISO 9001:2015 requirements 7.1-7.5..."
+    },
+    "hints": {
+      "scope": "What should be audited? Which processes/areas?",
+      "criteria": "Which requirements should be assessed? ISO clauses, laws, internal requirements?"
+    },
+    "actions": {
+      "cancel": "Cancel",
+      "creating": "Creating...",
+      "create": "Create audit"
+    },
+    "toasts": {
+      "created": {
+        "title": "Audit created",
+        "description": "The audit is now created and ready to be conducted"
+      },
+      "error": {
+        "title": "Error"
+      }
+    }
+  },
+  "dashboardInspectionNewPage": {
+    "title": "New inspection",
+    "description": "Create a new safety round or HSE inspection",
+    "card": {
+      "title": "Inspection details",
+      "description": "Fill in the information below to plan the inspection"
+    },
+    "projectNotice": "This safety round will be registered on the selected project.",
+    "loadingUsers": "Loading users...",
+    "loadingTemplates": "Loading forms...",
+    "noneCategory": "No category",
+    "noneSelected": "None selected",
+    "fields": {
+      "title": "Title",
+      "type": "Type",
+      "template": "📋 Template (form builder) *",
+      "conductedBy": "Conducted by",
+      "scheduledDate": "Scheduled date",
+      "description": "Description",
+      "riskCategory": "Risk category",
+      "followUpBy": "Follow-up responsible",
+      "location": "Location",
+      "area": "Area / process",
+      "durationMinutes": "Estimated duration (min)",
+      "nextInspection": "Next inspection"
+    },
+    "types": {
+      "vernerunde": "Safety round",
+      "hmsInspection": "HSE inspection",
+      "fireDrill": "Fire drill",
+      "shaPlan": "HSE plan",
+      "safetyWalk": "Safety walk",
+      "other": "Other"
+    },
+    "placeholders": {
+      "title": "E.g. Quarterly safety round - Production",
+      "selectTemplate": "Select template form",
+      "selectUser": "Select user",
+      "description": "Describe what should be inspected...",
+      "selectOptionalCategory": "Select category (optional)",
+      "selectResponsibleOptional": "Select responsible (optional)",
+      "location": "E.g. Production hall A",
+      "area": "E.g. Warehouse, Workshop",
+      "duration": "E.g. 90"
+    },
+    "actions": {
+      "cancel": "Cancel",
+      "creating": "Creating...",
+      "create": "Create safety round",
+      "selectTemplate": "Select template"
+    },
+    "toasts": {
+      "missingTemplate": {
+        "title": "Template missing",
+        "description": "You must select a safety-round form from the template library."
+      },
+      "created": {
+        "title": "Inspection created",
+        "description": "The inspection is now created and ready to be conducted"
+      },
+      "error": {
+        "title": "Error"
+      }
+    },
+    "errors": {
+      "create": "Could not create inspection"
+    },
+    "noTemplates": {
+      "title": "No safety-round forms found",
+      "subtitle": "Create a form first:",
+      "s1": "1. Go to Forms → New form",
+      "s2": "2. Choose category \"Inspection / Safety round\"",
+      "s3": "3. Build the form and save",
+      "s4": "4. Come back here and select the form"
+    },
+    "template": {
+      "exampleTemplate": "Example template",
+      "globalInfo": "This is a global example template. Create a copy under Forms if you want to change or add items.",
+      "fieldsCount": "Fields in template: {count}",
+      "requiredSuffix": "(required)",
+      "moreFields": "+{count} more fields in form.",
+      "createOwnTitle": "💡 Create your own safety-round form",
+      "createOwnDescription": "Go to Forms → New form and choose category \"Inspection / Safety round\"",
+      "availableCount": "✅ {count} safety-round forms available"
+    }
+  },
+  "dashboardInspectionEditPage": {
+    "title": "Edit inspection",
+    "description": "Update inspection information",
+    "loading": "Loading inspection...",
+    "loadingUsers": "Loading users...",
+    "card": {
+      "title": "Inspection details",
+      "description": "Update the information below to change the inspection"
+    },
+    "fields": {
+      "title": "Title *",
+      "type": "Type *",
+      "status": "Status *",
+      "conductedBy": "Conducted by *",
+      "scheduledDate": "Scheduled date *",
+      "completedDate": "Completed date",
+      "location": "Location",
+      "description": "Description"
+    },
+    "types": {
+      "vernerunde": "Safety round",
+      "hmsInspection": "HSE inspection",
+      "fireDrill": "Fire drill",
+      "shaPlan": "HSE plan",
+      "safetyWalk": "Safety walk",
+      "other": "Other"
+    },
+    "status": {
+      "planned": "Planned",
+      "inProgress": "In progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "placeholders": {
+      "title": "E.g. Quarterly safety round Q1 2025",
+      "selectUser": "Select user",
+      "location": "E.g. Production hall A",
+      "description": "Write a description of the inspection..."
+    },
+    "hints": {
+      "completedDate": "Set only if inspection is completed"
+    },
+    "actions": {
+      "saveChanges": "Save changes",
+      "cancel": "Cancel"
+    },
+    "toasts": {
+      "updated": {
+        "title": "Inspection updated",
+        "description": "Inspection is now updated"
+      },
+      "error": {
+        "title": "Error"
+      }
+    },
+    "errors": {
+      "fetch": "Could not fetch inspection",
+      "update": "Could not update inspection"
+    }
+  },
+  "dashboardInspectionMobilePage": {
+    "status": {
+      "planned": "Planned",
+      "inProgress": "In progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "form": {
+      "completed": "Form is completed",
+      "view": "View completed form",
+      "warning": "Form must be completed and submitted. Items marked \"Not OK\" must be registered as findings.",
+      "fill": "Fill out form"
+    },
+    "stats": {
+      "registeredFindings": "Registered findings",
+      "openFindings": "Open findings"
+    }
+  },
+  "dashboardDocumentsList": {
+    "dash": "-",
+    "all": "All",
+    "notSet": "Not set",
+    "owner": "Process owner",
+    "nextReview": "Next review",
+    "visibleForAll": "Visible to all",
+    "approvedAt": "Approved {date}",
+    "cannotDeleteLaw": "Laws and regulations cannot be deleted",
+    "actions": {
+      "download": "Download",
+      "convertPdf": "Convert to PDF",
+      "edit": "Edit document",
+      "approve": "Approve document",
+      "newVersion": "Upload new version",
+      "delete": "Delete"
+    },
+    "kind": {
+      "LAW": "Laws and regulations",
+      "PROCEDURE": "Procedure (ISO 9001)",
+      "CHECKLIST": "Checklist",
+      "FORM": "Form",
+      "SDS": "Safety data sheet (SDS)",
+      "PLAN": "HSE handbook / Plan",
+      "OTHER": "Other"
+    },
+    "status": {
+      "DRAFT": "Draft",
+      "APPROVED": "Approved",
+      "ARCHIVED": "Archived"
+    },
+    "roles": {
+      "ADMIN": "Admin",
+      "HMS": "HSE manager",
+      "LEDER": "Leader",
+      "VERNEOMBUD": "Safety representative",
+      "ANSATT": "Employee",
+      "BHT": "OHS service",
+      "REVISOR": "Auditor"
+    },
+    "table": {
+      "title": "Title",
+      "type": "Type",
+      "version": "Version",
+      "status": "Status",
+      "owner": "Process owner",
+      "nextReview": "Next review",
+      "visibleTo": "Visible to",
+      "approved": "Approved",
+      "actions": "Actions"
+    },
+    "empty": {
+      "title": "No documents",
+      "description": "Upload your first document to get started",
+      "action": "Upload document"
+    },
+    "confirmApprove": "Approve \"{title}\"?\n\nThis will activate the document for use.",
+    "confirmDelete": "Are you sure you want to delete \"{title}\"?\n\nThis cannot be undone.",
+    "toasts": {
+      "downloading": {
+        "title": "Downloading document",
+        "description": "The file opens in a new tab"
+      },
+      "downloadError": {
+        "title": "Download failed",
+        "description": "Could not download document"
+      },
+      "converting": {
+        "title": "Converting to PDF",
+        "description": "Please wait..."
+      },
+      "converted": {
+        "title": "✅ PDF generated",
+        "description": "\"{title}\" was converted to PDF"
+      },
+      "convertError": {
+        "title": "Conversion failed",
+        "description": "Could not convert to PDF"
+      },
+      "approved": {
+        "title": "✅ Document approved",
+        "description": "\"{title}\" is now activated for use"
+      },
+      "approveError": {
+        "title": "Approval failed",
+        "description": "Could not approve document"
+      },
+      "deleted": {
+        "title": "🗑️ Document deleted",
+        "description": "\"{title}\" has been permanently removed"
+      },
+      "deleteError": {
+        "title": "Delete failed",
+        "description": "Could not delete document"
+      }
+    }
+  },
+  "dashboardDocumentForm": {
+    "title": "Upload new document",
+    "description": "The document will get status DRAFT and must be approved before use",
+    "none": "None",
+    "global": "Global",
+    "templateSelected": "Template selected",
+    "defaultChangeComment": "First version created",
+    "fields": {
+      "title": "Title *",
+      "kind": "Document type *",
+      "version": "Version",
+      "owner": "Process owner",
+      "template": "Document template",
+      "reviewInterval": "Review interval (months)",
+      "effectiveFrom": "Valid from",
+      "effectiveTo": "Valid to",
+      "file": "File *",
+      "plan": "Plan (Plan)",
+      "do": "Do (Do)",
+      "check": "Check (Check)",
+      "act": "Act (Act)",
+      "visibleToRoles": "Who should see this document?"
+    },
+    "kinds": {
+      "LAW": "Laws and regulations",
+      "PLAN": "HSE handbook / Plan",
+      "PROCEDURE": "Procedure (ISO 9001)",
+      "CHECKLIST": "Checklist",
+      "FORM": "Form",
+      "SDS": "Safety data sheet (SDS)",
+      "OTHER": "Other"
+    },
+    "roles": {
+      "ADMIN": "Admin",
+      "HMS": "HSE manager",
+      "LEDER": "Leader",
+      "VERNEOMBUD": "Safety representative",
+      "ANSATT": "Employee",
+      "BHT": "OHS service",
+      "REVISOR": "Auditor"
+    },
+    "placeholders": {
+      "title": "E.g. HSE handbook 2025",
+      "kind": "E.g. HSE handbook, Laws and regulations, Procedure",
+      "owner": "Select responsible",
+      "noUsers": "No users available",
+      "template": "Select template (optional)",
+      "noTemplates": "No templates available",
+      "plan": "What is the purpose and scope of the process?",
+      "do": "How is the process executed in practice?",
+      "check": "How do we follow up that the process works?",
+      "act": "Which improvements or corrective actions are planned?"
+    },
+    "selectedFile": "Selected: {name} ({size} MB)",
+    "selectedRoles": "✓ Selected: {roles}",
+    "visibleToHelp": "Choose which roles should have access. No selection = visible to all.",
+    "fileHelp": "Supported formats: PDF, Word, Excel, TXT • Max 50 MB",
+    "important": {
+      "title": "ℹ️ Important information",
+      "i1": "The document gets status <strong>DRAFT</strong> after upload",
+      "i2": "Must be <strong>approved</strong> by HSE manager/Admin before use",
+      "i3": "All versions are stored permanently for traceability"
+    },
+    "actions": {
+      "uploading": "Uploading...",
+      "upload": "Upload document",
+      "cancel": "Cancel"
+    },
+    "toasts": {
+      "created": {
+        "title": "📄 Document created",
+        "description": "The document is uploaded and waiting for approval"
+      },
+      "uploadFailed": {
+        "title": "Upload failed",
+        "description": "Could not upload document"
+      },
+      "fileTooLarge": {
+        "title": "⚠️ File is too large",
+        "description": "Maximum file size is 50 MB. Your file is {size} MB.",
+        "serverDescription": "Maximum file size is 50 MB. Try compressing the file or upload a smaller version."
+      },
+      "unexpected": {
+        "title": "Unexpected error",
+        "description": "Something went wrong while uploading document. Please try again later."
+      }
+    }
+  },
+  "dashboardDocumentEditForm": {
+    "title": "Edit document",
+    "description": "Update metadata and access control. To change file, use \"Upload new version\".",
+    "none": "None",
+    "global": "Global",
+    "templateSelected": "Template selected",
+    "visibleForAll": "📢 Visible to all roles",
+    "fields": {
+      "title": "Title *",
+      "kind": "Document type *",
+      "version": "Version",
+      "owner": "Process owner",
+      "template": "Document template",
+      "reviewInterval": "Review interval (months)",
+      "effectiveFrom": "Valid from",
+      "effectiveTo": "Valid to",
+      "plan": "Plan (Plan)",
+      "do": "Do (Do)",
+      "check": "Check (Check)",
+      "act": "Act (Act)",
+      "visibleToRoles": "Who should see this document?"
+    },
+    "kinds": {
+      "LAW": "Laws and regulations",
+      "PLAN": "HSE handbook / Plan",
+      "PROCEDURE": "Procedure (ISO 9001)",
+      "CHECKLIST": "Checklist",
+      "FORM": "Form",
+      "SDS": "Safety data sheet (SDS)",
+      "OTHER": "Other"
+    },
+    "roles": {
+      "ADMIN": "Admin",
+      "HMS": "HSE manager",
+      "LEDER": "Leader",
+      "VERNEOMBUD": "Safety representative",
+      "ANSATT": "Employee",
+      "BHT": "OHS service",
+      "REVISOR": "Auditor"
+    },
+    "placeholders": {
+      "title": "E.g. HSE handbook 2025",
+      "kind": "Select type",
+      "owner": "Select responsible",
+      "noUsers": "No users available",
+      "template": "Select template (optional)",
+      "noTemplates": "No templates available"
+    },
+    "selectedRoles": "✓ Selected: {roles}",
+    "visibleToHelp": "Choose which roles should have access. No selection = visible to all.",
+    "important": {
+      "title": "ℹ️ Important information",
+      "i1": "Changes only affect metadata and access control",
+      "i2": "To change the file itself, use <strong>\"Upload new version\"</strong>",
+      "i3": "Status and approval are not changed here"
+    },
+    "actions": {
+      "saving": "Saving...",
+      "saveChanges": "Save changes",
+      "cancel": "Cancel"
+    },
+    "toasts": {
+      "updated": {
+        "title": "✅ Document updated",
+        "description": "Changes are saved"
+      },
+      "updateFailed": {
+        "title": "Update failed",
+        "description": "Could not update document"
+      },
+      "unexpected": {
+        "title": "Unexpected error",
+        "description": "Something went wrong while updating document"
+      }
+    }
+  },
+  "dashboardDocumentNewVersionForm": {
+    "title": "Upload new version",
+    "description": "Old version ({version}) is stored in history. New version must be approved.",
+    "fields": {
+      "version": "Version number *",
+      "changeComment": "What changed? *",
+      "file": "New file *"
+    },
+    "placeholders": {
+      "version": "v1.1 or v2.0",
+      "changeComment": "E.g. Updated safety procedures in chapter 3"
+    },
+    "hints": {
+      "version": "Current: {version}. Use e.g. v1.1 for minor changes, v2.0 for major.",
+      "changeComment": "Briefly describe what changed (required for traceability)"
+    },
+    "selectedFile": "Selected: {name} ({size} KB)",
+    "important": {
+      "title": "⚠️ Important",
+      "i1": "Document gets status <strong>DRAFT</strong> and must be approved again",
+      "i2": "Old version is stored permanently in history",
+      "i3": "Change comment is <strong>required</strong> (HSE compliance)"
+    },
+    "actions": {
+      "uploading": "Uploading...",
+      "upload": "Upload new version",
+      "cancel": "Cancel"
+    },
+    "toasts": {
+      "uploaded": {
+        "title": "🔄 New version uploaded",
+        "description": "Document must be approved again before use"
+      },
+      "uploadFailed": {
+        "title": "Upload failed",
+        "description": "Could not upload new version"
+      },
+      "unexpected": {
+        "title": "Unexpected error",
+        "description": "Something went wrong while uploading new version"
+      }
+    }
   }
 }
 

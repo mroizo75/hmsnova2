@@ -1,16 +1,20 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
-import { getRuhCategoryLabel, getRuhStatusLabel } from "@/features/ruh/schemas/ruh.schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileWarning, Plus, Clock, CheckCircle, Search } from "lucide-react";
 import Link from "next/link";
+import { RuhCategory } from "@prisma/client";
 
 export default async function AnsattRuh() {
   const session = await getServerSession(authOptions);
+  const t = await getTranslations("employeeRuhPage");
+  const locale = await getLocale();
+  const dateLocale = locale === "en" ? "en-US" : "nb-NO";
 
   if (!session?.user?.tenantId) {
     redirect("/login");
@@ -31,22 +35,45 @@ export default async function AnsattRuh() {
   const underReviewCount = myReports.filter((r) => r.status === "UNDER_REVIEW").length;
   const completedCount = myReports.filter((r) => r.status === "COMPLETED").length;
 
+  const getCategoryLabel = (category: RuhCategory): string => {
+    switch (category) {
+      case "PERSONSKADE":
+        return t("categories.PERSONSKADE");
+      case "NESTENULYKKE":
+        return t("categories.NESTENULYKKE");
+      case "MATERIELL_SKADE":
+        return t("categories.MATERIELL_SKADE");
+      case "BRANN_EKSPLOSJON":
+        return t("categories.BRANN_EKSPLOSJON");
+      case "UTSLIPP_MILJO":
+        return t("categories.UTSLIPP_MILJO");
+      case "TRUSLER_VOLD":
+        return t("categories.TRUSLER_VOLD");
+      case "ERGONOMI":
+        return t("categories.ERGONOMI");
+      case "ANNET":
+        return t("categories.ANNET");
+      default:
+        return t("categories.ANNET");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
             <FileWarning className="h-7 w-7 text-amber-600" />
-            Mine RUH-rapporter
+            {t("title")}
           </h1>
           <p className="text-muted-foreground">
-            Rapport om uønskede hendelser
+            {t("description")}
           </p>
         </div>
         <Link href="/ansatt/ruh/ny">
           <Button size="lg" className="h-12">
             <Plus className="h-5 w-5 mr-2" />
-            Ny rapport
+            {t("newReport")}
           </Button>
         </Link>
       </div>
@@ -56,7 +83,7 @@ export default async function AnsattRuh() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">Innsendt</p>
+                <p className="text-xs text-muted-foreground">{t("stats.submitted")}</p>
                 <p className="text-2xl font-bold">{submittedCount}</p>
               </div>
               <Clock className="h-8 w-8 text-yellow-500" />
@@ -68,7 +95,7 @@ export default async function AnsattRuh() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">Behandles</p>
+                <p className="text-xs text-muted-foreground">{t("stats.underReview")}</p>
                 <p className="text-2xl font-bold">{underReviewCount}</p>
               </div>
               <Search className="h-8 w-8 text-blue-500" />
@@ -80,7 +107,7 @@ export default async function AnsattRuh() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">Ferdig</p>
+                <p className="text-xs text-muted-foreground">{t("stats.completed")}</p>
                 <p className="text-2xl font-bold">{completedCount}</p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-500" />
@@ -92,29 +119,27 @@ export default async function AnsattRuh() {
       <Card className="border-l-4 border-l-blue-500 bg-blue-50">
         <CardContent className="p-4">
           <p className="text-sm text-blue-900">
-            <strong>Hva er RUH?</strong> En RUH (Rapport om Uønsket Hendelse) brukes til å rapportere
-            hendelser som kunne ha ført til, eller førte til, personskade, materiell skade eller
-            miljøskade. Ved å rapportere bidrar du til et tryggere arbeidsmiljø.
+            <strong>{t("info.title")}</strong> {t("info.description")}
           </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Mine rapporter ({myReports.length})</CardTitle>
+          <CardTitle>{t("reports.title", { count: myReports.length })}</CardTitle>
         </CardHeader>
         <CardContent>
           {myReports.length === 0 ? (
             <div className="text-center py-12">
               <FileWarning className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Ingen rapporter ennå</h3>
+              <h3 className="text-lg font-semibold mb-2">{t("reports.empty.title")}</h3>
               <p className="text-muted-foreground mb-4">
-                Du har ikke sendt inn noen RUH-rapporter ennå.
+                {t("reports.empty.description")}
               </p>
               <Link href="/ansatt/ruh/ny">
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
-                  Send din første rapport
+                  {t("reports.empty.cta")}
                 </Button>
               </Link>
             </div>
@@ -126,21 +151,21 @@ export default async function AnsattRuh() {
                   case "SUBMITTED":
                     statusBadge = (
                       <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
-                        Innsendt
+                        {t("status.submitted")}
                       </Badge>
                     );
                     break;
                   case "UNDER_REVIEW":
                     statusBadge = (
                       <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
-                        Under behandling
+                        {t("status.underReview")}
                       </Badge>
                     );
                     break;
                   case "COMPLETED":
                     statusBadge = (
                       <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
-                        Behandlet
+                        {t("status.completed")}
                       </Badge>
                     );
                     break;
@@ -165,20 +190,20 @@ export default async function AnsattRuh() {
                         <div className="flex flex-wrap items-center gap-2 mb-2">
                           {statusBadge}
                           <Badge variant="secondary" className="text-xs">
-                            {getRuhCategoryLabel(report.category)}
+                            {getCategoryLabel(report.category)}
                           </Badge>
                           {report.injuryOccurred && (
                             <Badge variant="destructive" className="text-xs">
-                              Personskade
+                              {t("injuryOccurred")}
                             </Badge>
                           )}
                         </div>
 
                         <div className="text-xs text-muted-foreground space-y-1">
-                          {report.location && <p>Sted: {report.location}</p>}
+                          {report.location && <p>{t("location", { location: report.location })}</p>}
                           <p>
-                            Hendelsesdato:{" "}
-                            {new Date(report.occurredAt).toLocaleDateString("nb-NO", {
+                            {t("occurredAtLabel")}{" "}
+                            {new Date(report.occurredAt).toLocaleDateString(dateLocale, {
                               day: "numeric",
                               month: "short",
                               year: "numeric",

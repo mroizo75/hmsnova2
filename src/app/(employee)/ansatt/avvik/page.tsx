@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { getLocale, getTranslations } from "next-intl/server";
 import { getIncidentStatusLabel } from "@/features/incidents/schemas/incident.schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +12,8 @@ import Link from "next/link";
 
 export default async function AnsattAvvik() {
   const session = await getServerSession(authOptions);
+  const t = await getTranslations("employeeIncidentsPage");
+  const locale = await getLocale();
 
   if (!session?.user?.tenantId) {
     redirect("/login");
@@ -64,16 +67,16 @@ export default async function AnsattAvvik() {
         <div>
           <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
             <AlertCircle className="h-7 w-7 text-red-600" />
-            Mine avvik
+            {t("header.title")}
           </h1>
           <p className="text-muted-foreground">
-            Oversikt over dine rapporterte avvik
+            {t("header.description")}
           </p>
         </div>
         <Link href="/ansatt/avvik/ny">
           <Button size="lg" className="h-12">
             <Plus className="h-5 w-5 mr-2" />
-            Rapporter nytt
+            {t("header.newReport")}
           </Button>
         </Link>
       </div>
@@ -84,7 +87,7 @@ export default async function AnsattAvvik() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">Rapportert</p>
+                <p className="text-xs text-muted-foreground">{t("stats.reported")}</p>
                 <p className="text-2xl font-bold">{openCount}</p>
               </div>
               <Clock className="h-8 w-8 text-yellow-500" />
@@ -96,7 +99,7 @@ export default async function AnsattAvvik() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">Undersøkes</p>
+                <p className="text-xs text-muted-foreground">{t("stats.underReview")}</p>
                 <p className="text-2xl font-bold">{investigatingCount}</p>
               </div>
               <AlertCircle className="h-8 w-8 text-blue-500" />
@@ -108,7 +111,7 @@ export default async function AnsattAvvik() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">Lukket</p>
+                <p className="text-xs text-muted-foreground">{t("stats.closed")}</p>
                 <p className="text-2xl font-bold">{closedCount}</p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-500" />
@@ -121,8 +124,7 @@ export default async function AnsattAvvik() {
       <Card className="border-l-4 border-l-blue-500 bg-blue-50">
         <CardContent className="p-4">
           <p className="text-sm text-blue-900">
-            <strong>💡 Tips:</strong> Du kan se status på dine rapporter her. 
-            HMS-ansvarlig vil behandle avviket. Avvik skal lukkes når tiltak er gjennomført og effekt er verifisert (ISO 9001/45001 kap. 10.2). Du får beskjed når avviket er lukket.
+            <strong>{t("tip.title")}</strong> {t("tip.description")}
           </p>
         </CardContent>
       </Card>
@@ -130,20 +132,20 @@ export default async function AnsattAvvik() {
       {/* Avviksliste */}
       <Card>
         <CardHeader>
-          <CardTitle>Mine rapporter ({myIncidents.length})</CardTitle>
+          <CardTitle>{t("list.title", { count: myIncidents.length })}</CardTitle>
         </CardHeader>
         <CardContent>
           {myIncidents.length === 0 ? (
             <div className="text-center py-12">
               <AlertCircle className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Ingen rapporter ennå</h3>
+              <h3 className="text-lg font-semibold mb-2">{t("list.emptyTitle")}</h3>
               <p className="text-muted-foreground mb-4">
-                Du har ikke rapportert noen avvik ennå.
+                {t("list.emptyDescription")}
               </p>
               <Link href="/ansatt/avvik/ny">
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
-                  Rapporter første avvik
+                  {t("list.emptyCta")}
                 </Button>
               </Link>
             </div>
@@ -156,7 +158,7 @@ export default async function AnsattAvvik() {
                   case "REPORTED":
                     statusBadge = (
                       <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
-                        🕐 Rapportert
+                        {t("badges.reported")}
                       </Badge>
                     );
                     break;
@@ -164,7 +166,7 @@ export default async function AnsattAvvik() {
                   case "ROOT_CAUSE":
                     statusBadge = (
                       <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
-                        🔍 Undersøkes
+                        {t("badges.underReview")}
                       </Badge>
                     );
                     break;
@@ -172,14 +174,14 @@ export default async function AnsattAvvik() {
                   case "ACTIONS_COMPLETE":
                     statusBadge = (
                       <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-300">
-                        🛠 Tiltak
+                        {t("badges.actions")}
                       </Badge>
                     );
                     break;
                   case "VERIFIED":
                     statusBadge = (
                       <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
-                        ✓ Lukket
+                        {t("badges.closed")}
                       </Badge>
                     );
                     break;
@@ -195,26 +197,26 @@ export default async function AnsattAvvik() {
                 let typeBadge;
                 switch (incident.type) {
                   case "AVVIK":
-                    typeBadge = "⚠️ Avvik";
+                    typeBadge = t("type.AVVIK");
                     break;
                   case "NESTEN":
-                    typeBadge = "🟡 Nestenulykke";
+                    typeBadge = t("type.NESTEN");
                     break;
                   case "ULYKKE":
                   case "SKADE":
-                    typeBadge = "🔴 Skade";
+                    typeBadge = t("type.SKADE");
                     break;
                   case "FARLIG_SITUASJON":
-                    typeBadge = "🟠 Farlig situasjon";
+                    typeBadge = t("type.FARLIG_SITUASJON");
                     break;
                   case "YRKESSYKDOM":
-                    typeBadge = "🩺 Yrkessykdom";
+                    typeBadge = t("type.YRKESSYKDOM");
                     break;
                   case "MILJO":
-                    typeBadge = "🌍 Miljø";
+                    typeBadge = t("type.MILJO");
                     break;
                   case "KVALITET":
-                    typeBadge = "📋 Kvalitet";
+                    typeBadge = t("type.KVALITET");
                     break;
                   default:
                     typeBadge = incident.type;
@@ -247,22 +249,27 @@ export default async function AnsattAvvik() {
                             {typeBadge}
                           </Badge>
                           <Badge variant="secondary" className={`text-xs ${severityColor}`}>
-                            Alvorlighet: {incident.severity}
+                            {t("badges.severity", { severity: incident.severity })}
                           </Badge>
                         </div>
 
                         {/* Info */}
                         <div className="text-xs text-muted-foreground space-y-1">
                           {incident.location && (
-                            <p>📍 Sted: {incident.location}</p>
+                            <p>{t("list.location", { location: incident.location })}</p>
                           )}
                           <p>
-                            🕐 Rapportert: {new Date(incident.occurredAt).toLocaleDateString("nb-NO", {
+                            {t("list.reportedAt", {
+                              date: new Date(incident.occurredAt).toLocaleDateString(
+                                locale === "en" ? "en-US" : "nb-NO",
+                                {
                               day: "numeric",
                               month: "short",
                               year: "numeric",
                               hour: "2-digit",
                               minute: "2-digit",
+                                }
+                              ),
                             })}
                           </p>
                         </div>
@@ -301,17 +308,17 @@ export default async function AnsattAvvik() {
       {/* Hjelp */}
       <Card className="border-l-4 border-l-blue-500 bg-blue-50">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg">📚 Status-forklaring</CardTitle>
+          <CardTitle className="text-lg">{t("statusHelp.title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-blue-900">
           <div>
-            <strong>🕐 Rapportert:</strong> Avviket er mottatt og venter på behandling.
+            <strong>{t("statusHelp.reportedLabel")}</strong> {t("statusHelp.reportedText")}
           </div>
           <div>
-            <strong>🔍 Undersøkes:</strong> HMS-ansvarlig jobber med saken.
+            <strong>{t("statusHelp.underReviewLabel")}</strong> {t("statusHelp.underReviewText")}
           </div>
           <div>
-            <strong>✓ Lukket:</strong> Avviket er behandlet og tiltak er gjennomført.
+            <strong>{t("statusHelp.closedLabel")}</strong> {t("statusHelp.closedText")}
           </div>
         </CardContent>
       </Card>
@@ -323,11 +330,10 @@ export default async function AnsattAvvik() {
             <AlertCircle className="h-8 w-8 text-red-600 flex-shrink-0" />
             <div>
               <p className="text-sm font-semibold text-red-900 mb-1">
-                🚨 Ved akutt fare
+                {t("emergency.title")}
               </p>
               <p className="text-xs text-red-800">
-                Ring 110 (brann), 112 (politi) eller 113 (ambulanse) FØRST!
-                Rapporter deretter avviket her.
+                {t("emergency.description")}
               </p>
             </div>
           </div>

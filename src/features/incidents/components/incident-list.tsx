@@ -17,27 +17,27 @@ import { Eye, Trash2, Calendar } from "lucide-react";
 import Link from "next/link";
 import { deleteIncident } from "@/server/actions/incident.actions";
 import {
-  getIncidentTypeLabel,
   getIncidentTypeColor,
   getSeverityInfo,
-  getIncidentStatusLabel,
   getIncidentStatusColor,
-  getIncidentStageLabel,
 } from "@/features/incidents/schemas/incident.schema";
 import { useToast } from "@/hooks/use-toast";
 import type { Incident, Measure } from "@prisma/client";
+import { useLocale, useTranslations } from "next-intl";
 
 interface IncidentListProps {
   incidents: (Incident & { measures: Measure[]; risk?: { id: string; title: string; category: string | null } | null })[];
 }
 
 export function IncidentList({ incidents }: IncidentListProps) {
+  const t = useTranslations("dashboardIncidentList");
+  const locale = useLocale();
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
 
   const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Er du sikker på at du vil slette "${title}"?\n\nDette kan ikke angres.`)) {
+    if (!confirm(t("confirmDelete", { title }))) {
       return;
     }
 
@@ -46,22 +46,22 @@ export function IncidentList({ incidents }: IncidentListProps) {
 
     if (result.success) {
       toast({
-        title: "🗑️ Avvik slettet",
-        description: `"${title}" er fjernet`,
+        title: t("toasts.deleted.title"),
+        description: t("toasts.deleted.description", { title }),
       });
       router.refresh();
     } else {
       toast({
         variant: "destructive",
-        title: "Feil",
-        description: result.error || "Kunne ikke slette avvik",
+        title: t("toasts.error.title"),
+        description: result.error || t("toasts.error.description"),
       });
     }
     setLoading(null);
   };
 
   const formatDate = (date: Date | string) => {
-    return new Date(date).toLocaleDateString("no-NO", {
+    return new Date(date).toLocaleDateString(locale === "en" ? "en-US" : "nb-NO", {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -80,7 +80,7 @@ export function IncidentList({ incidents }: IncidentListProps) {
   if (incidents.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
-        <p>Ingen avvik registrert</p>
+        <p>{t("empty")}</p>
       </div>
     );
   }
@@ -92,26 +92,27 @@ export function IncidentList({ incidents }: IncidentListProps) {
         <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[100px]">Nr</TableHead>
-            <TableHead>Avvik</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead className="text-center">Alvorlighet</TableHead>
-            <TableHead>Stage</TableHead>
-            <TableHead>Skade</TableHead>
-            <TableHead>Dato</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-center">Tiltak</TableHead>
-            <TableHead className="text-right">Handlinger</TableHead>
+            <TableHead className="w-[100px]">{t("table.number")}</TableHead>
+            <TableHead>{t("table.incident")}</TableHead>
+            <TableHead>{t("table.type")}</TableHead>
+            <TableHead className="text-center">{t("table.severity")}</TableHead>
+            <TableHead>{t("table.stage")}</TableHead>
+            <TableHead>{t("table.injury")}</TableHead>
+            <TableHead>{t("table.date")}</TableHead>
+            <TableHead>{t("table.status")}</TableHead>
+            <TableHead className="text-center">{t("table.measures")}</TableHead>
+            <TableHead className="text-right">{t("table.actions")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {incidents.map((incident) => {
-            const typeLabel = getIncidentTypeLabel(incident.type);
+            const typeLabel = t(`types.${incident.type}`);
             const typeColor = getIncidentTypeColor(incident.type);
-            const { label: severityLabel, bgColor: severityColor, textColor: severityTextColor } = getSeverityInfo(incident.severity);
-            const statusLabel = getIncidentStatusLabel(incident.status);
+            const { bgColor: severityColor, textColor: severityTextColor } = getSeverityInfo(incident.severity);
+            const severityLabel = t(`severity.${incident.severity}`);
+            const statusLabel = t(`status.${incident.status}`);
             const statusColor = getIncidentStatusColor(incident.status);
-            const stageLabel = getIncidentStageLabel(incident.stage as any);
+            const stageLabel = t(`stage.${incident.stage}`);
             const stageColor = stageColors[incident.stage] || stageColors.REPORTED;
             const completedMeasures = incident.measures.filter(m => m.status === "DONE").length;
             const totalMeasures = incident.measures.length;
@@ -129,12 +130,12 @@ export function IncidentList({ incidents }: IncidentListProps) {
                     </div>
                     {incident.risk && (
                       <div className="text-xs text-muted-foreground">
-                        Risiko: {incident.risk.title}
+                        {t("risk")}: {incident.risk.title}
                       </div>
                     )}
                 {incident.type === "CUSTOMER" && (
                   <div className="text-xs text-purple-800 space-y-1">
-                    <div>Kunde: {incident.customerName || "Ukjent"}</div>
+                    <div>{t("customer.label")}: {incident.customerName || t("customer.unknown")}</div>
                     {(incident.customerEmail || incident.customerPhone) && (
                       <div>
                         {incident.customerEmail && <span>{incident.customerEmail}</span>}
@@ -143,23 +144,23 @@ export function IncidentList({ incidents }: IncidentListProps) {
                       </div>
                     )}
                     {typeof incident.customerSatisfaction === "number" && (
-                      <div>Tilfredshet {incident.customerSatisfaction}/5</div>
+                      <div>{t("customer.satisfaction", { value: incident.customerSatisfaction })}</div>
                     )}
                     {incident.responseDeadline && (
-                      <div>Frist {formatDate(incident.responseDeadline)}</div>
+                      <div>{t("customer.deadline", { date: formatDate(incident.responseDeadline) })}</div>
                     )}
                   </div>
                 )}
                     {incident.type === "CUSTOMER" && (
                       <div className="text-xs text-purple-800 space-x-1 mt-1">
-                        <span>Kunde: {incident.customerName || "Ukjent"}</span>
+                        <span>{t("customer.label")}: {incident.customerName || t("customer.unknown")}</span>
                         {incident.customerEmail && <span>• {incident.customerEmail}</span>}
                         {incident.customerPhone && <span>• {incident.customerPhone}</span>}
                         {typeof incident.customerSatisfaction === "number" && (
-                          <span>• Tilfredshet {incident.customerSatisfaction}/5</span>
+                          <span>• {t("customer.satisfaction", { value: incident.customerSatisfaction })}</span>
                         )}
                         {incident.responseDeadline && (
-                          <span>• Frist {formatDate(incident.responseDeadline)}</span>
+                          <span>• {t("customer.deadline", { date: formatDate(incident.responseDeadline) })}</span>
                         )}
                       </div>
                     )}
@@ -180,11 +181,11 @@ export function IncidentList({ incidents }: IncidentListProps) {
                   <div className="text-sm space-y-1">
                     <div>{incident.injuryType || "Ingen skade registrert"}</div>
                     <div className="text-xs text-muted-foreground">
-                      {incident.medicalAttentionRequired ? "Legebehandling" : "Ingen legebehandling"}
+                      {incident.medicalAttentionRequired ? t("injury.medicalTreatment") : t("injury.noMedicalTreatment")}
                     </div>
                     {typeof incident.lostTimeMinutes === "number" && (
                       <div className="text-xs text-muted-foreground">
-                        Tapt tid: {incident.lostTimeMinutes} min
+                        {t("injury.lostTimeMinutes", { minutes: incident.lostTimeMinutes })}
                       </div>
                     )}
                   </div>
@@ -201,7 +202,7 @@ export function IncidentList({ incidents }: IncidentListProps) {
                       {completedMeasures}/{totalMeasures}
                     </span>
                   ) : (
-                    <span className="text-muted-foreground text-sm">-</span>
+                    <span className="text-muted-foreground text-sm">{t("dash")}</span>
                   )}
                 </TableCell>
                 <TableCell className="text-right">
@@ -231,12 +232,12 @@ export function IncidentList({ incidents }: IncidentListProps) {
       {/* Mobile - Kort */}
       <div className="md:hidden space-y-3">
         {incidents.map((incident) => {
-          const typeLabel = getIncidentTypeLabel(incident.type);
+          const typeLabel = t(`types.${incident.type}`);
           const typeColor = getIncidentTypeColor(incident.type);
-          const { label: severityLabel, bgColor: severityColor, textColor: severityTextColor } = getSeverityInfo(incident.severity);
-          const statusLabel = getIncidentStatusLabel(incident.status);
+          const { bgColor: severityColor, textColor: severityTextColor } = getSeverityInfo(incident.severity);
+          const statusLabel = t(`status.${incident.status}`);
           const statusColor = getIncidentStatusColor(incident.status);
-          const stageLabel = getIncidentStageLabel(incident.stage as any);
+          const stageLabel = t(`stage.${incident.stage}`);
           const stageColor = stageColors[incident.stage] || stageColors.REPORTED;
           const completedMeasures = incident.measures.filter(m => m.status === "DONE").length;
           const totalMeasures = incident.measures.length;
@@ -270,14 +271,14 @@ export function IncidentList({ incidents }: IncidentListProps) {
 
                   {incident.risk && (
                     <div className="text-xs text-muted-foreground">
-                      Risiko: {incident.risk.title}
+                      {t("risk")}: {incident.risk.title}
                     </div>
                   )}
 
                   <div className="text-xs text-muted-foreground">
-                    {incident.injuryType || "Ingen skade registrert"} ·{" "}
-                    {incident.medicalAttentionRequired ? "Legebehandling" : "Ingen legebehandling"}
-                    {typeof incident.lostTimeMinutes === "number" && ` · ${incident.lostTimeMinutes} min tap`}
+                    {incident.injuryType || t("injury.noneRegistered")} ·{" "}
+                    {incident.medicalAttentionRequired ? t("injury.medicalTreatment") : t("injury.noMedicalTreatment")}
+                    {typeof incident.lostTimeMinutes === "number" && ` · ${t("injury.minutesLostShort", { minutes: incident.lostTimeMinutes })}`}
                   </div>
 
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
@@ -287,7 +288,7 @@ export function IncidentList({ incidents }: IncidentListProps) {
                     </div>
                     {totalMeasures > 0 && (
                       <span>
-                        Tiltak: {completedMeasures}/{totalMeasures}
+                        {t("measuresLabel", { completed: completedMeasures, total: totalMeasures })}
                       </span>
                     )}
                   </div>
@@ -296,7 +297,7 @@ export function IncidentList({ incidents }: IncidentListProps) {
                     <Button variant="outline" size="sm" className="flex-1" asChild>
                       <Link href={`/dashboard/incidents/${incident.id}`}>
                         <Eye className="h-4 w-4 mr-2" />
-                        Se detaljer
+                        {t("actions.viewDetails")}
                       </Link>
                     </Button>
                     <Button

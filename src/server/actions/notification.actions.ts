@@ -287,3 +287,37 @@ export async function notifyUsersByRole(
   }
 }
 
+export async function notifyUsersByRoles(
+  tenantId: string,
+  roles: Array<Role | string>,
+  notification: Omit<CreateNotificationInput, "tenantId" | "userId">
+) {
+  try {
+    const normalizedRoles = Array.from(new Set(roles)) as Role[];
+    const users = await prisma.userTenant.findMany({
+      where: {
+        tenantId,
+        role: { in: normalizedRoles },
+      },
+      select: {
+        userId: true,
+      },
+      distinct: ["userId"],
+    });
+
+    const promises = users.map((ut) =>
+      createNotification({
+        tenantId,
+        userId: ut.userId,
+        ...notification,
+      })
+    );
+
+    await Promise.all(promises);
+    return { success: true };
+  } catch (error: any) {
+    console.error("Notify users by roles error:", error);
+    return { success: false, error: error.message };
+  }
+}
+

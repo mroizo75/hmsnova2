@@ -50,6 +50,11 @@ export interface RolePermissions {
   canFillForms: boolean;
   canCreateForms: boolean;
   canManageForms: boolean;
+
+  // Rutiner
+  canReadRoutines: boolean;
+  canCreateRoutines: boolean;
+  canManageRoutines: boolean;
   
   // Stoffkartotek
   canReadChemicals: boolean;
@@ -174,6 +179,9 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canFillForms: true,
     canCreateForms: true,
     canManageForms: true,
+    canReadRoutines: true,
+    canCreateRoutines: true,
+    canManageRoutines: true,
     canReadChemicals: true,
     canCreateChemicals: true,
     canUpdateChemicals: true,
@@ -260,6 +268,9 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canFillForms: true,
     canCreateForms: true,
     canManageForms: true,
+    canReadRoutines: true,
+    canCreateRoutines: true,
+    canManageRoutines: true,
     canReadChemicals: true,
     canCreateChemicals: true,
     canUpdateChemicals: true,
@@ -346,6 +357,9 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canFillForms: true,
     canCreateForms: true,
     canManageForms: true,
+    canReadRoutines: true,
+    canCreateRoutines: true,
+    canManageRoutines: true,
     canReadChemicals: true,
     canCreateChemicals: true,
     canUpdateChemicals: true,
@@ -432,6 +446,9 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canFillForms: true,
     canCreateForms: false,
     canManageForms: false,
+    canReadRoutines: true,
+    canCreateRoutines: false,
+    canManageRoutines: false,
     canReadChemicals: true,
     canCreateChemicals: false,
     canUpdateChemicals: false,
@@ -518,6 +535,9 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canFillForms: true,
     canCreateForms: false,
     canManageForms: false,
+    canReadRoutines: true,
+    canCreateRoutines: false,
+    canManageRoutines: false,
     canReadChemicals: true,
     canCreateChemicals: false,
     canUpdateChemicals: false,
@@ -604,6 +624,9 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canFillForms: true,
     canCreateForms: false,
     canManageForms: false,
+    canReadRoutines: true,
+    canCreateRoutines: false,
+    canManageRoutines: false,
     canReadChemicals: true,
     canCreateChemicals: false,
     canUpdateChemicals: false,
@@ -690,6 +713,9 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canFillForms: false,
     canCreateForms: false,
     canManageForms: false,
+    canReadRoutines: true,
+    canCreateRoutines: false,
+    canManageRoutines: false,
     canReadChemicals: true,
     canCreateChemicals: false,
     canUpdateChemicals: false,
@@ -774,6 +800,7 @@ export function getVisibleNavItems(role: Role) {
     dashboard: perms.canAccessDashboard,
     documents: perms.canReadDocuments,
     forms: perms.canReadForms,
+    routines: perms.canReadRoutines,
     risks: perms.canReadRisks,
     riskRegister: perms.canReadRisks,
     incidents: perms.canReadIncidents || perms.canCreateIncidents,

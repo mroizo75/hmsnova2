@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { FormFiller } from "@/components/forms/form-filler";
+import { tenantCanUseGlobalFormTemplate } from "@/lib/form-template-industry";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ShieldX } from "lucide-react";
 import Link from "next/link";
@@ -42,11 +43,17 @@ export default async function FillFormPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ inspectionId?: string; returnUrl?: string; projectId?: string }>;
+  searchParams: Promise<{
+    inspectionId?: string;
+    returnUrl?: string;
+    projectId?: string;
+    allTemplates?: string;
+  }>;
 }) {
   const session = await getServerSession(authOptions);
   const { id } = await params;
-  const { inspectionId, returnUrl: returnUrlParam, projectId } = await searchParams;
+  const { inspectionId, returnUrl: returnUrlParam, projectId, allTemplates } = await searchParams;
+  const allTemplatesView = allTemplates === "1";
 
   if (!session?.user?.tenantId) {
     redirect("/login");
@@ -90,6 +97,24 @@ export default async function FillFormPage({
       <AccessDenied
         title="Feil virksomhet"
         message="Dette skjemaet tilhører en annen virksomhet enn din aktive sesjon."
+        returnUrl={returnUrl}
+      />
+    );
+  }
+
+  const tenantRow = await prisma.tenant.findUnique({
+    where: { id: session.user.tenantId },
+    select: { industry: true },
+  });
+  if (
+    !tenantCanUseGlobalFormTemplate(form, tenantRow?.industry ?? null, {
+      allTemplatesView,
+    })
+  ) {
+    return (
+      <AccessDenied
+        title="Skjemaet passer ikke til bransjen"
+        message="Dette eksempelskjemaet er ikke knyttet til virksomhetens bransje. Gå til skjemaer og bruk «Vis alle maler» om du likevel skal bruke det."
         returnUrl={returnUrl}
       />
     );
@@ -176,6 +201,7 @@ export default async function FillFormPage({
       inspectionId={inspectionId}
       projects={projects}
       initialProjectId={projectId}
+      industryScopeBypass={allTemplatesView}
     />
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -24,6 +25,7 @@ interface SjaDeleteTemplateButtonProps {
 }
 
 export function SjaDeleteTemplateButton({ templateId, templateName }: SjaDeleteTemplateButtonProps) {
+  const t = useTranslations("employeeSjaDeleteTemplateButton");
   const router = useRouter();
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
@@ -38,15 +40,15 @@ export function SjaDeleteTemplateButton({ templateId, templateName }: SjaDeleteT
       }
 
       toast({
-        title: "Mal slettet",
-        description: `Malen "${templateName}" er fjernet.`,
+        title: t("toast.success.title"),
+        description: t("toast.success.description", { templateName }),
       });
 
       router.refresh();
     } catch (error: any) {
       toast({
-        title: "Feil",
-        description: error.message || "Kunne ikke slette malen.",
+        title: t("toast.error.title"),
+        description: error.message || t("toast.error.description"),
         variant: "destructive",
       });
     } finally {
@@ -63,15 +65,13 @@ export function SjaDeleteTemplateButton({ templateId, templateName }: SjaDeleteT
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Slett SJA-mal?</AlertDialogTitle>
+          <AlertDialogTitle>{t("dialog.title")}</AlertDialogTitle>
           <AlertDialogDescription>
-            Er du sikker på at du vil slette malen &quot;{templateName}&quot;? Malen vil ikke lenger
-            være tilgjengelig for ansatte. Eksisterende SJA-er som er opprettet fra denne malen
-            påvirkes ikke.
+            {t("dialog.description", { templateName })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Avbryt</AlertDialogCancel>
+          <AlertDialogCancel>{t("dialog.cancel")}</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleDelete}
             disabled={isDeleting}
@@ -82,7 +82,7 @@ export function SjaDeleteTemplateButton({ templateId, templateName }: SjaDeleteT
             ) : (
               <Trash2 className="h-4 w-4 mr-2" />
             )}
-            Slett mal
+            {t("dialog.confirm")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

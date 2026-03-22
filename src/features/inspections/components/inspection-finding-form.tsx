@@ -24,6 +24,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Upload, X } from "lucide-react";
 import { format } from "date-fns";
+import { useTranslations } from "next-intl";
 
 interface User {
   id: string;
@@ -37,6 +38,7 @@ interface InspectionFindingFormProps {
 }
 
 export function InspectionFindingForm({ inspectionId, users }: InspectionFindingFormProps) {
+  const t = useTranslations("dashboardInspectionComponents.findingForm");
   const router = useRouter();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -64,19 +66,19 @@ export function InspectionFindingForm({ inspectionId, users }: InspectionFinding
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.message || "Kunne ikke laste opp bilde");
+          throw new Error(data.message || t("errors.uploadImage"));
         }
 
         setImages((prev) => [...prev, data.data.key]);
       }
 
       toast({
-        title: "Bilde lastet opp",
-        description: "Bildet er nå lagt til funnet",
+        title: t("toasts.imageUploaded.title"),
+        description: t("toasts.imageUploaded.description"),
       });
     } catch (error: any) {
       toast({
-        title: "Feil ved opplasting",
+        title: t("toasts.uploadError.title"),
         description: error.message,
         variant: "destructive",
       });
@@ -95,11 +97,11 @@ export function InspectionFindingForm({ inspectionId, users }: InspectionFinding
 
       setImages((prev) => prev.filter((key) => key !== imageKey));
       toast({
-        title: "Bilde fjernet",
+        title: t("toasts.imageRemoved"),
       });
     } catch (error) {
       toast({
-        title: "Kunne ikke fjerne bilde",
+        title: t("toasts.removeImageError"),
         variant: "destructive",
       });
     }
@@ -130,12 +132,12 @@ export function InspectionFindingForm({ inspectionId, users }: InspectionFinding
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.message || "Kunne ikke opprette funn");
+        throw new Error(result.message || t("errors.create"));
       }
 
       toast({
-        title: "Funn opprettet",
-        description: "Funnet er nå registrert",
+        title: t("toasts.created.title"),
+        description: t("toasts.created.description"),
       });
 
       setOpen(false);
@@ -143,7 +145,7 @@ export function InspectionFindingForm({ inspectionId, users }: InspectionFinding
       router.refresh();
     } catch (error: any) {
       toast({
-        title: "Feil",
+        title: t("toasts.error.title"),
         description: error.message,
         variant: "destructive",
       });
@@ -157,37 +159,37 @@ export function InspectionFindingForm({ inspectionId, users }: InspectionFinding
       <DialogTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
-          Legg til funn
+          {t("actions.add")}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Registrer nytt funn</DialogTitle>
+          <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>
-            Dokumenter avvik, observasjoner eller forbedringsområder fra inspeksjonen
+            {t("description")}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="title">
-              Tittel <span className="text-destructive">*</span>
+              {t("fields.title")} <span className="text-destructive">*</span>
             </Label>
             <Input
               id="title"
               name="title"
-              placeholder="F.eks. Manglende verneutstyr"
+              placeholder={t("placeholders.title")}
               required
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="description">
-              Beskrivelse <span className="text-destructive">*</span>
+              {t("fields.description")} <span className="text-destructive">*</span>
             </Label>
             <Textarea
               id="description"
               name="description"
-              placeholder="Beskriv funnet i detalj..."
+              placeholder={t("placeholders.description")}
               rows={4}
               required
             />
@@ -196,38 +198,38 @@ export function InspectionFindingForm({ inspectionId, users }: InspectionFinding
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="severity">
-                Alvorlighetsgrad <span className="text-destructive">*</span>
+                {t("fields.severity")} <span className="text-destructive">*</span>
               </Label>
               <Select name="severity" required>
                 <SelectTrigger>
-                  <SelectValue placeholder="Velg alvorlighetsgrad" />
+                  <SelectValue placeholder={t("placeholders.selectSeverity")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1">1 - Lav</SelectItem>
-                  <SelectItem value="2">2 - Moderat</SelectItem>
-                  <SelectItem value="3">3 - Betydelig</SelectItem>
-                  <SelectItem value="4">4 - Alvorlig</SelectItem>
-                  <SelectItem value="5">5 - Kritisk</SelectItem>
+                  <SelectItem value="1">{t("severity.s1")}</SelectItem>
+                  <SelectItem value="2">{t("severity.s2")}</SelectItem>
+                  <SelectItem value="3">{t("severity.s3")}</SelectItem>
+                  <SelectItem value="4">{t("severity.s4")}</SelectItem>
+                  <SelectItem value="5">{t("severity.s5")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="location">Lokasjon</Label>
+              <Label htmlFor="location">{t("fields.location")}</Label>
               <Input
                 id="location"
                 name="location"
-                placeholder="F.eks. Produksjonshall A"
+                placeholder={t("placeholders.location")}
               />
             </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="responsibleId">Ansvarlig for oppfølging</Label>
+              <Label htmlFor="responsibleId">{t("fields.responsible")}</Label>
               <Select name="responsibleId">
                 <SelectTrigger>
-                  <SelectValue placeholder="Velg ansvarlig" />
+                  <SelectValue placeholder={t("placeholders.selectResponsible")} />
                 </SelectTrigger>
                 <SelectContent>
                   {users.map((user) => (
@@ -240,7 +242,7 @@ export function InspectionFindingForm({ inspectionId, users }: InspectionFinding
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="dueDate">Frist for lukking</Label>
+              <Label htmlFor="dueDate">{t("fields.dueDate")}</Label>
               <Input
                 id="dueDate"
                 name="dueDate"
@@ -252,7 +254,7 @@ export function InspectionFindingForm({ inspectionId, users }: InspectionFinding
 
           {/* Image Upload */}
           <div className="space-y-2">
-            <Label>Bilder</Label>
+            <Label>{t("fields.images")}</Label>
             <div className="border-2 border-dashed rounded-lg p-4">
               <input
                 type="file"
@@ -269,7 +271,7 @@ export function InspectionFindingForm({ inspectionId, users }: InspectionFinding
               >
                 <Upload className="h-8 w-8 text-muted-foreground mb-2" />
                 <p className="text-sm text-muted-foreground">
-                  {uploadingImage ? "Laster opp..." : "Klikk for å laste opp bilder"}
+                  {uploadingImage ? t("actions.uploading") : t("actions.clickUpload")}
                 </p>
               </label>
             </div>
@@ -280,7 +282,7 @@ export function InspectionFindingForm({ inspectionId, users }: InspectionFinding
                   <div key={imageKey} className="relative group">
                     <img
                       src={`/api/inspections/images/${imageKey}`}
-                      alt="Opplastet bilde"
+                      alt={t("imageAlt")}
                       className="w-full h-24 object-cover rounded"
                     />
                     <Button
@@ -305,10 +307,10 @@ export function InspectionFindingForm({ inspectionId, users }: InspectionFinding
               onClick={() => setOpen(false)}
               disabled={loading}
             >
-              Avbryt
+              {t("actions.cancel")}
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? "Oppretter..." : "Opprett funn"}
+              {loading ? t("actions.creating") : t("actions.create")}
             </Button>
           </div>
         </form>

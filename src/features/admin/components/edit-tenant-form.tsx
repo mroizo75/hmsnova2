@@ -6,9 +6,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { updateTenant } from "@/server/actions/tenant.actions";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import {
+  SUPPORTED_INDUSTRIES,
+  getIndustryLabel,
+  normalizeIndustryValue,
+} from "@/lib/industry-packages";
 
 interface EditTenantFormProps {
   tenant: {
@@ -33,6 +45,8 @@ export function EditTenantForm({ tenant }: EditTenantFormProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const normalizedIndustry = normalizeIndustryValue(tenant.industry);
+  const [selectedIndustry, setSelectedIndustry] = useState(normalizedIndustry || "other");
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -53,7 +67,7 @@ export function EditTenantForm({ tenant }: EditTenantFormProps) {
       employeeCount: formData.get("employeeCount") 
         ? parseInt(formData.get("employeeCount") as string) 
         : undefined,
-      industry: formData.get("industry") as string || undefined,
+      industry: selectedIndustry || undefined,
       notes: formData.get("notes") as string || undefined,
     };
 
@@ -99,7 +113,9 @@ export function EditTenantForm({ tenant }: EditTenantFormProps) {
           </div>
           <div>
             <Label className="text-muted-foreground">Bransje</Label>
-            <p className="font-medium mt-1">{tenant.industry || "-"}</p>
+            <p className="font-medium mt-1">
+              {tenant.industry ? getIndustryLabel(tenant.industry) : "-"}
+            </p>
           </div>
           <div>
             <Label className="text-muted-foreground">Kontaktperson</Label>
@@ -133,7 +149,13 @@ export function EditTenantForm({ tenant }: EditTenantFormProps) {
             </div>
           )}
         </div>
-        <Button onClick={() => setIsEditing(true)} className="w-full">
+        <Button
+          onClick={() => {
+            setSelectedIndustry(normalizedIndustry || "other");
+            setIsEditing(true);
+          }}
+          className="w-full"
+        >
           Rediger informasjon
         </Button>
       </div>
@@ -186,12 +208,22 @@ export function EditTenantForm({ tenant }: EditTenantFormProps) {
         </div>
         <div>
           <Label htmlFor="industry">Bransje</Label>
-          <Input
-            id="industry"
-            name="industry"
-            defaultValue={tenant.industry || ""}
+          <Select
+            value={selectedIndustry}
+            onValueChange={setSelectedIndustry}
             disabled={isLoading}
-          />
+          >
+            <SelectTrigger id="industry">
+              <SelectValue placeholder="Velg bransje" />
+            </SelectTrigger>
+            <SelectContent>
+              {SUPPORTED_INDUSTRIES.map((industry) => (
+                <SelectItem key={industry.value} value={industry.value}>
+                  {industry.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <Label htmlFor="contactPerson">Kontaktperson</Label>

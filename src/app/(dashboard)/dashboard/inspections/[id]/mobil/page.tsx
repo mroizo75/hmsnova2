@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, CheckCircle, Clock, MapPin } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { getTranslations } from "next-intl/server";
 
 async function getInspection(id: string, tenantId: string) {
   return await db.inspection.findFirst({
@@ -35,6 +36,7 @@ export default async function InspectionMobilePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = await getTranslations("dashboardInspectionMobilePage");
   const { id } = await params;
   const session = await getServerSession(authOptions);
 
@@ -50,10 +52,10 @@ export default async function InspectionMobilePage({
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
-      PLANNED: { label: "Planlagt", variant: "secondary" },
-      IN_PROGRESS: { label: "Pågår", variant: "default" },
-      COMPLETED: { label: "Fullført", variant: "outline" },
-      CANCELLED: { label: "Kansellert", variant: "outline" },
+      PLANNED: { label: t("status.planned"), variant: "secondary" },
+      IN_PROGRESS: { label: t("status.inProgress"), variant: "default" },
+      COMPLETED: { label: t("status.completed"), variant: "outline" },
+      CANCELLED: { label: t("status.cancelled"), variant: "outline" },
     };
     return variants[status] || variants.PLANNED;
   };
@@ -110,11 +112,11 @@ export default async function InspectionMobilePage({
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-3 rounded-md">
                   <CheckCircle className="h-4 w-4" />
-                  <span>Skjema er utfylt</span>
+                  <span>{t("form.completed")}</span>
                 </div>
                 <Link href={`/dashboard/forms/${inspection.formTemplate.id}/fill?inspectionId=${id}`}>
                   <Button variant="outline" className="w-full">
-                    Se utfylt skjema
+                    {t("form.view")}
                   </Button>
                 </Link>
               </div>
@@ -122,11 +124,11 @@ export default async function InspectionMobilePage({
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-sm text-orange-600 bg-orange-50 p-3 rounded-md">
                   <Clock className="h-4 w-4" />
-                  <span>Skjema må fylles ut og sendes inn. Punkter merket "Ikke OK" skal registreres som funn.</span>
+                  <span>{t("form.warning")}</span>
                 </div>
                 <Link href={`/dashboard/forms/${inspection.formTemplate.id}/fill?inspectionId=${id}`}>
                   <Button className="w-full">
-                    Fyll ut skjema
+                    {t("form.fill")}
                   </Button>
                 </Link>
               </div>
@@ -140,13 +142,13 @@ export default async function InspectionMobilePage({
             <div className="text-3xl font-bold text-primary">
               {inspection.findings.length}
             </div>
-            <div className="text-sm text-muted-foreground mt-1">Registrerte funn</div>
+            <div className="text-sm text-muted-foreground mt-1">{t("stats.registeredFindings")}</div>
           </div>
           <div className="bg-white rounded-lg border p-4 text-center">
             <div className="text-3xl font-bold text-orange-600">
               {inspection.findings.filter((f) => f.status === "OPEN").length}
             </div>
-            <div className="text-sm text-muted-foreground mt-1">Åpne funn</div>
+            <div className="text-sm text-muted-foreground mt-1">{t("stats.openFindings")}</div>
           </div>
         </div>
 

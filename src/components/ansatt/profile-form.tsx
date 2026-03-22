@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Camera, User } from "lucide-react";
 
@@ -18,10 +20,12 @@ interface ProfileFormProps {
     address: string | null;
     postalCode: string | null;
     city: string | null;
+    preferredLocale: string | null;
   };
 }
 
 export function ProfileForm({ user }: ProfileFormProps) {
+  const t = useTranslations("employeeProfileForm");
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,19 +55,21 @@ export function ProfileForm({ user }: ProfileFormProps) {
       });
 
       if (!response.ok) {
-        throw new Error("Kunne ikke oppdatere profil");
+        throw new Error(t("errors.updateProfile"));
       }
 
       toast({
-        title: "✅ Profil oppdatert",
-        description: "Dine endringer er lagret",
+        title: t("toast.profileSuccess.title"),
+        description: t("toast.profileSuccess.description"),
       });
+      const preferredLocale = (formData.get("preferredLocale") as string) === "en" ? "en" : "nb";
+      document.cookie = `NEXT_LOCALE=${preferredLocale}; path=/; max-age=31536000; samesite=lax`;
 
       router.refresh();
     } catch (error) {
       toast({
-        title: "❌ Feil",
-        description: "Kunne ikke oppdatere profil. Prøv igjen.",
+        title: t("toast.error.title"),
+        description: t("toast.error.profileDescription"),
         variant: "destructive",
       });
     } finally {
@@ -82,8 +88,8 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
     if (newPassword !== confirmPassword) {
       toast({
-        title: "❌ Feil",
-        description: "Nye passord matcher ikke",
+        title: t("toast.error.title"),
+        description: t("toast.error.passwordMismatch"),
         variant: "destructive",
       });
       setIsChangingPassword(false);
@@ -99,20 +105,20 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || "Kunne ikke endre passord");
+        throw new Error(data.error || t("errors.changePassword"));
       }
 
       toast({
-        title: "✅ Passord endret",
-        description: "Ditt nye passord er lagret",
+        title: t("toast.passwordSuccess.title"),
+        description: t("toast.passwordSuccess.description"),
       });
 
       // Reset skjema
       (e.target as HTMLFormElement).reset();
     } catch (error: any) {
       toast({
-        title: "❌ Feil",
-        description: error.message || "Kunne ikke endre passord. Prøv igjen.",
+        title: t("toast.error.title"),
+        description: error.message || t("toast.error.passwordDescription"),
         variant: "destructive",
       });
     } finally {
@@ -131,7 +137,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={avatarPreview}
-                alt="Profilbilde"
+                alt={t("avatar.alt")}
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -146,7 +152,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
           </Label>
         </div>
         <p className="text-sm text-muted-foreground">
-          Klikk på kamera-ikonet for å endre profilbilde
+          {t("avatar.help")}
         </p>
       </div>
 
@@ -163,7 +169,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
         {/* Navn */}
         <div className="space-y-2">
-          <Label htmlFor="name">Navn *</Label>
+          <Label htmlFor="name">{t("fields.name")} *</Label>
           <Input
             id="name"
             name="name"
@@ -175,7 +181,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
         {/* E-post (read-only) */}
         <div className="space-y-2">
-          <Label htmlFor="email">E-post</Label>
+          <Label htmlFor="email">{t("fields.email")}</Label>
           <Input
             id="email"
             value={user.email}
@@ -183,13 +189,13 @@ export function ProfileForm({ user }: ProfileFormProps) {
             className="h-12 bg-gray-50"
           />
           <p className="text-xs text-muted-foreground">
-            E-postadressen kan ikke endres
+            {t("fields.emailHelp")}
           </p>
         </div>
 
         {/* Telefon */}
         <div className="space-y-2">
-          <Label htmlFor="phone">Telefon</Label>
+          <Label htmlFor="phone">{t("fields.phone")}</Label>
           <Input
             id="phone"
             name="phone"
@@ -202,12 +208,12 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
         {/* Adresse */}
         <div className="space-y-2">
-          <Label htmlFor="address">Adresse</Label>
+          <Label htmlFor="address">{t("fields.address")}</Label>
           <Input
             id="address"
             name="address"
             defaultValue={user.address || ""}
-            placeholder="Eksempel: Storgata 1"
+            placeholder={t("fields.addressPlaceholder")}
             className="h-12"
           />
         </div>
@@ -215,7 +221,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
         {/* Postnummer og Sted */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="postalCode">Postnummer</Label>
+            <Label htmlFor="postalCode">{t("fields.postalCode")}</Label>
             <Input
               id="postalCode"
               name="postalCode"
@@ -225,7 +231,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="city">Poststed</Label>
+            <Label htmlFor="city">{t("fields.city")}</Label>
             <Input
               id="city"
               name="city"
@@ -234,6 +240,19 @@ export function ProfileForm({ user }: ProfileFormProps) {
               className="h-12"
             />
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="preferredLocale">{t("fields.preferredLocale")}</Label>
+          <Select name="preferredLocale" defaultValue={user.preferredLocale || "nb"}>
+            <SelectTrigger id="preferredLocale" className="h-12">
+              <SelectValue placeholder={t("fields.preferredLocale")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="nb">Norsk</SelectItem>
+              <SelectItem value="en">English</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Submit */}
@@ -245,20 +264,20 @@ export function ProfileForm({ user }: ProfileFormProps) {
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Lagrer...
+              {t("actions.saving")}
             </>
           ) : (
-            "💾 Lagre endringer"
+            t("actions.save")
           )}
         </Button>
       </form>
 
       {/* Passord-seksjon */}
       <div className="border-t pt-8">
-        <h3 className="text-lg font-semibold mb-4">Endre passord</h3>
+        <h3 className="text-lg font-semibold mb-4">{t("password.title")}</h3>
         <form onSubmit={handlePasswordChange} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="currentPassword">Nåværende passord *</Label>
+            <Label htmlFor="currentPassword">{t("password.current")} *</Label>
             <Input
               id="currentPassword"
               name="currentPassword"
@@ -269,7 +288,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="newPassword">Nytt passord *</Label>
+            <Label htmlFor="newPassword">{t("password.new")} *</Label>
             <Input
               id="newPassword"
               name="newPassword"
@@ -279,12 +298,12 @@ export function ProfileForm({ user }: ProfileFormProps) {
               className="h-12"
             />
             <p className="text-xs text-muted-foreground">
-              Minimum 8 tegn
+              {t("password.minLength")}
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Bekreft nytt passord *</Label>
+            <Label htmlFor="confirmPassword">{t("password.confirm")} *</Label>
             <Input
               id="confirmPassword"
               name="confirmPassword"
@@ -304,10 +323,10 @@ export function ProfileForm({ user }: ProfileFormProps) {
             {isChangingPassword ? (
               <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Endrer...
+                {t("actions.changingPassword")}
               </>
             ) : (
-              "🔒 Endre passord"
+              t("actions.changePassword")
             )}
           </Button>
         </form>

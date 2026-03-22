@@ -16,6 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { investigateIncident } from "@/server/actions/incident.actions";
 import { useToast } from "@/hooks/use-toast";
 import { FileSearch } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface InvestigationFormProps {
   incidentId: string;
@@ -23,6 +24,7 @@ interface InvestigationFormProps {
 }
 
 export function InvestigationForm({ incidentId, users }: InvestigationFormProps) {
+  const t = useTranslations("dashboardIncidentInvestigationForm");
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -44,23 +46,23 @@ export function InvestigationForm({ incidentId, users }: InvestigationFormProps)
 
       if (result.success) {
         toast({
-          title: "✅ Årsaksanalyse fullført",
-          description: "Nå kan du planlegge korrigerende tiltak",
+          title: t("toasts.success.title"),
+          description: t("toasts.success.description"),
           className: "bg-green-50 border-green-200",
         });
         router.refresh();
       } else {
         toast({
           variant: "destructive",
-          title: "Feil",
-          description: result.error || "Kunne ikke lagre årsaksanalyse",
+          title: t("toasts.error.title"),
+          description: result.error || t("toasts.error.description"),
         });
       }
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Uventet feil",
-        description: "Noe gikk galt",
+        title: t("toasts.unexpected.title"),
+        description: t("toasts.unexpected.description"),
       });
     } finally {
       setLoading(false);
@@ -72,59 +74,59 @@ export function InvestigationForm({ incidentId, users }: InvestigationFormProps)
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileSearch className="h-5 w-5" />
-          Årsaksanalyse (Root Cause Analysis)
+          {t("title")}
         </CardTitle>
         <CardDescription>
-          ISO 9001: Vurder behov for tiltak for å eliminere årsaken
+          {t("description")}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-4 mb-4">
-            <p className="text-sm font-medium text-yellow-900 mb-2">🔍 5 Hvorfor-metoden</p>
+            <p className="text-sm font-medium text-yellow-900 mb-2">{t("fiveWhy.title")}</p>
             <p className="text-sm text-yellow-800">
-              Spør "hvorfor" gjentatte ganger for å finne grunnårsaken. F.eks:
+              {t("fiveWhy.description")}
             </p>
             <ul className="text-xs text-yellow-700 mt-2 space-y-1 list-disc list-inside ml-2">
-              <li>Hvorfor skjedde ulykken? → Personen falt fra stige</li>
-              <li>Hvorfor falt personen? → Stigen sto ustabilt</li>
-              <li>Hvorfor sto stigen ustabilt? → Gulvet var glatt/ujevnt</li>
-              <li>Hvorfor var gulvet glatt? → Ingen risikovurdering utført</li>
-              <li><strong>Grunnårsak: Mangelfull planlegging og risikovurdering</strong></li>
+              <li>{t("fiveWhy.steps.s1")}</li>
+              <li>{t("fiveWhy.steps.s2")}</li>
+              <li>{t("fiveWhy.steps.s3")}</li>
+              <li>{t("fiveWhy.steps.s4")}</li>
+              <li><strong>{t("fiveWhy.steps.s5")}</strong></li>
             </ul>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="rootCause">Grunnårsak (Root Cause) *</Label>
+            <Label htmlFor="rootCause">{t("fields.rootCause")}</Label>
             <Textarea
               id="rootCause"
               name="rootCause"
-              placeholder="Hva er den underliggende årsaken til at dette skjedde? Bruk 5 Hvorfor-metoden."
+              placeholder={t("placeholders.rootCause")}
               required
               disabled={loading}
               rows={5}
             />
             <p className="text-xs text-muted-foreground">
-              Beskriv grunnårsaken, ikke bare symptomet
+              {t("hints.rootCause")}
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="contributingFactors">Medvirkende faktorer</Label>
+            <Label htmlFor="contributingFactors">{t("fields.contributingFactors")}</Label>
             <Textarea
               id="contributingFactors"
               name="contributingFactors"
-              placeholder="Andre faktorer som bidro til hendelsen (f.eks. tidpress, manglende opplæring, dårlig kommunikasjon)"
+              placeholder={t("placeholders.contributingFactors")}
               disabled={loading}
               rows={3}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="investigatedBy">Utredet av *</Label>
+            <Label htmlFor="investigatedBy">{t("fields.investigatedBy")}</Label>
             <Select name="investigatedBy" required disabled={loading}>
               <SelectTrigger>
-                <SelectValue placeholder="Velg ansvarlig for utredning" />
+                <SelectValue placeholder={t("placeholders.investigatedBy")} />
               </SelectTrigger>
               <SelectContent>
                 {users.map((user) => (
@@ -138,7 +140,7 @@ export function InvestigationForm({ incidentId, users }: InvestigationFormProps)
 
           <div className="flex justify-end gap-4">
             <Button type="submit" disabled={loading}>
-              {loading ? "Lagrer..." : "Fullfør årsaksanalyse"}
+              {loading ? t("actions.saving") : t("actions.complete")}
             </Button>
           </div>
         </form>

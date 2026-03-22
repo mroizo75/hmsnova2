@@ -24,6 +24,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 interface TenantUser {
   user: {
@@ -34,6 +35,7 @@ interface TenantUser {
 }
 
 export default function EditInspectionPage() {
+  const t = useTranslations("dashboardInspectionEditPage");
   const router = useRouter();
   const params = useParams();
   const { toast } = useToast();
@@ -82,7 +84,7 @@ export default function EditInspectionPage() {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.message || "Kunne ikke hente inspeksjon");
+          throw new Error(data.message || t("errors.fetch"));
         }
 
         const inspection = data.data.inspection;
@@ -102,7 +104,7 @@ export default function EditInspectionPage() {
         });
       } catch (error: any) {
         toast({
-          title: "Feil",
+          title: t("toasts.error.title"),
           description: error.message,
           variant: "destructive",
         });
@@ -129,18 +131,18 @@ export default function EditInspectionPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Kunne ikke oppdatere inspeksjon");
+        throw new Error(data.message || t("errors.update"));
       }
 
       toast({
-        title: "Inspeksjon oppdatert",
-        description: "Inspeksjonen er nå oppdatert",
+        title: t("toasts.updated.title"),
+        description: t("toasts.updated.description"),
       });
 
       router.push(`/dashboard/inspections/${params.id}`);
     } catch (error: any) {
       toast({
-        title: "Feil",
+        title: t("toasts.error.title"),
         description: error.message,
         variant: "destructive",
       });
@@ -154,7 +156,7 @@ export default function EditInspectionPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-2">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Laster inspeksjon...</p>
+          <p className="text-sm text-muted-foreground">{t("loading")}</p>
         </div>
       </div>
     );
@@ -169,38 +171,38 @@ export default function EditInspectionPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Rediger inspeksjon</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
           <p className="text-muted-foreground">
-            Oppdater informasjon om inspeksjonen
+            {t("description")}
           </p>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Inspeksjonsdetaljer</CardTitle>
+          <CardTitle>{t("card.title")}</CardTitle>
           <CardDescription>
-            Oppdater informasjonen nedenfor for å endre inspeksjonen
+            {t("card.description")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="title">Tittel *</Label>
+                <Label htmlFor="title">{t("fields.title")}</Label>
                 <Input
                   id="title"
                   value={formData.title}
                   onChange={(e) =>
                     setFormData({ ...formData, title: e.target.value })
                   }
-                  placeholder="F.eks. Kvartalsvis vernerunde Q1 2025"
+                  placeholder={t("placeholders.title")}
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="type">Type *</Label>
+                <Label htmlFor="type">{t("fields.type")}</Label>
                 <Select
                   value={formData.type}
                   onValueChange={(value) =>
@@ -211,20 +213,20 @@ export default function EditInspectionPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="VERNERUNDE">Vernerunde</SelectItem>
-                    <SelectItem value="HMS_INSPEKSJON">HMS-inspeksjon</SelectItem>
-                    <SelectItem value="BRANNØVELSE">Brannøvelse</SelectItem>
-                    <SelectItem value="SHA_PLAN">SHA-plan</SelectItem>
+                    <SelectItem value="VERNERUNDE">{t("types.vernerunde")}</SelectItem>
+                    <SelectItem value="HMS_INSPEKSJON">{t("types.hmsInspection")}</SelectItem>
+                    <SelectItem value="BRANNØVELSE">{t("types.fireDrill")}</SelectItem>
+                    <SelectItem value="SHA_PLAN">{t("types.shaPlan")}</SelectItem>
                     <SelectItem value="SIKKERHETSVANDRING">
-                      Sikkerhetsvandring
+                      {t("types.safetyWalk")}
                     </SelectItem>
-                    <SelectItem value="ANDRE">Annet</SelectItem>
+                    <SelectItem value="ANDRE">{t("types.other")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="status">Status *</Label>
+                <Label htmlFor="status">{t("fields.status")}</Label>
                 <Select
                   value={formData.status}
                   onValueChange={(value) =>
@@ -235,16 +237,16 @@ export default function EditInspectionPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="PLANNED">Planlagt</SelectItem>
-                    <SelectItem value="IN_PROGRESS">Pågår</SelectItem>
-                    <SelectItem value="COMPLETED">Fullført</SelectItem>
-                    <SelectItem value="CANCELLED">Avbrutt</SelectItem>
+                    <SelectItem value="PLANNED">{t("status.planned")}</SelectItem>
+                    <SelectItem value="IN_PROGRESS">{t("status.inProgress")}</SelectItem>
+                    <SelectItem value="COMPLETED">{t("status.completed")}</SelectItem>
+                    <SelectItem value="CANCELLED">{t("status.cancelled")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="conductedBy">Gjennomført av *</Label>
+                <Label htmlFor="conductedBy">{t("fields.conductedBy")}</Label>
                 <Select
                   value={formData.conductedBy}
                   onValueChange={(value) =>
@@ -253,7 +255,7 @@ export default function EditInspectionPage() {
                   disabled={loadingUsers}
                 >
                   <SelectTrigger id="conductedBy">
-                    <SelectValue placeholder={loadingUsers ? "Laster brukere..." : "Velg bruker"} />
+                    <SelectValue placeholder={loadingUsers ? t("loadingUsers") : t("placeholders.selectUser")} />
                   </SelectTrigger>
                   <SelectContent>
                     {users.map((u) => (
@@ -266,7 +268,7 @@ export default function EditInspectionPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="scheduledDate">Planlagt dato *</Label>
+                <Label htmlFor="scheduledDate">{t("fields.scheduledDate")}</Label>
                 <Input
                   id="scheduledDate"
                   type="date"
@@ -279,7 +281,7 @@ export default function EditInspectionPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="completedDate">Fullført dato</Label>
+                <Label htmlFor="completedDate">{t("fields.completedDate")}</Label>
                 <Input
                   id="completedDate"
                   type="date"
@@ -289,32 +291,32 @@ export default function EditInspectionPage() {
                   }
                 />
                 <p className="text-xs text-muted-foreground">
-                  Sett kun hvis inspeksjonen er fullført
+                  {t("hints.completedDate")}
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="location">Lokasjon</Label>
+                <Label htmlFor="location">{t("fields.location")}</Label>
                 <Input
                   id="location"
                   value={formData.location}
                   onChange={(e) =>
                     setFormData({ ...formData, location: e.target.value })
                   }
-                  placeholder="F.eks. Produksjonshall A"
+                  placeholder={t("placeholders.location")}
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Beskrivelse</Label>
+              <Label htmlFor="description">{t("fields.description")}</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
                 }
-                placeholder="Skriv en beskrivelse av inspeksjonen..."
+                placeholder={t("placeholders.description")}
                 rows={4}
               />
             </div>
@@ -323,11 +325,11 @@ export default function EditInspectionPage() {
               <Button type="submit" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <Save className="mr-2 h-4 w-4" />
-                Lagre endringer
+                {t("actions.saveChanges")}
               </Button>
               <Link href={`/dashboard/inspections/${params.id}`}>
                 <Button type="button" variant="outline">
-                  Avbryt
+                  {t("actions.cancel")}
                 </Button>
               </Link>
             </div>

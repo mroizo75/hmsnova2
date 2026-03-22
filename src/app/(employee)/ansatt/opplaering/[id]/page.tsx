@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +11,9 @@ import Link from "next/link";
 import { getStorage } from "@/lib/storage";
 
 export default async function AnsattTrainingDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getTranslations("employeeTrainingDetailPage");
+  const locale = await getLocale();
+  const dateLocale = locale === "en" ? "en-US" : "nb-NO";
   const { id } = await params;
   const session = await getServerSession(authOptions);
 
@@ -51,7 +55,7 @@ export default async function AnsattTrainingDetailPage({ params }: { params: Pro
         <Link href="/ansatt/opplaering">
           <Button variant="ghost" size="sm" className="mb-4">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Tilbake til opplæring
+            {t("header.back")}
           </Button>
         </Link>
         <div className="flex items-center gap-3 mb-2">
@@ -65,25 +69,25 @@ export default async function AnsattTrainingDetailPage({ params }: { params: Pro
         </div>
         <div className="flex flex-wrap gap-2 mt-3">
           {training.isRequired && (
-            <Badge variant="destructive">Påkrevd kurs</Badge>
+            <Badge variant="destructive">{t("badges.required")}</Badge>
           )}
           {training.effectiveness !== null ? (
             <Badge className="bg-green-100 text-green-700 border-green-200">
               <CheckCircle className="h-3 w-3 mr-1" />
-              Godkjent
+              {t("badges.approved")}
             </Badge>
           ) : (
             <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
               <AlertCircle className="h-3 w-3 mr-1" />
-              Venter på godkjenning
+              {t("badges.pending")}
             </Badge>
           )}
           {isExpired && (
-            <Badge variant="destructive">Utløpt</Badge>
+            <Badge variant="destructive">{t("badges.expired")}</Badge>
           )}
           {isExpiringSoon && (
             <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-300">
-              Utløper snart
+              {t("badges.expiringSoon")}
             </Badge>
           )}
         </div>
@@ -94,7 +98,7 @@ export default async function AnsattTrainingDetailPage({ params }: { params: Pro
         <Card className="border-l-4 border-l-yellow-500 bg-yellow-50">
           <CardContent className="p-4">
             <p className="text-sm text-yellow-900">
-              <strong>⏳ Venter på godkjenning:</strong> Din leder vil gjennomgå og godkjenne opplæringen din.
+              <strong>{t("alerts.pending.title")}</strong> {t("alerts.pending.description")}
             </p>
           </CardContent>
         </Card>
@@ -104,7 +108,7 @@ export default async function AnsattTrainingDetailPage({ params }: { params: Pro
         <Card className="border-l-4 border-l-red-500 bg-red-50">
           <CardContent className="p-4">
             <p className="text-sm text-red-900">
-              <strong>⚠️ Kurset er utløpt:</strong> Dette kurset må fornyes. Ta kontakt med din leder.
+              <strong>{t("alerts.expired.title")}</strong> {t("alerts.expired.description")}
             </p>
           </CardContent>
         </Card>
@@ -114,7 +118,7 @@ export default async function AnsattTrainingDetailPage({ params }: { params: Pro
         <Card className="border-l-4 border-l-orange-500 bg-orange-50">
           <CardContent className="p-4">
             <p className="text-sm text-orange-900">
-              <strong>🔔 Kurset utløper snart:</strong> Dette kurset må snart fornyes. Planlegg fornyelse i god tid.
+              <strong>{t("alerts.expiringSoon.title")}</strong> {t("alerts.expiringSoon.description")}
             </p>
           </CardContent>
         </Card>
@@ -126,15 +130,15 @@ export default async function AnsattTrainingDetailPage({ params }: { params: Pro
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Download className="h-5 w-5 text-blue-600" />
-              Dokumentasjon
+              {t("documentation.title")}
             </CardTitle>
-            <CardDescription>Ditt opplastede bevis</CardDescription>
+            <CardDescription>{t("documentation.description")}</CardDescription>
           </CardHeader>
           <CardContent>
             <Link href={downloadUrl} target="_blank">
               <Button size="lg" className="w-full md:w-auto">
                 <Download className="mr-2 h-5 w-5" />
-                Last ned bevis/diplom
+                {t("documentation.download")}
               </Button>
             </Link>
           </CardContent>
@@ -144,15 +148,15 @@ export default async function AnsattTrainingDetailPage({ params }: { params: Pro
       {/* Opplæringsinformasjon */}
       <Card>
         <CardHeader>
-          <CardTitle>Opplæringsinformasjon</CardTitle>
-          <CardDescription>Detaljer om gjennomført opplæring</CardDescription>
+          <CardTitle>{t("details.title")}</CardTitle>
+          <CardDescription>{t("details.description")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <p className="text-sm text-muted-foreground flex items-center gap-2">
                 <User className="h-4 w-4" />
-                Kursleverandør
+                  {t("details.provider")}
               </p>
               <p className="font-medium">{training.provider}</p>
             </div>
@@ -161,10 +165,10 @@ export default async function AnsattTrainingDetailPage({ params }: { params: Pro
               <div>
                 <p className="text-sm text-muted-foreground flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  Gjennomført
+                  {t("details.completedAt")}
                 </p>
                 <p className="font-medium">
-                  {new Date(training.completedAt).toLocaleDateString("nb-NO")}
+                  {new Date(training.completedAt).toLocaleDateString(dateLocale)}
                 </p>
               </div>
             )}
@@ -173,22 +177,22 @@ export default async function AnsattTrainingDetailPage({ params }: { params: Pro
               <div>
                 <p className="text-sm text-muted-foreground flex items-center gap-2">
                   <Clock className="h-4 w-4" />
-                  Gyldig til
+                  {t("details.validUntil")}
                 </p>
                 <p className={`font-medium ${isExpired ? "text-red-600" : isExpiringSoon ? "text-orange-600" : ""}`}>
-                  {new Date(training.validUntil).toLocaleDateString("nb-NO")}
-                  {isExpired && " (Utløpt)"}
-                  {isExpiringSoon && " (Utløper snart)"}
+                  {new Date(training.validUntil).toLocaleDateString(dateLocale)}
+                  {isExpired && ` (${t("badges.expired")})`}
+                  {isExpiringSoon && ` (${t("badges.expiringSoon")})`}
                 </p>
               </div>
             )}
 
             <div>
               <p className="text-sm text-muted-foreground">
-                Registrert
+                {t("details.createdAt")}
               </p>
               <p className="font-medium">
-                {new Date(training.createdAt).toLocaleDateString("nb-NO")}
+                {new Date(training.createdAt).toLocaleDateString(dateLocale)}
               </p>
             </div>
 
@@ -196,7 +200,7 @@ export default async function AnsattTrainingDetailPage({ params }: { params: Pro
               <div>
                 <p className="text-sm text-muted-foreground flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-green-600" />
-                  Godkjent av
+                  {t("details.approvedBy")}
                 </p>
                 <p className="font-medium">{training.evaluatedBy}</p>
               </div>
@@ -205,10 +209,10 @@ export default async function AnsattTrainingDetailPage({ params }: { params: Pro
             {training.evaluatedAt && (
               <div>
                 <p className="text-sm text-muted-foreground">
-                  Godkjent dato
+                  {t("details.approvedDate")}
                 </p>
                 <p className="font-medium">
-                  {new Date(training.evaluatedAt).toLocaleDateString("nb-NO")}
+                  {new Date(training.evaluatedAt).toLocaleDateString(dateLocale)}
                 </p>
               </div>
             )}
@@ -216,14 +220,14 @@ export default async function AnsattTrainingDetailPage({ params }: { params: Pro
 
           {training.description && (
             <div className="pt-4 border-t">
-              <p className="text-sm text-muted-foreground mb-2">Beskrivelse</p>
+              <p className="text-sm text-muted-foreground mb-2">{t("details.trainingDescription")}</p>
               <p className="text-sm">{training.description}</p>
             </div>
           )}
 
           {training.effectiveness && (
             <div className="pt-4 border-t">
-              <p className="text-sm text-muted-foreground mb-2">Effektivitetsvurdering</p>
+              <p className="text-sm text-muted-foreground mb-2">{t("details.effectiveness")}</p>
               <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                 <p className="text-sm text-green-900">{training.effectiveness}</p>
               </div>
@@ -236,8 +240,7 @@ export default async function AnsattTrainingDetailPage({ params }: { params: Pro
       <Card className="bg-blue-50 border-blue-200">
         <CardContent className="p-4">
           <p className="text-sm text-blue-900">
-            <strong>💡 Tips:</strong> Hvis du har spørsmål om opplæringen eller trenger å fornye kurset, 
-            ta kontakt med din leder eller HMS-ansvarlig.
+            <strong>{t("tip.title")}</strong> {t("tip.description")}
           </p>
         </CardContent>
       </Card>

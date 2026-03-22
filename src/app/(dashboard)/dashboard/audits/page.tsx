@@ -23,9 +23,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Plus, ClipboardList, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
-import { nb } from "date-fns/locale";
+import { enUS, nb } from "date-fns/locale";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
 import { helpContent } from "@/lib/help-content";
+import { getLocale, getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -40,29 +41,32 @@ async function getAudits(tenantId: string) {
   });
 }
 
-function getStatusBadge(status: string) {
+function getStatusBadge(status: string, t: Awaited<ReturnType<typeof getTranslations>>) {
   const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
-    PLANNED: { variant: "outline", label: "Planlagt" },
-    IN_PROGRESS: { variant: "default", label: "Pågår" },
-    COMPLETED: { variant: "secondary", label: "Fullført" },
-    CANCELLED: { variant: "destructive", label: "Avbrutt" },
+    PLANNED: { variant: "outline", label: t("status.planned") },
+    IN_PROGRESS: { variant: "default", label: t("status.inProgress") },
+    COMPLETED: { variant: "secondary", label: t("status.completed") },
+    CANCELLED: { variant: "destructive", label: t("status.cancelled") },
   };
   const config = variants[status] || variants.PLANNED;
   return <Badge variant={config.variant}>{config.label}</Badge>;
 }
 
-function getTypeBadge(type: string) {
+function getTypeBadge(type: string, t: Awaited<ReturnType<typeof getTranslations>>) {
   const labels: Record<string, string> = {
-    INTERNAL: "Internrevisjon",
-    EXTERNAL: "Eksternrevisjon",
-    CERTIFICATION: "Sertifisering",
-    SUPPLIER: "Leverandørrevisjon",
-    FOLLOW_UP: "Oppfølging",
+    INTERNAL: t("types.internal"),
+    EXTERNAL: t("types.external"),
+    CERTIFICATION: t("types.certification"),
+    SUPPLIER: t("types.supplier"),
+    FOLLOW_UP: t("types.followUp"),
   };
   return <Badge variant="outline">{labels[type] || type}</Badge>;
 }
 
 async function AuditsList() {
+  const t = await getTranslations("dashboardAuditsPage");
+  const locale = await getLocale();
+  const dateLocale = locale === "en" ? enUS : nb;
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     redirect("/login");
@@ -73,7 +77,7 @@ async function AuditsList() {
   });
 
   if (userTenants.length === 0) {
-    return <div>Ingen tenant tilgang</div>;
+    return <div>{t("noTenantAccess")}</div>;
   }
 
   const audits = await getAudits(userTenants[0].tenantId);
@@ -83,14 +87,14 @@ async function AuditsList() {
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-12">
           <ClipboardList className="h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Ingen revisjoner ennå</h3>
+          <h3 className="text-lg font-semibold mb-2">{t("empty.title")}</h3>
           <p className="text-sm text-muted-foreground mb-4">
-            Opprett din første revisjon (internrevisjon, ISO 9001, etc.)
+            {t("empty.description")}
           </p>
           <Link href="/dashboard/audits/new">
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              Ny revisjon
+              {t("actions.newAudit")}
             </Button>
           </Link>
         </CardContent>
@@ -101,22 +105,22 @@ async function AuditsList() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Revisjoner</CardTitle>
+        <CardTitle>{t("list.title")}</CardTitle>
         <CardDescription>
-          {audits.length} revisjoner totalt
+          {t("list.total", { count: audits.length })}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Tittel</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Område</TableHead>
-              <TableHead>Dato</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Funn</TableHead>
-              <TableHead className="text-right">Handlinger</TableHead>
+              <TableHead>{t("table.title")}</TableHead>
+              <TableHead>{t("table.type")}</TableHead>
+              <TableHead>{t("table.area")}</TableHead>
+              <TableHead>{t("table.date")}</TableHead>
+              <TableHead>{t("table.status")}</TableHead>
+              <TableHead>{t("table.findings")}</TableHead>
+              <TableHead className="text-right">{t("table.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -128,37 +132,37 @@ async function AuditsList() {
               return (
                 <TableRow key={audit.id}>
                   <TableCell className="font-medium">{audit.title}</TableCell>
-                  <TableCell>{getTypeBadge(audit.auditType)}</TableCell>
+                  <TableCell>{getTypeBadge(audit.auditType, t)}</TableCell>
                   <TableCell>
                     <span className="text-sm text-muted-foreground">{audit.area}</span>
                   </TableCell>
                   <TableCell>
-                    {format(new Date(audit.scheduledDate), "d. MMM yyyy", { locale: nb })}
+                    {format(new Date(audit.scheduledDate), "d. MMM yyyy", { locale: dateLocale })}
                   </TableCell>
-                  <TableCell>{getStatusBadge(audit.status)}</TableCell>
+                  <TableCell>{getStatusBadge(audit.status, t)}</TableCell>
                   <TableCell>
                     {openFindings > 0 ? (
                       <div className="flex flex-col gap-1">
                         {majorNc > 0 && (
                           <Badge variant="destructive" className="gap-1 text-xs">
                             <AlertCircle className="h-3 w-3" />
-                            {majorNc} større avvik
+                            {t("findings.major", { count: majorNc })}
                           </Badge>
                         )}
                         {minorNc > 0 && (
                           <Badge variant="secondary" className="gap-1 text-xs">
-                            {minorNc} mindre avvik
+                            {t("findings.minor", { count: minorNc })}
                           </Badge>
                         )}
                       </div>
                     ) : (
-                      <span className="text-muted-foreground text-sm">Ingen funn</span>
+                      <span className="text-muted-foreground text-sm">{t("findings.none")}</span>
                     )}
                   </TableCell>
                   <TableCell className="text-right">
                     <Link href={`/dashboard/audits/${audit.id}`}>
                       <Button variant="ghost" size="sm">
-                        Se detaljer
+                        {t("actions.details")}
                       </Button>
                     </Link>
                   </TableCell>
@@ -174,13 +178,22 @@ async function AuditsList() {
 
 export default function AuditsPage() {
   return (
+    <Suspense fallback={<div>Laster...</div>}>
+      <AuditsPageContent />
+    </Suspense>
+  );
+}
+
+async function AuditsPageContent() {
+  const t = await getTranslations("dashboardAuditsPage");
+  return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Revisjoner</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
             <p className="text-muted-foreground">
-              Internrevisjoner, ISO 9001, ISO 14001 og andre revisjoner
+              {t("description")}
             </p>
           </div>
           <PageHelpDialog content={helpContent.audits} />
@@ -188,12 +201,12 @@ export default function AuditsPage() {
         <Link href="/dashboard/audits/new">
           <Button>
             <Plus className="mr-2 h-4 w-4" />
-            Ny revisjon
+            {t("actions.newAudit")}
           </Button>
         </Link>
       </div>
 
-      <Suspense fallback={<div>Laster revisjoner...</div>}>
+      <Suspense fallback={<div>{t("loading")}</div>}>
         <AuditsList />
       </Suspense>
     </div>

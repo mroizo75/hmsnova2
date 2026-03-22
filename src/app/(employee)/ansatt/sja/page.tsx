@@ -1,11 +1,10 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import {
-  getSjaStatusLabel,
   getSjaStatusColor,
-  getSjaConclusionLabel,
   getSjaConclusionColor,
 } from "@/features/sja/schemas/sja.schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,9 +19,13 @@ import {
   BookTemplate,
 } from "lucide-react";
 import Link from "next/link";
+import { SjaConclusion, SjaStatus } from "@prisma/client";
 
 export default async function AnsattSja() {
   const session = await getServerSession(authOptions);
+  const t = await getTranslations("employeeSjaPage");
+  const locale = await getLocale();
+  const dateLocale = locale === "en" ? "en-US" : "nb-NO";
 
   if (!session?.user?.tenantId) {
     redirect("/login");
@@ -53,29 +56,59 @@ export default async function AnsattSja() {
   const activeCount = mySjas.filter((s) => s.status === "ACTIVE").length;
   const completedCount = mySjas.filter((s) => s.status === "COMPLETED").length;
 
+  const getStatusLabel = (status: SjaStatus): string => {
+    switch (status) {
+      case "DRAFT":
+        return t("status.DRAFT");
+      case "ACTIVE":
+        return t("status.ACTIVE");
+      case "COMPLETED":
+        return t("status.COMPLETED");
+      case "CANCELLED":
+        return t("status.CANCELLED");
+      default:
+        return t("status.DRAFT");
+    }
+  };
+
+  const getConclusionLabel = (conclusion: SjaConclusion): string => {
+    switch (conclusion) {
+      case "NOT_DECIDED":
+        return t("conclusion.NOT_DECIDED");
+      case "APPROVED":
+        return t("conclusion.APPROVED");
+      case "CONDITIONAL":
+        return t("conclusion.CONDITIONAL");
+      case "REJECTED":
+        return t("conclusion.REJECTED");
+      default:
+        return t("conclusion.NOT_DECIDED");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
             <HardHat className="h-7 w-7 text-orange-600" />
-            Mine SJA-analyser
+            {t("title")}
           </h1>
           <p className="text-muted-foreground">
-            Sikker Jobb Analyse – identifiser farer før arbeidet starter
+            {t("description")}
           </p>
         </div>
         <div className="flex gap-2">
           <Link href="/ansatt/sja/maler">
             <Button variant="outline" size="lg" className="h-12">
               <BookTemplate className="h-5 w-5 mr-2" />
-              Maler
+              {t("templates.button")}
             </Button>
           </Link>
           <Link href="/ansatt/sja/ny">
             <Button size="lg" className="h-12">
               <Plus className="h-5 w-5 mr-2" />
-              Ny SJA
+              {t("new")}
             </Button>
           </Link>
         </div>
@@ -86,7 +119,7 @@ export default async function AnsattSja() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">Utkast</p>
+                <p className="text-xs text-muted-foreground">{t("stats.draft")}</p>
                 <p className="text-2xl font-bold">{draftCount}</p>
               </div>
               <FileText className="h-8 w-8 text-gray-400" />
@@ -98,7 +131,7 @@ export default async function AnsattSja() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">Aktive</p>
+                <p className="text-xs text-muted-foreground">{t("stats.active")}</p>
                 <p className="text-2xl font-bold">{activeCount}</p>
               </div>
               <Clock className="h-8 w-8 text-green-500" />
@@ -110,7 +143,7 @@ export default async function AnsattSja() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">Fullført</p>
+                <p className="text-xs text-muted-foreground">{t("stats.completed")}</p>
                 <p className="text-2xl font-bold">{completedCount}</p>
               </div>
               <CheckCircle className="h-8 w-8 text-blue-500" />
@@ -126,15 +159,17 @@ export default async function AnsattSja() {
               <div>
                 <p className="font-medium text-purple-900">
                   <BookTemplate className="h-4 w-4 inline mr-1" />
-                  {templates.length} SJA-mal{templates.length !== 1 ? "er" : ""} tilgjengelig
+                  {templates.length === 1
+                    ? t("templates.availableSingle", { count: templates.length })
+                    : t("templates.availableMultiple", { count: templates.length })}
                 </p>
                 <p className="text-sm text-purple-700 mt-1">
-                  Bruk en mal for å raskt opprette SJA for gjentakende arbeidsoppgaver
+                  {t("templates.description")}
                 </p>
               </div>
               <Link href="/ansatt/sja/maler">
                 <Button variant="outline" size="sm">
-                  Se maler
+                  {t("templates.view")}
                 </Button>
               </Link>
             </div>
@@ -145,29 +180,27 @@ export default async function AnsattSja() {
       <Card className="border-l-4 border-l-orange-500 bg-orange-50">
         <CardContent className="p-4">
           <p className="text-sm text-orange-900">
-            <strong>Hva er SJA?</strong> En Sikker Jobb Analyse (SJA) er en systematisk
-            gjennomgang av faremomentene ved en arbeidsoppgave. SJA skal gjennomføres FØR
-            arbeidet starter, og alle involverte skal delta i gjennomgangen.
+            <strong>{t("info.title")}</strong> {t("info.description")}
           </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Mine analyser ({mySjas.length})</CardTitle>
+          <CardTitle>{t("analyses.title", { count: mySjas.length })}</CardTitle>
         </CardHeader>
         <CardContent>
           {mySjas.length === 0 ? (
             <div className="text-center py-12">
               <HardHat className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Ingen SJA-analyser ennå</h3>
+              <h3 className="text-lg font-semibold mb-2">{t("analyses.empty.title")}</h3>
               <p className="text-muted-foreground mb-4">
-                Opprett din første SJA for å sikre trygt arbeid.
+                {t("analyses.empty.description")}
               </p>
               <Link href="/ansatt/sja/ny">
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
-                  Opprett din første SJA
+                  {t("analyses.empty.cta")}
                 </Button>
               </Link>
             </div>
@@ -199,29 +232,31 @@ export default async function AnsattSja() {
                             variant="outline"
                             className={`text-xs ${getSjaStatusColor(sja.status)}`}
                           >
-                            {getSjaStatusLabel(sja.status)}
+                            {getStatusLabel(sja.status)}
                           </Badge>
                           <Badge
                             variant="outline"
                             className={`text-xs ${getSjaConclusionColor(sja.conclusion)}`}
                           >
-                            {getSjaConclusionLabel(sja.conclusion)}
+                            {getConclusionLabel(sja.conclusion)}
                           </Badge>
                           <Badge variant="secondary" className="text-xs">
-                            {sja.hazards.length} fare{sja.hazards.length !== 1 ? "r" : ""}
+                            {sja.hazards.length === 1
+                              ? t("hazards.single", { count: sja.hazards.length })
+                              : t("hazards.multiple", { count: sja.hazards.length })}
                           </Badge>
                           {maxRisk >= 10 && (
                             <Badge variant="destructive" className="text-xs">
-                              Høy risiko ({maxRisk})
+                              {t("highRisk", { level: maxRisk })}
                             </Badge>
                           )}
                         </div>
 
                         <div className="text-xs text-muted-foreground space-y-1">
-                          <p>Sted: {sja.workLocation}</p>
+                          <p>{t("location", { value: sja.workLocation })}</p>
                           <p>
-                            Planlagt:{" "}
-                            {new Date(sja.plannedDate).toLocaleDateString("nb-NO", {
+                            {t("planned")}:{" "}
+                            {new Date(sja.plannedDate).toLocaleDateString(dateLocale, {
                               day: "numeric",
                               month: "short",
                               year: "numeric",

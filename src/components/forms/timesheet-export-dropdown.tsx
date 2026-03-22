@@ -17,9 +17,14 @@ import { nb } from "date-fns/locale";
 interface TimesheetExportDropdownProps {
   formId: string;
   formTitle: string;
+  allTemplatesView?: boolean;
 }
 
-export function TimesheetExportDropdown({ formId, formTitle }: TimesheetExportDropdownProps) {
+export function TimesheetExportDropdown({
+  formId,
+  formTitle,
+  allTemplatesView = false,
+}: TimesheetExportDropdownProps) {
   const [open, setOpen] = useState(false);
   const now = new Date();
   const currentYear = getYear(now);
@@ -27,7 +32,11 @@ export function TimesheetExportDropdown({ formId, formTitle }: TimesheetExportDr
   const currentWeek = getWeek(now, { weekStartsOn: 1, locale: nb });
 
   const buildUrl = (params: Record<string, string>) => {
-    const search = new URLSearchParams(params).toString();
+    const merged: Record<string, string> = { ...params };
+    if (allTemplatesView) {
+      merged.allTemplates = "1";
+    }
+    const search = new URLSearchParams(merged).toString();
     return `/api/forms/${formId}/submissions/export${search ? `?${search}` : ""}`;
   };
 

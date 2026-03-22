@@ -23,6 +23,8 @@ interface DeleteFormButtonProps {
   formTitle: string;
   submissionCount: number;
   returnUrl?: string;
+  /** Kun ikon (f.eks. i tabell) */
+  compact?: boolean;
 }
 
 export function DeleteFormButton({
@@ -30,6 +32,7 @@ export function DeleteFormButton({
   formTitle,
   submissionCount,
   returnUrl = "/dashboard/forms",
+  compact = false,
 }: DeleteFormButtonProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
@@ -73,9 +76,19 @@ export function DeleteFormButton({
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogTrigger asChild>
-        <Button variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive">
-          <Trash2 className="h-4 w-4 mr-2" />
-          Slett
+        <Button
+          type="button"
+          variant={compact ? "ghost" : "outline"}
+          size={compact ? "sm" : "default"}
+          title="Slett skjema"
+          className={
+            compact
+              ? "text-destructive hover:bg-destructive/10 hover:text-destructive"
+              : "text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+          }
+        >
+          <Trash2 className={`h-4 w-4 ${compact ? "" : "mr-2"}`} />
+          {!compact ? "Slett" : null}
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>

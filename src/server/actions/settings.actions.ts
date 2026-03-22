@@ -193,9 +193,13 @@ export async function updateTenantSimpleMenuItems(hrefs: string[]) {
 // USER SETTINGS
 // ============================================================================
 
-export async function updateUserProfile(data: { name?: string; email?: string }) {
+export async function updateUserProfile(data: { name?: string; email?: string; preferredLocale?: string }) {
   try {
     const { user } = await getSessionContext();
+    const allowedLocales = new Set(["nb", "en"]);
+    const preferredLocale = data.preferredLocale && allowedLocales.has(data.preferredLocale)
+      ? data.preferredLocale
+      : undefined;
 
     // Sjekk om e-post allerede eksisterer (hvis endret)
     if (data.email && data.email !== user.email) {
@@ -213,6 +217,7 @@ export async function updateUserProfile(data: { name?: string; email?: string })
       data: {
         name: data.name,
         email: data.email,
+        ...(preferredLocale ? { preferredLocale } : {}),
       },
     });
 
@@ -323,28 +328,45 @@ async function inviteSingleUser(ctx: InviteContext, data: { email: string; name:
   const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
   if (!existingUser) {
-    existingUser = await prisma.user.create({
-      data: {
-        email: normalizedEmail,
-        name: data.name,
-        password: hashedPassword,
-      },
+    existingUser = await prisma.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
+        data: {
+          email: normalizedEmail,
+          name: data.name,
+          password: hashedPassword,
+        },
+      });
+
+      await tx.userTenant.create({
+        data: {
+          userId: createdUser.id,
+          tenantId: ctx.tenantId,
+          role: data.role as Role,
+          invitationSentAt: new Date(),
+        },
+      });
+
+      return createdUser;
     });
   } else {
-    await prisma.user.update({
-      where: { id: existingUser.id },
-      data: { password: hashedPassword },
+    existingUser = await prisma.$transaction(async (tx) => {
+      const updatedUser = await tx.user.update({
+        where: { id: existingUser!.id },
+        data: { password: hashedPassword },
+      });
+
+      await tx.userTenant.create({
+        data: {
+          userId: updatedUser.id,
+          tenantId: ctx.tenantId,
+          role: data.role as Role,
+          invitationSentAt: new Date(),
+        },
+      });
+
+      return updatedUser;
     });
   }
-
-  await prisma.userTenant.create({
-    data: {
-      userId: existingUser.id,
-      tenantId: ctx.tenantId,
-      role: data.role as Role,
-      invitationSentAt: new Date(),
-    },
-  });
 
   try {
     const { sendUserInvitationEmail } = await import("@/lib/email-service");
@@ -506,23 +528,36 @@ export async function importUsersFromFile(formData: FormData): Promise<ImportUse
       }
 
       if (!existingUser) {
-        existingUser = await prisma.user.create({
+        existingUser = await prisma.$transaction(async (tx) => {
+          const createdUser = await tx.user.create({
+            data: {
+              email: normalizedEmail,
+              name: row.name,
+              password: null,
+            },
+          });
+
+          await tx.userTenant.create({
+            data: {
+              userId: createdUser.id,
+              tenantId,
+              role: row.role,
+              invitationSentAt: null,
+            },
+          });
+
+          return createdUser;
+        });
+      } else {
+        await prisma.userTenant.create({
           data: {
-            email: normalizedEmail,
-            name: row.name,
-            password: null,
+            userId: existingUser.id,
+            tenantId,
+            role: row.role,
+            invitationSentAt: null,
           },
         });
       }
-
-      await prisma.userTenant.create({
-        data: {
-          userId: existingUser.id,
-          tenantId,
-          role: row.role,
-          invitationSentAt: null,
-        },
-      });
       imported++;
     }
 

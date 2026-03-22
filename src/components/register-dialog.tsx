@@ -26,6 +26,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Mail, Phone, User, MapPin, Building2, CheckCircle2, Loader2, Code } from "lucide-react";
 import { submitRegistrationRequest } from "@/server/actions/registration.actions";
 import { validateOrgNumber } from "@/server/actions/brreg.actions";
+import { AGRICULTURE_FARM_TYPES, SUPPORTED_INDUSTRIES } from "@/lib/industry-packages";
 
 interface RegisterDialogProps {
   trigger?: React.ReactNode;
@@ -46,6 +47,7 @@ export function RegisterDialog({ trigger, children, onOpenChange }: RegisterDial
   const [orgValidated, setOrgValidated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [useEHF, setUseEHF] = useState(true);
+  const [industry, setIndustry] = useState<string>("");
   const [formData, setFormData] = useState({
     companyName: "",
     orgNumber: "",
@@ -123,6 +125,7 @@ export function RegisterDialog({ trigger, children, onOpenChange }: RegisterDial
           postalCode: "",
           city: "",
         });
+        setIndustry("");
       } else {
         setError(result.error || "Noe gikk galt. Prøv igjen.");
       }
@@ -232,25 +235,41 @@ export function RegisterDialog({ trigger, children, onOpenChange }: RegisterDial
                 <Label htmlFor="industry" className="text-xs sm:text-sm font-medium">
                   Bransje <span className="text-destructive">*</span>
                 </Label>
-                <Select name="industry" required>
+                <Select required onValueChange={(value) => setIndustry(value)}>
                   <SelectTrigger className="h-11">
                     <SelectValue placeholder="Velg" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Bygg og anlegg">Bygg og anlegg</SelectItem>
-                    <SelectItem value="Helsevesen">Helsevesen</SelectItem>
-                    <SelectItem value="Transport og logistikk">Transport og logistikk</SelectItem>
-                    <SelectItem value="Industri og produksjon">Industri og produksjon</SelectItem>
-                    <SelectItem value="Handel og service">Handel og service</SelectItem>
-                    <SelectItem value="Hotell og restaurant">Hotell og restaurant</SelectItem>
-                    <SelectItem value="Utdanning">Utdanning</SelectItem>
-                    <SelectItem value="Teknologi og IT">Teknologi og IT</SelectItem>
-                    <SelectItem value="Landbruk">Landbruk</SelectItem>
-                    <SelectItem value="Annet">Annet</SelectItem>
+                    {SUPPORTED_INDUSTRIES.map((industryOption) => (
+                      <SelectItem key={industryOption.value} value={industryOption.value}>
+                        {industryOption.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input type="hidden" name="industry" value={industry} />
+              </div>
+            </div>
+
+            {industry === "agriculture" && (
+              <div className="space-y-2">
+                <Label htmlFor="farmType" className="text-xs sm:text-sm font-medium">
+                  Velg gårdstype <span className="text-destructive">*</span>
+                </Label>
+                <Select name="farmType" required>
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Velg gårdstype" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AGRICULTURE_FARM_TYPES.map((farmType) => (
+                      <SelectItem key={farmType.value} value={farmType.label}>
+                        {farmType.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-            </div>
+            )}
 
             <div className="border-t pt-3 sm:pt-4 md:pt-5">
               <h3 className="font-semibold mb-3 sm:mb-4 text-xs sm:text-sm">Kontaktperson</h3>

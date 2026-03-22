@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,18 +10,21 @@ import { User, FlaskConical, AlertTriangle, Info, Download } from "lucide-react"
 import Link from "next/link";
 import { ProfileForm } from "@/components/ansatt/profile-form";
 
-const EXPOSURE_TYPE_LABELS: Record<string, string> = {
-  INHALATION: "Innånding",
-  SKIN: "Hudkontakt",
-  NOISE: "Støy",
-  VIBRATION: "Vibrasjon",
-  BIOLOGICAL: "Biologisk",
-  RADIATION: "Stråling",
-  OTHER: "Annet",
+const EXPOSURE_TYPE_KEYS: Record<string, string> = {
+  INHALATION: "exposure.types.INHALATION",
+  SKIN: "exposure.types.SKIN",
+  NOISE: "exposure.types.NOISE",
+  VIBRATION: "exposure.types.VIBRATION",
+  BIOLOGICAL: "exposure.types.BIOLOGICAL",
+  RADIATION: "exposure.types.RADIATION",
+  OTHER: "exposure.types.OTHER",
 };
 
 export default async function AnsattProfil() {
   const session = await getServerSession(authOptions);
+  const t = await getTranslations("employeeProfilePage");
+  const locale = await getLocale();
+  const dateLocale = locale === "en" ? "en-US" : "nb-NO";
 
   if (!session?.user?.id) {
     redirect("/login");
@@ -77,17 +81,17 @@ export default async function AnsattProfil() {
       <div>
         <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
           <User className="h-7 w-7 text-primary" />
-          Min profil
+          {t("header.title")}
         </h1>
         <p className="text-muted-foreground">
-          Administrer din profil og kontaktinformasjon
+          {t("header.description")}
         </p>
       </div>
 
       {/* Profilbilde og info */}
       <Card>
         <CardHeader>
-          <CardTitle>Profilinformasjon</CardTitle>
+          <CardTitle>{t("profileInfo.title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <ProfileForm user={user} />
@@ -97,7 +101,7 @@ export default async function AnsattProfil() {
       {/* Bedriftsinformasjon */}
       <Card>
         <CardHeader>
-          <CardTitle>Bedriftsinformasjon</CardTitle>
+          <CardTitle>{t("companyInfo.title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -105,13 +109,14 @@ export default async function AnsattProfil() {
               <div key={ut.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="space-y-0.5">
                   <p className="font-medium">{ut.tenant.name}</p>
-                  <p className="text-sm text-muted-foreground">Rolle: {ut.role}</p>
+                  <p className="text-sm text-muted-foreground">{t("companyInfo.role", { role: ut.role })}</p>
                   {ut.department && (
-                    <p className="text-xs text-muted-foreground">Avdeling: {ut.department}</p>
+                    <p className="text-xs text-muted-foreground">{t("companyInfo.department", { department: ut.department })}</p>
                   )}
                   {ut.employeeNumber && (
                     <p className="text-xs text-muted-foreground">
-                      Ansattnr.: <span className="font-mono font-medium text-foreground">{ut.employeeNumber}</span>
+                      {t("companyInfo.employeeNumber")}{" "}
+                      <span className="font-mono font-medium text-foreground">{ut.employeeNumber}</span>
                     </p>
                   )}
                 </div>
@@ -128,9 +133,9 @@ export default async function AnsattProfil() {
             <div className="flex items-center gap-2">
               <FlaskConical className={`h-5 w-5 ${exposureEntries.length > 0 ? "text-orange-600" : "text-muted-foreground"}`} />
               <div>
-                <CardTitle className="text-base">Eksponeringsregister</CardTitle>
+                <CardTitle className="text-base">{t("exposure.title")}</CardTitle>
                 <CardDescription>
-                  Dine registrerte eksponeringer for helseskadelige stoffer og faktorer
+                  {t("exposure.subtitle")}
                 </CardDescription>
               </div>
             </div>
@@ -138,7 +143,7 @@ export default async function AnsattProfil() {
               <Link href="/api/exposure-register/my-exposure/pdf" target="_blank">
                 <Button size="sm" variant="outline" className="gap-2 border-orange-300 text-orange-800 hover:bg-orange-50">
                   <Download className="h-4 w-4" />
-                  Last ned PDF
+                  {t("exposure.downloadPdf")}
                 </Button>
               </Link>
             )}
@@ -149,7 +154,7 @@ export default async function AnsattProfil() {
             <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
               <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
               <p className="text-sm text-muted-foreground">
-                Du er ikke registrert i eksponeringsregisteret. Har du spørsmål om dette, ta kontakt med din HMS-ansvarlig.
+                {t("exposure.empty")}
               </p>
             </div>
           ) : (
@@ -157,9 +162,9 @@ export default async function AnsattProfil() {
               <div className="flex items-start gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
                 <AlertTriangle className="h-4 w-4 text-orange-600 mt-0.5 shrink-0" />
                 <p className="text-sm text-orange-800">
-                  Du er registrert i eksponeringsregisteret. Disse opplysningene oppbevares i{" "}
-                  {Math.max(...exposureEntries.map((e) => e.retentionUntilDate.getFullYear()))} og kan
-                  brukes som dokumentasjon ved eventuell yrkessykdom.
+                  {t("exposure.warning", {
+                    year: Math.max(...exposureEntries.map((e) => e.retentionUntilDate.getFullYear())),
+                  })}
                 </p>
               </div>
 
@@ -187,34 +192,36 @@ export default async function AnsattProfil() {
                             : "bg-gray-100 text-gray-700 border-gray-200"
                         }
                       >
-                        {entry.status === "ACTIVE" ? "Pågående" : "Avsluttet"}
+                        {entry.status === "ACTIVE" ? t("exposure.status.active") : t("exposure.status.closed")}
                       </Badge>
                     </div>
 
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
                       <span>
-                        Type:{" "}
+                        {t("exposure.labels.type")}{" "}
                         <span className="text-foreground">
-                          {EXPOSURE_TYPE_LABELS[entry.exposureType] ?? entry.exposureType}
+                          {EXPOSURE_TYPE_KEYS[entry.exposureType]
+                            ? t(EXPOSURE_TYPE_KEYS[entry.exposureType])
+                            : entry.exposureType}
                         </span>
                       </span>
                       <span>
-                        Fra:{" "}
+                        {t("exposure.labels.from")}{" "}
                         <span className="text-foreground">
-                          {entry.exposureStartDate.toLocaleDateString("nb-NO")}
+                          {entry.exposureStartDate.toLocaleDateString(dateLocale)}
                         </span>
                       </span>
                       {entry.exposureEndDate && (
                         <span>
-                          Til:{" "}
+                          {t("exposure.labels.to")}{" "}
                           <span className="text-foreground">
-                            {entry.exposureEndDate.toLocaleDateString("nb-NO")}
+                            {entry.exposureEndDate.toLocaleDateString(dateLocale)}
                           </span>
                         </span>
                       )}
                       {entry.ppeUsed && (
                         <span className="col-span-2">
-                          Verneutstyr: <span className="text-foreground">{entry.ppeUsed}</span>
+                          {t("exposure.labels.ppe")} <span className="text-foreground">{entry.ppeUsed}</span>
                         </span>
                       )}
                     </div>
@@ -228,20 +235,24 @@ export default async function AnsattProfil() {
                         }`}
                       >
                         {entry.healthCheckDone
-                          ? `Helsekontroll gjennomført${entry.healthCheckDate ? ": " + entry.healthCheckDate.toLocaleDateString("nb-NO") : ""}`
-                          : "Helsekontroll er påkrevd – ikke gjennomført ennå"}
+                          ? t("exposure.healthCheck.done", {
+                              date: entry.healthCheckDate
+                                ? `: ${entry.healthCheckDate.toLocaleDateString(dateLocale)}`
+                                : "",
+                            })
+                          : t("exposure.healthCheck.pending")}
                       </div>
                     )}
 
                     <p className="text-xs text-muted-foreground">
-                      Oppbevares til: {entry.retentionUntilDate.toLocaleDateString("nb-NO")}
+                      {t("exposure.labels.retentionUntil")} {entry.retentionUntilDate.toLocaleDateString(dateLocale)}
                     </p>
                   </div>
                 ))}
               </div>
 
               <p className="text-xs text-muted-foreground pt-1">
-                Har du spørsmål om registreringene? Kontakt din HMS-ansvarlig. Du har rett til innsyn i egne opplysninger etter arbeidsmiljøloven.
+                {t("exposure.footer")}
               </p>
             </div>
           )}

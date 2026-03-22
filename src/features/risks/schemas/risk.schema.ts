@@ -84,6 +84,7 @@ export const createRiskAssessmentSchema = z.object({
 // IK-HMS § 5 nr. 6 (godkjenning) + IK-HMS § 5 nr. 8 (periodisk gjennomgang)
 export const updateRiskAssessmentSchema = z.object({
   id: z.string().cuid(),
+  title: z.string().trim().min(3, "Tittel må være minst 3 tegn").max(200).optional(),
   participants: z.string().optional(),
   approvedById: z.string().cuid().optional().nullable(),
   approvedAt: z.coerce.date().optional().nullable(),

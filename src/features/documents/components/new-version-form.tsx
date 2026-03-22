@@ -10,12 +10,14 @@ import { uploadNewVersion } from "@/server/actions/document.actions";
 import { Upload } from "lucide-react";
 import type { Document } from "@prisma/client";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslations } from "next-intl";
 
 interface NewVersionFormProps {
   document: Document;
 }
 
 export function NewVersionForm({ document }: NewVersionFormProps) {
+  const t = useTranslations("dashboardDocumentNewVersionForm");
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -33,8 +35,8 @@ export function NewVersionForm({ document }: NewVersionFormProps) {
       
       if (result.success) {
         toast({
-          title: "🔄 Ny versjon lastet opp",
-          description: "Dokumentet må godkjennes på nytt før det kan brukes",
+          title: t("toasts.uploaded.title"),
+          description: t("toasts.uploaded.description"),
           className: "bg-blue-50 border-blue-200",
         });
         router.push("/dashboard/documents");
@@ -42,15 +44,15 @@ export function NewVersionForm({ document }: NewVersionFormProps) {
       } else {
         toast({
           variant: "destructive",
-          title: "Opplasting feilet",
-          description: result.error || "Kunne ikke laste opp ny versjon",
+          title: t("toasts.uploadFailed.title"),
+          description: result.error || t("toasts.uploadFailed.description"),
         });
       }
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Uventet feil",
-        description: "Noe gikk galt ved opplasting av ny versjon",
+        title: t("toasts.unexpected.title"),
+        description: t("toasts.unexpected.description"),
       });
     } finally {
       setLoading(false);
@@ -60,43 +62,43 @@ export function NewVersionForm({ document }: NewVersionFormProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Last opp ny versjon</CardTitle>
+        <CardTitle>{t("title")}</CardTitle>
         <CardDescription>
-          Gammel versjon ({document.version}) lagres i historikken. Ny versjon må godkjennes.
+          {t("description", { version: document.version })}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="version">Versjonsnummer *</Label>
+            <Label htmlFor="version">{t("fields.version")}</Label>
             <Input
               id="version"
               name="version"
-              placeholder="v1.1 eller v2.0"
+              placeholder={t("placeholders.version")}
               required
               disabled={loading}
             />
             <p className="text-xs text-muted-foreground">
-              Gjeldende: {document.version}. Bruk f.eks. v1.1 for mindre endringer, v2.0 for større.
+              {t("hints.version", { version: document.version })}
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="changeComment">Hva er endret? *</Label>
+            <Label htmlFor="changeComment">{t("fields.changeComment")}</Label>
             <Input
               id="changeComment"
               name="changeComment"
-              placeholder="F.eks. Oppdatert sikkerhetsprosedyrer i kap. 3"
+              placeholder={t("placeholders.changeComment")}
               required
               disabled={loading}
             />
             <p className="text-xs text-muted-foreground">
-              Beskriv kort hva som er endret (påkrevd for sporbarhet)
+              {t("hints.changeComment")}
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="file">Ny fil *</Label>
+            <Label htmlFor="file">{t("fields.file")}</Label>
             <Input
               id="file"
               name="file"
@@ -108,28 +110,28 @@ export function NewVersionForm({ document }: NewVersionFormProps) {
             />
             {selectedFile && (
               <p className="text-sm text-muted-foreground">
-                Valgt: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(2)} KB)
+                {t("selectedFile", { name: selectedFile.name, size: (selectedFile.size / 1024).toFixed(2) })}
               </p>
             )}
           </div>
 
           <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
-            <p className="text-sm font-medium text-amber-900 mb-2">⚠️ Viktig</p>
+            <p className="text-sm font-medium text-amber-900 mb-2">{t("important.title")}</p>
             <ul className="text-sm text-amber-800 space-y-1 list-disc list-inside">
-              <li>Dokumentet får status <strong>UTKAST</strong> og må godkjennes på nytt</li>
-              <li>Gammel versjon lagres permanent i historikken</li>
-              <li>Endringskommentar er <strong>påkrevd</strong> (HMS-compliance)</li>
+              <li>{t.rich("important.i1", { strong: (chunks) => <strong>{chunks}</strong> })}</li>
+              <li>{t("important.i2")}</li>
+              <li>{t.rich("important.i3", { strong: (chunks) => <strong>{chunks}</strong> })}</li>
             </ul>
           </div>
 
           <div className="flex gap-4">
             <Button type="submit" disabled={loading}>
               {loading ? (
-                <>Laster opp...</>
+                <>{t("actions.uploading")}</>
               ) : (
                 <>
                   <Upload className="mr-2 h-4 w-4" />
-                  Last opp ny versjon
+                  {t("actions.upload")}
                 </>
               )}
             </Button>
@@ -139,7 +141,7 @@ export function NewVersionForm({ document }: NewVersionFormProps) {
               onClick={() => router.back()}
               disabled={loading}
             >
-              Avbryt
+              {t("actions.cancel")}
             </Button>
           </div>
         </form>

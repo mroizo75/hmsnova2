@@ -10,10 +10,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { normalizePpeFile } from "@/lib/pictograms";
 import { IsocyanateWarning } from "@/components/isocyanate-warning";
+import { getLocale, getTranslations } from "next-intl/server";
 
 export default async function AnsattChemicalDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await getServerSession(authOptions);
+  const t = await getTranslations("employeeChemicalDetailPage");
+  const locale = await getLocale();
+  const dateLocale = locale === "en" ? "en-US" : "nb-NO";
 
   if (!session?.user?.tenantId) {
     redirect("/login");
@@ -23,7 +27,7 @@ export default async function AnsattChemicalDetailPage({ params }: { params: Pro
     where: {
       id,
       tenantId: session.user.tenantId,
-      status: "ACTIVE", // Kun aktive kjemikalier for ansatte
+      status: "ACTIVE",
     },
   });
 
@@ -40,7 +44,7 @@ export default async function AnsattChemicalDetailPage({ params }: { params: Pro
         <Link href="/ansatt/stoffkartotek">
           <Button variant="ghost" size="sm" className="mb-4">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Tilbake til stoffkartotek
+            {t("back")}
           </Button>
         </Link>
         <div className="space-y-2">
@@ -51,7 +55,7 @@ export default async function AnsattChemicalDetailPage({ params }: { params: Pro
             <div>
               <h1 className="text-3xl font-bold">{chemical.productName}</h1>
               {chemical.supplier && (
-                <p className="text-muted-foreground">Leverandør: {chemical.supplier}</p>
+                <p className="text-muted-foreground">{t("supplier", { name: chemical.supplier })}</p>
               )}
             </div>
           </div>
@@ -65,9 +69,9 @@ export default async function AnsattChemicalDetailPage({ params }: { params: Pro
             <div className="flex items-start gap-3">
               <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
               <div>
-                <p className="font-medium text-red-900">⚠️ Varsel</p>
+                <p className="font-medium text-red-900">{t("overdue.title")}</p>
                 <p className="text-sm text-red-800">
-                  Dette kjemikaliet har forfalt revisjonsdato. Kontakt HMS-ansvarlig før bruk.
+                  {t("overdue.description")}
                 </p>
               </div>
             </div>
@@ -92,24 +96,24 @@ export default async function AnsattChemicalDetailPage({ params }: { params: Pro
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Download className="h-5 w-5 text-blue-600" />
-            Sikkerhetsdatablad (SDS)
+            {t("sds.title")}
           </CardTitle>
-          <CardDescription>Les alltid sikkerhetsdatabladet før bruk!</CardDescription>
+          <CardDescription>{t("sds.description")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-3">
             {chemical.sdsVersion && (
               <div>
-                <p className="text-sm text-muted-foreground">Versjon</p>
+                <p className="text-sm text-muted-foreground">{t("sds.version")}</p>
                 <p className="font-medium">{chemical.sdsVersion}</p>
               </div>
             )}
 
             {chemical.sdsDate && (
               <div>
-                <p className="text-sm text-muted-foreground">Dato</p>
+                <p className="text-sm text-muted-foreground">{t("sds.date")}</p>
                 <p className="font-medium">
-                  {new Date(chemical.sdsDate).toLocaleDateString("nb-NO")}
+                  {new Date(chemical.sdsDate).toLocaleDateString(dateLocale)}
                 </p>
               </div>
             )}
@@ -118,11 +122,11 @@ export default async function AnsattChemicalDetailPage({ params }: { params: Pro
               <div>
                 <p className="text-sm text-muted-foreground flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  Neste revisjon
+                  {t("sds.nextReview")}
                 </p>
                 <p className={`font-medium ${isOverdue ? "text-red-600" : ""}`}>
-                  {new Date(chemical.nextReviewDate).toLocaleDateString("nb-NO")}
-                  {isOverdue && " (Forfalt!)"}
+                  {new Date(chemical.nextReviewDate).toLocaleDateString(dateLocale)}
+                  {isOverdue && ` (${t("sds.overdueBadge")})`}
                 </p>
               </div>
             )}
@@ -133,7 +137,7 @@ export default async function AnsattChemicalDetailPage({ params }: { params: Pro
               <Link href={`/api/chemicals/${chemical.id}/download-sds`} target="_blank">
                 <Button size="lg" className="w-full md:w-auto">
                   <Download className="mr-2 h-5 w-5" />
-                  Last ned sikkerhetsdatablad (PDF)
+                  {t("sds.download")}
                 </Button>
               </Link>
             </div>
@@ -141,7 +145,7 @@ export default async function AnsattChemicalDetailPage({ params }: { params: Pro
             <Card className="bg-amber-50 border-amber-200">
               <CardContent className="pt-4">
                 <p className="text-sm text-amber-800">
-                  ⚠️ Sikkerhetsdatablad mangler - kontakt HMS-ansvarlig
+                  {t("sds.missing")}
                 </p>
               </CardContent>
             </Card>
@@ -153,13 +157,13 @@ export default async function AnsattChemicalDetailPage({ params }: { params: Pro
         {/* Produktinformasjon */}
         <Card>
           <CardHeader>
-            <CardTitle>Produktinformasjon</CardTitle>
-            <CardDescription>Detaljer om produktet</CardDescription>
+            <CardTitle>{t("product.title")}</CardTitle>
+            <CardDescription>{t("product.description")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {chemical.casNumber && (
               <div>
-                <p className="text-sm text-muted-foreground">CAS-nummer</p>
+                <p className="text-sm text-muted-foreground">{t("product.cas")}</p>
                 <p className="font-medium">{chemical.casNumber}</p>
               </div>
             )}
@@ -169,7 +173,7 @@ export default async function AnsattChemicalDetailPage({ params }: { params: Pro
               <div>
                 <p className="text-sm text-muted-foreground flex items-center gap-2">
                   <MapPin className="h-4 w-4" />
-                  Lagringssted
+                  {t("product.location")}
                 </p>
                 <p className="font-medium">{chemical.location}</p>
               </div>
@@ -179,7 +183,7 @@ export default async function AnsattChemicalDetailPage({ params }: { params: Pro
               <div>
                 <p className="text-sm text-muted-foreground flex items-center gap-2">
                   <Package className="h-4 w-4" />
-                  Mengde
+                  {t("product.quantity")}
                 </p>
                 <p className="font-medium">
                   {chemical.quantity} {chemical.unit || ""}
@@ -192,13 +196,13 @@ export default async function AnsattChemicalDetailPage({ params }: { params: Pro
         {/* Faremarkering */}
         <Card>
           <CardHeader>
-            <CardTitle>Faremarkering</CardTitle>
-            <CardDescription>GHS/CLP-klassifisering</CardDescription>
+            <CardTitle>{t("hazard.title")}</CardTitle>
+            <CardDescription>{t("hazard.description")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {chemical.hazardStatements && (
               <div>
-                <p className="text-sm text-muted-foreground">H-setninger (Faresetninger)</p>
+                <p className="text-sm text-muted-foreground">{t("hazard.hStatements")}</p>
                 <p className="font-medium text-sm whitespace-pre-wrap">
                   {chemical.hazardStatements}
                 </p>
@@ -210,13 +214,13 @@ export default async function AnsattChemicalDetailPage({ params }: { params: Pro
                 const pictograms = JSON.parse(chemical.warningPictograms);
                 return pictograms.length > 0 ? (
                   <div>
-                    <p className="text-sm text-muted-foreground mb-3">Faresymboler</p>
+                    <p className="text-sm text-muted-foreground mb-3">{t("hazard.pictograms")}</p>
                     <div className="flex flex-wrap gap-3">
                       {pictograms.map((file: string, idx: number) => (
                         <div key={idx} className="relative w-20 h-20 border-2 border-orange-200 rounded-lg p-1 bg-white">
                           <Image
                             src={`/faremerker/${file}`}
-                            alt="Faresymbol"
+                            alt={t("hazard.pictogramAlt")}
                             fill
                             className="object-contain"
                           />
@@ -241,10 +245,10 @@ export default async function AnsattChemicalDetailPage({ params }: { params: Pro
             <Card className="border-2 border-green-200 bg-green-50">
               <CardHeader>
                 <CardTitle className="text-green-900">
-                  🛡️ Påkrevd personlig verneutstyr (PPE)
+                  {t("ppe.title")}
                 </CardTitle>
                 <CardDescription className="text-green-700">
-                  Dette verneutstyret MÅ benyttes ved bruk av dette produktet
+                  {t("ppe.description")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -256,7 +260,7 @@ export default async function AnsattChemicalDetailPage({ params }: { params: Pro
                       <div key={idx} className="relative w-20 h-20 border-2 border-green-300 rounded-lg p-2 bg-white">
                         <Image
                           src={`/ppe/${normalizedFile}`}
-                          alt="PPE-krav"
+                          alt={t("ppe.alt")}
                           fill
                           className="object-contain"
                           unoptimized
@@ -277,8 +281,8 @@ export default async function AnsattChemicalDetailPage({ params }: { params: Pro
       {chemical.notes && (
         <Card>
           <CardHeader>
-            <CardTitle>Tilleggsinfo</CardTitle>
-            <CardDescription>Notater</CardDescription>
+            <CardTitle>{t("notes.title")}</CardTitle>
+            <CardDescription>{t("notes.description")}</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="whitespace-pre-wrap">{chemical.notes}</p>
@@ -290,8 +294,7 @@ export default async function AnsattChemicalDetailPage({ params }: { params: Pro
       <Card className="bg-blue-50 border-blue-200">
         <CardContent className="p-4">
           <p className="text-sm text-blue-900">
-            <strong>💡 Husk:</strong> Ved usikkerhet eller spørsmål, kontakt HMS-ansvarlig før bruk.
-            Les alltid sikkerhetsdatabladet grundig!
+            <strong>{t("tip.title")}</strong> {t("tip.description")}
           </p>
         </CardContent>
       </Card>

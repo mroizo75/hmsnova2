@@ -26,8 +26,11 @@ import {
   Edit,
 } from "lucide-react";
 import Link from "next/link";
+import { getLocale, getTranslations } from "next-intl/server";
 
 export default async function AuditDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getTranslations("dashboardAuditDetailPage");
+  const locale = await getLocale();
   const { id } = await params;
   const session = await getServerSession(authOptions);
 
@@ -41,7 +44,7 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
   });
 
   if (!currentUser || currentUser.tenants.length === 0) {
-    return <div>Ingen tilgang til tenant</div>;
+    return <div>{t("noTenantAccess")}</div>;
   }
 
   const tenantId = currentUser.tenants[0].tenantId;
@@ -56,7 +59,7 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
   });
 
   if (!audit) {
-    return <div>Revisjon ikke funnet</div>;
+    return <div>{t("notFound")}</div>;
   }
 
   // Hent hovedrevisor
@@ -109,13 +112,13 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
       <div>
         <Button variant="ghost" asChild className="mb-4">
           <Link href="/dashboard/audits">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Tilbake til revisjoner
+            <ArrowLeft className="mr-2 h-4 w-4" /> {t("actions.back")}
           </Link>
         </Button>
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-3xl font-bold">{audit.title}</h1>
-            <p className="text-muted-foreground">Revisjonsdetaljer</p>
+            <p className="text-muted-foreground">{t("details")}</p>
           </div>
           <div className="flex items-center gap-2">
             <Badge className={typeColor}>{typeLabel}</Badge>
@@ -131,7 +134,7 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
             <Link href={`/dashboard/audits/${audit.id}/edit`}>
               <Button variant="outline" size="sm">
                 <Edit className="mr-2 h-4 w-4" />
-                Rediger
+                {t("actions.edit")}
               </Button>
             </Link>
           </div>
@@ -142,15 +145,15 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
         {/* Basic Info */}
         <Card>
           <CardHeader>
-            <CardTitle>Grunnleggende informasjon</CardTitle>
+            <CardTitle>{t("basicInfo.title")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-start gap-3">
               <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Planlagt dato</p>
+                <p className="text-sm font-medium text-muted-foreground">{t("basicInfo.scheduledDate")}</p>
                 <p className="font-medium">
-                  {new Date(audit.scheduledDate).toLocaleDateString("nb-NO", {
+                  {new Date(audit.scheduledDate).toLocaleDateString(locale === "en" ? "en-US" : "nb-NO", {
                     day: "numeric",
                     month: "long",
                     year: "numeric",
@@ -163,9 +166,9 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Fullført</p>
+                  <p className="text-sm font-medium text-muted-foreground">{t("basicInfo.completed")}</p>
                   <p className="font-medium">
-                    {new Date(audit.completedAt).toLocaleDateString("nb-NO", {
+                    {new Date(audit.completedAt).toLocaleDateString(locale === "en" ? "en-US" : "nb-NO", {
                       day: "numeric",
                       month: "long",
                       year: "numeric",
@@ -178,10 +181,10 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
             <div className="flex items-start gap-3">
               <FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Område</p>
+                <p className="text-sm font-medium text-muted-foreground">{t("basicInfo.area")}</p>
                 <p className="font-medium">{audit.area}</p>
                 {audit.department && (
-                  <p className="text-sm text-muted-foreground">Avdeling: {audit.department}</p>
+                  <p className="text-sm text-muted-foreground">{t("basicInfo.department", { value: audit.department })}</p>
                 )}
               </div>
             </div>
@@ -191,14 +194,14 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
         {/* Team */}
         <Card>
           <CardHeader>
-            <CardTitle>Revisjonsteam</CardTitle>
+            <CardTitle>{t("team.title")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-start gap-3">
               <User className="h-5 w-5 text-muted-foreground mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Hovedrevisor</p>
-                <p className="font-medium">{leadAuditor?.name || "Ukjent"}</p>
+                <p className="text-sm font-medium text-muted-foreground">{t("team.leadAuditor")}</p>
+                <p className="font-medium">{leadAuditor?.name || t("unknown")}</p>
                 <p className="text-sm text-muted-foreground">{leadAuditor?.email}</p>
               </div>
             </div>
@@ -207,10 +210,10 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
               <div className="flex items-start gap-3">
                 <Users className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Revisjonsteam</p>
+                  <p className="text-sm font-medium text-muted-foreground">{t("team.members")}</p>
                   {teamMembers.map((member) => (
                     <div key={member.id}>
-                      <p className="font-medium">{member.name || "Ukjent"}</p>
+                      <p className="font-medium">{member.name || t("unknown")}</p>
                       <p className="text-sm text-muted-foreground">{member.email}</p>
                     </div>
                   ))}
@@ -224,15 +227,15 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
       {/* Scope and Criteria */}
       <Card>
         <CardHeader>
-          <CardTitle>Omfang og kriterier (ISO 9001)</CardTitle>
+          <CardTitle>{t("scope.title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <p className="text-sm font-medium text-muted-foreground mb-1">Omfang:</p>
+            <p className="text-sm font-medium text-muted-foreground mb-1">{t("scope.scope")}</p>
             <p className="text-sm whitespace-pre-wrap">{audit.scope}</p>
           </div>
           <div>
-            <p className="text-sm font-medium text-muted-foreground mb-1">Revisjonskriterier:</p>
+            <p className="text-sm font-medium text-muted-foreground mb-1">{t("scope.criteria")}</p>
             <p className="text-sm whitespace-pre-wrap">{audit.criteria}</p>
           </div>
         </CardContent>
@@ -242,18 +245,18 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
       {(audit.summary || audit.conclusion) && (
         <Card>
           <CardHeader>
-            <CardTitle>Oppsummering og konklusjon</CardTitle>
+            <CardTitle>{t("summary.title")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {audit.summary && (
               <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Oppsummering:</p>
+                <p className="text-sm font-medium text-muted-foreground mb-1">{t("summary.summary")}</p>
                 <p className="text-sm whitespace-pre-wrap">{audit.summary}</p>
               </div>
             )}
             {audit.conclusion && (
               <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Konklusjon:</p>
+                <p className="text-sm font-medium text-muted-foreground mb-1">{t("summary.conclusion")}</p>
                 <p className="text-sm whitespace-pre-wrap">{audit.conclusion}</p>
               </div>
             )}
@@ -265,24 +268,24 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
       {findingStats.total > 0 && (
         <Card className="border-orange-200 bg-orange-50">
           <CardHeader>
-            <CardTitle className="text-orange-900">Funn fra revisjon</CardTitle>
+            <CardTitle className="text-orange-900">{t("findingsStats.title")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-4">
               <div>
-                <p className="text-sm font-medium text-orange-900">Større avvik</p>
+                <p className="text-sm font-medium text-orange-900">{t("findingsStats.major")}</p>
                 <p className="text-3xl font-bold text-red-600">{findingStats.majorNCs}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-orange-900">Mindre avvik</p>
+                <p className="text-sm font-medium text-orange-900">{t("findingsStats.minor")}</p>
                 <p className="text-3xl font-bold text-orange-600">{findingStats.minorNCs}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-orange-900">Observasjoner</p>
+                <p className="text-sm font-medium text-orange-900">{t("findingsStats.observations")}</p>
                 <p className="text-3xl font-bold text-yellow-600">{findingStats.observations}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-orange-900">Styrker</p>
+                <p className="text-sm font-medium text-orange-900">{t("findingsStats.strengths")}</p>
                 <p className="text-3xl font-bold text-green-600">{findingStats.strengths}</p>
               </div>
             </div>
@@ -295,9 +298,9 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Funn og observasjoner</CardTitle>
+              <CardTitle>{t("findings.title")}</CardTitle>
               <CardDescription>
-                Dokumenter avvik, observasjoner og styrker fra revisjonen
+                {t("findings.description")}
               </CardDescription>
             </div>
             <FindingForm auditId={audit.id} users={tenantUsers} />
@@ -311,16 +314,16 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
       {/* ISO 9001 Compliance */}
       <Card className="bg-blue-50 border-blue-200">
         <CardHeader>
-          <CardTitle className="text-blue-900">📋 ISO 9001 Compliance</CardTitle>
+          <CardTitle className="text-blue-900">{t("compliance.title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-blue-800">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-blue-600" />
-            <span>Omfang og kriterier definert</span>
+            <span>{t("compliance.i1")}</span>
           </div>
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-blue-600" />
-            <span>Hovedrevisor utnevnt (objektivitet sikret)</span>
+            <span>{t("compliance.i2")}</span>
           </div>
           <div className="flex items-center gap-2">
             {audit.completedAt ? (
@@ -328,7 +331,7 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
             ) : (
               <AlertTriangle className="h-4 w-4 text-yellow-600" />
             )}
-            <span>Revisjon {audit.completedAt ? "fullført" : "ikke fullført ennå"}</span>
+            <span>{audit.completedAt ? t("compliance.completed") : t("compliance.notCompleted")}</span>
           </div>
           <div className="flex items-center gap-2">
             {findingStats.total > 0 ? (
@@ -338,8 +341,8 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
             )}
             <span>
               {findingStats.total > 0
-                ? `${findingStats.total} funn dokumentert`
-                : "Ingen funn dokumentert"}
+                ? t("compliance.findingsDocumented", { count: findingStats.total })
+                : t("compliance.noFindings")}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -352,8 +355,8 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
             )}
             <span>
               {findingStats.open > 0
-                ? `${findingStats.open} åpne funn (krever korrigerende tiltak)`
-                : "Alle funn er lukket"}
+                ? t("compliance.openFindings", { count: findingStats.open })
+                : t("compliance.allClosed")}
             </span>
           </div>
         </CardContent>

@@ -24,6 +24,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 interface TenantUser {
   user: {
@@ -50,19 +51,20 @@ interface InspectionFormTemplate {
 }
 
 const riskCategoryOptions = [
-  { value: "SAFETY", label: "Sikkerhet" },
-  { value: "HEALTH", label: "Helse" },
-  { value: "ENVIRONMENTAL", label: "Miljø" },
-  { value: "OPERATIONAL", label: "Operasjonell" },
-  { value: "LEGAL", label: "Juridisk" },
-  { value: "INFORMATION_SECURITY", label: "Informasjonssikkerhet" },
-];
+  { value: "SAFETY", labelKey: "riskCategories.safety" },
+  { value: "HEALTH", labelKey: "riskCategories.health" },
+  { value: "ENVIRONMENTAL", labelKey: "riskCategories.environmental" },
+  { value: "OPERATIONAL", labelKey: "riskCategories.operational" },
+  { value: "LEGAL", labelKey: "riskCategories.legal" },
+  { value: "INFORMATION_SECURITY", labelKey: "riskCategories.informationSecurity" },
+] as const;
 
 const NO_TEMPLATE_VALUE = "__none_template__";
 const NO_RISK_CATEGORY_VALUE = "__none_risk__";
 const NO_FOLLOWUP_VALUE = "__none_followup__";
 
 export default function NewInspectionPage() {
+  const t = useTranslations("dashboardInspectionNewPage");
   const router = useRouter();
   const searchParams = useSearchParams();
   const projectId = searchParams.get("projectId") || "";
@@ -143,8 +145,8 @@ export default function NewInspectionPage() {
     e.preventDefault();
     if (formData.formTemplateId === NO_TEMPLATE_VALUE) {
       toast({
-        title: "Mangler mal",
-        description: "Du må velge et vernerunde-skjema fra malbiblioteket.",
+        title: t("toasts.missingTemplate.title"),
+        description: t("toasts.missingTemplate.description"),
         variant: "destructive",
       });
       return;
@@ -172,18 +174,18 @@ export default function NewInspectionPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Kunne ikke opprette inspeksjon");
+        throw new Error(data.message || t("errors.create"));
       }
 
       toast({
-        title: "Inspeksjon opprettet",
-        description: "Inspeksjonen er nå opprettet og klar for gjennomføring",
+        title: t("toasts.created.title"),
+        description: t("toasts.created.description"),
       });
 
       router.push(`/dashboard/inspections/${data.data.inspection.id}`);
     } catch (error: any) {
       toast({
-        title: "Feil",
+        title: t("toasts.error.title"),
         description: error.message,
         variant: "destructive",
       });
@@ -201,31 +203,31 @@ export default function NewInspectionPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Ny inspeksjon</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
           <p className="text-muted-foreground">
-            Opprett en ny vernerunde eller HMS-inspeksjon
+            {t("description")}
           </p>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Inspeksjonsdetaljer</CardTitle>
+          <CardTitle>{t("card.title")}</CardTitle>
           <CardDescription>
-            Fyll ut informasjonen nedenfor for å planlegge inspeksjonen
+            {t("card.description")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             {projectId ? (
               <div className="rounded border border-blue-300 bg-blue-50 p-3 text-sm text-blue-900">
-                Denne vernerunden blir registrert på valgt prosjekt.
+                {t("projectNotice")}
               </div>
             ) : null}
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="title">
-                  Tittel <span className="text-destructive">*</span>
+                  {t("fields.title")} <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="title"
@@ -233,14 +235,14 @@ export default function NewInspectionPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, title: e.target.value })
                   }
-                  placeholder="F.eks. Kvartalsvis vernerunde - Produksjon"
+                  placeholder={t("placeholders.title")}
                   required
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="type">
-                  Type <span className="text-destructive">*</span>
+                  {t("fields.type")} <span className="text-destructive">*</span>
                 </Label>
                 <Select
                   value={formData.type}
@@ -252,12 +254,12 @@ export default function NewInspectionPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="VERNERUNDE">Vernerunde</SelectItem>
-                    <SelectItem value="HMS_INSPEKSJON">HMS-inspeksjon</SelectItem>
-                    <SelectItem value="BRANNØVELSE">Brannøvelse</SelectItem>
-                    <SelectItem value="SHA_PLAN">SHA-plan</SelectItem>
-                    <SelectItem value="SIKKERHETSVANDRING">Sikkerhetsvandring</SelectItem>
-                    <SelectItem value="ANDRE">Annet</SelectItem>
+                    <SelectItem value="VERNERUNDE">{t("types.vernerunde")}</SelectItem>
+                    <SelectItem value="HMS_INSPEKSJON">{t("types.hmsInspection")}</SelectItem>
+                    <SelectItem value="BRANNØVELSE">{t("types.fireDrill")}</SelectItem>
+                    <SelectItem value="SHA_PLAN">{t("types.shaPlan")}</SelectItem>
+                    <SelectItem value="SIKKERHETSVANDRING">{t("types.safetyWalk")}</SelectItem>
+                    <SelectItem value="ANDRE">{t("types.other")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -289,25 +291,25 @@ export default function NewInspectionPage() {
                   disabled={loadingFormTemplates}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={loadingFormTemplates ? "Laster skjemaer..." : "Velg mal-skjema"} />
+                    <SelectValue placeholder={loadingFormTemplates ? t("loadingTemplates") : t("placeholders.selectTemplate")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={NO_TEMPLATE_VALUE}>Velg mal</SelectItem>
+                    <SelectItem value={NO_TEMPLATE_VALUE}>{t("actions.selectTemplate")}</SelectItem>
                     {formTemplates.length === 0 && !loadingFormTemplates && (
                       <div className="px-2 py-6 text-sm text-muted-foreground text-center">
-                        <p className="font-semibold">Ingen vernerunde-skjemaer funnet</p>
-                        <p className="text-xs mt-2">Opprett først et skjema:</p>
+                        <p className="font-semibold">{t("noTemplates.title")}</p>
+                        <p className="text-xs mt-2">{t("noTemplates.subtitle")}</p>
                         <ol className="text-xs mt-2 text-left space-y-1">
-                          <li>1. Gå til Skjemaer → Nytt skjema</li>
-                          <li>2. Velg kategori "Inspeksjon / Vernerunde"</li>
-                          <li>3. Bygg skjemaet og lagre</li>
-                          <li>4. Kom tilbake hit og velg skjemaet</li>
+                          <li>{t("noTemplates.s1")}</li>
+                          <li>{t("noTemplates.s2")}</li>
+                          <li>{t("noTemplates.s3")}</li>
+                          <li>{t("noTemplates.s4")}</li>
                         </ol>
                       </div>
                     )}
                     {formTemplates.map((template) => (
                       <SelectItem key={template.id} value={template.id}>
-                        {template.isGlobal ? `📋 ${template.title} (Eksempelmal)` : `📋 ${template.title}`}
+                        {template.isGlobal ? `📋 ${template.title} (${t("template.exampleTemplate")})` : `📋 ${template.title}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -322,26 +324,25 @@ export default function NewInspectionPage() {
                     ) : null}
                     {selectedFormTemplate.isGlobal ? (
                       <p className="text-xs rounded border border-purple-300 bg-purple-50 p-2 text-purple-900">
-                        Dette er en global eksempelmal. Lag en kopi under Skjemaer hvis du vil endre
-                        eller legge til punkter.
+                        {t("template.globalInfo")}
                       </p>
                     ) : null}
                     <p className="text-xs font-medium">
-                      Felter i malen: {previewFields.length}
+                      {t("template.fieldsCount", { count: previewFields.length })}
                     </p>
                     {previewFields.length > 0 ? (
                       <ul className="text-xs space-y-1">
                         {previewFields.slice(0, 10).map((field) => (
                           <li key={field.id} className="list-disc ml-4">
                             {field.label}
-                            {field.isRequired ? " (påkrevd)" : ""}
+                            {field.isRequired ? ` ${t("template.requiredSuffix")}` : ""}
                           </li>
                         ))}
                       </ul>
                     ) : null}
                     {previewFields.length > 10 ? (
                       <p className="text-xs text-muted-foreground">
-                        +{previewFields.length - 10} flere felter i skjemaet.
+                        {t("template.moreFields", { count: previewFields.length - 10 })}
                       </p>
                     ) : null}
                   </div>
@@ -349,22 +350,22 @@ export default function NewInspectionPage() {
                 {formTemplates.length === 0 && !loadingFormTemplates && (
                   <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
                     <p className="text-sm text-blue-900 font-medium">
-                      💡 Opprett ditt eget vernerunde-skjema
+                      {t("template.createOwnTitle")}
                     </p>
                     <p className="text-xs text-blue-700 mt-1">
-                      Gå til <strong>Skjemaer</strong> → <strong>Nytt skjema</strong> og velg kategori <strong>"Inspeksjon / Vernerunde"</strong>
+                      {t("template.createOwnDescription")}
                     </p>
                   </div>
                 )}
                 {formTemplates.length > 0 && (
                   <p className="text-xs text-green-600 mt-1">
-                    ✅ {formTemplates.length} vernerunde-skjema tilgjengelig
+                    {t("template.availableCount", { count: formTemplates.length })}
                   </p>
                 )}
               </div>
 
 <div className="space-y-2">
-                <Label htmlFor="riskCategory">Risiko-kategori</Label>
+                <Label htmlFor="riskCategory">{t("fields.riskCategory")}</Label>
                 <Select
                   value={formData.riskCategory}
                 onValueChange={(value) =>
@@ -372,13 +373,13 @@ export default function NewInspectionPage() {
                 }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Velg kategori (valgfritt)" />
+                    <SelectValue placeholder={t("placeholders.selectOptionalCategory")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={NO_RISK_CATEGORY_VALUE}>Ingen kategori</SelectItem>
+                    <SelectItem value={NO_RISK_CATEGORY_VALUE}>{t("noneCategory")}</SelectItem>
                     {riskCategoryOptions.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
-                        {option.label}
+                        {t(option.labelKey)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -387,7 +388,7 @@ export default function NewInspectionPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="conductedBy">
-                  Gjennomført av <span className="text-destructive">*</span>
+                  {t("fields.conductedBy")} <span className="text-destructive">*</span>
                 </Label>
                 <Select
                   value={formData.conductedBy}
@@ -397,7 +398,7 @@ export default function NewInspectionPage() {
                   disabled={loadingUsers}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={loadingUsers ? "Laster brukere..." : "Velg bruker"} />
+                    <SelectValue placeholder={loadingUsers ? t("loadingUsers") : t("placeholders.selectUser")} />
                   </SelectTrigger>
                   <SelectContent>
                     {users.map((u) => (
@@ -410,17 +411,17 @@ export default function NewInspectionPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="followUpById">Oppfølging ansvarlig</Label>
+                <Label htmlFor="followUpById">{t("fields.followUpBy")}</Label>
                 <Select
                   value={formData.followUpById}
                   onValueChange={(value) => setFormData({ ...formData, followUpById: value })}
                   disabled={loadingUsers}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Velg ansvarlig (valgfritt)" />
+                    <SelectValue placeholder={t("placeholders.selectResponsibleOptional")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={NO_FOLLOWUP_VALUE}>Ingen valgt</SelectItem>
+                    <SelectItem value={NO_FOLLOWUP_VALUE}>{t("noneSelected")}</SelectItem>
                     {users.map((u) => (
                       <SelectItem key={u.user.id} value={u.user.id}>
                         {u.user.name || u.user.email}
@@ -432,7 +433,7 @@ export default function NewInspectionPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="scheduledDate">
-                  Planlagt dato <span className="text-destructive">*</span>
+                  {t("fields.scheduledDate")} <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="scheduledDate"
@@ -446,41 +447,41 @@ export default function NewInspectionPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="location">Lokasjon</Label>
+                <Label htmlFor="location">{t("fields.location")}</Label>
                 <Input
                   id="location"
                   value={formData.location}
                   onChange={(e) =>
                     setFormData({ ...formData, location: e.target.value })
                   }
-                  placeholder="F.eks. Produksjonshall A"
+                  placeholder={t("placeholders.location")}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="area">Område / prosess</Label>
+                <Label htmlFor="area">{t("fields.area")}</Label>
                 <Input
                   id="area"
                   value={formData.area}
                   onChange={(e) => setFormData({ ...formData, area: e.target.value })}
-                  placeholder="F.eks. Lager, Verksted"
+                  placeholder={t("placeholders.area")}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="durationMinutes">Estimert varighet (min)</Label>
+                <Label htmlFor="durationMinutes">{t("fields.durationMinutes")}</Label>
                 <Input
                   id="durationMinutes"
                   type="number"
                   min={0}
                   value={formData.durationMinutes}
                   onChange={(e) => setFormData({ ...formData, durationMinutes: e.target.value })}
-                  placeholder="F.eks. 90"
+                  placeholder={t("placeholders.duration")}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="nextInspection">Neste inspeksjon</Label>
+                <Label htmlFor="nextInspection">{t("fields.nextInspection")}</Label>
                 <Input
                   id="nextInspection"
                   type="date"
@@ -491,14 +492,14 @@ export default function NewInspectionPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Beskrivelse</Label>
+              <Label htmlFor="description">{t("fields.description")}</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
                 }
-                placeholder="Beskriv hva som skal inspiseres..."
+                placeholder={t("placeholders.description")}
                 rows={4}
               />
             </div>
@@ -506,12 +507,12 @@ export default function NewInspectionPage() {
             <div className="flex justify-end gap-4">
               <Link href="/dashboard/inspections">
                 <Button type="button" variant="outline">
-                  Avbryt
+                  {t("actions.cancel")}
                 </Button>
               </Link>
               <Button type="submit" disabled={loading}>
                 <Save className="mr-2 h-4 w-4" />
-                {loading ? "Oppretter..." : "Opprett vernerunde"}
+                {loading ? t("actions.creating") : t("actions.create")}
               </Button>
             </div>
           </form>

@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +11,9 @@ import Link from "next/link";
 import { getStorage } from "@/lib/storage";
 
 export default async function AnsattDocumentDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getTranslations("employeeDocumentDetailPage");
+  const locale = await getLocale();
+  const dateLocale = locale === "en" ? "en-US" : "nb-NO";
   const { id } = await params;
   const session = await getServerSession(authOptions);
 
@@ -78,13 +82,13 @@ export default async function AnsattDocumentDetailPage({ params }: { params: Pro
 
   const getKindLabel = (kind: string) => {
     const labels: Record<string, string> = {
-      LAW: "⚖️ Lover og regler",
-      PROCEDURE: "📋 Prosedyre (ISO 9001)",
-      CHECKLIST: "✅ Sjekkliste",
-      FORM: "📝 Skjema",
-      SDS: "⚠️ Sikkerhetsdatablad (SDS)",
-      PLAN: "📖 HMS-håndbok / Plan",
-      OTHER: "📄 Annet",
+      LAW: t("kind.LAW"),
+      PROCEDURE: t("kind.PROCEDURE"),
+      CHECKLIST: t("kind.CHECKLIST"),
+      FORM: t("kind.FORM"),
+      SDS: t("kind.SDS"),
+      PLAN: t("kind.PLAN"),
+      OTHER: t("kind.OTHER"),
     };
     return labels[kind] || kind;
   };
@@ -96,7 +100,7 @@ export default async function AnsattDocumentDetailPage({ params }: { params: Pro
         <Link href="/ansatt/dokumenter">
           <Button variant="ghost" size="sm" className="mb-4">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Tilbake til dokumenter
+            {t("header.back")}
           </Button>
         </Link>
         <div className="space-y-2">
@@ -109,7 +113,7 @@ export default async function AnsattDocumentDetailPage({ params }: { params: Pro
               <div className="flex items-center gap-2 mt-1">
                 <Badge variant="outline">{getKindLabel(document.kind)}</Badge>
                 <Badge variant="secondary" className="bg-green-100 text-green-700">
-                  ✓ Godkjent
+                  {t("approvedBadge")}
                 </Badge>
               </div>
             </div>
@@ -122,25 +126,25 @@ export default async function AnsattDocumentDetailPage({ params }: { params: Pro
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-blue-600" />
-            Dokument
+            {t("documentCard.title")}
           </CardTitle>
           <CardDescription>
             {isWord
-              ? "Åpne dokumentet som PDF i nettleser, eller last ned original Word-fil."
-              : "Åpne i nettleser eller last ned."}
+              ? t("documentCard.descriptionWord")
+              : t("documentCard.descriptionDefault")}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-3">
           <Link href={viewUrl} target="_blank" rel="noopener noreferrer">
             <Button size="lg" className="w-full md:w-auto">
               <Eye className="mr-2 h-5 w-5" />
-              Se dokument {isWord ? "(PDF)" : ""}
+              {t("documentCard.view")} {isWord ? "(PDF)" : ""}
             </Button>
           </Link>
           <Link href={downloadUrl} target="_blank" rel="noopener noreferrer">
             <Button size="lg" variant="outline" className="w-full md:w-auto">
               <Download className="mr-2 h-5 w-5" />
-              Last ned {isWord ? "original (.docx)" : "dokument"}
+              {isWord ? t("documentCard.downloadOriginal") : t("documentCard.download")}
             </Button>
           </Link>
         </CardContent>
@@ -149,15 +153,15 @@ export default async function AnsattDocumentDetailPage({ params }: { params: Pro
       {/* Dokumentinformasjon */}
       <Card>
         <CardHeader>
-          <CardTitle>Dokumentinformasjon</CardTitle>
-          <CardDescription>Metadata og detaljer</CardDescription>
+          <CardTitle>{t("details.title")}</CardTitle>
+          <CardDescription>{t("details.description")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <p className="text-sm text-muted-foreground flex items-center gap-2">
                 <Clock className="h-4 w-4" />
-                Versjon
+                  {t("details.version")}
               </p>
               <p className="font-medium">{document.version}</p>
             </div>
@@ -166,7 +170,7 @@ export default async function AnsattDocumentDetailPage({ params }: { params: Pro
               <div>
                 <p className="text-sm text-muted-foreground flex items-center gap-2">
                   <User className="h-4 w-4" />
-                  Godkjent av
+                  {t("details.approvedBy")}
                 </p>
                 <p className="font-medium">
                   {document.approvedByUser.name || document.approvedByUser.email}
@@ -178,10 +182,10 @@ export default async function AnsattDocumentDetailPage({ params }: { params: Pro
               <div>
                 <p className="text-sm text-muted-foreground flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  Godkjent dato
+                  {t("details.approvedAt")}
                 </p>
                 <p className="font-medium">
-                  {new Date(document.approvedAt).toLocaleDateString("nb-NO")}
+                  {new Date(document.approvedAt).toLocaleDateString(dateLocale)}
                 </p>
               </div>
             )}
@@ -190,20 +194,20 @@ export default async function AnsattDocumentDetailPage({ params }: { params: Pro
               <div>
                 <p className="text-sm text-muted-foreground flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  Neste revisjon
+                  {t("details.nextReview")}
                 </p>
                 <p className="font-medium">
-                  {new Date(document.nextReviewDate).toLocaleDateString("nb-NO")}
+                  {new Date(document.nextReviewDate).toLocaleDateString(dateLocale)}
                 </p>
               </div>
             )}
 
             <div>
               <p className="text-sm text-muted-foreground">
-                Sist oppdatert
+                {t("details.updatedAt")}
               </p>
               <p className="font-medium">
-                {new Date(document.updatedAt).toLocaleDateString("nb-NO")}
+                {new Date(document.updatedAt).toLocaleDateString(dateLocale)}
               </p>
             </div>
           </div>
@@ -214,8 +218,7 @@ export default async function AnsattDocumentDetailPage({ params }: { params: Pro
       <Card className="bg-blue-50 border-blue-200">
         <CardContent className="p-4">
           <p className="text-sm text-blue-900">
-            <strong>💡 Tips:</strong> Dette er et godkjent dokument som du kan laste ned og bruke.
-            Hvis du har spørsmål om dokumentet, kontakt HMS-ansvarlig.
+            <strong>{t("tip.title")}</strong> {t("tip.description")}
           </p>
         </CardContent>
       </Card>

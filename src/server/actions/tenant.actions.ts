@@ -10,7 +10,12 @@ import { deleteTenantFiles } from "@/lib/storage";
 import { RiskCategory } from "@prisma/client";
 import { getBindingPrice } from "@/lib/subscription";
 import { provisionIndustryPackage } from "@/server/actions/industry-provision.actions";
-import { getIndustryPackage, getIndustryLabel } from "@/lib/industry-packages";
+import {
+  getIndustryPackage,
+  getIndustryLabel,
+  isSupportedIndustry,
+  normalizeIndustryValue,
+} from "@/lib/industry-packages";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { generateRiskAnalysis } from "@/lib/ai";
@@ -28,7 +33,10 @@ const updateTenantSchema = z.object({
   contactEmail: z.string().email("Ugyldig e-postadresse").optional(),
   contactPhone: z.string().optional(),
   employeeCount: z.number().int().positive("Antall ansatte må være positivt").optional(),
-  industry: z.string().optional(),
+  industry: z
+    .string()
+    .optional()
+    .refine((value) => !value || isSupportedIndustry(value), "Ugyldig bransje"),
   notes: z.string().optional(),
   hmsAnnualPlanEnabled: z.boolean().optional(),
   managementReviewFrequencyMonths: z
@@ -61,7 +69,10 @@ const createTenantSchema = z.object({
   postalCode: z.string().optional(),
   city: z.string().optional(),
   employeeCount: z.number().int().positive("Antall ansatte må være positivt"),
-  industry: z.string().optional(),
+  industry: z
+    .string()
+    .optional()
+    .refine((value) => !value || isSupportedIndustry(value), "Ugyldig bransje"),
   notes: z.string().optional(),
   pricingTier: z.enum(["MICRO", "SMALL", "MEDIUM", "LARGE"]),
   salesRep: z.string().optional(),
@@ -393,7 +404,7 @@ export async function generateAiRiskSuggestionsForTenant(tenantId: string) {
     }
 
     const currentYear = new Date().getFullYear();
-    const assessmentTitle = `AI risikoforslag ${currentYear}`;
+    const assessmentTitle = `Risikovurdering ${currentYear}`;
     let createdCount = 0;
     let skippedCount = 0;
 
@@ -480,6 +491,7 @@ export async function generateAiRiskSuggestionsForTenant(tenantId: string) {
 
 const applyAiSuggestionsSchema = z.object({
   tenantId: z.string().cuid(),
+  assessmentTitle: z.string().trim().min(2).max(200).optional(),
   suggestions: z
     .array(
       z.object({
@@ -579,6 +591,7 @@ export async function previewAiRiskSuggestionsForTenant(tenantId: string) {
 
 export async function applyAiRiskSuggestionsForTenant(input: {
   tenantId: string;
+  assessmentTitle?: string;
   suggestions: Array<{ title: string; severity: string; category: string }>;
 }) {
   try {
@@ -619,7 +632,8 @@ export async function applyAiRiskSuggestionsForTenant(input: {
     }
 
     const currentYear = new Date().getFullYear();
-    const assessmentTitle = `AI risikoforslag ${currentYear}`;
+    const assessmentTitle =
+      validated.assessmentTitle?.trim() || `Risikovurdering ${currentYear}`;
     let createdCount = 0;
     let skippedCount = 0;
 
@@ -996,6 +1010,19 @@ export async function updateTenant(input: z.infer<typeof updateTenantSchema>) {
       return { success: false, error: "Denne slugen er allerede i bruk" };
     }
 
+    const existingTenant = await prisma.tenant.findUnique({
+      where: { id: validated.tenantId },
+      select: { industry: true },
+    });
+
+    if (!existingTenant) {
+      return { success: false, error: "Bedrift ikke funnet" };
+    }
+
+    const normalizedIndustry = validated.industry
+      ? normalizeIndustryValue(validated.industry)
+      : undefined;
+
     const updatedTenant = await prisma.tenant.update({
       where: { id: validated.tenantId },
       data: {
@@ -1009,7 +1036,7 @@ export async function updateTenant(input: z.infer<typeof updateTenantSchema>) {
         contactEmail: validated.contactEmail,
         contactPhone: validated.contactPhone,
         employeeCount: validated.employeeCount,
-        industry: validated.industry,
+        industry: normalizedIndustry,
         notes: validated.notes,
         hmsAnnualPlanEnabled:
           typeof validated.hmsAnnualPlanEnabled === "boolean"
@@ -1021,6 +1048,12 @@ export async function updateTenant(input: z.infer<typeof updateTenantSchema>) {
             : undefined,
       },
     });
+
+    const previousIndustry = normalizeIndustryValue(existingTenant.industry);
+    const nextIndustry = normalizeIndustryValue(updatedTenant.industry);
+    if (nextIndustry && previousIndustry !== nextIndustry) {
+      await provisionIndustryPackage(updatedTenant.id);
+    }
 
     revalidatePath(`/admin/tenants/${validated.tenantId}`);
     revalidatePath("/admin/tenants");
@@ -1287,6 +1320,10 @@ export async function createTenant(input: z.infer<typeof createTenantSchema>) {
     }
 
     // Opprett tenant med subscription
+    const normalizedIndustry = validated.industry
+      ? normalizeIndustryValue(validated.industry)
+      : undefined;
+
     const tenant = await prisma.tenant.create({
       data: {
         name: validated.name,
@@ -1299,7 +1336,7 @@ export async function createTenant(input: z.infer<typeof createTenantSchema>) {
         contactEmail: validated.contactEmail,
         contactPhone: validated.contactPhone,
         employeeCount: validated.employeeCount,
-        industry: validated.industry,
+        industry: normalizedIndustry,
         notes: validated.notes,
         pricingTier: validated.pricingTier,
         salesRep: validated.salesRep,
@@ -1338,6 +1375,11 @@ export async function createTenant(input: z.infer<typeof createTenantSchema>) {
  */
 export async function deleteTenant(tenantId: string, confirmationText: string) {
   try {
+    const privilegedUser = await requirePrivilegedUser();
+    if (!privilegedUser) {
+      return { success: false, error: "Ingen tilgang" };
+    }
+
     // Hent tenant først for å verifisere navn
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
@@ -1382,27 +1424,54 @@ export async function deleteTenant(tenantId: string, confirmationText: string) {
     console.log(`[DELETE TENANT] Starter sletting av tenant: ${tenant.name} (${tenantId})`);
     console.log(`[DELETE TENANT] Antall relaterte records:`, tenant._count);
 
+    const tenantUserLinks = await prisma.userTenant.findMany({
+      where: { tenantId },
+      select: { userId: true },
+    });
+    const candidateUserIds = Array.from(new Set(tenantUserLinks.map((link) => link.userId)));
+
     // Steg 1: Slett alle filer i R2 Cloud
     console.log(`[DELETE TENANT] Sletter filer fra R2 Cloud...`);
     const fileResult = await deleteTenantFiles(tenantId);
     console.log(`[DELETE TENANT] R2 Cloud: ${fileResult.deleted} filer slettet, ${fileResult.errors} feil`);
 
-    // Steg 2: Slett tenant fra database (Prisma onDelete: Cascade håndterer alle relasjoner)
+    // Steg 2: Slett tenant + opprydding av bruker-kontoer som blir stående uten tenant
     console.log(`[DELETE TENANT] Sletter tenant fra database...`);
-    await prisma.tenant.delete({
-      where: { id: tenantId },
+    const deleteResult = await prisma.$transaction(async (tx) => {
+      await tx.tenant.delete({
+        where: { id: tenantId },
+      });
+
+      if (candidateUserIds.length === 0) {
+        return { deletedUsers: 0 };
+      }
+
+      const deletedUsers = await tx.user.deleteMany({
+        where: {
+          id: { in: candidateUserIds },
+          isSuperAdmin: false,
+          isSupport: false,
+          tenants: {
+            none: {},
+          },
+        },
+      });
+
+      return { deletedUsers: deletedUsers.count };
     });
 
     console.log(`[DELETE TENANT] ✅ Tenant slettet: ${tenant.name}`);
+    console.log(`[DELETE TENANT] ✅ Slettet ${deleteResult.deletedUsers} fristilte brukerkontoer`);
 
     revalidatePath("/admin/tenants");
     revalidatePath("/admin/registrations");
 
     return {
       success: true,
-      message: `Bedrift "${tenant.name}" og alle tilhørende data er permanent slettet. ${fileResult.deleted} filer fjernet fra R2 Cloud.`,
+      message: `Bedrift "${tenant.name}" og alle tilhørende data er permanent slettet. ${fileResult.deleted} filer fjernet fra R2 Cloud. ${deleteResult.deletedUsers} brukerkontoer ble også slettet.`,
       filesDeleted: fileResult.deleted,
       fileErrors: fileResult.errors,
+      usersDeleted: deleteResult.deletedUsers,
     };
   } catch (error) {
     console.error("Delete tenant error:", error);

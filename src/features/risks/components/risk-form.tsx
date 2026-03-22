@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,45 +47,61 @@ interface RiskFormProps {
 
 // ISO 45001/31000 – status for risikovurdering
 const statusOptions = [
-  { value: "OPEN", label: "Identifisert" },
-  { value: "MITIGATING", label: "Tiltak iverksatt" },
-  { value: "ACCEPTED", label: "Akseptert" },
-  { value: "CLOSED", label: "Lukket" },
+  { value: "OPEN", labelKey: "status.OPEN" },
+  { value: "MITIGATING", labelKey: "status.MITIGATING" },
+  { value: "ACCEPTED", labelKey: "status.ACCEPTED" },
+  { value: "CLOSED", labelKey: "status.CLOSED" },
 ];
 
-const categoryOptions: Array<{ value: RiskCategory; label: string }> = [
-  { value: "OPERATIONAL", label: "Operasjonell" },
-  { value: "SAFETY", label: "Sikkerhet" },
-  { value: "HEALTH", label: "Helse" },
-  { value: "ENVIRONMENTAL", label: "Miljø" },
-  { value: "INFORMATION_SECURITY", label: "Informasjonssikkerhet" },
-  { value: "LEGAL", label: "Juridisk/Compliance" },
-  { value: "STRATEGIC", label: "Strategisk" },
-  { value: "PSYCHOSOCIAL", label: "Psykososialt" },
-  { value: "ERGONOMIC", label: "Ergonomisk" },
-  { value: "ORGANISATIONAL", label: "Organisatorisk" },
-  { value: "PHYSICAL", label: "Fysisk" },
+const categoryOptions: Array<{ value: RiskCategory; labelKey: string }> = [
+  { value: "OPERATIONAL", labelKey: "categories.OPERATIONAL" },
+  { value: "SAFETY", labelKey: "categories.SAFETY" },
+  { value: "HEALTH", labelKey: "categories.HEALTH" },
+  { value: "ENVIRONMENTAL", labelKey: "categories.ENVIRONMENTAL" },
+  { value: "INFORMATION_SECURITY", labelKey: "categories.INFORMATION_SECURITY" },
+  { value: "LEGAL", labelKey: "categories.LEGAL" },
+  { value: "STRATEGIC", labelKey: "categories.STRATEGIC" },
+  { value: "PSYCHOSOCIAL", labelKey: "categories.PSYCHOSOCIAL" },
+  { value: "ERGONOMIC", labelKey: "categories.ERGONOMIC" },
+  { value: "ORGANISATIONAL", labelKey: "categories.ORGANISATIONAL" },
+  { value: "PHYSICAL", labelKey: "categories.PHYSICAL" },
 ];
 
-const frequencyOptions: Array<{ value: ControlFrequency; label: string }> = [
-  { value: "WEEKLY", label: "Ukentlig" },
-  { value: "MONTHLY", label: "Månedlig" },
-  { value: "QUARTERLY", label: "Kvartalsvis" },
-  { value: "ANNUAL", label: "Årlig" },
-  { value: "BIENNIAL", label: "Annet hvert år" },
+const frequencyOptions: Array<{ value: ControlFrequency; labelKey: string }> = [
+  { value: "WEEKLY", labelKey: "frequency.WEEKLY" },
+  { value: "MONTHLY", labelKey: "frequency.MONTHLY" },
+  { value: "QUARTERLY", labelKey: "frequency.QUARTERLY" },
+  { value: "ANNUAL", labelKey: "frequency.ANNUAL" },
+  { value: "BIENNIAL", labelKey: "frequency.BIENNIAL" },
 ];
 
-const responseOptions: Array<{ value: RiskResponseStrategy; label: string; description: string }> = [
-  { value: "AVOID", label: "Unngå", description: "Stopp aktiviteten eller endre prosess for å fjerne risikoen" },
-  { value: "REDUCE", label: "Reduser", description: "Implementer kontroller for å senke sannsynlighet eller konsekvens" },
-  { value: "TRANSFER", label: "Overfør", description: "Flytt risiko via forsikring, kontrakter eller leverandører" },
-  { value: "ACCEPT", label: "Aksepter", description: "Aksepter risikoen innenfor definert toleranse" },
+const responseOptions: Array<{ value: RiskResponseStrategy; labelKey: string; descriptionKey: string }> = [
+  {
+    value: "AVOID",
+    labelKey: "response.AVOID.label",
+    descriptionKey: "response.AVOID.description",
+  },
+  {
+    value: "REDUCE",
+    labelKey: "response.REDUCE.label",
+    descriptionKey: "response.REDUCE.description",
+  },
+  {
+    value: "TRANSFER",
+    labelKey: "response.TRANSFER.label",
+    descriptionKey: "response.TRANSFER.description",
+  },
+  {
+    value: "ACCEPT",
+    labelKey: "response.ACCEPT.label",
+    descriptionKey: "response.ACCEPT.description",
+  },
 ];
 
-const trendOptions: Array<{ value: RiskTrend; label: string }> = [
-  { value: "INCREASING", label: "Økende" },
-  { value: "STABLE", label: "Stabil" },
-  { value: "DECREASING", label: "Synkende" },
+const trendOptions: Array<{ value: RiskTrend; labelKey: string }> = [
+  { value: "INCREASING", labelKey: "trend.INCREASING" },
+  { value: "STABLE", labelKey: "trend.STABLE" },
+  { value: "DECREASING", labelKey: "trend.DECREASING" },
 ];
 
 const NO_GOAL_VALUE = "__none_goal__";
@@ -125,6 +142,7 @@ export function RiskForm({
   templateOptions = [],
   slotBetweenRisikonivaAndResidual,
 }: RiskFormProps) {
+  const t = useTranslations("riskForm");
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -212,8 +230,11 @@ export function RiskForm({
 
       if (result.success) {
         toast({
-          title: mode === "create" ? "✅ Risiko opprettet" : "✅ Risiko oppdatert",
-          description: `Risikonivå: ${level} (${score})`,
+          title:
+            mode === "create"
+              ? t("toasts.createSuccess.title")
+              : t("toasts.updateSuccess.title"),
+          description: t("toasts.successDescription", { level, score }),
           className: "bg-green-50 border-green-200",
         });
         router.push("/dashboard/risks");
@@ -221,15 +242,15 @@ export function RiskForm({
       } else {
         toast({
           variant: "destructive",
-          title: "Feil",
-          description: result.error || "Kunne ikke lagre risiko",
+          title: t("toasts.error.title"),
+          description: result.error || t("toasts.error.saveRisk"),
         });
       }
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Uventet feil",
-        description: "Noe gikk galt",
+        title: t("toasts.unexpectedError.title"),
+        description: t("toasts.unexpectedError.description"),
       });
     } finally {
       setLoading(false);
@@ -240,34 +261,34 @@ export function RiskForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Grunnleggende informasjon</CardTitle>
+          <CardTitle>{t("sections.basic.title")}</CardTitle>
           <CardDescription>
-            Beskriv risikoen og hvem som eier den — IK-HMS § 5 nr. 6 krever skriftlig dokumentasjon av alle identifiserte farer.
+            {t("sections.basic.description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="title">Tittel *</Label>
+              <Label htmlFor="title">{t("fields.title.label")}</Label>
               <Input
                 id="title"
                 name="title"
-                placeholder="F.eks. Fall fra høyde ved arbeid på tak"
+                placeholder={t("fields.title.placeholder")}
                 defaultValue={risk?.title}
                 required
                 disabled={loading}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="category">Kategori *</Label>
+              <Label htmlFor="category">{t("fields.category.label")}</Label>
               <Select value={category} onValueChange={(val: RiskCategory) => setCategory(val)} disabled={loading}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Velg kategori" />
+                  <SelectValue placeholder={t("fields.category.placeholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   {categoryOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
-                      {option.label}
+                      {t(option.labelKey)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -277,10 +298,10 @@ export function RiskForm({
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="ownerId">Risiko-eier *</Label>
+              <Label htmlFor="ownerId">{t("fields.owner.label")}</Label>
               <Select value={ownerId} onValueChange={setOwnerId} disabled={loading}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Velg risiko-eier" />
+                  <SelectValue placeholder={t("fields.owner.placeholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   {owners.map((owner) => (
@@ -292,15 +313,15 @@ export function RiskForm({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
+              <Label htmlFor="status">{t("fields.status.label")}</Label>
               <Select name="status" defaultValue={risk?.status || "OPEN"} disabled={loading}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Velg status" />
+                  <SelectValue placeholder={t("fields.status.placeholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   {statusOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
-                      {option.label}
+                      {t(option.labelKey)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -310,21 +331,21 @@ export function RiskForm({
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="location">Lokasjon</Label>
+              <Label htmlFor="location">{t("fields.location.label")}</Label>
               <Input
                 id="location"
                 name="location"
-                placeholder="F.eks. Produksjonshall A"
+                placeholder={t("fields.location.placeholder")}
                 defaultValue={risk?.location ?? ""}
                 disabled={loading}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="area">Område / Prosess</Label>
+              <Label htmlFor="area">{t("fields.area.label")}</Label>
               <Input
                 id="area"
                 name="area"
-                placeholder="Byggeplass, lager, etc."
+                placeholder={t("fields.area.placeholder")}
                 defaultValue={risk?.area ?? ""}
                 disabled={loading}
               />
@@ -335,18 +356,18 @@ export function RiskForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>Beskrivelse og konsekvens</CardTitle>
+          <CardTitle>{t("sections.description.title")}</CardTitle>
           <CardDescription>
-            Beskriv situasjonen og hva som kan skje (konsekvens). Eksisterende kontroller og notater under.
+            {t("sections.description.description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="context">Beskrivelse *</Label>
+            <Label htmlFor="context">{t("fields.context.label")}</Label>
             <Textarea
               id="context"
               name="context"
-              placeholder="Beskriv situasjonen, hvor det kan skje, hvem som er utsatt, etc."
+              placeholder={t("fields.context.placeholder")}
               defaultValue={risk?.context}
               required
               disabled={loading}
@@ -354,33 +375,33 @@ export function RiskForm({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="riskStatement">Konsekvens</Label>
+            <Label htmlFor="riskStatement">{t("fields.riskStatement.label")}</Label>
             <Textarea
               id="riskStatement"
               name="riskStatement"
-              placeholder="Hva kan skje dersom risikoscenarioet inntreffer? Beskriv konsekvensen."
+              placeholder={t("fields.riskStatement.placeholder")}
               defaultValue={risk?.riskStatement ?? ""}
               disabled={loading}
               rows={3}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="existingControls">Eksisterende kontroller</Label>
+            <Label htmlFor="existingControls">{t("fields.existingControls.label")}</Label>
             <Textarea
               id="existingControls"
               name="existingControls"
-              placeholder="Hvilke barrierer eller kontroller finnes i dag?"
+              placeholder={t("fields.existingControls.placeholder")}
               defaultValue={risk?.existingControls ?? ""}
               disabled={loading}
               rows={2}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="description">Tilleggsnotater</Label>
+            <Label htmlFor="description">{t("fields.description.label")}</Label>
             <Textarea
               id="description"
               name="description"
-              placeholder="Andre relevante detaljer, referanser eller observasjoner"
+              placeholder={t("fields.description.placeholder")}
               defaultValue={risk?.description ?? ""}
               disabled={loading}
               rows={2}
@@ -392,7 +413,7 @@ export function RiskForm({
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <CardTitle>Risikonivå (AML § 3-1)</CardTitle>
+            <CardTitle>{t("sections.riskLevel.title")}</CardTitle>
             {(level === "MEDIUM" || level === "HIGH" || level === "CRITICAL") && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -400,7 +421,7 @@ export function RiskForm({
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 shrink-0 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-                    title="Tips"
+                    title={t("sections.riskLevel.tipsButtonTitle")}
                   >
                     <Lightbulb className="h-4 w-4" />
                   </Button>
@@ -411,12 +432,19 @@ export function RiskForm({
                   sideOffset={8}
                 >
                   <p className="text-sm font-medium text-amber-900 mb-1">
-                    Tips for {level === "CRITICAL" ? "kritisk" : level === "HIGH" ? "høy" : "medium"} risiko
+                    {t("sections.riskLevel.tipsTitle", {
+                      level:
+                        level === "CRITICAL"
+                          ? t("sections.riskLevel.levels.critical")
+                          : level === "HIGH"
+                            ? t("sections.riskLevel.levels.high")
+                            : t("sections.riskLevel.levels.medium"),
+                    })}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     {mode === "edit"
-                      ? "ISO 45001 anbefaler tiltak for å redusere risikoen. Scroll ned til «Tiltak for å redusere risiko» og legg til konkrete tiltak med ansvarlig person og frist."
-                      : "Etter lagring kan du legge til tiltak for å redusere risikoen. ISO 45001 krever planlagte tiltak ved medium og høy risiko."}
+                      ? t("sections.riskLevel.tipsEdit")
+                      : t("sections.riskLevel.tipsCreate")}
                   </p>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -424,8 +452,8 @@ export function RiskForm({
           </div>
           <CardDescription>
             {risk?.riskAssessmentId
-              ? "Satt da risikopunktet ble lagt inn. Endres på oversiktssiden ved behov."
-              : "Sannsynlighet og konsekvens (1–5). Risikomatrisen vises på oversiktssiden /dashboard/risks"}
+              ? t("sections.riskLevel.descriptionReadOnly")
+              : t("sections.riskLevel.descriptionEditable")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -435,7 +463,7 @@ export function RiskForm({
                 <div>
                   <div className={`text-xl font-bold ${color}`}>{level}</div>
                   <div className="text-sm text-muted-foreground mt-1">
-                    Sannsynlighet: {likelihood} × Konsekvens: {consequence} = {score}
+                      {t("sections.riskLevel.scoreEquation", { likelihood, consequence, score })}
                   </div>
                 </div>
                 <div className={`text-4xl font-bold ${color}`}>{score}</div>
@@ -445,7 +473,7 @@ export function RiskForm({
             <>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Sannsynlighet (1–5)</Label>
+                  <Label>{t("sections.riskLevel.likelihoodLabel")}</Label>
                   <Select
                     value={String(likelihood)}
                     onValueChange={(v) => setLikelihood(Number(v))}
@@ -464,7 +492,7 @@ export function RiskForm({
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Konsekvens (1–5)</Label>
+                  <Label>{t("sections.riskLevel.consequenceLabel")}</Label>
                   <Select
                     value={String(consequence)}
                     onValueChange={(v) => setConsequence(Number(v))}
@@ -488,7 +516,7 @@ export function RiskForm({
                   <div>
                     <div className={`text-xl font-bold ${color}`}>{level}</div>
                     <div className="text-sm text-muted-foreground mt-1">
-                      Sannsynlighet: {likelihood} × Konsekvens: {consequence} = {score}
+                      {t("sections.riskLevel.scoreEquation", { likelihood, consequence, score })}
                     </div>
                   </div>
                   <div className={`text-4xl font-bold ${color}`}>{score}</div>
@@ -503,15 +531,15 @@ export function RiskForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>Rest-risiko etter tiltak</CardTitle>
+          <CardTitle>{t("sections.residual.title")}</CardTitle>
           <CardDescription>
-            Vurder restrisiko når tiltak er gjennomført – skal bli lavere etter innførte tiltak (ISO 45001).
+            {t("sections.residual.description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <Label>Residual Sannsynlighet</Label>
+              <Label>{t("sections.residual.likelihoodLabel")}</Label>
               <Slider
                 min={1}
                 max={5}
@@ -521,11 +549,13 @@ export function RiskForm({
                 disabled={loading}
               />
               <p className="text-sm text-muted-foreground mt-1">
-                {residualLikelihood ? `Verdi: ${residualLikelihood}` : "Velg en verdi 1-5"}
+                {residualLikelihood
+                  ? t("sections.residual.value", { value: residualLikelihood })
+                  : t("sections.residual.selectValue")}
               </p>
             </div>
             <div>
-              <Label>Residual Konsekvens</Label>
+              <Label>{t("sections.residual.consequenceLabel")}</Label>
               <Slider
                 min={1}
                 max={5}
@@ -535,14 +565,19 @@ export function RiskForm({
                 disabled={loading}
               />
               <p className="text-sm text-muted-foreground mt-1">
-                {residualConsequence ? `Verdi: ${residualConsequence}` : "Velg en verdi 1-5"}
+                {residualConsequence
+                  ? t("sections.residual.value", { value: residualConsequence })
+                  : t("sections.residual.selectValue")}
               </p>
             </div>
           </div>
           {residualScore && (
             <div className={`p-4 rounded-lg border ${residualScore.bgColor}`}>
               <p className={`font-semibold ${residualScore.color}`}>
-                Residual nivå: {residualScore.level} ({residualScore.score})
+                {t("sections.residual.level", {
+                  level: residualScore.level,
+                  score: residualScore.score,
+                })}
               </p>
             </div>
           )}
@@ -551,34 +586,34 @@ export function RiskForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>Oppfølging</CardTitle>
+          <CardTitle>{t("sections.followUp.title")}</CardTitle>
           <CardDescription>
-            Frekvens og neste gjennomgangsdato — IK-HMS § 5 nr. 8 krever at risikovurderingen gjennomgås regelmessig.
+            {t("sections.followUp.description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="controlFrequency">Oppfølgingsfrekvens *</Label>
+              <Label htmlFor="controlFrequency">{t("fields.controlFrequency.label")}</Label>
               <Select
                 value={controlFrequency}
                 onValueChange={(value: ControlFrequency) => setControlFrequency(value)}
                 disabled={loading}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Velg frekvens" />
+                  <SelectValue placeholder={t("fields.controlFrequency.placeholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   {frequencyOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
-                      {option.label}
+                      {t(option.labelKey)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="nextReviewDate">Neste gjennomgang *</Label>
+              <Label htmlFor="nextReviewDate">{t("fields.nextReviewDate.label")}</Label>
               <Input
                 id="nextReviewDate"
                 name="nextReviewDate"
@@ -592,21 +627,23 @@ export function RiskForm({
               />
             </div>
             <div className="space-y-2">
-              <Label>Responsstrategi</Label>
+              <Label>{t("fields.responseStrategy.label")}</Label>
               <Select
                 value={responseStrategy}
                 onValueChange={(value: RiskResponseStrategy) => setResponseStrategy(value)}
                 disabled={loading}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Velg strategi" />
+                  <SelectValue placeholder={t("fields.responseStrategy.placeholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   {responseOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       <div>
-                        <p className="font-medium">{option.label}</p>
-                        <p className="text-xs text-muted-foreground">{option.description}</p>
+                        <p className="font-medium">{t(option.labelKey)}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {t(option.descriptionKey)}
+                        </p>
                       </div>
                     </SelectItem>
                   ))}
@@ -639,7 +676,11 @@ export function RiskForm({
 
       <div className="flex gap-4">
         <Button type="submit" disabled={loading}>
-          {loading ? "Lagrer..." : mode === "create" ? "Opprett risiko" : "Lagre endringer"}
+          {loading
+            ? t("actions.saving")
+            : mode === "create"
+              ? t("actions.create")
+              : t("actions.saveChanges")}
         </Button>
         <Button
           type="button"
@@ -647,7 +688,7 @@ export function RiskForm({
           onClick={() => router.back()}
           disabled={loading}
         >
-          Avbryt
+          {t("actions.cancel")}
         </Button>
       </div>
     </form>
@@ -691,6 +732,7 @@ function AdvancedSection({
   setReviewedAt,
   loading,
 }: AdvancedSectionProps) {
+  const t = useTranslations("riskForm");
   const [open, setOpen] = useState(false);
 
   return (
@@ -701,9 +743,9 @@ function AdvancedSection({
         onClick={() => setOpen((prev) => !prev)}
       >
         <div>
-          <p className="font-medium text-sm">Avansert – ISO 31000 / virksomhetsrisiko</p>
+          <p className="font-medium text-sm">{t("advanced.title")}</p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Risikoappetitt, KPI-kobling, inspeksjonsmal m.m. — ikke nødvendig for standard AML-vurdering
+            {t("advanced.description")}
           </p>
         </div>
         {open ? (
@@ -717,17 +759,17 @@ function AdvancedSection({
         <div className="px-5 pb-5 space-y-5 border-t pt-4">
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="linkedProcess">Knyttet til prosess</Label>
+              <Label htmlFor="linkedProcess">{t("advanced.fields.linkedProcess.label")}</Label>
               <Input
                 id="linkedProcess"
                 name="linkedProcess"
-                placeholder="F.eks. Vedlikehold, Montasje"
+                placeholder={t("advanced.fields.linkedProcess.placeholder")}
                 defaultValue={linkedProcess}
                 disabled={loading}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="kpiId">Koble til mål/KPI</Label>
+              <Label htmlFor="kpiId">{t("advanced.fields.goal.label")}</Label>
               <Select
                 value={selectedGoal}
                 onValueChange={setSelectedGoal}
@@ -735,11 +777,15 @@ function AdvancedSection({
               >
                 <SelectTrigger>
                   <SelectValue
-                    placeholder={goalOptions.length ? "Velg mål (valgfritt)" : "Ingen mål tilgjengelig"}
+                    placeholder={
+                      goalOptions.length
+                        ? t("advanced.fields.goal.placeholder")
+                        : t("advanced.fields.goal.noneAvailable")
+                    }
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NO_GOAL_VALUE}>Ingen</SelectItem>
+                  <SelectItem value={NO_GOAL_VALUE}>{t("advanced.fields.goal.noneOption")}</SelectItem>
                   {goalOptions.map((goal) => (
                     <SelectItem key={goal.id} value={goal.id}>
                       {goal.title}
@@ -749,7 +795,7 @@ function AdvancedSection({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="inspectionTemplateId">Inspeksjonsmal</Label>
+              <Label htmlFor="inspectionTemplateId">{t("advanced.fields.template.label")}</Label>
               <Select
                 value={selectedTemplate}
                 onValueChange={setSelectedTemplate}
@@ -757,11 +803,17 @@ function AdvancedSection({
               >
                 <SelectTrigger>
                   <SelectValue
-                    placeholder={templateOptions.length ? "Velg mal (valgfritt)" : "Ingen maler tilgjengelig"}
+                    placeholder={
+                      templateOptions.length
+                        ? t("advanced.fields.template.placeholder")
+                        : t("advanced.fields.template.noneAvailable")
+                    }
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NO_TEMPLATE_VALUE}>Ingen</SelectItem>
+                  <SelectItem value={NO_TEMPLATE_VALUE}>
+                    {t("advanced.fields.template.noneOption")}
+                  </SelectItem>
                   {templateOptions.map((template) => (
                     <SelectItem key={template.id} value={template.id}>
                       {template.name}
@@ -774,11 +826,11 @@ function AdvancedSection({
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="riskAppetite">Risikoappetitt</Label>
+              <Label htmlFor="riskAppetite">{t("advanced.fields.riskAppetite.label")}</Label>
               <Textarea
                 id="riskAppetite"
                 name="riskAppetite"
-                placeholder="Beskriv hvilket nivå av risiko virksomheten aksepterer"
+                placeholder={t("advanced.fields.riskAppetite.placeholder")}
                 value={riskAppetite}
                 onChange={(e) => setRiskAppetite(e.target.value)}
                 disabled={loading}
@@ -786,11 +838,11 @@ function AdvancedSection({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="riskTolerance">Risiko-toleranse</Label>
+              <Label htmlFor="riskTolerance">{t("advanced.fields.riskTolerance.label")}</Label>
               <Textarea
                 id="riskTolerance"
                 name="riskTolerance"
-                placeholder="Beskriv hvilke avvik/indikatorer som utløser tiltak"
+                placeholder={t("advanced.fields.riskTolerance.placeholder")}
                 value={riskTolerance}
                 onChange={(e) => setRiskTolerance(e.target.value)}
                 disabled={loading}
@@ -801,22 +853,22 @@ function AdvancedSection({
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>Trend</Label>
+              <Label>{t("advanced.fields.trend.label")}</Label>
               <Select value={trend} onValueChange={(value: RiskTrend) => setTrend(value)} disabled={loading}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Velg trend" />
+                  <SelectValue placeholder={t("advanced.fields.trend.placeholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   {trendOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
-                      {option.label}
+                      {t(option.labelKey)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="reviewedAt">Sist gjennomgått (ISO 31000)</Label>
+              <Label htmlFor="reviewedAt">{t("advanced.fields.reviewedAt.label")}</Label>
               <Input
                 id="reviewedAt"
                 name="reviewedAt"

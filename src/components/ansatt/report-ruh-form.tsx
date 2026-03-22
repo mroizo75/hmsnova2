@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,6 +47,7 @@ export function ReportRuhForm({
   successRedirectPath?: string;
   isHealthcareTenant?: boolean;
 }) {
+  const t = useTranslations("employeeRuhForm");
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -60,34 +62,34 @@ export function ReportRuhForm({
     () => ({
       general: {
         category: "ANNET",
-        titlePlaceholder: "F.eks: Fall fra stige på lager",
+        titlePlaceholder: t("contextPresets.general.titlePlaceholder"),
       },
       homeVisitRisk: {
         category: "NESTENULYKKE",
-        titlePlaceholder: "F.eks: Utrygg situasjon ved hjemmebesøk",
-        detailsLabel: "Hva gjorde situasjonen risikofylt?",
-        detailsPlaceholder: "F.eks. alenearbeid uten støtte, utrygg adkomst, trusselsignal",
+        titlePlaceholder: t("contextPresets.homeVisitRisk.titlePlaceholder"),
+        detailsLabel: t("contextPresets.homeVisitRisk.detailsLabel"),
+        detailsPlaceholder: t("contextPresets.homeVisitRisk.detailsPlaceholder"),
       },
       infectionExposure: {
         category: "PERSONSKADE",
-        titlePlaceholder: "F.eks: Mulig smitteeksponering i oppdrag",
-        detailsLabel: "Beskriv eksponeringen",
-        detailsPlaceholder: "Hva ble du eksponert for, hvordan, og hvilke strakstiltak ble gjort?",
+        titlePlaceholder: t("contextPresets.infectionExposure.titlePlaceholder"),
+        detailsLabel: t("contextPresets.infectionExposure.detailsLabel"),
+        detailsPlaceholder: t("contextPresets.infectionExposure.detailsPlaceholder"),
       },
       medicationNearMiss: {
         category: "NESTENULYKKE",
-        titlePlaceholder: "F.eks: Nesten-feil i medikamenthåndtering",
-        detailsLabel: "Hva stoppet feilen?",
-        detailsPlaceholder: "Beskriv kontrollpunktet og hva som sviktet i prosessen",
+        titlePlaceholder: t("contextPresets.medicationNearMiss.titlePlaceholder"),
+        detailsLabel: t("contextPresets.medicationNearMiss.detailsLabel"),
+        detailsPlaceholder: t("contextPresets.medicationNearMiss.detailsPlaceholder"),
       },
       violenceThreat: {
         category: "TRUSLER_VOLD",
-        titlePlaceholder: "F.eks: Trussel fra bruker/pårørende",
-        detailsLabel: "Beskriv hendelsesforløpet",
-        detailsPlaceholder: "Hvem var til stede, hvordan ble situasjonen håndtert, og om alarm ble brukt",
+        titlePlaceholder: t("contextPresets.violenceThreat.titlePlaceholder"),
+        detailsLabel: t("contextPresets.violenceThreat.detailsLabel"),
+        detailsPlaceholder: t("contextPresets.violenceThreat.detailsPlaceholder"),
       },
     }),
-    []
+    [t]
   );
 
   useEffect(() => {
@@ -135,19 +137,19 @@ export function ReportRuhForm({
       });
 
       if (!response.ok) {
-        throw new Error("Kunne ikke sende rapport");
+        throw new Error(t("errors.submitFailed"));
       }
 
       toast({
-        title: "RUH-rapport sendt",
-        description: "Takk for rapporten! HMS-ansvarlig er varslet.",
+        title: t("toast.success.title"),
+        description: t("toast.success.description"),
       });
 
       router.push(successRedirectPath);
     } catch {
       toast({
-        title: "Feil",
-        description: "Kunne ikke sende rapport. Prøv igjen.",
+        title: t("toast.error.title"),
+        description: t("toast.error.description"),
         variant: "destructive",
       });
     } finally {
@@ -159,20 +161,20 @@ export function ReportRuhForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
         <Label htmlFor="ruhContext" className="text-base">
-          Hendelseskontekst *
+          {t("fields.ruhContext.label")}
         </Label>
         <Select value={ruhContext} onValueChange={(value) => setRuhContext(value as RuhContext)}>
           <SelectTrigger className="h-12 text-base">
-            <SelectValue placeholder="Velg kontekst" />
+            <SelectValue placeholder={t("fields.ruhContext.placeholder")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="general">Generell RUH</SelectItem>
+            <SelectItem value="general">{t("fields.ruhContext.options.general")}</SelectItem>
             {isHealthcareTenant && (
               <>
-                <SelectItem value="homeVisitRisk">Hjemmebesøk - risikosituasjon</SelectItem>
-                <SelectItem value="infectionExposure">Smitteeksponering</SelectItem>
-                <SelectItem value="medicationNearMiss">Nesten-feil medikament</SelectItem>
-                <SelectItem value="violenceThreat">Vold eller trusler</SelectItem>
+                <SelectItem value="homeVisitRisk">{t("fields.ruhContext.options.homeVisitRisk")}</SelectItem>
+                <SelectItem value="infectionExposure">{t("fields.ruhContext.options.infectionExposure")}</SelectItem>
+                <SelectItem value="medicationNearMiss">{t("fields.ruhContext.options.medicationNearMiss")}</SelectItem>
+                <SelectItem value="violenceThreat">{t("fields.ruhContext.options.violenceThreat")}</SelectItem>
               </>
             )}
           </SelectContent>
@@ -181,7 +183,7 @@ export function ReportRuhForm({
 
       <div className="space-y-2">
         <Label htmlFor="category" className="text-base">
-          Kategori *
+          {t("fields.category.label")}
         </Label>
         <Select
           name="category"
@@ -190,24 +192,24 @@ export function ReportRuhForm({
           onValueChange={(value) => setSelectedCategory(value as RuhContextPreset["category"])}
         >
           <SelectTrigger className="h-12 text-base">
-            <SelectValue placeholder="Velg kategori" />
+            <SelectValue placeholder={t("fields.category.placeholder")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="PERSONSKADE">Personskade</SelectItem>
-            <SelectItem value="NESTENULYKKE">Nestenulykke</SelectItem>
-            <SelectItem value="MATERIELL_SKADE">Materiell skade</SelectItem>
-            <SelectItem value="BRANN_EKSPLOSJON">Brann / Eksplosjon</SelectItem>
-            <SelectItem value="UTSLIPP_MILJO">Utslipp / Miljø</SelectItem>
-            <SelectItem value="TRUSLER_VOLD">Trusler / Vold</SelectItem>
-            <SelectItem value="ERGONOMI">Ergonomi</SelectItem>
-            <SelectItem value="ANNET">Annet</SelectItem>
+            <SelectItem value="PERSONSKADE">{t("fields.category.options.PERSONSKADE")}</SelectItem>
+            <SelectItem value="NESTENULYKKE">{t("fields.category.options.NESTENULYKKE")}</SelectItem>
+            <SelectItem value="MATERIELL_SKADE">{t("fields.category.options.MATERIELL_SKADE")}</SelectItem>
+            <SelectItem value="BRANN_EKSPLOSJON">{t("fields.category.options.BRANN_EKSPLOSJON")}</SelectItem>
+            <SelectItem value="UTSLIPP_MILJO">{t("fields.category.options.UTSLIPP_MILJO")}</SelectItem>
+            <SelectItem value="TRUSLER_VOLD">{t("fields.category.options.TRUSLER_VOLD")}</SelectItem>
+            <SelectItem value="ERGONOMI">{t("fields.category.options.ERGONOMI")}</SelectItem>
+            <SelectItem value="ANNET">{t("fields.category.options.ANNET")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="title" className="text-base">
-          Kort beskrivelse av hendelsen *
+          {t("fields.title.label")}
         </Label>
         <Input
           id="title"
@@ -220,12 +222,12 @@ export function ReportRuhForm({
 
       <div className="space-y-2">
         <Label htmlFor="location" className="text-base">
-          Hvor skjedde hendelsen? *
+          {t("fields.location.label")}
         </Label>
         <Input
           id="location"
           name="location"
-          placeholder="F.eks: Verksted, bygg A, 2. etasje"
+          placeholder={t("fields.location.placeholder")}
           required
           className="h-12 text-base"
         />
@@ -233,18 +235,18 @@ export function ReportRuhForm({
 
       <div className="space-y-2">
         <Label htmlFor="description" className="text-base">
-          Detaljert beskrivelse *
+          {t("fields.description.label")}
         </Label>
         <Textarea
           id="description"
           name="description"
-          placeholder="Beskriv hendelsen i detalj: hva skjedde, hvordan, under hvilke omstendigheter..."
+          placeholder={t("fields.description.placeholder")}
           required
           rows={6}
           className="text-base resize-none"
         />
         <p className="text-xs text-muted-foreground">
-          Jo mer detaljer, jo bedre kan vi forebygge lignende hendelser
+          {t("fields.description.help")}
         </p>
       </div>
 
@@ -263,19 +265,19 @@ export function ReportRuhForm({
             className="text-base resize-none"
           />
           <p className="text-xs text-muted-foreground">
-            Notat lagres som RUH-kontekst (ikke pasientjournal).
+            {t("fields.contextDetails.help")}
           </p>
         </div>
       )}
 
       <div className="space-y-2">
         <Label htmlFor="involvedPersons" className="text-base">
-          Hvem var involvert?
+          {t("fields.involvedPersons.label")}
         </Label>
         <Textarea
           id="involvedPersons"
           name="involvedPersons"
-          placeholder="Navn og rolle på involverte personer"
+          placeholder={t("fields.involvedPersons.placeholder")}
           rows={2}
           className="text-base resize-none"
         />
@@ -283,12 +285,12 @@ export function ReportRuhForm({
 
       <div className="space-y-2">
         <Label htmlFor="witnessName" className="text-base">
-          Vitner
+          {t("fields.witnessName.label")}
         </Label>
         <Input
           id="witnessName"
           name="witnessName"
-          placeholder="Navn på eventuelle vitner"
+          placeholder={t("fields.witnessName.placeholder")}
           className="h-12 text-base"
         />
       </div>
@@ -296,10 +298,10 @@ export function ReportRuhForm({
       <div className="flex items-center justify-between rounded-lg border p-4">
         <div className="space-y-0.5">
           <Label htmlFor="injury-switch" className="text-base font-medium">
-            Ble noen skadet?
+            {t("fields.injuryOccurred.label")}
           </Label>
           <p className="text-xs text-muted-foreground">
-            Oppgi om hendelsen medførte personskade
+            {t("fields.injuryOccurred.help")}
           </p>
         </div>
         <Switch
@@ -312,12 +314,12 @@ export function ReportRuhForm({
       {injuryOccurred && (
         <div className="space-y-2">
           <Label htmlFor="injuryDescription" className="text-base">
-            Beskriv skaden
+            {t("fields.injuryDescription.label")}
           </Label>
           <Textarea
             id="injuryDescription"
             name="injuryDescription"
-            placeholder="Type skade, kroppsdel, behandling gitt..."
+            placeholder={t("fields.injuryDescription.placeholder")}
             rows={3}
             className="text-base resize-none"
           />
@@ -326,12 +328,12 @@ export function ReportRuhForm({
 
       <div className="space-y-2">
         <Label htmlFor="immediateAction" className="text-base">
-          Umiddelbare tiltak som ble iverksatt
+          {t("fields.immediateAction.label")}
         </Label>
         <Textarea
           id="immediateAction"
           name="immediateAction"
-          placeholder="Hva ble gjort på stedet for å håndtere situasjonen?"
+          placeholder={t("fields.immediateAction.placeholder")}
           rows={3}
           className="text-base resize-none"
         />
@@ -339,12 +341,12 @@ export function ReportRuhForm({
 
       <div className="space-y-2">
         <Label htmlFor="suggestedActions" className="text-base">
-          Foreslåtte tiltak for å forebygge
+          {t("fields.suggestedActions.label")}
         </Label>
         <Textarea
           id="suggestedActions"
           name="suggestedActions"
-          placeholder="Hva kan gjøres for å unngå at dette skjer igjen?"
+          placeholder={t("fields.suggestedActions.placeholder")}
           rows={3}
           className="text-base resize-none"
         />
@@ -352,7 +354,7 @@ export function ReportRuhForm({
 
       <div className="space-y-3">
         <Label htmlFor="images" className="text-base">
-          Bilder (valgfritt, maks 5)
+          {t("fields.images.label")}
         </Label>
         <div className="space-y-3">
           <div className="relative">
@@ -377,10 +379,12 @@ export function ReportRuhForm({
               <Camera className="h-6 w-6 text-muted-foreground" />
               <div className="text-center">
                 <p className="text-sm font-medium">
-                  {imageFiles.length >= 5 ? "Maks 5 bilder" : "Ta bilde eller velg fra album"}
+                  {imageFiles.length >= 5 ? t("fields.images.maxReached") : t("fields.images.takeOrChoose")}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {imageFiles.length > 0 ? `${imageFiles.length}/5 bilder lagt til` : "Valgfritt"}
+                  {imageFiles.length > 0
+                    ? t("fields.images.count", { count: imageFiles.length })
+                    : t("fields.images.optional")}
                 </p>
               </div>
             </Label>
@@ -392,7 +396,7 @@ export function ReportRuhForm({
                 <div key={index} className="relative aspect-square rounded-lg overflow-hidden border">
                   <Image
                     src={preview}
-                    alt={`Forhåndsvisning ${index + 1}`}
+                    alt={t("fields.images.previewAlt", { index: index + 1 })}
                     fill
                     className="object-cover"
                   />
@@ -420,10 +424,10 @@ export function ReportRuhForm({
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Sender...
+              {t("actions.sending")}
             </>
           ) : (
-            "Send RUH-rapport"
+            t("actions.submit")
           )}
         </Button>
 
@@ -435,7 +439,7 @@ export function ReportRuhForm({
           size="lg"
           className="w-full h-12"
         >
-          Avbryt
+          {t("actions.cancel")}
         </Button>
       </div>
     </form>

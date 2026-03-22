@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,7 @@ interface StoffkartotekClientProps {
 }
 
 export function StoffkartotekClient({ chemicals }: StoffkartotekClientProps) {
+  const t = useTranslations("employeeChemicalsPage");
   const [searchTerm, setSearchTerm] = useState("");
 
   // Filtrer kjemikalier basert på søk
@@ -40,7 +42,7 @@ export function StoffkartotekClient({ chemicals }: StoffkartotekClientProps) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Søk etter produktnavn, leverandør eller CAS-nummer..."
+            placeholder={t("searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -52,7 +54,7 @@ export function StoffkartotekClient({ chemicals }: StoffkartotekClientProps) {
       {/* Resultatstatistikk */}
       {searchTerm && (
         <p className="text-sm text-muted-foreground">
-          Viser {filteredChemicals.length} av {chemicals.length} kjemikalier
+          {t("showingCount", { filtered: filteredChemicals.length, total: chemicals.length })}
         </p>
       )}
 
@@ -63,7 +65,7 @@ export function StoffkartotekClient({ chemicals }: StoffkartotekClientProps) {
             <CardContent className="text-center py-12">
               <Beaker className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">
-                {searchTerm ? "Ingen kjemikalier funnet" : "Ingen kjemikalier registrert ennå"}
+                {searchTerm ? t("emptySearch") : t("emptyAll")}
               </p>
             </CardContent>
           </Card>
@@ -89,7 +91,7 @@ export function StoffkartotekClient({ chemicals }: StoffkartotekClientProps) {
                       
                       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-2">
                         {chemical.supplier && (
-                          <span>Leverandør: {chemical.supplier}</span>
+                          <span>{t("labels.supplier", { supplier: chemical.supplier })}</span>
                         )}
                         {chemical.casNumber && (
                           <Badge variant="outline" className="text-xs">
@@ -101,7 +103,7 @@ export function StoffkartotekClient({ chemicals }: StoffkartotekClientProps) {
                       {/* H-setninger */}
                       {chemical.hazardStatements && (
                         <div className="mb-3 p-2 bg-orange-50 border border-orange-200 rounded">
-                          <p className="text-xs font-medium text-orange-900 mb-1">H-setninger (Faresetninger):</p>
+                          <p className="text-xs font-medium text-orange-900 mb-1">{t("labels.hStatements")}</p>
                           <p className="text-xs text-orange-800 line-clamp-2">
                             {chemical.hazardStatements}
                           </p>
@@ -118,7 +120,7 @@ export function StoffkartotekClient({ chemicals }: StoffkartotekClientProps) {
                                 <div key={idx} className="h-8 w-8 relative">
                                   <Image
                                     src={`/faremerker/${pic}`}
-                                    alt="Farepiktogram"
+                                    alt={t("labels.hazardPictogramAlt")}
                                     fill
                                     className="object-contain"
                                   />
@@ -139,7 +141,7 @@ export function StoffkartotekClient({ chemicals }: StoffkartotekClientProps) {
                       {/* Notater (synlig for ansatte i listen) */}
                       {chemical.notes && (
                         <div className="mb-2 p-2 bg-muted/50 rounded text-xs">
-                          <span className="font-medium text-muted-foreground">Notater: </span>
+                          <span className="font-medium text-muted-foreground">{t("labels.notes")} </span>
                           <span className="line-clamp-2">{chemical.notes}</span>
                         </div>
                       )}
@@ -150,7 +152,7 @@ export function StoffkartotekClient({ chemicals }: StoffkartotekClientProps) {
                           const ppe = JSON.parse(chemical.requiredPPE);
                           return Array.isArray(ppe) && ppe.length > 0 ? (
                             <div className="flex items-center gap-1 text-xs">
-                              <span className="text-muted-foreground">Verneutstyr:</span>
+                              <span className="text-muted-foreground">{t("labels.ppe")}</span>
                               <div className="flex gap-1">
                                 {ppe.slice(0, 3).map((ppeItem: string, idx: number) => {
                                   const normalizedFile = normalizePpeFile(ppeItem);
@@ -159,7 +161,7 @@ export function StoffkartotekClient({ chemicals }: StoffkartotekClientProps) {
                                     <div key={idx} className="h-6 w-6 relative">
                                       <Image
                                         src={`/ppe/${normalizedFile}`}
-                                        alt="PPE"
+                                        alt={t("labels.ppeAlt")}
                                         fill
                                         className="object-contain"
                                         unoptimized
@@ -182,7 +184,7 @@ export function StoffkartotekClient({ chemicals }: StoffkartotekClientProps) {
                         <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
                           <Download className="h-5 w-5 text-blue-600" />
                         </div>
-                        <span className="text-xs text-muted-foreground">SDS</span>
+                        <span className="text-xs text-muted-foreground">{t("labels.sds")}</span>
                       </div>
                     )}
                   </div>

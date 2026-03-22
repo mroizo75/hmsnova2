@@ -2,13 +2,15 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { FileText, AlertCircle, Beaker, GraduationCap, Shield, Bell, ClipboardList, ShieldAlert, Clock, FileWarning, HardHat } from "lucide-react";
+import { getTranslations } from "next-intl/server";
+import { FileText, AlertCircle, Beaker, GraduationCap, Shield, Bell, ClipboardList, ShieldAlert, Clock, FileWarning, HardHat, BookOpenCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/lib/db";
 
 export default async function AnsattDashboard() {
   const session = await getServerSession(authOptions);
+  const t = await getTranslations("employeeDashboard");
 
   if (!session?.user?.tenantId) {
     redirect("/login");
@@ -35,10 +37,10 @@ export default async function AnsattDashboard() {
       {/* Velkommen-melding - Ren og profesjonell */}
       <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          Velkommen, {session.user.name?.split(" ")[0]}! 👋
+          {t("welcome.title", { name: session.user.name?.split(" ")[0] ?? "" })}
         </h2>
         <p className="text-gray-600">
-          Her finner du alt du trenger for trygt arbeid
+          {t("welcome.subtitle")}
         </p>
         {tenantName && (
           <div className="mt-3 pt-3 border-t border-gray-200 lg:hidden">
@@ -54,14 +56,14 @@ export default async function AnsattDashboard() {
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <Bell className="h-5 w-5 text-yellow-600" />
-            <CardTitle className="text-lg">Viktig melding</CardTitle>
+            <CardTitle className="text-lg">{t("alerts.title")}</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
             {isAgricultureTenant
-              ? "Husk sikker sjekk før gårdsarbeid: maskin, dyr og arbeidsområde."
-              : "Husk å lese gjennom HMS-håndboken før du starter arbeidsdag."}
+              ? t("alerts.agricultureMessage")
+              : t("alerts.defaultMessage")}
           </p>
         </CardContent>
       </Card>
@@ -69,20 +71,20 @@ export default async function AnsattDashboard() {
       {isAgricultureTenant && (
         <Card className="border-l-4 border-l-green-600">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Rask start i felt</CardTitle>
+            <CardTitle className="text-lg">{t("agricultureQuickStart.title")}</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <Link href="/ansatt/avvik/ny" className="rounded-lg border p-3 hover:bg-muted">
-              <p className="font-medium">Registrer hendelse</p>
-              <p className="text-xs text-muted-foreground">Traktor, dyr eller nesten-ulykke</p>
+              <p className="font-medium">{t("agricultureQuickStart.cards.incident.title")}</p>
+              <p className="text-xs text-muted-foreground">{t("agricultureQuickStart.cards.incident.description")}</p>
             </Link>
             <Link href="/ansatt/vernerunder" className="rounded-lg border p-3 hover:bg-muted">
-              <p className="font-medium">Gjennomfør kontroll</p>
-              <p className="text-xs text-muted-foreground">Fjøs, maskiner og brannvern</p>
+              <p className="font-medium">{t("agricultureQuickStart.cards.inspection.title")}</p>
+              <p className="text-xs text-muted-foreground">{t("agricultureQuickStart.cards.inspection.description")}</p>
             </Link>
             <Link href="/ansatt/sja" className="rounded-lg border p-3 hover:bg-muted">
-              <p className="font-medium">Sikker jobb analyse</p>
-              <p className="text-xs text-muted-foreground">Velg mal og start arbeid</p>
+              <p className="font-medium">{t("agricultureQuickStart.cards.sja.title")}</p>
+              <p className="text-xs text-muted-foreground">{t("agricultureQuickStart.cards.sja.description")}</p>
             </Link>
           </CardContent>
         </Card>
@@ -97,9 +99,9 @@ export default async function AnsattDashboard() {
               <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center mb-3">
                 <FileText className="h-8 w-8 text-blue-600" />
               </div>
-              <h3 className="font-semibold text-lg mb-1">Dokumenter</h3>
+              <h3 className="font-semibold text-lg mb-1">{t("cards.documents.title")}</h3>
               <p className="text-xs text-muted-foreground">
-                HMS-håndbok og prosedyrer
+                {t("cards.documents.description")}
               </p>
             </CardContent>
           </Card>
@@ -113,14 +115,29 @@ export default async function AnsattDashboard() {
                 <AlertCircle className="h-8 w-8 text-red-600" />
               </div>
               <h3 className="font-semibold text-lg mb-1">
-                {isAgricultureTenant ? "Noe farlig skjedde?" : "Rapporter"}
+                {isAgricultureTenant ? t("cards.report.agricultureTitle") : t("cards.report.defaultTitle")}
               </h3>
               <p className="text-xs text-muted-foreground">
-                {isAgricultureTenant ? "Meld hendelse raskt" : "Meld fra om avvik"}
+                {isAgricultureTenant ? t("cards.report.agricultureDescription") : t("cards.report.defaultDescription")}
               </p>
               <Badge variant="destructive" className="mt-2 text-xs">
-                Viktig!
+                {t("cards.report.badge")}
               </Badge>
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* Rutiner */}
+        <Link href="/ansatt/rutiner">
+          <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-emerald-500">
+            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+              <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center mb-3">
+                <BookOpenCheck className="h-8 w-8 text-emerald-700" />
+              </div>
+              <h3 className="font-semibold text-lg mb-1">{t("cards.routines.title")}</h3>
+              <p className="text-xs text-muted-foreground">
+                {t("cards.routines.description")}
+              </p>
             </CardContent>
           </Card>
         </Link>
@@ -134,7 +151,7 @@ export default async function AnsattDashboard() {
               </div>
               <h3 className="font-semibold text-lg mb-1">RUH</h3>
               <p className="text-xs text-muted-foreground">
-                {isAgricultureTenant ? "Nesten-hendelse på gården" : "Uønsket hendelse"}
+                {isAgricultureTenant ? t("cards.ruh.agricultureDescription") : t("cards.ruh.defaultDescription")}
               </p>
             </CardContent>
           </Card>
@@ -149,7 +166,7 @@ export default async function AnsattDashboard() {
               </div>
               <h3 className="font-semibold text-lg mb-1">SJA</h3>
               <p className="text-xs text-muted-foreground">
-                {isAgricultureTenant ? "Velg mal og start arbeid" : "Sikker Jobb Analyse"}
+                {isAgricultureTenant ? t("cards.sja.agricultureDescription") : t("cards.sja.defaultDescription")}
               </p>
             </CardContent>
           </Card>
@@ -162,9 +179,9 @@ export default async function AnsattDashboard() {
               <div className="h-16 w-16 rounded-full bg-purple-100 flex items-center justify-center mb-3">
                 <Beaker className="h-8 w-8 text-purple-600" />
               </div>
-              <h3 className="font-semibold text-lg mb-1">Stoffer</h3>
+              <h3 className="font-semibold text-lg mb-1">{t("cards.chemicals.title")}</h3>
               <p className="text-xs text-muted-foreground">
-                Farlige stoffer og SDS
+                {t("cards.chemicals.description")}
               </p>
             </CardContent>
           </Card>
@@ -177,9 +194,9 @@ export default async function AnsattDashboard() {
               <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center mb-3">
                 <GraduationCap className="h-8 w-8 text-blue-600" />
               </div>
-              <h3 className="font-semibold text-lg mb-1">Opplæring</h3>
+              <h3 className="font-semibold text-lg mb-1">{t("cards.training.title")}</h3>
               <p className="text-xs text-muted-foreground">
-                Registrer gjennomført kurs
+                {t("cards.training.description")}
               </p>
             </CardContent>
           </Card>
@@ -192,9 +209,9 @@ export default async function AnsattDashboard() {
               <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mb-3">
                 <ClipboardList className="h-8 w-8 text-green-600" />
               </div>
-              <h3 className="font-semibold text-lg mb-1">Skjemaer</h3>
+              <h3 className="font-semibold text-lg mb-1">{t("cards.forms.title")}</h3>
               <p className="text-xs text-muted-foreground">
-                Fyll ut skjemaer
+                {t("cards.forms.description")}
               </p>
             </CardContent>
           </Card>
@@ -207,9 +224,9 @@ export default async function AnsattDashboard() {
               <div className="h-16 w-16 rounded-full bg-orange-100 flex items-center justify-center mb-3">
                 <ShieldAlert className="h-8 w-8 text-orange-600" />
               </div>
-              <h3 className="font-semibold text-lg mb-1">Varsling</h3>
+              <h3 className="font-semibold text-lg mb-1">{t("cards.whistleblowing.title")}</h3>
               <p className="text-xs text-muted-foreground">
-                Anonymt varslingssystem
+                {t("cards.whistleblowing.description")}
               </p>
             </CardContent>
           </Card>
@@ -223,9 +240,9 @@ export default async function AnsattDashboard() {
                 <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center mb-3">
                   <Clock className="h-8 w-8 text-emerald-600" />
                 </div>
-                <h3 className="font-semibold text-lg mb-1">Timeføring</h3>
+                <h3 className="font-semibold text-lg mb-1">{t("cards.timeRegistration.title")}</h3>
                 <p className="text-xs text-muted-foreground">
-                  Timer og km godtgjørelse
+                  {t("cards.timeRegistration.description")}
                 </p>
               </CardContent>
             </Card>
@@ -238,7 +255,7 @@ export default async function AnsattDashboard() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-primary" />
-            Mine oppgaver
+            {t("tasks.title")}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -247,17 +264,17 @@ export default async function AnsattDashboard() {
               <div className="flex items-center gap-3">
                 <div className="h-2 w-2 rounded-full bg-yellow-500"></div>
                 <div>
-                  <p className="font-medium text-sm">Årlig HMS-opplæring</p>
-                  <p className="text-xs text-muted-foreground">Frist: 15. des</p>
+                  <p className="font-medium text-sm">{t("tasks.item.title")}</p>
+                  <p className="text-xs text-muted-foreground">{t("tasks.item.deadline")}</p>
                 </div>
               </div>
               <Badge variant="outline" className="bg-white">
-                Venter
+                {t("tasks.item.status")}
               </Badge>
             </div>
 
             <div className="text-center py-4 text-sm text-muted-foreground">
-              Du har ingen andre ventende oppgaver 👍
+              {t("tasks.empty")}
             </div>
           </div>
         </CardContent>
@@ -266,23 +283,23 @@ export default async function AnsattDashboard() {
       {/* Nødkontakter */}
       <Card className="border-l-4 border-l-red-500">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg text-red-600">🚨 Nødkontakter</CardTitle>
+          <CardTitle className="text-lg text-red-600">{t("emergency.title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <div className="flex justify-between items-center">
-            <span className="font-medium">Brann:</span>
+            <span className="font-medium">{t("emergency.fire")}</span>
             <a href="tel:110" className="text-red-600 font-bold text-lg">
               110
             </a>
           </div>
           <div className="flex justify-between items-center">
-            <span className="font-medium">Politi:</span>
+            <span className="font-medium">{t("emergency.police")}</span>
             <a href="tel:112" className="text-red-600 font-bold text-lg">
               112
             </a>
           </div>
           <div className="flex justify-between items-center">
-            <span className="font-medium">Ambulanse:</span>
+            <span className="font-medium">{t("emergency.ambulance")}</span>
             <a href="tel:113" className="text-red-600 font-bold text-lg">
               113
             </a>
@@ -290,14 +307,14 @@ export default async function AnsattDashboard() {
           {tenant?.hmsContactName && (
             <div className="border-t pt-2 mt-2 space-y-1">
               <div className="flex justify-between items-center">
-                <span className="font-medium">HMS-ansvarlig:</span>
+                <span className="font-medium">{t("emergency.hmsResponsible")}</span>
                 <span className="text-primary font-medium">
                   {tenant.hmsContactName}
                 </span>
               </div>
               {tenant.hmsContactPhone && (
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Telefon:</span>
+                  <span className="text-sm text-muted-foreground">{t("emergency.phone")}</span>
                   <a href={`tel:${tenant.hmsContactPhone}`} className="text-primary font-bold">
                     {tenant.hmsContactPhone}
                   </a>
@@ -305,7 +322,7 @@ export default async function AnsattDashboard() {
               )}
               {tenant.hmsContactEmail && (
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">E-post:</span>
+                  <span className="text-sm text-muted-foreground">{t("emergency.email")}</span>
                   <a href={`mailto:${tenant.hmsContactEmail}`} className="text-primary text-sm">
                     {tenant.hmsContactEmail}
                   </a>

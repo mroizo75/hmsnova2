@@ -62,6 +62,7 @@ const navItems: Array<{
   // GRUNNLEGGENDE
   { href: "/dashboard", label: "nav.dashboard", icon: LayoutDashboard, permission: "dashboard" as const, simple: true },
   { href: "/dashboard/documents", label: "nav.documents", icon: FileText, permission: "documents" as const, simple: true },
+  { href: "/dashboard/rutiner", label: "nav.routines", icon: ListChecks, permission: "routines" as const, simple: true },
   { href: "/dashboard/juridisk-register", label: "nav.legalRegister", icon: Scale, permission: "legalRegister" as const, simple: true },
   { href: "/dashboard/incidents", label: "nav.incidents", icon: AlertCircle, permission: "incidents" as const, simple: true },
   { href: "/dashboard/projects", label: "nav.projects", icon: FolderOpen, permission: "incidents" as const, simple: true },
@@ -163,7 +164,7 @@ export function MobileNav() {
             </SheetTrigger>
             <SheetContent side="left" className="w-72 p-0">
               <VisuallyHidden.Root>
-                <SheetTitle>Navigasjonsmeny</SheetTitle>
+                <SheetTitle>{t("mobileNav.navigationMenu")}</SheetTitle>
               </VisuallyHidden.Root>
               <div className="flex h-full flex-col">
                 <div className="border-b p-6">
@@ -185,7 +186,7 @@ export function MobileNav() {
                         <Sparkles className="h-4 w-4 text-purple-500" />
                       )}
                       <span className="text-sm font-medium">
-                        {isSimpleMode ? "Enkel modus" : "Avansert"}
+                        {isSimpleMode ? t("mobileNav.simpleMode") : t("mobileNav.advancedMode")}
                       </span>
                     </div>
                     <Switch

@@ -1,14 +1,16 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Download, Eye, Clock } from "lucide-react";
+import { FileText, Eye, Clock } from "lucide-react";
 import Link from "next/link";
 
 export default async function AnsattDokumenter() {
   const session = await getServerSession(authOptions);
+  const t = await getTranslations("employeeDocumentsPage");
 
   if (!session?.user?.tenantId) {
     redirect("/login");
@@ -77,9 +79,9 @@ export default async function AnsattDokumenter() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold mb-2">📄 Dokumenter</h1>
+        <h1 className="text-2xl font-bold mb-2">{t("header.title")}</h1>
         <p className="text-muted-foreground">
-          HMS-dokumenter og prosedyrer du har tilgang til
+          {t("header.description")}
         </p>
       </div>
 
@@ -90,7 +92,7 @@ export default async function AnsattDokumenter() {
             <CardContent className="text-center py-12">
               <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">
-                Ingen dokumenter tilgjengelig ennå
+                {t("empty")}
               </p>
             </CardContent>
           </Card>
@@ -113,13 +115,13 @@ export default async function AnsattDokumenter() {
                       
                       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-2">
                         <Badge variant="outline" className="text-xs">
-                          {doc.kind === "LAW" && "⚖️ Lover og regler"}
-                          {doc.kind === "PROCEDURE" && "📋 Prosedyre (ISO 9001)"}
-                          {doc.kind === "CHECKLIST" && "✅ Sjekkliste"}
-                          {doc.kind === "FORM" && "📝 Skjema"}
-                          {doc.kind === "SDS" && "⚠️ Sikkerhetsdatablad (SDS)"}
-                          {doc.kind === "PLAN" && "📖 HMS-håndbok / Plan"}
-                          {doc.kind === "OTHER" && "📄 Annet"}
+                          {doc.kind === "LAW" && t("kind.LAW")}
+                          {doc.kind === "PROCEDURE" && t("kind.PROCEDURE")}
+                          {doc.kind === "CHECKLIST" && t("kind.CHECKLIST")}
+                          {doc.kind === "FORM" && t("kind.FORM")}
+                          {doc.kind === "SDS" && t("kind.SDS")}
+                          {doc.kind === "PLAN" && t("kind.PLAN")}
+                          {doc.kind === "OTHER" && t("kind.OTHER")}
                         </Badge>
                         
                         <span className="flex items-center gap-1">
@@ -130,11 +132,11 @@ export default async function AnsattDokumenter() {
 
                       <div className="flex items-center gap-2">
                         <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
-                          ✓ Godkjent
+                          {t("approvedBadge")}
                         </Badge>
                         {doc.approvedByUser && (
                           <span className="text-xs text-muted-foreground">
-                            av {doc.approvedByUser.name || doc.approvedByUser.email}
+                            {t("approvedBy", { name: doc.approvedByUser.name || doc.approvedByUser.email || "" })}
                           </span>
                         )}
                       </div>
@@ -158,8 +160,7 @@ export default async function AnsattDokumenter() {
       <Card className="border-l-4 border-l-blue-500 bg-blue-50">
         <CardContent className="p-4">
           <p className="text-sm text-blue-900">
-            <strong>💡 Tips:</strong> Trykk på et dokument for å lese det eller laste det ned.
-            Alle dokumenter er godkjent og oppdatert.
+            <strong>{t("tip.title")}</strong> {t("tip.description")}
           </p>
         </CardContent>
       </Card>

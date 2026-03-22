@@ -8,8 +8,10 @@ import Link from "next/link";
 import { Plus, FileText } from "lucide-react";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
 import { helpContent } from "@/lib/help-content";
+import { getTranslations } from "next-intl/server";
 
 export default async function DocumentsPage() {
+  const t = await getTranslations("dashboardDocumentsPage");
   const user = await getCurrentUser();
 
   if (!user) {
@@ -19,7 +21,7 @@ export default async function DocumentsPage() {
   // Hent første tenant (senere: la bruker velge)
   const userTenant = user.tenants[0];
   if (!userTenant) {
-    return <div>Ingen tilgang til tenant</div>;
+    return <div>{t("noTenantAccess")}</div>;
   }
 
   const documents = await prisma.document.findMany({
@@ -47,9 +49,9 @@ export default async function DocumentsPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div>
-            <h1 className="text-3xl font-bold">Dokumenter</h1>
+            <h1 className="text-3xl font-bold">{t("title")}</h1>
             <p className="text-muted-foreground">
-              Administrer lover, prosedyrer, sjekklister og mer
+              {t("description")}
             </p>
           </div>
           <PageHelpDialog content={helpContent.documents} />
@@ -57,7 +59,7 @@ export default async function DocumentsPage() {
         <Button asChild>
           <Link href="/dashboard/documents/new">
             <Plus className="mr-2 h-4 w-4" />
-            Nytt dokument
+            {t("actions.newDocument")}
           </Link>
         </Button>
       </div>
@@ -65,7 +67,7 @@ export default async function DocumentsPage() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Totalt</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("stats.total")}</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -74,7 +76,7 @@ export default async function DocumentsPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Utkast</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("stats.draft")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.draft}</div>
@@ -82,7 +84,7 @@ export default async function DocumentsPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Godkjent</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("stats.approved")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{stats.approved}</div>
@@ -90,7 +92,7 @@ export default async function DocumentsPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Arkivert</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("stats.archived")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.archived}</div>
