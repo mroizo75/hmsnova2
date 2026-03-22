@@ -50,7 +50,7 @@ const applySecurityHeaders = (response: NextResponse): NextResponse => {
   return response;
 };
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   // Tving alltid prefiks-frie URL-er (/dashboard, ikke /en/dashboard)

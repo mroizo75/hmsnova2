@@ -3,6 +3,15 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import fs from "fs/promises";
 import path from "path";
 
+/** Lokal lagringsrot. turbopackIgnore hindrer at NFT-tracer følger hele repoet via process.cwd(). */
+function getLocalStorageRoot(): string {
+  const fromEnv = process.env.LOCAL_STORAGE_PATH?.trim();
+  if (fromEnv) {
+    return fromEnv;
+  }
+  return path.join(/* turbopackIgnore: true */ process.cwd(), "storage");
+}
+
 export interface StorageAdapter {
   upload(key: string, file: Blob | Buffer, metadata?: Record<string, string>): Promise<string>;
   getUrl(key: string, expiresIn?: number): Promise<string>;
@@ -93,7 +102,7 @@ export class LocalStorage implements StorageAdapter {
   private basePath: string;
 
   constructor() {
-    this.basePath = process.env.LOCAL_STORAGE_PATH || path.join(process.cwd(), "storage");
+    this.basePath = getLocalStorageRoot();
   }
 
   async upload(key: string, file: Blob | Buffer): Promise<string> {
@@ -201,7 +210,7 @@ export async function deleteTenantFiles(tenantId: string): Promise<{ deleted: nu
   // For lokal lagring: Slett hele tenant-mappen
   else if (storage instanceof LocalStorage) {
     const fs = await import("fs/promises");
-    const tenantPath = path.join(process.env.LOCAL_STORAGE_PATH || "./storage", tenantId);
+    const tenantPath = path.join(getLocalStorageRoot(), tenantId);
     
     try {
       await fs.rm(tenantPath, { recursive: true, force: true });

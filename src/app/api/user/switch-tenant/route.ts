@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
       data: { lastTenantId: tenantId },
     });
 
-    // Session vil bli oppdatert ved neste request via middleware
+    // Session vil bli oppdatert ved neste request via proxy (tidligere middleware)
     return NextResponse.json({ success: true, tenantId });
   } catch (error) {
     console.error("Switch tenant error:", error);
