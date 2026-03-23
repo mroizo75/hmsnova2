@@ -24,6 +24,7 @@ type RoutineUpdateInput = {
   status?: RoutineStatus;
   reviewIntervalMonths?: number;
   nextReviewAt?: Date | null;
+  lastReviewedAt?: Date | null;
 };
 
 async function getTenantIndustry(tenantId: string): Promise<string | null> {
@@ -122,7 +123,12 @@ export async function listAllRoutineTemplates(input: RoutineTemplateListInput = 
   }
 }
 
-export async function listTenantRoutines(query?: string) {
+const employeeVisibleRoutineStatuses: RoutineStatus[] = [RoutineStatus.ACTIVE, RoutineStatus.NEEDS_REVIEW];
+
+export async function listTenantRoutines(
+  query?: string,
+  options?: { forEmployee?: boolean }
+) {
   try {
     const context = await requirePermission("canReadDocuments");
     const normalizedQuery = normalizeQuery(query);
@@ -130,6 +136,9 @@ export async function listTenantRoutines(query?: string) {
     const routines = await prisma.routine.findMany({
       where: {
         tenantId: context.tenantId,
+        ...(options?.forEmployee
+          ? { status: { in: employeeVisibleRoutineStatuses } }
+          : {}),
         title: normalizedQuery ? { contains: normalizedQuery } : undefined,
       },
       include: {
@@ -159,7 +168,10 @@ export async function listTenantRoutines(query?: string) {
   }
 }
 
-export async function getRoutineById(routineId: string) {
+export async function getRoutineById(
+  routineId: string,
+  options?: { forEmployee?: boolean }
+) {
   try {
     const context = await requirePermission("canReadDocuments");
 
@@ -167,6 +179,9 @@ export async function getRoutineById(routineId: string) {
       where: {
         id: routineId,
         tenantId: context.tenantId,
+        ...(options?.forEmployee
+          ? { status: { in: employeeVisibleRoutineStatuses } }
+          : {}),
       },
       include: {
         responsibleUser: {
@@ -260,9 +275,12 @@ export async function updateRoutine(input: RoutineUpdateInput) {
         category: input.category,
         content: input.content as any,
         legalReference: input.legalReference,
-        status: input.status,
-        reviewIntervalMonths: input.reviewIntervalMonths,
-        nextReviewAt: input.nextReviewAt,
+        ...(input.status !== undefined ? { status: input.status } : {}),
+        ...(input.reviewIntervalMonths !== undefined
+          ? { reviewIntervalMonths: input.reviewIntervalMonths }
+          : {}),
+        ...(input.nextReviewAt !== undefined ? { nextReviewAt: input.nextReviewAt } : {}),
+        ...(input.lastReviewedAt !== undefined ? { lastReviewedAt: input.lastReviewedAt } : {}),
         updatedBy: context.userId,
       },
     });
@@ -353,15 +371,15 @@ export async function scheduleRoutineFollowUp(
       data: {
         nextReviewAt,
         reviewIntervalMonths: reviewIntervalMonths ?? routine.reviewIntervalMonths,
-        status: RoutineStatus.NEEDS_REVIEW,
+        status: RoutineStatus.ACTIVE,
         updatedBy: context.userId,
       },
     });
 
     await notifyLeadersAndHms(
       context.tenantId,
-      "Rutine krever oppfolging",
-      `Rutinen "${updated.title}" er satt til oppfolging med ny revisjonsfrist.`,
+      "Revisjonsfrist oppdatert",
+      `Rutinen "${updated.title}" har fått ny dato for neste revisjon.`,
       `/dashboard/rutiner/${updated.id}`
     );
 

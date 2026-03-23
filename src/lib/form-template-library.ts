@@ -140,6 +140,32 @@ const commonTemplates: FormTemplateLibraryEntry[] = [
       textShort("Ansvarlig for oppfølging", false),
     ],
   },
+  {
+    title: "Elektrisk sikkerhet og el-kontroll (generell)",
+    description:
+      "Periodisk sjekk av stikkontakter, kabler, jordfeilvarsel og orden. Nyttig ved tilsyn og spørsmål om elektro i blant annet helsevesen, handel, kontor og service (lavspenningsforskriften og internkontroll).",
+    category: "CHECKLIST",
+    industryScope: ["all"],
+    fields: [
+      dateField("Kontrolldato", true),
+      textShort("Lokale / avdeling", true),
+      ...checklistBlock("Fast installasjon og fordeling", [
+        "Synlig skade på stikkontakter, brytere og kapslinger er utbedret eller området er avsperret",
+        "Jordfeilbrytere eller jordfeilvarsler finnes der forskriften krever det, og er funksjonstestet etter intern plan",
+        "Fordelingstavler og tekniske rom er merket og ikke tilgjengelige for uvedkommende der nødvendig",
+      ]),
+      ...checklistBlock("Kabel, skjøteledning og orden", [
+        "Skjøteledninger og kabeltromler er hele, tørre og ikke overbelastet",
+        "Kabler er lagt slik at de ikke utsettes for mekanisk skade eller knyttap",
+        "Renhold og lagring hindrer ikke lufting rundt utstyr som avleder varme",
+      ]),
+      ...checklistBlock("Maskiner og elektrisk arbeidsutstyr", [
+        "Elektrisk arbeidsutstyr kontrolleres før bruk; defekte merkes og tas ut av drift",
+        "Reparasjon og endring på fast installasjon eller utstyr utføres av kvalifisert personell der loven krever det",
+      ]),
+      textLong("Avvik og planlagte tiltak", false),
+    ],
+  },
 ];
 
 const constructionTemplates: FormTemplateLibraryEntry[] = [

@@ -19,17 +19,19 @@ export interface DashboardWidgetConfig {
   customLabel?: string;
   customHref?: string;
   customIconName?: string;
+  customColorKey?: string;
 }
 
 const ALLOWED_CUSTOM_ICONS = new Set([
-  "star",
-  "flag",
-  "clipboard",
-  "bell",
-  "shield",
-  "file",
-  "check",
-  "alert",
+  "star", "flag", "clipboard", "bell", "shield", "file", "check", "alert",
+  "flame", "droplets", "zap", "hardhat", "stethoscope", "heart", "leaf",
+  "wrench", "truck", "building", "utensils", "graduation", "plug",
+  "thermometer", "eye", "lock", "package", "hammer", "warehouse",
+]);
+
+const ALLOWED_CUSTOM_COLORS = new Set([
+  "slate", "blue", "red", "orange", "amber", "yellow", "green", "emerald",
+  "teal", "cyan", "sky", "indigo", "violet", "purple", "pink", "rose",
 ]);
 
 function normalizeDashboardWidgets(input: DashboardWidgetConfig[]): DashboardWidgetConfig[] {
@@ -53,6 +55,7 @@ function normalizeDashboardWidgets(input: DashboardWidgetConfig[]): DashboardWid
         if (!ALLOWED_CUSTOM_ICONS.has(customIconName)) {
           return null;
         }
+        const customColorKey = (widget.customColorKey || "").trim().toLowerCase();
         return {
           id: widget.id,
           order: index,
@@ -60,6 +63,7 @@ function normalizeDashboardWidgets(input: DashboardWidgetConfig[]): DashboardWid
           customLabel,
           customHref,
           customIconName,
+          ...(ALLOWED_CUSTOM_COLORS.has(customColorKey) ? { customColorKey } : {}),
         } satisfies DashboardWidgetConfig;
       }
       return {

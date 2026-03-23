@@ -8,6 +8,7 @@ const DEFAULT_NAVIGATION_ITEMS = [
   { key: "dashboard", label: "nav.dashboard", icon: "LayoutDashboard", href: "/dashboard", permission: "dashboard", isSimpleMode: true, order: 1 },
   { key: "documents", label: "nav.documents", icon: "FileText", href: "/dashboard/documents", permission: "documents", isSimpleMode: true, order: 2 },
   { key: "routines", label: "nav.routines", icon: "ListChecks", href: "/dashboard/rutiner", permission: "routines", isSimpleMode: true, order: 3 },
+  { key: "electro", label: "nav.electro", icon: "FileCheck2", href: "/dashboard/samsvarserklaringer", permission: "documents", isSimpleMode: true, order: 3 },
   { key: "incidents", label: "nav.incidents", icon: "AlertTriangle", href: "/dashboard/incidents", permission: "incidents", isSimpleMode: true, order: 4 },
   { key: "ruh", label: "nav.ruh", icon: "FileWarning", href: "/dashboard/ruh", permission: "ruh", isSimpleMode: true, order: 4 },
   { key: "sja", label: "nav.sja", icon: "HardHat", href: "/dashboard/sja", permission: "sja", isSimpleMode: true, order: 4 },

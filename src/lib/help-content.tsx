@@ -1698,4 +1698,161 @@ export const helpContent: Record<string, HelpContent> = {
       "Tren nye administratorer i systemets funksjoner",
     ],
   },
+
+  electrical: {
+    title: "Samsvarserklæringer",
+    description: "Slik samler du samsvarserklæringer fra alle fag på ett sted.",
+    sections: [
+      {
+        heading: "Hva er en samsvarserklæring?",
+        emoji: "📋",
+        content:
+          "En samsvarserklæring dokumenterer at fagarbeid er utført i henhold til gjeldende regelverk. Autorisert personell (elektriker, rørlegger, ventilasjonstekniker m.fl.) skal utstede denne etter installasjon, endring eller kontroll.",
+      },
+      {
+        heading: "Kategorier",
+        emoji: "🏷️",
+        items: [
+          {
+            title: "Elektro",
+            description:
+              "Samsvarserklæringer etter NEK 400 / FEL – elektriske installasjoner, kontroller og verifikasjoner.",
+          },
+          {
+            title: "Rørlegger",
+            description:
+              "Erklæringer for sanitær- og VVS-arbeid – rør, avløp, varmeanlegg.",
+          },
+          {
+            title: "Ventilasjon",
+            description:
+              "Kontroller og erklæringer for ventilasjonsanlegg og luftkvalitet.",
+          },
+          {
+            title: "Brann",
+            description:
+              "Samsvarserklæringer for brannalarmanlegg, slokkeanlegg og brannsikring.",
+          },
+          {
+            title: "Annet",
+            description:
+              "Andre fagområder som krever dokumentert samsvar.",
+          },
+        ],
+      },
+      {
+        heading: "Hvordan bruke modulen",
+        emoji: "🔧",
+        items: [
+          {
+            title: "Last opp erklæring",
+            description:
+              "Klikk «Legg til», velg kategori, fyll inn tittel, firma, dato og last opp filen.",
+          },
+          {
+            title: "Filtrer på fag",
+            description:
+              "Bruk kategori-knappene for å filtrere listen etter elektro, rørlegger, ventilasjon osv.",
+          },
+          {
+            title: "Alle ansatte ser dokumentene",
+            description:
+              "Erklæringer er synlige for alle med lesetilgang, inkludert ansatte.",
+          },
+        ],
+      },
+    ],
+    isoStandards: [
+      "FEL (Forskrift om elektriske lavspenningsanlegg) - krav om samsvarserklæring",
+      "NEK 400 - Elektriske lavspenningsinstallasjoner",
+      "Internkontrollforskriften - krav om dokumentasjon av teknisk sikkerhet",
+      "TEK17 - Tekniske krav til byggverk (sanitær, ventilasjon, brann)",
+    ],
+    tips: [
+      "Last opp erklæring umiddelbart etter at arbeidet er utført",
+      "Velg riktig kategori slik at erklæringene er enkle å finne igjen",
+      "Inkluder firma og dato for enkel sporing ved tilsyn",
+      "Oppbevar alle erklæringer digitalt – DLE og kommunen kan be om innsyn",
+    ],
+  },
+
+  routines: {
+    title: "Rutiner og prosedyrer",
+    description: "Slik oppretter, vedlikeholder og reviderer du rutiner i HMS-systemet.",
+    sections: [
+      {
+        heading: "Hva er rutiner?",
+        emoji: "📋",
+        content:
+          "Rutiner beskriver hvordan virksomheten skal utføre bestemte oppgaver for å ivareta helse, miljø og sikkerhet. Internkontrollforskriften krever at virksomheten har dokumenterte rutiner som er kjent for alle ansatte.",
+      },
+      {
+        heading: "Hvordan komme i gang",
+        emoji: "🚀",
+        items: [
+          {
+            title: "Opprett fra mal",
+            description:
+              "Klikk «Opprett fra mal» for å velge en ferdig rutinemal tilpasset din bransje. Du kan tilpasse innholdet etterpå.",
+          },
+          {
+            title: "Fyll ut innholdet",
+            description:
+              "Hver rutine har faste seksjoner: formål, omfang, ansvar, gjennomføring, dokumentasjon, avvik og oppfølging. Fyll ut det som er relevant.",
+          },
+          {
+            title: "Sett ansvarlig",
+            description:
+              "Velg hvem i organisasjonen som er ansvarlig for at rutinen følges og holdes oppdatert.",
+          },
+        ],
+      },
+      {
+        heading: "Revisjon – hold rutinene oppdatert",
+        emoji: "🔄",
+        items: [
+          {
+            title: "Revisjonsintervall",
+            description:
+              "Angi hvor ofte rutinen skal gjennomgås (f.eks. 12 måneder). Systemet varsler automatisk når fristen nærmer seg.",
+          },
+          {
+            title: "Gjennomfør revisjon",
+            description:
+              "Åpne rutinen, klikk «Rediger», huk av «Registrer gjennomført revisjon» og velg dato. Status settes til gjeldende og neste frist beregnes automatisk.",
+          },
+          {
+            title: "Statusforklaring",
+            description:
+              "Aktiv = rutinen er gjeldende. Krever revisjon = fristen er passert og rutinen må gjennomgås. Kladd = ikke publisert ennå. Arkivert = ikke lenger i bruk.",
+          },
+        ],
+      },
+      {
+        heading: "Kategori og organisering",
+        emoji: "🏷️",
+        content:
+          "Velg en kategori fra listen (f.eks. HMS-styring, Elektrisk sikkerhet, Bygg og anlegg) slik at rutinene er enkle å finne igjen. Hvis ingen passer, velg «Annet» og skriv din egen.",
+      },
+      {
+        heading: "Opplastede rutiner",
+        emoji: "📎",
+        content:
+          "Har du rutiner som PDF eller Word-filer? Last dem opp under «Egne rutiner og instrukser» slik at alle med tilgang kan åpne dem direkte fra systemet.",
+      },
+    ],
+    isoStandards: [
+      "Internkontrollforskriften (IK-HMS) - krav til dokumenterte rutiner",
+      "ISO 45001:2018 - Kap. 8.1: Driftsplanlegging og -styring",
+      "ISO 9001:2015 - Kap. 8.1: Driftsplanlegging og -styring",
+      "Arbeidsmiljoloven - krav til systematisk HMS-arbeid",
+    ],
+    tips: [
+      "Start med de viktigste rutinene for din bransje – malbiblioteket foreslår relevante maler",
+      "Sett revisjonsintervall til 12 måneder som standard – juster ved behov",
+      "Involver verneombud og ansatte når rutiner oppdateres",
+      "Bruk «Registrer gjennomført revisjon» for å dokumentere at rutinen er gjennomgått",
+      "Sørg for at alle ansatte har lest og forstått rutinene som gjelder dem",
+    ],
+  },
 };

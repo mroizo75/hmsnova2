@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { FileText, AlertCircle, Beaker, GraduationCap, Shield, Bell, ClipboardList, ShieldAlert, Clock, FileWarning, HardHat, BookOpenCheck } from "lucide-react";
+import { FileText, AlertCircle, Beaker, GraduationCap, Shield, Bell, ClipboardList, ShieldAlert, Clock, FileWarning, HardHat, BookOpenCheck, Plug } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/lib/db";
@@ -137,6 +137,21 @@ export default async function AnsattDashboard() {
               <h3 className="font-semibold text-lg mb-1">{t("cards.routines.title")}</h3>
               <p className="text-xs text-muted-foreground">
                 {t("cards.routines.description")}
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* Samsvarserklæringer */}
+        <Link href="/ansatt/samsvarserklaringer">
+          <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-amber-400">
+            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+              <div className="h-16 w-16 rounded-full bg-amber-100 flex items-center justify-center mb-3">
+                <Plug className="h-8 w-8 text-amber-700" />
+              </div>
+              <h3 className="font-semibold text-lg mb-1">{t("cards.electro.title")}</h3>
+              <p className="text-xs text-muted-foreground">
+                {t("cards.electro.description")}
               </p>
             </CardContent>
           </Card>

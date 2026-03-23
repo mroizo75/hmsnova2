@@ -13,6 +13,7 @@
   "nav": {
     "dashboard": "Oversikt",
     "documents": "Dokumenter",
+    "electro": "Samsvarserklæringer",
     "routines": "Rutiner",
     "legalRegister": "Juridisk register",
     "forms": "Skjemaer",
@@ -811,6 +812,10 @@
       "routines": {
         "title": "Rutiner",
         "description": "Les gjeldende rutiner"
+      },
+      "electro": {
+        "title": "Samsvarserklæringer",
+        "description": "Samsvarserklæringer fra elektro, rørlegger, ventilasjon og andre fag"
       },
       "ruh": {
         "agricultureDescription": "Nesten-hendelse på gården",
@@ -1973,23 +1978,42 @@
   },
   "employeeRoutinesPage": {
     "title": "Rutiner",
-    "description": "Les gjeldende rutiner for din bedrift.",
+    "description": "Her finner du rutiner og dokumenter arbeidsgiver har lagt ut. Trykk på et kort for å lese hele rutinen.",
     "goToForms": "Gå til skjemaer",
-    "empty": "Ingen rutiner tilgjengelig enda.",
-    "noDescription": "Ingen beskrivelse",
+    "empty": "Det er ingen publiserte rutiner her ennå. Spør leder eller HMS hvis du savner noe.",
+    "emptyAll": "Ingen rutiner eller dokumenter er lagt ut ennå.",
+    "noDescription": "Trykk for å lese mer",
+    "sectionRoutines": "Rutiner",
+    "sectionDocuments": "Dokumenter og vedlegg",
+    "openDocument": "Åpne dokument",
+    "readRoutine": "Les rutine",
     "status": {
-      "active": "Aktiv",
+      "active": "Gjeldende",
       "draft": "Utkast",
-      "archived": "Arkivert"
+      "archived": "Arkivert",
+      "needsReview": "Til gjennomgang"
     }
   },
   "employeeRoutineDetailPage": {
-    "back": "Tilbake",
+    "back": "Tilbake til rutiner",
     "legalReference": "Lovreferanse",
+    "content": {
+      "formaal": "Formål",
+      "omfang": "Omfang",
+      "ansvar": "Ansvar",
+      "gjennomforing": "Gjennomføring",
+      "dokumentasjon": "Dokumentasjon",
+      "avvikOppfolging": "Avvik og oppfølging",
+      "revisjon": "Revisjon",
+      "kilder": "Kilder",
+      "emptyMessage": "Det er ikke fylt inn tekst i rutinen ennå.",
+      "legacyTextTitle": "Tilleggsinnhold"
+    },
     "status": {
-      "active": "Aktiv",
+      "active": "Gjeldende",
       "draft": "Utkast",
-      "archived": "Arkivert"
+      "archived": "Arkivert",
+      "needsReview": "Til gjennomgang"
     }
   },
   "employeeLogoutButton": {
@@ -2977,8 +3001,8 @@
       "viewDetails": "Se detaljer"
     },
     "list": {
-      "title": "Mine rutiner",
-      "description": "Rutiner eies av virksomheten din. Globale maler endres aldri direkte.",
+      "title": "Bedriftens rutiner",
+      "description": "Rutiner som er opprettet og tilpasset for din virksomhet.",
       "empty": "Ingen rutiner ennå. Gå til malbiblioteket og velg en mal som passer bransjen din."
     },
     "table": {

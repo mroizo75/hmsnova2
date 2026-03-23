@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth/next";
-import { ArrowLeft, Pencil, UserCircle2, CalendarClock } from "lucide-react";
+import { ArrowLeft, Pencil, UserCircle2, CalendarClock, CalendarCheck, Tag } from "lucide-react";
 import { authOptions } from "@/lib/auth";
+import { getRoutineCategoryPresets } from "@/lib/routine-categories";
 import { getRoutineById } from "@/server/actions/routine.actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { RoutineStructuredBlocks } from "@/features/routines/components/routine-structured-blocks";
+import { ROUTINE_DASHBOARD_CONTENT_LABELS } from "@/lib/routine-content-labels-dashboard";
 
 function statusLabel(status: string): string {
   const labels: Record<string, string> = {
@@ -36,6 +39,10 @@ export default async function RoutineDetailPage({
   }
 
   const routine = result.data;
+  const categoryPresets = getRoutineCategoryPresets();
+  const categoryDisplay = routine.category
+    ? categoryPresets.find((p) => p.value === routine.category)?.label ?? routine.category
+    : "Ikke satt";
 
   return (
     <div className="space-y-6">
@@ -61,7 +68,7 @@ export default async function RoutineDetailPage({
         </Link>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Status</CardDescription>
@@ -74,10 +81,30 @@ export default async function RoutineDetailPage({
         </Card>
         <Card>
           <CardHeader className="pb-2">
+            <CardDescription>Kategori</CardDescription>
+            <CardTitle className="text-base inline-flex items-center gap-1.5">
+              <Tag className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <span className="leading-snug">{categoryDisplay}</span>
+            </CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
             <CardDescription>Ansvarlig</CardDescription>
             <CardTitle className="text-base inline-flex items-center gap-1.5">
               <UserCircle2 className="h-4 w-4 text-muted-foreground" />
               {routine.responsibleUser?.name || routine.responsibleUser?.email || "Ikke satt"}
+            </CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Sist revidert</CardDescription>
+            <CardTitle className="text-base inline-flex items-center gap-1.5">
+              <CalendarCheck className="h-4 w-4 shrink-0 text-muted-foreground" />
+              {routine.lastReviewedAt
+                ? new Date(routine.lastReviewedAt).toLocaleDateString("nb-NO")
+                : "Ikke registrert"}
             </CardTitle>
           </CardHeader>
         </Card>
@@ -111,9 +138,11 @@ export default async function RoutineDetailPage({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <pre className="rounded-md bg-muted p-4 text-xs overflow-x-auto">
-            {JSON.stringify(routine.content || {}, null, 2)}
-          </pre>
+          <RoutineStructuredBlocks
+            content={routine.content}
+            labels={ROUTINE_DASHBOARD_CONTENT_LABELS}
+            density="compact"
+          />
         </CardContent>
       </Card>
     </div>

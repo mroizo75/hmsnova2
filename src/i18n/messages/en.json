@@ -13,6 +13,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "documents": "Documents",
+    "electro": "Compliance declarations",
     "routines": "Routines",
     "legalRegister": "Legal Register",
     "forms": "Forms",
@@ -811,6 +812,10 @@
       "routines": {
         "title": "Routines",
         "description": "Read current routines"
+      },
+      "electro": {
+        "title": "Compliance declarations",
+        "description": "Declarations of conformity from electrical, plumbing, ventilation and other trades"
       },
       "ruh": {
         "agricultureDescription": "Near-miss on the farm",
@@ -1973,23 +1978,42 @@
   },
   "employeeRoutinesPage": {
     "title": "Routines",
-    "description": "Read current routines for your company.",
+    "description": "Routines and documents your employer has published. Tap a card to read the full routine.",
     "goToForms": "Go to forms",
-    "empty": "No routines available yet.",
-    "noDescription": "No description",
+    "empty": "No published routines yet. Ask your manager or H&S contact if something is missing.",
+    "emptyAll": "No routines or documents have been published yet.",
+    "noDescription": "Tap to read more",
+    "sectionRoutines": "Routines",
+    "sectionDocuments": "Documents and attachments",
+    "openDocument": "Open document",
+    "readRoutine": "Read routine",
     "status": {
-      "active": "Active",
+      "active": "Current",
       "draft": "Draft",
-      "archived": "Archived"
+      "archived": "Archived",
+      "needsReview": "Under review"
     }
   },
   "employeeRoutineDetailPage": {
-    "back": "Back",
+    "back": "Back to routines",
     "legalReference": "Legal reference",
+    "content": {
+      "formaal": "Purpose",
+      "omfang": "Scope",
+      "ansvar": "Responsibilities",
+      "gjennomforing": "How to follow the routine",
+      "dokumentasjon": "Documentation",
+      "avvikOppfolging": "Deviations and follow-up",
+      "revisjon": "Review",
+      "kilder": "Sources",
+      "emptyMessage": "No routine text has been entered yet.",
+      "legacyTextTitle": "Additional content"
+    },
     "status": {
-      "active": "Active",
+      "active": "Current",
       "draft": "Draft",
-      "archived": "Archived"
+      "archived": "Archived",
+      "needsReview": "Under review"
     }
   },
   "employeeLogoutButton": {
@@ -2977,8 +3001,8 @@
       "viewDetails": "View details"
     },
     "list": {
-      "title": "My routines",
-      "description": "Routines are owned by your company. Global templates are never changed directly.",
+      "title": "Company routines",
+      "description": "Routines created and customized for your company.",
       "empty": "No routines yet. Go to the template library and pick a template that fits your industry."
     },
     "table": {

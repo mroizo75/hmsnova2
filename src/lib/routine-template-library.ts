@@ -160,6 +160,46 @@ const commonTemplates: RoutineTemplateLibraryEntry[] = [
       ],
     }),
   },
+  {
+    title: "Elektrisk sikkerhet, anlegg og elektrisk arbeidsutstyr",
+    description:
+      "Internkontroll på lavspenningsanlegg, bruk av skjøteledninger og elektrisk arbeidsutstyr – ofte tema ved tilsyn i helse, handel, kontor, produksjon og andre bransjer.",
+    category: "EL_SIKKERHET",
+    legalReference:
+      "Forskrift om elektriske lavspenningsanlegg m.m. (sentrale krav), AML § 3-1, AML § 3-2, IK-HMS § 5",
+    industryScope: ["all"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal:
+        "Forebygge elektriske personskader og brann knyttet til elektriske installasjoner og utstyr i virksomheten.",
+      omfang:
+        "Gjelder faste og midlertidige anlegg, stikkontakter, skjøteledninger, maskiner og håndverktøy med tilkobling til nett.",
+      ansvar: [
+        "Arbeidsgiver: sikre forsvarlige anlegg, risikovurdering og dokumentasjon der loven krever det.",
+        "Ansatte: melde feil og skader på utstyr; følge opplæring og stans ved åpenbar fare.",
+        "Kvalifisert personell: utføre arbeid som er definert som elektrisk arbeid etter gjeldende forskrifter.",
+      ],
+      gjennomforing: [
+        "Kartlegg elektriske farer (skadde støpsler, feil bruk av skjøting, fukt, midlertidige forsyninger, overbelastning).",
+        "Sørg for at merking, adkomst og dokumentasjon på anlegg følges der det er påkrevd.",
+        "Planlegg og gjennomfør kontroll og ettersyn i tråd med risiko og bransjestandard.",
+        "Sikre at personell som skal utføre lovregulert el-arbeid, har nødvendig kompetanse og autorisasjon.",
+      ],
+      dokumentasjon: [
+        "Kontroller, avvik, utbedringer og ansvarlig.",
+        "Referanser til kjente feil på utstyr og oppfølgende tiltak.",
+      ],
+      avvikOppfolging: [
+        "Farlige forhold stanses eller sperres inntil utbedret.",
+        "Gjentatte avvik på samme sted utløser ny risikovurdering og eventuelt ekstern bistand.",
+      ],
+      revisjon: "Revideres årlig eller ved endring i lokaler, maskinpark, midlertidige anlegg eller regelverk.",
+      kilder: [
+        "https://www.arbeidstilsynet.no/tema/elektrisk-arbeid/",
+        "https://lovdata.no/dokument/NL/lov/2005-06-17-62",
+      ],
+    }),
+  },
 ];
 
 const industrySpecificTemplates: RoutineTemplateLibraryEntry[] = [

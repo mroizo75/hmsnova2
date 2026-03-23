@@ -20,7 +20,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, Bell, PlusCircle, Pencil, Plus, Save, X, RotateCcw } from "lucide-react";
-import { Star, Flag, ClipboardList, Shield, FileText, CheckCircle2 } from "lucide-react";
+import {
+  Star, Flag, ClipboardList, Shield, FileText, CheckCircle2,
+  Flame, Droplets, Zap, HardHat, Stethoscope, Heart, Leaf,
+  Wrench, Truck, Building2, UtensilsCrossed, GraduationCap, Plug,
+  Thermometer, Eye, Lock, Package, Hammer, Warehouse,
+} from "lucide-react";
 import { DashboardTile } from "./dashboard-tile";
 import { WidgetCatalog } from "./widget-catalog";
 import {
@@ -103,7 +108,7 @@ export function CustomizableDashboard({ data }: CustomizableDashboardProps) {
   }, []);
 
   const handleAddCustomWidget = useCallback(
-    (payload: { label: string; href: string; iconName: string }) => {
+    (payload: { label: string; href: string; iconName: string; colorKey: string }) => {
       setWidgets((prev) => {
         const id = `custom-${crypto.randomUUID()}`;
         return [
@@ -115,6 +120,7 @@ export function CustomizableDashboard({ data }: CustomizableDashboardProps) {
             customLabel: payload.label,
             customHref: payload.href,
             customIconName: payload.iconName,
+            customColorKey: payload.colorKey,
           },
         ];
       });
@@ -150,7 +156,7 @@ export function CustomizableDashboard({ data }: CustomizableDashboardProps) {
     setWidgets(DEFAULT_WIDGET_IDS.map((id, i) => ({ id, order: i, type: "builtin" })));
   }, []);
 
-  const customIconMap = {
+  const customIconMap: Record<string, typeof Star> = {
     star: Star,
     flag: Flag,
     clipboard: ClipboardList,
@@ -159,6 +165,44 @@ export function CustomizableDashboard({ data }: CustomizableDashboardProps) {
     file: FileText,
     check: CheckCircle2,
     alert: AlertTriangle,
+    flame: Flame,
+    droplets: Droplets,
+    zap: Zap,
+    hardhat: HardHat,
+    stethoscope: Stethoscope,
+    heart: Heart,
+    leaf: Leaf,
+    wrench: Wrench,
+    truck: Truck,
+    building: Building2,
+    utensils: UtensilsCrossed,
+    graduation: GraduationCap,
+    plug: Plug,
+    thermometer: Thermometer,
+    eye: Eye,
+    lock: Lock,
+    package: Package,
+    hammer: Hammer,
+    warehouse: Warehouse,
+  };
+
+  const customColorPresets: Record<string, { color: string; bgColor: string; borderColor: string }> = {
+    slate:   { color: "text-slate-700",   bgColor: "bg-slate-50",   borderColor: "border-slate-200" },
+    blue:    { color: "text-blue-700",    bgColor: "bg-blue-50",    borderColor: "border-blue-200" },
+    red:     { color: "text-red-700",     bgColor: "bg-red-50",     borderColor: "border-red-200" },
+    orange:  { color: "text-orange-700",  bgColor: "bg-orange-50",  borderColor: "border-orange-200" },
+    amber:   { color: "text-amber-700",   bgColor: "bg-amber-50",   borderColor: "border-amber-200" },
+    yellow:  { color: "text-yellow-600",  bgColor: "bg-yellow-50",  borderColor: "border-yellow-200" },
+    green:   { color: "text-green-700",   bgColor: "bg-green-50",   borderColor: "border-green-200" },
+    emerald: { color: "text-emerald-700", bgColor: "bg-emerald-50", borderColor: "border-emerald-200" },
+    teal:    { color: "text-teal-700",    bgColor: "bg-teal-50",    borderColor: "border-teal-200" },
+    cyan:    { color: "text-cyan-700",    bgColor: "bg-cyan-50",    borderColor: "border-cyan-200" },
+    sky:     { color: "text-sky-700",     bgColor: "bg-sky-50",     borderColor: "border-sky-200" },
+    indigo:  { color: "text-indigo-700",  bgColor: "bg-indigo-50",  borderColor: "border-indigo-200" },
+    violet:  { color: "text-violet-700",  bgColor: "bg-violet-50",  borderColor: "border-violet-200" },
+    purple:  { color: "text-purple-700",  bgColor: "bg-purple-50",  borderColor: "border-purple-200" },
+    pink:    { color: "text-pink-700",    bgColor: "bg-pink-50",    borderColor: "border-pink-200" },
+    rose:    { color: "text-rose-700",    bgColor: "bg-rose-50",    borderColor: "border-rose-200" },
   };
 
   const resolvedWidgets: Array<{ config: WidgetConfig; def: WidgetDefinition }> = [...widgets]
@@ -168,6 +212,7 @@ export function CustomizableDashboard({ data }: CustomizableDashboardProps) {
         if (!config.customLabel || !config.customHref || !config.customIconName) return null;
         const iconComponent =
           customIconMap[config.customIconName as keyof typeof customIconMap] ?? Star;
+        const colors = customColorPresets[config.customColorKey ?? ""] ?? customColorPresets.slate;
         return {
           config,
           def: {
@@ -176,10 +221,8 @@ export function CustomizableDashboard({ data }: CustomizableDashboardProps) {
             description: "Egendefinert flis",
             icon: iconComponent,
             href: config.customHref,
-            category: "spesial",
-            color: "text-slate-700",
-            bgColor: "bg-slate-50",
-            borderColor: "border-slate-200",
+            category: "spesial" as const,
+            ...colors,
           },
         };
       }

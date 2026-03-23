@@ -116,6 +116,8 @@ model User {
   constructionRosterChecks  ConstructionRosterDailyCheck[] @relation("ConstructionRosterCheckedBy")
   exposureRegisters         ExposureRegister[]             @relation("ExposureRegisterEmployee")
   routinesResponsible       Routine[]                      @relation("RoutineResponsible")
+  electroComplianceCreated  ElectroComplianceDeclaration[] @relation("ElectroComplianceCreatedBy")
+  routineUploadedDocumentsCreated RoutineUploadedDocument[]  @relation("RoutineUploadedDocumentCreatedBy")
   dashboardConfigs          DashboardConfig[]
   createdAt                 DateTime                       @default(now())
   updatedAt                 DateTime                       @updatedAt
@@ -208,6 +210,8 @@ model Tenant {
   documents                    Document[]
   documentVersions             DocumentVersion[]
   documentTemplates            DocumentTemplate[]
+  electroComplianceDeclarations ElectroComplianceDeclaration[]
+  routineUploadedDocuments      RoutineUploadedDocument[]
   risks                        Risk[]
   riskAssessments              RiskAssessment[]
   riskControls                 RiskControl[]
@@ -733,6 +737,52 @@ model DocumentTemplate {
 
   @@index([tenantId])
   @@index([isGlobal])
+}
+
+// Elektro: samsvarserklæringer (utført arbeid) – synlig under Elektro for ansatte
+model ElectroComplianceDeclaration {
+  id               String    @id @default(cuid())
+  tenantId         String
+  title            String
+  category         String    @default("ELEKTRO") // ELEKTRO | RORLEGGER | VENTILASJON | BRANN | ANNET
+  fileKey          String
+  mime             String    @default("application/pdf")
+  originalFileName String
+  contractorName   String? // Utførende firma
+  workCompletedAt  DateTime? // Dato arbeid eller kontroll ble utført
+  notes            String?   @db.Text
+  createdById      String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy User?  @relation("ElectroComplianceCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([tenantId, createdAt])
+}
+
+/// Opplastede rutine-/instruksdokumenter (PDF m.m.) – vises under Rutiner for ledelse og ansatte
+model RoutineUploadedDocument {
+  id               String   @id @default(cuid())
+  tenantId         String
+  title            String
+  description      String?  @db.Text
+  documentType     String   @default("RUTINE") // RUTINE | INSTRUKS
+  fileKey          String
+  mime             String   @default("application/pdf")
+  originalFileName String
+  sortOrder        Int      @default(0)
+  createdById      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy User?  @relation("RoutineUploadedDocumentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([tenantId, sortOrder])
+  @@map("ElectroInstruction")
 }
 
 // ============================================
@@ -2511,6 +2561,7 @@ model Routine {
   responsibleId        String?
   reviewIntervalMonths Int           @default(12)
   nextReviewAt         DateTime?
+  lastReviewedAt       DateTime? // Sist rutinen ble revidert (registreres ved gjennomført revisjon)
   createdBy            String
   updatedBy            String?
   createdAt            DateTime      @default(now())

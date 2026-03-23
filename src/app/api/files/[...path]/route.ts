@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { getStorage, LocalStorage, R2Storage } from "@/lib/storage";
+import { getStorage } from "@/lib/storage";
+import { getLocalStorageRoot } from "@/lib/storage-local";
 import path from "path";
 import fs from "fs/promises";
 
@@ -30,13 +31,16 @@ export async function GET(
     const storage = getStorage();
 
     // For lokal lagring
-    if (storage instanceof LocalStorage) {
-      const basePath = process.env.LOCAL_STORAGE_PATH || "./storage";
-      const fullPath = path.join(process.cwd(), basePath, fileKey);
+    if (storage.kind === "local") {
+      const root = getLocalStorageRoot();
+      const fullPath = path.join(root, fileKey);
 
       // Sikkerhet: Sørg for at filen er innenfor base path
-      const realBasePath = await fs.realpath(path.join(process.cwd(), basePath));
+      const realBasePath = await fs.realpath(root).catch(() => null);
       const realPath = await fs.realpath(fullPath).catch(() => null);
+      if (!realBasePath) {
+        return new NextResponse("Storage not configured", { status: 500 });
+      }
       if (!realPath || !realPath.startsWith(realBasePath)) {
         return new NextResponse("Forbidden", { status: 403 });
       }
@@ -55,7 +59,7 @@ export async function GET(
     }
 
     // For R2 storage
-    if (storage instanceof R2Storage) {
+    if (storage.kind === "r2") {
       const { S3Client, GetObjectCommand } = await import("@aws-sdk/client-s3");
 
       const client = new S3Client({

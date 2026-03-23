@@ -1,0 +1,1 @@
+ALTER TABLE `Routine` ADD COLUMN `lastReviewedAt` DATETIME(3) NULL;

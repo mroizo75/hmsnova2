@@ -7,6 +7,7 @@ import { ChevronRight, Home } from "lucide-react";
 const segmentLabels: Record<string, string> = {
   dashboard: "Dashboard",
   documents: "Dokumenter",
+  samsvarserklaringer: "Samsvarserklæringer",
   "juridisk-register": "Juridisk register",
   incidents: "Avvik",
   statistics: "Statistikk",
