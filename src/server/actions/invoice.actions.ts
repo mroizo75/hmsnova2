@@ -1,11 +1,133 @@
 "use server";
 
+import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { FikenClient } from "@/lib/fiken";
 import { Resend } from "resend";
 import { getTrialWelcomeEmail, getTrialExpiringEmail } from "./invoice-emails";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { revalidatePath } from "next/cache";
+import type { SessionUser } from "@/types";
+import type { InvoiceStatus } from "@prisma/client";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+async function requireSuperAdminOrSupport() {
+  const session = await getServerSession(authOptions);
+  const user = session?.user as SessionUser;
+  if (!session || (!user.isSuperAdmin && !user.isSupport)) {
+    throw new Error("Unauthorized");
+  }
+  return user;
+}
+
+const createInvoiceSchema = z.object({
+  tenantId: z.string().min(1),
+  amount: z.number().positive(),
+  dueDate: z.string().min(1),
+  invoiceNumber: z.string().optional(),
+  description: z.string().optional(),
+  period: z.string().optional(),
+  status: z.enum(["PENDING", "SENT", "PAID", "OVERDUE", "CANCELLED"]).default("PENDING"),
+});
+
+export async function createManualInvoice(input: z.infer<typeof createInvoiceSchema>) {
+  try {
+    await requireSuperAdminOrSupport();
+    const validated = createInvoiceSchema.parse(input);
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: validated.tenantId },
+      select: { id: true },
+    });
+
+    if (!tenant) {
+      return { success: false, error: "Bedrift ikke funnet" };
+    }
+
+    const invoice = await prisma.invoice.create({
+      data: {
+        tenantId: validated.tenantId,
+        amount: validated.amount,
+        dueDate: new Date(validated.dueDate),
+        invoiceNumber: validated.invoiceNumber || null,
+        description: validated.description || null,
+        period: validated.period || null,
+        status: validated.status,
+        paidDate: validated.status === "PAID" ? new Date() : null,
+      },
+    });
+
+    revalidatePath("/admin/invoices");
+    return { success: true, data: invoice };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Kunne ikke opprette faktura" };
+  }
+}
+
+export async function updateInvoiceStatus(invoiceId: string, status: InvoiceStatus) {
+  try {
+    await requireSuperAdminOrSupport();
+
+    const invoice = await prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      include: { tenant: true },
+    });
+
+    if (!invoice) {
+      return { success: false, error: "Faktura ikke funnet" };
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.invoice.update({
+        where: { id: invoiceId },
+        data: {
+          status,
+          paidDate: status === "PAID" ? new Date() : (status !== "PAID" ? null : undefined),
+        },
+      });
+
+      if (status === "PAID" && invoice.tenant.status === "SUSPENDED") {
+        await tx.tenant.update({
+          where: { id: invoice.tenantId },
+          data: { status: "ACTIVE" },
+        });
+      }
+    });
+
+    revalidatePath("/admin/invoices");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Kunne ikke oppdatere status" };
+  }
+}
+
+export async function deleteInvoice(invoiceId: string) {
+  try {
+    await requireSuperAdminOrSupport();
+
+    const invoice = await prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      select: { id: true, fikenInvoiceId: true },
+    });
+
+    if (!invoice) {
+      return { success: false, error: "Faktura ikke funnet" };
+    }
+
+    if (invoice.fikenInvoiceId) {
+      return { success: false, error: "Kan ikke slette fakturaer synkronisert med Fiken" };
+    }
+
+    await prisma.invoice.delete({ where: { id: invoiceId } });
+
+    revalidatePath("/admin/invoices");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Kunne ikke slette faktura" };
+  }
+}
 
 /**
  * Opprett onboarding-faktura i Fiken og send til kunde

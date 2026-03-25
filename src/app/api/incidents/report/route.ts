@@ -177,38 +177,34 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Audit log
-    await AuditLog.log(
-      tenantId,
-      session.user.id,
-      "INCIDENT_REPORTED",
-      "Incident",
-      incident.id,
-      {
-        title,
-        type,
-        severity,
-        imageCount: images.filter((img) => img && img.size > 0).length,
+    // Fire-and-forget: audit + notifikasjoner skal ikke blokkere brukeren
+    const userId = session.user.id;
+    void (async () => {
+      try {
+        await AuditLog.log(tenantId, userId, "INCIDENT_REPORTED", "Incident", incident.id, {
+          title,
+          type,
+          severity,
+          imageCount: images.filter((img) => img && img.size > 0).length,
+        });
+        await createNotification({
+          tenantId,
+          userId,
+          type: "NEW_INCIDENT",
+          title: "Avvik mottatt",
+          message: `Takk for rapporten! Ditt avvik "${title}" er registrert og vil bli behandlet av HMS-ansvarlig.`,
+          link: `/ansatt/avvik`,
+        });
+        await notifyUsersByRole(tenantId, "HMS", {
+          type: "NEW_INCIDENT",
+          title: "Nytt avvik rapportert av ansatt",
+          message: `${type}: ${title} - Rapportert av ${reportedBy}`,
+          link: `/dashboard/incidents/${incident.id}`,
+        });
+      } catch (bgError) {
+        console.error("Background notification error:", bgError);
       }
-    );
-
-    // Send bekreftelse til den ansatte som rapporterte
-    await createNotification({
-      tenantId,
-      userId: session.user.id,
-      type: "NEW_INCIDENT",
-      title: "Avvik mottatt",
-      message: `Takk for rapporten! Ditt avvik "${title}" er registrert og vil bli behandlet av HMS-ansvarlig.`,
-      link: `/ansatt/avvik`,
-    });
-
-    // Send varsling til HMS-ansvarlige
-    await notifyUsersByRole(tenantId, "HMS", {
-      type: "NEW_INCIDENT",
-      title: "Nytt avvik rapportert av ansatt",
-      message: `${type}: ${title} - Rapportert av ${reportedBy}`,
-      link: `/dashboard/incidents/${incident.id}`,
-    });
+    })();
 
     return NextResponse.json({ success: true, incident }, { status: 201 });
   } catch (error: any) {

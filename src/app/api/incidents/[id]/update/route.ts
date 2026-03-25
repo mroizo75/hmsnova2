@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -78,6 +79,11 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const tenantId = session.user.tenantId;
+    if (!tenantId) {
+      return NextResponse.json({ error: "Ingen virksomhetstilgang." }, { status: 403 });
+    }
+
     const body = await request.json();
     const { status, severity, responsibleId } = body;
     const type = parseIncidentType(body.type);
@@ -134,46 +140,44 @@ export async function PUT(
       CLOSED: "VERIFIED",
     };
 
-    // Oppdater incident
     const incident = await prisma.incident.update({
-      where: {
-        id,
-        tenantId: session.user.tenantId!,
+      where: { id, tenantId },
+      data: {
+        type: type ?? undefined,
+        subcategoryKeys:
+          subcategoryKeys === undefined
+            ? undefined
+            : subcategoryKeys.length > 0
+              ? JSON.stringify(subcategoryKeys)
+              : null,
+        projectId: projectId === undefined ? undefined : projectId,
+        status,
+        severity,
+        responsibleId: responsibleId || null,
+        stage: stageMap[status as IncidentStatus] || "REPORTED",
+        medicalAttentionRequired:
+          medicalAttentionRequired === undefined ? undefined : medicalAttentionRequired,
+        isFatal: isFatal === undefined ? undefined : isFatal,
+        isLostTimeIncident: isLostTimeIncident === undefined ? undefined : isLostTimeIncident,
+        isRestrictedWork: isRestrictedWork === undefined ? undefined : isRestrictedWork,
+        lostWorkdays:
+          lostWorkdays === undefined
+            ? undefined
+            : isLostTimeIncident
+              ? lostWorkdays
+              : null,
       },
-        data: {
-          type: type ?? undefined,
-          subcategoryKeys:
-            subcategoryKeys === undefined
-              ? undefined
-              : subcategoryKeys.length > 0
-                ? JSON.stringify(subcategoryKeys)
-                : null,
-          projectId: projectId === undefined ? undefined : projectId,
-          status,
-          severity,
-          responsibleId: responsibleId || null,
-          stage: stageMap[status as IncidentStatus] || "REPORTED",
-          medicalAttentionRequired:
-            medicalAttentionRequired === undefined ? undefined : medicalAttentionRequired,
-          isFatal: isFatal === undefined ? undefined : isFatal,
-          isLostTimeIncident: isLostTimeIncident === undefined ? undefined : isLostTimeIncident,
-          isRestrictedWork: isRestrictedWork === undefined ? undefined : isRestrictedWork,
-          lostWorkdays:
-            lostWorkdays === undefined
-              ? undefined
-              : isLostTimeIncident
-                ? lostWorkdays
-                : null,
-        },
     });
 
+    revalidatePath(`/dashboard/incidents/${id}`);
+    revalidatePath("/dashboard/incidents");
     return NextResponse.json({ success: true, incident });
   } catch (error: any) {
     console.error("Update incident error:", error);
-    return NextResponse.json(
-      { error: error.message || "Internal server error" },
-      { status: 500 }
-    );
-  }
+    const message =
+      error?.code === "P2025"
+        ? "Avviket ble ikke funnet. Sjekk at du har tilgang."
+        : error.message || "Intern feil ved oppdatering av avvik.";
+    return NextResponse.json({ error: message }, { status: error?.code === "P2025" ? 404 : 500 });
 }
 

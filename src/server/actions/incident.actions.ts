@@ -267,29 +267,33 @@ export async function createIncident(input: any) {
       });
     }
     
-    // Audit log
-    await prisma.auditLog.create({
-      data: {
-        tenantId,
-        userId: user.id,
-        action: "INCIDENT_CREATED",
-        resource: `Incident:${incident.id}`,
-        metadata: JSON.stringify({
-          title: incident.title,
-          type: incident.type,
-          severity: incident.severity,
-        }),
-      },
-    });
-    
-    // Send varsling til lederroller for oppfolging
-    await notifyUsersByRoles(tenantId, ["ADMIN", "HMS", "LEDER"], {
-      type: "NEW_INCIDENT",
-      title: "Nytt avvik registrert",
-      message: `${incident.type}: ${incident.title}`,
-      link: `/dashboard/incidents/${incident.id}`,
-    });
-    
+    // Fire-and-forget: audit + notifikasjoner skal ikke blokkere brukeren
+    void (async () => {
+      try {
+        await prisma.auditLog.create({
+          data: {
+            tenantId,
+            userId: user.id,
+            action: "INCIDENT_CREATED",
+            resource: `Incident:${incident.id}`,
+            metadata: JSON.stringify({
+              title: incident.title,
+              type: incident.type,
+              severity: incident.severity,
+            }),
+          },
+        });
+        await notifyUsersByRoles(tenantId, ["ADMIN", "HMS", "LEDER"], {
+          type: "NEW_INCIDENT",
+          title: "Nytt avvik registrert",
+          message: `${incident.type}: ${incident.title}`,
+          link: `/dashboard/incidents/${incident.id}`,
+        });
+      } catch (bgError) {
+        console.error("Background notification error:", bgError);
+      }
+    })();
+
     revalidatePath("/dashboard/incidents");
     return { success: true, data: incident };
   } catch (error: any) {
@@ -382,26 +386,31 @@ export async function updateIncident(input: any) {
       data: updateData,
     });
     
-    await prisma.auditLog.create({
-      data: {
-        tenantId,
-        userId: user.id,
-        action: "INCIDENT_UPDATED",
-        resource: `Incident:${incident.id}`,
-        metadata: JSON.stringify({ title: incident.title }),
-      },
-    });
-    
-    // Send varsling hvis status endres
-    if (existingIncident.status !== incident.status) {
-      await notifyUsersByRoles(tenantId, ["ADMIN", "HMS", "LEDER"], {
-        type: "INCIDENT_UPDATED",
-        title: "Avvik oppdatert",
-        message: `${incident.type}: ${incident.title} - Status endret til ${incident.status}`,
-        link: `/dashboard/incidents/${incident.id}`,
-      });
-    }
-    
+    const statusChanged = existingIncident.status !== incident.status;
+    void (async () => {
+      try {
+        await prisma.auditLog.create({
+          data: {
+            tenantId,
+            userId: user.id,
+            action: "INCIDENT_UPDATED",
+            resource: `Incident:${incident.id}`,
+            metadata: JSON.stringify({ title: incident.title }),
+          },
+        });
+        if (statusChanged) {
+          await notifyUsersByRoles(tenantId, ["ADMIN", "HMS", "LEDER"], {
+            type: "INCIDENT_UPDATED",
+            title: "Avvik oppdatert",
+            message: `${incident.type}: ${incident.title} - Status endret til ${incident.status}`,
+            link: `/dashboard/incidents/${incident.id}`,
+          });
+        }
+      } catch (bgError) {
+        console.error("Background notification error:", bgError);
+      }
+    })();
+
     revalidatePath("/dashboard/incidents");
     revalidatePath(`/dashboard/incidents/${incident.id}`);
     return { success: true, data: incident };
@@ -486,27 +495,31 @@ export async function closeIncident(input: any) {
       },
     });
     
-    await prisma.auditLog.create({
-      data: {
-        tenantId,
-        userId: user.id,
-        action: "INCIDENT_CLOSED",
-        resource: `Incident:${incident.id}`,
-        metadata: JSON.stringify({
-          title: incident.title,
-          effectivenessReview: validated.effectivenessReview,
-        }),
-      },
-    });
-    
-    // Send varsling om lukket avvik
-    await notifyUsersByRoles(tenantId, ["ADMIN", "HMS", "LEDER"], {
-      type: "INCIDENT_CLOSED",
-      title: "Avvik lukket",
-      message: `${incident.type}: ${incident.title} er nå lukket`,
-      link: `/dashboard/incidents/${incident.id}`,
-    });
-    
+    void (async () => {
+      try {
+        await prisma.auditLog.create({
+          data: {
+            tenantId,
+            userId: user.id,
+            action: "INCIDENT_CLOSED",
+            resource: `Incident:${incident.id}`,
+            metadata: JSON.stringify({
+              title: incident.title,
+              effectivenessReview: validated.effectivenessReview,
+            }),
+          },
+        });
+        await notifyUsersByRoles(tenantId, ["ADMIN", "HMS", "LEDER"], {
+          type: "INCIDENT_CLOSED",
+          title: "Avvik lukket",
+          message: `${incident.type}: ${incident.title} er nå lukket`,
+          link: `/dashboard/incidents/${incident.id}`,
+        });
+      } catch (bgError) {
+        console.error("Background notification error:", bgError);
+      }
+    })();
+
     revalidatePath("/dashboard/incidents");
     revalidatePath(`/dashboard/incidents/${incident.id}`);
     return { success: true, data: incident };

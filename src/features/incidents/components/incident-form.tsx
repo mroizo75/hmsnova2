@@ -623,7 +623,6 @@ export function IncidentForm({
         className: "bg-green-50 border-green-200",
       });
       router.push(redirectRoute);
-      router.refresh();
     } catch {
       toast({
         variant: "destructive",
