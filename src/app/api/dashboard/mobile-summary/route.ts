@@ -142,7 +142,7 @@ export async function GET() {
       permissions.canReadForms
         ? prisma.formTemplate.count({
             where: {
-              OR: [{ tenantId }, { isGlobal: true }],
+              tenantId,
               isActive: true,
             },
           })
@@ -150,7 +150,7 @@ export async function GET() {
       permissions.canReadForms
         ? prisma.formTemplate.findMany({
             where: {
-              OR: [{ tenantId }, { isGlobal: true }],
+              tenantId,
               isActive: true,
             },
             orderBy: { title: "asc" },

@@ -5,6 +5,61 @@ import { prisma } from "@/lib/db";
 import { getPermissions } from "@/lib/permissions";
 import { Role } from "@prisma/client";
 
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.tenantId || !session.user.id) {
+      return NextResponse.json({ error: "Ikke autorisert" }, { status: 401 });
+    }
+
+    const membership = await prisma.userTenant.findUnique({
+      where: {
+        userId_tenantId: {
+          userId: session.user.id,
+          tenantId: session.user.tenantId,
+        },
+      },
+      select: {
+        role: true,
+      },
+    });
+
+    if (!membership) {
+      return NextResponse.json({ error: "Ingen tenant-tilgang" }, { status: 403 });
+    }
+
+    const permissions = getPermissions(membership.role as Role);
+    if (!permissions.canReadOwnTraining && !permissions.canReadAllTraining) {
+      return NextResponse.json({ trainings: [] }, { status: 200 });
+    }
+
+    const trainings = await prisma.training.findMany({
+      where: {
+        tenantId: session.user.tenantId,
+        ...(permissions.canReadAllTraining ? {} : { userId: session.user.id }),
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 50,
+      select: {
+        id: true,
+        title: true,
+        provider: true,
+        completedAt: true,
+        validUntil: true,
+        isRequired: true,
+      },
+    });
+
+    return NextResponse.json({ trainings }, { status: 200 });
+  } catch (error) {
+    console.error("Get training error:", error);
+    return NextResponse.json({ error: "Kunne ikke hente opplæring" }, { status: 500 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
