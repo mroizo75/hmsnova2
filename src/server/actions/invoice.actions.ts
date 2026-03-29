@@ -84,7 +84,7 @@ export async function updateInvoiceStatus(invoiceId: string, status: InvoiceStat
         where: { id: invoiceId },
         data: {
           status,
-          paidDate: status === "PAID" ? new Date() : (status !== "PAID" ? null : undefined),
+          paidDate: null,
         },
       });
 
