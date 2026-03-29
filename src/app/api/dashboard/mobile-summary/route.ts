@@ -39,9 +39,13 @@ export async function GET() {
       incidentsTotal,
       incidentsOpen,
       documentsCount,
+      documentsRecent,
       trainingsCount,
+      trainingsPending,
       routinesCount,
+      routinesRecent,
       formsCount,
+      formsRecent,
       unreadNotifications,
     ] = await Promise.all([
       permissions.canReadIncidents
@@ -72,6 +76,21 @@ export async function GET() {
       permissions.canReadDocuments
         ? prisma.document.count({ where: { tenantId } })
         : 0,
+      permissions.canReadDocuments
+        ? prisma.document.findMany({
+            where: {
+              tenantId,
+              status: { not: "ARCHIVED" },
+            },
+            orderBy: { updatedAt: "desc" },
+            take: 5,
+            select: {
+              id: true,
+              title: true,
+              status: true,
+            },
+          })
+        : [],
       permissions.canReadOwnTraining || permissions.canReadAllTraining
         ? prisma.training.count({
             where: {
@@ -81,6 +100,22 @@ export async function GET() {
             },
           })
         : 0,
+      permissions.canReadOwnTraining || permissions.canReadAllTraining
+        ? prisma.training.findMany({
+            where: {
+              tenantId,
+              ...(permissions.canReadAllTraining ? {} : { userId: user.id }),
+              completedAt: null,
+            },
+            orderBy: { createdAt: "desc" },
+            take: 5,
+            select: {
+              id: true,
+              title: true,
+              provider: true,
+            },
+          })
+        : [],
       permissions.canReadRoutines
         ? prisma.routine.count({
             where: {
@@ -89,6 +124,21 @@ export async function GET() {
             },
           })
         : 0,
+      permissions.canReadRoutines
+        ? prisma.routine.findMany({
+            where: {
+              tenantId,
+              status: { in: ["ACTIVE", "NEEDS_REVIEW"] },
+            },
+            orderBy: { updatedAt: "desc" },
+            take: 5,
+            select: {
+              id: true,
+              title: true,
+              status: true,
+            },
+          })
+        : [],
       permissions.canReadForms
         ? prisma.formTemplate.count({
             where: {
@@ -97,6 +147,21 @@ export async function GET() {
             },
           })
         : 0,
+      permissions.canReadForms
+        ? prisma.formTemplate.findMany({
+            where: {
+              OR: [{ tenantId }, { isGlobal: true }],
+              isActive: true,
+            },
+            orderBy: { title: "asc" },
+            take: 5,
+            select: {
+              id: true,
+              title: true,
+              category: true,
+            },
+          })
+        : [],
       prisma.notification.count({
         where: {
           tenantId,
@@ -116,18 +181,22 @@ export async function GET() {
             documents: {
               visible: permissions.canReadDocuments,
               count: documentsCount,
+              recent: documentsRecent,
             },
             training: {
               visible: permissions.canReadOwnTraining || permissions.canReadAllTraining,
               count: trainingsCount,
+              recent: trainingsPending,
             },
             routines: {
               visible: permissions.canReadRoutines,
               count: routinesCount,
+              recent: routinesRecent,
             },
             forms: {
               visible: permissions.canReadForms,
               count: formsCount,
+              recent: formsRecent,
             },
           },
         },
