@@ -45,11 +45,17 @@ export async function GET() {
       take: 50,
       select: {
         id: true,
+        courseKey: true,
         title: true,
         provider: true,
+        description: true,
         completedAt: true,
         validUntil: true,
+        proofDocKey: true,
         isRequired: true,
+        evaluatedBy: true,
+        evaluatedAt: true,
+        createdAt: true,
       },
     });
 
