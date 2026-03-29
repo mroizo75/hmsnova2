@@ -11,6 +11,21 @@ const UPSTASH_REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
 const UPSTASH_REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 
 let publisherClient: Redis | null = null;
+let redisDisabledUntilMs = 0;
+const REDIS_RETRY_COOLDOWN_MS = 60_000;
+
+function isPublisherUsable(client: Redis | null): client is Redis {
+  if (!client) {
+    return false;
+  }
+  const status = client.status;
+  return status === "ready" || status === "connect" || status === "connecting" || status === "reconnecting";
+}
+
+function disableRedisTemporarily(reason: string): void {
+  redisDisabledUntilMs = Date.now() + REDIS_RETRY_COOLDOWN_MS;
+  console.warn(`⚠️ [Redis Pub/Sub] Midlertidig deaktivert i ${REDIS_RETRY_COOLDOWN_MS / 1000}s: ${reason}`);
+}
 
 /**
  * Hent Redis publisher-klient (for å publisere events)
@@ -20,6 +35,14 @@ export function getRedisPublisher(): Redis | null {
   if (!UPSTASH_REDIS_URL || !UPSTASH_REDIS_TOKEN) {
     console.warn('⚠️ [Redis Pub/Sub] Upstash Redis ikke konfigurert - notifikasjoner lagres kun i database');
     return null;
+  }
+
+  if (Date.now() < redisDisabledUntilMs) {
+    return null;
+  }
+
+  if (publisherClient && !isPublisherUsable(publisherClient)) {
+    publisherClient = null;
   }
 
   if (!publisherClient) {
@@ -41,6 +64,11 @@ export function getRedisPublisher(): Redis | null {
         retryStrategy(times) {
           if (times > 10) {
             console.error('❌ [Redis Pub/Sub] Max retries reached, giving up');
+            disableRedisTemporarily("max retries reached");
+            if (publisherClient) {
+              publisherClient.disconnect();
+              publisherClient = null;
+            }
             return null; // Stop retrying
           }
           const delay = Math.min(times * 100, 3000);
@@ -62,13 +90,18 @@ export function getRedisPublisher(): Redis | null {
 
       publisherClient.on('error', (err) => {
         console.error('❌ [Redis Pub/Sub] Publisher error:', err.message);
+        if (err.message.includes("ETIMEDOUT") || err.message.includes("ECONNREFUSED")) {
+          disableRedisTemporarily(err.message);
+        }
       });
 
       publisherClient.on('close', () => {
         console.warn('⚠️ [Redis Pub/Sub] Publisher connection closed');
+        publisherClient = null;
       });
     } catch (error) {
       console.error('❌ [Redis Pub/Sub] Failed to create publisher:', error);
+      disableRedisTemporarily("failed to create publisher");
       publisherClient = null;
     }
   }
@@ -136,6 +169,9 @@ export async function publishNotification(
   }
 
   try {
+    if (publisher.status !== "ready") {
+      return false;
+    }
     const channel = tenantId
       ? `notifications:${tenantId}:${userId}`
       : `notifications:${userId}`;
@@ -144,6 +180,9 @@ export async function publishNotification(
     return true;
   } catch (error) {
     console.error('❌ [Redis Pub/Sub] Failed to publish:', error);
+    disableRedisTemporarily("publish failed");
+    publisher.disconnect();
+    publisherClient = null;
     return false;
   }
 }

@@ -5,6 +5,7 @@ import { sendEmail } from "@/lib/email";
 import { getAuthContext } from "@/lib/server-authorization";
 import { NotificationType, Role } from "@prisma/client";
 import { publishNotification } from "@/lib/redis-pubsub";
+import { sendPushNotificationToUser } from "@/lib/push-notifications";
 import {
   isNotificationTypeEnabledForUser,
   shouldSendImmediateEmailForType,
@@ -98,6 +99,20 @@ export async function createNotification(input: CreateNotificationInput) {
 
     // Publiser til Redis pub/sub for real-time oppdatering
     await publishNotification(input.userId, notification, input.tenantId);
+
+    try {
+      await sendPushNotificationToUser(input.tenantId, input.userId, {
+        title: input.title,
+        body: input.message,
+        data: {
+          notificationId: notification.id,
+          link: input.link ?? null,
+          type: input.type,
+        },
+      });
+    } catch (pushError) {
+      console.error("Push notification send error:", pushError);
+    }
 
     if (userTenant.user.email && shouldSendImmediateEmailForType(input.type, userTenant)) {
       try {

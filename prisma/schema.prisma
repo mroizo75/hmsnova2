@@ -104,6 +104,7 @@ model User {
   feedbackRecorded          CustomerFeedback[]             @relation("FeedbackRecorder")
   feedbackFollowUp          CustomerFeedback[]             @relation("FeedbackFollowUpOwner")
   notifications             Notification[]
+  notificationPushTokens    NotificationPushToken[]
   scheduledReminders        ScheduledReminder[]            @relation("UserReminders")
   hmsAnnualPlanCompletions  HmsAnnualPlanCompletion[]
   formSubmissions           FormSubmission[]
@@ -242,6 +243,7 @@ model Tenant {
   invoices                     Invoice[]
   formTemplates                FormTemplate[] // Digital forms
   notifications                Notification[]
+  notificationPushTokens       NotificationPushToken[]
   formSubmissions              FormSubmission[] // Digital forms
   kpiMeasurements              KpiMeasurement[] // KPI målinger
   inspections                  Inspection[] // Vernerunde/Inspeksjoner
@@ -2979,6 +2981,25 @@ model Notification {
   @@index([userId])
   @@index([isRead])
   @@index([createdAt])
+}
+
+model NotificationPushToken {
+  id            String   @id @default(cuid())
+  tenantId      String
+  userId        String
+  expoPushToken String
+  platform      String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastSeenAt    DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId, expoPushToken])
+  @@index([tenantId])
+  @@index([userId])
+  @@index([expoPushToken])
 }
 
 enum NotificationType {
