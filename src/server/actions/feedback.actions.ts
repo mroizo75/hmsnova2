@@ -1,11 +1,10 @@
 "use server";
 
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { FeedbackSource, FeedbackSentiment, FeedbackStatus } from "@prisma/client";
+import { getRequiredTenantContext } from "@/lib/tenant-context";
 
 const createFeedbackSchema = z.object({
   customerName: z.string().max(140).optional(),
@@ -41,14 +40,10 @@ const updateFeedbackStatusSchema = z.object({
 });
 
 async function getSessionContext() {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.email) {
-    throw new Error("Ikke autentisert");
-  }
+  const tenantContext = await getRequiredTenantContext();
 
   const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
+    where: { id: tenantContext.userId },
     include: { tenants: true },
   });
 
@@ -56,7 +51,7 @@ async function getSessionContext() {
     throw new Error("Ingen tenant funnet for bruker");
   }
 
-  return { user, tenantId: user.tenants[0].tenantId };
+  return { user, tenantId: tenantContext.tenantId };
 }
 
 export async function createCustomerFeedback(formData: FormData | Record<string, any>) {

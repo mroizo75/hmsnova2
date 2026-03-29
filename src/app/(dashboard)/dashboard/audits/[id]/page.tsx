@@ -47,7 +47,14 @@ export default async function AuditDetailPage({ params }: { params: Promise<{ id
     return <div>{t("noTenantAccess")}</div>;
   }
 
-  const tenantId = currentUser.tenants[0].tenantId;
+  const selectedMembership = currentUser.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) {
+    return <div>{t("noTenantAccess")}</div>;
+  }
+
+  const tenantId = selectedMembership.tenantId;
 
   const audit = await prisma.audit.findUnique({
     where: { id, tenantId },

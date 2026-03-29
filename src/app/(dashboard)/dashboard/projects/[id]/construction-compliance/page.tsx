@@ -25,7 +25,12 @@ export default async function ProjectConstructionCompliancePage({
   }
 
   const { id } = await params;
-  const membership = user.tenants[0];
+  const membership = user.tenants.find(
+    (tenantMembership) => tenantMembership.tenantId === session.user.tenantId,
+  );
+  if (!membership) {
+    return <div>Ingen tilgang</div>;
+  }
   const tenantId = membership.tenantId;
   const permissions = getPermissions(membership.role);
   if (!permissions.canReadConstructionCompliance) {

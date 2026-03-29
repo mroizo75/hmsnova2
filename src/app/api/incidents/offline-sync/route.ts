@@ -6,12 +6,15 @@ import { createIncident } from "@/server/actions/incident.actions";
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    if (!session?.user?.email || !session.user.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const payload = await request.json();
-    const result = await createIncident(payload);
+    const result = await createIncident({
+      ...payload,
+      reportedBy: session.user.id,
+    });
 
     if (!result.success) {
       return NextResponse.json(

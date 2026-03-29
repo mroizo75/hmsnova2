@@ -61,9 +61,16 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
     return <div>{t("errors.noTenantAccess")}</div>;
   }
 
-  const tenantId = user.tenants[0].tenantId;
+  const selectedMembership = user.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) {
+    return <div>{t("errors.noTenantAccess")}</div>;
+  }
+
+  const tenantId = selectedMembership.tenantId;
   const isHealthcareTenant = hasTenantFeature(
-    user.tenants[0]?.tenant?.industry,
+    selectedMembership.tenant?.industry,
     "helseforetak",
   );
   const isTabletMode = resolvedSearchParams?.tablet === "1" && isHealthcareTenant;

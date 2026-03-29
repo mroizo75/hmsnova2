@@ -39,7 +39,14 @@ export default async function TrainingDetailPage({ params }: { params: Promise<{
     return <div>Ingen tilgang til tenant</div>;
   }
 
-  const tenantId = currentUser.tenants[0].tenantId;
+  const selectedMembership = currentUser.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) {
+    return <div>Ingen tilgang til tenant</div>;
+  }
+
+  const tenantId = selectedMembership.tenantId;
 
   const training = await prisma.training.findUnique({
     where: { id, tenantId },

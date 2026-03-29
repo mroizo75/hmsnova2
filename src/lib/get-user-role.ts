@@ -10,7 +10,7 @@ import { Role } from "@prisma/client";
 export async function getUserRole(): Promise<{ role: Role | null; tenantId: string | null }> {
   const session = await getServerSession(authOptions);
   
-  if (!session?.user?.email) {
+  if (!session?.user?.email || !session.user.tenantId) {
     return { role: null, tenantId: null };
   }
 
@@ -18,6 +18,7 @@ export async function getUserRole(): Promise<{ role: Role | null; tenantId: stri
     where: { email: session.user.email },
     include: {
       tenants: {
+        where: { tenantId: session.user.tenantId },
         take: 1,
       },
     },
@@ -27,9 +28,15 @@ export async function getUserRole(): Promise<{ role: Role | null; tenantId: stri
     return { role: null, tenantId: null };
   }
 
+  const selectedMembership = user.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) {
+    return { role: null, tenantId: null };
+  }
   return {
-    role: user.tenants[0].role,
-    tenantId: user.tenants[0].tenantId,
+    role: selectedMembership.role,
+    tenantId: selectedMembership.tenantId,
   };
 }
 

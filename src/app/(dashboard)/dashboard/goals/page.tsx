@@ -34,7 +34,14 @@ export default async function GoalsPage() {
     return <div>{t("notLinkedTenant")}</div>;
   }
 
-  const tenantId = user.tenants[0].tenantId;
+  const selectedMembership = user.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) {
+    return <div>{t("notLinkedTenant")}</div>;
+  }
+
+  const tenantId = selectedMembership.tenantId;
 
   // Hent alle mål
   const goals = await prisma.goal.findMany({

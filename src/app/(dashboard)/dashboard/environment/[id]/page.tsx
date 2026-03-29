@@ -58,7 +58,14 @@ export default async function EnvironmentAspectDetailPage({
     return <div>Ingen tilgang til tenant</div>;
   }
 
-  const tenantId = user.tenants[0].tenantId;
+  const selectedMembership = user.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) {
+    return <div>Ingen tilgang til tenant</div>;
+  }
+
+  const tenantId = selectedMembership.tenantId;
 
   const aspect = await prisma.environmentalAspect.findUnique({
     where: { id, tenantId },

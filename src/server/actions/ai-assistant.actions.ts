@@ -7,10 +7,14 @@ import { generateAIResponse } from "@/lib/ai";
 import { getIndustryLabel } from "@/lib/industry-packages";
 
 const incidentDraftSchema = z.object({
+  mode: z.enum(["INCIDENT", "RUH"]).optional().default("INCIDENT"),
   type: z.string().min(2),
   title: z.string().min(2),
   description: z.string().min(10),
   severity: z.number().int().min(1).max(5),
+  incidentContext: z.string().optional(),
+  availableIncidentTypes: z.array(z.string()).optional(),
+  availableRuhCategories: z.array(z.string()).optional(),
 });
 
 const incidentQualitySchema = z.object({
@@ -50,40 +54,56 @@ const inspectionSummarySchema = z.object({
 });
 
 export async function generateAiIncidentCaseDraft(input: {
+  mode?: "INCIDENT" | "RUH";
   type: string;
   title: string;
   description: string;
   severity: number;
+  incidentContext?: string;
+  availableIncidentTypes?: string[];
+  availableRuhCategories?: string[];
 }) {
   try {
     const validated = incidentDraftSchema.parse(input);
-    const { tenantId, user } = await getActionContext();
+    const { tenantId, role } = await getActionContext();
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
       select: { industry: true },
     });
 
-    const role = user.tenants[0]?.role || "ANSATT";
+    const resolvedRole = role || "ANSATT";
     const industry = getIndustryLabel(tenant?.industry || "other");
-    const prompt = `Du skal hjelpe en ${role}-bruker i bransjen ${industry} med hendelsesbehandling i norsk HMS-system.
+    const modeSpecificInstruction =
+      validated.mode === "RUH"
+        ? `Du lager forslag for RUH-flyt. Velg én kategori fra listen under hvis mulig.
+Liste over gyldige RUH-kategorier: ${JSON.stringify(validated.availableRuhCategories ?? [])}`
+        : `Du lager forslag for avviksflyt. Velg én type fra listen under hvis mulig.
+Liste over gyldige avvikstyper: ${JSON.stringify(validated.availableIncidentTypes ?? [])}`;
+
+    const prompt = `Du skal hjelpe en ${resolvedRole}-bruker i bransjen ${industry} med hendelsesbehandling i norsk HMS-system.
 Lag KUN gyldig JSON:
 {
   "rootCause":"kort sannsynlig rotarsak",
   "immediateAction":"konkret umiddelbar handling i preteritum",
   "suggestedActions":["konkret tiltak 1","konkret tiltak 2","konkret tiltak 3"],
-  "severitySuggestion": 1-5
+  "severitySuggestion": 1-5,
+  "suggestedType":"foreslått avvikstype eller tom streng",
+  "suggestedRuhCategory":"foreslått RUH-kategori eller tom streng"
 }
 
 Hendelse:
+- Modus: ${validated.mode}
 - Type: ${validated.type}
 - Tittel: ${validated.title}
 - Beskrivelse: ${validated.description}
 - Alvorlighetsgrad nå: ${validated.severity}
+- Kontekst: ${validated.incidentContext || "ikke oppgitt"}
 
 Krav:
 - Norsk språk.
 - Tiltak skal være praktiske og korte.
-- SeveritySuggestion skal være realistisk og innen 1-5.`;
+- SeveritySuggestion skal være realistisk og innen 1-5.
+- ${modeSpecificInstruction}`;
 
     const response = await generateAIResponse(prompt, "gpt-4o-mini", {
       cacheScope: `tenant:${tenantId}:incidentDraft`,
@@ -99,6 +119,8 @@ Krav:
       immediateAction?: string;
       suggestedActions?: string[];
       severitySuggestion?: number;
+      suggestedType?: string;
+      suggestedRuhCategory?: string;
     };
 
     return {
@@ -113,6 +135,8 @@ Krav:
           typeof parsed.severitySuggestion === "number"
             ? Math.max(1, Math.min(5, Math.round(parsed.severitySuggestion)))
             : validated.severity,
+        suggestedType: (parsed.suggestedType || "").trim(),
+        suggestedRuhCategory: (parsed.suggestedRuhCategory || "").trim(),
       },
     };
   } catch (error: any) {

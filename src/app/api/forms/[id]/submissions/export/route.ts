@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getRequiredTenantContext } from "@/lib/tenant-context";
 import { prisma } from "@/lib/db";
 import ExcelJS from "exceljs";
 import {
@@ -143,17 +142,14 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const tenantContext = await getRequiredTenantContext();
     const { id } = await params;
 
-    if (!session?.user?.tenantId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
     const userTenant = await prisma.userTenant.findUnique({
       where: {
         userId_tenantId: {
-          userId: session.user.id,
-          tenantId: session.user.tenantId,
+          userId: tenantContext.userId,
+          tenantId: tenantContext.tenantId,
         },
       },
       select: { role: true },
@@ -177,14 +173,16 @@ export async function GET(
       return NextResponse.json({ error: "Skjema ikke funnet" }, { status: 404 });
     }
 
-    const canAccess = form.tenantId === session.user.tenantId || form.isGlobal === true;
+    const activeTenantId = tenantContext.tenantId;
+    const activeUserId = tenantContext.userId;
+    const canAccess = form.tenantId === activeTenantId || form.isGlobal === true;
     if (!canAccess) {
       return NextResponse.json({ error: "Ingen tilgang" }, { status: 403 });
     }
 
     const allTemplates = searchParams.get("allTemplates") === "1";
     const tenantForScope = await prisma.tenant.findUnique({
-      where: { id: session.user.tenantId },
+      where: { id: activeTenantId },
       select: { industry: true },
     });
     if (
@@ -202,8 +200,8 @@ export async function GET(
     const submissions = await prisma.formSubmission.findMany({
       where: {
         formTemplateId: id,
-        tenantId: session.user.tenantId,
-        ...(restrictedGlobalView ? { submittedById: session.user.id } : {}),
+        tenantId: activeTenantId,
+        ...(restrictedGlobalView ? { submittedById: activeUserId } : {}),
         ...(dateFilter && {
           createdAt: { gte: dateFilter.from, lte: dateFilter.to },
         }),
@@ -220,7 +218,7 @@ export async function GET(
       ...new Set(submissions.map((s) => s.submittedById).filter((id): id is string => id != null)),
     ];
     const userTenants = await prisma.userTenant.findMany({
-      where: { userId: { in: submittedByIds }, tenantId: session.user.tenantId },
+      where: { userId: { in: submittedByIds }, tenantId: activeTenantId },
       select: { userId: true, displayName: true },
     });
     const displayNameMap = new Map(userTenants.map((ut) => [ut.userId, ut.displayName]));

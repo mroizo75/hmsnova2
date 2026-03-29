@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getRequiredTenantContext } from "@/lib/tenant-context";
 import { prisma } from "@/lib/db";
 import { jsPDF } from "jspdf";
 import { getStorage } from "@/lib/storage";
@@ -110,20 +109,15 @@ export async function GET(
   { params }: { params: Promise<{ id: string; submissionId: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const tenantContext = await getRequiredTenantContext();
     const { id, submissionId } = await params;
-
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    if (!session.user.tenantId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const activeTenantId = tenantContext.tenantId;
+    const activeUserId = tenantContext.userId;
     const userTenant = await prisma.userTenant.findUnique({
       where: {
         userId_tenantId: {
-          userId: session.user.id,
-          tenantId: session.user.tenantId,
+          userId: activeUserId,
+          tenantId: activeTenantId,
         },
       },
       select: { role: true },
@@ -140,14 +134,14 @@ export async function GET(
     if (!form) {
       return NextResponse.json({ error: "Form not found" }, { status: 404 });
     }
-    const canAccessForm = form.tenantId === session.user.tenantId || form.isGlobal;
+    const canAccessForm = form.tenantId === activeTenantId || form.isGlobal;
     if (!canAccessForm) {
       return NextResponse.json({ error: "Ingen tilgang" }, { status: 403 });
     }
     const restrictedGlobalView = form.isGlobal && !permissions.canManageForms;
 
     const submission = await prisma.formSubmission.findUnique({
-      where: { id: submissionId, formTemplateId: id, tenantId: session.user.tenantId },
+      where: { id: submissionId, formTemplateId: id, tenantId: activeTenantId },
       include: {
         fieldValues: true,
         submittedBy: { select: { name: true, email: true } },
@@ -158,7 +152,7 @@ export async function GET(
     if (!submission) {
       return NextResponse.json({ error: "Submission not found" }, { status: 404 });
     }
-    if (restrictedGlobalView && submission.submittedById !== session.user.id) {
+    if (restrictedGlobalView && submission.submittedById !== activeUserId) {
       return NextResponse.json({ error: "Ingen tilgang" }, { status: 403 });
     }
 

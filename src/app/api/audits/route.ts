@@ -4,6 +4,24 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { createErrorResponse, createSuccessResponse, ErrorCodes } from "@/lib/validations/api";
 
+const resolveSelectedTenantId = async (userId: string, sessionTenantId?: string | null): Promise<string | null> => {
+  if (!sessionTenantId) {
+    return null;
+  }
+
+  const membership = await prisma.userTenant.findUnique({
+    where: {
+      userId_tenantId: {
+        userId,
+        tenantId: sessionTenantId,
+      },
+    },
+    select: { tenantId: true },
+  });
+
+  return membership?.tenantId ?? null;
+};
+
 /**
  * GET /api/audits
  * List all audits for tenant
@@ -15,16 +33,10 @@ export async function GET(request: NextRequest) {
       return createErrorResponse(ErrorCodes.UNAUTHORIZED, "Ikke autentisert", 401);
     }
 
-    const userTenants = await prisma.userTenant.findMany({
-      where: { userId: session.user.id },
-      include: { tenant: true },
-    });
-
-    if (userTenants.length === 0) {
-      return createSuccessResponse({ audits: [] });
+    const tenantId = await resolveSelectedTenantId(session.user.id, session.user.tenantId);
+    if (!tenantId) {
+      return createErrorResponse(ErrorCodes.FORBIDDEN, "Ingen tenant tilgang", 403);
     }
-
-    const tenantId = userTenants[0].tenantId;
 
     const audits = await prisma.audit.findMany({
       where: { tenantId },
@@ -52,15 +64,10 @@ export async function POST(request: NextRequest) {
       return createErrorResponse(ErrorCodes.UNAUTHORIZED, "Ikke autentisert", 401);
     }
 
-    const userTenants = await prisma.userTenant.findMany({
-      where: { userId: session.user.id },
-    });
-
-    if (userTenants.length === 0) {
+    const tenantId = await resolveSelectedTenantId(session.user.id, session.user.tenantId);
+    if (!tenantId) {
       return createErrorResponse(ErrorCodes.FORBIDDEN, "Ingen tenant tilgang", 403);
     }
-
-    const tenantId = userTenants[0].tenantId;
     const data = await request.json();
 
     const audit = await prisma.audit.create({

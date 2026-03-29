@@ -3,8 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { generateSequenceNumber } from "@/lib/sequence";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getRequiredTenantContext } from "@/lib/tenant-context";
 import {
   createSjaSchema,
   updateSjaSchema,
@@ -13,13 +12,10 @@ import {
 import { SjaStatus, SjaConclusion } from "@prisma/client";
 
 async function getSessionContext() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) {
-    throw new Error("Unauthorized");
-  }
+  const context = await getRequiredTenantContext();
 
   const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
+    where: { id: context.userId },
     include: { tenants: true },
   });
 
@@ -27,15 +23,15 @@ async function getSessionContext() {
     throw new Error("User not associated with a tenant");
   }
 
-  return { user, tenantId: user.tenants[0].tenantId };
+  return { user, tenantId: context.tenantId };
 }
 
-export async function getSjaAnalyses(tenantId: string) {
+export async function getSjaAnalyses(_tenantId: string) {
   try {
-    await getSessionContext();
+    const context = await getSessionContext();
 
     const analyses = await prisma.sjaAnalysis.findMany({
-      where: { tenantId },
+      where: { tenantId: context.tenantId },
       include: {
         hazards: { orderBy: { sortOrder: "asc" } },
       },
@@ -278,12 +274,12 @@ export async function deleteSjaAnalysis(id: string) {
 // SJA Maler (Templates)
 // ============================================
 
-export async function getSjaTemplates(tenantId: string) {
+export async function getSjaTemplates(_tenantId: string) {
   try {
-    await getSessionContext();
+    const context = await getSessionContext();
 
     const templates = await prisma.sjaTemplate.findMany({
-      where: { tenantId, isActive: true },
+      where: { tenantId: context.tenantId, isActive: true },
       include: {
         hazards: { orderBy: { sortOrder: "asc" } },
       },
@@ -379,12 +375,12 @@ export async function deleteSjaTemplate(id: string) {
   }
 }
 
-export async function getSjaStats(tenantId: string) {
+export async function getSjaStats(_tenantId: string) {
   try {
-    await getSessionContext();
+    const context = await getSessionContext();
 
     const analyses = await prisma.sjaAnalysis.findMany({
-      where: { tenantId },
+      where: { tenantId: context.tenantId },
     });
 
     const stats = {

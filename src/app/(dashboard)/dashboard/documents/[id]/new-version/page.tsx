@@ -17,13 +17,13 @@ export default async function NewVersionPage({ params }: { params: Promise<{ id:
     redirect("/login");
   }
 
-  const userTenant = user.tenants[0];
+  const userTenant = user.tenants.at(0);
   if (!userTenant) {
     return <div>Ingen tilgang til tenant</div>;
   }
 
   const document = await prisma.document.findUnique({
-    where: { id },
+    where: { id, tenantId: userTenant.tenantId },
     include: {
       versions: {
         orderBy: { createdAt: "desc" },

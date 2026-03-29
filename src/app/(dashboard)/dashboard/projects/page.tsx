@@ -34,7 +34,13 @@ export default async function ProjectsPage() {
   });
   if (!user || user.tenants.length === 0) return <div>{t("noAccess")}</div>;
 
-  const tenantId = user.tenants[0].tenantId;
+  const selectedMembership = user.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) {
+    return <div>{t("noAccess")}</div>;
+  }
+  const tenantId = selectedMembership.tenantId;
 
   const projects = await prisma.project.findMany({
     where: { tenantId },

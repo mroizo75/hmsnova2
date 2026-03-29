@@ -46,9 +46,16 @@ export default async function SettingsPage() {
     return <div>{t("notLinkedTenant")}</div>;
   }
 
-  const tenantId = user.tenants[0].tenantId;
-  const tenant = user.tenants[0].tenant;
-  const userTenant = user.tenants[0]; // Inneholder tenant-spesifikke innstillinger
+  const selectedMembership = user.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) {
+    return <div>{t("notLinkedTenant")}</div>;
+  }
+
+  const tenantId = selectedMembership.tenantId;
+  const tenant = selectedMembership.tenant;
+  const userTenant = selectedMembership; // Inneholder tenant-spesifikke innstillinger
   const isAdmin = userTenant.role === "ADMIN";
 
   // Hent alle brukere i tenant (inkl. invitationSentAt for «Aktiver»-knapp)

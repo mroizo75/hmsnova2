@@ -40,7 +40,14 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ id:
     return <div>Du er ikke tilknyttet en tenant.</div>;
   }
 
-  const tenantId = user.tenants[0].tenantId;
+  const selectedMembership = user.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) {
+    return <div>Du er ikke tilknyttet en tenant.</div>;
+  }
+
+  const tenantId = selectedMembership.tenantId;
 
   const goal = await prisma.goal.findUnique({
     where: { id, tenantId },

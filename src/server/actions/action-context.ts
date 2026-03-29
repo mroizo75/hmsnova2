@@ -1,17 +1,13 @@
 "use server";
 
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getRequiredTenantContext } from "@/lib/tenant-context";
 
 export async function getActionContext() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) {
-    throw new Error("Ikke autorisert");
-  }
+  const tenantContext = await getRequiredTenantContext();
 
   const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
+    where: { id: tenantContext.userId },
     include: { tenants: true },
   });
 
@@ -19,6 +15,13 @@ export async function getActionContext() {
     throw new Error("Bruker er ikke tilknyttet en virksomhet");
   }
 
-  return { user, tenantId: user.tenants[0].tenantId };
+  const selectedTenantMembership = user.tenants.find(
+    (membership) => membership.tenantId === tenantContext.tenantId,
+  );
+  if (!selectedTenantMembership) {
+    throw new Error("Bruker er ikke tilknyttet valgt virksomhet");
+  }
+
+  return { user, tenantId: tenantContext.tenantId, role: selectedTenantMembership.role };
 }
 

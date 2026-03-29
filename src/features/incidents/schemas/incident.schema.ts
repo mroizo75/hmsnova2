@@ -92,6 +92,8 @@ export const updateIncidentSchema = z.object({
   isLostTimeIncident: z.boolean().optional(),
   lostWorkdays: z.number().int().min(0).optional(),
   isRestrictedWork: z.boolean().optional(),
+  // Kilde: INTERNAL eller EXTERNAL
+  source: z.enum(["INTERNAL", "EXTERNAL"]).optional(),
 });
 
 export const investigateIncidentSchema = z.object({

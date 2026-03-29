@@ -2,8 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getRequiredTenantContext } from "@/lib/tenant-context";
 import {
   createTrainingSchema,
   updateTrainingSchema,
@@ -13,13 +12,10 @@ import { hasTenantFeature } from "@/lib/tenant-features";
 import { runHealthcareTrainingExpiryAlerts } from "@/lib/healthcare-training-alerts";
 
 async function getSessionContext() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) {
-    throw new Error("Unauthorized");
-  }
-  
+  const tenantContext = await getRequiredTenantContext();
+
   const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
+    where: { id: tenantContext.userId },
     include: { tenants: true },
   });
   
@@ -27,13 +23,13 @@ async function getSessionContext() {
     throw new Error("User not associated with a tenant");
   }
   
-  return { user, tenantId: user.tenants[0].tenantId };
+  return { user, tenantId: tenantContext.tenantId };
 }
 
 // Hent all opplæring for en tenant
-export async function getTrainings(tenantId: string) {
+export async function getTrainings(_tenantId: string) {
   try {
-    const { user } = await getSessionContext();
+    const { tenantId } = await getSessionContext();
     
     const trainings = await prisma.training.findMany({
       where: { tenantId },
@@ -238,9 +234,9 @@ export async function deleteTraining(id: string) {
 }
 
 // Få statistikk over opplæring
-export async function getTrainingStats(tenantId: string) {
+export async function getTrainingStats(_tenantId: string) {
   try {
-    const { user } = await getSessionContext();
+    const { tenantId } = await getSessionContext();
     
     const trainings = await prisma.training.findMany({
       where: { tenantId },
@@ -398,9 +394,9 @@ export async function createBulkTrainings(input: {
 }
 
 // Få kompetansematrise (hvem har hvilken kompetanse)
-export async function getCompetenceMatrix(tenantId: string) {
+export async function getCompetenceMatrix(_tenantId: string) {
   try {
-    const { user } = await getSessionContext();
+    const { tenantId } = await getSessionContext();
     
     const users = await prisma.user.findMany({
       where: {

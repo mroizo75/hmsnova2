@@ -1,20 +1,18 @@
 "use server";
 
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import type { Role } from "@prisma/client";
+import { getRequiredTenantContext } from "@/lib/tenant-context";
 
 async function getSessionContext() {
-  const session = await getServerSession(authOptions);
-  
-  if (!session?.user?.email) {
+  const tenantContext = await getRequiredTenantContext().catch(() => null);
+  if (!tenantContext) {
     return { error: "Ikke autentisert" };
   }
 
   const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
+    where: { id: tenantContext.userId },
     include: {
       tenants: { take: 1 },
     },
@@ -24,8 +22,12 @@ async function getSessionContext() {
     return { error: "Ingen tenant funnet" };
   }
 
-  const tenantId = user.tenants[0].tenantId;
-  const role = user.tenants[0].role;
+  const membership = user.tenants.find((tenant) => tenant.tenantId === tenantContext.tenantId);
+  if (!membership) {
+    return { error: "Ingen tenant funnet" };
+  }
+  const tenantId = membership.tenantId;
+  const role = membership.role;
 
   if (role !== "ADMIN") {
     return { error: "Kun administratorer kan endre Azure AD-innstillinger" };
@@ -308,12 +310,21 @@ export async function validateAzureAdLogin(
     });
 
     if (existingUser && existingUser.tenants.length > 0) {
+      const tenantMembership = existingUser.tenants.find((membership) => membership.tenantId === tenant.id);
+      if (!tenantMembership) {
+        return {
+          allowed: true,
+          tenantId: tenant.id,
+          role: (tenant.azureAdAutoRole as Role) || "ANSATT",
+          email: userEmail,
+        };
+      }
       // Bruker eksisterer allerede
       console.log(`✅ Existing user found with tenant: ${userEmail}`);
       return {
         allowed: true,
         tenantId: tenant.id,
-        role: existingUser.tenants[0].role,
+        role: tenantMembership.role,
         email: userEmail,
       };
     }

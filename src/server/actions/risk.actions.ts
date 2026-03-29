@@ -193,7 +193,7 @@ export async function getRisk(id: string) {
 // Opprett ny risiko
 export async function createRisk(input: any) {
   try {
-    const { user, tenantId } = await getActionContext();
+    const { user, tenantId, role } = await getActionContext();
     const normalizedInput = {
       ...input,
       tenantId,
@@ -273,7 +273,7 @@ export async function createRisk(input: any) {
 // Oppdater risiko
 export async function updateRisk(input: any) {
   try {
-    const { user, tenantId } = await getActionContext();
+    const { user, tenantId, role } = await getActionContext();
     const nextReviewValue =
       input.nextReviewDate === "" || input.nextReviewDate === null
         ? null
@@ -386,7 +386,7 @@ export async function updateRisk(input: any) {
 // Slett risiko
 export async function deleteRisk(id: string) {
   try {
-    const { user, tenantId } = await getActionContext();
+    const { user, tenantId, role } = await getActionContext();
     
     const risk = await prisma.risk.findUnique({
       where: { id, tenantId },
@@ -510,7 +510,7 @@ export async function updateRiskAssessment(input: {
   reviewedAt?: string | null;
 }) {
   try {
-    const { user, tenantId } = await getActionContext();
+    const { user, tenantId, role } = await getActionContext();
     const validated = updateRiskAssessmentSchema.parse(input);
 
     const existing = await prisma.riskAssessment.findFirst({
@@ -519,7 +519,7 @@ export async function updateRiskAssessment(input: {
     if (!existing) return { success: false, error: "Risikovurdering ikke funnet" };
 
     if (validated.title !== undefined) {
-      const permissions = getPermissions(user.tenants[0].role);
+      const permissions = getPermissions(role);
       if (!permissions.canCreateRisks) {
         return { success: false, error: "Ingen tilgang til å endre tittel på risikovurdering" };
       }
@@ -724,8 +724,8 @@ export async function generateAiRiskAssessmentItem(input: {
   industryContext?: string;
 }) {
   try {
-    const { tenantId, user } = await getActionContext();
-    const permissions = getPermissions(user.tenants[0].role);
+    const { tenantId, role } = await getActionContext();
+    const permissions = getPermissions(role);
     if (!permissions.canCreateRisks) {
       return { success: false, error: "Ingen tilgang til AI-forslag for risikopunkt" };
     }
@@ -795,8 +795,8 @@ export async function generateAiRiskAssessmentItem(input: {
 
 export async function previewAiRiskSuggestions() {
   try {
-    const { tenantId, user } = await getActionContext();
-    const permissions = getPermissions(user.tenants[0].role);
+    const { tenantId, role } = await getActionContext();
+    const permissions = getPermissions(role);
     if (!permissions.canCreateRisks) {
       return { success: false, error: "Ingen tilgang til AI-risikoforslag" };
     }
@@ -870,8 +870,8 @@ export async function applyAiRiskSuggestions(input: {
   suggestions: Array<{ title: string; severity: string; category: string }>;
 }) {
   try {
-    const { tenantId, user } = await getActionContext();
-    const permissions = getPermissions(user.tenants[0].role);
+    const { tenantId, role } = await getActionContext();
+    const permissions = getPermissions(role);
     if (!permissions.canCreateRisks) {
       return { success: false, error: "Ingen tilgang til å lagre AI-risikoforslag" };
     }

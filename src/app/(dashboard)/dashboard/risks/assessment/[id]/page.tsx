@@ -45,8 +45,15 @@ export default async function RiskAssessmentPage({
     return <div>Ingen tilgang til tenant</div>;
   }
 
-  const tenantId = user.tenants[0].tenantId;
-  const permissions = getPermissions(user.tenants[0].role);
+  const selectedMembership = user.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) {
+    return <div>Ingen tilgang til tenant</div>;
+  }
+
+  const tenantId = selectedMembership.tenantId;
+  const permissions = getPermissions(selectedMembership.role);
   const canDeleteRiskAssessments = permissions.canDeleteRisks;
   const canEditAssessmentTitle = permissions.canCreateRisks;
 

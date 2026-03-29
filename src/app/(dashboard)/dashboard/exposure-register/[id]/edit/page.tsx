@@ -23,7 +23,12 @@ export default async function EditExposureRegisterPage({
 
   if (!user || user.tenants.length === 0) return <div>Ingen tenant.</div>;
 
-  const tenantId = user.tenants[0].tenantId;
+  const selectedMembership = user.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) return <div>Ingen tenant.</div>;
+
+  const tenantId = selectedMembership.tenantId;
 
   const [entry, userTenants, chemicals, ruhReports, risks] = await Promise.all([
     prisma.exposureRegister.findFirst({

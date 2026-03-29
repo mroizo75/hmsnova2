@@ -33,7 +33,14 @@ export default async function BcmPage() {
     redirect("/login");
   }
 
-  const tenantId = user.tenants[0].tenantId;
+  const selectedMembership = user.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) {
+    redirect("/login");
+  }
+
+  const tenantId = selectedMembership.tenantId;
 
   const [bcmDocuments, auditsRaw, bcmForms] = await Promise.all([
     prisma.document.findMany({

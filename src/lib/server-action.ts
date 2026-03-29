@@ -54,7 +54,7 @@ export function authAction<TInput, TOutput>(
 export async function getCurrentUser() {
   const session = await getServerSession(authOptions);
   
-  if (!session?.user?.email) {
+  if (!session?.user?.email || !session.user.tenantId) {
     return null;
   }
 
@@ -62,12 +62,17 @@ export async function getCurrentUser() {
     where: { email: session.user.email },
     include: {
       tenants: {
+        where: { tenantId: session.user.tenantId },
         include: {
           tenant: true,
         },
       },
     },
   });
+
+  if (!user || user.tenants.length === 0) {
+    return null;
+  }
 
   return user;
 }

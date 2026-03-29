@@ -2,19 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getRequiredTenantContext } from "@/lib/tenant-context";
 import { createMeasureSchema, updateMeasureSchema, completeMeasureSchema } from "@/features/measures/schemas/measure.schema";
 import { IncidentStage } from "@prisma/client";
 
 async function getSessionContext() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) {
-    throw new Error("Unauthorized");
-  }
-  
+  const tenantContext = await getRequiredTenantContext();
+
   const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
+    where: { id: tenantContext.userId },
     include: { tenants: true },
   });
   
@@ -22,7 +18,7 @@ async function getSessionContext() {
     throw new Error("User not associated with a tenant");
   }
   
-  return { user, tenantId: user.tenants[0].tenantId };
+  return { user, tenantId: tenantContext.tenantId };
 }
 
 const parseOptionalNumber = (value: any) => {
@@ -32,9 +28,9 @@ const parseOptionalNumber = (value: any) => {
 };
 
 // Hent alle tiltak for en tenant
-export async function getMeasures(tenantId: string) {
+export async function getMeasures(_tenantId: string) {
   try {
-    const { user } = await getSessionContext();
+    const { tenantId } = await getSessionContext();
     
     const measures = await prisma.measure.findMany({
       where: { tenantId },
@@ -392,9 +388,9 @@ export async function deleteMeasure(id: string) {
 }
 
 // Få statistikk over tiltak
-export async function getMeasureStats(tenantId: string) {
+export async function getMeasureStats(_tenantId: string) {
   try {
-    const { user } = await getSessionContext();
+    const { tenantId } = await getSessionContext();
     
     const measures = await prisma.measure.findMany({
       where: { tenantId },

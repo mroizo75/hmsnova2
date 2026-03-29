@@ -42,7 +42,14 @@ export default async function SjaDashboardPage() {
     return <div>{t("noTenantAccess")}</div>;
   }
 
-  const tenantId = user.tenants[0].tenantId;
+  const selectedMembership = user.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) {
+    return <div>{t("noTenantAccess")}</div>;
+  }
+
+  const tenantId = selectedMembership.tenantId;
 
   const analyses = await prisma.sjaAnalysis.findMany({
     where: { tenantId },

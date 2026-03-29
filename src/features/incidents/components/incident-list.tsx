@@ -27,14 +27,19 @@ import { useLocale, useTranslations } from "next-intl";
 
 interface IncidentListProps {
   incidents: (Incident & { measures: Measure[]; risk?: { id: string; title: string; category: string | null } | null })[];
+  sourceFilter?: "ALL" | "INTERNAL" | "EXTERNAL";
 }
 
-export function IncidentList({ incidents }: IncidentListProps) {
+export function IncidentList({ incidents, sourceFilter = "ALL" }: IncidentListProps) {
   const t = useTranslations("dashboardIncidentList");
   const locale = useLocale();
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
+
+  const filteredIncidents = sourceFilter === "ALL"
+    ? incidents
+    : incidents.filter((i) => (i.source ?? "INTERNAL") === sourceFilter);
 
   const handleDelete = async (id: string, title: string) => {
     if (!confirm(t("confirmDelete", { title }))) {
@@ -77,7 +82,7 @@ export function IncidentList({ incidents }: IncidentListProps) {
     VERIFIED: "bg-emerald-100 text-emerald-800 border-emerald-300",
   };
 
-  if (incidents.length === 0) {
+  if (filteredIncidents.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
         <p>{t("empty")}</p>
@@ -96,8 +101,8 @@ export function IncidentList({ incidents }: IncidentListProps) {
             <TableHead>{t("table.incident")}</TableHead>
             <TableHead>{t("table.type")}</TableHead>
             <TableHead className="text-center">{t("table.severity")}</TableHead>
+            <TableHead>Kilde</TableHead>
             <TableHead>{t("table.stage")}</TableHead>
-            <TableHead>{t("table.injury")}</TableHead>
             <TableHead>{t("table.date")}</TableHead>
             <TableHead>{t("table.status")}</TableHead>
             <TableHead className="text-center">{t("table.measures")}</TableHead>
@@ -105,7 +110,7 @@ export function IncidentList({ incidents }: IncidentListProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {incidents.map((incident) => {
+          {filteredIncidents.map((incident) => {
             const typeLabel = t(`types.${incident.type}`);
             const typeColor = getIncidentTypeColor(incident.type);
             const { bgColor: severityColor, textColor: severityTextColor } = getSeverityInfo(incident.severity);
@@ -175,20 +180,14 @@ export function IncidentList({ incidents }: IncidentListProps) {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge className={stageColor}>{stageLabel}</Badge>
+                  {(incident.source ?? "INTERNAL") === "EXTERNAL" ? (
+                    <Badge className="bg-violet-100 text-violet-800 border-violet-300">Ekstern</Badge>
+                  ) : (
+                    <Badge className="bg-slate-100 text-slate-700 border-slate-300">Intern</Badge>
+                  )}
                 </TableCell>
                 <TableCell>
-                  <div className="text-sm space-y-1">
-                    <div>{incident.injuryType || "Ingen skade registrert"}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {incident.medicalAttentionRequired ? t("injury.medicalTreatment") : t("injury.noMedicalTreatment")}
-                    </div>
-                    {typeof incident.lostTimeMinutes === "number" && (
-                      <div className="text-xs text-muted-foreground">
-                        {t("injury.lostTimeMinutes", { minutes: incident.lostTimeMinutes })}
-                      </div>
-                    )}
-                  </div>
+                  <Badge className={stageColor}>{stageLabel}</Badge>
                 </TableCell>
                 <TableCell>
                   {formatDate(incident.occurredAt)}
@@ -231,7 +230,7 @@ export function IncidentList({ incidents }: IncidentListProps) {
 
       {/* Mobile - Kort */}
       <div className="md:hidden space-y-3">
-        {incidents.map((incident) => {
+        {filteredIncidents.map((incident) => {
           const typeLabel = t(`types.${incident.type}`);
           const typeColor = getIncidentTypeColor(incident.type);
           const { bgColor: severityColor, textColor: severityTextColor } = getSeverityInfo(incident.severity);
@@ -267,6 +266,11 @@ export function IncidentList({ incidents }: IncidentListProps) {
                     <Badge className={typeColor}>{typeLabel}</Badge>
                     <Badge className={statusColor}>{statusLabel}</Badge>
                     <Badge className={stageColor}>{stageLabel}</Badge>
+                    {(incident.source ?? "INTERNAL") === "EXTERNAL" ? (
+                      <Badge className="bg-violet-100 text-violet-800 border-violet-300">Ekstern</Badge>
+                    ) : (
+                      <Badge className="bg-slate-100 text-slate-700 border-slate-300">Intern</Badge>
+                    )}
                   </div>
 
                   {incident.risk && (

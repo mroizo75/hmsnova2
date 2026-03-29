@@ -14,7 +14,7 @@ export default async function ComplianceDashboardPage() {
     redirect("/login");
   }
 
-  const membership = user.tenants[0];
+  const membership = user.tenants.at(0);
   if (!membership) {
     return <div className="p-6">Ingen tilgang til virksomhet.</div>;
   }

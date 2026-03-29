@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getRequiredTenantContext } from "@/lib/tenant-context";
 import { db } from "@/lib/db";
 import { z } from "zod";
 
@@ -36,15 +35,18 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.tenantId) {
+    let tenantId = "";
+    try {
+      const tenantContext = await getRequiredTenantContext();
+      tenantId = tenantContext.tenantId;
+    } catch {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const review = await db.managementReview.findFirst({
       where: {
         id,
-        tenantId: session.user.tenantId,
+        tenantId,
       },
     });
 
@@ -69,8 +71,13 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.tenantId) {
+    let tenantId = "";
+    let userId = "";
+    try {
+      const tenantContext = await getRequiredTenantContext();
+      tenantId = tenantContext.tenantId;
+      userId = tenantContext.userId;
+    } catch {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -80,7 +87,7 @@ export async function PATCH(
     const existing = await db.managementReview.findFirst({
       where: {
         id,
-        tenantId: session.user.tenantId,
+        tenantId,
       },
     });
 
@@ -104,7 +111,7 @@ export async function PATCH(
     }
     if (validatedData.status === "APPROVED" && !existing.approvedAt) {
       updateData.approvedAt = new Date();
-      updateData.approvedBy = session.user.id;
+      updateData.approvedBy = userId;
     }
 
     const review = await db.managementReview.update({
@@ -132,15 +139,18 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.tenantId) {
+    let tenantId = "";
+    try {
+      const tenantContext = await getRequiredTenantContext();
+      tenantId = tenantContext.tenantId;
+    } catch {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const existing = await db.managementReview.findFirst({
       where: {
         id,
-        tenantId: session.user.tenantId,
+        tenantId,
       },
     });
 

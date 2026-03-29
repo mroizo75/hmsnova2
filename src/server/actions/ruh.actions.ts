@@ -3,8 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { generateSequenceNumber } from "@/lib/sequence";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getRequiredTenantContext } from "@/lib/tenant-context";
 import {
   createRuhSchema,
   updateRuhSchema,
@@ -13,13 +12,10 @@ import { notifyUsersByRole } from "./notification.actions";
 import { RuhStatus } from "@prisma/client";
 
 async function getSessionContext() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) {
-    throw new Error("Unauthorized");
-  }
+  const tenantContext = await getRequiredTenantContext();
 
   const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
+    where: { id: tenantContext.userId },
     include: { tenants: true },
   });
 
@@ -27,7 +23,7 @@ async function getSessionContext() {
     throw new Error("User not associated with a tenant");
   }
 
-  return { user, tenantId: user.tenants[0].tenantId };
+  return { user, tenantId: tenantContext.tenantId };
 }
 
 const sanitizeString = (value?: string | null) => {
@@ -36,9 +32,9 @@ const sanitizeString = (value?: string | null) => {
   return trimmed.length > 0 ? trimmed : null;
 };
 
-export async function getRuhReports(tenantId: string) {
+export async function getRuhReports(_tenantId: string) {
   try {
-    await getSessionContext();
+    const { tenantId } = await getSessionContext();
 
     const reports = await prisma.ruhReport.findMany({
       where: { tenantId },
@@ -255,9 +251,9 @@ export async function deleteRuhReport(id: string) {
   }
 }
 
-export async function getRuhStats(tenantId: string) {
+export async function getRuhStats(_tenantId: string) {
   try {
-    await getSessionContext();
+    const { tenantId } = await getSessionContext();
 
     const reports = await prisma.ruhReport.findMany({
       where: { tenantId },

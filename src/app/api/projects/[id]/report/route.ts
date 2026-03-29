@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getRequiredTenantContext } from "@/lib/tenant-context";
 import { prisma } from "@/lib/db";
 import { generateProjectReport } from "@/lib/project-pdf";
 
@@ -9,11 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) return new NextResponse("Unauthorized", { status: 401 });
-
-    const tenantId = session.user.tenantId;
-    if (!tenantId) return new NextResponse("No tenant", { status: 400 });
+    const { tenantId } = await getRequiredTenantContext();
 
     const { id } = await params;
 

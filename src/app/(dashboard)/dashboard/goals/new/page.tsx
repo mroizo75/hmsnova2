@@ -30,7 +30,14 @@ export default async function NewGoalPage() {
     return <div>Du er ikke tilknyttet en tenant.</div>;
   }
 
-  const tenantId = user.tenants[0].tenantId;
+  const selectedMembership = user.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) {
+    return <div>Du er ikke tilknyttet en tenant.</div>;
+  }
+
+  const tenantId = selectedMembership.tenantId;
 
   // Hent alle brukere i tenant for ansvarlig-dropdown
   const tenantUsers = await prisma.userTenant.findMany({

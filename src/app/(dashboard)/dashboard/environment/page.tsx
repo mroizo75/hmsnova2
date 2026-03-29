@@ -39,8 +39,15 @@ export default async function EnvironmentPage() {
     return <div>Ingen tilgang til tenant</div>;
   }
 
-  const tenantId = user.tenants[0].tenantId;
-  const tenant = user.tenants[0].tenant;
+  const selectedMembership = user.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) {
+    return <div>Ingen tilgang til tenant</div>;
+  }
+
+  const tenantId = selectedMembership.tenantId;
+  const tenant = selectedMembership.tenant;
 
   const [aspects, nonCompliantCount, allMeasurements] = await Promise.all([
     prisma.environmentalAspect.findMany({

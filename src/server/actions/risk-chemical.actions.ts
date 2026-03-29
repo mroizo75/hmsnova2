@@ -1,19 +1,15 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getRequiredTenantContext } from "@/lib/tenant-context";
 import { revalidatePath } from "next/cache";
 import { AuditLog } from "@/lib/audit-log";
 
 async function getSessionContext() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) {
-    throw new Error("Unauthorized");
-  }
+  const tenantContext = await getRequiredTenantContext();
 
   const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
+    where: { id: tenantContext.userId },
     include: { tenants: true },
   });
 
@@ -21,7 +17,7 @@ async function getSessionContext() {
     throw new Error("User not associated with a tenant");
   }
 
-  return { user, tenantId: user.tenants[0].tenantId, userId: user.id };
+  return { user, tenantId: tenantContext.tenantId, userId: user.id };
 }
 
 // ============================================================================

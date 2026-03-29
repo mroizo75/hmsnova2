@@ -33,7 +33,14 @@ export default async function EditRiskPage({ params }: { params: Promise<{ id: s
     return <div>{t("noTenantAccess")}</div>;
   }
 
-  const tenantId = user.tenants[0].tenantId;
+  const selectedMembership = user.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) {
+    return <div>{t("noTenantAccess")}</div>;
+  }
+
+  const tenantId = selectedMembership.tenantId;
 
   const risk = await prisma.risk.findUnique({
     where: { id, tenantId },

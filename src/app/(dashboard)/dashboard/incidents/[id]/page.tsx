@@ -39,7 +39,13 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
     return <div>{t("errors.noTenantAccess")}</div>;
   }
 
-  const tenantId = user.tenants[0].tenantId;
+  const selectedMembership = user.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) {
+    return <div>{t("errors.noTenantAccess")}</div>;
+  }
+  const tenantId = selectedMembership.tenantId;
 
   const incident = await prisma.incident.findUnique({
     where: { id, tenantId },
@@ -192,6 +198,11 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
                 {t("labels.severityPrefix", { value: incident.severity, label: severityLabel })}
               </Badge>
               <Badge className={statusColor}>{statusLabel}</Badge>
+              {(incident.source ?? "INTERNAL") === "EXTERNAL" ? (
+                <Badge className="bg-violet-100 text-violet-800 border-violet-300">Ekstern</Badge>
+              ) : (
+                <Badge className="bg-slate-100 text-slate-700 border-slate-300">Intern</Badge>
+              )}
             </div>
           </div>
         </div>
@@ -293,40 +304,48 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
             </div>
           )}
 
-          {/* Bilder og vedlegg */}
+          {/* Vedlegg – prominent visning for dokumenter og bilder */}
           {incident.attachments && incident.attachments.length > 0 && (
-            <div>
-              <h4 className="font-semibold mb-3">{t("sections.whatHappened.attachments", { count: incident.attachments.length })}</h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {incident.attachments.map((attachment, index) => {
+            <div className="rounded-lg border-2 border-primary/20 bg-primary/5 p-4">
+              <h4 className="font-semibold mb-3 flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                {t("sections.whatHappened.attachments", { count: incident.attachments.length })}
+              </h4>
+              <div className="space-y-3">
+                {incident.attachments.map((attachment) => {
                   const isImage = attachment.mime.startsWith("image/");
+                  const isPdf = attachment.mime === "application/pdf";
                   return (
-                    <a
-                      key={attachment.id}
-                      href={`/api/files/${attachment.fileKey}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-primary transition-colors"
-                    >
+                    <div key={attachment.id} className="flex items-center gap-4 rounded-lg border bg-background p-3">
                       {isImage ? (
-                        <>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={`/api/files/${attachment.fileKey}`}
-                            alt={attachment.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                          />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                            <Eye className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </div>
-                        </>
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={`/api/files/${attachment.fileKey}`}
+                          alt={attachment.name}
+                          className="h-16 w-16 rounded object-cover border"
+                        />
                       ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50 p-4">
-                          <FileText className="h-12 w-12 text-gray-400 mb-2" />
-                          <p className="text-xs text-center text-gray-600 truncate w-full">{attachment.name}</p>
+                        <div className="flex h-16 w-16 items-center justify-center rounded bg-muted">
+                          <FileText className={`h-8 w-8 ${isPdf ? "text-red-500" : "text-muted-foreground"}`} />
                         </div>
                       )}
-                    </a>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{attachment.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {attachment.mime} · {Math.round(attachment.size / 1024)} KB
+                        </p>
+                      </div>
+                      <a
+                        href={`/api/files/${attachment.fileKey}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Button variant="outline" size="sm">
+                          <Eye className="mr-2 h-4 w-4" />
+                          Åpne
+                        </Button>
+                      </a>
+                    </div>
                   );
                 })}
               </div>
@@ -356,6 +375,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
               currentIsLostTimeIncident={incident.isLostTimeIncident}
               currentLostWorkdays={incident.lostWorkdays}
               currentIsRestrictedWork={incident.isRestrictedWork}
+              currentSource={incident.source ?? "INTERNAL"}
               users={tenantUsers}
               projects={tenantProjects}
             />

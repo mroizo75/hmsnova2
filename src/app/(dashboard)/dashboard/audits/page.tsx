@@ -72,15 +72,23 @@ async function AuditsList() {
     redirect("/login");
   }
 
-  const userTenants = await prisma.userTenant.findMany({
-    where: { userId: session.user.id },
+  if (!session.user.tenantId) {
+    return <div>{t("noTenantAccess")}</div>;
+  }
+  const membership = await prisma.userTenant.findUnique({
+    where: {
+      userId_tenantId: {
+        userId: session.user.id,
+        tenantId: session.user.tenantId,
+      },
+    },
+    select: { tenantId: true },
   });
-
-  if (userTenants.length === 0) {
+  if (!membership) {
     return <div>{t("noTenantAccess")}</div>;
   }
 
-  const audits = await getAudits(userTenants[0].tenantId);
+  const audits = await getAudits(membership.tenantId);
 
   if (audits.length === 0) {
     return (

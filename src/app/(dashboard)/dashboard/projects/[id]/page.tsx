@@ -43,7 +43,12 @@ export default async function ProjectDetailPage({
   });
   if (!user || user.tenants.length === 0) return <div>{t("noAccess")}</div>;
 
-  const tenantId = user.tenants[0].tenantId;
+  const selectedMembership = user.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) return <div>{t("noAccess")}</div>;
+
+  const tenantId = selectedMembership.tenantId;
   const { id } = await params;
 
   const project = await prisma.project.findUnique({

@@ -14,7 +14,7 @@ export default async function EditDocumentPage({ params }: { params: Promise<{ i
     redirect("/login");
   }
 
-  const userTenant = user.tenants[0];
+  const userTenant = user.tenants.at(0);
   if (!userTenant) {
     return <div>Ingen tilgang til tenant</div>;
   }

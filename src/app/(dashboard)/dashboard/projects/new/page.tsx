@@ -17,7 +17,12 @@ export default async function NewProjectPage() {
   });
   if (!user || user.tenants.length === 0) return <div>Ingen tilgang</div>;
 
-  const tenantId = user.tenants[0].tenantId;
+  const selectedMembership = user.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) return <div>Ingen tilgang</div>;
+
+  const tenantId = selectedMembership.tenantId;
 
   const users = await prisma.userTenant.findMany({
     where: { tenantId },

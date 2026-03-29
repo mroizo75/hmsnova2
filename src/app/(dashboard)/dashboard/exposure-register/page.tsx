@@ -22,12 +22,15 @@ export default async function ExposureRegisterPage() {
     return <div>Du er ikke tilknyttet en tenant.</div>;
   }
 
-  const tenantId = user.tenants[0].tenantId;
-  const tenant = await prisma.tenant.findUnique({
-    where: { id: tenantId },
-    select: { industry: true },
-  });
-  if (!hasTenantFeature(tenant?.industry, "helseforetak")) {
+  const selectedMembership = user.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) {
+    return <div>Du er ikke tilknyttet en tenant.</div>;
+  }
+
+  const tenantId = selectedMembership.tenantId;
+  if (!hasTenantFeature(selectedMembership.tenant?.industry, "helseforetak")) {
     redirect("/dashboard");
   }
 

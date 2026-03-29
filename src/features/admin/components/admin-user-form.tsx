@@ -49,6 +49,7 @@ export function AdminUserForm({ tenants, user }: AdminUserFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const firstTenantMembership = user?.tenants.at(0);
 
   const {
     register,
@@ -62,8 +63,8 @@ export function AdminUserForm({ tenants, user }: AdminUserFormProps) {
       email: user?.email || "",
       name: user?.name || "",
       isSuperAdmin: user?.isSuperAdmin || false,
-      tenantId: user?.tenants[0]?.tenantId || undefined,
-      role: user?.tenants[0]?.role || undefined,
+      tenantId: firstTenantMembership?.tenantId || undefined,
+      role: firstTenantMembership?.role || undefined,
     },
   });
 
@@ -170,7 +171,7 @@ export function AdminUserForm({ tenants, user }: AdminUserFormProps) {
             <Label htmlFor="tenantId">Bedrift</Label>
             <Select
               onValueChange={(value) => setValue("tenantId", value)}
-              defaultValue={user?.tenants[0]?.tenantId}
+              defaultValue={firstTenantMembership?.tenantId}
               disabled={loading}
             >
               <SelectTrigger>
@@ -191,7 +192,7 @@ export function AdminUserForm({ tenants, user }: AdminUserFormProps) {
             <Label htmlFor="role">Rolle</Label>
             <Select
               onValueChange={(value) => setValue("role", value as Role)}
-              defaultValue={user?.tenants[0]?.role}
+              defaultValue={firstTenantMembership?.role}
               disabled={loading}
             >
               <SelectTrigger>

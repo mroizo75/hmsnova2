@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getRequiredTenantContext } from "@/lib/tenant-context";
 import { getRosterRetentionUntil } from "@/lib/construction-compliance-rules";
 import { prisma } from "@/lib/db";
 import { getStorage } from "@/lib/storage";
@@ -24,10 +23,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const tenantId = session.user.tenantId;
+    const { tenantId } = await getRequiredTenantContext();
     const { id } = await params;
 
     const project = await prisma.project.findUnique({
@@ -86,10 +82,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const tenantId = session.user.tenantId;
+    const { tenantId } = await getRequiredTenantContext();
     const { id } = await params;
     const body = await request.json();
     const validated = updateProjectSchema.parse(body);
@@ -150,10 +143,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const tenantId = session.user.tenantId;
+    const { tenantId } = await getRequiredTenantContext();
     const { id } = await params;
 
     const existing = await prisma.project.findUnique({ where: { id, tenantId } });

@@ -30,6 +30,7 @@ interface IncidentTreatmentFormProps {
   currentIsLostTimeIncident: boolean;
   currentLostWorkdays: number | null;
   currentIsRestrictedWork: boolean;
+  currentSource: string;
   users: Array<{ id: string; name: string | null; email: string }>;
   projects: Array<{ id: string; name: string; code: string | null; status: string }>;
 }
@@ -49,6 +50,7 @@ export function IncidentTreatmentForm({
   currentIsLostTimeIncident,
   currentLostWorkdays,
   currentIsRestrictedWork,
+  currentSource,
   users,
   projects,
 }: IncidentTreatmentFormProps) {
@@ -56,6 +58,7 @@ export function IncidentTreatmentForm({
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
   const [type, setType] = useState(currentType);
+  const [source, setSource] = useState(currentSource || "INTERNAL");
   const [subcategoryOptions, setSubcategoryOptions] = useState<SubcategoryOption[]>([]);
   const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>(
     currentSubcategoryKeys
@@ -161,6 +164,7 @@ export function IncidentTreatmentForm({
           isLostTimeIncident,
           lostWorkdays: lostWorkdaysValue.length > 0 ? parseInt(lostWorkdaysValue, 10) : null,
           isRestrictedWork,
+          source,
         }),
       });
 
@@ -197,7 +201,8 @@ export function IncidentTreatmentForm({
     isFatal !== currentIsFatal ||
     isLostTimeIncident !== currentIsLostTimeIncident ||
     lostWorkdays !== (typeof currentLostWorkdays === "number" ? currentLostWorkdays.toString() : "") ||
-    isRestrictedWork !== currentIsRestrictedWork;
+    isRestrictedWork !== currentIsRestrictedWork ||
+    source !== (currentSource || "INTERNAL");
 
   return (
     <div className="space-y-4">
@@ -237,7 +242,7 @@ export function IncidentTreatmentForm({
           </Select>
         </div>
 
-        <div className="md:col-span-2">
+        <div>
           <Label className="mb-2 block">Alvorlighet</Label>
           <Select value={severity} onValueChange={setSeverity}>
             <SelectTrigger>
@@ -249,6 +254,19 @@ export function IncidentTreatmentForm({
               <SelectItem value="3">3 - Moderat</SelectItem>
               <SelectItem value="4">4 - Alvorlig</SelectItem>
               <SelectItem value="5">5 - Kritisk</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label className="mb-2 block">Kilde</Label>
+          <Select value={source} onValueChange={setSource}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="INTERNAL">Intern</SelectItem>
+              <SelectItem value="EXTERNAL">Ekstern</SelectItem>
             </SelectContent>
           </Select>
         </div>

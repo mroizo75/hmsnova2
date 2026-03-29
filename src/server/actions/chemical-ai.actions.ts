@@ -2,8 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getRequiredTenantContext } from "@/lib/tenant-context";
 import { getStorage } from "@/lib/storage";
 import { AuditLog } from "@/lib/audit-log";
 import { 
@@ -16,13 +15,10 @@ import {
 import { parseSDSFile } from "@/lib/sds-parser";
 
 async function getSessionContext() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) {
-    throw new Error("Unauthorized");
-  }
+  const tenantContext = await getRequiredTenantContext();
 
   const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
+    where: { id: tenantContext.userId },
     include: { tenants: true },
   });
 
@@ -30,7 +26,7 @@ async function getSessionContext() {
     throw new Error("User not associated with a tenant");
   }
 
-  return { user, tenantId: user.tenants[0].tenantId };
+  return { user, tenantId: tenantContext.tenantId };
 }
 
 /**
@@ -229,9 +225,9 @@ export async function findSubstitutionAlternatives(chemicalId: string) {
 /**
  * Batch-synkroniser alle kjemikalier med CAS-nummer
  */
-export async function batchSyncWithECHA(tenantId: string) {
+export async function batchSyncWithECHA(_tenantId: string) {
   try {
-    const { user } = await getSessionContext();
+    const { tenantId } = await getSessionContext();
 
     const chemicals = await prisma.chemical.findMany({
       where: { 
@@ -278,9 +274,9 @@ export async function batchSyncWithECHA(tenantId: string) {
 /**
  * Finn alle kjemikalier som trenger oppmerksomhet
  */
-export async function findChemicalsNeedingAttention(tenantId: string) {
+export async function findChemicalsNeedingAttention(_tenantId: string) {
   try {
-    const { user } = await getSessionContext();
+    const { tenantId } = await getSessionContext();
 
     const now = new Date();
     const threeYearsAgo = new Date(Date.now() - 3 * 365 * 24 * 60 * 60 * 1000);

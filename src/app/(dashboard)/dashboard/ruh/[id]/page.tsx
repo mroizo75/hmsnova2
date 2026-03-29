@@ -33,7 +33,14 @@ export default async function RuhDetailPage({ params }: { params: Promise<{ id: 
     return <div>Ingen tilgang til tenant</div>;
   }
 
-  const tenantId = user.tenants[0].tenantId;
+  const selectedMembership = user.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) {
+    return <div>Ingen tilgang til tenant</div>;
+  }
+
+  const tenantId = selectedMembership.tenantId;
 
   const report = await prisma.ruhReport.findUnique({
     where: { id, tenantId },

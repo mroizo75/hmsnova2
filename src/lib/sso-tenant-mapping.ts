@@ -54,12 +54,16 @@ export async function mapSSOUserToTenant(email: string): Promise<string | null> 
     include: {
       tenants: {
         take: 1,
+        orderBy: {
+          createdAt: "asc",
+        },
       },
     },
   });
 
   if (existingUser && existingUser.tenants.length > 0) {
-    return existingUser.tenants[0].tenantId;
+    const [firstMembership] = existingUser.tenants;
+    return firstMembership?.tenantId ?? null;
   }
 
   return null;

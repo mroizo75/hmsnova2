@@ -18,8 +18,7 @@ export default async function DocumentsPage() {
     redirect("/login");
   }
 
-  // Hent første tenant (senere: la bruker velge)
-  const userTenant = user.tenants[0];
+  const userTenant = user.tenants.at(0);
   if (!userTenant) {
     return <div>{t("noTenantAccess")}</div>;
   }

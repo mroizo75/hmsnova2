@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getRequiredTenantContext } from "@/lib/tenant-context";
 import { prisma } from "@/lib/db";
 import { jsPDF } from "jspdf";
 
@@ -9,15 +8,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const { tenantId } = await getRequiredTenantContext();
     const { id } = await params;
 
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const form = await prisma.formTemplate.findUnique({
-      where: { id, tenantId: session.user.tenantId! },
+      where: { id, tenantId },
       include: {
         fields: {
           orderBy: { order: "asc" },

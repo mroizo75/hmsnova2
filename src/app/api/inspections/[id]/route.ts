@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { Prisma } from "@prisma/client";
-import { authOptions } from "@/lib/auth";
+import { getRequiredTenantContext } from "@/lib/tenant-context";
 import { prisma } from "@/lib/db";
 import { createErrorResponse, createSuccessResponse, ErrorCodes } from "@/lib/validations/api";
 
@@ -13,18 +12,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return createErrorResponse(ErrorCodes.UNAUTHORIZED, "Ikke autentisert", 401);
-    }
-
-    const sessionTenantId = session.user.tenantId ?? (
-      await prisma.userTenant.findFirst({
-        where: { userId: session.user.id },
-        select: { tenantId: true },
-      })
-    )?.tenantId;
-    if (!sessionTenantId) {
+    let sessionTenantId = "";
+    try {
+      const tenantContext = await getRequiredTenantContext();
+      sessionTenantId = tenantContext.tenantId;
+    } catch {
       return createErrorResponse(ErrorCodes.FORBIDDEN, "Ingen tenant tilgang", 403);
     }
     const { id } = await params;
@@ -57,18 +49,11 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return createErrorResponse(ErrorCodes.UNAUTHORIZED, "Ikke autentisert", 401);
-    }
-
-    const sessionTenantId = session.user.tenantId ?? (
-      await prisma.userTenant.findFirst({
-        where: { userId: session.user.id },
-        select: { tenantId: true },
-      })
-    )?.tenantId;
-    if (!sessionTenantId) {
+    let sessionTenantId = "";
+    try {
+      const tenantContext = await getRequiredTenantContext();
+      sessionTenantId = tenantContext.tenantId;
+    } catch {
       return createErrorResponse(ErrorCodes.FORBIDDEN, "Ingen tenant tilgang", 403);
     }
     const { id } = await params;
@@ -118,18 +103,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return createErrorResponse(ErrorCodes.UNAUTHORIZED, "Ikke autentisert", 401);
-    }
-
-    const sessionTenantId = session.user.tenantId ?? (
-      await prisma.userTenant.findFirst({
-        where: { userId: session.user.id },
-        select: { tenantId: true },
-      })
-    )?.tenantId;
-    if (!sessionTenantId) {
+    let sessionTenantId = "";
+    try {
+      const tenantContext = await getRequiredTenantContext();
+      sessionTenantId = tenantContext.tenantId;
+    } catch {
       return createErrorResponse(ErrorCodes.FORBIDDEN, "Ingen tenant tilgang", 403);
     }
     const { id } = await params;

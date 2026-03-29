@@ -74,7 +74,7 @@ export default async function RutinerPage({
   const categoryPresets = getRoutineCategoryPresets();
   const categoryLabelMap = new Map(categoryPresets.map((p) => [p.value, p.label]));
 
-  const membership = user?.tenants[0];
+  const membership = user?.tenants.at(0);
   const routinePerms = membership ? getPermissions(membership.role) : null;
   const serializedUploads =
     uploadsResult.success === true

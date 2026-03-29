@@ -28,7 +28,12 @@ export default async function ConstructionComplianceOverviewPage() {
     return <div>Ingen tilgang</div>;
   }
 
-  const membership = user.tenants[0];
+  const membership = user.tenants.find(
+    (tenantMembership) => tenantMembership.tenantId === session.user.tenantId,
+  );
+  if (!membership) {
+    return <div>Ingen tilgang</div>;
+  }
   const permissions = getPermissions(membership.role);
   if (!permissions.canReadConstructionCompliance) {
     redirect("/dashboard");

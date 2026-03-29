@@ -27,8 +27,14 @@ export default async function DashboardPage() {
     return <div>Du er ikke tilknyttet en tenant.</div>;
   }
 
-  const tenantId = user.tenants[0].tenantId;
-  const userRole = user.tenants[0].role;
+  const selectedMembership = user.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) {
+    return <div>Du har ikke tilgang til valgt tenant.</div>;
+  }
+  const tenantId = selectedMembership.tenantId;
+  const userRole = selectedMembership.role;
   const permissions = getPermissions(userRole);
 
   await prisma.$executeRawUnsafe(`

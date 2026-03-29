@@ -1,20 +1,18 @@
 "use server";
 
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { Role } from "@prisma/client";
+import { getRequiredTenantContext } from "@/lib/tenant-context";
 
 async function getSessionContext() {
-  const session = await getServerSession(authOptions);
-  
-  if (!session?.user?.email) {
+  const tenantContext = await getRequiredTenantContext().catch(() => null);
+  if (!tenantContext) {
     return { error: "Ikke autentisert" };
   }
 
   const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
+    where: { id: tenantContext.userId },
     include: {
       tenants: true,
     },
@@ -24,7 +22,7 @@ async function getSessionContext() {
     return { error: "Bruker ikke funnet eller ikke tilknyttet tenant" };
   }
 
-  return { user, tenantId: user.tenants[0].tenantId };
+  return { user, tenantId: tenantContext.tenantId };
 }
 
 export async function updateNotificationSettings(data: {
@@ -91,8 +89,9 @@ export async function updateNotificationSettings(data: {
       },
     });
 
+    const membership = user.tenants.find((tenant) => tenant.tenantId === tenantId);
     if (
-      user.tenants[0].role === "ADMIN" &&
+      membership?.role === "ADMIN" &&
       data.constructionDailyCheckAlertsEnabled !== undefined &&
       data.constructionDailyCheckAlertRole
     ) {

@@ -2,25 +2,86 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getRequiredTenantContext } from "@/lib/tenant-context";
 import { ExposureRegisterStatus, ExposureType } from "@prisma/client";
 import { encryptField, decryptField } from "@/lib/field-encryption";
 
 async function getSessionContext() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) throw new Error("Unauthorized");
+  const tenantContext = await getRequiredTenantContext();
 
   const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    include: { tenants: true },
+    where: { id: tenantContext.userId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
   });
 
-  if (!user || user.tenants.length === 0) {
-    throw new Error("User not associated with a tenant");
+  if (!user) {
+    throw new Error("User not found");
   }
 
-  return { user, tenantId: user.tenants[0].tenantId };
+  return { user, tenantId: tenantContext.tenantId };
+}
+
+type ExposureRelationInput = {
+  employeeId?: string | null;
+  chemicalId?: string | null;
+  ruhReportId?: string | null;
+  riskId?: string | null;
+};
+
+async function assertTenantScopedExposureRelations(
+  tenantId: string,
+  relations: ExposureRelationInput
+): Promise<void> {
+  const { employeeId, chemicalId, ruhReportId, riskId } = relations;
+
+  if (employeeId) {
+    const employeeMembership = await prisma.userTenant.findUnique({
+      where: {
+        userId_tenantId: {
+          userId: employeeId,
+          tenantId,
+        },
+      },
+      select: { userId: true },
+    });
+    if (!employeeMembership) {
+      throw new Error("Ansatt finnes ikke i valgt tenant");
+    }
+  }
+
+  if (chemicalId) {
+    const chemical = await prisma.chemical.findFirst({
+      where: { id: chemicalId, tenantId },
+      select: { id: true },
+    });
+    if (!chemical) {
+      throw new Error("Kjemikalie finnes ikke i valgt tenant");
+    }
+  }
+
+  if (ruhReportId) {
+    const ruhReport = await prisma.ruhReport.findFirst({
+      where: { id: ruhReportId, tenantId },
+      select: { id: true },
+    });
+    if (!ruhReport) {
+      throw new Error("RUH-rapport finnes ikke i valgt tenant");
+    }
+  }
+
+  if (riskId) {
+    const risk = await prisma.risk.findFirst({
+      where: { id: riskId, tenantId },
+      select: { id: true },
+    });
+    if (!risk) {
+      throw new Error("Risikovurdering finnes ikke i valgt tenant");
+    }
+  }
 }
 
 function computeRetentionUntilDate(retentionYears: number): Date {
@@ -49,9 +110,9 @@ function deriveStatus(
 // READ
 // ============================================================================
 
-export async function getExposureRegisters(tenantId: string) {
+export async function getExposureRegisters(_tenantId: string) {
   try {
-    await getSessionContext();
+    const { tenantId } = await getSessionContext();
 
     const entries = await prisma.exposureRegister.findMany({
       where: { tenantId, status: { not: ExposureRegisterStatus.ARCHIVED } },
@@ -142,6 +203,12 @@ export interface CreateExposureRegisterInput {
 export async function createExposureRegister(input: CreateExposureRegisterInput) {
   try {
     const { tenantId, user } = await getSessionContext();
+    await assertTenantScopedExposureRelations(tenantId, {
+      employeeId: input.employeeId,
+      chemicalId: input.chemicalId,
+      ruhReportId: input.ruhReportId,
+      riskId: input.riskId,
+    });
 
     const entry = await prisma.exposureRegister.create({
       data: {
@@ -207,8 +274,15 @@ export async function updateExposureRegister(id: string, input: UpdateExposureRe
         ? (input.exposureEndDate || null)
         : existing.exposureEndDate;
 
+    await assertTenantScopedExposureRelations(tenantId, {
+      employeeId: input.employeeId,
+      chemicalId: input.chemicalId,
+      ruhReportId: input.ruhReportId,
+      riskId: input.riskId,
+    });
+
     const updated = await prisma.exposureRegister.update({
-      where: { id },
+      where: { id, tenantId },
       data: {
         ...(input.employeeId !== undefined && { employeeId: input.employeeId || null }),
         ...(input.employeeName && { employeeName: input.employeeName }),
@@ -269,7 +343,7 @@ export async function archiveExposureRegister(id: string) {
     }
 
     await prisma.exposureRegister.update({
-      where: { id },
+      where: { id, tenantId },
       data: { status: ExposureRegisterStatus.ARCHIVED, archivedAt: now },
     });
 
@@ -292,7 +366,7 @@ export async function markExposureInactive(id: string, endDate: Date) {
     if (!existing) return { success: false, error: "Ikke funnet" };
 
     await prisma.exposureRegister.update({
-      where: { id },
+      where: { id, tenantId },
       data: {
         status: ExposureRegisterStatus.INACTIVE,
         exposureEndDate: endDate,
@@ -310,9 +384,9 @@ export async function markExposureInactive(id: string, endDate: Date) {
 // HELPERS – hent ansatte og kjemikalier for skjema
 // ============================================================================
 
-export async function getRisksForTenant(tenantId: string) {
+export async function getRisksForTenant(_tenantId: string) {
   try {
-    await getSessionContext();
+    const { tenantId } = await getSessionContext();
 
     const risks = await prisma.risk.findMany({
       where: { tenantId, status: { not: "CLOSED" } },
@@ -336,9 +410,9 @@ export async function getRisksForTenant(tenantId: string) {
   }
 }
 
-export async function getRuhReportsForTenant(tenantId: string) {
+export async function getRuhReportsForTenant(_tenantId: string) {
   try {
-    await getSessionContext();
+    const { tenantId } = await getSessionContext();
 
     const reports = await prisma.ruhReport.findMany({
       where: { tenantId },
@@ -352,9 +426,9 @@ export async function getRuhReportsForTenant(tenantId: string) {
   }
 }
 
-export async function getEmployeesForTenant(tenantId: string) {
+export async function getEmployeesForTenant(_tenantId: string) {
   try {
-    await getSessionContext();
+    const { tenantId } = await getSessionContext();
 
     const userTenants = await prisma.userTenant.findMany({
       where: { tenantId },

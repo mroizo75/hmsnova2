@@ -1569,6 +1569,8 @@ model Incident {
   subcategoryKeys          String?              @db.Text
   // Prosjektkobling (valgfritt – AML § 3-1 systematisk HMS per arbeidssted)
   projectId                String?
+  // Kilde: INTERNAL (opprettet i systemet) eller EXTERNAL (mottatt utenfra, f.eks. PDF via e-post)
+  source                   String               @default("INTERNAL")
   createdAt                DateTime             @default(now())
   updatedAt                DateTime             @updatedAt
 

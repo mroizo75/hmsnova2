@@ -35,7 +35,14 @@ export default async function ComplaintsPage() {
     redirect("/login");
   }
 
-  const tenantId = user.tenants[0].tenantId;
+  const selectedMembership = user.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) {
+    redirect("/login");
+  }
+
+  const tenantId = selectedMembership.tenantId;
 
   const complaints = await prisma.incident.findMany({
     where: { tenantId, type: "CUSTOMER" },

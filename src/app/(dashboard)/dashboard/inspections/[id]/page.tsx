@@ -105,7 +105,14 @@ export default async function InspectionDetailPage({
     return <div>{t("noTenantAccess")}</div>;
   }
 
-  const tenantId = currentUser.tenants[0].tenantId;
+  const selectedMembership = currentUser.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) {
+    return <div>{t("noTenantAccess")}</div>;
+  }
+
+  const tenantId = selectedMembership.tenantId;
 
   const inspection = await prisma.inspection.findUnique({
     where: { id, tenantId },

@@ -17,6 +17,7 @@ export async function GET() {
         name: true,
         email: true,
         tenants: {
+          where: session.user.tenantId ? { tenantId: session.user.tenantId } : undefined,
           take: 1,
           include: { tenant: { select: { name: true } } },
         },
@@ -55,7 +56,8 @@ export async function GET() {
   }
 
   const employeeName = user.name ?? user.email ?? "Ukjent";
-  const companyName = user.tenants[0]?.tenant?.name ?? "Ukjent bedrift";
+  const selectedTenant = user.tenants.find((tenant) => tenant.tenant?.name);
+  const companyName = selectedTenant?.tenant?.name ?? "Ukjent bedrift";
   const generatedAt = new Date().toLocaleDateString("nb-NO", {
     day: "2-digit",
     month: "long",

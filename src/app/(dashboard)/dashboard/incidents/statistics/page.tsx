@@ -37,8 +37,15 @@ export default async function HseStatisticsPage() {
     return <div>{t("noTenantAccess")}</div>;
   }
 
-  const tenantId = user.tenants[0].tenantId;
-  if (!hasTenantFeature(user.tenants[0]?.tenant?.industry, "trir")) {
+  const selectedMembership = user.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) {
+    return <div>{t("noTenantAccess")}</div>;
+  }
+
+  const tenantId = selectedMembership.tenantId;
+  if (!hasTenantFeature(selectedMembership.tenant?.industry, "trir")) {
     redirect("/dashboard/incidents");
   }
   const currentYear = new Date().getFullYear();

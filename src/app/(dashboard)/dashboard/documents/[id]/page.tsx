@@ -71,7 +71,14 @@ export default async function DocumentDetailPage({ params }: { params: Promise<{
     redirect("/login");
   }
 
-  const tenantId = user.tenants[0].tenantId;
+  const selectedMembership = user.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) {
+    redirect("/login");
+  }
+
+  const tenantId = selectedMembership.tenantId;
 
   const document = await prisma.document.findUnique({
     where: {

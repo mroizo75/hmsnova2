@@ -32,8 +32,15 @@ export default async function RisksPage() {
     return <div>{t("noTenantAccess")}</div>;
   }
 
-  const tenantId = user.tenants[0].tenantId;
-  const tenantRole = user.tenants[0].role;
+  const selectedMembership = user.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) {
+    return <div>{t("noTenantAccess")}</div>;
+  }
+
+  const tenantId = selectedMembership.tenantId;
+  const tenantRole = selectedMembership.role;
   const permissions = getPermissions(tenantRole);
   const canUseAiSuggestions = permissions.canCreateRisks;
   const canDeleteRiskAssessments = permissions.canDeleteRisks;

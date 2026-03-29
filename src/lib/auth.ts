@@ -52,7 +52,6 @@ export const authOptions: NextAuthOptions = {
                   },
                 },
               },
-              take: 1,
             },
           },
         });
@@ -128,7 +127,20 @@ export const authOptions: NextAuthOptions = {
 
         // SIKKERHET: Sjekk om tenant er suspendert pga ubetalt faktura
         if (!user.isSuperAdmin && !user.isSupport && user.tenants.length > 0) {
-          const tenant = user.tenants[0].tenant;
+          const preferredTenant = user.lastTenantId
+            ? user.tenants.find((membership) => membership.tenantId === user.lastTenantId)
+            : null;
+          const activeTenant =
+            user.tenants.find(
+              (membership) =>
+                membership.tenant.status === "ACTIVE" || membership.tenant.status === "TRIAL",
+            ) ?? null;
+          const firstTenantMembership = user.tenants.at(0) ?? null;
+          const tenant =
+            preferredTenant?.tenant ?? activeTenant?.tenant ?? firstTenantMembership?.tenant ?? null;
+          if (!tenant) {
+            throw new Error("Kontoen mangler gyldig tenant-tilknytning.");
+          }
           
           if (tenant.status === "SUSPENDED") {
             if (tenant.invoices.length > 0) {
@@ -316,15 +328,18 @@ export const authOptions: NextAuthOptions = {
           token.hasMultipleTenants = dbUser.tenants.length > 1;
           token.preferredLocale = dbUser.preferredLocale || "nb";
           
-          // Velg tenant basert på lastTenantId hvis det finnes, ellers første aktive tenant
-          let selectedTenant = dbUser.tenants[0];
-          
-          if (dbUser.lastTenantId) {
-            const lastTenant = dbUser.tenants.find(t => t.tenantId === dbUser.lastTenantId);
-            if (lastTenant && (lastTenant.tenant.status === "ACTIVE" || lastTenant.tenant.status === "TRIAL")) {
-              selectedTenant = lastTenant;
-            }
-          }
+          // Velg tenant deterministisk: lastTenantId om gyldig, ellers første aktive/trial, ellers første tilgjengelige.
+          const eligibleTenants = dbUser.tenants.filter(
+            (membership) =>
+              membership.tenant.status === "ACTIVE" || membership.tenant.status === "TRIAL",
+          );
+          const selectedTenant =
+            (dbUser.lastTenantId
+              ? eligibleTenants.find((membership) => membership.tenantId === dbUser.lastTenantId)
+              : null) ??
+            eligibleTenants[0] ??
+            dbUser.tenants.at(0) ??
+            null;
           
           token.tenantId = selectedTenant?.tenantId || null;
           token.role = selectedTenant?.role || undefined;
@@ -353,9 +368,10 @@ export const authOptions: NextAuthOptions = {
           },
         });
         
-        if (dbUser && dbUser.tenants[0]) {
-          token.role = dbUser.tenants[0].role;
-          token.tenantName = dbUser.tenants[0].tenant.name;
+        const selectedMembership = dbUser?.tenants.at(0);
+        if (selectedMembership) {
+          token.role = selectedMembership.role;
+          token.tenantName = selectedMembership.tenant.name;
         }
       }
       

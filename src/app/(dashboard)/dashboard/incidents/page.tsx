@@ -4,7 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { IncidentList } from "@/features/incidents/components/incident-list";
+import { IncidentTabs } from "@/features/incidents/components/incident-tabs";
+import { UploadIncidentDialog } from "@/features/incidents/components/upload-incident-dialog";
 import { Plus, AlertCircle, Clock, CheckCircle, FileSearch } from "lucide-react";
 import Link from "next/link";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
@@ -28,7 +29,13 @@ export default async function IncidentsPage() {
     return <div>{t("noTenantAccess")}</div>;
   }
 
-  const tenantId = user.tenants[0].tenantId;
+  const selectedMembership = user.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) {
+    return <div>{t("noTenantAccess")}</div>;
+  }
+  const tenantId = selectedMembership.tenantId;
 
   const incidents = await prisma.incident.findMany({
     where: { tenantId },
@@ -66,6 +73,7 @@ export default async function IncidentsPage() {
           <PageHelpDialog content={helpContent.incidents} />
         </div>
         <div className="flex items-center gap-2">
+          <UploadIncidentDialog />
           <Button asChild>
             <Link href="/dashboard/incidents/new">
               <Plus className="mr-2 h-4 w-4" />
@@ -133,7 +141,7 @@ export default async function IncidentsPage() {
           <CardTitle>{t("allIncidents")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <IncidentList incidents={incidents} />
+          <IncidentTabs incidents={incidents} />
         </CardContent>
       </Card>
 

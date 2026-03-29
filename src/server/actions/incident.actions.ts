@@ -3,8 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { generateSequenceNumber } from "@/lib/sequence";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getRequiredTenantContext } from "@/lib/tenant-context";
 import {
   createIncidentSchema,
   updateIncidentSchema,
@@ -15,13 +14,10 @@ import { createNotification, notifyUsersByRoles } from "./notification.actions";
 import { IncidentStage, IncidentStatus } from "@prisma/client";
 
 async function getSessionContext() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email || !session.user.tenantId) {
-    throw new Error("Unauthorized");
-  }
-  
+  const context = await getRequiredTenantContext();
+
   const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
+    where: { id: context.userId },
     select: {
       id: true,
       email: true,
@@ -32,23 +28,7 @@ async function getSessionContext() {
     throw new Error("Unauthorized");
   }
 
-  const membership = await prisma.userTenant.findUnique({
-    where: {
-      userId_tenantId: {
-        userId: user.id,
-        tenantId: session.user.tenantId,
-      },
-    },
-    select: {
-      tenantId: true,
-    },
-  });
-
-  if (!membership) {
-    throw new Error("User not associated with selected tenant");
-  }
-  
-  return { user, tenantId: membership.tenantId };
+  return { user, tenantId: context.tenantId };
 }
 
 const sanitizeString = (value?: string | null) => {
@@ -88,6 +68,54 @@ const normalizeSuggestedMeasures = (value: unknown): string[] => {
     .slice(0, 5);
 };
 
+const assertTenantScopedRelations = async (input: {
+  tenantId: string;
+  projectId?: string | null;
+  riskReferenceId?: string | null;
+  reportedForUserId?: string | null;
+}): Promise<void> => {
+  if (input.projectId) {
+    const project = await prisma.project.findFirst({
+      where: {
+        id: input.projectId,
+        tenantId: input.tenantId,
+      },
+      select: { id: true },
+    });
+    if (!project) {
+      throw new Error("Prosjekt finnes ikke i valgt tenant");
+    }
+  }
+
+  if (input.riskReferenceId) {
+    const risk = await prisma.risk.findFirst({
+      where: {
+        id: input.riskReferenceId,
+        tenantId: input.tenantId,
+      },
+      select: { id: true },
+    });
+    if (!risk) {
+      throw new Error("Risiko-referanse finnes ikke i valgt tenant");
+    }
+  }
+
+  if (input.reportedForUserId) {
+    const membership = await prisma.userTenant.findUnique({
+      where: {
+        userId_tenantId: {
+          userId: input.reportedForUserId,
+          tenantId: input.tenantId,
+        },
+      },
+      select: { userId: true },
+    });
+    if (!membership) {
+      throw new Error("Rapportert for-bruker finnes ikke i valgt tenant");
+    }
+  }
+};
+
 const stageFromStatus = (status: IncidentStatus): IncidentStage => {
   switch (status) {
     case "INVESTIGATING":
@@ -103,9 +131,9 @@ const stageFromStatus = (status: IncidentStatus): IncidentStage => {
 };
 
 // Hent alle avvik for en tenant
-export async function getIncidents(tenantId: string) {
+export async function getIncidents(_tenantId: string) {
   try {
-    const { user } = await getSessionContext();
+    const { tenantId } = await getSessionContext();
     
     const incidents = await prisma.incident.findMany({
       where: { tenantId },
@@ -187,6 +215,7 @@ export async function createIncident(input: any) {
     const normalizedInput = {
       ...input,
       tenantId,
+      reportedBy: user.id,
       occurredAt: new Date(input.occurredAt),
       lostTimeMinutes: parseOptionalNumber(input.lostTimeMinutes),
       lostWorkdays: parseOptionalNumber(input.lostWorkdays),
@@ -200,6 +229,12 @@ export async function createIncident(input: any) {
       aiSuggestedMeasures: normalizeSuggestedMeasures(input.aiSuggestedMeasures),
     };
     const validated = createIncidentSchema.parse(normalizedInput);
+    await assertTenantScopedRelations({
+      tenantId,
+      projectId: validated.projectId ?? null,
+      riskReferenceId: validated.riskReferenceId ?? null,
+      reportedForUserId: validated.reportedForUserId ?? null,
+    });
 
     const avviksnummer = await generateSequenceNumber(
       validated.tenantId,
@@ -216,7 +251,7 @@ export async function createIncident(input: any) {
         description: validated.description,
         severity: validated.severity,
         occurredAt: validated.occurredAt,
-        reportedBy: validated.reportedBy,
+        reportedBy: user.id,
         reportedForUserId: validated.reportedForUserId ?? null,
         location: sanitizeString(validated.location),
         witnessName: sanitizeString(validated.witnessName),
@@ -320,6 +355,11 @@ export async function updateIncident(input: any) {
       subcategoryKeys: Array.isArray(input.subcategoryKeys) ? input.subcategoryKeys : undefined,
     };
     const validated = updateIncidentSchema.parse(normalizedInput);
+    await assertTenantScopedRelations({
+      tenantId,
+      projectId: validated.projectId,
+      riskReferenceId: validated.riskReferenceId,
+    });
     
     const existingIncident = await prisma.incident.findUnique({
       where: { id: validated.id, tenantId },
@@ -367,6 +407,7 @@ export async function updateIncident(input: any) {
     if (validated.isLostTimeIncident !== undefined) updateData.isLostTimeIncident = validated.isLostTimeIncident;
     if (validated.lostWorkdays !== undefined) updateData.lostWorkdays = validated.lostWorkdays;
     if (validated.isRestrictedWork !== undefined) updateData.isRestrictedWork = validated.isRestrictedWork;
+    if (validated.source !== undefined) updateData.source = validated.source;
 
     let stageToPersist = validated.stage;
     if (!stageToPersist && validated.status) {
@@ -431,7 +472,7 @@ export async function investigateIncident(input: any) {
       data: {
         rootCause: validated.rootCause,
         contributingFactors: validated.contributingFactors,
-        investigatedBy: validated.investigatedBy,
+        investigatedBy: user.id,
         investigatedAt: new Date(),
         status: "INVESTIGATING",
         stage: IncidentStage.ROOT_CAUSE,
@@ -485,7 +526,7 @@ export async function closeIncident(input: any) {
       where: { id: validated.id, tenantId },
       data: {
         status: "CLOSED",
-        closedBy: validated.closedBy,
+        closedBy: user.id,
         closedAt: new Date(),
         effectivenessReview: validated.effectivenessReview,
         lessonsLearned: validated.lessonsLearned,
@@ -526,6 +567,97 @@ export async function closeIncident(input: any) {
   } catch (error: any) {
     console.error("Close incident error:", error);
     return { success: false, error: error.message || "Kunne ikke lukke avvik" };
+  }
+}
+
+// Opprett avvik via filopplasting (eksternt/internt – minimalt skjema)
+export async function createUploadedIncident(formData: FormData) {
+  try {
+    const { user, tenantId } = await getSessionContext();
+
+    const title = (formData.get("title") as string | null)?.trim() ?? "";
+    const source = (formData.get("source") as string | null)?.trim() ?? "EXTERNAL";
+    const file = formData.get("file") as File | null;
+
+    if (!title || title.length < 3) {
+      return { success: false, error: "Tittel må være minst 3 tegn." };
+    }
+    if (source !== "INTERNAL" && source !== "EXTERNAL") {
+      return { success: false, error: "Ugyldig kilde. Må være INTERNAL eller EXTERNAL." };
+    }
+
+    const avviksnummer = await generateSequenceNumber(
+      tenantId,
+      "AVVIK",
+      new Date().getFullYear()
+    );
+
+    const incident = await prisma.incident.create({
+      data: {
+        tenantId,
+        avviksnummer,
+        type: "AVVIK",
+        title,
+        description: source === "EXTERNAL"
+          ? "Eksternt avvik – se vedlagt fil for detaljer."
+          : "Avvik opprettet via filopplasting.",
+        severity: 3,
+        occurredAt: new Date(),
+        reportedBy: user.id,
+        status: "OPEN",
+        stage: IncidentStage.REPORTED,
+        source,
+      },
+    });
+
+    if (file && file.size > 0) {
+      const { getStorage, generateFileKey } = await import("@/lib/storage");
+      const storage = getStorage();
+      const fileKey = generateFileKey(tenantId, "incidents", file.name);
+      await storage.upload(fileKey, file);
+      await prisma.attachment.create({
+        data: {
+          tenantId,
+          incidentId: incident.id,
+          fileKey,
+          name: file.name,
+          mime: file.type || "application/octet-stream",
+          size: file.size,
+        },
+      });
+    }
+
+    void (async () => {
+      try {
+        await prisma.auditLog.create({
+          data: {
+            tenantId,
+            userId: user.id,
+            action: "INCIDENT_CREATED",
+            resource: `Incident:${incident.id}`,
+            metadata: JSON.stringify({
+              title: incident.title,
+              source,
+              uploadedFile: file?.name ?? null,
+            }),
+          },
+        });
+        await notifyUsersByRoles(tenantId, ["ADMIN", "HMS", "LEDER"], {
+          type: "NEW_INCIDENT",
+          title: "Nytt avvik registrert",
+          message: `${source === "EXTERNAL" ? "Eksternt" : "Internt"} avvik: ${incident.title}`,
+          link: `/dashboard/incidents/${incident.id}`,
+        });
+      } catch (bgError) {
+        console.error("Background notification error:", bgError);
+      }
+    })();
+
+    revalidatePath("/dashboard/incidents");
+    return { success: true, data: incident };
+  } catch (error: any) {
+    console.error("Create uploaded incident error:", error);
+    return { success: false, error: error.message || "Kunne ikke opprette avvik" };
   }
 }
 
@@ -575,9 +707,9 @@ export async function deleteIncident(id: string) {
 }
 
 // Få statistikk over avvik
-export async function getIncidentStats(tenantId: string) {
+export async function getIncidentStats(_tenantId: string) {
   try {
-    const { user } = await getSessionContext();
+    const { tenantId } = await getSessionContext();
     
     const incidents = await prisma.incident.findMany({
       where: { tenantId },

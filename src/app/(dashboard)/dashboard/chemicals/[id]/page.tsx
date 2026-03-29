@@ -36,7 +36,14 @@ export default async function ChemicalDetailPage({ params }: { params: Promise<{
     return <div>Du er ikke tilknyttet en tenant.</div>;
   }
 
-  const tenantId = user.tenants[0].tenantId;
+  const selectedMembership = user.tenants.find(
+    (membership) => membership.tenantId === session.user.tenantId,
+  );
+  if (!selectedMembership) {
+    return <div>Du er ikke tilknyttet en tenant.</div>;
+  }
+
+  const tenantId = selectedMembership.tenantId;
 
   const [chemical, exposureCount] = await Promise.all([
     prisma.chemical.findUnique({ where: { id, tenantId } }),

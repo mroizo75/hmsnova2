@@ -106,6 +106,9 @@ export async function PUT(
         return NextResponse.json({ error: "Prosjektet finnes ikke i denne virksomheten." }, { status: 400 });
       }
     }
+    const source = typeof body.source === "string" && ["INTERNAL", "EXTERNAL"].includes(body.source)
+      ? body.source
+      : undefined;
     const medicalAttentionRequired = parseBoolean(body.medicalAttentionRequired);
     const isFatal = parseBoolean(body.isFatal);
     const isLostTimeIncident = parseBoolean(body.isLostTimeIncident);
@@ -166,6 +169,7 @@ export async function PUT(
             : isLostTimeIncident
               ? lostWorkdays
               : null,
+        source: source ?? undefined,
       },
     });
 
@@ -179,5 +183,5 @@ export async function PUT(
         ? "Avviket ble ikke funnet. Sjekk at du har tilgang."
         : error.message || "Intern feil ved oppdatering av avvik.";
     return NextResponse.json({ error: message }, { status: error?.code === "P2025" ? 404 : 500 });
+  }
 }
-
