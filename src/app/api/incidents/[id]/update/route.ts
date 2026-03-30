@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { IncidentStage, IncidentStatus, IncidentType } from "@prisma/client";
+import { notifyUsersByRoles } from "@/server/actions/notification.actions";
 
 function parseBoolean(value: unknown): boolean | undefined {
   if (typeof value === "boolean") {
@@ -143,6 +144,21 @@ export async function PUT(
       CLOSED: "VERIFIED",
     };
 
+    const existingIncident = await prisma.incident.findUnique({
+      where: { id, tenantId },
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        severity: true,
+        isRestrictedWork: true,
+      },
+    });
+
+    if (!existingIncident) {
+      return NextResponse.json({ error: "Avviket ble ikke funnet." }, { status: 404 });
+    }
+
     const incident = await prisma.incident.update({
       where: { id, tenantId },
       data: {
@@ -175,6 +191,18 @@ export async function PUT(
 
     revalidatePath(`/dashboard/incidents/${id}`);
     revalidatePath("/dashboard/incidents");
+
+    const becameStopWork =
+      existingIncident.isRestrictedWork !== true && incident.isRestrictedWork === true;
+    if (becameStopWork || (incident.severity ?? 0) >= 5) {
+      await notifyUsersByRoles(tenantId, ["ADMIN", "HMS"], {
+        type: "NEW_INCIDENT",
+        title: "KRITISK: Stoppet arbeid",
+        message: `${incident.type}: ${incident.title} - stoppet arbeid krever umiddelbar oppfolging.`,
+        link: `/dashboard/incidents/${incident.id}`,
+      });
+    }
+
     return NextResponse.json({ success: true, incident });
   } catch (error: any) {
     console.error("Update incident error:", error);

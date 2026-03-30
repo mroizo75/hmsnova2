@@ -130,6 +130,24 @@ const stageFromStatus = (status: IncidentStatus): IncidentStage => {
   }
 };
 
+const buildCriticalStopWorkNotification = (incident: {
+  id: string;
+  type: string;
+  title: string;
+}): {
+  type: "NEW_INCIDENT";
+  title: string;
+  message: string;
+  link: string;
+} => {
+  return {
+    type: "NEW_INCIDENT",
+    title: "KRITISK: Stoppet arbeid",
+    message: `${incident.type}: ${incident.title} - stoppet arbeid krever umiddelbar oppfolging.`,
+    link: `/dashboard/incidents/${incident.id}`,
+  };
+};
+
 // Hent alle avvik for en tenant
 export async function getIncidents(_tenantId: string) {
   try {
@@ -324,6 +342,13 @@ export async function createIncident(input: any) {
           message: `${incident.type}: ${incident.title}`,
           link: `/dashboard/incidents/${incident.id}`,
         });
+        if (incident.isRestrictedWork || incident.severity >= 5) {
+          await notifyUsersByRoles(
+            tenantId,
+            ["ADMIN", "HMS"],
+            buildCriticalStopWorkNotification(incident),
+          );
+        }
       } catch (bgError) {
         console.error("Background notification error:", bgError);
       }
@@ -428,6 +453,7 @@ export async function updateIncident(input: any) {
     });
     
     const statusChanged = existingIncident.status !== incident.status;
+    const becameStopWork = existingIncident.isRestrictedWork !== true && incident.isRestrictedWork === true;
     void (async () => {
       try {
         await prisma.auditLog.create({
@@ -446,6 +472,13 @@ export async function updateIncident(input: any) {
             message: `${incident.type}: ${incident.title} - Status endret til ${incident.status}`,
             link: `/dashboard/incidents/${incident.id}`,
           });
+        }
+        if (becameStopWork || incident.severity >= 5) {
+          await notifyUsersByRoles(
+            tenantId,
+            ["ADMIN", "HMS"],
+            buildCriticalStopWorkNotification(incident),
+          );
         }
       } catch (bgError) {
         console.error("Background notification error:", bgError);
