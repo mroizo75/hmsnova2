@@ -119,6 +119,7 @@ model User {
   routinesResponsible       Routine[]                      @relation("RoutineResponsible")
   electroComplianceCreated  ElectroComplianceDeclaration[] @relation("ElectroComplianceCreatedBy")
   routineUploadedDocumentsCreated RoutineUploadedDocument[]  @relation("RoutineUploadedDocumentCreatedBy")
+  documentSignatures        DocumentSignature[]            @relation("DocumentSignatures")
   dashboardConfigs          DashboardConfig[]
   createdAt                 DateTime                       @default(now())
   updatedAt                 DateTime                       @updatedAt
@@ -287,6 +288,8 @@ model Tenant {
   sjaAnalyses                  SjaAnalysis[]
   sjaTemplates                 SjaTemplate[]
   exposureRegisters            ExposureRegister[]
+  documentSignatures           DocumentSignature[]
+  orgChartNodes                OrgChartNode[]
   dashboardConfigs             DashboardConfig[]
   createdAt                    DateTime                       @default(now())
   updatedAt                    DateTime                       @updatedAt
@@ -670,6 +673,7 @@ model Document {
 
   tenant                   Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   versions                 DocumentVersion[] // Historikk av alle versjoner
+  signatures               DocumentSignature[] // IK-HMS § 5: signaturer fra ansvarlige
   approvedByUser           User?                     @relation("DocumentApprovedBy", fields: [approvedBy], references: [id], onDelete: SetNull)
   owner                    User?                     @relation("DocumentOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   template                 DocumentTemplate?         @relation(fields: [templateId], references: [id], onDelete: SetNull)
@@ -739,6 +743,54 @@ model DocumentTemplate {
 
   @@index([tenantId])
   @@index([isGlobal])
+}
+
+/// Digital signatur på dokument (IK-HMS § 5: dokumenter skal signeres av ansvarlige)
+/// Hver signatur inneholder hvem som signerte, rolle, tidspunkt og selve signaturbilde (base64 data-URL).
+model DocumentSignature {
+  id           String              @id @default(cuid())
+  tenantId     String
+  documentId   String
+  signedById   String
+  role         DocumentSignerRole
+  signatureImg String              @db.MediumText // base64 data-URL fra SignaturePad
+  comment      String?             @db.Text
+  signedAt     DateTime            @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  signedBy User     @relation("DocumentSignatures", fields: [signedById], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, signedById, role]) // Én signatur per bruker per rolle per dokument
+  @@index([tenantId])
+  @@index([documentId])
+}
+
+enum DocumentSignerRole {
+  UTARBEIDET_AV // Utarbeidet av (forfatter)
+  KONTROLLERT_AV // Kontrollert/gjennomgått av
+  GODKJENT_AV // Godkjent av (leder/daglig leder)
+}
+
+/// Organisasjonskart – hierarkisk trestruktur (AML § 3-1: organisering av HMS-ansvar)
+/// Selvhenvisende: parentId peker på overordnet node. Null = rotnode.
+model OrgChartNode {
+  id          String   @id @default(cuid())
+  tenantId    String
+  parentId    String? // Null = rotnode (øverste leder)
+  title       String // Stillingstittel / rolle (f.eks. "Daglig leder")
+  name        String? // Navn på person i rollen
+  department  String? // Avdeling
+  sortOrder   Int      @default(0) // Rekkefølge blant søsken
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  parent   OrgChartNode?  @relation("OrgChartHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children OrgChartNode[] @relation("OrgChartHierarchy")
+
+  @@index([tenantId])
+  @@index([parentId])
 }
 
 // Elektro: samsvarserklæringer (utført arbeid) – synlig under Elektro for ansatte

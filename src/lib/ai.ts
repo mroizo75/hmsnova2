@@ -22,9 +22,13 @@ const memoryCache = new Map<string, { value: string; expiresAt: number }>();
 const memoryRateCounter = new Map<string, { count: number; expiresAt: number }>();
 const memoryBudgetCounter = new Map<string, number>();
 
+type VisionContentPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string; detail?: "low" | "high" | "auto" } };
+
 interface ChatMessage {
   role: "system" | "user" | "assistant";
-  content: string;
+  content: string | VisionContentPart[];
 }
 
 interface OpenAIResponse {
@@ -236,6 +240,102 @@ internkontrollforskriften, og BHT-forskriften. Svar alltid på norsk. Vær konkr
 
     if (AI_GUARD_ENABLED) {
       const promptTokens = data.usage?.prompt_tokens ?? estimatePromptTokens(prompt);
+      const completionTokens = data.usage?.completion_tokens ?? Math.max(1, Math.round(content.length / 4));
+      const estimatedUsdCost = estimateUsdCost(promptTokens, completionTokens);
+      await checkAndTrackBudget(budgetScope, estimatedUsdCost);
+      if (!options?.bypassCache) {
+        await setCachedResponse(cacheKey, content);
+      }
+    }
+
+    return content;
+  } catch (error) {
+    console.error("AI generation error:", error);
+    throw error;
+  }
+}
+
+/**
+ * Multimodal kall (tekst + bilder som base64 data-URL) for årsaksanalyse m.m.
+ * Bilder begrenses av app-laget før kall (antall/størrelse).
+ */
+export async function generateAIResponseWithVision(
+  textPrompt: string,
+  images: Array<{ mime: string; base64: string }>,
+  model: string = "gpt-4o-mini",
+  options?: GenerateAIResponseOptions
+): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY;
+
+  if (!apiKey) {
+    console.warn("OPENAI_API_KEY ikke konfigurert - AI-funksjoner deaktivert");
+    throw new Error("AI er ikke konfigurert");
+  }
+
+  const userParts: VisionContentPart[] = [{ type: "text", text: textPrompt }];
+  for (const img of images) {
+    const url = `data:${img.mime};base64,${img.base64}`;
+    userParts.push({
+      type: "image_url",
+      image_url: { url, detail: "low" },
+    });
+  }
+
+  const messages: ChatMessage[] = [
+    {
+      role: "system",
+      content: `Du er en erfaren HMS-rådgiver og yrkeshygieniker som jobber for en godkjent bedriftshelsetjeneste i Norge. 
+Du gir faglige råd basert på norsk arbeidsmiljølovgivning (AML), forskrift om organisering, ledelse og medvirkning, 
+internkontrollforskriften, og BHT-forskriften. Svar alltid på norsk. Vær konkret og praktisk orientert.`,
+    },
+    {
+      role: "user",
+      content: userParts,
+    },
+  ];
+
+  const cacheScope = options?.cacheScope || "global";
+  const rateLimitScope = options?.rateLimitScope || "global";
+  const budgetScope = options?.budgetScope || "global";
+  const visionFingerprint = `${model}:${textPrompt}:${images.map((i) => `${i.mime}:${i.base64.length}:${hashValue(i.base64.slice(0, 4096))}`).join("|")}`;
+  const payloadHash = hashValue(visionFingerprint);
+  const cacheKey = `ai:cache:${cacheScope}:${payloadHash}`;
+
+  if (AI_GUARD_ENABLED && !options?.bypassCache) {
+    const cached = await getCachedResponse(cacheKey);
+    if (cached) {
+      return cached;
+    }
+    await checkAiRateLimit(rateLimitScope);
+  }
+
+  try {
+    const response = await fetch(OPENAI_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature: 0.5,
+        max_tokens: 2000,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error("OpenAI API error:", error);
+      throw new Error(`OpenAI API feil: ${response.status}`);
+    }
+
+    const data: OpenAIResponse = await response.json();
+    const content = data.choices[0]?.message?.content || "";
+
+    if (AI_GUARD_ENABLED) {
+      const promptTokens =
+        data.usage?.prompt_tokens ?? estimatePromptTokens(textPrompt + images.map((i) => i.base64).join(""));
       const completionTokens = data.usage?.completion_tokens ?? Math.max(1, Math.round(content.length / 4));
       const estimatedUsdCost = estimateUsdCost(promptTokens, completionTokens);
       await checkAndTrackBudget(budgetScope, estimatedUsdCost);

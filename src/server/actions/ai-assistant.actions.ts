@@ -1,9 +1,11 @@
 "use server";
 
+import { createHash } from "crypto";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getActionContext } from "./action-context";
-import { generateAIResponse } from "@/lib/ai";
+import { generateAIResponse, generateAIResponseWithVision } from "@/lib/ai";
+import { getStorage } from "@/lib/storage";
 import { getIndustryLabel } from "@/lib/industry-packages";
 
 const incidentDraftSchema = z.object({
@@ -141,6 +143,172 @@ Krav:
     };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke generere AI-forslag" };
+  }
+}
+
+const suggestRootCauseInputSchema = z.object({
+  incidentId: z.string().min(1),
+});
+
+const VISION_IMAGE_MIMES = new Set(["image/jpeg", "image/png", "image/gif", "image/webp"]);
+const MAX_ROOT_CAUSE_IMAGES = 3;
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+
+function formatFiveWhyDraft(
+  steps: Array<{ step: number; question: string; draftAnswer: string }>,
+  conclusion: string
+): string {
+  const body = steps
+    .map((s) => `${s.step}) ${s.question}\n   → ${s.draftAnswer || "(—)"}`)
+    .join("\n\n");
+  const tail = conclusion.trim()
+    ? `\n\nKonklusjon — sannsynlig grunnårsak:\n${conclusion.trim()}`
+    : "";
+  return `5 Hvorfor (utkast — må verifiseres av utreder):\n\n${body}${tail}`;
+}
+
+/**
+ * Forslag til grunnårsak ved utredning av avvik (ISO 9001: årsaksanalyse).
+ * Modellen strukturerer som 5 Hvorfor-spørsmål med utkast til svar, deretter konklusjon.
+ * Tekst fra avviket og inntil tre bildevedlegg sendes til modellen; utreder skal alltid verifisere.
+ */
+export async function suggestIncidentRootCauseAnalysis(input: { incidentId: string }) {
+  try {
+    const { incidentId } = suggestRootCauseInputSchema.parse(input);
+    const { tenantId } = await getActionContext();
+
+    const incident = await prisma.incident.findFirst({
+      where: { id: incidentId, tenantId },
+      select: {
+        title: true,
+        description: true,
+        type: true,
+        immediateAction: true,
+        location: true,
+        witnessName: true,
+        suggestedActions: true,
+        attachments: {
+          select: { fileKey: true, mime: true, name: true, size: true },
+          orderBy: { createdAt: "asc" },
+        },
+      },
+    });
+
+    if (!incident) {
+      return { success: false, error: "Avvik ikke funnet" };
+    }
+
+    const storage = getStorage();
+    const imageCandidates = incident.attachments.filter(
+      (a) => VISION_IMAGE_MIMES.has(a.mime) && (a.size == null || a.size <= MAX_IMAGE_BYTES)
+    );
+
+    const visionImages: Array<{ mime: string; base64: string }> = [];
+    for (const att of imageCandidates) {
+      if (visionImages.length >= MAX_ROOT_CAUSE_IMAGES) break;
+      const buf = await storage.get(att.fileKey);
+      if (!buf || buf.length === 0 || buf.length > MAX_IMAGE_BYTES) continue;
+      visionImages.push({ mime: att.mime, base64: buf.toString("base64") });
+    }
+
+    const prompt = `Du hjelper med årsaksanalyse i et norsk HMS-system (ISO 9001: korrigerende tiltak og årsaksanalyse).
+Basert på opplysningene under og eventuelle bilder: lag et FORSLAG til 5 Hvorfor-kjede (ISO 9001: årsaksanalyse; metode som 5 Whys).
+
+KRAV:
+- Bygg nøyaktig fem ledd. Hvert ledd skal ha ett tydelig "Hvorfor ...?"-spørsmål som følger logisk fra forrige svar (første spørsmål tar utgangspunkt i hendelsen).
+- "draftAnswer" er et mulig svar ut fra tilgjengelig informasjon — utreder må bekrefte eller korrigere.
+- Ikke påstå sikkerhet der informasjonen er tynn; bruk forbehold i draftAnswer der det er naturlig.
+- "rootCauseConclusion" skal kort oppsummere sannsynlig grunnårsak ETTER femte svar (symptom vs rotårsak).
+- "contributingFactors": andre medvirkende faktorer (tid, kommunikasjon, utstyr, osv.) eller tom streng.
+- Norsk språk.
+
+Svar KUN med gyldig JSON:
+{
+  "fiveWhys": [
+    { "step": 1, "question": "Hvorfor ...?", "draftAnswer": "Fordi ..." },
+    { "step": 2, "question": "Hvorfor ...?", "draftAnswer": "..." },
+    { "step": 3, "question": "Hvorfor ...?", "draftAnswer": "..." },
+    { "step": 4, "question": "Hvorfor ...?", "draftAnswer": "..." },
+    { "step": 5, "question": "Hvorfor ...?", "draftAnswer": "..." }
+  ],
+  "rootCauseConclusion": "1–4 setninger",
+  "contributingFactors": "kort avsnitt eller tom streng"
+}
+
+Hendelsesdata:
+- Type (enum): ${incident.type}
+- Tittel: ${incident.title}
+- Beskrivelse: ${incident.description}
+- Sted: ${incident.location?.trim() || "ikke oppgitt"}
+- Vitne: ${incident.witnessName?.trim() || "ikke oppgitt"}
+- Umiddelbare tiltak: ${incident.immediateAction?.trim() || "ikke oppgitt"}
+- Foreslåtte tiltak (fra registrering): ${incident.suggestedActions?.trim() || "ikke oppgitt"}
+${visionImages.length > 0 ? "Det følger " + visionImages.length + " bilde(r) som kontekst." : "Ingen bilder vedlagt."}`;
+
+    const response =
+      visionImages.length > 0
+        ? await generateAIResponseWithVision(prompt, visionImages, "gpt-4o-mini", {
+            cacheScope: `tenant:${tenantId}:incidentRootCauseVision:${incidentId}`,
+            rateLimitScope: `tenant:${tenantId}`,
+            budgetScope: `tenant:${tenantId}`,
+            bypassCache: true,
+          })
+        : await generateAIResponse(prompt, "gpt-4o-mini", {
+            cacheScope: `tenant:${tenantId}:incidentRootCause:${incidentId}:${createHash("sha256").update(incident.description).digest("hex").slice(0, 24)}`,
+            rateLimitScope: `tenant:${tenantId}`,
+            budgetScope: `tenant:${tenantId}`,
+          });
+
+    const match = response.match(/\{[\s\S]*\}/);
+    if (!match) {
+      return { success: false, error: "AI returnerte ugyldig format" };
+    }
+    const parsed = JSON.parse(match[0]) as {
+      fiveWhys?: Array<{ step?: number; question?: string; draftAnswer?: string }>;
+      rootCauseConclusion?: string;
+      rootCause?: string;
+      contributingFactors?: string;
+    };
+
+    const rawSteps = Array.isArray(parsed.fiveWhys) ? parsed.fiveWhys : [];
+    const fiveWhys = rawSteps
+      .slice(0, 5)
+      .map((row, idx) => ({
+        step: typeof row?.step === "number" ? row.step : idx + 1,
+        question: String(row?.question ?? "").trim(),
+        draftAnswer: String(row?.draftAnswer ?? "").trim(),
+      }))
+      .filter((row) => row.question.length > 0);
+
+    const conclusion = (parsed.rootCauseConclusion ?? parsed.rootCause ?? "").trim();
+    const contributing = (parsed.contributingFactors ?? "").trim();
+
+    let rootCauseText: string;
+    if (fiveWhys.length > 0) {
+      const numbered = fiveWhys.map((row, idx) => ({ ...row, step: idx + 1 }));
+      rootCauseText = formatFiveWhyDraft(numbered, conclusion);
+    } else {
+      rootCauseText = conclusion;
+    }
+
+    return {
+      success: true,
+      data: {
+        rootCause: rootCauseText,
+        contributingFactors: contributing,
+        fiveWhys:
+          fiveWhys.length > 0
+            ? fiveWhys.map((row, idx) => ({
+                step: idx + 1,
+                question: row.question,
+                draftAnswer: row.draftAnswer,
+              }))
+            : undefined,
+        usedImageCount: visionImages.length,
+      },
+    };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Kunne ikke foreslå grunnårsak" };
   }
 }
 

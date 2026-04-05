@@ -39,6 +39,7 @@ import {
   FolderOpen,
   Plug,
   FileCheck2,
+  Building2,
 } from "lucide-react";
 import { usePermissions } from "@/hooks/use-permissions";
 import { getRoleDisplayName } from "@/lib/permissions";
@@ -86,7 +87,8 @@ const navItems: Array<{
   { href: "/dashboard/time-registration", label: "nav.timeRegistration", icon: Clock, permission: "timeRegistration" as const, simple: true },
   { href: "/dashboard/feedback", label: "nav.feedback", icon: ThumbsUp, permission: "feedback" as const, simple: false },
   { href: "/dashboard/goals", label: "nav.goals", icon: Target, permission: "goals" as const, simple: false },
-  // INNSTILLINGER
+  // ORGANISASJON & INNSTILLINGER
+  { href: "/dashboard/organisasjonskart", label: "nav.orgChart", icon: Building2, permission: "settings" as const, simple: true },
   { href: "/dashboard/settings", label: "nav.settings", icon: Settings, permission: "settings" as const, simple: true },
 ];
 

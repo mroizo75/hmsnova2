@@ -68,6 +68,7 @@ export const DASHBOARD_NAV_CONFIG: DashboardNavItemConfig[] = [
   { href: "/dashboard/construction-compliance", label: "nav.constructionCompliance", permission: "constructionCompliance", defaultSimple: true },
   { href: "/dashboard/whistleblowing", label: "nav.whistleblowing", permission: "whistleblowing", defaultSimple: false },
   { href: "/dashboard/goals", label: "nav.goals", permission: "goals", defaultSimple: false },
+  { href: "/dashboard/organisasjonskart", label: "nav.orgChart", permission: "settings", defaultSimple: true },
   { href: "/dashboard/settings", label: "nav.settings", permission: "settings", defaultSimple: true },
 ];
 

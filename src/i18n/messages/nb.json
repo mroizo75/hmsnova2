@@ -41,6 +41,7 @@
     "whistleblowing": "Varslinger",
     "actions": "Tiltak",
     "goals": "Mål",
+    "orgChart": "Organisasjonskart",
     "settings": "Innstillinger"
   },
   "auth": {
@@ -2615,13 +2616,22 @@
       "investigatedBy": "Utredet av *"
     },
     "placeholders": {
-      "rootCause": "Hva er den underliggende årsaken til at dette skjedde? Bruk 5 Hvorfor-metoden.",
+      "rootCause": "Strukturer gjerne som 5 Hvorfor (spørsmål og svar), deretter konklusjon om grunnårsak — eller bruk AI-knappen for et utkast.",
       "contributingFactors": "Andre faktorer som bidro til hendelsen (f.eks. tidpress, manglende opplæring, dårlig kommunikasjon)",
       "investigatedBy": "Velg ansvarlig for utredning"
     },
     "hints": {
       "rootCause": "Beskriv grunnårsaken, ikke bare symptomet"
     },
+    "aiSuggest": {
+      "button": "Foreslå 5 Hvorfor (AI)",
+      "helper": "Lager utkast til fem «hvorfor»-spørsmål med mulige svar og en konklusjon om grunnårsak.",
+      "loading": "Genererer 5 Hvorfor...",
+      "successTitle": "Forslag lagt inn",
+      "successDescription": "Gjennomgå og tilpass teksten før du lagrer. Bilder brukt som kontekst: {count}.",
+      "error": "Kunne ikke hente AI-forslag"
+    },
+    "aiDisclaimer": "Forslag fra AI erstatter ikke faglig vurdering. Gå gjennom hvert spørsmål og svar i 5 Hvorfor-kjeden, og juster konklusjonen slik at den stemmer med fakta og interne rutiner før lagring.",
     "actions": {
       "saving": "Lagrer...",
       "complete": "Fullfør årsaksanalyse"

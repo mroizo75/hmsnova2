@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { FileText, Download, Edit, Clock, CheckCircle2, AlertCircle, Calendar, User, Tag } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
+import { DocumentSignatureSection } from "@/features/documents/components/document-signature-section";
+import { getPermissions } from "@/lib/permissions";
 
 function formatDate(date: Date | null | undefined, locale: string, fallback: string) {
   if (!date) return fallback;
@@ -91,6 +93,14 @@ export default async function DocumentDetailPage({ params }: { params: Promise<{
         orderBy: { createdAt: "desc" },
         take: 5,
       },
+      signatures: {
+        include: {
+          signedBy: {
+            select: { id: true, name: true, email: true },
+          },
+        },
+        orderBy: [{ role: "asc" }, { signedAt: "asc" }],
+      },
       approvedByUser: {
         select: { name: true, email: true },
       },
@@ -103,6 +113,9 @@ export default async function DocumentDetailPage({ params }: { params: Promise<{
   if (!document) {
     redirect("/dashboard/documents");
   }
+
+  const permissions = getPermissions(selectedMembership.role);
+  const currentUserId = user.id;
 
   return (
     <div className="space-y-6">
@@ -224,6 +237,18 @@ export default async function DocumentDetailPage({ params }: { params: Promise<{
           </div>
         </CardContent>
       </Card>
+
+      {/* Signaturside – IK-HMS § 5 */}
+      <DocumentSignatureSection
+        documentId={document.id}
+        signatures={document.signatures.map((s) => ({
+          ...s,
+          signedAt: s.signedAt.toISOString(),
+        }))}
+        canSign={permissions.canReadDocuments}
+        canApprove={permissions.canApproveDocuments}
+        currentUserId={currentUserId}
+      />
 
       {/* Versjonshistorikk */}
       {document.versions.length > 0 && (

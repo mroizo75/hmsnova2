@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -14,8 +14,10 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { investigateIncident } from "@/server/actions/incident.actions";
+import { suggestIncidentRootCauseAnalysis } from "@/server/actions/ai-assistant.actions";
 import { useToast } from "@/hooks/use-toast";
-import { FileSearch } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { FileSearch, Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 interface InvestigationFormProps {
@@ -28,6 +30,45 @@ export function InvestigationForm({ incidentId, users }: InvestigationFormProps)
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const rootCauseRef = useRef<HTMLTextAreaElement>(null);
+  const contributingFactorsRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleAiSuggest = async () => {
+    setAiLoading(true);
+    try {
+      const result = await suggestIncidentRootCauseAnalysis({ incidentId });
+      if (result.success && result.data) {
+        if (rootCauseRef.current) {
+          rootCauseRef.current.value = result.data.rootCause;
+        }
+        if (contributingFactorsRef.current) {
+          contributingFactorsRef.current.value = result.data.contributingFactors;
+        }
+        toast({
+          title: t("aiSuggest.successTitle"),
+          description: t("aiSuggest.successDescription", {
+            count: result.data.usedImageCount,
+          }),
+          className: "bg-green-50 border-green-200",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: t("toasts.error.title"),
+          description: result.error || t("aiSuggest.error"),
+        });
+      }
+    } catch {
+      toast({
+        variant: "destructive",
+        title: t("toasts.unexpected.title"),
+        description: t("toasts.unexpected.description"),
+      });
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -97,15 +138,35 @@ export function InvestigationForm({ incidentId, users }: InvestigationFormProps)
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="rootCause">{t("fields.rootCause")}</Label>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+              <div className="space-y-1 min-w-0 flex-1">
+                <Label htmlFor="rootCause">{t("fields.rootCause")}</Label>
+                <p className="text-xs text-muted-foreground">{t("aiSuggest.helper")}</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="shrink-0 gap-1.5 sm:mt-6"
+                disabled={loading || aiLoading}
+                onClick={handleAiSuggest}
+              >
+                <Sparkles className="h-4 w-4" />
+                {aiLoading ? t("aiSuggest.loading") : t("aiSuggest.button")}
+              </Button>
+            </div>
             <Textarea
+              ref={rootCauseRef}
               id="rootCause"
               name="rootCause"
               placeholder={t("placeholders.rootCause")}
               required
-              disabled={loading}
+              disabled={loading || aiLoading}
               rows={5}
             />
+            <Alert className="border-muted-foreground/20 bg-muted/30">
+              <AlertDescription>{t("aiDisclaimer")}</AlertDescription>
+            </Alert>
             <p className="text-xs text-muted-foreground">
               {t("hints.rootCause")}
             </p>
@@ -114,17 +175,18 @@ export function InvestigationForm({ incidentId, users }: InvestigationFormProps)
           <div className="space-y-2">
             <Label htmlFor="contributingFactors">{t("fields.contributingFactors")}</Label>
             <Textarea
+              ref={contributingFactorsRef}
               id="contributingFactors"
               name="contributingFactors"
               placeholder={t("placeholders.contributingFactors")}
-              disabled={loading}
+              disabled={loading || aiLoading}
               rows={3}
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="investigatedBy">{t("fields.investigatedBy")}</Label>
-            <Select name="investigatedBy" required disabled={loading}>
+            <Select name="investigatedBy" required disabled={loading || aiLoading}>
               <SelectTrigger>
                 <SelectValue placeholder={t("placeholders.investigatedBy")} />
               </SelectTrigger>
@@ -139,7 +201,7 @@ export function InvestigationForm({ incidentId, users }: InvestigationFormProps)
           </div>
 
           <div className="flex justify-end gap-4">
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || aiLoading}>
               {loading ? t("actions.saving") : t("actions.complete")}
             </Button>
           </div>

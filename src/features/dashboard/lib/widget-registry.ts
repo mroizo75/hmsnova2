@@ -351,9 +351,9 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
   {
     id: "organization",
     label: "Organisasjon",
-    description: "Organisasjonsstruktur og ansatte",
+    description: "Organisasjonskart og hierarki (AML § 3-1)",
     icon: Users,
-    href: "/dashboard/settings",
+    href: "/dashboard/organisasjonskart",
     category: "personal",
     color: "text-blue-600",
     bgColor: "bg-blue-50",

@@ -41,6 +41,7 @@
     "whistleblowing": "Whistleblowing",
     "actions": "Actions",
     "goals": "Goals",
+    "orgChart": "Organization Chart",
     "settings": "Settings"
   },
   "auth": {
@@ -2615,13 +2616,22 @@
       "investigatedBy": "Investigated by *"
     },
     "placeholders": {
-      "rootCause": "What is the underlying cause of this? Use the 5 Whys method.",
+      "rootCause": "Structure as five whys (Q&A), then a root-cause conclusion — or use the AI button for a draft.",
       "contributingFactors": "Other factors that contributed to the event (e.g. time pressure, lack of training, poor communication)",
       "investigatedBy": "Select person responsible for investigation"
     },
     "hints": {
       "rootCause": "Describe the root cause, not only the symptom"
     },
+    "aiSuggest": {
+      "button": "Suggest 5 Whys (AI)",
+      "helper": "Drafts five “why” questions with possible answers and a root-cause conclusion.",
+      "loading": "Generating 5 Whys...",
+      "successTitle": "Suggestion inserted",
+      "successDescription": "Review and adjust the text before saving. Images used as context: {count}.",
+      "error": "Could not fetch AI suggestion"
+    },
+    "aiDisclaimer": "AI suggestions do not replace professional judgement. Review each step in the 5 Whys chain and adjust the conclusion so it matches the facts and internal procedures before saving.",
     "actions": {
       "saving": "Saving...",
       "complete": "Complete root cause analysis"
