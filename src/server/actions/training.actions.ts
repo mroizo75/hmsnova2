@@ -73,6 +73,21 @@ export async function createTraining(input: any) {
       completedAt: input.completedAt ? new Date(input.completedAt) : undefined,
       validUntil: input.validUntil ? new Date(input.validUntil) : undefined,
     });
+
+    const duplicate = await prisma.training.findFirst({
+      where: {
+        tenantId,
+        userId: validated.userId,
+        courseKey: validated.courseKey,
+        completedAt: validated.completedAt ?? undefined,
+      },
+    });
+    if (duplicate) {
+      return {
+        success: false,
+        error: `Denne ansatte har allerede kurset "${validated.title}" registrert med samme gjennomføringsdato.`,
+      };
+    }
     
     const training = await prisma.training.create({
       data: {

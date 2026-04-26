@@ -47,7 +47,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
   }
   const tenantId = selectedMembership.tenantId;
 
-  const incident = await prisma.incident.findUnique({
+  const rawIncident = await prisma.incident.findUnique({
     where: { id, tenantId },
     include: {
       measures: {
@@ -73,9 +73,12 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
     },
   });
 
-  if (!incident) {
+  if (!rawIncident) {
     return <div>{t("errors.notFound")}</div>;
   }
+
+  // Prisma Decimal → plain number via JSON round-trip
+  const incident = JSON.parse(JSON.stringify(rawIncident)) as typeof rawIncident;
 
   const parsedSubcategoryKeys = (() => {
     if (!incident.subcategoryKeys) return [] as string[];
@@ -375,6 +378,13 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
               currentIsLostTimeIncident={incident.isLostTimeIncident}
               currentLostWorkdays={incident.lostWorkdays}
               currentIsRestrictedWork={incident.isRestrictedWork}
+              currentIsFirstAidCase={incident.isFirstAidCase}
+              currentIsProductionStop={incident.isProductionStop}
+              currentProductionStopHours={incident.productionStopHours ? Number(incident.productionStopHours) : null}
+              currentIsPropertyDamage={incident.isPropertyDamage}
+              currentEstimatedDamageCost={incident.estimatedDamageCost ? Number(incident.estimatedDamageCost) : null}
+              currentIsEnvironmentalRelease={incident.isEnvironmentalRelease}
+              currentEnvironmentalDescription={incident.environmentalDescription}
               currentSource={incident.source ?? "INTERNAL"}
               users={tenantUsers}
               projects={tenantProjects}

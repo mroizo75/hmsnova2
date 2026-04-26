@@ -46,32 +46,55 @@ export function TrainingForm({ tenantId, users, courseTemplates, trigger, open: 
   const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
+  const uploadCertificate = async (file: File): Promise<string | null> => {
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch("/api/training/upload", { method: "POST", body: fd });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.key ?? null;
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const data = {
-      tenantId,
-      userId: formData.get("userId") as string,
-      courseKey: formData.get("courseKey") as string,
-      title: formData.get("title") as string,
-      provider: formData.get("provider") as string,
-      completedAt: formData.get("completedAt") as string || undefined,
-      validUntil: formData.get("validUntil") as string || undefined,
-      isRequired: formData.get("isRequired") === "true",
-    };
 
     try {
-      // TODO: Last opp sertifikat til R2 hvis fil er valgt
-      // const proofDocKey = selectedFile ? await uploadCertificate(selectedFile) : undefined;
+      let proofDocKey: string | undefined;
+      if (selectedFile) {
+        const key = await uploadCertificate(selectedFile);
+        if (!key) {
+          toast({
+            variant: "destructive",
+            title: "Opplasting feilet",
+            description: "Kunne ikke laste opp sertifikatet. Prøv igjen.",
+          });
+          setLoading(false);
+          return;
+        }
+        proofDocKey = key;
+      }
+
+      const data = {
+        tenantId,
+        userId: formData.get("userId") as string,
+        courseKey: formData.get("courseKey") as string,
+        title: formData.get("title") as string,
+        provider: formData.get("provider") as string,
+        completedAt: formData.get("completedAt") as string || undefined,
+        validUntil: formData.get("validUntil") as string || undefined,
+        isRequired: formData.get("isRequired") === "true",
+        proofDocKey,
+      };
 
       const result = await createTraining(data);
 
       if (result.success) {
         toast({
-          title: "✅ Opplæring registrert",
-          description: "Kompetansen er dokumentert i systemet",
+          title: "Kompetanse registrert",
+          description: "Kurset er dokumentert i systemet",
           className: "bg-green-50 border-green-200",
         });
         setOpen(false);
@@ -148,6 +171,16 @@ export function TrainingForm({ tenantId, users, courseTemplates, trigger, open: 
                     const form = document.querySelector("form") as HTMLFormElement;
                     const titleInput = form?.querySelector('[name="title"]') as HTMLInputElement;
                     if (titleInput) titleInput.value = course.title;
+                    const providerInput = form?.querySelector('[name="provider"]') as HTMLInputElement;
+                    if (providerInput && course.provider) providerInput.value = course.provider;
+                    if (course.validityYears) {
+                      const completedInput = form?.querySelector('[name="completedAt"]') as HTMLInputElement;
+                      const baseDate = completedInput?.value ? new Date(completedInput.value) : new Date();
+                      const validDate = new Date(baseDate);
+                      validDate.setFullYear(validDate.getFullYear() + course.validityYears);
+                      const validInput = form?.querySelector('[name="validUntil"]') as HTMLInputElement;
+                      if (validInput) validInput.value = validDate.toISOString().split("T")[0];
+                    }
                   }
                 }}
               >

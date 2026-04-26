@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { IncidentTabs } from "@/features/incidents/components/incident-tabs";
 import { UploadIncidentDialog } from "@/features/incidents/components/upload-incident-dialog";
-import { Plus, AlertCircle, Clock, CheckCircle, FileSearch } from "lucide-react";
+import { Plus, AlertCircle, Clock, CheckCircle, ShieldAlert, FileWarning } from "lucide-react";
 import Link from "next/link";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
 import { helpContent } from "@/lib/help-content";
@@ -37,7 +37,7 @@ export default async function IncidentsPage() {
   }
   const tenantId = selectedMembership.tenantId;
 
-  const incidents = await prisma.incident.findMany({
+  const rawIncidents = await prisma.incident.findMany({
     where: { tenantId },
     include: {
       measures: true,
@@ -51,9 +51,13 @@ export default async function IncidentsPage() {
     },
     orderBy: { occurredAt: "desc" },
   });
+  const incidents = JSON.parse(JSON.stringify(rawIncidents)) as typeof rawIncidents;
 
+  const RUH_TYPES = new Set(["ULYKKE", "NESTEN", "FARLIG_SITUASJON", "YRKESSYKDOM"]);
   const stats = {
     total: incidents.length,
+    avvik: incidents.filter(i => !RUH_TYPES.has(i.type)).length,
+    ruh: incidents.filter(i => RUH_TYPES.has(i.type)).length,
     open: incidents.filter(i => i.status === "OPEN").length,
     investigating: incidents.filter(i => i.status === "INVESTIGATING").length,
     actionTaken: incidents.filter(i => i.status === "ACTION_TAKEN").length,
@@ -83,7 +87,7 @@ export default async function IncidentsPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{t("stats.total.title")}</CardTitle>
@@ -95,6 +99,28 @@ export default async function IncidentsPage() {
           </CardContent>
         </Card>
 
+        <Card className="border-l-4 border-l-blue-400">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">{t("stats.avvik.title")}</CardTitle>
+            <FileWarning className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{stats.avvik}</div>
+            <p className="text-xs text-muted-foreground">{t("stats.avvik.description")}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-orange-400">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">{t("stats.ruh.title")}</CardTitle>
+            <ShieldAlert className="h-4 w-4 text-orange-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">{stats.ruh}</div>
+            <p className="text-xs text-muted-foreground">{t("stats.ruh.description")}</p>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{t("stats.open.title")}</CardTitle>
@@ -103,24 +129,6 @@ export default async function IncidentsPage() {
           <CardContent>
             <div className="text-2xl font-bold text-red-600">{stats.open}</div>
             <p className="text-xs text-muted-foreground">{t("stats.open.description")}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t("stats.inProgress.title")}</CardTitle>
-            <FileSearch className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
-              {stats.investigating + stats.actionTaken}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {t("stats.inProgress.description", {
-                investigating: stats.investigating,
-                actionTaken: stats.actionTaken,
-              })}
-            </p>
           </CardContent>
         </Card>
 

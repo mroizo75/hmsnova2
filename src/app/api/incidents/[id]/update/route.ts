@@ -115,6 +115,16 @@ export async function PUT(
     const isLostTimeIncident = parseBoolean(body.isLostTimeIncident);
     const isRestrictedWork = parseBoolean(body.isRestrictedWork);
     const lostWorkdays = parseNullableNumber(body.lostWorkdays);
+    const isFirstAidCase = parseBoolean(body.isFirstAidCase);
+    const isProductionStop = parseBoolean(body.isProductionStop);
+    const productionStopHours = parseNullableNumber(body.productionStopHours);
+    const isPropertyDamage = parseBoolean(body.isPropertyDamage);
+    const estimatedDamageCost = parseNullableNumber(body.estimatedDamageCost);
+    const isEnvironmentalRelease = parseBoolean(body.isEnvironmentalRelease);
+    const environmentalDescription =
+      typeof body.environmentalDescription === "string"
+        ? body.environmentalDescription.trim() || null
+        : undefined;
 
     const requiresHseCompletion = status && status !== "OPEN";
     if (requiresHseCompletion) {
@@ -184,6 +194,28 @@ export async function PUT(
             ? undefined
             : isLostTimeIncident
               ? lostWorkdays
+              : null,
+        isFirstAidCase: isFirstAidCase === undefined ? undefined : isFirstAidCase,
+        isProductionStop: isProductionStop === undefined ? undefined : isProductionStop,
+        productionStopHours:
+          productionStopHours === undefined
+            ? undefined
+            : isProductionStop
+              ? productionStopHours
+              : null,
+        isPropertyDamage: isPropertyDamage === undefined ? undefined : isPropertyDamage,
+        estimatedDamageCost:
+          estimatedDamageCost === undefined
+            ? undefined
+            : isPropertyDamage
+              ? estimatedDamageCost
+              : null,
+        isEnvironmentalRelease: isEnvironmentalRelease === undefined ? undefined : isEnvironmentalRelease,
+        environmentalDescription:
+          environmentalDescription === undefined
+            ? undefined
+            : isEnvironmentalRelease
+              ? environmentalDescription
               : null,
         source: source ?? undefined,
       },

@@ -30,6 +30,13 @@ interface IncidentTreatmentFormProps {
   currentIsLostTimeIncident: boolean;
   currentLostWorkdays: number | null;
   currentIsRestrictedWork: boolean;
+  currentIsFirstAidCase: boolean;
+  currentIsProductionStop: boolean;
+  currentProductionStopHours: number | null;
+  currentIsPropertyDamage: boolean;
+  currentEstimatedDamageCost: number | null;
+  currentIsEnvironmentalRelease: boolean;
+  currentEnvironmentalDescription: string | null;
   currentSource: string;
   users: Array<{ id: string; name: string | null; email: string }>;
   projects: Array<{ id: string; name: string; code: string | null; status: string }>;
@@ -50,6 +57,13 @@ export function IncidentTreatmentForm({
   currentIsLostTimeIncident,
   currentLostWorkdays,
   currentIsRestrictedWork,
+  currentIsFirstAidCase,
+  currentIsProductionStop,
+  currentProductionStopHours,
+  currentIsPropertyDamage,
+  currentEstimatedDamageCost,
+  currentIsEnvironmentalRelease,
+  currentEnvironmentalDescription,
   currentSource,
   users,
   projects,
@@ -75,6 +89,19 @@ export function IncidentTreatmentForm({
     typeof currentLostWorkdays === "number" ? currentLostWorkdays.toString() : ""
   );
   const [isRestrictedWork, setIsRestrictedWork] = useState(currentIsRestrictedWork);
+  const [isFirstAidCase, setIsFirstAidCase] = useState(currentIsFirstAidCase);
+  const [isProductionStop, setIsProductionStop] = useState(currentIsProductionStop);
+  const [productionStopHours, setProductionStopHours] = useState(
+    typeof currentProductionStopHours === "number" ? currentProductionStopHours.toString() : ""
+  );
+  const [isPropertyDamage, setIsPropertyDamage] = useState(currentIsPropertyDamage);
+  const [estimatedDamageCost, setEstimatedDamageCost] = useState(
+    typeof currentEstimatedDamageCost === "number" ? currentEstimatedDamageCost.toString() : ""
+  );
+  const [isEnvironmentalRelease, setIsEnvironmentalRelease] = useState(currentIsEnvironmentalRelease);
+  const [environmentalDescription, setEnvironmentalDescription] = useState(
+    currentEnvironmentalDescription ?? ""
+  );
   const requiresHseCompletion = status !== "OPEN";
   const lostWorkdaysValue = lostWorkdays.trim();
   const isLostWorkdaysInvalid =
@@ -164,6 +191,13 @@ export function IncidentTreatmentForm({
           isLostTimeIncident,
           lostWorkdays: lostWorkdaysValue.length > 0 ? parseInt(lostWorkdaysValue, 10) : null,
           isRestrictedWork,
+          isFirstAidCase,
+          isProductionStop,
+          productionStopHours: productionStopHours.trim().length > 0 ? parseFloat(productionStopHours) : null,
+          isPropertyDamage,
+          estimatedDamageCost: estimatedDamageCost.trim().length > 0 ? parseFloat(estimatedDamageCost) : null,
+          isEnvironmentalRelease,
+          environmentalDescription: environmentalDescription.trim() || null,
           source,
         }),
       });
@@ -202,6 +236,13 @@ export function IncidentTreatmentForm({
     isLostTimeIncident !== currentIsLostTimeIncident ||
     lostWorkdays !== (typeof currentLostWorkdays === "number" ? currentLostWorkdays.toString() : "") ||
     isRestrictedWork !== currentIsRestrictedWork ||
+    isFirstAidCase !== currentIsFirstAidCase ||
+    isProductionStop !== currentIsProductionStop ||
+    productionStopHours !== (typeof currentProductionStopHours === "number" ? currentProductionStopHours.toString() : "") ||
+    isPropertyDamage !== currentIsPropertyDamage ||
+    estimatedDamageCost !== (typeof currentEstimatedDamageCost === "number" ? currentEstimatedDamageCost.toString() : "") ||
+    isEnvironmentalRelease !== currentIsEnvironmentalRelease ||
+    environmentalDescription !== (currentEnvironmentalDescription ?? "") ||
     source !== (currentSource || "INTERNAL");
 
   return (
@@ -342,9 +383,9 @@ export function IncidentTreatmentForm({
 
       <div className="rounded-lg border p-4 space-y-4">
         <div>
-          <Label className="block">HSE-statistikk</Label>
+          <Label className="block font-semibold">HSE-statistikk (TRIR)</Label>
           <p className="text-xs text-muted-foreground mt-1">
-            Ved behandling (status ulik "Aapen") skal HSE-felter fylles ut.
+            Klassifiser hendelsen for HMS-rapportering. Ved behandling (status ulik &quot;Åpen&quot;) skal HSE-felter fylles ut.
           </p>
         </div>
 
@@ -354,7 +395,7 @@ export function IncidentTreatmentForm({
               checked={isFatal}
               onCheckedChange={(checked) => setIsFatal(!!checked)}
             />
-            <span className="text-sm">Doedsfall</span>
+            <span className="text-sm">Dødsfall</span>
           </label>
           <label className="flex items-center gap-2">
             <Checkbox
@@ -374,7 +415,7 @@ export function IncidentTreatmentForm({
                 }
               }}
             />
-            <span className="text-sm">Fravaersskade (LTI)</span>
+            <span className="text-sm">Fraværsskade (LTI)</span>
           </label>
           <label className="flex items-center gap-2">
             <Checkbox
@@ -383,10 +424,17 @@ export function IncidentTreatmentForm({
             />
             <span className="text-sm">Begrenset arbeid</span>
           </label>
+          <label className="flex items-center gap-2">
+            <Checkbox
+              checked={isFirstAidCase}
+              onCheckedChange={(checked) => setIsFirstAidCase(!!checked)}
+            />
+            <span className="text-sm">Førstehjelp gitt</span>
+          </label>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="lostWorkdays">Fravaersdager</Label>
+          <Label htmlFor="lostWorkdays">Fraværsdager</Label>
           <Input
             id="lostWorkdays"
             type="number"
@@ -394,14 +442,100 @@ export function IncidentTreatmentForm({
             value={lostWorkdays}
             onChange={(event) => setLostWorkdays(event.target.value)}
             disabled={!isLostTimeIncident}
-            placeholder="Antall fravaersdager"
+            placeholder="Antall fraværsdager"
           />
           {isLostWorkdaysInvalid && (
             <p className="text-xs text-red-600">
-              Fravaersdager ma fylles ut naar fravaersskade er valgt.
+              Fraværsdager må fylles ut når fraværsskade er valgt.
             </p>
           )}
         </div>
+      </div>
+
+      <div className="rounded-lg border p-4 space-y-4">
+        <div>
+          <Label className="block font-semibold">Produksjon og materiell</Label>
+          <p className="text-xs text-muted-foreground mt-1">
+            Registrer eventuelle konsekvenser for produksjon, utstyr eller miljø.
+          </p>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <label className="flex items-center gap-2">
+            <Checkbox
+              checked={isProductionStop}
+              onCheckedChange={(checked) => {
+                const nextValue = !!checked;
+                setIsProductionStop(nextValue);
+                if (!nextValue) setProductionStopHours("");
+              }}
+            />
+            <span className="text-sm">Produksjonsstopp</span>
+          </label>
+          <label className="flex items-center gap-2">
+            <Checkbox
+              checked={isPropertyDamage}
+              onCheckedChange={(checked) => {
+                const nextValue = !!checked;
+                setIsPropertyDamage(nextValue);
+                if (!nextValue) setEstimatedDamageCost("");
+              }}
+            />
+            <span className="text-sm">Materiell skade</span>
+          </label>
+          <label className="flex items-center gap-2">
+            <Checkbox
+              checked={isEnvironmentalRelease}
+              onCheckedChange={(checked) => {
+                const nextValue = !!checked;
+                setIsEnvironmentalRelease(nextValue);
+                if (!nextValue) setEnvironmentalDescription("");
+              }}
+            />
+            <span className="text-sm">Miljøutslipp</span>
+          </label>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="productionStopHours">Timer produksjonsstopp</Label>
+            <Input
+              id="productionStopHours"
+              type="number"
+              min={0}
+              step={0.5}
+              value={productionStopHours}
+              onChange={(event) => setProductionStopHours(event.target.value)}
+              disabled={!isProductionStop}
+              placeholder="F.eks. 4.5"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="estimatedDamageCost">Estimert skadekostnad (NOK)</Label>
+            <Input
+              id="estimatedDamageCost"
+              type="number"
+              min={0}
+              step={100}
+              value={estimatedDamageCost}
+              onChange={(event) => setEstimatedDamageCost(event.target.value)}
+              disabled={!isPropertyDamage}
+              placeholder="F.eks. 50000"
+            />
+          </div>
+        </div>
+
+        {isEnvironmentalRelease && (
+          <div className="space-y-2">
+            <Label htmlFor="environmentalDescription">Beskrivelse av miljøutslipp</Label>
+            <Input
+              id="environmentalDescription"
+              value={environmentalDescription}
+              onChange={(event) => setEnvironmentalDescription(event.target.value)}
+              placeholder="Type utslipp, mengde, og konsekvens"
+            />
+          </div>
+        )}
       </div>
 
       {hasChanges && (

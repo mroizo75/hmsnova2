@@ -31,7 +31,7 @@
     "complaints": "Kundeklager",
     "feedback": "Tilbakemeldinger",
     "bcm": "Beredskap",
-    "training": "Opplæring",
+    "training": "Kompetanse",
     "audits": "Revisjoner",
     "managementReviews": "Ledelsens gjennomgang",
     "annualHmsPlan": "Årlig HMS-plan",
@@ -229,12 +229,16 @@
       }
     },
     "fields": {
+      "mainCategory": {
+        "label": "Hva vil du rapportere? *",
+        "avvik": "Avvik",
+        "avvikDesc": "Avvik fra prosedyrer, kvalitet, miljø eller kundeklage",
+        "ruh": "RUH",
+        "ruhDesc": "Rapport om uønsket hendelse, ulykke eller nestenulykke"
+      },
       "type": {
-        "label": "Type hendelse *",
-        "placeholder": "Velg type",
-        "groupHms": "HMS / Personskade",
-        "groupDeviation": "Avvik / Kvalitet",
-        "groupOther": "Annet"
+        "label": "Type *",
+        "placeholder": "Velg type"
       },
       "severity": {
         "label": "Alvorlighetsgrad *",
@@ -1868,25 +1872,16 @@
         "none": "— Ikke prosjektrelatert —",
         "help": "Er avviket knyttet til et bestemt prosjekt eller oppdrag?"
       },
-      "incidentContext": {
-        "label": "Hendelseskontekst *",
-        "placeholder": "Velg kontekst",
-        "options": {
-          "general": "Generell hendelse",
-          "homeVisitRisk": "Hjemmebesøk - risikosituasjon",
-          "infectionExposure": "Smitteeksponering",
-          "medicationNearMiss": "Nesten-feil medikament",
-          "violenceThreat": "Vold eller trusler"
-        }
+      "mainCategory": {
+        "label": "Hva vil du rapportere? *",
+        "avvik": "Avvik",
+        "avvikDesc": "Avvik fra prosedyrer, kvalitet, miljø eller kundeklage",
+        "ruh": "RUH",
+        "ruhDesc": "Rapport om uønsket hendelse, ulykke eller nestenulykke"
       },
       "type": {
-        "label": "Type hendelse *",
-        "placeholder": "Velg type",
-        "groups": {
-          "hms": "HMS / Personskade",
-          "avvik": "Avvik / Kvalitet",
-          "other": "Annet"
-        }
+        "label": "Type *",
+        "placeholder": "Velg type"
       },
       "subcategories": {
         "label": "Hva hendelsen dreier seg om",
@@ -1909,7 +1904,8 @@
         "label": "Når skjedde det? *"
       },
       "title": {
-        "label": "Kort beskrivelse *"
+        "label": "Kort beskrivelse *",
+        "placeholder": "F.eks: Våt gulv uten varsling"
       },
       "location": {
         "label": "Hvor skjedde det? *",
@@ -2402,19 +2398,23 @@
     "stats": {
       "total": {
         "title": "Totalt",
-        "description": "Registrerte avvik"
+        "description": "Registrerte avvik og RUH"
+      },
+      "avvik": {
+        "title": "Avvik",
+        "description": "Prosedyre, kvalitet, miljø"
+      },
+      "ruh": {
+        "title": "RUH",
+        "description": "Uønskede hendelser"
       },
       "open": {
         "title": "Åpne",
         "description": "Venter på utredning"
       },
-      "inProgress": {
-        "title": "Under håndtering",
-        "description": "{investigating} utredning, {actionTaken} tiltak"
-      },
       "closed": {
         "title": "Lukket",
-        "description": "Avsluttede avvik"
+        "description": "Avsluttede saker"
       }
     },
     "allIncidents": "Alle avvik",
@@ -2443,7 +2443,8 @@
     "risk": "Risiko",
     "table": {
       "number": "Nr",
-      "incident": "Avvik",
+      "incident": "Sak",
+      "category": "Kategori",
       "type": "Type",
       "severity": "Alvorlighet",
       "stage": "Steg",
@@ -2452,6 +2453,9 @@
       "status": "Status",
       "measures": "Tiltak",
       "actions": "Handlinger"
+    },
+    "categoryLabel": {
+      "avvik": "Avvik"
     },
     "actions": {
       "viewDetails": "Se detaljer"
@@ -2503,6 +2507,11 @@
       "deadline": "Frist {date}"
     },
     "measuresLabel": "Tiltak: {completed}/{total}",
+    "pagination": {
+      "show": "Vis",
+      "of": "av {total} saker",
+      "page": "Side {current} av {total}"
+    },
     "toasts": {
       "deleted": {
         "title": "🗑️ Avvik slettet",
@@ -3127,8 +3136,8 @@
   },
   "dashboardTrainingPage": {
     "noTenantAccess": "Ingen tilgang til tenant",
-    "title": "Opplæring og kompetanse",
-    "description": "ISO 9001 - 7.2: Dokumenter og følg opp kompetanse",
+    "title": "Kompetanse",
+    "description": "Oversikt og oppfølging av ansattes kompetanse, kurs og sertifiseringer",
     "stats": {
       "total": {
         "title": "Totalt",
@@ -3151,7 +3160,18 @@
         "title": "Evaluert",
         "percentOfCompleted": "{percent}% av fullført",
         "zero": "0% av fullført"
+      },
+      "employeesWithGaps": {
+        "title": "Mangler kurs",
+        "description": "av {total} ansatte mangler obligatoriske kurs"
       }
+    },
+    "expiryAlerts": {
+      "title": "Kompetanse som utløper",
+      "description": "Kurs som er utløpt eller utløper innen 30 dager og bør fornyes.",
+      "unknownEmployee": "Ukjent ansatt",
+      "expired": "Utløpt",
+      "daysLeft": "{days} dager igjen"
     },
     "iso": {
       "title": "📋 ISO 9001 - 7.2 Kompetanse",
@@ -3183,8 +3203,8 @@
       "daysLeft": "{days} dager igjen"
     },
     "list": {
-      "title": "Alle opplæringer",
-      "description": "Oversikt over registrert kompetanse for alle ansatte"
+      "title": "Kompetanseoversikt",
+      "description": "Registrert kompetanse, kurs og sertifiseringer for alle ansatte"
     }
   },
   "dashboardProjectsPage": {

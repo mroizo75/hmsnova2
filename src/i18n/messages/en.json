@@ -31,7 +31,7 @@
     "complaints": "Customer Complaints",
     "feedback": "Feedback",
     "bcm": "Emergency Preparedness",
-    "training": "Training",
+    "training": "Competence",
     "audits": "Audits",
     "managementReviews": "Management Reviews",
     "annualHmsPlan": "Annual H&S Plan",
@@ -229,12 +229,16 @@
       }
     },
     "fields": {
+      "mainCategory": {
+        "label": "What do you want to report? *",
+        "avvik": "Deviation",
+        "avvikDesc": "Deviation from procedures, quality, environment, or customer complaint",
+        "ruh": "RUH",
+        "ruhDesc": "Report of unwanted incident, accident, or near miss"
+      },
       "type": {
-        "label": "Incident type *",
-        "placeholder": "Select type",
-        "groupHms": "HSE / Personal injury",
-        "groupDeviation": "Deviation / Quality",
-        "groupOther": "Other"
+        "label": "Type *",
+        "placeholder": "Select type"
       },
       "severity": {
         "label": "Severity *",
@@ -1868,25 +1872,16 @@
         "none": "- Not project-related -",
         "help": "Is the incident related to a specific project or assignment?"
       },
-      "incidentContext": {
-        "label": "Incident context *",
-        "placeholder": "Select context",
-        "options": {
-          "general": "General incident",
-          "homeVisitRisk": "Home visit - risk situation",
-          "infectionExposure": "Infection exposure",
-          "medicationNearMiss": "Medication near miss",
-          "violenceThreat": "Violence or threats"
-        }
+      "mainCategory": {
+        "label": "What do you want to report? *",
+        "avvik": "Deviation",
+        "avvikDesc": "Deviation from procedures, quality, environment, or customer complaint",
+        "ruh": "RUH",
+        "ruhDesc": "Report of unwanted incident, accident, or near miss"
       },
       "type": {
-        "label": "Incident type *",
-        "placeholder": "Select type",
-        "groups": {
-          "hms": "HSE / Personal injury",
-          "avvik": "Incident / Quality",
-          "other": "Other"
-        }
+        "label": "Type *",
+        "placeholder": "Select type"
       },
       "subcategories": {
         "label": "What the incident is about",
@@ -1909,7 +1904,8 @@
         "label": "When did it happen? *"
       },
       "title": {
-        "label": "Short description *"
+        "label": "Short description *",
+        "placeholder": "E.g.: Wet floor without warning"
       },
       "location": {
         "label": "Where did it happen? *",
@@ -2402,19 +2398,23 @@
     "stats": {
       "total": {
         "title": "Total",
-        "description": "Registered deviations"
+        "description": "Registered deviations and RUH"
+      },
+      "avvik": {
+        "title": "Deviations",
+        "description": "Procedure, quality, environment"
+      },
+      "ruh": {
+        "title": "RUH",
+        "description": "Unwanted incidents"
       },
       "open": {
         "title": "Open",
         "description": "Awaiting investigation"
       },
-      "inProgress": {
-        "title": "In progress",
-        "description": "{investigating} investigating, {actionTaken} actions"
-      },
       "closed": {
         "title": "Closed",
-        "description": "Closed deviations"
+        "description": "Closed cases"
       }
     },
     "allIncidents": "All deviations",
@@ -2443,7 +2443,8 @@
     "risk": "Risk",
     "table": {
       "number": "No.",
-      "incident": "Incident",
+      "incident": "Case",
+      "category": "Category",
       "type": "Type",
       "severity": "Severity",
       "stage": "Stage",
@@ -2452,6 +2453,9 @@
       "status": "Status",
       "measures": "Measures",
       "actions": "Actions"
+    },
+    "categoryLabel": {
+      "avvik": "Deviation"
     },
     "actions": {
       "viewDetails": "View details"
@@ -2503,6 +2507,11 @@
       "deadline": "Deadline {date}"
     },
     "measuresLabel": "Measures: {completed}/{total}",
+    "pagination": {
+      "show": "Show",
+      "of": "of {total} cases",
+      "page": "Page {current} of {total}"
+    },
     "toasts": {
       "deleted": {
         "title": "🗑️ Incident deleted",
@@ -3127,8 +3136,8 @@
   },
   "dashboardTrainingPage": {
     "noTenantAccess": "No tenant access",
-    "title": "Training and competence",
-    "description": "ISO 9001 - 7.2: Document and follow up competence",
+    "title": "Competence",
+    "description": "Overview and follow-up of employee competence, courses and certifications",
     "stats": {
       "total": {
         "title": "Total",
@@ -3151,7 +3160,18 @@
         "title": "Evaluated",
         "percentOfCompleted": "{percent}% of completed",
         "zero": "0% of completed"
+      },
+      "employeesWithGaps": {
+        "title": "Missing courses",
+        "description": "of {total} employees are missing required courses"
       }
+    },
+    "expiryAlerts": {
+      "title": "Competence expiring",
+      "description": "Courses that are expired or will expire within 30 days and should be renewed.",
+      "unknownEmployee": "Unknown employee",
+      "expired": "Expired",
+      "daysLeft": "{days} days left"
     },
     "iso": {
       "title": "📋 ISO 9001 - 7.2 Competence",
@@ -3183,8 +3203,8 @@
       "daysLeft": "{days} days left"
     },
     "list": {
-      "title": "All trainings",
-      "description": "Overview of registered competence for all employees"
+      "title": "Competence overview",
+      "description": "Registered competence, courses and certifications for all employees"
     }
   },
   "dashboardProjectsPage": {

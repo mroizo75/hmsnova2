@@ -1,10 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -13,33 +20,51 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Eye, Trash2, Calendar } from "lucide-react";
+import { Eye, Trash2, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { deleteIncident } from "@/server/actions/incident.actions";
 import {
   getIncidentTypeColor,
   getSeverityInfo,
   getIncidentStatusColor,
+  getMainCategory,
+  getMainCategoryColor,
 } from "@/features/incidents/schemas/incident.schema";
 import { useToast } from "@/hooks/use-toast";
 import type { Incident, Measure } from "@prisma/client";
 import { useLocale, useTranslations } from "next-intl";
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50] as const;
+
 interface IncidentListProps {
   incidents: (Incident & { measures: Measure[]; risk?: { id: string; title: string; category: string | null } | null })[];
-  sourceFilter?: "ALL" | "INTERNAL" | "EXTERNAL";
 }
 
-export function IncidentList({ incidents, sourceFilter = "ALL" }: IncidentListProps) {
+export function IncidentList({ incidents }: IncidentListProps) {
   const t = useTranslations("dashboardIncidentList");
   const locale = useLocale();
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(10);
 
-  const filteredIncidents = sourceFilter === "ALL"
-    ? incidents
-    : incidents.filter((i) => (i.source ?? "INTERNAL") === sourceFilter);
+  const totalPages = Math.max(1, Math.ceil(incidents.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedIncidents = useMemo(() => {
+    const start = (safeCurrentPage - 1) * pageSize;
+    return incidents.slice(start, start + pageSize);
+  }, [incidents, safeCurrentPage, pageSize]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [incidents]);
+
+  function handlePageSizeChange(value: string) {
+    setPageSize(Number(value));
+    setCurrentPage(1);
+  }
 
   const handleDelete = async (id: string, title: string) => {
     if (!confirm(t("confirmDelete", { title }))) {
@@ -82,7 +107,7 @@ export function IncidentList({ incidents, sourceFilter = "ALL" }: IncidentListPr
     VERIFIED: "bg-emerald-100 text-emerald-800 border-emerald-300",
   };
 
-  if (filteredIncidents.length === 0) {
+  if (incidents.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
         <p>{t("empty")}</p>
@@ -99,9 +124,9 @@ export function IncidentList({ incidents, sourceFilter = "ALL" }: IncidentListPr
           <TableRow>
             <TableHead className="w-[100px]">{t("table.number")}</TableHead>
             <TableHead>{t("table.incident")}</TableHead>
+            <TableHead>{t("table.category")}</TableHead>
             <TableHead>{t("table.type")}</TableHead>
             <TableHead className="text-center">{t("table.severity")}</TableHead>
-            <TableHead>Kilde</TableHead>
             <TableHead>{t("table.stage")}</TableHead>
             <TableHead>{t("table.date")}</TableHead>
             <TableHead>{t("table.status")}</TableHead>
@@ -110,7 +135,9 @@ export function IncidentList({ incidents, sourceFilter = "ALL" }: IncidentListPr
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredIncidents.map((incident) => {
+          {paginatedIncidents.map((incident) => {
+            const mainCategory = getMainCategory(incident.type);
+            const categoryColor = getMainCategoryColor(mainCategory);
             const typeLabel = t(`types.${incident.type}`);
             const typeColor = getIncidentTypeColor(incident.type);
             const { bgColor: severityColor, textColor: severityTextColor } = getSeverityInfo(incident.severity);
@@ -138,38 +165,19 @@ export function IncidentList({ incidents, sourceFilter = "ALL" }: IncidentListPr
                         {t("risk")}: {incident.risk.title}
                       </div>
                     )}
-                {incident.type === "CUSTOMER" && (
-                  <div className="text-xs text-purple-800 space-y-1">
-                    <div>{t("customer.label")}: {incident.customerName || t("customer.unknown")}</div>
-                    {(incident.customerEmail || incident.customerPhone) && (
-                      <div>
-                        {incident.customerEmail && <span>{incident.customerEmail}</span>}
-                        {incident.customerEmail && incident.customerPhone && " · "}
-                        {incident.customerPhone}
-                      </div>
-                    )}
-                    {typeof incident.customerSatisfaction === "number" && (
-                      <div>{t("customer.satisfaction", { value: incident.customerSatisfaction })}</div>
-                    )}
-                    {incident.responseDeadline && (
-                      <div>{t("customer.deadline", { date: formatDate(incident.responseDeadline) })}</div>
-                    )}
-                  </div>
-                )}
                     {incident.type === "CUSTOMER" && (
                       <div className="text-xs text-purple-800 space-x-1 mt-1">
                         <span>{t("customer.label")}: {incident.customerName || t("customer.unknown")}</span>
                         {incident.customerEmail && <span>• {incident.customerEmail}</span>}
                         {incident.customerPhone && <span>• {incident.customerPhone}</span>}
-                        {typeof incident.customerSatisfaction === "number" && (
-                          <span>• {t("customer.satisfaction", { value: incident.customerSatisfaction })}</span>
-                        )}
-                        {incident.responseDeadline && (
-                          <span>• {t("customer.deadline", { date: formatDate(incident.responseDeadline) })}</span>
-                        )}
                       </div>
                     )}
                   </div>
+                </TableCell>
+                <TableCell>
+                  <Badge className={categoryColor}>
+                    {mainCategory === "RUH" ? "RUH" : t("categoryLabel.avvik")}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <Badge className={typeColor}>{typeLabel}</Badge>
@@ -178,13 +186,6 @@ export function IncidentList({ incidents, sourceFilter = "ALL" }: IncidentListPr
                   <Badge className={`${severityColor} ${severityTextColor}`}>
                     {incident.severity} - {severityLabel}
                   </Badge>
-                </TableCell>
-                <TableCell>
-                  {(incident.source ?? "INTERNAL") === "EXTERNAL" ? (
-                    <Badge className="bg-violet-100 text-violet-800 border-violet-300">Ekstern</Badge>
-                  ) : (
-                    <Badge className="bg-slate-100 text-slate-700 border-slate-300">Intern</Badge>
-                  )}
                 </TableCell>
                 <TableCell>
                   <Badge className={stageColor}>{stageLabel}</Badge>
@@ -230,7 +231,9 @@ export function IncidentList({ incidents, sourceFilter = "ALL" }: IncidentListPr
 
       {/* Mobile - Kort */}
       <div className="md:hidden space-y-3">
-        {filteredIncidents.map((incident) => {
+        {paginatedIncidents.map((incident) => {
+          const mainCategory = getMainCategory(incident.type);
+          const categoryColor = getMainCategoryColor(mainCategory);
           const typeLabel = t(`types.${incident.type}`);
           const typeColor = getIncidentTypeColor(incident.type);
           const { bgColor: severityColor, textColor: severityTextColor } = getSeverityInfo(incident.severity);
@@ -242,7 +245,13 @@ export function IncidentList({ incidents, sourceFilter = "ALL" }: IncidentListPr
           const totalMeasures = incident.measures.length;
 
           return (
-            <Card key={incident.id}>
+            <Card
+              key={incident.id}
+              className={mainCategory === "RUH"
+                ? "border-l-4 border-l-orange-400"
+                : "border-l-4 border-l-blue-400"
+              }
+            >
               <CardContent className="p-4">
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-2">
@@ -263,14 +272,12 @@ export function IncidentList({ incidents, sourceFilter = "ALL" }: IncidentListPr
                   </div>
 
                   <div className="flex flex-wrap gap-2">
+                    <Badge className={categoryColor}>
+                      {mainCategory === "RUH" ? "RUH" : t("categoryLabel.avvik")}
+                    </Badge>
                     <Badge className={typeColor}>{typeLabel}</Badge>
                     <Badge className={statusColor}>{statusLabel}</Badge>
                     <Badge className={stageColor}>{stageLabel}</Badge>
-                    {(incident.source ?? "INTERNAL") === "EXTERNAL" ? (
-                      <Badge className="bg-violet-100 text-violet-800 border-violet-300">Ekstern</Badge>
-                    ) : (
-                      <Badge className="bg-slate-100 text-slate-700 border-slate-300">Intern</Badge>
-                    )}
                   </div>
 
                   {incident.risk && (
@@ -278,12 +285,6 @@ export function IncidentList({ incidents, sourceFilter = "ALL" }: IncidentListPr
                       {t("risk")}: {incident.risk.title}
                     </div>
                   )}
-
-                  <div className="text-xs text-muted-foreground">
-                    {incident.injuryType || t("injury.noneRegistered")} ·{" "}
-                    {incident.medicalAttentionRequired ? t("injury.medicalTreatment") : t("injury.noMedicalTreatment")}
-                    {typeof incident.lostTimeMinutes === "number" && ` · ${t("injury.minutesLostShort", { minutes: incident.lostTimeMinutes })}`}
-                  </div>
 
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
@@ -319,6 +320,52 @@ export function IncidentList({ incidents, sourceFilter = "ALL" }: IncidentListPr
           );
         })}
       </div>
+
+      {/* Paginering */}
+      {incidents.length > PAGE_SIZE_OPTIONS[0] && (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-4 border-t">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>{t("pagination.show")}</span>
+            <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+              <SelectTrigger className="h-8 w-[70px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <SelectItem key={size} value={size.toString()}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span>{t("pagination.of", { total: incidents.length })}</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={safeCurrentPage <= 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+
+            <span className="text-sm min-w-[80px] text-center">
+              {t("pagination.page", { current: safeCurrentPage, total: totalPages })}
+            </span>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safeCurrentPage >= totalPages}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </>
   );
 }

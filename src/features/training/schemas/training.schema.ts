@@ -76,7 +76,7 @@ export function getTrainingStatus(training: {
  */
 export function getTrainingStatusLabel(status: string): string {
   const labels: Record<string, string> = {
-    NOT_STARTED: "Ikke startet",
+    NOT_STARTED: "Ikke dokumentert",
     COMPLETED: "Fullført",
     VALID: "Gyldig",
     EXPIRING_SOON: "Utløper snart",

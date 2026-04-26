@@ -49,7 +49,7 @@ export default async function CourseTemplatesPage() {
       <div className="print:hidden">
         <Button variant="ghost" asChild className="mb-4">
           <Link href="/dashboard/training">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Tilbake til opplæring
+            <ArrowLeft className="mr-2 h-4 w-4" /> Tilbake til kompetanse
           </Link>
         </Button>
         

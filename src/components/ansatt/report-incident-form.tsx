@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,7 +20,7 @@ import { Loader2, Camera, X } from "lucide-react";
 import Image from "next/image";
 
 const NO_PROJECT = "__none__";
-type IncidentContext = "general" | "homeVisitRisk" | "infectionExposure" | "medicationNearMiss" | "violenceThreat";
+type MainCategory = "AVVIK" | "RUH";
 
 function getCurrentLocalDateTimeValue(): string {
   const now = new Date();
@@ -32,34 +32,18 @@ function getCurrentLocalDateTimeValue(): string {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
-interface SubcategoryOption {
-  id: string;
-  key: string;
-  label: string;
-  industry: string;
-}
+const avvikTypeOptions: Array<{ value: string; labelKey: string }> = [
+  { value: "AVVIK", labelKey: "incidentTypes.AVVIK" },
+  { value: "MILJO", labelKey: "incidentTypes.MILJO" },
+  { value: "KVALITET", labelKey: "incidentTypes.KVALITET" },
+  { value: "CUSTOMER", labelKey: "incidentTypes.CUSTOMER" },
+];
 
-interface IncidentContextPreset {
-  type: string;
-  subcategoryMatchTerms: string[];
-  titlePlaceholder: string;
-  detailsLabel?: string;
-  detailsPlaceholder?: string;
-}
-
-const employeeIncidentTypeOptions: Array<{
-  value: string;
-  labelKey: string;
-  group: "hms" | "avvik" | "annet";
-}> = [
-  { value: "ULYKKE", labelKey: "incidentTypes.ULYKKE", group: "hms" },
-  { value: "NESTEN", labelKey: "incidentTypes.NESTEN", group: "hms" },
-  { value: "FARLIG_SITUASJON", labelKey: "incidentTypes.FARLIG_SITUASJON", group: "hms" },
-  { value: "YRKESSYKDOM", labelKey: "incidentTypes.YRKESSYKDOM", group: "hms" },
-  { value: "AVVIK", labelKey: "incidentTypes.AVVIK", group: "avvik" },
-  { value: "MILJO", labelKey: "incidentTypes.MILJO", group: "avvik" },
-  { value: "KVALITET", labelKey: "incidentTypes.KVALITET", group: "avvik" },
-  { value: "CUSTOMER", labelKey: "incidentTypes.CUSTOMER", group: "annet" },
+const ruhTypeOptions: Array<{ value: string; labelKey: string }> = [
+  { value: "ULYKKE", labelKey: "incidentTypes.ULYKKE" },
+  { value: "NESTEN", labelKey: "incidentTypes.NESTEN" },
+  { value: "FARLIG_SITUASJON", labelKey: "incidentTypes.FARLIG_SITUASJON" },
+  { value: "YRKESSYKDOM", labelKey: "incidentTypes.YRKESSYKDOM" },
 ];
 
 export function ReportIncidentForm({
@@ -67,13 +51,11 @@ export function ReportIncidentForm({
   reportedBy,
   projects = [],
   successRedirectPath = "/ansatt/avvik/takk",
-  isHealthcareTenant = false,
 }: {
   tenantId: string;
   reportedBy: string;
   projects?: Array<{ id: string; name: string; code: string | null }>;
   successRedirectPath?: string;
-  isHealthcareTenant?: boolean;
 }) {
   const t = useTranslations("employeeIncidentForm");
   const router = useRouter();
@@ -83,118 +65,18 @@ export function ReportIncidentForm({
   const [occurredAt, setOccurredAt] = useState<string>(getCurrentLocalDateTimeValue());
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const [incidentContext, setIncidentContext] = useState<IncidentContext>("general");
-  const [selectedType, setSelectedType] = useState<string>("AVVIK");
-  const [contextDetails, setContextDetails] = useState("");
-  const [subcategoryOptions, setSubcategoryOptions] = useState<SubcategoryOption[]>([]);
-  const [loadingSubcategories, setLoadingSubcategories] = useState(false);
-  const [selectedSubcategoryKeys, setSelectedSubcategoryKeys] = useState<string[]>([]);
+  const [mainCategory, setMainCategory] = useState<MainCategory | "">("");
+  const [selectedType, setSelectedType] = useState<string>("");
 
-  const contextPresets = useMemo<Record<IncidentContext, IncidentContextPreset>>(
-    () => ({
-      general: {
-        type: "AVVIK",
-        subcategoryMatchTerms: [],
-        titlePlaceholder: t("contextPresets.general.titlePlaceholder"),
-      },
-      homeVisitRisk: {
-        type: "FARLIG_SITUASJON",
-        subcategoryMatchTerms: ["alenearbeid", "hjemmebesok", "risiko"],
-        titlePlaceholder: t("contextPresets.homeVisitRisk.titlePlaceholder"),
-        detailsLabel: t("contextPresets.homeVisitRisk.detailsLabel"),
-        detailsPlaceholder: t("contextPresets.homeVisitRisk.detailsPlaceholder"),
-      },
-      infectionExposure: {
-        type: "ULYKKE",
-        subcategoryMatchTerms: ["smitte", "eksponering", "stikk", "kutt"],
-        titlePlaceholder: t("contextPresets.infectionExposure.titlePlaceholder"),
-        detailsLabel: t("contextPresets.infectionExposure.detailsLabel"),
-        detailsPlaceholder: t("contextPresets.infectionExposure.detailsPlaceholder"),
-      },
-      medicationNearMiss: {
-        type: "NESTEN",
-        subcategoryMatchTerms: ["medikament", "nesten", "feil"],
-        titlePlaceholder: t("contextPresets.medicationNearMiss.titlePlaceholder"),
-        detailsLabel: t("contextPresets.medicationNearMiss.detailsLabel"),
-        detailsPlaceholder: t("contextPresets.medicationNearMiss.detailsPlaceholder"),
-      },
-      violenceThreat: {
-        type: "ULYKKE",
-        subcategoryMatchTerms: ["vold", "trussel"],
-        titlePlaceholder: t("contextPresets.violenceThreat.titlePlaceholder"),
-        detailsLabel: t("contextPresets.violenceThreat.detailsLabel"),
-        detailsPlaceholder: t("contextPresets.violenceThreat.detailsPlaceholder"),
-      },
-    }),
-    [t]
-  );
+  const typeOptionsForCategory = mainCategory === "AVVIK"
+    ? avvikTypeOptions
+    : mainCategory === "RUH"
+      ? ruhTypeOptions
+      : [];
 
-  useEffect(() => {
-    setSelectedType(contextPresets[incidentContext].type);
-  }, [incidentContext, contextPresets]);
-
-  useEffect(() => {
-    async function fetchSubcategories() {
-      if (!selectedType) {
-        setSubcategoryOptions([]);
-        setSelectedSubcategoryKeys([]);
-        return;
-      }
-      setLoadingSubcategories(true);
-      try {
-        const response = await fetch(`/api/incidents/subcategories?type=${selectedType}`);
-        if (!response.ok) {
-          setSubcategoryOptions([]);
-          setSelectedSubcategoryKeys([]);
-          return;
-        }
-        const data = (await response.json()) as { options?: SubcategoryOption[] };
-        const options = data.options ?? [];
-        setSubcategoryOptions(options);
-      } catch {
-        setSubcategoryOptions([]);
-        setSelectedSubcategoryKeys([]);
-      } finally {
-        setLoadingSubcategories(false);
-      }
-    }
-    fetchSubcategories();
-  }, [selectedType]);
-
-  useEffect(() => {
-    if (subcategoryOptions.length === 0) {
-      setSelectedSubcategoryKeys([]);
-      return;
-    }
-    setSelectedSubcategoryKeys((previous) =>
-      previous.filter((key) => subcategoryOptions.some((option) => option.key === key))
-    );
-    const terms = contextPresets[incidentContext].subcategoryMatchTerms;
-    if (terms.length === 0) {
-      return;
-    }
-    const matchingKeys = subcategoryOptions
-      .filter((option) => {
-      const haystack = `${option.key} ${option.label}`.toLowerCase();
-      return terms.some((term) => haystack.includes(term.toLowerCase()));
-      })
-      .map((option) => option.key);
-    if (matchingKeys.length > 0) {
-      setSelectedSubcategoryKeys((previous) => {
-        if (previous.length > 0) {
-          return previous;
-        }
-        return matchingKeys.slice(0, 2);
-      });
-    }
-  }, [incidentContext, subcategoryOptions, contextPresets]);
-
-  function toggleSubcategory(key: string) {
-    setSelectedSubcategoryKeys((previous) =>
-      previous.includes(key)
-        ? previous.filter((existingKey) => existingKey !== key)
-        : [...previous, key]
-    );
+  function handleMainCategoryChange(value: MainCategory) {
+    setMainCategory(value);
+    setSelectedType("");
   }
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -227,13 +109,7 @@ export function ReportIncidentForm({
       formData.append("images", file);
     });
 
-    // Legg til metadata
     formData.set("type", selectedType);
-    formData.set("incidentContext", incidentContext);
-    formData.set(
-      "subcategoryKeys",
-      JSON.stringify(selectedSubcategoryKeys)
-    );
     formData.append("tenantId", tenantId);
     formData.append("reportedBy", reportedBy);
     formData.set("occurredAt", occurredAt);
@@ -298,103 +174,57 @@ export function ReportIncidentForm({
         </div>
       )}
 
-      {/* Type */}
+      {/* Steg 1: Hovedkategori */}
       <div className="space-y-2">
-        <Label htmlFor="incidentContext" className="text-base">
-          {t("fields.incidentContext.label")}
+        <Label className="text-base">
+          {t("fields.mainCategory.label")}
         </Label>
-        <Select value={incidentContext} onValueChange={(value) => setIncidentContext(value as IncidentContext)}>
-          <SelectTrigger className="h-12 text-base">
-            <SelectValue placeholder={t("fields.incidentContext.placeholder")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="general">{t("fields.incidentContext.options.general")}</SelectItem>
-            {isHealthcareTenant && (
-              <>
-                <SelectItem value="homeVisitRisk">{t("fields.incidentContext.options.homeVisitRisk")}</SelectItem>
-                <SelectItem value="infectionExposure">{t("fields.incidentContext.options.infectionExposure")}</SelectItem>
-                <SelectItem value="medicationNearMiss">{t("fields.incidentContext.options.medicationNearMiss")}</SelectItem>
-                <SelectItem value="violenceThreat">{t("fields.incidentContext.options.violenceThreat")}</SelectItem>
-              </>
-            )}
-          </SelectContent>
-        </Select>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => handleMainCategoryChange("AVVIK")}
+            className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 text-center transition-colors ${
+              mainCategory === "AVVIK"
+                ? "border-primary bg-primary/5 text-primary"
+                : "border-muted hover:border-muted-foreground/30"
+            }`}
+          >
+            <span className="text-lg font-semibold">{t("fields.mainCategory.avvik")}</span>
+            <span className="text-xs text-muted-foreground">{t("fields.mainCategory.avvikDesc")}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleMainCategoryChange("RUH")}
+            className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 text-center transition-colors ${
+              mainCategory === "RUH"
+                ? "border-orange-500 bg-orange-50 text-orange-700"
+                : "border-muted hover:border-muted-foreground/30"
+            }`}
+          >
+            <span className="text-lg font-semibold">{t("fields.mainCategory.ruh")}</span>
+            <span className="text-xs text-muted-foreground">{t("fields.mainCategory.ruhDesc")}</span>
+          </button>
+        </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="type" className="text-base">
-          {t("fields.type.label")}
-        </Label>
-        <Select name="type" required value={selectedType} onValueChange={setSelectedType}>
-          <SelectTrigger className="h-12 text-base">
-            <SelectValue placeholder={t("fields.type.placeholder")} />
-          </SelectTrigger>
-          <SelectContent>
-            <div className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {t("fields.type.groups.hms")}
-            </div>
-            {employeeIncidentTypeOptions
-              .filter((option) => option.group === "hms")
-              .map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {t(option.labelKey)}
-                </SelectItem>
-              ))}
-            <div className="mt-1 border-t px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {t("fields.type.groups.avvik")}
-            </div>
-            {employeeIncidentTypeOptions
-              .filter((option) => option.group === "avvik")
-              .map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {t(option.labelKey)}
-                </SelectItem>
-              ))}
-            <div className="mt-1 border-t px-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {t("fields.type.groups.other")}
-            </div>
-            {employeeIncidentTypeOptions
-              .filter((option) => option.group === "annet")
-              .map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {t(option.labelKey)}
-                </SelectItem>
-              ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {selectedType && (
-        <div className="space-y-3">
-          <Label className="text-base">
-            {t("fields.subcategories.label")}
-            <span className="ml-1 text-xs font-normal text-muted-foreground">
-              {t("fields.subcategories.hint")}
-            </span>
+      {/* Steg 2: Type innenfor valgt kategori */}
+      {mainCategory && (
+        <div className="space-y-2">
+          <Label htmlFor="type" className="text-base">
+            {t("fields.type.label")}
           </Label>
-          {loadingSubcategories ? (
-            <p className="text-xs text-muted-foreground">{t("fields.subcategories.loading")}</p>
-          ) : subcategoryOptions.length === 0 ? (
-            <p className="text-xs text-muted-foreground">
-              {t("fields.subcategories.empty")}
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 gap-2 rounded-lg border bg-muted/30 p-4 sm:grid-cols-2">
-              {subcategoryOptions.map((option) => (
-                <label
-                  key={option.key}
-                  className="flex cursor-pointer items-center gap-2 select-none"
-                >
-                  <Checkbox
-                    checked={selectedSubcategoryKeys.includes(option.key)}
-                    onCheckedChange={() => toggleSubcategory(option.key)}
-                    disabled={isSubmitting}
-                  />
-                  <span className="text-sm">{option.label}</span>
-                </label>
+          <Select name="type" required value={selectedType} onValueChange={setSelectedType}>
+            <SelectTrigger className="h-12 text-base">
+              <SelectValue placeholder={t("fields.type.placeholder")} />
+            </SelectTrigger>
+            <SelectContent>
+              {typeOptionsForCategory.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {t(option.labelKey)}
+                </SelectItem>
               ))}
-            </div>
-          )}
+            </SelectContent>
+          </Select>
         </div>
       )}
 
@@ -441,7 +271,7 @@ export function ReportIncidentForm({
         <Input
           id="title"
           name="title"
-          placeholder={contextPresets[incidentContext].titlePlaceholder}
+          placeholder={t("fields.title.placeholder")}
           required
           className="h-12 text-base"
         />
@@ -490,26 +320,6 @@ export function ReportIncidentForm({
           {t("fields.description.help")}
         </p>
       </div>
-
-      {contextPresets[incidentContext].detailsLabel && (
-        <div className="space-y-2">
-          <Label htmlFor="contextDetails" className="text-base">
-            {contextPresets[incidentContext].detailsLabel}
-          </Label>
-          <Textarea
-            id="contextDetails"
-            name="contextDetails"
-            value={contextDetails}
-            onChange={(e) => setContextDetails(e.target.value)}
-            placeholder={contextPresets[incidentContext].detailsPlaceholder}
-            rows={3}
-            className="text-base resize-none"
-          />
-          <p className="text-xs text-muted-foreground">
-            {t("fields.contextDetails.help")}
-          </p>
-        </div>
-      )}
 
       <div className="space-y-2">
         <Label htmlFor="involvedPersons" className="text-base">

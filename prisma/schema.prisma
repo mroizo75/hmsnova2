@@ -1619,6 +1619,13 @@ model Incident {
   isLostTimeIncident       Boolean              @default(false)
   lostWorkdays             Int?
   isRestrictedWork         Boolean              @default(false)
+  isFirstAidCase           Boolean              @default(false)
+  isProductionStop         Boolean              @default(false)
+  productionStopHours      Decimal?             @db.Decimal(6, 1)
+  isPropertyDamage         Boolean              @default(false)
+  estimatedDamageCost      Decimal?             @db.Decimal(12, 2)
+  isEnvironmentalRelease   Boolean              @default(false)
+  environmentalDescription String?              @db.Text
   // Underkategorier (JSON-array med keys fra IncidentSubcategoryOption)
   subcategoryKeys          String?              @db.Text
   // Prosjektkobling (valgfritt – AML § 3-1 systematisk HMS per arbeidssted)

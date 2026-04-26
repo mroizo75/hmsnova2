@@ -23,21 +23,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { createIncident } from "@/server/actions/incident.actions";
-import {
-  generateAiIncidentCaseDraft,
-  runAiIncidentQualityCheck,
-} from "@/server/actions/ai-assistant.actions";
 import { useToast } from "@/hooks/use-toast";
 import {
   Camera,
   X,
   AlertTriangle,
-  BarChart3,
   Users,
   WifiOff,
   CloudUpload,
-  Sparkles,
-  CheckCircle2,
 } from "lucide-react";
 import Image from "next/image";
 import type { IncidentType } from "@prisma/client";
@@ -68,15 +61,6 @@ interface OfflineIncidentQueueItem {
   payload: Record<string, unknown>;
 }
 
-interface AiMeasureSuggestion {
-  title: string;
-  selected: boolean;
-}
-
-interface IncidentAiPrefs {
-  deselectedMeasureTitles: string[];
-}
-
 interface TemplatePresetDefaults {
   type: IncidentType;
   titleKey: string;
@@ -86,79 +70,31 @@ interface TemplatePresetDefaults {
 }
 
 const OFFLINE_INCIDENT_QUEUE_KEY = "hmsnova.offline.incidentQueue.v1";
-const getIncidentAiPrefsKey = (userId: string) => `hmsnova.incident.aiPrefs.v1.${userId}`;
 
-/**
- * Hendelsestyper basert på AML § 5-1, § 5-2 og IK-HMS § 5.
- * ULYKKE/NESTEN/FARLIG_SITUASJON = AML § 5-2 og § 2-3
- * YRKESSYKDOM = AML § 5-1 (registreringsplikt) og § 5-3 (leges meldeplikt)
- * AVVIK = IK-HMS § 5 og ISO 9001 kap. 10.2
- */
-const incidentTypes: Array<{
-  value: IncidentType;
-  labelKey: string;
-  descKey: string;
-  badgeKey?: string;
-  group: "hms" | "avvik" | "annet";
-}> = [
-  {
-    value: "ULYKKE",
-    labelKey: "types.ULYKKE.label",
-    descKey: "types.ULYKKE.desc",
-    badgeKey: "types.ULYKKE.badge",
-    group: "hms",
-  },
-  {
-    value: "NESTEN",
-    labelKey: "types.NESTEN.label",
-    descKey: "types.NESTEN.desc",
-    badgeKey: "types.NESTEN.badge",
-    group: "hms",
-  },
-  {
-    value: "FARLIG_SITUASJON",
-    labelKey: "types.FARLIG_SITUASJON.label",
-    descKey: "types.FARLIG_SITUASJON.desc",
-    badgeKey: "types.FARLIG_SITUASJON.badge",
-    group: "hms",
-  },
-  {
-    value: "YRKESSYKDOM",
-    labelKey: "types.YRKESSYKDOM.label",
-    descKey: "types.YRKESSYKDOM.desc",
-    badgeKey: "types.YRKESSYKDOM.badge",
-    group: "hms",
-  },
-  {
-    value: "AVVIK",
-    labelKey: "types.AVVIK.label",
-    descKey: "types.AVVIK.desc",
-    group: "avvik",
-  },
-  {
-    value: "MILJO",
-    labelKey: "types.MILJO.label",
-    descKey: "types.MILJO.desc",
-    group: "avvik",
-  },
-  {
-    value: "KVALITET",
-    labelKey: "types.KVALITET.label",
-    descKey: "types.KVALITET.desc",
-    group: "avvik",
-  },
-  {
-    value: "CUSTOMER",
-    labelKey: "types.CUSTOMER.label",
-    descKey: "types.CUSTOMER.desc",
-    group: "annet",
-  },
+type MainCategory = "AVVIK" | "RUH";
+
+const avvikTypeOptions: Array<{ value: IncidentType; labelKey: string; descKey: string }> = [
+  { value: "AVVIK", labelKey: "types.AVVIK.label", descKey: "types.AVVIK.desc" },
+  { value: "MILJO", labelKey: "types.MILJO.label", descKey: "types.MILJO.desc" },
+  { value: "KVALITET", labelKey: "types.KVALITET.label", descKey: "types.KVALITET.desc" },
+  { value: "CUSTOMER", labelKey: "types.CUSTOMER.label", descKey: "types.CUSTOMER.desc" },
 ];
 
-// Typer som aktiverer RUH/HMS-spesifikke seksjoner
+const ruhTypeOptions: Array<{ value: IncidentType; labelKey: string; descKey: string }> = [
+  { value: "ULYKKE", labelKey: "types.ULYKKE.label", descKey: "types.ULYKKE.desc" },
+  { value: "NESTEN", labelKey: "types.NESTEN.label", descKey: "types.NESTEN.desc" },
+  { value: "FARLIG_SITUASJON", labelKey: "types.FARLIG_SITUASJON.label", descKey: "types.FARLIG_SITUASJON.desc" },
+  { value: "YRKESSYKDOM", labelKey: "types.YRKESSYKDOM.label", descKey: "types.YRKESSYKDOM.desc" },
+];
+
+const RUH_TYPE_SET = new Set<IncidentType>(["ULYKKE", "NESTEN", "FARLIG_SITUASJON", "YRKESSYKDOM"]);
+
+function resolveMainCategory(type: IncidentType | ""): MainCategory | "" {
+  if (!type) return "";
+  return RUH_TYPE_SET.has(type) ? "RUH" : "AVVIK";
+}
+
 const HMS_TYPES: IncidentType[] = ["ULYKKE", "NESTEN", "FARLIG_SITUASJON", "YRKESSYKDOM"];
-// Typer som aktiverer HSE-statistikk (TRIR)
-const HSE_STATS_TYPES: IncidentType[] = ["ULYKKE", "NESTEN", "YRKESSYKDOM"];
 
 const severityLevels = [
   { value: 1, labelKey: "severity.1.label", descKey: "severity.1.desc" },
@@ -187,9 +123,25 @@ export function IncidentForm({
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [mainCategory, setMainCategory] = useState<MainCategory | "">(
+    resolveMainCategory(defaultType || "")
+  );
   const [selectedType, setSelectedType] = useState<IncidentType | "">(
     defaultType || ""
   );
+
+  const typeOptionsForCategory = mainCategory === "AVVIK"
+    ? avvikTypeOptions
+    : mainCategory === "RUH"
+      ? ruhTypeOptions
+      : [];
+
+  function handleMainCategoryChange(value: MainCategory) {
+    setMainCategory(value);
+    setSelectedType("");
+    setSubcategoryOptions([]);
+    setSelectedSubcategories([]);
+  }
   const NO_REPORTED_FOR_VALUE = "__none__";
   const [reportedForUserId, setReportedForUserId] = useState<string>(
     NO_REPORTED_FOR_VALUE
@@ -208,19 +160,7 @@ export function IncidentForm({
   );
   const [offlineQueueCount, setOfflineQueueCount] = useState(0);
   const [isSyncingOfflineQueue, setIsSyncingOfflineQueue] = useState(false);
-  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
-  const [isCheckingQuality, setIsCheckingQuality] = useState(false);
-  const [aiMeasureSuggestions, setAiMeasureSuggestions] = useState<AiMeasureSuggestion[]>([]);
-  const [qualityWarnings, setQualityWarnings] = useState<string[]>([]);
   const [immediateActionValue, setImmediateActionValue] = useState("");
-  const [suggestedActionsValue, setSuggestedActionsValue] = useState("");
-  const [aiDeselectedTitles, setAiDeselectedTitles] = useState<Set<string>>(new Set());
-
-  // HSE-statistikk
-  const [isFatal, setIsFatal] = useState(false);
-  const [isLostTimeIncident, setIsLostTimeIncident] = useState(false);
-  const [isRestrictedWork, setIsRestrictedWork] = useState(false);
-  const [medicalAttentionRequired, setMedicalAttentionRequired] = useState(false);
 
   const templateDefaults: Record<
     NonNullable<IncidentFormProps["templatePreset"]>,
@@ -251,7 +191,6 @@ export function IncidentForm({
   const activeTemplate = templatePreset ? templateDefaults[templatePreset] : null;
 
   const isHmsType = selectedType ? HMS_TYPES.includes(selectedType as IncidentType) : false;
-  const isHseStatsType = selectedType ? HSE_STATS_TYPES.includes(selectedType as IncidentType) : false;
   const isCustomerType = selectedType === "CUSTOMER";
 
   useEffect(() => {
@@ -269,6 +208,7 @@ export function IncidentForm({
 
   useEffect(() => {
     if (!selectedType && activeTemplate?.type) {
+      setMainCategory(resolveMainCategory(activeTemplate.type));
       setSelectedType(activeTemplate.type);
     }
   }, [activeTemplate, selectedType]);
@@ -278,31 +218,6 @@ export function IncidentForm({
       setImmediateActionValue(t(activeTemplate.immediateActionKey));
     }
   }, [activeTemplate, immediateActionValue.length, t]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const raw = window.localStorage.getItem(getIncidentAiPrefsKey(userId));
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as IncidentAiPrefs;
-      const values = Array.isArray(parsed.deselectedMeasureTitles)
-        ? parsed.deselectedMeasureTitles
-            .map((item) => (typeof item === "string" ? item.trim() : ""))
-            .filter((item) => item.length > 0)
-        : [];
-      setAiDeselectedTitles(new Set(values));
-    } catch {
-      // ignore invalid local cache
-    }
-  }, [userId]);
-
-  const persistAiPrefs = (nextDeselectedTitles: Set<string>) => {
-    if (typeof window === "undefined") return;
-    const payload: IncidentAiPrefs = {
-      deselectedMeasureTitles: Array.from(nextDeselectedTitles),
-    };
-    window.localStorage.setItem(getIncidentAiPrefsKey(userId), JSON.stringify(payload));
-  };
 
   const fetchSubcategories = useCallback(async (type: IncidentType) => {
     setLoadingSubcategories(true);
@@ -348,91 +263,6 @@ export function IncidentForm({
     setImageFiles(newFiles);
     setImagePreviews(newFiles.map((f) => URL.createObjectURL(f)));
   }
-
-  const handleGenerateAi = async () => {
-    const titleInput = (document.getElementById("title") as HTMLInputElement | null)?.value || "";
-    const descriptionInput = (document.getElementById("description") as HTMLTextAreaElement | null)?.value || "";
-    if (!selectedType || titleInput.trim().length < 2 || descriptionInput.trim().length < 10) {
-      toast({
-        variant: "destructive",
-        title: t("toasts.missingBasis.title"),
-        description: t("toasts.missingBasis.description"),
-      });
-      return;
-    }
-
-    setIsGeneratingAi(true);
-    try {
-      const result = await generateAiIncidentCaseDraft({
-        type: selectedType,
-        title: titleInput,
-        description: descriptionInput,
-        severity: Number((document.querySelector('[name=\"severity\"]') as HTMLInputElement | null)?.value || 3),
-      });
-      if (!result.success || !result.data) {
-        toast({
-          variant: "destructive",
-          title: t("toasts.aiAnalysisFailed.title"),
-          description: result.error || t("toasts.unknownError"),
-        });
-        return;
-      }
-      setImmediateActionValue(result.data.immediateAction);
-      setSuggestedActionsValue(result.data.suggestedActions.join("\n"));
-      setAiMeasureSuggestions(
-        result.data.suggestedActions.map((item) => ({
-          title: item,
-          selected: !aiDeselectedTitles.has(item),
-        }))
-      );
-      toast({
-        title: t("toasts.aiSuggestionsReady.title"),
-        description: t("toasts.aiSuggestionsReady.description"),
-      });
-    } finally {
-      setIsGeneratingAi(false);
-    }
-  };
-
-  const handleQualityCheck = async () => {
-    const titleInput = (document.getElementById("title") as HTMLInputElement | null)?.value || "";
-    const descriptionInput = (document.getElementById("description") as HTMLTextAreaElement | null)?.value || "";
-    if (!selectedType || titleInput.trim().length < 2 || descriptionInput.trim().length < 10) {
-      return;
-    }
-    setIsCheckingQuality(true);
-    try {
-      const result = await runAiIncidentQualityCheck({
-        type: selectedType,
-        title: titleInput,
-        description: descriptionInput,
-        immediateAction: immediateActionValue,
-        suggestedActions: suggestedActionsValue,
-        severity: Number((document.querySelector('[name=\"severity\"]') as HTMLInputElement | null)?.value || 3),
-      });
-      if (result.success && result.data) {
-        setQualityWarnings(result.data.warnings);
-      }
-    } finally {
-      setIsCheckingQuality(false);
-    }
-  };
-
-  const toggleAiMeasureSuggestion = (title: string, checked: boolean) => {
-    setAiMeasureSuggestions((previous) =>
-      previous.map((item) => (item.title === title ? { ...item, selected: checked } : item))
-    );
-    setAiDeselectedTitles((previous) => {
-      const next = new Set(previous);
-      if (checked) {
-        next.delete(title);
-      } else {
-        next.add(title);
-      }
-      persistAiPrefs(next);
-      return next;
-    });
-  };
 
   function readOfflineQueue(): OfflineIncidentQueueItem[] {
     if (typeof window === "undefined") return [];
@@ -530,10 +360,6 @@ export function IncidentForm({
       witnessName: (formData.get("witnessName") as string) || undefined,
       immediateAction: (formData.get("immediateAction") as string) || undefined,
       injuryType: (formData.get("injuryType") as string) || undefined,
-      medicalAttentionRequired,
-      lostTimeMinutes: formData.get("lostTimeMinutes")
-        ? parseInt(formData.get("lostTimeMinutes") as string, 10)
-        : undefined,
       reportedForUserId:
         reportedForUserId && reportedForUserId !== NO_REPORTED_FOR_VALUE
           ? reportedForUserId
@@ -559,16 +385,6 @@ export function IncidentForm({
       involvedPersons: (formData.get("involvedPersons") as string) || undefined,
       injuryDescription: (formData.get("injuryDescription") as string) || undefined,
       suggestedActions: (formData.get("suggestedActions") as string) || undefined,
-      aiSuggestedMeasures: aiMeasureSuggestions
-        .filter((item) => item.selected)
-        .map((item) => item.title),
-      // HSE-statistikk
-      isFatal,
-      isLostTimeIncident,
-      lostWorkdays: formData.get("lostWorkdays")
-        ? parseInt(formData.get("lostWorkdays") as string, 10)
-        : undefined,
-      isRestrictedWork,
     };
 
     if (isTabletMode && !navigator.onLine) {
@@ -634,7 +450,7 @@ export function IncidentForm({
     }
   };
 
-  const selectedTypeInfo = incidentTypes.find((t) => t.value === selectedType);
+  const selectedTypeInfo = [...avvikTypeOptions, ...ruhTypeOptions].find((t) => t.value === selectedType);
 
   return (
     <form
@@ -677,131 +493,91 @@ export function IncidentForm({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="type">{t("fields.type.label")}</Label>
-              <Select
-                name="type"
-                required
+          {/* Steg 1: Hovedkategori */}
+          <div className="space-y-2">
+            <Label>{t("fields.mainCategory.label")}</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => handleMainCategoryChange("AVVIK")}
                 disabled={loading}
-                value={selectedType || activeTemplate?.type || undefined}
-                onValueChange={(value) =>
-                  setSelectedType(value as IncidentType)
-                }
+                className={cn(
+                  "flex flex-col items-center gap-2 rounded-lg border-2 p-4 text-center transition-colors",
+                  mainCategory === "AVVIK"
+                    ? "border-primary bg-primary/5 text-primary"
+                    : "border-muted hover:border-muted-foreground/30",
+                )}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder={t("fields.type.placeholder")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    {t("fields.type.groupHms")}
-                  </div>
-                  {incidentTypes
-                    .filter((t) => t.group === "hms")
-                    .map((type) => (
+                <span className="text-lg font-semibold">{t("fields.mainCategory.avvik")}</span>
+                <span className="text-xs text-muted-foreground">{t("fields.mainCategory.avvikDesc")}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMainCategoryChange("RUH")}
+                disabled={loading}
+                className={cn(
+                  "flex flex-col items-center gap-2 rounded-lg border-2 p-4 text-center transition-colors",
+                  mainCategory === "RUH"
+                    ? "border-orange-500 bg-orange-50 text-orange-700"
+                    : "border-muted hover:border-muted-foreground/30",
+                )}
+              >
+                <span className="text-lg font-semibold">{t("fields.mainCategory.ruh")}</span>
+                <span className="text-xs text-muted-foreground">{t("fields.mainCategory.ruhDesc")}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Steg 2: Type + alvorlighet */}
+          {mainCategory && (
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="type">{t("fields.type.label")}</Label>
+                <Select
+                  name="type"
+                  required
+                  disabled={loading}
+                  value={selectedType || undefined}
+                  onValueChange={(value) => setSelectedType(value as IncidentType)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("fields.type.placeholder")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {typeOptionsForCategory.map((type) => (
                       <SelectItem key={type.value} value={type.value}>
                         {t(type.labelKey)}
                       </SelectItem>
                     ))}
-                  <div className="px-2 py-1 mt-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-t">
-                    {t("fields.type.groupDeviation")}
-                  </div>
-                  {incidentTypes
-                    .filter((t) => t.group === "avvik")
-                    .map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {t(type.labelKey)}
-                      </SelectItem>
-                    ))}
-                  <div className="px-2 py-1 mt-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-t">
-                    {t("fields.type.groupOther")}
-                  </div>
-                  {incidentTypes
-                    .filter((t) => t.group === "annet")
-                    .map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {t(type.labelKey)}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-              {selectedTypeInfo && (
-                <div className="space-y-1">
+                  </SelectContent>
+                </Select>
+                {selectedTypeInfo && (
                   <p className="text-xs text-muted-foreground">
                     {t(selectedTypeInfo.descKey)}
                   </p>
-                  {selectedTypeInfo.badgeKey && (
-                    <span className="inline-block rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-medium text-blue-700">
-                      {t(selectedTypeInfo.badgeKey)}
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="severity">{t("fields.severity.label")}</Label>
-              <Select name="severity" required disabled={loading}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t("fields.severity.placeholder")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {severityLevels.map((level) => (
-                    <SelectItem
-                      key={level.value}
-                      value={level.value.toString()}
-                    >
-                      {t(level.labelKey)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="rounded-md border bg-muted/30 p-3 space-y-3">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <p className="text-sm font-medium">{t("aiHelp.title")}</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="secondary" onClick={handleGenerateAi} disabled={loading || isGeneratingAi}>
-                {isGeneratingAi ? t("aiHelp.generating") : t("aiHelp.analyzeAndSuggest")}
-              </Button>
-              <Button type="button" variant="outline" onClick={handleQualityCheck} disabled={loading || isCheckingQuality}>
-                {isCheckingQuality ? t("aiHelp.checking") : t("aiHelp.qualityCheck")}
-              </Button>
-            </div>
-            {qualityWarnings.length > 0 && (
-              <div className="rounded-md border bg-amber-50 p-2 text-xs text-amber-900">
-                <p className="font-medium mb-1">{t("aiHelp.improvementPoints")}</p>
-                <ul className="list-disc ml-4 space-y-1">
-                  {qualityWarnings.map((warning) => (
-                    <li key={warning}>{warning}</li>
-                  ))}
-                </ul>
+                )}
               </div>
-            )}
-            {aiMeasureSuggestions.length > 0 && (
-              <div className="rounded-md border bg-green-50 p-2 text-xs text-green-900">
-                <p className="font-medium flex items-center gap-1 mb-1">
-                  <CheckCircle2 className="h-3 w-3" />
-                  {t("aiHelp.selectMeasures")}
-                </p>
-                <div className="space-y-1">
-                  {aiMeasureSuggestions.map((item) => (
-                    <label key={item.title} className="flex items-center gap-2">
-                      <Checkbox
-                        checked={item.selected}
-                        onCheckedChange={(value) => toggleAiMeasureSuggestion(item.title, value === true)}
-                      />
-                      <span>{item.title}</span>
-                    </label>
-                  ))}
-                </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="severity">{t("fields.severity.label")}</Label>
+                <Select name="severity" required disabled={loading}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("fields.severity.placeholder")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {severityLevels.map((level) => (
+                      <SelectItem
+                        key={level.value}
+                        value={level.value.toString()}
+                      >
+                        {t(level.labelKey)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* ── Prosjektvelger ── */}
           {projects.length > 0 && (
@@ -1036,8 +812,6 @@ export function IncidentForm({
                 id="suggestedActions"
                 name="suggestedActions"
                 placeholder={t("fields.suggestedActions.placeholder")}
-              value={suggestedActionsValue}
-              onChange={(event) => setSuggestedActionsValue(event.target.value)}
                 disabled={loading}
                 rows={3}
               />
@@ -1046,161 +820,6 @@ export function IncidentForm({
         </Card>
       )}
 
-      {/* ── HSE-statistikk (TRIR) ── */}
-      {isHseStatsType && (
-        <Card className="border-orange-200 bg-orange-50/30">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-orange-600" />
-              {t("sections.hseStats.title")}
-            </CardTitle>
-            <CardDescription>
-              {t("sections.hseStats.description")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <label className="flex flex-col gap-2 rounded-lg border bg-background p-3 cursor-pointer">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    checked={isFatal}
-                    onCheckedChange={(v) => setIsFatal(!!v)}
-                    disabled={loading}
-                  />
-                  <span className="text-sm font-medium">{t("hseMetrics.fatality.label")}</span>
-                </div>
-                <span className="text-xs text-muted-foreground">{t("hseMetrics.fatality.short")}</span>
-              </label>
-
-              <label className="flex flex-col gap-2 rounded-lg border bg-background p-3 cursor-pointer">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    checked={isLostTimeIncident}
-                    onCheckedChange={(v) => setIsLostTimeIncident(!!v)}
-                    disabled={loading}
-                  />
-                  <span className="text-sm font-medium">{t("hseMetrics.lti.label")}</span>
-                </div>
-                <span className="text-xs text-muted-foreground">{t("hseMetrics.lti.short")}</span>
-              </label>
-
-              <label className="flex flex-col gap-2 rounded-lg border bg-background p-3 cursor-pointer">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    checked={isRestrictedWork}
-                    onCheckedChange={(v) => setIsRestrictedWork(!!v)}
-                    disabled={loading}
-                  />
-                  <span className="text-sm font-medium">{t("hseMetrics.restrictedWork.label")}</span>
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  {t("hseMetrics.restrictedWork.short")}
-                </span>
-              </label>
-
-              <label className="flex flex-col gap-2 rounded-lg border bg-background p-3 cursor-pointer">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    checked={medicalAttentionRequired}
-                    onCheckedChange={(v) =>
-                      setMedicalAttentionRequired(!!v)
-                    }
-                    disabled={loading}
-                  />
-                  <span className="text-sm font-medium">{t("hseMetrics.medicalTreatment.label")}</span>
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  {t("hseMetrics.medicalTreatment.short")}
-                </span>
-              </label>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="lostWorkdays">{t("fields.lostWorkdays.label")}</Label>
-                <Input
-                  id="lostWorkdays"
-                  name="lostWorkdays"
-                  type="number"
-                  min={0}
-                  placeholder={t("fields.lostWorkdays.placeholder")}
-                  disabled={loading || !isLostTimeIncident}
-                />
-                <p className="text-xs text-muted-foreground">
-                  {t("fields.lostWorkdays.hint")}
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lostTimeMinutes">{t("fields.lostTimeMinutes.label")}</Label>
-                <Input
-                  id="lostTimeMinutes"
-                  name="lostTimeMinutes"
-                  type="number"
-                  min={0}
-                  placeholder={t("fields.lostTimeMinutes.placeholder")}
-                  disabled={loading}
-                />
-              </div>
-            </div>
-
-            <div className="rounded-md bg-orange-100 border border-orange-200 px-4 py-3 text-xs text-orange-900">
-              <strong>{t("sections.hseStats.trirLabel")}</strong> {t("sections.hseStats.trirFormula")}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* ── Legebehandling for ikke-TRIR-typer ── */}
-      {!isHseStatsType && !isCustomerType && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("sections.injuryFollowUp.title")}</CardTitle>
-            <CardDescription>
-              {t("sections.injuryFollowUp.description")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="injuryType">{t("fields.injuryType.label")}</Label>
-                <Input
-                  id="injuryType"
-                  name="injuryType"
-                  placeholder={t("fields.injuryType.placeholder")}
-                  disabled={loading}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="riskReferenceId">{t("fields.riskReference.label")}</Label>
-                <Select
-                  name="riskReferenceId"
-                  disabled={loading || risks.length === 0}
-                >
-                  <SelectTrigger>
-                    <SelectValue
-                      placeholder={
-                        risks.length
-                          ? t("fields.riskReference.placeholder")
-                          : t("fields.riskReference.noneAvailable")
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NO_RISK_REFERENCE_VALUE}>
-                      {t("fields.riskReference.noneOption")}
-                    </SelectItem>
-                    {risks.map((risk) => (
-                      <SelectItem key={risk.id} value={risk.id}>
-                        {t("fields.riskReference.optionWithScore", { title: risk.title, score: risk.score })}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* ── Kundeklage ── */}
       {isCustomerType && (
@@ -1387,11 +1006,6 @@ export function IncidentForm({
             <li>{t("afterReporting.point1")}</li>
             <li>{t("afterReporting.point2")}</li>
             <li>{t("afterReporting.point3")}</li>
-            {isHseStatsType && (
-              <li className="font-medium">
-                {t("afterReporting.point4Hse")}
-              </li>
-            )}
           </ul>
         </div>
       </div>

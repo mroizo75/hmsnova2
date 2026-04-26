@@ -116,6 +116,29 @@ export type UpdateIncidentInput = z.infer<typeof updateIncidentSchema>;
 export type InvestigateIncidentInput = z.infer<typeof investigateIncidentSchema>;
 export type CloseIncidentInput = z.infer<typeof closeIncidentSchema>;
 
+export type MainIncidentCategory = "AVVIK" | "RUH";
+
+const RUH_TYPES: ReadonlySet<IncidentType> = new Set<IncidentType>([
+  "ULYKKE",
+  "NESTEN",
+  "FARLIG_SITUASJON",
+  "YRKESSYKDOM",
+]);
+
+export function getMainCategory(type: IncidentType): MainIncidentCategory {
+  return RUH_TYPES.has(type) ? "RUH" : "AVVIK";
+}
+
+export function getMainCategoryLabel(category: MainIncidentCategory): string {
+  return category === "RUH" ? "RUH" : "Avvik";
+}
+
+export function getMainCategoryColor(category: MainIncidentCategory): string {
+  return category === "RUH"
+    ? "bg-orange-50 text-orange-700 border-orange-300"
+    : "bg-blue-50 text-blue-700 border-blue-300";
+}
+
 /**
  * Get incident type label
  */

@@ -83,7 +83,7 @@ export function TrainingHeaderActions({
         <DropdownMenuTrigger asChild>
           <Button>
             <Plus className="mr-2 h-4 w-4" />
-            Registrer opplæring
+            Registrer kompetanse
             <ChevronDown className="ml-1 h-3 w-3 opacity-75" />
           </Button>
         </DropdownMenuTrigger>

@@ -21,6 +21,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
+import { CertificateDownloadButton } from "@/features/training/components/certificate-download-button";
 
 export default async function TrainingDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -74,7 +75,7 @@ export default async function TrainingDetailPage({ params }: { params: Promise<{
       <div>
         <Button variant="ghost" asChild className="mb-4">
           <Link href="/dashboard/training">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Tilbake til opplæring
+            <ArrowLeft className="mr-2 h-4 w-4" /> Tilbake til kompetanse
           </Link>
         </Button>
         <div className="flex items-start justify-between">
@@ -199,9 +200,7 @@ export default async function TrainingDetailPage({ params }: { params: Promise<{
                 <FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Dokumentert bevis</p>
-                  <Button variant="link" className="h-auto p-0">
-                    Last ned sertifikat
-                  </Button>
+                  <CertificateDownloadButton trainingId={training.id} />
                 </div>
               </div>
             )}
