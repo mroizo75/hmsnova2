@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { FlaskConical, Plus, Users, CheckCircle, Clock, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { ExposureRegisterList } from "./exposure-register-list";
-import { hasTenantFeature } from "@/lib/tenant-features";
 
 export default async function ExposureRegisterPage() {
   const session = await getServerSession(authOptions);
@@ -30,9 +29,6 @@ export default async function ExposureRegisterPage() {
   }
 
   const tenantId = selectedMembership.tenantId;
-  if (!hasTenantFeature(selectedMembership.tenant?.industry, "helseforetak")) {
-    redirect("/dashboard");
-  }
 
   const entries = await prisma.exposureRegister.findMany({
     where: { tenantId, status: { not: "ARCHIVED" } },

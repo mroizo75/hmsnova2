@@ -207,6 +207,11 @@ model Tenant {
   azureAdDomain      String? // Primary domain (f.eks. "firma.no")
   azureAdAutoRole    Role? // Standard rolle for nye brukere fra Azure AD
 
+  // Bransjekurs.no integrasjon
+  bransjekursEnabled     Boolean   @default(false) // Bedriften har kursavtale via HMS Nova
+  bransjekursActivatedAt DateTime? // Tidspunkt avtalen ble aktivert av admin
+  bransjekursLastSyncAt  DateTime? // Siste vellykkede brukersynk til Bransjekurs.no
+
   users                        UserTenant[]
   activities                   TenantActivity[]
   documents                    Document[]

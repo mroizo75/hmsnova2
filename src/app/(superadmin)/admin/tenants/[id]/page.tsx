@@ -16,6 +16,7 @@ import { DeleteTenantDialog } from "@/features/admin/components/delete-tenant-di
 import { TenantActivityTimeline } from "@/features/admin/components/tenant-activity-timeline";
 import { TenantOfferCard } from "@/features/admin/components/tenant-offer-card";
 import { IndustryPackageActions } from "@/features/admin/components/industry-package-actions";
+import { KursavtaleCard } from "@/features/admin/components/kursavtale-card";
 import { 
   ArrowLeft,
   Building2, 
@@ -529,6 +530,16 @@ async function TenantDetails({ id }: { id: string }) {
               )}
             </CardContent>
           </Card>
+
+          {/* Bransjekurs.no kursavtale */}
+          <KursavtaleCard
+            tenantId={tenant.id}
+            tenantName={tenant.name}
+            bransjekursEnabled={tenant.bransjekursEnabled}
+            bransjekursActivatedAt={tenant.bransjekursActivatedAt}
+            bransjekursLastSyncAt={tenant.bransjekursLastSyncAt}
+            userCount={tenant._count.users}
+          />
 
           {/* Status Actions */}
           <Card className="border-destructive/50">

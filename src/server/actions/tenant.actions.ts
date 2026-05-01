@@ -1275,6 +1275,143 @@ export async function resendActivationEmail(input: z.infer<typeof resendActivati
 }
 
 /**
+ * Synk brukere fra en HMS Nova-tenant til Bransjekurs.no.
+ * Kun mulig for tenants med bransjekursEnabled = true.
+ */
+export async function syncTenantToBransjekurs(tenantId: string) {
+  try {
+    const privilegedUser = await requirePrivilegedUser();
+    if (!privilegedUser) {
+      return { success: false, error: "Ingen tilgang" };
+    }
+
+    const baseUrl = process.env.BRANSJEKURS_INTERNAL_URL;
+    const secret = process.env.INTERNAL_API_SECRET;
+
+    if (!baseUrl || !secret) {
+      return { success: false, error: "Bransjekurs-integrasjon er ikke konfigurert (mangler env-variabler)" };
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: {
+        id: true,
+        name: true,
+        bransjekursEnabled: true,
+        users: {
+          select: {
+            userId: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!tenant) {
+      return { success: false, error: "Bedrift ikke funnet" };
+    }
+
+    if (!tenant.bransjekursEnabled) {
+      return { success: false, error: "Bedriften har ikke aktiv kursavtale" };
+    }
+
+    const usersPayload = tenant.users.map((membership) => ({
+      userId: membership.user.id,
+      name: membership.user.name ?? membership.user.email,
+      email: membership.user.email,
+    }));
+
+    if (usersPayload.length === 0) {
+      return { success: false, error: "Ingen brukere å synke for denne bedriften" };
+    }
+
+    const response = await fetch(`${baseUrl}/api/internal/sync/company`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${secret}`,
+      },
+      body: JSON.stringify({
+        tenantId: tenant.id,
+        tenantName: tenant.name,
+        users: usersPayload,
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (!response.ok) {
+      const errorBody = (await response.json().catch(() => ({}))) as { message?: string };
+      return {
+        success: false,
+        error: errorBody.message ?? `Bransjekurs svarte med status ${response.status}`,
+      };
+    }
+
+    const result = (await response.json()) as {
+      synced: number;
+      created: number;
+      updated: number;
+    };
+
+    // Oppdater tidspunkt for siste vellykkede synk
+    await prisma.tenant.update({
+      where: { id: tenantId },
+      data: { bransjekursLastSyncAt: new Date() },
+    });
+
+    revalidatePath(`/admin/tenants/${tenantId}`);
+
+    return { success: true, data: result };
+  } catch (error: any) {
+    console.error("Sync tenant to bransjekurs error:", error);
+    return { success: false, error: error.message ?? "Synk feilet" };
+  }
+}
+
+/**
+ * Aktiver eller deaktiver Bransjekurs.no-avtale for en tenant
+ */
+export async function toggleBransjekursAvtale(tenantId: string, enabled: boolean) {
+  try {
+    const privilegedUser = await requirePrivilegedUser();
+    if (!privilegedUser) {
+      return { success: false, error: "Ingen tilgang" };
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { id: true, name: true },
+    });
+
+    if (!tenant) {
+      return { success: false, error: "Bedrift ikke funnet" };
+    }
+
+    await prisma.tenant.update({
+      where: { id: tenantId },
+      data: {
+        bransjekursEnabled: enabled,
+        bransjekursActivatedAt: enabled ? new Date() : null,
+      },
+    });
+
+    revalidatePath(`/admin/tenants/${tenantId}`);
+    revalidatePath("/admin/tenants");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Toggle bransjekurs avtale error:", error);
+    return { success: false, error: "Kunne ikke oppdatere kursavtale" };
+  }
+}
+
+/**
  * Endre tenant-status
  */
 export async function toggleTenantStatus(tenantId: string, newStatus: "ACTIVE" | "SUSPENDED" | "CANCELLED") {
