@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { updateTenantSettings } from "@/server/actions/settings.actions";
+import { updateTenantSettings, updateDashboardLocked } from "@/server/actions/settings.actions";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, ShieldAlert } from "lucide-react";
+import { Building2, ShieldAlert, LayoutDashboard } from "lucide-react";
 import type { Tenant } from "@prisma/client";
 
 interface TenantSettingsFormProps {
@@ -20,6 +21,8 @@ export function TenantSettingsForm({ tenant, isAdmin }: TenantSettingsFormProps)
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [dashboardLocked, setDashboardLocked] = useState(tenant.dashboardLocked);
+  const [lockLoading, setLockLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -218,6 +221,59 @@ export function TenantSettingsForm({ tenant, isAdmin }: TenantSettingsFormProps)
       </Card>
 
       {isAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <LayoutDashboard className="h-5 w-5 text-blue-600" />
+              Dashboard-innstillinger
+            </CardTitle>
+            <CardDescription>
+              Kontroller om ansatte kan tilpasse sitt eget dashboard
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <Label htmlFor="dashboardLocked" className="text-sm font-medium">
+                  Lås dashboard for alle ansatte
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Når aktivert kan ikke ansatte endre rekkefølge, legge til eller fjerne moduler på sitt dashboard. Administratorer kan fortsatt tilpasse sitt eget.
+                </p>
+              </div>
+              <Switch
+                id="dashboardLocked"
+                checked={dashboardLocked}
+                disabled={lockLoading}
+                onCheckedChange={async (checked) => {
+                  setLockLoading(true);
+                  const result = await updateDashboardLocked(checked);
+                  if (result.success) {
+                    setDashboardLocked(checked);
+                    toast({
+                      title: checked ? "Dashboard er nå låst" : "Dashboard er nå ulåst",
+                      description: checked
+                        ? "Ansatte kan ikke lenger tilpasse sitt dashboard"
+                        : "Ansatte kan nå tilpasse sitt dashboard igjen",
+                      className: "bg-green-50 border-green-200",
+                    });
+                    router.refresh();
+                  } else {
+                    toast({
+                      variant: "destructive",
+                      title: "Feil",
+                      description: result.error || "Kunne ikke oppdatere dashboard-lås",
+                    });
+                  }
+                  setLockLoading(false);
+                }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {isAdmin && (
         <div className="flex justify-end">
           <Button type="submit" disabled={loading}>
             {loading ? "Lagrer..." : "Lagre endringer"}
@@ -229,7 +285,7 @@ export function TenantSettingsForm({ tenant, isAdmin }: TenantSettingsFormProps)
         <Card className="bg-amber-50 border-amber-200">
           <CardContent className="pt-4">
             <p className="text-sm text-amber-800">
-              ℹ️ Kun administratorer kan endre bedriftsinnstillinger
+              Kun administratorer kan endre bedriftsinnstillinger
             </p>
           </CardContent>
         </Card>

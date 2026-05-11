@@ -89,7 +89,7 @@ let cachedLocalAdapter: StorageAdapter | undefined;
 export function getStorage(): StorageAdapter {
   if ((process.env.STORAGE_TYPE || "r2") === "local") {
     if (!cachedLocalAdapter) {
-      const { LocalStorage } = require("./storage-local") as typeof import("./storage-local");
+      const { LocalStorage } = require(/* turbopackIgnore: true */ "./storage-local") as typeof import("./storage-local");
       cachedLocalAdapter = new LocalStorage();
     }
     return cachedLocalAdapter;
@@ -109,7 +109,7 @@ export function generateFileKey(tenantId: string, folder: string, filename: stri
 
 export async function deleteTenantFiles(tenantId: string): Promise<{ deleted: number; errors: number }> {
   if ((process.env.STORAGE_TYPE || "r2") === "local") {
-    const { deleteLocalTenantFiles } = await import("./storage-local");
+    const { deleteLocalTenantFiles } = await import(/* turbopackIgnore: true */ "./storage-local");
     return deleteLocalTenantFiles(tenantId);
   }
 

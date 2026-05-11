@@ -158,6 +158,60 @@ export async function updateTenantSettings(data: {
   }
 }
 
+export async function updateDashboardLocked(locked: boolean) {
+  try {
+    const { user, tenantId } = await getSessionContext();
+
+    const userTenant = user.tenants.find((t) => t.tenantId === tenantId);
+    if (!userTenant || userTenant.role !== "ADMIN") {
+      return { success: false, error: "Kun administratorer kan endre dashboard-innstillinger" };
+    }
+
+    let lockedDashboardConfig: import("@prisma/client").Prisma.InputJsonValue | null = null;
+
+    if (locked) {
+      const adminConfig = await prisma.dashboardConfig.findUnique({
+        where: { userId_tenantId: { userId: user.id, tenantId } },
+        select: { widgets: true },
+      });
+
+      if (adminConfig?.widgets) {
+        lockedDashboardConfig = adminConfig.widgets as import("@prisma/client").Prisma.InputJsonValue;
+      } else {
+        const { getDefaultWidgetIdsForIndustry } = await import("@/features/dashboard/lib/widget-registry");
+        const tenant = await prisma.tenant.findUnique({
+          where: { id: tenantId },
+          select: { industry: true },
+        });
+        const defaultIds = getDefaultWidgetIdsForIndustry(tenant?.industry);
+        lockedDashboardConfig = defaultIds.map((id, i) => ({
+          id,
+          order: i,
+          type: "builtin",
+        })) as unknown as import("@prisma/client").Prisma.InputJsonValue;
+      }
+    }
+
+    await prisma.tenant.update({
+      where: { id: tenantId },
+      data: {
+        dashboardLocked: locked,
+        lockedDashboardConfig,
+      },
+    });
+
+    await AuditLog.log(tenantId, user.id, "DASHBOARD_LOCK_TOGGLED", "Tenant", tenantId, {
+      locked,
+    });
+
+    revalidatePath("/dashboard/settings");
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Kunne ikke oppdatere dashboard-lås" };
+  }
+}
+
 export async function updateTenantSimpleMenuItems(hrefs: string[]) {
   try {
     const { user, tenantId } = await getSessionContext();

@@ -263,6 +263,8 @@ model Tenant {
   bhtClient                    BhtClient? // BHT-kunde (hvis aktivert)
   navigationItems              NavigationItem[] // Meny-konfigurasjoner
   simpleMenuItems              Json? // Hrefs som vises i enkel meny (null = standard)
+  dashboardLocked              Boolean @default(false) // Admin kan låse dashboardet for alle ansatte
+  lockedDashboardConfig        Json? // Widget-konfig som brukes av alle når dashboardet er låst
   hmsAnnualPlanCompletions     HmsAnnualPlanCompletion[] // Avkryssing av årlig HMS-plan (sjekkliste)
   // Timeregistrering (prosjekter, timer, kjøring)
   timeRegistrationEnabled      Boolean                        @default(false) // Aktiver modul per tenant

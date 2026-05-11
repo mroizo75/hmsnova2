@@ -215,50 +215,40 @@ export async function activateTenant(input: z.infer<typeof activateTenantSchema>
         });
       }
 
-      // 2. Beregn pris basert på bindingsperiode (nye HMS Nova priser)
-      const yearlyPrice = getBindingPrice("1year").yearlyPrice;
+      // 2. Pris: 300 kr/mnd, faktureres månedlig, 12 mnd binding
+      const monthlyPrice = getBindingPrice("1year").monthlyPrice;
+      const now = new Date();
+      const periodEnd = new Date(now);
+      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
 
-      const plan: any = 
-        tenant.pricingTier === "MICRO" ? "STARTER" :
-        tenant.pricingTier === "SMALL" ? "PROFESSIONAL" :
-        "ENTERPRISE";
+      const subscriptionData = {
+        plan: "STARTER" as const,
+        price: monthlyPrice,
+        billingInterval: "MONTHLY" as const,
+        status: "ACTIVE" as const,
+        currentPeriodStart: now,
+        currentPeriodEnd: periodEnd,
+      };
 
-      // 3. Opprett eller oppdater subscription (FØRST NÅ får de tilgang!)
+      // 3. Opprett eller oppdater subscription
       let subscription;
       if (tenant.subscription) {
-        // Subscription eksisterer allerede - oppdater den
         subscription = await tx.subscription.update({
           where: { tenantId: validated.tenantId },
-          data: {
-            plan,
-            price: yearlyPrice,
-            billingInterval: "YEARLY",
-            status: "TRIAL",
-            currentPeriodStart: new Date(),
-            currentPeriodEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 dager
-          },
+          data: subscriptionData,
         });
       } else {
-        // Opprett ny subscription
         subscription = await tx.subscription.create({
-          data: {
-            tenantId: validated.tenantId,
-            plan,
-            price: yearlyPrice,
-            billingInterval: "YEARLY",
-            status: "TRIAL",
-            currentPeriodStart: new Date(),
-            currentPeriodEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 dager
-          },
+          data: { tenantId: validated.tenantId, ...subscriptionData },
         });
       }
 
-      // 4. Oppdater tenant status og aktiver prøveperiode
+      // 4. Aktiver tenant med 12 mnd abonnement
       const updatedTenant = await tx.tenant.update({
         where: { id: validated.tenantId },
         data: {
-          status: "TRIAL",
-          trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 dager fra nå
+          status: "ACTIVE",
+          trialEndsAt: null,
           onboardingStatus: "ADMIN_CREATED",
           onboardingCompletedAt: new Date(),
           salesRep: currentUser.name || currentUser.email,

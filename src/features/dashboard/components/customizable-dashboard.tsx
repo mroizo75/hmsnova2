@@ -57,9 +57,10 @@ interface DashboardData {
 
 interface CustomizableDashboardProps {
   data: DashboardData;
+  dashboardLocked?: boolean;
 }
 
-export function CustomizableDashboard({ data }: CustomizableDashboardProps) {
+export function CustomizableDashboard({ data, dashboardLocked = false }: CustomizableDashboardProps) {
   const [widgets, setWidgets] = useState<WidgetConfig[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [catalogOpen, setCatalogOpen] = useState(false);
@@ -302,7 +303,7 @@ export function CustomizableDashboard({ data }: CustomizableDashboardProps) {
                 {saving ? "Lagrer..." : "Lagre"}
               </Button>
             </>
-          ) : (
+          ) : !dashboardLocked ? (
             <Button
               variant="outline"
               size="sm"
@@ -312,6 +313,11 @@ export function CustomizableDashboard({ data }: CustomizableDashboardProps) {
               <Pencil className="h-4 w-4" />
               Tilpass dashboard
             </Button>
+          ) : (
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Lock className="h-4 w-4" />
+              Dashboard er låst av administrator
+            </div>
           )}
         </div>
       </div>

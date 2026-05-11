@@ -92,6 +92,7 @@ function resolveActiveTenantId(
 export async function getDashboardConfig(): Promise<{
   success: boolean;
   data?: DashboardWidgetConfig[];
+  locked?: boolean;
   error?: string;
 }> {
   try {
@@ -117,22 +118,41 @@ export async function getDashboardConfig(): Promise<{
       return { success: false, error: "Ingen gyldig tenant-kontekst" };
     }
 
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { industry: true, dashboardLocked: true, lockedDashboardConfig: true },
+    });
+
+    const membership = user.tenants.find((t) => t.tenantId === tenantId);
+    const isAdmin = membership?.role === "ADMIN";
+
+    if (tenant?.dashboardLocked && !isAdmin) {
+      if (tenant.lockedDashboardConfig) {
+        const lockedWidgets = tenant.lockedDashboardConfig as unknown as DashboardWidgetConfig[];
+        return {
+          success: true,
+          data: normalizeDashboardWidgets(lockedWidgets),
+          locked: true,
+        };
+      }
+      const defaultWidgetIds = getDefaultWidgetIdsForIndustry(tenant?.industry);
+      return {
+        success: true,
+        data: defaultWidgetIds.map((id, index) => ({ id, order: index, type: "builtin" as const })),
+        locked: true,
+      };
+    }
+
     const config = await prisma.dashboardConfig.findUnique({
       where: { userId_tenantId: { userId: user.id, tenantId } },
     });
 
     if (!config) {
-      const tenant = await prisma.tenant.findUnique({
-        where: { id: tenantId },
-        select: { industry: true },
-      });
       const defaultWidgetIds = getDefaultWidgetIdsForIndustry(tenant?.industry);
-      const defaultWidgets = defaultWidgetIds.map((id, index) => ({
-        id,
-        order: index,
-        type: "builtin" as const,
-      }));
-      return { success: true, data: defaultWidgets };
+      return {
+        success: true,
+        data: defaultWidgetIds.map((id, index) => ({ id, order: index, type: "builtin" as const })),
+      };
     }
 
     const storedWidgets = config.widgets as unknown as DashboardWidgetConfig[];
@@ -169,17 +189,33 @@ export async function saveDashboardConfig(
       return { success: false, error: "Ingen gyldig tenant-kontekst" };
     }
 
+    const tenantRecord = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { dashboardLocked: true },
+    });
+
+    const membership = user.tenants.find((t) => t.tenantId === tenantId);
+    const isAdmin = membership?.role === "ADMIN";
+
+    if (tenantRecord?.dashboardLocked && !isAdmin) {
+      return { success: false, error: "Dashboardet er låst av administrator" };
+    }
+
     const normalizedWidgets = normalizeDashboardWidgets(widgets);
+    const widgetsJson = normalizedWidgets as unknown as import("@prisma/client").Prisma.InputJsonValue;
 
     await prisma.dashboardConfig.upsert({
       where: { userId_tenantId: { userId: user.id, tenantId } },
-      update: { widgets: normalizedWidgets as unknown as import("@prisma/client").Prisma.InputJsonValue },
-      create: {
-        userId: user.id,
-        tenantId,
-        widgets: normalizedWidgets as unknown as import("@prisma/client").Prisma.InputJsonValue,
-      },
+      update: { widgets: widgetsJson },
+      create: { userId: user.id, tenantId, widgets: widgetsJson },
     });
+
+    if (tenantRecord?.dashboardLocked && isAdmin) {
+      await prisma.tenant.update({
+        where: { id: tenantId },
+        data: { lockedDashboardConfig: widgetsJson },
+      });
+    }
 
     return { success: true };
   } catch (error: unknown) {
@@ -259,6 +295,18 @@ export async function saveHmsPulseConfig(
     if (!tenantId) {
       return { success: false, error: "Ingen gyldig tenant-kontekst" };
     }
+
+    const tenantData = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { dashboardLocked: true },
+    });
+    if (tenantData?.dashboardLocked) {
+      const membership = user.tenants.find((t) => t.tenantId === tenantId);
+      if (!membership || membership.role !== "ADMIN") {
+        return { success: false, error: "Dashboardet er låst av administrator" };
+      }
+    }
+
     const normalizedItems = ensureMandatoryHmsPulseItems(normalizeHmsPulseItems(items));
     const safeItems = normalizedItems.length > 0 ? normalizedItems : DEFAULT_HMS_PULSE_ITEMS;
 

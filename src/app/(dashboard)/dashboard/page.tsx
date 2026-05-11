@@ -232,6 +232,7 @@ export default async function DashboardPage() {
           })),
           statusItems,
         }}
+        dashboardLocked={selectedMembership.tenant.dashboardLocked && userRole !== "ADMIN"}
       />
     </div>
   );

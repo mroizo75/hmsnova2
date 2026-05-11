@@ -31,10 +31,6 @@ export default async function SettingsPage() {
           tenant: {
             include: {
               subscription: true,
-              invoices: {
-                orderBy: { createdAt: "desc" },
-                take: 10,
-              },
             },
           },
         },

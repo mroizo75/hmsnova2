@@ -30,7 +30,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { UserPlus, Trash2, Shield, User, AlertCircle } from "lucide-react";
+import { UserPlus, Trash2, Shield, User, AlertCircle, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import {
   inviteUser,
   updateUserRole,
@@ -74,6 +74,9 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
   const [activatingAll, setActivatingAll] = useState(false);
   const [editingEmployeeNumber, setEditingEmployeeNumber] = useState<string | null>(null);
   const [employeeNumberDraft, setEmployeeNumberDraft] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const pendingActivationCount = users.filter(
     (u) => !u.invitationSentAt && u.userId !== currentUserId
@@ -82,6 +85,25 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
   const currentUserCount = users.length;
   const remainingSlots = maxUsers - currentUserCount;
   const hasReachedLimit = currentUserCount >= maxUsers;
+
+  const filteredUsers = searchQuery.trim().length > 0
+    ? users.filter((u) => {
+        const q = searchQuery.toLowerCase();
+        return (
+          (u.user.name?.toLowerCase().includes(q)) ||
+          u.user.email.toLowerCase().includes(q) ||
+          u.role.toLowerCase().includes(q) ||
+          (u.employeeNumber?.toLowerCase().includes(q))
+        );
+      })
+    : users;
+
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedUsers = filteredUsers.slice(
+    (safePage - 1) * pageSize,
+    safePage * pageSize
+  );
 
   const handleInvite = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -490,9 +512,49 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
           </div>
         )}
 
-        {users.length === 0 ? (
+        {users.length > 0 && (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Søk etter navn, e-post, rolle..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="pl-9"
+              />
+            </div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>Vis</span>
+              <Select
+                value={String(pageSize)}
+                onValueChange={(v) => {
+                  setPageSize(Number(v));
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="w-[70px] h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+              <span>per side</span>
+            </div>
+          </div>
+        )}
+
+        {filteredUsers.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
-            Ingen brukere funnet
+            {searchQuery.trim().length > 0
+              ? `Ingen brukere funnet for "${searchQuery}"`
+              : "Ingen brukere funnet"}
           </div>
         ) : (
           <div className="rounded-md border">
@@ -508,7 +570,7 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((userTenant) => {
+                {paginatedUsers.map((userTenant) => {
                   const isCurrentUser = userTenant.userId === currentUserId;
 
                   return (
@@ -638,6 +700,61 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
                 })}
               </TableBody>
             </Table>
+          </div>
+        )}
+
+        {filteredUsers.length > pageSize && (
+          <div className="flex items-center justify-between mt-4">
+            <p className="text-sm text-muted-foreground">
+              Viser {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, filteredUsers.length)} av {filteredUsers.length} brukere
+            </p>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={safePage <= 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter((page) => {
+                  if (totalPages <= 7) return true;
+                  if (page === 1 || page === totalPages) return true;
+                  if (Math.abs(page - safePage) <= 1) return true;
+                  return false;
+                })
+                .reduce<(number | "ellipsis")[]>((acc, page, idx, arr) => {
+                  if (idx > 0 && page - (arr[idx - 1] as number) > 1) {
+                    acc.push("ellipsis");
+                  }
+                  acc.push(page);
+                  return acc;
+                }, [])
+                .map((item, idx) =>
+                  item === "ellipsis" ? (
+                    <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">...</span>
+                  ) : (
+                    <Button
+                      key={item}
+                      variant={safePage === item ? "default" : "outline"}
+                      size="sm"
+                      className="min-w-[32px]"
+                      onClick={() => setCurrentPage(item)}
+                    >
+                      {item}
+                    </Button>
+                  )
+                )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage >= totalPages}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         )}
 
