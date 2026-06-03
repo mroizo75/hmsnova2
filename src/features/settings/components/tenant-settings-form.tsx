@@ -238,7 +238,7 @@ export function TenantSettingsForm({ tenant, isAdmin }: TenantSettingsFormProps)
                   Lås dashboard for alle ansatte
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Når aktivert kan ikke ansatte endre rekkefølge, legge til eller fjerne moduler på sitt dashboard. Administratorer kan fortsatt tilpasse sitt eget.
+                  Når aktivert speiles ditt dashboard-oppsett til alle ansatte — både admin-dashboardet og ansatt-dashboardet viser kun de modulene du har valgt. Ansatte ser bare relevante funksjoner og navigasjon.
                 </p>
               </div>
               <Switch
@@ -253,8 +253,8 @@ export function TenantSettingsForm({ tenant, isAdmin }: TenantSettingsFormProps)
                     toast({
                       title: checked ? "Dashboard er nå låst" : "Dashboard er nå ulåst",
                       description: checked
-                        ? "Ansatte kan ikke lenger tilpasse sitt dashboard"
-                        : "Ansatte kan nå tilpasse sitt dashboard igjen",
+                        ? "Ditt dashboard-oppsett speiles nå til alle ansatte"
+                        : "Ansatte ser nå alle funksjoner igjen",
                       className: "bg-green-50 border-green-200",
                     });
                     router.refresh();

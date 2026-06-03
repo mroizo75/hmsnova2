@@ -35,7 +35,6 @@ interface InspectionData {
 const TYPE_LABELS: Record<string, string> = {
   VERNERUNDE: "Vernerunde",
   HMS_INSPEKSJON: "HMS-inspeksjon",
-  BRANNØVELSE: "Brannøvelse",
   SHA_PLAN: "SHA-plan",
   SIKKERHETSVANDRING: "Sikkerhetsvandring",
   ANDRE: "Annet",

@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { Home, FileText, AlertCircle, Beaker, ClipboardList, GraduationCap, Clock } from "lucide-react";
+import { Home } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { AppBreadcrumbs } from "@/components/app-breadcrumbs";
@@ -9,6 +9,11 @@ import { prisma } from "@/lib/db";
 import { LogoutButton } from "@/components/ansatt/logout-button";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { NotificationsProvider } from "@/hooks/useNotifications";
+import {
+  EMPLOYEE_WIDGET_REGISTRY,
+  getEmployeeWidgetsFromLockedConfig,
+  getEmployeeBottomNavItems,
+} from "@/features/dashboard/lib/employee-widget-registry";
 
 export default async function EmployeeLayout({
   children,
@@ -21,12 +26,10 @@ export default async function EmployeeLayout({
     redirect("/login");
   }
 
-  // Kun for ansatte (ikke superadmin/support)
   if (session.user.isSuperAdmin || session.user.isSupport) {
     redirect("/admin");
   }
 
-  // Hent brukerens profilbilde og tenant sin timeregistrering-status
   const [user, tenant] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },
@@ -35,15 +38,28 @@ export default async function EmployeeLayout({
     session.user.tenantId
       ? prisma.tenant.findUnique({
           where: { id: session.user.tenantId },
-          select: { timeRegistrationEnabled: true },
+          select: {
+            timeRegistrationEnabled: true,
+            dashboardLocked: true,
+            lockedDashboardConfig: true,
+          },
         })
       : null,
   ]);
 
+  let allWidgets = tenant?.dashboardLocked && tenant.lockedDashboardConfig
+    ? getEmployeeWidgetsFromLockedConfig(tenant.lockedDashboardConfig as Array<{ id: string }>)
+    : [...EMPLOYEE_WIDGET_REGISTRY];
+
+  if (!tenant?.timeRegistrationEnabled) {
+    allWidgets = allWidgets.filter((w) => w.id !== "emp-time");
+  }
+
+  const bottomNavItems = getEmployeeBottomNavItems(allWidgets);
+
   return (
     <NotificationsProvider>
       <div className="min-h-screen bg-gray-50 pb-20">
-        {/* Header - Mobil-optimalisert med logo */}
         <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
           <div className="container mx-auto px-4 py-3">
             <div className="flex items-center justify-between">
@@ -63,10 +79,8 @@ export default async function EmployeeLayout({
                   <p className="text-xs text-gray-500">Ansatt</p>
                 </div>
 
-                {/* Varsler */}
                 <NotificationBell />
 
-                {/* Avatar - klikk for profil */}
                 <Link
                   href="/ansatt/profil"
                   className="h-10 w-10 rounded-full overflow-hidden bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold hover:opacity-90 transition-opacity shadow-md"
@@ -84,20 +98,17 @@ export default async function EmployeeLayout({
                   )}
                 </Link>
 
-                {/* Logg ut med bekreftelse */}
                 <LogoutButton />
               </div>
             </div>
           </div>
         </header>
 
-        {/* Main Content */}
         <main className="container mx-auto px-4 py-6">
           <AppBreadcrumbs />
           {children}
         </main>
 
-        {/* Bottom Navigation - Mobil */}
         <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
           <div className="flex justify-around items-center h-16">
             <Link
@@ -108,58 +119,19 @@ export default async function EmployeeLayout({
               <span className="text-xs mt-1 text-gray-600">Hjem</span>
             </Link>
 
-            <Link
-              href="/ansatt/dokumenter"
-              className="flex flex-col items-center justify-center flex-1 h-full hover:bg-gray-50 transition-colors"
-            >
-              <FileText className="h-5 w-5 text-gray-600" />
-              <span className="text-xs mt-1 text-gray-600">Dokumenter</span>
-            </Link>
-
-            <Link
-              href="/ansatt/avvik"
-              className="flex flex-col items-center justify-center flex-1 h-full hover:bg-gray-50 transition-colors"
-            >
-              <AlertCircle className="h-5 w-5 text-gray-600" />
-              <span className="text-xs mt-1 text-gray-600">Avvik</span>
-            </Link>
-
-            <Link
-              href="/ansatt/stoffkartotek"
-              className="flex flex-col items-center justify-center flex-1 h-full hover:bg-gray-50 transition-colors"
-            >
-              <Beaker className="h-5 w-5 text-gray-600" />
-              <span className="text-xs mt-1 text-gray-600">Stoffer</span>
-            </Link>
-
-            <Link
-              href="/ansatt/skjemaer"
-              className="flex flex-col items-center justify-center flex-1 h-full hover:bg-gray-50 transition-colors"
-            >
-              <ClipboardList className="h-5 w-5 text-gray-600" />
-              <span className="text-xs mt-1 text-gray-600">Skjemaer</span>
-            </Link>
-
-            <Link
-              href="/ansatt/opplaering"
-              className="flex flex-col items-center justify-center flex-1 h-full hover:bg-gray-50 transition-colors"
-            >
-              <GraduationCap className="h-5 w-5 text-gray-600" />
-              <span className="text-xs mt-1 text-gray-600">Opplæring</span>
-            </Link>
-            {tenant?.timeRegistrationEnabled && (
+            {bottomNavItems.map((item) => (
               <Link
-                href="/ansatt/timeregistrering"
+                key={item.id}
+                href={item.href}
                 className="flex flex-col items-center justify-center flex-1 h-full hover:bg-gray-50 transition-colors"
               >
-                <Clock className="h-5 w-5 text-gray-600" />
-                <span className="text-xs mt-1 text-gray-600">Timer</span>
+                <item.icon className="h-5 w-5 text-gray-600" />
+                <span className="text-xs mt-1 text-gray-600">{item.label}</span>
               </Link>
-            )}
+            ))}
           </div>
         </nav>
       </div>
     </NotificationsProvider>
   );
 }
-

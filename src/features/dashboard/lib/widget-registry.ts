@@ -159,14 +159,15 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
   // Sikkerhet & Beredskap
   {
     id: "fire-safety",
-    label: "Brann",
-    description: "Brannsikkerhet, rømningsplaner og brannøvelser",
+    label: "Brannøvelse",
+    description: "Planlegg, gjennomfør og evaluer brannøvelser (§ 12 og § 13)",
     icon: Flame,
-    href: "/dashboard/forms?q=brann",
+    href: "/dashboard/fire-drills",
     category: "sikkerhet",
     color: "text-red-600",
     bgColor: "bg-red-50",
     borderColor: "border-red-200",
+    permission: "inspections",
   },
   {
     id: "electrical",

@@ -298,6 +298,7 @@ model Tenant {
   documentSignatures           DocumentSignature[]
   orgChartNodes                OrgChartNode[]
   dashboardConfigs             DashboardConfig[]
+  fireDrills                   FireDrill[]
   createdAt                    DateTime                       @default(now())
   updatedAt                    DateTime                       @updatedAt
 
@@ -1422,6 +1423,7 @@ model Measure {
   auditId               String?
   goalId                String?
   environmentalAspectId String?
+  fireDrillId           String?
   title                 String
   description           String?             @db.Text
   dueAt                 DateTime
@@ -1447,6 +1449,7 @@ model Measure {
   environmentalAspect EnvironmentalAspect? @relation(fields: [environmentalAspectId], references: [id], onDelete: SetNull)
   inspectionFindings  InspectionFinding[]  @relation("InspectionFindingMeasure")
   project             Project?             @relation("ProjectMeasures", fields: [projectId], references: [id], onDelete: SetNull)
+  fireDrill           FireDrill?           @relation(fields: [fireDrillId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([status])
@@ -1457,6 +1460,7 @@ model Measure {
   @@index([goalId])
   @@index([environmentalAspectId])
   @@index([projectId])
+  @@index([fireDrillId])
 }
 
 enum ActionStatus {
@@ -2436,7 +2440,7 @@ model InspectionFinding {
 enum InspectionType {
   VERNERUNDE
   HMS_INSPEKSJON
-  BRANNØVELSE
+  BRANNØVELSE /// @deprecated — erstattet av FireDrill-modul. Beholdes for eksisterende produksjonsdata.
   SHA_PLAN
   SIKKERHETSVANDRING
   ANDRE
@@ -3829,4 +3833,78 @@ model DashboardConfig {
   @@unique([userId, tenantId])
   @@index([userId])
   @@index([tenantId])
+}
+
+// ============================================
+// Brannøvelse (Forskrift om brannforebygging § 12 og § 13)
+// ============================================
+
+model FireDrill {
+  id String @id @default(cuid())
+  tenantId String
+
+  // Planleggingsfase — § 12b/c/d: rutiner for evakuering, kunnskap og informasjon
+  title            String
+  drillType        FireDrillType   @default(EVACUATION)
+  isAnnounced      Boolean         @default(true)
+  status           FireDrillStatus @default(PLANNED)
+  plannedDate      DateTime
+  location         String
+  responsibleId    String // Øvingsleder
+  objectives       String          @db.Text // Mål for øvelsen
+  scenario         String?         @db.Text // Scenario-beskrivelse
+  riskAssessment   String?         @db.Text // Risikovurdering
+  participantIds   String?         @db.Text // JSON array av planlagte deltakere (userId[])
+
+  // Delte lokaler — § 4 tredje ledd: eier skal sikre samordning mellom brukere
+  sharedPremises           Boolean  @default(false) // Deler virksomheten lokaler med andre?
+  buildingOwnerCoordinated Boolean? // Er byggeier/gårdeier koordinert og informert?
+  buildingOwnerName        String?  // Navn/kontakt for byggeier eller samordningsansvarlig
+  otherTenantsInformed     Boolean? // Er øvrige leietakere/virksomheter informert?
+  fullBuildingEvacuation   Boolean? // Var øvelsen felles for hele bygget (ikke bare egne lokaler)?
+  totalBuildingOccupants   Int?     // Totalt antall personer i bygget under øvelsen — § 13
+
+  // Gjennomføringsfase — § 13: dokumentasjonskrav
+  completedAt              DateTime?
+  actualParticipantCount   Int?    // Antall faktiske deltakere (egne ansatte/tilhørende)
+  evacuationTimeSeconds    Int?    // Evakueringstid i sekunder
+  observations             String? @db.Text // Observasjoner under øvelsen
+
+  // Evalueringsfase — § 12e + § 13: avdekke og rette opp mangler
+  objectivesAchieved    String? // FULL | PARTIAL | NOT_ACHIEVED
+  evaluation            String? @db.Text // Evaluering og vurdering
+  improvementPoints     String? @db.Text // Forbedringspunkter
+  procedureChangesNeeded Boolean?
+  procedureChangesDesc  String? @db.Text
+  evaluatedBy           String? // userId for øvingsleder som bekreftet
+  evaluatedAt           DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  measures Measure[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([plannedDate])
+  @@index([drillType])
+  @@index([responsibleId])
+}
+
+// § 12b: type øvelse som gjennomføres
+enum FireDrillType {
+  EVACUATION     // Evakueringsøvelse
+  FIRE_SUPPRESSION // Slokkeopplæring
+  ALARM_TEST     // Brannalarmtest
+  FULL_SCALE     // Fullskalaøvelse
+}
+
+// Livssyklusstatus for en brannøvelse
+enum FireDrillStatus {
+  PLANNED      // Planlagt
+  IN_PROGRESS  // Pågår
+  COMPLETED    // Gjennomført (mangler evaluering)
+  EVALUATED    // Evaluert og dokumentert — § 13 oppfylt
+  CANCELLED    // Avlyst
 }

@@ -256,7 +256,6 @@ export default function NewInspectionPage() {
                   <SelectContent>
                     <SelectItem value="VERNERUNDE">{t("types.vernerunde")}</SelectItem>
                     <SelectItem value="HMS_INSPEKSJON">{t("types.hmsInspection")}</SelectItem>
-                    <SelectItem value="BRANNØVELSE">{t("types.fireDrill")}</SelectItem>
                     <SelectItem value="SHA_PLAN">{t("types.shaPlan")}</SelectItem>
                     <SelectItem value="SIKKERHETSVANDRING">{t("types.safetyWalk")}</SelectItem>
                     <SelectItem value="ANDRE">{t("types.other")}</SelectItem>

@@ -53,7 +53,6 @@ export default async function InspeksjonRapportPage({ searchParams }: PageProps)
   const typeLabels: Record<string, string> = {
     VERNERUNDE: t("labels.types.vernerunde"),
     HMS_INSPEKSJON: t("labels.types.hmsInspection"),
-    BRANNØVELSE: t("labels.types.fireDrill"),
     SHA_PLAN: t("labels.types.shaPlan"),
     SIKKERHETSVANDRING: t("labels.types.safetyWalk"),
     ANDRE: t("labels.types.other"),
@@ -171,7 +170,7 @@ export default async function InspeksjonRapportPage({ searchParams }: PageProps)
     color: { OPEN: "#dc2626", IN_PROGRESS: "#f59e0b", RESOLVED: "#22c55e", CLOSED: "#6b7280" }[s],
   }));
 
-  const typeKeys = ["VERNERUNDE", "HMS_INSPEKSJON", "BRANNØVELSE", "SHA_PLAN", "SIKKERHETSVANDRING", "ANDRE"];
+  const typeKeys = ["VERNERUNDE", "HMS_INSPEKSJON", "SHA_PLAN", "SIKKERHETSVANDRING", "ANDRE"];
   const byType = typeKeys
     .map((t) => {
       const ins = inspections.filter((i) => i.type === t);

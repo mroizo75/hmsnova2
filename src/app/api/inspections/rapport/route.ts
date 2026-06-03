@@ -9,7 +9,6 @@ import { nb } from "date-fns/locale";
 const TYPE_LABELS: Record<string, string> = {
   VERNERUNDE: "Vernerunde",
   HMS_INSPEKSJON: "HMS-inspeksjon",
-  BRANNØVELSE: "Brannøvelse",
   SHA_PLAN: "SHA-plan",
   SIKKERHETSVANDRING: "Sikkerhetsvandring",
   ANDRE: "Annet",
@@ -529,7 +528,7 @@ export async function GET(req: NextRequest) {
     color: FINDING_STATUS_COLORS[s],
   }));
 
-  const typeKeys = ["VERNERUNDE", "HMS_INSPEKSJON", "BRANNØVELSE", "SHA_PLAN", "SIKKERHETSVANDRING", "ANDRE"];
+  const typeKeys = ["VERNERUNDE", "HMS_INSPEKSJON", "SHA_PLAN", "SIKKERHETSVANDRING", "ANDRE"];
   const byType = typeKeys
     .map((t) => {
       const ins = inspections.filter((i) => i.type === t);

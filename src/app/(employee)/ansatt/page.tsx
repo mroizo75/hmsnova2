@@ -3,10 +3,15 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { FileText, AlertCircle, Beaker, GraduationCap, Shield, Bell, ClipboardList, ShieldAlert, Clock, FileWarning, HardHat, BookOpenCheck, Plug } from "lucide-react";
+import { Shield, Bell } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/lib/db";
+import {
+  EMPLOYEE_WIDGET_REGISTRY,
+  getEmployeeWidgetsFromLockedConfig,
+  type EmployeeWidgetDefinition,
+} from "@/features/dashboard/lib/employee-widget-registry";
 
 export default async function AnsattDashboard() {
   const session = await getServerSession(authOptions);
@@ -16,7 +21,6 @@ export default async function AnsattDashboard() {
     redirect("/login");
   }
 
-  // Hent tenant settings for HMS-kontakt og timeregistrering
   const tenant = await prisma.tenant.findUnique({
     where: { id: session.user.tenantId },
     select: {
@@ -25,16 +29,27 @@ export default async function AnsattDashboard() {
       hmsContactEmail: true,
       timeRegistrationEnabled: true,
       industry: true,
+      dashboardLocked: true,
+      lockedDashboardConfig: true,
     },
   });
   const isAgricultureTenant = tenant?.industry?.toLowerCase() === "agriculture";
-
-  // Hent tenant-navn fra session
   const tenantName = session.user.tenantName;
+
+  let visibleWidgets: EmployeeWidgetDefinition[];
+  if (tenant?.dashboardLocked && tenant.lockedDashboardConfig) {
+    const lockedConfig = tenant.lockedDashboardConfig as Array<{ id: string }>;
+    visibleWidgets = getEmployeeWidgetsFromLockedConfig(lockedConfig);
+  } else {
+    visibleWidgets = [...EMPLOYEE_WIDGET_REGISTRY];
+  }
+
+  if (!tenant?.timeRegistrationEnabled) {
+    visibleWidgets = visibleWidgets.filter((w) => w.id !== "emp-time");
+  }
 
   return (
     <div className="space-y-6">
-      {/* Velkommen-melding - Ren og profesjonell */}
       <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
           {t("welcome.title", { name: session.user.name?.split(" ")[0] ?? "" })}
@@ -51,7 +66,6 @@ export default async function AnsattDashboard() {
         )}
       </div>
 
-      {/* Viktige varsler */}
       <Card className="border-l-4 border-l-yellow-500">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
@@ -90,182 +104,24 @@ export default async function AnsattDashboard() {
         </Card>
       )}
 
-      {/* Hovedfunksjoner - Store, touch-vennlige knapper */}
       <div className="grid grid-cols-2 gap-4">
-        {/* Dokumenter */}
-        <Link href="/ansatt/dokumenter">
-          <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-primary">
-            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-              <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center mb-3">
-                <FileText className="h-8 w-8 text-blue-600" />
-              </div>
-              <h3 className="font-semibold text-lg mb-1">{t("cards.documents.title")}</h3>
-              <p className="text-xs text-muted-foreground">
-                {t("cards.documents.description")}
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        {/* Rapporter avvik */}
-        <Link href="/ansatt/avvik/ny">
-          <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-destructive">
-            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-              <div className="h-16 w-16 rounded-full bg-red-100 flex items-center justify-center mb-3">
-                <AlertCircle className="h-8 w-8 text-red-600" />
-              </div>
-              <h3 className="font-semibold text-lg mb-1">
-                {isAgricultureTenant ? t("cards.report.agricultureTitle") : t("cards.report.defaultTitle")}
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                {isAgricultureTenant ? t("cards.report.agricultureDescription") : t("cards.report.defaultDescription")}
-              </p>
-              <Badge variant="destructive" className="mt-2 text-xs">
-                {t("cards.report.badge")}
-              </Badge>
-            </CardContent>
-          </Card>
-        </Link>
-
-        {/* Rutiner */}
-        <Link href="/ansatt/rutiner">
-          <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-emerald-500">
-            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-              <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center mb-3">
-                <BookOpenCheck className="h-8 w-8 text-emerald-700" />
-              </div>
-              <h3 className="font-semibold text-lg mb-1">{t("cards.routines.title")}</h3>
-              <p className="text-xs text-muted-foreground">
-                {t("cards.routines.description")}
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        {/* Samsvarserklæringer */}
-        <Link href="/ansatt/samsvarserklaringer">
-          <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-amber-400">
-            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-              <div className="h-16 w-16 rounded-full bg-amber-100 flex items-center justify-center mb-3">
-                <Plug className="h-8 w-8 text-amber-700" />
-              </div>
-              <h3 className="font-semibold text-lg mb-1">{t("cards.electro.title")}</h3>
-              <p className="text-xs text-muted-foreground">
-                {t("cards.electro.description")}
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        {/* RUH */}
-        <Link href="/ansatt/ruh/ny">
-          <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-amber-500">
-            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-              <div className="h-16 w-16 rounded-full bg-amber-100 flex items-center justify-center mb-3">
-                <FileWarning className="h-8 w-8 text-amber-600" />
-              </div>
-              <h3 className="font-semibold text-lg mb-1">RUH</h3>
-              <p className="text-xs text-muted-foreground">
-                {isAgricultureTenant ? t("cards.ruh.agricultureDescription") : t("cards.ruh.defaultDescription")}
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        {/* SJA */}
-        <Link href="/ansatt/sja">
-          <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-orange-500">
-            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-              <div className="h-16 w-16 rounded-full bg-orange-100 flex items-center justify-center mb-3">
-                <HardHat className="h-8 w-8 text-orange-600" />
-              </div>
-              <h3 className="font-semibold text-lg mb-1">SJA</h3>
-              <p className="text-xs text-muted-foreground">
-                {isAgricultureTenant ? t("cards.sja.agricultureDescription") : t("cards.sja.defaultDescription")}
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        {/* Stoffkartotek */}
-        <Link href="/ansatt/stoffkartotek">
-          <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-accent">
-            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-              <div className="h-16 w-16 rounded-full bg-purple-100 flex items-center justify-center mb-3">
-                <Beaker className="h-8 w-8 text-purple-600" />
-              </div>
-              <h3 className="font-semibold text-lg mb-1">{t("cards.chemicals.title")}</h3>
-              <p className="text-xs text-muted-foreground">
-                {t("cards.chemicals.description")}
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        {/* Opplæring */}
-        <Link href="/ansatt/opplaering">
-          <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-primary">
-            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-              <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center mb-3">
-                <GraduationCap className="h-8 w-8 text-blue-600" />
-              </div>
-              <h3 className="font-semibold text-lg mb-1">{t("cards.training.title")}</h3>
-              <p className="text-xs text-muted-foreground">
-                {t("cards.training.description")}
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        {/* Skjemaer */}
-        <Link href="/ansatt/skjemaer">
-          <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-green-500">
-            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-              <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mb-3">
-                <ClipboardList className="h-8 w-8 text-green-600" />
-              </div>
-              <h3 className="font-semibold text-lg mb-1">{t("cards.forms.title")}</h3>
-              <p className="text-xs text-muted-foreground">
-                {t("cards.forms.description")}
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        {/* Varsling */}
-        <Link href="/ansatt/varsling">
-          <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-orange-500">
-            <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-              <div className="h-16 w-16 rounded-full bg-orange-100 flex items-center justify-center mb-3">
-                <ShieldAlert className="h-8 w-8 text-orange-600" />
-              </div>
-              <h3 className="font-semibold text-lg mb-1">{t("cards.whistleblowing.title")}</h3>
-              <p className="text-xs text-muted-foreground">
-                {t("cards.whistleblowing.description")}
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        {/* Timeføring - kun når aktivert for bedriften */}
-        {tenant?.timeRegistrationEnabled && (
-          <Link href="/ansatt/timeregistrering">
+        {visibleWidgets.map((widget) => (
+          <Link key={widget.id} href={widget.href}>
             <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-primary">
               <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-                <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center mb-3">
-                  <Clock className="h-8 w-8 text-emerald-600" />
+                <div className={`h-16 w-16 rounded-full ${widget.bgColor} flex items-center justify-center mb-3`}>
+                  <widget.icon className={`h-8 w-8 ${widget.color}`} />
                 </div>
-                <h3 className="font-semibold text-lg mb-1">{t("cards.timeRegistration.title")}</h3>
+                <h3 className="font-semibold text-lg mb-1">{widget.label}</h3>
                 <p className="text-xs text-muted-foreground">
-                  {t("cards.timeRegistration.description")}
+                  {widget.description}
                 </p>
               </CardContent>
             </Card>
           </Link>
-        )}
+        ))}
       </div>
 
-      {/* Mine oppgaver */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -295,7 +151,6 @@ export default async function AnsattDashboard() {
         </CardContent>
       </Card>
 
-      {/* Nødkontakter */}
       <Card className="border-l-4 border-l-red-500">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg text-red-600">{t("emergency.title")}</CardTitle>
@@ -303,29 +158,21 @@ export default async function AnsattDashboard() {
         <CardContent className="space-y-2">
           <div className="flex justify-between items-center">
             <span className="font-medium">{t("emergency.fire")}</span>
-            <a href="tel:110" className="text-red-600 font-bold text-lg">
-              110
-            </a>
+            <a href="tel:110" className="text-red-600 font-bold text-lg">110</a>
           </div>
           <div className="flex justify-between items-center">
             <span className="font-medium">{t("emergency.police")}</span>
-            <a href="tel:112" className="text-red-600 font-bold text-lg">
-              112
-            </a>
+            <a href="tel:112" className="text-red-600 font-bold text-lg">112</a>
           </div>
           <div className="flex justify-between items-center">
             <span className="font-medium">{t("emergency.ambulance")}</span>
-            <a href="tel:113" className="text-red-600 font-bold text-lg">
-              113
-            </a>
+            <a href="tel:113" className="text-red-600 font-bold text-lg">113</a>
           </div>
           {tenant?.hmsContactName && (
             <div className="border-t pt-2 mt-2 space-y-1">
               <div className="flex justify-between items-center">
                 <span className="font-medium">{t("emergency.hmsResponsible")}</span>
-                <span className="text-primary font-medium">
-                  {tenant.hmsContactName}
-                </span>
+                <span className="text-primary font-medium">{tenant.hmsContactName}</span>
               </div>
               {tenant.hmsContactPhone && (
                 <div className="flex justify-between items-center">
@@ -350,4 +197,3 @@ export default async function AnsattDashboard() {
     </div>
   );
 }
-

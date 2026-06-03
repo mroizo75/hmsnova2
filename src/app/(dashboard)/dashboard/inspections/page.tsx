@@ -94,7 +94,6 @@ export default async function InspectionsPage({
     const labels: Record<string, string> = {
       VERNERUNDE: t("types.vernerunde"),
       HMS_INSPEKSJON: t("types.hmsInspection"),
-      BRANNØVELSE: t("types.fireDrill"),
       SHA_PLAN: t("types.shaPlan"),
       SIKKERHETSVANDRING: t("types.safetyWalk"),
       ANDRE: t("types.other"),

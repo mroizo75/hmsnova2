@@ -48,6 +48,7 @@ export const DASHBOARD_NAV_CONFIG: DashboardNavItemConfig[] = [
   { href: "/dashboard/incidents/statistics", label: "nav.hseStatistics", permission: "hseStatistics", defaultSimple: false },
   { href: "/dashboard/sja", label: "nav.sja", permission: "sja", defaultSimple: true },
   { href: "/dashboard/inspections", label: "nav.inspections", permission: "inspections", defaultSimple: true },
+  { href: "/dashboard/fire-drills", label: "nav.fireDrills", permission: "inspections", defaultSimple: true },
   { href: "/dashboard/training", label: "nav.training", permission: "training", defaultSimple: true },
   { href: "/dashboard/actions", label: "nav.actions", permission: "actions", defaultSimple: true },
   { href: "/dashboard/chemicals", label: "nav.chemicals", permission: "chemicals", defaultSimple: true },

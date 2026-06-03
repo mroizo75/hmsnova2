@@ -44,6 +44,7 @@ import {
   Plug,
   FileCheck2,
   Building2,
+  Flame,
 } from "lucide-react";
 import { usePermissions } from "@/hooks/use-permissions";
 import { getRoleDisplayName } from "@/lib/permissions";
@@ -79,6 +80,7 @@ const navItems: Array<{
   { href: "/dashboard/incidents/statistics", label: "nav.hseStatistics", icon: BarChart3, permission: "incidents" as const, simple: false, feature: "trir" },
   { href: "/dashboard/sja", label: "nav.sja", icon: HardHat, permission: "sja" as const, simple: true },
   { href: "/dashboard/inspections", label: "nav.inspections", icon: ShieldCheck, permission: "inspections" as const, simple: true },
+  { href: "/dashboard/fire-drills", label: "nav.fireDrills", icon: Flame, permission: "inspections" as const, simple: true },
   { href: "/dashboard/training", label: "nav.training", icon: GraduationCap, permission: "training" as const, simple: true },
   { href: "/dashboard/actions", label: "nav.actions", icon: ListTodo, permission: "actions" as const, simple: true },
   { href: "/dashboard/chemicals", label: "nav.chemicals", icon: Beaker, permission: "chemicals" as const, simple: true },
