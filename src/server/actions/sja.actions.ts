@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { generateSequenceNumber } from "@/lib/sequence";
 import { getRequiredTenantContext } from "@/lib/tenant-context";
+import { getAuthContext } from "@/lib/server-authorization";
 import {
   createSjaSchema,
   updateSjaSchema,
@@ -28,17 +29,28 @@ async function getSessionContext() {
 
 export async function getSjaAnalyses(_tenantId: string) {
   try {
-    const context = await getSessionContext();
+    const auth = await getAuthContext();
+    if (!auth) throw new Error("Ikke autentisert");
+
+    const canReadAll = auth.permissions.canReadSja;
+    const canReadOwn = auth.permissions.canReadOwnSja;
+
+    if (!canReadAll && !canReadOwn) {
+      throw new Error("Ikke autorisert til å se SJA-analyser");
+    }
+
+    const { tenantId, userId } = auth;
+    const ownerFilter = canReadAll ? {} : { createdById: userId };
 
     const analyses = await prisma.sjaAnalysis.findMany({
-      where: { tenantId: context.tenantId },
+      where: { tenantId, ...ownerFilter },
       include: {
         hazards: { orderBy: { sortOrder: "asc" } },
       },
       orderBy: [{ plannedDate: "desc" }],
     });
 
-    return { success: true, data: analyses };
+    return { success: true, data: analyses, ownOnly: !canReadAll };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke hente SJA-analyser" };
   }
@@ -46,10 +58,21 @@ export async function getSjaAnalyses(_tenantId: string) {
 
 export async function getSjaAnalysis(id: string) {
   try {
-    const { tenantId } = await getSessionContext();
+    const auth = await getAuthContext();
+    if (!auth) throw new Error("Ikke autentisert");
 
-    const analysis = await prisma.sjaAnalysis.findUnique({
-      where: { id, tenantId },
+    const canReadAll = auth.permissions.canReadSja;
+    const canReadOwn = auth.permissions.canReadOwnSja;
+
+    if (!canReadAll && !canReadOwn) {
+      throw new Error("Ikke autorisert til å se SJA-analyser");
+    }
+
+    const { tenantId, userId } = auth;
+    const ownerFilter = canReadAll ? {} : { createdById: userId };
+
+    const analysis = await prisma.sjaAnalysis.findFirst({
+      where: { id, tenantId, ...ownerFilter },
       include: {
         hazards: { orderBy: { sortOrder: "asc" } },
       },

@@ -924,3 +924,49 @@ export async function getSubscriptionInfo() {
   }
 }
 
+// ============================================================================
+// MODUL-SYNLIGHET
+// ============================================================================
+
+export async function updateModuleVisibility(config: Record<string, string[]>) {
+  try {
+    const { user, tenantId } = await getSessionContext();
+
+    const userTenant = user.tenants.find((t) => t.tenantId === tenantId);
+    if (!userTenant || userTenant.role !== "ADMIN") {
+      return { success: false, error: "Kun administratorer kan endre modul-synlighet" };
+    }
+
+    const { parseModuleVisibilityConfig } = await import("@/lib/module-visibility");
+    const validated = parseModuleVisibilityConfig(config);
+
+    await prisma.tenant.update({
+      where: { id: tenantId },
+      data: { moduleVisibilityConfig: validated ?? {} },
+    });
+
+    revalidatePath("/dashboard/settings");
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Kunne ikke oppdatere modul-synlighet" };
+  }
+}
+
+export async function getModuleVisibilityConfig() {
+  try {
+    const { tenantId } = await getSessionContext();
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { moduleVisibilityConfig: true },
+    });
+
+    const { parseModuleVisibilityConfig } = await import("@/lib/module-visibility");
+    const config = parseModuleVisibilityConfig(tenant?.moduleVisibilityConfig);
+    return { success: true, data: config };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Kunne ikke hente modul-synlighet" };
+  }
+}
+

@@ -18,18 +18,21 @@ export interface RolePermissions {
   canDeleteDocuments: boolean;
   
   // Avvik & Hendelser
-  canReadIncidents: boolean;
+  canReadIncidents: boolean;      // Lese ALLE avvik (behandlere)
+  canReadOwnIncidents: boolean;   // Lese egne innsendte avvik (alle som kan rapportere)
   canCreateIncidents: boolean;
   canInvestigateIncidents: boolean;
   canCloseIncidents: boolean;
   
   // RUH – Rapport om uønsket hendelse
-  canReadRuh: boolean;
+  canReadRuh: boolean;            // Lese ALLE RUH-rapporter (behandlere)
+  canReadOwnRuh: boolean;         // Lese egne innsendte RUH (alle som kan rapportere)
   canCreateRuh: boolean;
   canHandleRuh: boolean;
 
   // SJA – Sikker Jobb Analyse
-  canReadSja: boolean;
+  canReadSja: boolean;            // Lese ALLE SJA-analyser (behandlere)
+  canReadOwnSja: boolean;         // Lese egne opprettede SJA (alle som kan opprette)
   canCreateSja: boolean;
   canApproveSja: boolean;
   
@@ -50,6 +53,8 @@ export interface RolePermissions {
   canFillForms: boolean;
   canCreateForms: boolean;
   canManageForms: boolean;
+  canReadAllFormSubmissions: boolean;  // Lese ALLE innsendinger (behandlere)
+  canReadOwnFormSubmissions: boolean;  // Lese egne skjemainnsendinger
 
   // Rutiner
   canReadRoutines: boolean;
@@ -158,13 +163,16 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canApproveDocuments: true,
     canDeleteDocuments: true,
     canReadIncidents: true,
+    canReadOwnIncidents: true,
     canCreateIncidents: true,
     canInvestigateIncidents: true,
     canCloseIncidents: true,
     canReadRuh: true,
+    canReadOwnRuh: true,
     canCreateRuh: true,
     canHandleRuh: true,
     canReadSja: true,
+    canReadOwnSja: true,
     canCreateSja: true,
     canApproveSja: true,
     canReadRisks: true,
@@ -179,6 +187,8 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canFillForms: true,
     canCreateForms: true,
     canManageForms: true,
+    canReadAllFormSubmissions: true,
+    canReadOwnFormSubmissions: true,
     canReadRoutines: true,
     canCreateRoutines: true,
     canManageRoutines: true,
@@ -247,13 +257,16 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canApproveDocuments: true,
     canDeleteDocuments: false, // Kan ikke slette
     canReadIncidents: true,
+    canReadOwnIncidents: true,
     canCreateIncidents: true,
     canInvestigateIncidents: true,
     canCloseIncidents: true,
     canReadRuh: true,
+    canReadOwnRuh: true,
     canCreateRuh: true,
     canHandleRuh: true,
     canReadSja: true,
+    canReadOwnSja: true,
     canCreateSja: true,
     canApproveSja: true,
     canReadRisks: true,
@@ -268,6 +281,8 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canFillForms: true,
     canCreateForms: true,
     canManageForms: true,
+    canReadAllFormSubmissions: true,
+    canReadOwnFormSubmissions: true,
     canReadRoutines: true,
     canCreateRoutines: true,
     canManageRoutines: true,
@@ -336,13 +351,16 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canApproveDocuments: false,
     canDeleteDocuments: false,
     canReadIncidents: true,
+    canReadOwnIncidents: true,
     canCreateIncidents: true,
     canInvestigateIncidents: true,
     canCloseIncidents: true,
     canReadRuh: true,
+    canReadOwnRuh: true,
     canCreateRuh: true,
     canHandleRuh: true,
     canReadSja: true,
+    canReadOwnSja: true,
     canCreateSja: true,
     canApproveSja: true,
     canReadRisks: true,
@@ -357,6 +375,8 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canFillForms: true,
     canCreateForms: true,
     canManageForms: true,
+    canReadAllFormSubmissions: true,
+    canReadOwnFormSubmissions: true,
     canReadRoutines: true,
     canCreateRoutines: true,
     canManageRoutines: true,
@@ -416,7 +436,7 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canManageConstructionCompliance: true,
   },
 
-  // VERNEOMBUD - Verneombud, fokus på HMS
+  // VERNEOMBUD - Verneombud, fokus på HMS (AML § 6-2: rett til informasjon om arbeidsmiljøet)
   VERNEOMBUD: {
     canAccessDashboard: true,
     canViewAnalytics: true,
@@ -424,14 +444,17 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateDocuments: false,
     canApproveDocuments: false,
     canDeleteDocuments: false,
-    canReadIncidents: true,
+    canReadIncidents: true,    // AML § 6-2: har rett til informasjon
+    canReadOwnIncidents: true,
     canCreateIncidents: true,
     canInvestigateIncidents: false,
     canCloseIncidents: false,
     canReadRuh: true,
+    canReadOwnRuh: true,
     canCreateRuh: true,
     canHandleRuh: false,
     canReadSja: true,
+    canReadOwnSja: true,
     canCreateSja: true,
     canApproveSja: false,
     canReadRisks: true,
@@ -446,6 +469,8 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canFillForms: true,
     canCreateForms: false,
     canManageForms: false,
+    canReadAllFormSubmissions: true,  // Verneombud ser alle innsendinger
+    canReadOwnFormSubmissions: true,
     canReadRoutines: true,
     canCreateRoutines: false,
     canManageRoutines: false,
@@ -513,21 +538,24 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateDocuments: false,
     canApproveDocuments: false,
     canDeleteDocuments: false,
-    canReadIncidents: false, // Kun egne
-    canCreateIncidents: true, // Kan rapportere avvik og kundeklager
+    canReadIncidents: false,        // Kan IKKE se andres avvik
+    canReadOwnIncidents: true,      // Kan se egne innsendte avvik
+    canCreateIncidents: true,       // Kan rapportere avvik og kundeklager
     canInvestigateIncidents: false,
     canCloseIncidents: false,
-    canReadRuh: true, // Kan se egne RUH-rapporter
-    canCreateRuh: true, // Alle ansatte kan sende RUH
+    canReadRuh: false,              // Kan IKKE se andres RUH-rapporter
+    canReadOwnRuh: true,            // Kan se egne innsendte RUH-rapporter
+    canCreateRuh: true,             // Alle ansatte kan sende RUH
     canHandleRuh: false,
-    canReadSja: true, // Kan se egne SJA
-    canCreateSja: true, // Alle ansatte kan opprette SJA
+    canReadSja: false,              // Kan IKKE se andres SJA-analyser
+    canReadOwnSja: true,            // Kan se egne opprettede SJA
+    canCreateSja: true,             // Alle ansatte kan opprette SJA
     canApproveSja: false,
     canReadRisks: false,
     canCreateRisks: false,
     canApproveRisks: false,
     canDeleteRisks: false,
-    canReadActions: false, // Kun egne
+    canReadActions: false,          // Kun egne
     canCreateActions: false,
     canUpdateActions: false,
     canDeleteActions: false,
@@ -535,6 +563,8 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canFillForms: true,
     canCreateForms: false,
     canManageForms: false,
+    canReadAllFormSubmissions: false, // Kan IKKE se andres skjemainnsendinger
+    canReadOwnFormSubmissions: true,  // Kan se egne innsendinger
     canReadRoutines: true,
     canCreateRoutines: false,
     canManageRoutines: false,
@@ -603,13 +633,16 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canApproveDocuments: false,
     canDeleteDocuments: false,
     canReadIncidents: true,
+    canReadOwnIncidents: true,
     canCreateIncidents: true,
     canInvestigateIncidents: false,
     canCloseIncidents: false,
     canReadRuh: true,
+    canReadOwnRuh: true,
     canCreateRuh: true,
     canHandleRuh: false,
     canReadSja: true,
+    canReadOwnSja: true,
     canCreateSja: true,
     canApproveSja: false,
     canReadRisks: true,
@@ -624,6 +657,8 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canFillForms: true,
     canCreateForms: false,
     canManageForms: false,
+    canReadAllFormSubmissions: true,
+    canReadOwnFormSubmissions: true,
     canReadRoutines: true,
     canCreateRoutines: false,
     canManageRoutines: false,
@@ -692,13 +727,16 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canApproveDocuments: false,
     canDeleteDocuments: false,
     canReadIncidents: true,
+    canReadOwnIncidents: true,
     canCreateIncidents: false,
     canInvestigateIncidents: false,
     canCloseIncidents: false,
     canReadRuh: true,
+    canReadOwnRuh: true,
     canCreateRuh: false,
     canHandleRuh: false,
     canReadSja: true,
+    canReadOwnSja: true,
     canCreateSja: false,
     canApproveSja: false,
     canReadRisks: true,
@@ -713,6 +751,8 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canFillForms: false,
     canCreateForms: false,
     canManageForms: false,
+    canReadAllFormSubmissions: true,
+    canReadOwnFormSubmissions: true,
     canReadRoutines: true,
     canCreateRoutines: false,
     canManageRoutines: false,

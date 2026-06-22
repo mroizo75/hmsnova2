@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getAuthContext } from "@/lib/server-authorization";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { IncidentTabs } from "@/features/incidents/components/incident-tabs";
 import { UploadIncidentDialog } from "@/features/incidents/components/upload-incident-dialog";
-import { Plus, AlertCircle, Clock, CheckCircle, ShieldAlert, FileWarning } from "lucide-react";
+import { Plus, AlertCircle, Clock, CheckCircle, ShieldAlert, FileWarning, Info, Send } from "lucide-react";
 import Link from "next/link";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
 import { helpContent } from "@/lib/help-content";
@@ -14,44 +14,42 @@ import { getTranslations } from "next-intl/server";
 
 export default async function IncidentsPage() {
   const t = await getTranslations("dashboardIncidentsPage");
-  const session = await getServerSession(authOptions);
 
-  if (!session?.user?.email) {
-    redirect("/login");
+  // getAuthContext appliserer moduleVisibilityConfig på toppen av statiske tilganger
+  const auth = await getAuthContext();
+  const { permissions, tenantId, userId } = auth;
+
+  const canReadAll  = permissions.canReadIncidents;
+  const canReadOwn  = permissions.canReadOwnIncidents;
+  const canCreate   = permissions.canCreateIncidents;
+
+  // Ingen tilgang i det hele tatt → tilbake til dashboard
+  if (!canReadAll && !canReadOwn && !canCreate) {
+    redirect("/dashboard");
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    include: { tenants: true },
-  });
+  const ownerFilter = canReadAll ? {} : { reportedBy: userId };
 
-  if (!user || user.tenants.length === 0) {
-    return <div>{t("noTenantAccess")}</div>;
-  }
-
-  const selectedMembership = user.tenants.find(
-    (membership) => membership.tenantId === session.user.tenantId,
-  );
-  if (!selectedMembership) {
-    return <div>{t("noTenantAccess")}</div>;
-  }
-  const tenantId = selectedMembership.tenantId;
-
-  const rawIncidents = await prisma.incident.findMany({
-    where: { tenantId },
-    include: {
-      measures: true,
-      risk: {
-        select: {
-          id: true,
-          title: true,
-          category: true,
+  // Brukere som kun kan opprette (ikke lese) får tom liste
+  const rawIncidents = (canReadAll || canReadOwn)
+    ? await prisma.incident.findMany({
+        where: { tenantId, ...ownerFilter },
+        include: {
+          measures: true,
+          risk: {
+            select: {
+              id: true,
+              title: true,
+              category: true,
+            },
+          },
         },
-      },
-    },
-    orderBy: { occurredAt: "desc" },
-  });
+        orderBy: { occurredAt: "desc" },
+      })
+    : [];
   const incidents = JSON.parse(JSON.stringify(rawIncidents)) as typeof rawIncidents;
+  const showOwnOnlyNotice = !canReadAll && canReadOwn;
+  const showCreateOnlyNotice = !canReadAll && !canReadOwn && canCreate;
 
   const RUH_TYPES = new Set(["ULYKKE", "NESTEN", "FARLIG_SITUASJON", "YRKESSYKDOM"]);
   const stats = {
@@ -86,6 +84,23 @@ export default async function IncidentsPage() {
           </Button>
         </div>
       </div>
+
+      {showCreateOnlyNotice && (
+        <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/30">
+          <Send className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-900 dark:text-amber-100">
+            Du kan rapportere avvik, men har ikke tilgang til å se innsendte avvik. Avvik du sender inn behandles av HMS-ansvarlig eller administrator.
+          </AlertDescription>
+        </Alert>
+      )}
+      {showOwnOnlyNotice && (
+        <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/30">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-900 dark:text-blue-100">
+            Du ser kun dine egne innsendte avvik. Avvik du rapporterer behandles av HMS-ansvarlig eller leder.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>

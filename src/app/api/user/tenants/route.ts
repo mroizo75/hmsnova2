@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getTenantFeaturesForIndustry } from "@/lib/tenant-features";
+import { parseModuleVisibilityConfig } from "@/lib/module-visibility";
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,6 +26,7 @@ export async function GET(request: NextRequest) {
                 status: true,
                 employeeCount: true,
                 industry: true,
+                moduleVisibilityConfig: true,
               },
             },
           },
@@ -45,6 +47,7 @@ export async function GET(request: NextRequest) {
       employeeCount: ut.tenant.employeeCount,
       industry: ut.tenant.industry,
       features: getTenantFeaturesForIndustry(ut.tenant.industry),
+      moduleVisibilityConfig: parseModuleVisibilityConfig(ut.tenant.moduleVisibilityConfig),
     }));
 
     return NextResponse.json({

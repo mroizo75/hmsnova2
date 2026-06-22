@@ -4,12 +4,17 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { generateSequenceNumber } from "@/lib/sequence";
 import { getRequiredTenantContext } from "@/lib/tenant-context";
+import { getAuthContext } from "@/lib/server-authorization";
 import {
   createRuhSchema,
   updateRuhSchema,
 } from "@/features/ruh/schemas/ruh.schema";
 import { notifyUsersByRole } from "./notification.actions";
 import { RuhStatus } from "@prisma/client";
+import {
+  parseModuleVisibilityConfig,
+  getNotifyRolesForModule,
+} from "@/lib/module-visibility";
 
 async function getSessionContext() {
   const tenantContext = await getRequiredTenantContext();
@@ -26,6 +31,14 @@ async function getSessionContext() {
   return { user, tenantId: tenantContext.tenantId };
 }
 
+async function getTenantModuleVisibility(tenantId: string) {
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { moduleVisibilityConfig: true },
+  });
+  return parseModuleVisibilityConfig(tenant?.moduleVisibilityConfig);
+}
+
 const sanitizeString = (value?: string | null) => {
   if (!value) return null;
   const trimmed = value.trim();
@@ -34,10 +47,22 @@ const sanitizeString = (value?: string | null) => {
 
 export async function getRuhReports(_tenantId: string) {
   try {
-    const { tenantId } = await getSessionContext();
+    const auth = await getAuthContext();
+    if (!auth) throw new Error("Ikke autentisert");
+
+    const canReadAll = auth.permissions.canReadRuh;
+    const canReadOwn = auth.permissions.canReadOwnRuh;
+
+    if (!canReadAll && !canReadOwn) {
+      throw new Error("Ikke autorisert til å se RUH-rapporter");
+    }
+
+    const { tenantId, userId } = auth;
+    // reportedById er Optional — sjekk om brukeren er den som sendte inn
+    const ownerFilter = canReadAll ? {} : { reportedById: userId };
 
     const reports = await prisma.ruhReport.findMany({
-      where: { tenantId },
+      where: { tenantId, ...ownerFilter },
       include: {
         attachments: {
           select: {
@@ -50,7 +75,7 @@ export async function getRuhReports(_tenantId: string) {
       orderBy: [{ occurredAt: "desc" }],
     });
 
-    return { success: true, data: reports };
+    return { success: true, data: reports, ownOnly: !canReadAll };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke hente RUH-rapporter" };
   }
@@ -58,10 +83,21 @@ export async function getRuhReports(_tenantId: string) {
 
 export async function getRuhReport(id: string) {
   try {
-    const { tenantId } = await getSessionContext();
+    const auth = await getAuthContext();
+    if (!auth) throw new Error("Ikke autentisert");
 
-    const report = await prisma.ruhReport.findUnique({
-      where: { id, tenantId },
+    const canReadAll = auth.permissions.canReadRuh;
+    const canReadOwn = auth.permissions.canReadOwnRuh;
+
+    if (!canReadAll && !canReadOwn) {
+      throw new Error("Ikke autorisert til å se RUH-rapporter");
+    }
+
+    const { tenantId, userId } = auth;
+    const ownerFilter = canReadAll ? {} : { reportedById: userId };
+
+    const report = await prisma.ruhReport.findFirst({
+      where: { id, tenantId, ...ownerFilter },
       include: {
         attachments: true,
       },
@@ -127,12 +163,17 @@ export async function createRuhReport(input: any) {
       },
     });
 
-    await notifyUsersByRole(tenantId, "HMS", {
-      type: "NEW_INCIDENT",
-      title: "Ny RUH-rapport innsendt",
-      message: `${report.category}: ${report.title} - Rapportert av ${report.reportedBy}`,
-      link: `/dashboard/ruh/${report.id}`,
-    });
+    const visConfig = await getTenantModuleVisibility(tenantId);
+    const ruhNotifyRoles = getNotifyRolesForModule(visConfig, "ruh", ["ADMIN", "HMS", "LEDER"]);
+    if (ruhNotifyRoles.length > 0) {
+      const { notifyUsersByRoles } = await import("./notification.actions");
+      await notifyUsersByRoles(tenantId, ruhNotifyRoles, {
+        type: "NEW_INCIDENT",
+        title: "Ny RUH-rapport innsendt",
+        message: `${report.category}: ${report.title} - Rapportert av ${report.reportedBy}`,
+        link: `/dashboard/ruh/${report.id}`,
+      });
+    }
 
     revalidatePath("/dashboard/ruh");
     return { success: true, data: report };

@@ -2,6 +2,8 @@
 
 import { prisma } from "@/lib/db";
 import { getIndustryPackage } from "@/lib/industry-packages";
+import { matchesIndustryScope } from "@/lib/industry-scope";
+import { ensureGlobalRoutineTemplateLibrarySeeded } from "@/server/actions/routine-library.actions";
 
 interface ProvisionIndustryPackageResult {
   success: boolean;
@@ -258,8 +260,8 @@ export async function provisionIndustryPackage(
       }
     });
 
-    // Ved fremtidig opprettelse av FormTemplate for tenant fra bransjepakke: sett allowTenantDeletion: false
-    // slik at malen ikke kan slettes (samme intensjon som globale maler, men tenant-eid).
+    // Provisjoner rutinemaler som faktiske Routine-poster for tenanten
+    await provisionRoutinesForTenant(tenantId, packageConfig.industry, ownerCandidate.userId);
 
     return {
       success: true,
@@ -271,5 +273,62 @@ export async function provisionIndustryPackage(
       success: false,
       error: error.message || "Kunne ikke provisjonere bransjepakke",
     };
+  }
+}
+
+/**
+ * Kopierer relevante globale rutinemaler som faktiske Routine-poster for en tenant.
+ * Idempotent: oppretter kun rutiner som ikke allerede finnes.
+ * Inkluderer maler med industryScope "all" og maler som matcher tenant-bransjen.
+ */
+async function provisionRoutinesForTenant(
+  tenantId: string,
+  industry: string,
+  createdByUserId: string
+): Promise<void> {
+  await ensureGlobalRoutineTemplateLibrarySeeded();
+
+  const globalTemplates = await prisma.routineTemplate.findMany({
+    where: { isGlobal: true, isActive: true },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      category: true,
+      content: true,
+      legalReference: true,
+      industryScope: true,
+    },
+  });
+
+  const matchingTemplates = globalTemplates.filter((tpl) =>
+    matchesIndustryScope(tpl.industryScope, industry)
+  );
+
+  for (const template of matchingTemplates) {
+    const exists = await prisma.routine.findFirst({
+      where: {
+        tenantId,
+        templateId: template.id,
+      },
+      select: { id: true },
+    });
+
+    if (!exists) {
+      await prisma.routine.create({
+        data: {
+          tenantId,
+          templateId: template.id,
+          title: template.title,
+          description: template.description,
+          category: template.category,
+          content: template.content as any,
+          legalReference: template.legalReference,
+          createdBy: createdByUserId,
+          status: "ACTIVE",
+          reviewIntervalMonths: 12,
+        },
+      });
+    }
   }
 }

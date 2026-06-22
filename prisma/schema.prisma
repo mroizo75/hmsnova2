@@ -265,6 +265,7 @@ model Tenant {
   simpleMenuItems              Json? // Hrefs som vises i enkel meny (null = standard)
   dashboardLocked              Boolean @default(false) // Admin kan låse dashboardet for alle ansatte
   lockedDashboardConfig        Json? // Widget-konfig som brukes av alle når dashboardet er låst
+  moduleVisibilityConfig       Json? // Hvilke roller kan se hvert modul (null = systemstandard)
   hmsAnnualPlanCompletions     HmsAnnualPlanCompletion[] // Avkryssing av årlig HMS-plan (sjekkliste)
   // Timeregistrering (prosjekter, timer, kjøring)
   timeRegistrationEnabled      Boolean                        @default(false) // Aktiver modul per tenant
@@ -518,6 +519,12 @@ enum GenerationStatus {
 
 enum Industry {
   CONSTRUCTION // Bygg og anlegg
+  ELEKTRO // Elektro og energi
+  OFFSHORE // Offshore og petroleum
+  MARINE // Maritime og sjøfart
+  OIL_GAS // Olje og gass
+  FISKERI // Fiskeri og havbruk
+  BERGVERK // Bergverk og gruvedrift
   HEALTHCARE // Helsevesen
   TRANSPORT // Transport og logistikk
   MANUFACTURING // Industri og produksjon

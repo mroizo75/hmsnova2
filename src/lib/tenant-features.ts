@@ -54,6 +54,22 @@ export function getIncidentIndustryScopes(
     return ["GENERELL", "TRANSPORT"];
   }
 
+  if (normalizedIndustry === "offshore" || normalizedIndustry === "oil_gas") {
+    return ["GENERELL", "OFFSHORE", "ATEX"];
+  }
+
+  if (normalizedIndustry === "elektro") {
+    return ["GENERELL", "ATEX"];
+  }
+
+  if (normalizedIndustry === "marine") {
+    return ["GENERELL", "OFFSHORE"];
+  }
+
+  if (normalizedIndustry === "bergverk") {
+    return ["GENERELL", "ATEX"];
+  }
+
   return ["GENERELL"];
 }
 

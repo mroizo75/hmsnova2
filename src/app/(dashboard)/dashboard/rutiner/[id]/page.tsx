@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth/next";
-import { ArrowLeft, Pencil, UserCircle2, CalendarClock, CalendarCheck, Tag } from "lucide-react";
+import { ArrowLeft, Pencil, UserCircle2, CalendarClock, CalendarCheck, Tag, Sparkles } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { getRoutineCategoryPresets } from "@/lib/routine-categories";
 import { getRoutineById } from "@/server/actions/routine.actions";
@@ -54,9 +54,21 @@ export default async function RoutineDetailPage({
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold">{routine.title}</h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-3xl font-bold">{routine.title}</h1>
+              {routine.updatedBy != null && (
+                <Badge variant="secondary" className="text-xs">
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  Tilpasset
+                </Badge>
+              )}
+            </div>
             <p className="text-muted-foreground mt-1">
-              Opprettet fra {routine.template?.title ? `"${routine.template.title}"` : "egendefinert mal"}
+              {routine.updatedBy != null
+                ? "Denne rutinen er redigert og lagret som bedriftens egen versjon – malen er ikke endret."
+                : routine.template?.title
+                  ? `Basert på malen "${routine.template.title}"`
+                  : "Egendefinert rutine"}
             </p>
           </div>
         </div>

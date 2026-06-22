@@ -144,13 +144,15 @@ export default async function FormDetailPage({
   }
 
   const restrictedGlobalView = form.isGlobal && !permissions.canManageForms;
+  // Begrens til egne innsendinger hvis brukeren mangler full lesetilgang
+  const ownSubmissionsOnly = restrictedGlobalView || !permissions.canReadAllFormSubmissions;
 
   // Hent submissions med paginering (KUN for denne tenanten)
   const submissions = await prisma.formSubmission.findMany({
     where: { 
       formTemplateId: id,
       tenantId: session.user.tenantId,
-      ...(restrictedGlobalView ? { submittedById: session.user.id } : {}),
+      ...(ownSubmissionsOnly ? { submittedById: session.user.id } : {}),
     },
     orderBy: { createdAt: "desc" },
     include: {
@@ -179,7 +181,7 @@ export default async function FormDetailPage({
     userTenants.map((ut) => [ut.userId, ut.displayName ?? null])
   );
 
-  const visibleSubmissionCount = restrictedGlobalView
+  const visibleSubmissionCount = ownSubmissionsOnly
     ? await prisma.formSubmission.count({
         where: {
           formTemplateId: id,
@@ -195,7 +197,7 @@ export default async function FormDetailPage({
     where: { 
       formTemplateId: id,
       tenantId: session.user.tenantId,
-      ...(restrictedGlobalView ? { submittedById: session.user.id } : {}),
+      ...(ownSubmissionsOnly ? { submittedById: session.user.id } : {}),
     },
     select: {
       createdAt: true,

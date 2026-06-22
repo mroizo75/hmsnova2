@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getAuthContext } from "@/lib/server-authorization";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +13,8 @@ import {
   XCircle,
   Plus,
   BookTemplate,
+  Info,
+  Send,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -27,37 +29,31 @@ import { getLocale, getTranslations } from "next-intl/server";
 export default async function SjaDashboardPage() {
   const t = await getTranslations("dashboardSjaPage");
   const locale = await getLocale();
-  const session = await getServerSession(authOptions);
 
-  if (!session?.user?.email) {
-    redirect("/login");
+  const auth = await getAuthContext();
+  const { permissions, tenantId, userId } = auth;
+
+  const canReadAll  = permissions.canReadSja;
+  const canReadOwn  = permissions.canReadOwnSja;
+  const canCreate   = permissions.canCreateSja;
+
+  if (!canReadAll && !canReadOwn && !canCreate) {
+    redirect("/dashboard");
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    include: { tenants: true },
-  });
+  const ownerFilter = canReadAll ? {} : { createdById: userId };
+  const showOwnOnlyNotice = !canReadAll && canReadOwn;
+  const showCreateOnlyNotice = !canReadAll && !canReadOwn && canCreate;
 
-  if (!user || user.tenants.length === 0) {
-    return <div>{t("noTenantAccess")}</div>;
-  }
-
-  const selectedMembership = user.tenants.find(
-    (membership) => membership.tenantId === session.user.tenantId,
-  );
-  if (!selectedMembership) {
-    return <div>{t("noTenantAccess")}</div>;
-  }
-
-  const tenantId = selectedMembership.tenantId;
-
-  const analyses = await prisma.sjaAnalysis.findMany({
-    where: { tenantId },
-    include: {
-      hazards: { select: { id: true, riskLevel: true } },
-    },
-    orderBy: { plannedDate: "desc" },
-  });
+  const analyses = (canReadAll || canReadOwn)
+    ? await prisma.sjaAnalysis.findMany({
+        where: { tenantId, ...ownerFilter },
+        include: {
+          hazards: { select: { id: true, riskLevel: true } },
+        },
+        orderBy: { plannedDate: "desc" },
+      })
+    : [];
 
   const templates = await prisma.sjaTemplate.findMany({
     where: { tenantId, isActive: true },
@@ -117,6 +113,23 @@ export default async function SjaDashboardPage() {
           </Link>
         </Button>
       </div>
+
+      {showCreateOnlyNotice && (
+        <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/30">
+          <Send className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-900 dark:text-amber-100">
+            Du kan opprette SJA-analyser, men har ikke tilgang til å se andres. SJA-er du sender inn behandles og godkjennes av HMS-ansvarlig eller administrator.
+          </AlertDescription>
+        </Alert>
+      )}
+      {showOwnOnlyNotice && (
+        <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/30">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-900 dark:text-blue-100">
+            Du ser kun dine egne SJA-analyser. SJA-er du oppretter behandles og godkjennes av leder.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>

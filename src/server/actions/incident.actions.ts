@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { generateSequenceNumber } from "@/lib/sequence";
 import { getRequiredTenantContext } from "@/lib/tenant-context";
+import { getAuthContext } from "@/lib/server-authorization";
 import {
   createIncidentSchema,
   updateIncidentSchema,
@@ -12,6 +13,10 @@ import {
 } from "@/features/incidents/schemas/incident.schema";
 import { createNotification, notifyUsersByRoles } from "./notification.actions";
 import { IncidentStage, IncidentStatus } from "@prisma/client";
+import {
+  parseModuleVisibilityConfig,
+  getNotifyRolesForModule,
+} from "@/lib/module-visibility";
 
 async function getSessionContext() {
   const context = await getRequiredTenantContext();
@@ -29,6 +34,14 @@ async function getSessionContext() {
   }
 
   return { user, tenantId: context.tenantId };
+}
+
+async function getTenantModuleVisibility(tenantId: string) {
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { moduleVisibilityConfig: true },
+  });
+  return parseModuleVisibilityConfig(tenant?.moduleVisibilityConfig);
 }
 
 const sanitizeString = (value?: string | null) => {
@@ -148,13 +161,26 @@ const buildCriticalStopWorkNotification = (incident: {
   };
 };
 
-// Hent alle avvik for en tenant
+// Hent avvik for en tenant – respekterer "kun egne" for ansatte uten full lesetilgang
 export async function getIncidents(_tenantId: string) {
   try {
-    const { tenantId } = await getSessionContext();
-    
+    const auth = await getAuthContext();
+    if (!auth) throw new Error("Ikke autentisert");
+
+    const canReadAll = auth.permissions.canReadIncidents;
+    const canReadOwn = auth.permissions.canReadOwnIncidents;
+
+    if (!canReadAll && !canReadOwn) {
+      throw new Error("Ikke autorisert til å se avvik");
+    }
+
+    const { tenantId, userId } = auth;
+
+    // Ansatte uten full tilgang ser kun egne avvik (rapportBy = innlogget bruker)
+    const ownerFilter = canReadAll ? {} : { reportedBy: userId };
+
     const incidents = await prisma.incident.findMany({
-      where: { tenantId },
+      where: { tenantId, ...ownerFilter },
       include: {
         measures: {
           select: {
@@ -185,20 +211,34 @@ export async function getIncidents(_tenantId: string) {
       ],
     });
     
-    return { success: true, data: incidents };
+    return { success: true, data: incidents, ownOnly: !canReadAll };
   } catch (error: any) {
     console.error("Get incidents error:", error);
     return { success: false, error: error.message || "Kunne ikke hente avvik" };
   }
 }
 
-// Hent et spesifikt avvik
+// Hent et spesifikt avvik – brukere uten full tilgang ser kun egne
 export async function getIncident(id: string) {
   try {
-    const { user, tenantId } = await getSessionContext();
+    const auth = await getAuthContext();
+    if (!auth) throw new Error("Ikke autentisert");
+
+    const canReadAll = auth.permissions.canReadIncidents;
+    const canReadOwn = auth.permissions.canReadOwnIncidents;
+
+    if (!canReadAll && !canReadOwn) {
+      throw new Error("Ikke autorisert til å se avvik");
+    }
+
+    const { userId: _userId, tenantId } = auth;
+    const user = { id: auth.userId, email: auth.userEmail };
+
+    // Ved "kun egne": legg til reportedBy-filter for å hindre henting av andres avvik
+    const ownerFilter = canReadAll ? {} : { reportedBy: auth.userId };
     
-    const incident = await prisma.incident.findUnique({
-      where: { id, tenantId },
+    const incident = await prisma.incident.findFirst({
+      where: { id, tenantId, ...ownerFilter },
       include: {
         measures: {
           orderBy: { createdAt: "desc" },
@@ -336,16 +376,19 @@ export async function createIncident(input: any) {
             }),
           },
         });
-        await notifyUsersByRoles(tenantId, ["ADMIN", "HMS", "LEDER"], {
+        const visConfig = await getTenantModuleVisibility(tenantId);
+        const notifyRoles = getNotifyRolesForModule(visConfig, "incidents", ["ADMIN", "HMS", "LEDER"]);
+        await notifyUsersByRoles(tenantId, notifyRoles, {
           type: "NEW_INCIDENT",
           title: "Nytt avvik registrert",
           message: `${incident.type}: ${incident.title}`,
           link: `/dashboard/incidents/${incident.id}`,
         });
         if (incident.isRestrictedWork || incident.severity >= 5) {
+          const criticalRoles = getNotifyRolesForModule(visConfig, "incidents", ["ADMIN", "HMS"]);
           await notifyUsersByRoles(
             tenantId,
-            ["ADMIN", "HMS"],
+            criticalRoles,
             buildCriticalStopWorkNotification(incident),
           );
         }
@@ -465,8 +508,10 @@ export async function updateIncident(input: any) {
             metadata: JSON.stringify({ title: incident.title }),
           },
         });
+        const visConfig = await getTenantModuleVisibility(tenantId);
         if (statusChanged) {
-          await notifyUsersByRoles(tenantId, ["ADMIN", "HMS", "LEDER"], {
+          const notifyRoles = getNotifyRolesForModule(visConfig, "incidents", ["ADMIN", "HMS", "LEDER"]);
+          await notifyUsersByRoles(tenantId, notifyRoles, {
             type: "INCIDENT_UPDATED",
             title: "Avvik oppdatert",
             message: `${incident.type}: ${incident.title} - Status endret til ${incident.status}`,
@@ -474,9 +519,10 @@ export async function updateIncident(input: any) {
           });
         }
         if (becameStopWork || incident.severity >= 5) {
+          const criticalRoles = getNotifyRolesForModule(visConfig, "incidents", ["ADMIN", "HMS"]);
           await notifyUsersByRoles(
             tenantId,
-            ["ADMIN", "HMS"],
+            criticalRoles,
             buildCriticalStopWorkNotification(incident),
           );
         }
@@ -583,7 +629,9 @@ export async function closeIncident(input: any) {
             }),
           },
         });
-        await notifyUsersByRoles(tenantId, ["ADMIN", "HMS", "LEDER"], {
+        const visConfig = await getTenantModuleVisibility(tenantId);
+        const notifyRoles = getNotifyRolesForModule(visConfig, "incidents", ["ADMIN", "HMS", "LEDER"]);
+        await notifyUsersByRoles(tenantId, notifyRoles, {
           type: "INCIDENT_CLOSED",
           title: "Avvik lukket",
           message: `${incident.type}: ${incident.title} er nå lukket`,
@@ -675,7 +723,9 @@ export async function createUploadedIncident(formData: FormData) {
             }),
           },
         });
-        await notifyUsersByRoles(tenantId, ["ADMIN", "HMS", "LEDER"], {
+        const visConfig = await getTenantModuleVisibility(tenantId);
+        const notifyRoles = getNotifyRolesForModule(visConfig, "incidents", ["ADMIN", "HMS", "LEDER"]);
+        await notifyUsersByRoles(tenantId, notifyRoles, {
           type: "NEW_INCIDENT",
           title: "Nytt avvik registrert",
           message: `${source === "EXTERNAL" ? "Eksternt" : "Internt"} avvik: ${incident.title}`,

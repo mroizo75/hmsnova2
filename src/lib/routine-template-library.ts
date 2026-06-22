@@ -563,9 +563,342 @@ const industrySpecificTemplates: RoutineTemplateLibraryEntry[] = [
   },
 ];
 
+const newIndustryTemplates: RoutineTemplateLibraryEntry[] = [
+  // ── ELEKTRO ────────────────────────────────────────────────────────────────
+  {
+    title: "Sikker arbeidspraksis – FSE og arbeid på elektriske anlegg",
+    description:
+      "Rutine for sikker utførelse av arbeid på elektriske anlegg iht. FSE, inkl. spenningssetting og FU-prosedyrer.",
+    category: "EL_SIKKERHET",
+    legalReference: "FSE § 5, § 10, AML § 3-1, AML § 3-2",
+    industryScope: ["elektro"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal:
+        "Forebygge elektrisk støt, lysbue og brann ved å sikre at arbeid på elektriske anlegg utføres etter FSE-kravene.",
+      omfang:
+        "Gjelder alle el-fagarbeidere, montører, driftsoperatører og innleide som arbeider på lavspennings- eller høyspenningsanlegg.",
+      ansvar: [
+        "Faglig ansvarlig (DLE/ansvarlig søker): sikre at personell er kvalifisert iht. FSE.",
+        "Leder/HMS: planlegge arbeidet og sikre at prosedyrene følges.",
+        "Arbeidstaker: varsle om usikre forhold og aldri utføre arbeid uten godkjent prosedyre.",
+      ],
+      gjennomforing: [
+        "Risikovurder arbeidsoppdraget og velg arbeidsmetode: arbeid uten spenning (AUS) der mulig.",
+        "Gjennomfør de 5 sikkerhetstrinnene: slå av – sikre mot innkobling – kontroller spenningsfriheten – kortslut og jord – beskytt mot naboanlegg.",
+        "Bruk godkjent FSE-verneutstyr og -verktøy for aktuelle spenningsnivå.",
+        "Registrer arbeidet i arbeidstillatelsessystem ved nødvendig.",
+        "Gjeninnkobling skjer kun etter skriftlig tillatelse fra ansvarlig.",
+      ],
+      dokumentasjon: [
+        "Arbeidsordre og arbeidstillatelse.",
+        "Spenningsprotokoller og FU-prosedyrer.",
+        "Avviksregistrering ved hendelser.",
+      ],
+      avvikOppfolging: [
+        "Avvik fra FSE-prosedyrene registreres umiddelbart og eskaleres til leder.",
+        "Nær-ulykker med elektrisk fare meldes og følges opp med tiltak.",
+      ],
+      revisjon: "Revideres årlig og ved endring i FSE eller NEK-standarder.",
+      kilder: [
+        "https://lovdata.no/dokument/SF/forskrift/2006-04-28-458",
+        "https://lovdata.no/dokument/SF/forskrift/1998-11-06-1060",
+        "https://www.standard.no/fagomrader/el-ikt-og-telekommunikasjon/elektriske-anlegg/",
+      ],
+    }),
+  },
+  {
+    title: "Periodisk el-kontroll og vedlikehold av elektriske anlegg",
+    description:
+      "Rutine for planlegging og gjennomføring av periodisk kontroll, termografering og vedlikehold av elektriske anlegg.",
+    category: "EL_SIKKERHET",
+    legalReference: "FEL § 10, NEK 400, AML § 3-1, IK-HMS § 5",
+    industryScope: ["elektro"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal:
+        "Sikre at lavspenningsanlegg er i forsvarlig stand ved periodisk kontroll, termografi og vedlikehold.",
+      omfang: "Gjelder alle elektriske installasjoner eid eller driftet av virksomheten.",
+      ansvar: [
+        "Leder/HMS: sørge for at periodisk kontroll utføres etter NEK 400 og FEL-kravene.",
+        "Ansvarlig for elektriske anlegg: bestille ekstern kontrollør og sette opp plan.",
+        "Ansatte: melde fra om feil, skader og avvik på elektrisk utstyr.",
+      ],
+      gjennomforing: [
+        "Utarbeid oversikt over anlegg og planlegg kontrollintervaller (iht. NEK 400 del 6).",
+        "Gjennomfør termografering av tavler og koblingspunkter hvert 3. år (eller etter behov).",
+        "Kontroller jordfeilbrytere kvartalsvis ved hjelp av T-knapp.",
+        "Dokumenter funn og registrer avvik i HMS-systemet.",
+        "Sett frister for utbedring og følg opp til avvik er lukket.",
+      ],
+      dokumentasjon: [
+        "Kontrollrapporter og termograferingsrapporter.",
+        "Avvik med tiltak og frister.",
+        "Kursfortegnelse og anleggsoversikt.",
+      ],
+      avvikOppfolging: [
+        "Kritiske feil utbedres umiddelbart – anlegget spenningssettes om nødvendig.",
+        "Øvrige avvik prioriteres og lukes innen fastsatt frist.",
+      ],
+      revisjon: "Revideres ved endring i NEK 400 eller ved vesentlige anleggsendringer.",
+      kilder: [
+        "https://lovdata.no/dokument/SF/forskrift/1998-11-06-1060",
+        "https://www.standard.no/fagomrader/el-ikt-og-telekommunikasjon/elektriske-anlegg/",
+      ],
+    }),
+  },
+
+  // ── OFFSHORE ───────────────────────────────────────────────────────────────
+  {
+    title: "Tillatelse til arbeid (PTW) – arbeidstillatelsessystem offshore",
+    description:
+      "Rutine for bruk av arbeidstillatelsessystem (PTW) for alle farlige arbeidsoperasjoner på innretning.",
+    category: "OFFSHORE_SIKKERHET",
+    legalReference: "Aktivitetsforskriften § 23, Rammeforskriften § 9",
+    industryScope: ["offshore", "oil_gas"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal:
+        "Sikre at farlige arbeid på innretningen kun gjennomføres etter risikovurdering og med godkjent arbeidstillatelse (PTW).",
+      omfang: "Gjelder alle arbeidsoperasjoner definert i PTW-prosedyren, inkl. varmarbeider, innstigning og høyspenningsarbeid.",
+      ansvar: [
+        "Område-ansvarlig: utstede og godkjenne PTW.",
+        "Utfører: lese, forstå og signere på PTW og SJA.",
+        "HMS-koordinator: overvåke PTW-systemets etterlevelse.",
+      ],
+      gjennomforing: [
+        "Identifiser om arbeidet krever PTW iht. klassifiseringslisten.",
+        "Utfør SJA og fyll ut PTW-skjema med tilhørende sjekklister.",
+        "Sikre at alle involverte har lest og signert PTW.",
+        "Gjennomfør arbeidet innenfor godkjente rammer.",
+        "Avslutt PTW: sjekk at arbeidet er ferdig og stedet er ryddet.",
+      ],
+      dokumentasjon: [
+        "Signert PTW-skjema arkiveres iht. krav.",
+        "SJA som vedlegg til PTW.",
+        "Avvik meldes i HMS-systemet.",
+      ],
+      avvikOppfolging: [
+        "Arbeid stoppes om PTW-kravene ikke overholdes.",
+        "Avvik fra PTW-prosedyren eskaleres til plattformsjef.",
+      ],
+      revisjon: "Revideres årlig og ved intern revisjon av styrings­systemet.",
+      kilder: [
+        "https://lovdata.no/dokument/SF/forskrift/2010-04-29-613",
+        "https://lovdata.no/dokument/SF/forskrift/2010-04-29-611",
+      ],
+    }),
+  },
+  {
+    title: "Beredskapsplan og øvelser – offshore innretning",
+    description:
+      "Rutine for beredskapsplanlegging, øvelsesgjennomføring og evaluering iht. Aktivitetsforskriften.",
+    category: "BEREDSKAP",
+    legalReference: "Aktivitetsforskriften § 99, Rammeforskriften § 5",
+    industryScope: ["offshore", "oil_gas"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal:
+        "Sikre at innretningen er forberedt til å håndtere storulykker, brann, mann-over-bord og andre nødsituasjoner.",
+      omfang: "Gjelder plattformsjef, beredskapsorganisasjonen og alle personell ombord.",
+      ansvar: [
+        "Plattformsjef (OIM): øverstkommanderende ved nødsituasjon.",
+        "HMS-koordinator: planlegge og evaluere øvelser.",
+        "Alle ombord: kjenne mønstringsstasjoner og nødprosedyrer.",
+      ],
+      gjennomforing: [
+        "Gjennomfør evakueringsøvelse minst en gang per 30 dager.",
+        "Gjennomfør mann-over-bord-øvelse iht. beredskapsplan.",
+        "Evaluer øvelsene og registrer funn og forbedringstiltak.",
+        "Oppdater beredskapsplanen etter øvelse eller endring i bemanning.",
+      ],
+      dokumentasjon: [
+        "Øvelseslogg med dato, type, deltakere og evaluering.",
+        "Oppdatert beredskapsplan og mønstringsplan.",
+        "Avvik og tiltak fra øvelser.",
+      ],
+      avvikOppfolging: [
+        "Funn fra øvelser behandles som avvik og følges opp med tiltaksplaner.",
+        "Kritiske mangler i beredskapen stoppes umiddelbart.",
+      ],
+      revisjon: "Revideres årlig og etter reell nødsituasjon eller vesentlig øvelsespåvisning.",
+      kilder: [
+        "https://lovdata.no/dokument/SF/forskrift/2010-04-29-613",
+      ],
+    }),
+  },
+
+  // ── MARITIME ───────────────────────────────────────────────────────────────
+  {
+    title: "Sikkerhetsstyringssystem (SMS) – ISM-koden",
+    description:
+      "Rutine for utvikling, implementering og vedlikehold av ISM-samsvarende sikkerhetsstyringssystem ombord.",
+    category: "MARITIM_SIKKERHET",
+    legalReference: "ISM-koden kap. 1, 3 og 12, Sjødyktighetsloven § 2",
+    industryScope: ["marine"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal:
+        "Sikre at fartøyet opererer iht. ISM-kodens krav gjennom et dokumentert og levende sikkerhetsstyringssystem.",
+      omfang: "Gjelder rederiet, kaptein, offiserer og alt mannskap ombord.",
+      ansvar: [
+        "Rederiet (DPA): sikre at SMS er tilgjengelig, oppdatert og implementert.",
+        "Kaptein: implementere SMS ombord og rapportere til rederiet.",
+        "Alle offiserer og mannskap: kjenne og etterleve relevante SMS-prosedyrer.",
+      ],
+      gjennomforing: [
+        "Alle prosedyrer i SMS er tilgjengelige ombord og oppdatert.",
+        "Nytt mannskap introduseres til SMS og relevante prosedyrer ved ombordstigning.",
+        "Intern ISM-revisjon gjennomføres minst en gang per år.",
+        "Avvik og farlige situasjoner meldes, registreres og følges opp.",
+        "Øvelser dokumenteres i øvelseslogg.",
+      ],
+      dokumentasjon: [
+        "SMS-manual (hoved- og prosedyredel).",
+        "Øvelseslogg og avvikslogg.",
+        "ISM-revisjonsrapport.",
+      ],
+      avvikOppfolging: [
+        "Avvik og nestenulykker rapporteres til rederiet iht. SMS.",
+        "Kritiske funn fra revisjon behandles umiddelbart.",
+      ],
+      revisjon: "Revideres etter intern revisjon, eksterne ISM-revisjoner og endringer i mannskap eller operasjonsområde.",
+      kilder: [
+        "https://www.sdir.no/regelverk/internasjonale-regler/ism-koden/",
+        "https://lovdata.no/dokument/NL/lov/1903-06-09-7",
+      ],
+    }),
+  },
+
+  // ── FISKERI ────────────────────────────────────────────────────────────────
+  {
+    title: "Sikker fangstoperasjon og dekksarbeid",
+    description:
+      "Rutine for sikker gjennomføring av fangstoperasjoner og dekksarbeid på fiskefartøy.",
+    category: "FISKERIFARTOY",
+    legalReference: "Sjødyktighetsloven § 2, Arbeidsmiljøloven § 3-1, IK-HMS § 5",
+    industryScope: ["fiskeri"],
+    reviewIntervalMonths: 6,
+    content: createContent({
+      formaal:
+        "Forebygge personskader og ulykker under fangstoperasjoner på fiskefartøy.",
+      omfang: "Gjelder alt mannskap ombord under fangstoperasjoner.",
+      ansvar: [
+        "Skipper: overordnet ansvar for sikkerhet og gjennomføring av rutiner.",
+        "Dekksformann: lede og overvåke arbeidsoperasjonene.",
+        "Alt mannskap: bruke verneutstyr og varsle om farlige situasjoner.",
+      ],
+      gjennomforing: [
+        "Briefing om dagens operasjon og arbeidsfordeling.",
+        "Kontroller at verneutstyr (flytevest, hansker, hørselsvern) er tilgjengelig.",
+        "Bruk tauguider og sikringer ved håndtering av line og trål.",
+        "Minimer opphold på dekk under dårlig vær.",
+        "Registrer avvik og nestenulykker etter endt operasjon.",
+      ],
+      dokumentasjon: [
+        "Operasjonslogg og avviksrapporter.",
+        "Vedlikeholdslogg for løfte- og fiskereutstyr.",
+      ],
+      avvikOppfolging: [
+        "Personskader meldes til reder og relevant myndighet.",
+        "Gjentatte nestenulykker utløser ny risikovurdering.",
+      ],
+      revisjon: "Revideres halvårlig og etter alvorlige hendelser.",
+      kilder: [
+        "https://lovdata.no/dokument/NL/lov/1903-06-09-7",
+        "https://lovdata.no/dokument/NL/lov/2005-06-17-62",
+      ],
+    }),
+  },
+
+  // ── BERGVERK ───────────────────────────────────────────────────────────────
+  {
+    title: "Sikker gruveoperasjon og sprengningsarbeid",
+    description:
+      "Rutine for sikkert arbeid i gruve, tunneldrift og ved sprengningsoperasjoner.",
+    category: "BERGVERK",
+    legalReference: "AML § 3-1, Arbeidsmiljøforskriftene, Sprengstofforskriften",
+    industryScope: ["bergverk"],
+    reviewIntervalMonths: 6,
+    content: createContent({
+      formaal:
+        "Forebygge sprengningsulykker, ras og gassulykker i gruvedrift og tunnelarbeid.",
+      omfang: "Gjelder bergingeniører, sprengere, bergarbeidere og innleide i gruve eller tunnel.",
+      ansvar: [
+        "Bergingeniør/HMS-ansvarlig: risikovurdering og godkjenning av sprengplan.",
+        "Sprenger (godkjent): utføre sprengning iht. sprengningsplan.",
+        "Alle arbeidere: evakuere ved alarm og aldri gå inn i røyksone etter sprengning.",
+      ],
+      gjennomforing: [
+        "Utarbeid sprengplan og innhent nødvendige tillatelser.",
+        "Evakuer alle fra risikosone før antenning.",
+        "Ventiler grundig etter sprengning (min. 30 min. eller iht. beregning).",
+        "Befar skytested for blindskudd før normal drift gjenopptas.",
+        "Registrer sprengning i sprengningslogg.",
+      ],
+      dokumentasjon: [
+        "Sprengningsplan, -protokoll og forbruksregnskap.",
+        "Avvik og nestenulykker.",
+        "Kompetansebevis for godkjente sprengere.",
+      ],
+      avvikOppfolging: [
+        "Blindskudd og uventede detonasjoner håndteres etter gitt nødprosedyre.",
+        "Alle sprengningsuhell meldes til Arbeidstilsynet.",
+      ],
+      revisjon: "Revideres halvårlig og ved endring i sprengstoff eller metode.",
+      kilder: [
+        "https://lovdata.no/dokument/SF/forskrift/2002-06-26-922",
+        "https://lovdata.no/dokument/NL/lov/2005-06-17-62",
+      ],
+    }),
+  },
+
+  // ── OLJE OG GASS (deler med offshore) ────────────────────────────────────
+  {
+    title: "Barrierestyring og -verifisering – olje og gass",
+    description:
+      "Rutine for identifisering, vedlikehold og verifikasjon av sikkerhetsbarrierer i olje- og gassvirksomhet.",
+    category: "OFFSHORE_SIKKERHET",
+    legalReference: "Rammeforskriften § 5, Styringsforskriften § 5, Ptil D-010",
+    industryScope: ["oil_gas", "offshore"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal:
+        "Sikre at barrierene mot storulykke (brann, eksplosjon, ukontrollert utstrømning) er på plass og virker.",
+      omfang: "Gjelder operatør, brønnansvarlig, vedlikeholdsansvarlig og HMS-koordinator.",
+      ansvar: [
+        "Operatør: sette barrierestandard og dokumentere i WBD/BEP.",
+        "Produksjonsleder: sørge for at barrierestatus er kjent.",
+        "HMS-koordinator: overvåke og rapportere barrieresvekkelser.",
+      ],
+      gjennomforing: [
+        "Identifiser og dokumenter alle sikkerhetsbarrierer i barriereskjemaet.",
+        "Gjennomfør periodisk testing av barrierer etter fastsatt plan.",
+        "Rapporter svekkede barrierer umiddelbart og sett kompenserende tiltak.",
+        "Evaluer barriereintegritet som del av den løpende driftsgjennomgangen.",
+      ],
+      dokumentasjon: [
+        "Barrierediagram og brønnbarriere-dokument (WBD).",
+        "Testprotokoller og avvikssystem.",
+        "Periodisk barrierestatusrapport.",
+      ],
+      avvikOppfolging: [
+        "Svekkede barrierer utløser umiddelbar risikovurdering og kompenserende tiltak.",
+        "To simultant svekkede barrierer mot samme storulykke stoppes driften.",
+      ],
+      revisjon: "Revideres ved endring i brønntilstand eller etter storulykke-hendelse.",
+      kilder: [
+        "https://lovdata.no/dokument/SF/forskrift/2010-04-29-611",
+        "https://www.ptil.no/regelverksveiledning/d-010/",
+      ],
+    }),
+  },
+];
+
 export const GLOBAL_ROUTINE_TEMPLATE_LIBRARY: ReadonlyArray<RoutineTemplateLibraryEntry> = [
   ...commonTemplates,
   ...industrySpecificTemplates,
+  ...newIndustryTemplates,
 ];
 
 export function getGlobalRoutineTemplateLibrary(): RoutineTemplateLibraryEntry[] {

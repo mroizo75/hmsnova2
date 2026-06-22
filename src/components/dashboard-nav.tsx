@@ -47,18 +47,62 @@ import {
   Flame,
 } from "lucide-react";
 import { usePermissions } from "@/hooks/use-permissions";
-import { getRoleDisplayName } from "@/lib/permissions";
+import { getRoleDisplayName, type RolePermissions } from "@/lib/permissions";
 import Image from "next/image";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { useSimpleMode } from "@/hooks/use-simple-mode";
 import { useSimpleMenuConfig } from "@/hooks/use-simple-menu-config";
 import { TenantSwitcher } from "@/components/auth/tenant-switcher";
 import type { TenantFeature } from "@/lib/tenant-features";
+import {
+  canRoleAccessModule,
+  type ModuleKey,
+  type ModuleVisibilityConfig,
+} from "@/lib/module-visibility";
+import { Role } from "@prisma/client";
 
 interface TenantApiResponseItem {
   id: string;
   features?: string[];
+  moduleVisibilityConfig?: ModuleVisibilityConfig | null;
 }
+
+// Mapping fra nav-permission til modul-nøkkel (kun der det finnes en modul)
+const NAV_PERMISSION_TO_MODULE: Partial<Record<string, ModuleKey>> = {
+  incidents: "incidents",
+  sja: "sja",
+  forms: "forms",
+  documents: "documents",
+  chemicals: "chemicals",
+  audits: "audits",
+  inspections: "inspections",
+  training: "training",
+  actions: "actions",
+  goals: "goals",
+  environment: "environment",
+  meetings: "meetings",
+  routines: "routines",
+  whistleblowing: "whistleblowing",
+  feedback: "feedback",
+  risks: "risks",
+};
+
+/**
+ * Noen moduler tillater innsending selv om brukeren ikke kan lese andres data.
+ * Modul-synlighet skal IKKE skjule nav-elementet hvis brukeren fremdeles kan opprette.
+ * Her mappes modul → create-tillatelse som overstyrer synlighetsfilteret.
+ */
+const MODULE_CREATE_PERMISSION: Partial<Record<ModuleKey, keyof RolePermissions>> = {
+  incidents:  "canCreateIncidents",
+  ruh:        "canCreateRuh",
+  sja:        "canCreateSja",
+  forms:      "canFillForms",
+  chemicals:  "canCreateChemicals",
+  inspections: "canCreateInspections",
+  training:   "canCreateTraining",
+  actions:    "canCreateActions",
+  whistleblowing: "canSubmitWhistleblowing",
+};
 
 const navItems: Array<{
   href: string;
@@ -112,10 +156,11 @@ export function DashboardNav() {
   const pathname = usePathname();
   const t = useTranslations();
   const { data: session } = useSession();
-  const { visibleNavItems, role } = usePermissions();
+  const { visibleNavItems, role, permissions } = usePermissions();
   const { isSimpleMode, toggleMode } = useSimpleMode();
   const { simpleMenuItems } = useSimpleMenuConfig();
   const [tenantFeatures, setTenantFeatures] = useState<string[] | null>(null);
+  const [moduleVisibility, setModuleVisibility] = useState<ModuleVisibilityConfig | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -124,6 +169,7 @@ export function DashboardNav() {
       if (!session?.user?.tenantId) {
         if (isMounted) {
           setTenantFeatures([]);
+          setModuleVisibility(null);
         }
         return;
       }
@@ -133,6 +179,7 @@ export function DashboardNav() {
         if (!response.ok) {
           if (isMounted) {
             setTenantFeatures([]);
+            setModuleVisibility(null);
           }
           return;
         }
@@ -143,10 +190,12 @@ export function DashboardNav() {
         );
         if (isMounted) {
           setTenantFeatures(currentTenant?.features ?? []);
+          setModuleVisibility(currentTenant?.moduleVisibilityConfig ?? null);
         }
       } catch {
         if (isMounted) {
           setTenantFeatures([]);
+          setModuleVisibility(null);
         }
       }
     };
@@ -157,10 +206,21 @@ export function DashboardNav() {
     };
   }, [session?.user?.tenantId]);
 
-  // Filtrer navigasjon basert på tilganger OG enkel/avansert modus
+  // Filtrer navigasjon basert på tilganger, modul-synlighet OG enkel/avansert modus
   const allowedNavItems = navItems.filter((item) => {
     if (!visibleNavItems[item.permission as keyof typeof visibleNavItems]) return false;
     if (item.feature && !tenantFeatures?.includes(item.feature)) return false;
+    // Sjekk modul-synlighet kun når config er lastet og rollen er kjent.
+    // Unntaket: hvis brukeren fremdeles kan opprette/sende inn i modulen,
+    // skal nav-elementet vises selv om rollen er fjernet fra lesing.
+    if (moduleVisibility && role) {
+      const moduleKey = NAV_PERMISSION_TO_MODULE[item.permission];
+      if (moduleKey && !canRoleAccessModule(moduleVisibility, moduleKey, role as Role)) {
+        const createPermKey = MODULE_CREATE_PERMISSION[moduleKey];
+        const canStillCreate = createPermKey && permissions?.[createPermKey] === true;
+        if (!canStillCreate) return false;
+      }
+    }
     if (!isSimpleMode) return true;
     // I enkel modus: bruk tenant-valg hvis satt, ellers standard (item.simple)
     if (simpleMenuItems !== null && Array.isArray(simpleMenuItems)) {

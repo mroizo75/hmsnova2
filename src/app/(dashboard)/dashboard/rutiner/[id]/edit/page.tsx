@@ -208,6 +208,17 @@ export default async function EditRoutinePage({
         </div>
       </div>
 
+      {/* Informasjon om egendefinert versjon */}
+      {routine.templateId && (
+        <div className="rounded-lg border bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 px-4 py-3 flex items-start gap-3 text-sm">
+          <BookOpen className="h-4 w-4 mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" />
+          <div className="text-blue-900 dark:text-blue-100">
+            <span className="font-semibold">Egendefinert versjon:</span> Endringene du gjør her lagres kun som{" "}
+            <em>din bedrifts versjon</em> av rutinen. Den originale malen påvirkes ikke.
+          </div>
+        </div>
+      )}
+
       {/* Revisjon-varsel */}
       {routine.status === RoutineStatus.NEEDS_REVIEW && (
         <Alert variant="default" className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/30">

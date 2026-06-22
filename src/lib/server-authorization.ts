@@ -9,6 +9,11 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Role } from "@prisma/client";
 import { getPermissions, type RolePermissions } from "@/lib/permissions";
+import {
+  parseModuleVisibilityConfig,
+  applyModuleVisibility,
+  type ModuleVisibilityConfig,
+} from "@/lib/module-visibility";
 
 export interface AuthContext {
   userId: string;
@@ -16,10 +21,12 @@ export interface AuthContext {
   tenantId: string;
   role: Role;
   permissions: RolePermissions;
+  moduleVisibilityConfig: ModuleVisibilityConfig | null;
 }
 
 /**
- * Hent brukerens context og sjekk autorisasjon
+ * Hent brukerens context og sjekk autorisasjon.
+ * Inkluderer tenant-spesifikk modul-synlighet som overstyrer standard rolePermissions.
  */
 export async function getAuthContext(): Promise<AuthContext | null> {
   const session = await getServerSession(authOptions);
@@ -58,7 +65,18 @@ export async function getAuthContext(): Promise<AuthContext | null> {
   }
 
   const role = userTenant.role;
-  const permissions = getPermissions(role);
+  const basePermissions = getPermissions(role);
+
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: userTenant.tenantId },
+    select: { moduleVisibilityConfig: true },
+  });
+
+  const moduleVisibilityConfig = parseModuleVisibilityConfig(
+    tenant?.moduleVisibilityConfig
+  );
+
+  const permissions = applyModuleVisibility(basePermissions, moduleVisibilityConfig, role);
 
   return {
     userId: user.id,
@@ -66,6 +84,7 @@ export async function getAuthContext(): Promise<AuthContext | null> {
     tenantId: userTenant.tenantId,
     role,
     permissions,
+    moduleVisibilityConfig,
   };
 }
 
