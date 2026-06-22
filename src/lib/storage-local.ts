@@ -8,7 +8,7 @@ export function getLocalStorageRoot(): string {
   if (fromEnv) {
     return fromEnv;
   }
-  return path.join(/* turbopackIgnore: true */ process.cwd(), "storage");
+  return path.join(/*turbopackIgnore: true*/ process.cwd(), "storage");
 }
 
 /** Lokal fillagring (Backup). Kun lastet når STORAGE_TYPE=local. */
