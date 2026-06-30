@@ -161,6 +161,129 @@ const commonTemplates: RoutineTemplateLibraryEntry[] = [
     }),
   },
   {
+    title: "Årlig medarbeidersamtale",
+    description:
+      "Rutine for planlegging og gjennomføring av årlige medarbeidersamtaler – sikrer ivaretakelse av den enkelte ansattes arbeidsforhold, utvikling og psykososiale arbeidsmiljø.",
+    category: "HMS_STYRING",
+    legalReference: "AML § 4-2, AML § 4-3, AML § 3-1, IK-HMS § 5",
+    industryScope: ["all"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal:
+        "Sikre at alle ansatte får en strukturert, dokumentert samtale med nærmeste leder om arbeidsforhold, trivsel, utvikling og eventuelle belastninger i arbeidsmiljøet.",
+      omfang: "Gjelder alle ansatte og ledere med personalansvar. Gjennomføres minst én gang per år.",
+      ansvar: [
+        "Leder: planlegge, innkalle og gjennomføre medarbeidersamtale med alle sine ansatte.",
+        "HMS-ansvarlig: sikre at maler og rutine er tilgjengelig og at gjennomføring dokumenteres.",
+        "Ansatt: forberede seg og delta aktivt i samtalen.",
+      ],
+      gjennomforing: [
+        "Send innkalling med agenda minst én uke i forveien.",
+        "Gjennomfør samtalen i egnet, uforstyrret lokale.",
+        "Gå gjennom: trivsel, arbeidsbelastning, samarbeid, utviklingsmål og eventuelle bekymringer.",
+        "Avtal konkrete tiltak, ansvar og oppfølgingstidspunkt.",
+        "Dokumenter samtalen og avtalte tiltak i systemet.",
+      ],
+      dokumentasjon: [
+        "Referat fra samtalen (lagret konfidensielt).",
+        "Avtalte tiltak med ansvarlig og frist.",
+        "Dato og deltakere.",
+      ],
+      avvikOppfolging: [
+        "Dersom medarbeidersamtale ikke er gjennomført innen årets utgang, registreres dette som avvik.",
+        "Alvorlige forhold avdekket i samtalen følges opp som HMS-sak eller varsel.",
+      ],
+      revisjon: "Revideres årlig i forbindelse med HR-årsplan og HMS-gjennomgang.",
+      kilder: [
+        "https://lovdata.no/dokument/NL/lov/2005-06-17-62#KAPITTEL_4",
+        "https://www.arbeidstilsynet.no/tema/psykososialt-arbeidsmiljo/",
+      ],
+    }),
+  },
+  {
+    title: "Opplæring av nye konsulenter",
+    description:
+      "Rutine for strukturert onboarding og HMS-opplæring av nye konsulenter – sikrer at alle som starter har nødvendig kunnskap om arbeidsoppgaver, risikoer og gjeldende regler.",
+    category: "HMS_STYRING",
+    legalReference: "AML § 3-2, AML § 2-3, IK-HMS § 5, FOLM § 3-18",
+    industryScope: ["all"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal:
+        "Sikre at nye konsulenter er tilstrekkelig opplært i HMS, arbeidsoppgaver og interne rutiner før de arbeider selvstendig.",
+      omfang:
+        "Gjelder alle nye konsulenter og innleide, uavhengig av erfaring og ansettelsesform. Gjennomføres ved oppstart.",
+      ansvar: [
+        "Fagansvarlig/leder: planlegge og gjennomføre opplæringsplan.",
+        "HMS-ansvarlig: sikre at HMS-opplæring er inkludert og dokumentert.",
+        "Ny konsulent: delta aktivt og bekrefte gjennomført opplæring.",
+      ],
+      gjennomforing: [
+        "Utarbeid individuell opplæringsplan basert på konsulentens bakgrunn og oppdrag.",
+        "Gjennomgå virksomhetens HMS-rutiner, varslingskanaler og avvikshåndtering.",
+        "Introduser relevante risikoer knyttet til oppdraget og bransjen.",
+        "Gi tilgang til HMS-systemet og relevante dokumenter.",
+        "Gjennomfør praktisk innføring i aktuelle verktøy og arbeidsmetoder.",
+        "Avslutt med signert bekreftelse på gjennomført opplæring.",
+      ],
+      dokumentasjon: [
+        "Signert opplæringsplan med dato og gjennomgåtte tema.",
+        "Bekreftelse på HMS-opplæring i opplæringsmodulen.",
+        "Eventuelle sertifikater eller kurs som er fullført.",
+      ],
+      avvikOppfolging: [
+        "Dersom opplæring ikke er gjennomført før konsulenten starter selvstendig arbeid, registreres dette som avvik.",
+        "Mangler i opplæringen som oppdages under oppdrag, følges opp umiddelbart.",
+      ],
+      revisjon: "Revideres ved endringer i oppdrags­portefølje, regelverk eller organisasjon, minimum årlig.",
+      kilder: [
+        "https://www.arbeidstilsynet.no/tema/opplaring-og-kompetanse/",
+        "https://lovdata.no/dokument/NL/lov/2005-06-17-62#KAPITTEL_3",
+      ],
+    }),
+  },
+  {
+    title: "Debrief etter hvert oppdrag",
+    description:
+      "Rutine for systematisk erfaringsgjennomgang etter avsluttet oppdrag – fanger opp avvik, forbedringspunkter og god praksis til bruk i fremtidige oppdrag.",
+    category: "HMS_STYRING",
+    legalReference: "AML § 3-1, IK-HMS § 5, ISO 9001 kap. 10.2",
+    industryScope: ["all"],
+    reviewIntervalMonths: 6,
+    content: createContent({
+      formaal:
+        "Sikre systematisk læring og kontinuerlig forbedring ved å gjennomgå erfaringer fra hvert oppdrag – inkludert HMS-forhold, kvalitet og samarbeid.",
+      omfang:
+        "Gjelder alle avsluttede oppdrag. Gjennomføres av oppdragsansvarlig og involverte konsulenter innen én uke etter avslutning.",
+      ansvar: [
+        "Oppdragsansvarlig: innkalle til og lede debriefmøtet.",
+        "Konsulenter: bidra med erfaringer og observasjoner fra oppdraget.",
+        "HMS-ansvarlig: sikre at HMS-relaterte funn registreres som avvik eller tiltak.",
+      ],
+      gjennomforing: [
+        "Gjennomgå hva som gikk bra og hva som kan forbedres.",
+        "Identifiser HMS-relaterte hendelser, nestenulykker eller farlige situasjoner fra oppdraget.",
+        "Vurder om kunden fikk den kvaliteten som ble lovet.",
+        "Avtal konkrete forbedringstiltak med ansvarlig og frist.",
+        "Dokumenter funn og tiltak i HMS-systemet.",
+      ],
+      dokumentasjon: [
+        "Debriefnotat med dato, oppdrag og deltakere.",
+        "Registrerte avvik eller tiltak som følge av debriefmøtet.",
+        "Oppsummering av erfaringer som deles med resten av teamet.",
+      ],
+      avvikOppfolging: [
+        "Funn som avdekker systematiske problemer eskaleres til leder og behandles som HMS-avvik.",
+        "Tiltak fra debriefmøtet følges opp i neste teamgjennomgang.",
+      ],
+      revisjon: "Rutinen revideres hvert halvår eller ved vesentlige endringer i oppdragsmodellen.",
+      kilder: [
+        "https://lovdata.no/dokument/SF/forskrift/1996-12-06-1127",
+        "https://lovdata.no/dokument/NL/lov/2005-06-17-62",
+      ],
+    }),
+  },
+  {
     title: "Elektrisk sikkerhet, anlegg og elektrisk arbeidsutstyr",
     description:
       "Internkontroll på lavspenningsanlegg, bruk av skjøteledninger og elektrisk arbeidsutstyr – ofte tema ved tilsyn i helse, handel, kontor, produksjon og andre bransjer.",

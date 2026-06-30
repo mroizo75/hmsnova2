@@ -40,9 +40,22 @@ interface EnvConfig {
   AZURE_AD_CLIENT_SECRET?: string;
   AZURE_AD_TENANT_ID?: string;
 
-  // SMS (optional)
-  SMS_API_KEY?: string;
-  SMS_SENDER?: string;
+  // SMS — Link Mobility (anbefalt for HMS-varsler)
+  SMS_PROVIDER?: string;            // "link_mobility" | "intellisms" | "prosms" | "mock"
+  LINK_MOBILITY_USERNAME?: string;
+  LINK_MOBILITY_PASSWORD?: string;
+  LINK_MOBILITY_FROM?: string;
+  // SMS — IntelliSMS
+  INTELLISMS_USERNAME?: string;
+  INTELLISMS_PASSWORD?: string;
+  INTELLISMS_FROM?: string;
+  // SMS — ProSMS (brukes også for Ring meg)
+  PROSMS_API_KEY?: string;
+  PRO_SMS_API_KEY?: string;
+  PROSMS_FROM?: string;
+  PROSMS_API_URL?: string;
+  // SMS — salg
+  RING_MEG_SALES_PHONE?: string;
 
   // Fiken (optional)
   FIKEN_API_KEY?: string;
@@ -107,6 +120,15 @@ export function validateEnv(): void {
 
   if (!process.env.RESEND_API_KEY) {
     warnings.push("RESEND_API_KEY ikke satt - e-postvarsler vil ikke fungere");
+  }
+
+  const smsProvider = process.env.SMS_PROVIDER ?? "link_mobility";
+  if (smsProvider === "link_mobility" && (!process.env.LINK_MOBILITY_USERNAME || !process.env.LINK_MOBILITY_PASSWORD)) {
+    warnings.push("Link Mobility-credentials ikke satt (LINK_MOBILITY_USERNAME / LINK_MOBILITY_PASSWORD) - SMS-varsler vil ikke fungere");
+  } else if (smsProvider === "intellisms" && (!process.env.INTELLISMS_USERNAME || !process.env.INTELLISMS_PASSWORD)) {
+    warnings.push("IntelliSMS-credentials ikke satt - SMS-varsler vil ikke fungere");
+  } else if (smsProvider === "prosms" && !process.env.PROSMS_API_KEY && !process.env.PRO_SMS_API_KEY) {
+    warnings.push("ProSMS API-nøkkel ikke satt (PROSMS_API_KEY) - SMS-varsler vil ikke fungere");
   }
 
   if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {

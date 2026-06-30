@@ -9,7 +9,9 @@ import { sendPushNotificationToUser } from "@/lib/push-notifications";
 import {
   isNotificationTypeEnabledForUser,
   shouldSendImmediateEmailForType,
+  shouldSendImmediateSmsForType,
 } from "@/lib/notification-routing";
+import { sendSms, formatPhoneNumber } from "@/lib/sms";
 
 interface CreateNotificationInput {
   tenantId: string;
@@ -73,6 +75,7 @@ export async function createNotification(input: CreateNotificationInput) {
         user: {
           select: {
             email: true,
+            phone: true,
           },
         },
       },
@@ -124,6 +127,22 @@ export async function createNotification(input: CreateNotificationInput) {
         });
       } catch (emailError) {
         console.error("Immediate notification email failed:", emailError);
+      }
+    }
+
+    // SMS for kritiske varseltyper — respekterer notifyBySms-preferansen
+    if (shouldSendImmediateSmsForType(input.type, userTenant)) {
+      const rawPhone = (userTenant as any).phone ?? userTenant.user.phone ?? null;
+      const phone = formatPhoneNumber(rawPhone);
+      if (phone) {
+        try {
+          const smsMessage = `${input.title}: ${input.message}`.slice(0, 155) + (
+            input.link ? ` Se: ${APP_URL}${input.link}`.slice(0, 160 - (input.title.length + input.message.length + 5)) : ""
+          );
+          await sendSms({ to: phone, message: smsMessage.slice(0, 160) });
+        } catch (smsError) {
+          console.error("Immediate notification SMS failed:", smsError);
+        }
       }
     }
 

@@ -145,7 +145,13 @@ export async function sendPendingReminders() {
       },
     },
     include: {
-      user: true,
+      user: {
+        select: {
+          id: true,
+          email: true,
+          phone: true,
+        },
+      },
       tenant: true,
     },
   });
@@ -187,19 +193,43 @@ export async function sendPendingReminders() {
         continue;
       }
 
+      // Les preferanser fra UserTenant (korrekt kilde for per-tenant innstillinger)
+      const userTenant = await prisma.userTenant.findUnique({
+        where: {
+          userId_tenantId: {
+            userId: user.id,
+            tenantId: reminder.tenantId,
+          },
+        },
+        select: {
+          notifyByEmail: true,
+          notifyBySms: true,
+          phone: true,
+        },
+      });
+
+      const notifyByEmail = userTenant?.notifyByEmail ?? false;
+      const notifyBySms = userTenant?.notifyBySms ?? false;
+      // Telefon: bruk UserTenant-nummer først, fall tilbake på User
+      const rawPhone = userTenant?.phone ?? user.phone ?? null;
+
       let emailSent = false;
       let smsSent = false;
 
       // Send e-post hvis aktivert
-      if (user.notifyByEmail) {
+      if (notifyByEmail) {
         await sendReminderEmail(user.email, reminder.title, entityDetails);
         emailSent = true;
       }
 
-      // Send SMS hvis aktivert
-      if (user.notifyBySms && user.phone) {
-        await sendReminderSms(user.phone, reminder.title, entityDetails);
-        smsSent = true;
+      // Send SMS hvis aktivert og gyldig telefonnummer finnes
+      if (notifyBySms && rawPhone) {
+        const { formatPhoneNumber } = await import("@/lib/sms");
+        const phone = formatPhoneNumber(rawPhone);
+        if (phone) {
+          await sendReminderSms(phone, reminder.title, entityDetails);
+          smsSent = true;
+        }
       }
 
       // Oppdater påminnelse som sendt

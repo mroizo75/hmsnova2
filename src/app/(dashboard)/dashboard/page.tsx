@@ -45,7 +45,7 @@ export default async function DashboardPage() {
        OR status = ''
   `);
 
-  const [documents, risks, incidents, measures, audits, trainings, goals, inspections, forms] = await Promise.all([
+  const [documents, risks, incidents, measures, audits, trainings, goals, inspections, forms, routines] = await Promise.all([
     permissions.canReadDocuments
       ? prisma.document.findMany({ where: { tenantId } })
       : [],
@@ -99,6 +99,18 @@ export default async function DashboardPage() {
           take: 200,
         })
       : [],
+    prisma.routine.findMany({
+      where: {
+        tenantId,
+        status: { not: "ARCHIVED" },
+      },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        nextReviewAt: true,
+      },
+    }),
   ]);
 
   const now = new Date();
@@ -125,6 +137,12 @@ export default async function DashboardPage() {
   );
   const expiredTraining = trainings.filter(
     (t) => t.validUntil && new Date(t.validUntil) < now && !t.completedAt
+  );
+
+  const routinesNeedingReview = routines.filter(
+    (r) =>
+      r.status === "NEEDS_REVIEW" ||
+      (r.nextReviewAt && new Date(r.nextReviewAt) <= now)
   );
 
   const recentActivities = [
@@ -211,6 +229,13 @@ export default async function DashboardPage() {
       title: "Utgått opplæring",
       count: expiredTraining.length,
       href: "/dashboard/training",
+      level: "info" as const,
+    },
+    {
+      id: "routines-needs-review",
+      title: "Rutiner til gjennomgang",
+      count: routinesNeedingReview.length,
+      href: "/dashboard/rutiner",
       level: "info" as const,
     },
   ];

@@ -6,6 +6,7 @@
 /** Godkjent avsendernavn for proSMS.se – bruk kun "HMS Nova" */
 export const RING_MEG_SENDER_NAME = "HMS Nova";
 
+
 interface SmsOptions {
   to: string;      // Telefonnummer (E.164 eller norsk +47XXXXXXXX)
   message: string; // SMS-melding (maks 160 tegn for best praksis)
@@ -317,15 +318,16 @@ function mockSendSms(options: SmsOptions) {
 }
 
 /**
- * Formater norsk telefonnummer til internasjonalt format
+ * Normaliser norsk telefonnummer til E.164-format (+47XXXXXXXX).
+ * Aksepterer: 8-sifret, 4712345678, +4712345678.
+ * Returnerer null hvis input er tom eller resultatet er ugyldig.
  */
-export function formatPhoneNumber(phone: string): string {
-  // Fjern whitespace og spesialtegn
-  let cleaned = phone.replace(/[\s\-\(\)]/g, "");
+export function formatPhoneNumber(phone: string | null | undefined): string | null {
+  if (!phone) return null;
+  let cleaned = phone.replace(/[\s\-\(\)\.]/g, "");
 
-  // Legg til +47 hvis det mangler
   if (!cleaned.startsWith("+")) {
-    if (cleaned.startsWith("47")) {
+    if (cleaned.startsWith("47") && cleaned.length === 10) {
       cleaned = "+" + cleaned;
     } else if (cleaned.startsWith("0")) {
       cleaned = "+47" + cleaned.substring(1);
@@ -334,14 +336,13 @@ export function formatPhoneNumber(phone: string): string {
     }
   }
 
-  return cleaned;
+  return /^\+47\d{8}$/.test(cleaned) ? cleaned : null;
 }
 
 /**
  * Valider norsk telefonnummer
  */
 export function isValidNorwegianPhone(phone: string): boolean {
-  const formatted = formatPhoneNumber(phone);
-  return /^\+47\d{8}$/.test(formatted);
+  return formatPhoneNumber(phone) !== null;
 }
 

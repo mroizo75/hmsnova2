@@ -80,3 +80,28 @@ export function shouldSendImmediateEmailForType(
 
   return isNotificationTypeEnabledForUser(type, userTenant);
 }
+
+// SMS sendes kun for kritiske hendelser som krever umiddelbar oppmerksomhet
+const immediateSmsTypes = new Set<NotificationType>([
+  "NEW_INCIDENT",
+  "INCIDENT_OVERDUE",
+  "MEASURE_OVERDUE",
+  "WHISTLEBLOWING",
+  "TRAINING_EXPIRED",
+  "INSPECTION_FINDING",
+]);
+
+export function shouldSendImmediateSmsForType(
+  type: NotificationType,
+  userTenant: Pick<UserTenant, "notifyBySms" | NotificationPreferenceKey>
+): boolean {
+  if (!userTenant.notifyBySms) {
+    return false;
+  }
+
+  if (!immediateSmsTypes.has(type)) {
+    return false;
+  }
+
+  return isNotificationTypeEnabledForUser(type, userTenant);
+}
