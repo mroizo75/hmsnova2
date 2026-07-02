@@ -202,7 +202,7 @@ export default function PriserPage() {
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">Én pakke – alt inkludert</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Full tilgang til HMS Nova. 300 kr/mnd, 12 måneders abonnement.
+              Full tilgang til HMS Nova. 300 kr/mnd + mva, 12 måneders abonnement.
             </p>
           </div>
 
@@ -496,7 +496,7 @@ export default function PriserPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  Abonnementet løper i 12 måneder til 300 kr/mnd (3 600 kr/år). 
+                  Abonnementet løper i 12 måneder til 300 kr/mnd + mva (3 600 kr/år + mva). 
                   Full tilgang til alle funksjoner er inkludert. Etter 12 måneder fornyes abonnementet 
                   med 1 måneds oppsigelsestid.
                 </p>
@@ -523,7 +523,7 @@ export default function PriserPage() {
                   <th className="text-left p-4"></th>
                   <th className="text-center p-4">
                     <div className="font-bold text-primary">HMS Nova</div>
-                    <div className="text-sm text-muted-foreground">300 kr/mnd</div>
+                    <div className="text-sm text-muted-foreground">300 kr/mnd + mva</div>
                   </th>
                   <th className="text-center p-4">
                     <div className="font-bold">Andre systemer</div>

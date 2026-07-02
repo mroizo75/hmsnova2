@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { createNotification } from "@/server/actions/notification.actions";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,8 @@ const updateWhistleblowSchema = z.object({
     "DISMISSED",
   ]).optional(),
   severity: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).optional(),
-  assignedTo: z.string().optional(),
+  // nullable() slik at null fjerner tildeling
+  assignedTo: z.string().nullable().optional(),
   investigationNotes: z.string().optional(),
   actions: z.array(z.any()).optional(),
   outcome: z.string().optional(),
@@ -100,9 +102,11 @@ export async function PATCH(
 
     const updateData: any = { ...validatedData };
 
-    if (validatedData.actions) {
+    if (validatedData.actions !== undefined) {
       updateData.actions = JSON.stringify(validatedData.actions);
     }
+
+    // Tidsstempler per statusovergang (AML § 2A-3)
     if (validatedData.status === "ACKNOWLEDGED" && !existing.acknowledgedAt) {
       updateData.acknowledgedAt = new Date();
       updateData.handledBy = session.user.id;
@@ -111,7 +115,9 @@ export async function PATCH(
       updateData.investigatedAt = new Date();
     }
     if (
-      (validatedData.status === "RESOLVED" || validatedData.status === "CLOSED") &&
+      (validatedData.status === "RESOLVED" ||
+        validatedData.status === "CLOSED" ||
+        validatedData.status === "DISMISSED") &&
       !existing.closedAt
     ) {
       updateData.closedAt = new Date();
@@ -127,6 +133,23 @@ export async function PATCH(
       },
     });
 
+    // Varsle ny saksbehandler når saken tildeles
+    const newAssignee = validatedData.assignedTo;
+    if (
+      newAssignee &&
+      newAssignee !== existing.assignedTo &&
+      newAssignee !== session.user.id
+    ) {
+      createNotification({
+        tenantId: session.user.tenantId,
+        userId: newAssignee,
+        type: "WHISTLEBLOWING",
+        title: "Varslingssak tildelt deg",
+        message: `Sak ${existing.caseNumber}: ${existing.title} er tildelt deg for behandling.`,
+        link: `/dashboard/whistleblowing/${id}`,
+      }).catch(() => {});
+    }
+
     return NextResponse.json({ data: report });
   } catch (error: any) {
     console.error("[ADMIN_WHISTLEBLOWING_PATCH]", error);
@@ -139,4 +162,3 @@ export async function PATCH(
     );
   }
 }
-

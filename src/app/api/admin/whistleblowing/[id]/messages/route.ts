@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { createNotification } from "@/server/actions/notification.actions";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,6 @@ export async function POST(
     const body = await req.json();
     const { message, isInternal } = adminMessageSchema.parse(body);
 
-    // Verify report exists and belongs to tenant
     const report = await db.whistleblowing.findFirst({
       where: {
         id,
@@ -53,6 +53,18 @@ export async function POST(
       },
     });
 
+    // Varsle tildelt saksbehandler (hvis en annen enn avsender) om ny melding
+    if (report.assignedTo && report.assignedTo !== session.user.id) {
+      createNotification({
+        tenantId: session.user.tenantId,
+        userId: report.assignedTo,
+        type: "WHISTLEBLOWING_MSG",
+        title: "Ny melding i varslingssak",
+        message: `Det er lagt til en ny ${isInternal ? "intern notat" : "melding"} i sak ${report.caseNumber}.`,
+        link: `/dashboard/whistleblowing/${id}`,
+      }).catch(() => {});
+    }
+
     return NextResponse.json({ data: newMessage }, { status: 201 });
   } catch (error: any) {
     console.error("[ADMIN_WHISTLEBLOWING_MESSAGE_POST]", error);
@@ -65,4 +77,3 @@ export async function POST(
     );
   }
 }
-

@@ -97,7 +97,7 @@ export default function HomePage() {
 
           <p className="text-2xl sm:text-3xl font-bold text-foreground mb-8">
             Fra <span className="text-primary">300 kr/mnd</span>
-            <span className="text-base font-normal text-muted-foreground ml-2">– alt inkludert</span>
+            <span className="text-base font-normal text-muted-foreground ml-2">+ mva – alt inkludert</span>
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
@@ -553,7 +553,7 @@ export default function HomePage() {
                     <p className="text-5xl sm:text-6xl font-bold text-foreground">
                       300 <span className="text-2xl font-normal text-muted-foreground">kr/mnd</span>
                     </p>
-                    <p className="text-muted-foreground mt-2">per bedrift – uansett antall brukere</p>
+                    <p className="text-muted-foreground mt-2">+ mva · per bedrift – uansett antall brukere</p>
                   </div>
 
                   <div className="grid sm:grid-cols-2 gap-x-8 gap-y-3 mb-8 max-w-lg mx-auto">

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { createNotification } from "@/server/actions/notification.actions";
 
 export const dynamic = "force-dynamic";
 
@@ -20,13 +21,8 @@ export async function POST(
     const body = await req.json();
     const { caseNumber, accessCode, message } = messageSchema.parse(body);
 
-    // Verify access code
     const report = await db.whistleblowing.findFirst({
-      where: {
-        id,
-        caseNumber,
-        accessCode,
-      },
+      where: { id, caseNumber, accessCode },
     });
 
     if (!report) {
@@ -41,16 +37,25 @@ export async function POST(
       },
     });
 
+    // Varsle tildelt saksbehandler om ny melding fra varsler
+    const notifyUserId = report.assignedTo || report.handledBy;
+    if (notifyUserId) {
+      createNotification({
+        tenantId: report.tenantId,
+        userId: notifyUserId,
+        type: "WHISTLEBLOWING_MSG",
+        title: "Ny melding fra varsler",
+        message: `Varsler har sendt en ny melding i sak ${report.caseNumber}.`,
+        link: `/dashboard/whistleblowing/${id}`,
+      }).catch(() => {});
+    }
+
     return NextResponse.json({ data: newMessage }, { status: 201 });
   } catch (error: any) {
     console.error("[WHISTLEBLOWING_MESSAGE_POST]", error);
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues }, { status: 400 });
     }
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
-

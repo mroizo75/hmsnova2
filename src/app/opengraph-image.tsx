@@ -69,7 +69,7 @@ export default async function Image() {
             color: "#38bdf8",
           }}
         >
-          <span>300 kr/mnd</span>
+          <span>300 kr/mnd + mva</span>
           <span>·</span>
           <span>Ubegrenset brukere</span>
           <span>·</span>
