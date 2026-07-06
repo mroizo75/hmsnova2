@@ -19,6 +19,7 @@ import {
   SprayCan,
   UtensilsCrossed,
   ShieldCheck,
+  MessageSquare,
   type LucideIcon,
 } from "lucide-react";
 
@@ -229,6 +230,17 @@ export const EMPLOYEE_WIDGET_REGISTRY: EmployeeWidgetDefinition[] = [
     bgColor: "bg-rose-100",
     borderColor: "border-rose-300",
     adminWidgetId: "bcm",
+  },
+  {
+    id: "emp-employee-reviews",
+    label: "Medarbeidersamtaler",
+    description: "Se og forbered dine medarbeidersamtaler",
+    icon: MessageSquare,
+    href: "/ansatt/medarbeidersamtale",
+    color: "text-violet-600",
+    bgColor: "bg-violet-100",
+    borderColor: "border-violet-300",
+    adminWidgetId: "employee-reviews",
   },
   {
     id: "emp-whistleblowing",

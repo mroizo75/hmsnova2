@@ -26,7 +26,8 @@ export type ModuleKey =
   | "meetings"
   | "routines"
   | "whistleblowing"
-  | "feedback";
+  | "feedback"
+  | "employeeReviews";
 
 export type ModuleVisibilityConfig = Partial<Record<ModuleKey, Role[]>>;
 
@@ -59,6 +60,10 @@ export const MODULE_DEFAULTS: Record<ModuleKey, Role[]> = {
   routines:     ["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "ANSATT", "BHT", "REVISOR"],
   whistleblowing: ["ADMIN", "HMS"],
   feedback:     ["ADMIN", "HMS", "LEDER", "BHT", "REVISOR"],
+  // Standard: kun ADMIN ser ALLE andres samtaler.
+  // Legg til HMS, LEDER eller REVISOR her for å gi full oversiktstilgang.
+  // Alle brukere ser alltid egne samtaler uavhengig av dette.
+  employeeReviews: ["ADMIN"],
 };
 
 /** Norske visningsnavn for hvert modul */
@@ -80,6 +85,7 @@ export const MODULE_LABELS: Record<ModuleKey, string> = {
   routines:     "Rutiner",
   whistleblowing: "Varsling",
   feedback:     "Kundetilbakemelding",
+  employeeReviews: "Medarbeidersamtaler (full oversikt)",
 };
 
 /**
@@ -120,6 +126,8 @@ export const MODULE_PERMISSION_KEYS: Record<ModuleKey, Array<keyof RolePermissio
   routines:     ["canReadRoutines"],
   whistleblowing: ["canViewWhistleblowing", "canHandleWhistleblowing"],
   feedback:     ["canReadOwnFeedback", "canReadAllFeedback"],
+  // Kontrollerer kun "se alle" – egne samtaler er alltid synlige
+  employeeReviews: ["canReadAllEmployeeReviews"],
 };
 
 /**

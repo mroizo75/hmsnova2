@@ -50,6 +50,7 @@ export function usePermissions() {
         timeRegistration: false,
         exposureRegister: false,
         constructionCompliance: false,
+        employeeReviews: false,
       },
     };
   }

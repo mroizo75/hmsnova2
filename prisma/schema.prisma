@@ -121,6 +121,8 @@ model User {
   routineUploadedDocumentsCreated RoutineUploadedDocument[]  @relation("RoutineUploadedDocumentCreatedBy")
   documentSignatures        DocumentSignature[]            @relation("DocumentSignatures")
   dashboardConfigs          DashboardConfig[]
+  employeeReviews           EmployeeReview[]               @relation("EmployeeReviews")
+  conductedReviews          EmployeeReview[]               @relation("ReviewerReviews")
   createdAt                 DateTime                       @default(now())
   updatedAt                 DateTime                       @updatedAt
 
@@ -283,6 +285,10 @@ model Tenant {
   approximateTaxPercent        Float? // Ca. skatt i % (f.eks. 25). Brukes for ca. utbetaling
   constructionDailyCheckAlertsEnabled Boolean @default(true) // Varsling ved manglende daglig kontroll i bygg/anlegg
   constructionDailyCheckAlertRole Role @default(HMS) // Hvilken rolle som varsles for bygg/anlegg-kontroll
+  // Digital HMS Tavle
+  isTavleOnly                  Boolean                        @default(false) // true = kun tavle-abonnement, ikke full HMS Nova
+  hmsTavler                    HmsTavle[]
+  tavleSubscription            HmsTavleSubscription?
   projects                     Project[]
   constructionShaPlans         ConstructionShaPlan[]
   constructionPreNotifications ConstructionPreNotification[]
@@ -300,6 +306,7 @@ model Tenant {
   orgChartNodes                OrgChartNode[]
   dashboardConfigs             DashboardConfig[]
   fireDrills                   FireDrill[]
+  employeeReviews              EmployeeReview[]
   createdAt                    DateTime                       @default(now())
   updatedAt                    DateTime                       @updatedAt
 
@@ -3150,6 +3157,11 @@ enum NotificationType {
   MGMT_REVIEW_DUE // Tid for ledelsens gjennomgang
   MGMT_REVIEW_SCHEDULED // Ledelsens gjennomgang planlagt
 
+  // Medarbeidersamtale (AML § 4-2, § 4-3)
+  EMPLOYEE_REVIEW_DUE // Medarbeidersamtale forfaller (ingen gjennomført siste 12 mnd)
+  EMPLOYEE_REVIEW_UPCOMING // Planlagt medarbeidersamtale nærmer seg
+  EMPLOYEE_REVIEW_SIGN // Medarbeidersamtale venter på signering
+
   // System
   DAILY_DIGEST // Daglig sammendrag
   WEEKLY_DIGEST // Ukentlig sammendrag
@@ -3602,6 +3614,7 @@ model Project {
   constructionRosterChecks    ConstructionRosterDailyCheck[]
   riskAssessments             RiskAssessment[]
   formSubmissions             FormSubmission[]
+  hmsTavle                    HmsTavle?
 
   @@index([tenantId])
   @@index([status])
@@ -3914,4 +3927,408 @@ enum FireDrillStatus {
   COMPLETED    // Gjennomført (mangler evaluering)
   EVALUATED    // Evaluert og dokumentert — § 13 oppfylt
   CANCELLED    // Avlyst
+}
+
+// ─────────────────────────────────────────────────────────────────
+// DIGITAL HMS TAVLE – Bygg og anlegg
+// Tre scenarior: Standalone (A), HMS Nova add-on (B), Hybrid (C)
+// ─────────────────────────────────────────────────────────────────
+
+/// Abonnement for Digital HMS Tavle (gjelder begge scenarior A og B)
+model HmsTavleSubscription {
+  id            String                     @id @default(cuid())
+  tenantId      String                     @unique
+  plan          HmsTavlePlan               @default(STANDARD)
+  status        HmsTavleSubscriptionStatus @default(ACTIVE)
+  isAddon       Boolean                    @default(false) // true = tillegg til HMS Nova (Scenario B)
+  pricePerMonth Float
+  startsAt      DateTime
+  endsAt        DateTime // Prosjektvarighet / utløpsdato
+  autoRenew     Boolean                    @default(false)
+  maxTavler     Int                        @default(1) // Max antall aktive tavler
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([endsAt])
+}
+
+/// Plan-nivåer for HMS Tavle – styrer hvilke seksjoner og funksjoner som er tilgjengelige
+enum HmsTavlePlan {
+  ENKEL    // kr 390/mnd – kontaktinfo, dokumentlenker, SHA-lenke
+  STANDARD // kr 590/mnd – UE-portal, QR-innsjekk, alle seksjoner
+  AVANSERT // kr 790/mnd – kiosk-modus, AI-innsikt, lovkrav-sjekkliste
+  ADDON    // kr 290/mnd – tillegg for eksisterende HMS Nova-kunder
+}
+
+/// Status for tavle-abonnement
+enum HmsTavleSubscriptionStatus {
+  TRIAL
+  ACTIVE
+  EXPIRING_SOON // < 14 dager igjen – cron setter denne
+  EXPIRED
+  CANCELLED
+}
+
+/// Digital HMS-tavle for ett prosjekt/byggeplass – Byggherreforskriften § 7, § 15
+model HmsTavle {
+  id          String @id @default(cuid())
+  tenantId    String
+  projectId   String? @unique // Koblet til HMS Nova-prosjekt (Scenario B)
+  name        String
+  description String? @db.Text
+  publicToken String  @unique @default(cuid()) // Token for QR-kode-tilgang
+
+  isPublic  Boolean @default(false) // Offentlig tilgjengelig via QR
+  kioskMode Boolean @default(false) // Fullskjerm kiosk-modus
+
+  // Bransje – tilpasser seksjonstekster og lovkrav-referanser
+  bransje   String? @default("BYGG_ANLEGG") // Se BRANSJE_OPTIONS i koden
+
+  // Branding
+  logoUrl    String?
+  brandColor String? // Hex-farge for aksentfarge
+
+  // Manuell data for standalone-kunder (Scenario A)
+  // I Scenario B hentes disse live fra HMS Nova-modeller
+  manualContacts  Json? // [{name, role, phone, email}] – verneombud, nødetater etc.
+  manualDocuments Json? // [{title, url, type}] – SHA-plan, beredskapsplan etc.
+
+  sections            HmsTavleSection[]
+  externalLinks       HmsTavleExternalLink[]
+  subcontractorPortal SubcontractorPortal?
+  checkins            TavleCheckin[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([publicToken])
+}
+
+/// Seksjon på en HMS-tavle – modulær og konfigurerbar
+model HmsTavleSection {
+  id        String              @id @default(cuid())
+  tavleId   String
+  type      HmsTavleSectionType
+  title     String? // Overstyrer standard tittel
+  order     Int
+  isVisible Boolean             @default(true)
+  config    Json // Type-spesifikk konfig (f.eks. hvilke kontakter som vises)
+
+  tavle HmsTavle @relation(fields: [tavleId], references: [id], onDelete: Cascade)
+
+  @@index([tavleId])
+}
+
+/// Seksjontyper for HMS-tavlen
+enum HmsTavleSectionType {
+  SHA_PLAN           // Byggherreforskriften § 7+8
+  MANNSKAPSLISTE     // Byggherreforskriften § 15
+  AVVIK_STATISTIKK   // AML § 5-1/5-2, IK-HMS § 5
+  RUH_LISTE          // Rapport om uønsket hendelse
+  SJA_AKTIVE         // Aktive sikker jobb-analyser
+  VERNERUNDE_STATUS  // Status siste vernerunde
+  KONTAKTINFO        // AML § 6-2 – verneombud synlig
+  BEREDSKAPSPLAN     // AML § 5-2 – beredskap tilgjengelig
+  DOKUMENT_HUB       // Samling av relevante dokumenter
+  EKSTERN_LENKE      // Lenker til Excel/SharePoint/andre systemer
+  VAERMELDING        // Yr-basert værvarsling for utendørsarbeid
+  KPI_DASHBOARD      // H-verdi, fraværsprosent, åpne tiltak
+  HMS_PLAN_AARSHJUL  // Årshjul for HMS-plan (kun HMS Nova add-on)
+  FREMDRIFTSPLAN     // Prosjektets fremdriftsplan
+  RIGGPLAN           // Riggplan / situasjonskart for byggeplassen
+  RISIKOMATRISE      // Risikooversikt (kun HMS Nova add-on)
+  OPPLARING_STATUS   // Kompetansestatus (kun HMS Nova add-on)
+  LOVKRAV_SJEKKLISTE // Sanntids-indikator: alle lovkrav oppfylt?
+  NYHETER_MELDINGER  // Meldinger/nyheter fra prosjektledelsen
+  SNARVEIER          // Konfigurerbare hurtigtilganger til HMS-funksjoner
+}
+
+/// Ekstern systemlenke på tavlen (Excel, SharePoint, andre HMS-systemer)
+model HmsTavleExternalLink {
+  id      String           @id @default(cuid())
+  tavleId String
+  title   String
+  url     String
+  type    ExternalLinkType
+  icon    String? // Lucide-ikonnavn eller URL til bilde
+  order   Int              @default(0)
+
+  tavle HmsTavle @relation(fields: [tavleId], references: [id], onDelete: Cascade)
+
+  @@index([tavleId])
+}
+
+/// Type ekstern lenke
+enum ExternalLinkType {
+  EXCEL
+  PDF
+  HMS_SYSTEM  // Synergi, EHS Manager, m.fl.
+  SHAREPOINT
+  ANNET
+}
+
+/// Underentreprenør-portal tilknyttet en tavle
+/// Byggherreforskriften § 18 – UE skal integrere SHA-plan i eget HMS-arbeid
+model SubcontractorPortal {
+  id            String  @id @default(cuid())
+  tavleId       String  @unique
+  portalToken   String  @unique @default(cuid()) // Eget token for UE-portal
+  allowAvvik    Boolean @default(true)
+  allowRuh      Boolean @default(true)
+  allowSja      Boolean @default(true)
+  allowPdfUpload Boolean @default(true)
+  requireEmail  Boolean @default(true)
+  autoApprove   Boolean @default(false) // true = innsendinger godkjennes direkte
+
+  submissions SubcontractorSubmission[]
+
+  tavle HmsTavle @relation(fields: [tavleId], references: [id], onDelete: Cascade)
+
+  @@index([portalToken])
+}
+
+/// Innsending fra underentreprenør via portalen
+model SubcontractorSubmission {
+  id             String                        @id @default(cuid())
+  portalId       String
+  tenantId       String
+  type           SubcontractorSubmissionType
+  status         SubcontractorSubmissionStatus @default(PENDING)
+  submitterName  String
+  submitterEmail String?
+  company        String?
+  orgNr          String?
+  data           Json // Type-spesifikk innsendingsdata
+  attachmentUrls Json    @default("[]") // Opplastede filer (R2-URL-er)
+
+  // Kobling til HMS Nova-objekter etter gjennomgang (Scenario B)
+  linkedIncidentId String?
+  linkedRuhId      String?
+  linkedSjaId      String?
+
+  reviewedById String?
+  reviewedAt   DateTime?
+  reviewNotes  String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  portal SubcontractorPortal @relation(fields: [portalId], references: [id], onDelete: Cascade)
+
+  @@index([portalId])
+  @@index([tenantId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+/// Type innsending fra underentreprenør
+enum SubcontractorSubmissionType {
+  AVVIK
+  RUH
+  SJA
+  NESTENULYKKE
+  PDF_RAPPORT // Rapport fra UEs eget HMS-system
+}
+
+/// Status for UE-innsending
+enum SubcontractorSubmissionStatus {
+  PENDING      // Venter på gjennomgang
+  UNDER_REVIEW // Under behandling
+  LINKED       // Koblet til HMS Nova-objekt
+  REJECTED     // Avvist
+}
+
+// ─── Medarbeidersamtale ─────────────────────────────────────────────────────
+// Hjemmel: AML § 4-2 (tilrettelegging, medvirkning og utvikling)
+//          AML § 4-3 (psykososialt arbeidsmiljø, presisert 1. jan 2026)
+//          Internkontrollforskriften § 5 (systematisk HMS-arbeid)
+//          GDPR art. 5 og 9 (personvern, konfidensialitet)
+
+/// Status for en medarbeidersamtale
+enum EmployeeReviewStatus {
+  PLANLAGT     // Samtalen er planlagt men ikke gjennomført
+  FORBEREDT    // Ansatt har levert forberedelse
+  GJENNOMFORT  // Samtalen er gjennomført, referat fylt ut
+  SIGNERT      // Begge parter har signert/godkjent
+  AVBRUTT      // Samtalen er avbrutt
+}
+
+/// Status for et mål knyttet til medarbeidersamtalen
+enum EmployeeReviewGoalStatus {
+  IKKE_STARTET
+  PAGAENDE
+  OPPNADD
+  IKKE_OPPNADD
+}
+
+/// Kategori for mål i medarbeidersamtalen
+enum EmployeeReviewGoalCategory {
+  FAGLIG       // Faglig utvikling og kompetanse
+  PERSONLIG    // Personlig utvikling
+  VIRKSOMHET   // Bidrag til virksomhetens mål
+}
+
+/// Vurderingsnivå for psykososiale faktorer (AML § 4-3, 2026)
+enum PsykososialtNiva {
+  FORSVARLIG          // Tilstanden er fullt forsvarlig
+  DELVIS_FORSVARLIG   // Tilstanden krever oppfølging
+  IKKE_FORSVARLIG     // Tilstanden er ikke forsvarlig – tiltak kreves
+}
+
+/// Medarbeidersamtale mellom leder og ansatt
+/// AML § 4-2 (2): arbeidsgiver skal legge til rette for faglig og personlig utvikling
+/// AML § 4-3 (2026): systematisk kartlegging av psykososiale arbeidsmiljøfaktorer
+model EmployeeReview {
+  id         String   @id @default(cuid())
+  tenantId   String
+  employeeId String // Ansatt som samtalen gjelder
+  reviewerId String // Leder/HR som gjennomfører samtalen
+
+  scheduledDate  DateTime  // Planlagt dato for samtalen
+  completedDate  DateTime? // Faktisk gjennomføringsdato
+  nextReviewDate DateTime? // Planlagt dato for neste samtale
+
+  status EmployeeReviewStatus @default(PLANLAGT)
+
+  // --- Ansattens forberedelse (fylles ut før samtalen) ---
+  // Ansatt skal forberedes og ha mulighet til medvirkning (AML § 4-2 (2))
+  ansattForberedelse  String? @db.Text // Hva vil ansatt ta opp?
+  ansattMedvirkning   String? @db.Text // Ansatts innspill til arbeidssituasjonen
+
+  // --- Trivsel og arbeidssituasjon (AML § 4-2) ---
+  trivselScore       Int? // 1-5: Generell trivsel på arbeidsplassen
+  arbeidsmiljoeScore Int? // 1-5: Vurdering av arbeidsmiljø
+  samarbeidScore     Int? // 1-5: Samarbeid med kolleger og leder
+
+  // --- Psykososialt arbeidsmiljø (AML § 4-3, presisert 1. jan 2026) ---
+  // § 4-3(2)a: uklare eller motstridende krav og forventninger i arbeidet
+  psykKravOgForventninger PsykososialtNiva?
+  // § 4-3(2)b: emosjonelle krav og belastninger i arbeid med mennesker
+  psykEmosjonelleKrav PsykososialtNiva?
+  // § 4-3(2)c: arbeidsmengde og tidspress – ubalanse mellom krav og tid
+  psykArbeidsmengde PsykososialtNiva?
+  // § 4-3(2)d: støtte og hjelp i arbeidet
+  psykStotteOgHjelp PsykososialtNiva?
+  // Fritekstkommentar til psykososiale faktorer
+  psykKommentar String? @db.Text
+
+  // --- Mål og resultater ---
+  maloppnaelseKommentar String? @db.Text // Gjennomgang av forrige periodes mål
+
+  // --- Kompetanse og utvikling (AML § 4-2 (2)) ---
+  kompetanseKommentar String? @db.Text // Nåværende kompetanse og utvikling
+  opplaeringsOnske    String? @db.Text // Ønsker om kurs/opplæring
+  karrierePlaner      String? @db.Text // Karriereplaner og ambisjoner
+
+  // --- Tilrettelegging (AML § 4-2 (1)) ---
+  tilretteleggingBehov  String? @db.Text // Behov for tilrettelegging
+  arbeidstidKommentar   String? @db.Text // Kommentarer til arbeidstid/balanse
+
+  // --- Gjensidig tilbakemelding ---
+  lederTilbakemeldingTilAnsatt String? @db.Text
+  ansattTilbakemeldingTilLeder String? @db.Text
+
+  // --- Oppsummering ---
+  oppsummeringKommentar String? @db.Text
+
+  // --- Signering (GDPR: ikke digital signatur, kun bekreftelse) ---
+  signertAvAnsatt Boolean   @default(false)
+  signertAvLeder  Boolean   @default(false)
+  ansattSignertAt DateTime?
+  lederSignertAt  DateTime?
+
+  // GDPR art. 5: konfidensialitet – kun leder og ansatt ser samtalen som standard
+  konfidensielt Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee User   @relation("EmployeeReviews", fields: [employeeId], references: [id])
+  reviewer User   @relation("ReviewerReviews", fields: [reviewerId], references: [id])
+
+  goals   EmployeeReviewGoal[]
+  actions EmployeeReviewAction[]
+
+  @@index([tenantId])
+  @@index([employeeId])
+  @@index([reviewerId])
+  @@index([status])
+  @@index([scheduledDate])
+}
+
+/// Mål satt i eller fulgt opp via medarbeidersamtalen
+/// AML § 4-2 (2): faglig og personlig utvikling skal legges til rette for
+model EmployeeReviewGoal {
+  id       String @id @default(cuid())
+  reviewId String
+  tenantId String
+
+  description String                     @db.Text
+  category    EmployeeReviewGoalCategory @default(FAGLIG)
+  status      EmployeeReviewGoalStatus   @default(IKKE_STARTET)
+  deadline    DateTime?
+  note        String?                    @db.Text
+
+  // Kan overføres til neste samtale dersom ikke nådd
+  overfortTilNeste Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  review EmployeeReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
+  @@index([tenantId])
+}
+
+/// Konkrete tiltak avtalt i medarbeidersamtalen
+/// IK-HMS § 5: tiltak skal dokumenteres og følges opp
+model EmployeeReviewAction {
+  id       String @id @default(cuid())
+  reviewId String
+  tenantId String
+
+  description String   @db.Text
+  ansvarlig   String? // "LEDER" | "ANSATT" | "BEGGE"
+  dueDate     DateTime?
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  note        String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  review EmployeeReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
+  @@index([tenantId])
+}
+
+/// Innsjekk av mannskap via QR-kode på tavlen
+/// Støtter Byggherreforskriften § 15 – elektronisk oversiktsliste
+model TavleCheckin {
+  id           String   @id @default(cuid())
+  tavleId      String
+  name         String
+  employer     String? // Arbeidsgiver/virksomhet
+  hmsCardNr    String? // HMS-kortnummer (påkrevd iflg. § 15)
+  birthDate    String? // Fødselsdato (YYYY-MM-DD)
+  phone        String?
+  checkedInAt  DateTime @default(now())
+  checkedOutAt DateTime?
+  date         String // YYYY-MM-DD – for daglig filtrering
+
+  tavle HmsTavle @relation(fields: [tavleId], references: [id], onDelete: Cascade)
+
+  @@index([tavleId])
+  @@index([date])
 }

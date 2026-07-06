@@ -40,7 +40,9 @@
     "whistleblowing": "Varslingar",
     "actions": "Tiltak",
     "goals": "Mål",
-    "settings": "Innstillingar"
+    "settings": "Innstillingar",
+    "employeeReviews": "Medarbeidarsamtalar",
+    "hmsTavle": "HMS Tavle"
   },
   "auth": {
     "login": "Logg inn",

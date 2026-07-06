@@ -8,7 +8,7 @@ export interface AnnualHmsPlanStep {
   key: string;
   title: string;
   description: string;
-  category: "ledelse" | "risiko" | "dokumenter" | "kontroll" | "opplæring" | "oppfølging" | "annen";
+  category: "ledelse" | "risiko" | "dokumenter" | "kontroll" | "opplæring" | "oppfølging" | "personell" | "annen";
   order: number;
   href: string | null;
   legalRef?: string;
@@ -150,6 +150,48 @@ export const ANNUAL_HMS_PLAN_STEPS: AnnualHmsPlanStep[] = [
     href: null,
     legalRef: "Dokumentasjon av ansvar",
   },
+
+  // ── Medarbeidersamtaler (AML § 4-2, § 4-3) ──────────────────────────────
+  {
+    key: "employee_reviews_conducted",
+    title: "Medarbeidersamtaler gjennomført for alle ansatte",
+    description:
+      "Alle ansatte har hatt minst én medarbeidersamtale med sin leder i løpet av året. Samtalene dekker trivsel, psykososialt arbeidsmiljø, mål og kompetanseutvikling.",
+    category: "personell",
+    order: 16,
+    href: "/dashboard/medarbeidersamtale",
+    legalRef: "AML § 4-2 (2): faglig og personlig utvikling, AML § 4-3 (2026): psykososialt arbeidsmiljø",
+  },
+  {
+    key: "employee_reviews_psyk",
+    title: "Psykososialt arbeidsmiljø kartlagt via medarbeidersamtaler",
+    description:
+      "Alle fire psykososiale faktorer er vurdert i samtalene: krav og forventninger, emosjonelle krav, arbeidsmengde/tidspress og støtte/hjelp. Funn er fulgt opp.",
+    category: "personell",
+    order: 17,
+    href: "/dashboard/medarbeidersamtale",
+    legalRef: "AML § 4-3 (2)a–d (presisert 1. jan 2026)",
+  },
+  {
+    key: "employee_reviews_actions_followed",
+    title: "Tiltak fra medarbeidersamtaler fulgt opp",
+    description:
+      "Avtalte tiltak fra årets medarbeidersamtaler er dokumentert og fulgt opp. IK-HMS § 5: tiltak skal ha frist og ansvarlig.",
+    category: "personell",
+    order: 18,
+    href: "/dashboard/medarbeidersamtale",
+    legalRef: "IK-HMS § 5, AML § 4-2",
+  },
+  {
+    key: "employee_reviews_signed",
+    title: "Medarbeidersamtaler signert av begge parter",
+    description:
+      "Referat fra gjennomførte medarbeidersamtaler er bekreftet/signert av både leder og ansatt. Konfidensialitet ivaretas (GDPR art. 5).",
+    category: "personell",
+    order: 19,
+    href: "/dashboard/medarbeidersamtale",
+    legalRef: "GDPR art. 5 (konfidensialitet og dokumentasjon)",
+  },
 ];
 
 const categoryOrder: AnnualHmsPlanStep["category"][] = [
@@ -159,6 +201,7 @@ const categoryOrder: AnnualHmsPlanStep["category"][] = [
   "kontroll",
   "opplæring",
   "oppfølging",
+  "personell",
   "annen",
 ];
 
@@ -181,6 +224,7 @@ export function getCategoryLabel(category: AnnualHmsPlanStep["category"]): strin
     kontroll: "Kontroll og revisjon",
     opplæring: "Opplæring",
     oppfølging: "Oppfølging av avvik og tiltak",
+    personell: "Personell – medarbeidersamtaler (AML § 4-2, § 4-3)",
     annen: "Annet",
   };
   return labels[category];

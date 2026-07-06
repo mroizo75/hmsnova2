@@ -43,7 +43,9 @@
     "actions": "Actions",
     "goals": "Goals",
     "orgChart": "Organization Chart",
-    "settings": "Settings"
+    "settings": "Settings",
+    "employeeReviews": "Employee Reviews",
+    "hmsTavle": "HMS Board"
   },
   "auth": {
     "login": "Login",

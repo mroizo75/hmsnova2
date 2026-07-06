@@ -28,6 +28,8 @@ export type NavPermission =
   | "whistleblowing"
   | "goals"
   | "constructionCompliance"
+  | "hmsTavle"
+  | "employeeReviews"
   | "settings";
 
 export interface DashboardNavItemConfig {
@@ -67,6 +69,8 @@ export const DASHBOARD_NAV_CONFIG: DashboardNavItemConfig[] = [
   { href: "/dashboard/meetings", label: "nav.meetings", permission: "meetings", defaultSimple: false },
   { href: "/dashboard/time-registration", label: "nav.timeRegistration", permission: "timeRegistration", defaultSimple: true },
   { href: "/dashboard/construction-compliance", label: "nav.constructionCompliance", permission: "constructionCompliance", defaultSimple: true },
+  { href: "/dashboard/hms-tavle", label: "nav.hmsTavle", permission: "hmsTavle", defaultSimple: true },
+  { href: "/dashboard/medarbeidersamtale", label: "nav.employeeReviews", permission: "employeeReviews", defaultSimple: false },
   { href: "/dashboard/whistleblowing", label: "nav.whistleblowing", permission: "whistleblowing", defaultSimple: false },
   { href: "/dashboard/goals", label: "nav.goals", permission: "goals", defaultSimple: false },
   { href: "/dashboard/organisasjonskart", label: "nav.orgChart", permission: "settings", defaultSimple: true },

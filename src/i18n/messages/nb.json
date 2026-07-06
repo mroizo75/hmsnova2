@@ -43,7 +43,9 @@
     "actions": "Tiltak",
     "goals": "Mål",
     "orgChart": "Organisasjonskart",
-    "settings": "Innstillinger"
+    "settings": "Innstillinger",
+    "employeeReviews": "Medarbeidersamtaler",
+    "hmsTavle": "HMS Tavle"
   },
   "auth": {
     "login": "Logg inn",

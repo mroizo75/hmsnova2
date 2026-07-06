@@ -71,6 +71,7 @@ export async function runScheduledAlerts(): Promise<TenantAlertSummary[]> {
       checkInspectionFindings(tenant.id),
       checkConstructionDailyRosterControl(tenant.id),
       checkRoutineReviews(tenant.id),
+      checkEmployeeReviewsDue(tenant.id),
     ];
 
     const checkResults = await Promise.all(checks);
@@ -1195,4 +1196,186 @@ export async function getTaskSummaryForUser(userId: string, tenantId: string) {
 }
 
 const in14Days = addDays(new Date(), 14);
+
+// ─── Medarbeidersamtale – varsel ─────────────────────────────────────────────
+/**
+ * Sjekker alle ansatte i tenanten:
+ *   1. Varsler leder/HMS hvis en ansatt ikke har hatt samtale siste 12 måneder
+ *   2. Varsler ansatt hvis planlagt samtale er om ≤ 14 dager
+ *   3. Varsler ansatt og leder om samtaler som venter på signering
+ *
+ * Hjemmel: AML § 4-2 – medarbeidersamtale anbefales minimum en gang per år
+ */
+async function checkEmployeeReviewsDue(tenantId: string): Promise<AlertResult> {
+  const now = new Date();
+  const twelveMonthsAgo = addDays(now, -365);
+  const in14DaysDate = addDays(now, 14);
+  let notifications = 0;
+
+  // ── 1. Ansatte uten samtale siste 12 måneder ──────────────────────────────
+  const tenantUsers = await prisma.userTenant.findMany({
+    where: { tenantId },
+    select: { userId: true, role: true },
+  });
+
+  for (const ut of tenantUsers) {
+    // Kun sjekk ansatte (ikke admin/superadmin)
+    if (ut.role === "ADMIN") continue;
+
+    const lastReview = await prisma.employeeReview.findFirst({
+      where: {
+        tenantId,
+        employeeId: ut.userId,
+        status: { in: ["GJENNOMFORT", "SIGNERT"] },
+        completedDate: { gte: twelveMonthsAgo },
+      },
+      select: { id: true },
+    });
+
+    if (!lastReview) {
+      // Sjekk om vi allerede har varslet nylig (siste 30 dager)
+      const recentAlert = await prisma.notification.findFirst({
+        where: {
+          tenantId,
+          type: "EMPLOYEE_REVIEW_DUE",
+          userId: ut.userId,
+          createdAt: { gt: addDays(now, -30) },
+        },
+        select: { id: true },
+      });
+      if (recentAlert) continue;
+
+      // Varsle ansatten selv
+      await createNotification({
+        tenantId,
+        userId: ut.userId,
+        type: "EMPLOYEE_REVIEW_DUE",
+        title: "Medarbeidersamtale forfall",
+        message:
+          "Du har ikke hatt medarbeidersamtale med din leder siste 12 måneder. Ta kontakt med lederen din for å planlegge en samtale (AML § 4-2).",
+        link: "/ansatt/medarbeidersamtale",
+      });
+      notifications++;
+
+      // Varsle HMS-rollen
+      await notifyUsersByRole(tenantId, "HMS", {
+        type: "EMPLOYEE_REVIEW_DUE",
+        title: "Medarbeidersamtale ikke gjennomført",
+        message: `En ansatt har ikke hatt medarbeidersamtale på over 12 måneder. Følg opp i oversikten.`,
+        link: "/dashboard/medarbeidersamtale",
+      });
+      notifications++;
+    }
+  }
+
+  // ── 2. Planlagte samtaler som nærmer seg (≤ 14 dager) ────────────────────
+  const upcoming = await prisma.employeeReview.findMany({
+    where: {
+      tenantId,
+      status: { in: ["PLANLAGT", "FORBEREDT"] },
+      scheduledDate: {
+        gte: now,
+        lte: in14DaysDate,
+      },
+    },
+    select: {
+      id: true,
+      scheduledDate: true,
+      employeeId: true,
+      reviewerId: true,
+    },
+  });
+
+  for (const review of upcoming) {
+    const recentAlert = await prisma.notification.findFirst({
+      where: {
+        tenantId,
+        type: "EMPLOYEE_REVIEW_UPCOMING",
+        link: { contains: review.id },
+        createdAt: { gt: addDays(now, -7) },
+      },
+      select: { id: true },
+    });
+    if (recentAlert) continue;
+
+    const dateText = new Date(review.scheduledDate).toLocaleDateString("nb-NO");
+
+    await createNotification({
+      tenantId,
+      userId: review.employeeId,
+      type: "EMPLOYEE_REVIEW_UPCOMING",
+      title: "Medarbeidersamtale nærmer seg",
+      message: `Du har medarbeidersamtale planlagt ${dateText}. Husk å fylle inn din forberedelse i forkant.`,
+      link: `/ansatt/medarbeidersamtale/${review.id}`,
+    });
+    await createNotification({
+      tenantId,
+      userId: review.reviewerId,
+      type: "EMPLOYEE_REVIEW_UPCOMING",
+      title: "Medarbeidersamtale nærmer seg",
+      message: `Du har planlagt en medarbeidersamtale ${dateText}. Gjennomgå forberedelsen til den ansatte i forkant.`,
+      link: `/dashboard/medarbeidersamtale/${review.id}`,
+    });
+    notifications += 2;
+  }
+
+  // ── 3. Samtaler som venter på signering ───────────────────────────────────
+  const pendingSign = await prisma.employeeReview.findMany({
+    where: {
+      tenantId,
+      status: "GJENNOMFORT",
+      OR: [{ signertAvAnsatt: false }, { signertAvLeder: false }],
+      completedDate: { lte: addDays(now, -3) }, // Venter mer enn 3 dager
+    },
+    select: {
+      id: true,
+      employeeId: true,
+      reviewerId: true,
+      signertAvAnsatt: true,
+      signertAvLeder: true,
+    },
+  });
+
+  for (const review of pendingSign) {
+    const recentAlert = await prisma.notification.findFirst({
+      where: {
+        tenantId,
+        type: "EMPLOYEE_REVIEW_SIGN",
+        link: { contains: review.id },
+        createdAt: { gt: addDays(now, -7) },
+      },
+      select: { id: true },
+    });
+    if (recentAlert) continue;
+
+    if (!review.signertAvAnsatt) {
+      await createNotification({
+        tenantId,
+        userId: review.employeeId,
+        type: "EMPLOYEE_REVIEW_SIGN",
+        title: "Medarbeidersamtale venter på din signatur",
+        message: "Samtalen er gjennomført. Gå inn og bekreft at du har mottatt referatet.",
+        link: `/ansatt/medarbeidersamtale/${review.id}`,
+      });
+      notifications++;
+    }
+    if (!review.signertAvLeder) {
+      await createNotification({
+        tenantId,
+        userId: review.reviewerId,
+        type: "EMPLOYEE_REVIEW_SIGN",
+        title: "Medarbeidersamtale venter på din signatur",
+        message: "Samtalen er gjennomført. Gå inn og signer referatet.",
+        link: `/dashboard/medarbeidersamtale/${review.id}`,
+      });
+      notifications++;
+    }
+  }
+
+  return {
+    type: "employee_reviews_due",
+    count: upcoming.length + pendingSign.length,
+    notifications,
+  };
+}
 

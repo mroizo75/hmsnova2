@@ -148,6 +148,18 @@ export interface RolePermissions {
   // Bygg/anlegg-compliance – SHA, forhåndsmelding, oversiktsliste
   canReadConstructionCompliance: boolean;
   canManageConstructionCompliance: boolean;
+
+  // Digital HMS Tavle – bygg og anlegg
+  canViewHmsTavle: boolean;     // Se tavle og innhold
+  canManageHmsTavle: boolean;   // Opprette, redigere, konfigurere tavler
+  canReviewSubmissions: boolean; // Behandle UE-innsendinger
+
+  // Medarbeidersamtale (AML § 4-2, § 4-3)
+  canReadOwnEmployeeReviews: boolean;  // Se egne samtaler (ansatt)
+  canReadAllEmployeeReviews: boolean;  // Se alle samtaler i tenant (admin/HMS)
+  canCreateEmployeeReviews: boolean;   // Opprette nye samtaler (leder/admin/HMS)
+  canConductEmployeeReviews: boolean;  // Fylle ut referat og gjennomføre (leder/admin/HMS)
+  canDeleteEmployeeReviews: boolean;   // Slette samtaler (kun admin)
 }
 
 /**
@@ -157,6 +169,7 @@ export const rolePermissions: Record<Role, RolePermissions> = {
   // ADMIN - Full tilgang til alt
   ADMIN: {
     canAccessDashboard: true,
+
     canViewAnalytics: true,
     canReadDocuments: true,
     canCreateDocuments: true,
@@ -246,6 +259,14 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canManageExposureRegister: true,
     canReadConstructionCompliance: true,
     canManageConstructionCompliance: true,
+    canViewHmsTavle: true,
+    canManageHmsTavle: true,
+    canReviewSubmissions: true,
+    canReadOwnEmployeeReviews: true,
+    canReadAllEmployeeReviews: true,
+    canCreateEmployeeReviews: true,
+    canConductEmployeeReviews: true,
+    canDeleteEmployeeReviews: true,
   },
 
   // HMS - HMS-ansvarlig, nesten full tilgang
@@ -340,6 +361,16 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canManageExposureRegister: true,
     canReadConstructionCompliance: true,
     canManageConstructionCompliance: true,
+    canViewHmsTavle: true,
+    canManageHmsTavle: true,
+    canReviewSubmissions: true,
+    // HMS-ansvarlig kan se egne samtaler og de de leder, men ikke alle andre ansatters.
+    // Admin kan gi HMS full tilgang via adgangskontroll (moduleVisibilityConfig).
+    canReadOwnEmployeeReviews: true,
+    canReadAllEmployeeReviews: false,
+    canCreateEmployeeReviews: true,
+    canConductEmployeeReviews: true,
+    canDeleteEmployeeReviews: false,
   },
 
   // LEDER - Leder, kan administrere i sin avdeling
@@ -434,6 +465,14 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canManageExposureRegister: true,
     canReadConstructionCompliance: true,
     canManageConstructionCompliance: true,
+    canViewHmsTavle: true,
+    canManageHmsTavle: true,
+    canReviewSubmissions: true,
+    canReadOwnEmployeeReviews: true,
+    canReadAllEmployeeReviews: false, // Kun egne
+    canCreateEmployeeReviews: true,   // Leder kan opprette
+    canConductEmployeeReviews: true,  // Leder gjennomfører
+    canDeleteEmployeeReviews: false,
   },
 
   // VERNEOMBUD - Verneombud, fokus på HMS (AML § 6-2: rett til informasjon om arbeidsmiljøet)
@@ -528,6 +567,14 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canManageExposureRegister: false,
     canReadConstructionCompliance: true,
     canManageConstructionCompliance: true,
+    canViewHmsTavle: true,
+    canManageHmsTavle: false,
+    canReviewSubmissions: false,
+    canReadOwnEmployeeReviews: true,
+    canReadAllEmployeeReviews: false,
+    canCreateEmployeeReviews: false,
+    canConductEmployeeReviews: false,
+    canDeleteEmployeeReviews: false,
   },
 
   // ANSATT - Ansatt, begrenset tilgang
@@ -622,6 +669,14 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canManageExposureRegister: false,
     canReadConstructionCompliance: true,
     canManageConstructionCompliance: false,
+    canViewHmsTavle: true,
+    canManageHmsTavle: false,
+    canReviewSubmissions: false,
+    canReadOwnEmployeeReviews: true,  // Ansatt kan se egne
+    canReadAllEmployeeReviews: false,
+    canCreateEmployeeReviews: false,
+    canConductEmployeeReviews: false,
+    canDeleteEmployeeReviews: false,
   },
 
   // BHT - Bedriftshelsetjeneste, lesetilgang + rapportering
@@ -716,6 +771,14 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canManageExposureRegister: false,
     canReadConstructionCompliance: true,
     canManageConstructionCompliance: false,
+    canViewHmsTavle: true,
+    canManageHmsTavle: false,
+    canReviewSubmissions: false,
+    canReadOwnEmployeeReviews: false,
+    canReadAllEmployeeReviews: false,
+    canCreateEmployeeReviews: false,
+    canConductEmployeeReviews: false,
+    canDeleteEmployeeReviews: false,
   },
 
   // REVISOR - Revisor, kun lesetilgang
@@ -810,6 +873,14 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canManageExposureRegister: false,
     canReadConstructionCompliance: true,
     canManageConstructionCompliance: false,
+    canViewHmsTavle: true,
+    canManageHmsTavle: false,
+    canReviewSubmissions: false,
+    canReadOwnEmployeeReviews: false,
+    canReadAllEmployeeReviews: true,  // Revisor kan lese alt
+    canCreateEmployeeReviews: false,
+    canConductEmployeeReviews: false,
+    canDeleteEmployeeReviews: false,
   },
 };
 
@@ -865,6 +936,7 @@ export function getVisibleNavItems(role: Role) {
     legalRegister: perms.canReadLegalRegister,
     exposureRegister: perms.canReadExposureRegister,
     constructionCompliance: perms.canReadConstructionCompliance,
+    employeeReviews: perms.canReadOwnEmployeeReviews || perms.canReadAllEmployeeReviews,
   };
 }
 
