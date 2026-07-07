@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   CreateEmployeeReviewSchema,
@@ -48,7 +48,7 @@ export function NySamtaleForm({ employees }: NySamtaleFormProps) {
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<CreateEmployeeReviewInput>({
-    resolver: zodResolver(CreateEmployeeReviewSchema),
+    resolver: zodResolver(CreateEmployeeReviewSchema) as Resolver<CreateEmployeeReviewInput>,
     defaultValues: {
       employeeId: "",
       scheduledDate: undefined,
