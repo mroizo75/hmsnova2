@@ -66,7 +66,7 @@ export const EmployeeReviewActionSchema = z.object({
 
 export const CreateEmployeeReviewSchema = z.object({
   employeeId: z.string().min(1, "Ansatt er påkrevd"),
-  scheduledDate: z.coerce.date({ required_error: "Dato er påkrevd" }),
+  scheduledDate: z.coerce.date({ error: "Dato er påkrevd" }),
   nextReviewDate: z.coerce.date().optional().nullable(),
   konfidensielt: z.boolean().default(true),
 });
