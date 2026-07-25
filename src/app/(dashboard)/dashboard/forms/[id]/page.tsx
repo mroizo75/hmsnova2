@@ -37,8 +37,9 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { getPermissions } from "@/lib/permissions";
+import { resolveEffectivePermissions } from "@/lib/server-authorization";
 import { tenantCanUseGlobalFormTemplate } from "@/lib/form-template-industry";
+import { Role } from "@prisma/client";
 
 const ITEMS_PER_PAGE = 20;
 
@@ -75,7 +76,10 @@ export default async function FormDetailPage({
     },
     select: { role: true },
   });
-  const permissions = getPermissions(userTenant?.role ?? "ANSATT");
+  const permissions = await resolveEffectivePermissions(
+    session.user.tenantId,
+    (userTenant?.role ?? "ANSATT") as Role
+  );
 
   const form = await prisma.formTemplate.findUnique({
     where: { id },

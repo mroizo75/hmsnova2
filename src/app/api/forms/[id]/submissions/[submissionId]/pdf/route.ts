@@ -3,7 +3,8 @@ import { getRequiredTenantContext } from "@/lib/tenant-context";
 import { prisma } from "@/lib/db";
 import { jsPDF } from "jspdf";
 import { getStorage } from "@/lib/storage";
-import { getPermissions } from "@/lib/permissions";
+import { resolveEffectivePermissions } from "@/lib/server-authorization";
+import { Role } from "@prisma/client";
 
 function formatFieldValue(fieldType: string, optionsJson: string | null, rawValue: string | null, fileKey: string | null): string {
   if (fileKey) {
@@ -122,7 +123,10 @@ export async function GET(
       },
       select: { role: true },
     });
-    const permissions = getPermissions(userTenant?.role ?? "ANSATT");
+    const permissions = await resolveEffectivePermissions(
+      activeTenantId,
+      (userTenant?.role ?? "ANSATT") as Role
+    );
 
     const form = await prisma.formTemplate.findUnique({
       where: { id },

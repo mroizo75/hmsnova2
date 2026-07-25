@@ -4,7 +4,7 @@ import { Role, RoutineStatus } from "@prisma/client";
 
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getPermissions } from "@/lib/permissions";
+import { resolveEffectivePermissions } from "@/lib/server-authorization";
 
 const employeeVisibleRoutineStatuses: RoutineStatus[] = [RoutineStatus.ACTIVE, RoutineStatus.NEEDS_REVIEW];
 
@@ -31,7 +31,7 @@ export async function GET() {
     }
 
     const role = membership.role as Role;
-    const permissions = getPermissions(role);
+    const permissions = await resolveEffectivePermissions(session.user.tenantId, role);
     if (!permissions.canReadRoutines) {
       return NextResponse.json({ routines: [], uploads: [] }, { status: 200 });
     }

@@ -4,7 +4,7 @@ import { Role } from "@prisma/client";
 
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getPermissions } from "@/lib/permissions";
+import { resolveEffectivePermissions } from "@/lib/server-authorization";
 
 const isVisibleForRole = (visibleToRoles: unknown, role: Role): boolean => {
   if (!visibleToRoles) {
@@ -52,7 +52,7 @@ export async function GET() {
     }
 
     const role = membership.role as Role;
-    const permissions = getPermissions(role);
+    const permissions = await resolveEffectivePermissions(session.user.tenantId, role);
     if (!permissions.canReadDocuments) {
       return NextResponse.json({ documents: [] }, { status: 200 });
     }

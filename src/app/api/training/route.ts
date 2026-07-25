@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getPermissions } from "@/lib/permissions";
+import { resolveEffectivePermissions } from "@/lib/server-authorization";
 import { Role } from "@prisma/client";
 
 export async function GET() {
@@ -29,7 +29,10 @@ export async function GET() {
       return NextResponse.json({ error: "Ingen tenant-tilgang" }, { status: 403 });
     }
 
-    const permissions = getPermissions(membership.role as Role);
+    const permissions = await resolveEffectivePermissions(
+      session.user.tenantId,
+      membership.role as Role
+    );
     if (!permissions.canReadOwnTraining && !permissions.canReadAllTraining) {
       return NextResponse.json({ trainings: [] }, { status: 200 });
     }
@@ -77,9 +80,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Sjekk permissions
+    // Sjekk permissions (create påvirkes ikke av modul-synlighet, men bruk samme kilde)
     const userRole = session.user.role as Role;
-    const permissions = getPermissions(userRole);
+    const permissions = await resolveEffectivePermissions(
+      session.user.tenantId,
+      userRole
+    );
 
     if (!permissions.canCreateTraining) {
       return NextResponse.json(

@@ -48,10 +48,16 @@ import { NotificationBell } from "@/components/notifications/notification-bell";
 import { useSimpleMode } from "@/hooks/use-simple-mode";
 import { useSimpleMenuConfig } from "@/hooks/use-simple-menu-config";
 import type { TenantFeature } from "@/lib/tenant-features";
+import {
+  isNavItemAllowedByModuleVisibility,
+  type ModuleVisibilityConfig,
+} from "@/lib/module-visibility";
+import { Role } from "@prisma/client";
 
 interface TenantApiResponseItem {
   id: string;
   features?: string[];
+  moduleVisibilityConfig?: ModuleVisibilityConfig | null;
 }
 
 const navItems: Array<{
@@ -96,11 +102,12 @@ export function MobileNav() {
   const pathname = usePathname();
   const t = useTranslations();
   const { data: session } = useSession();
-  const { visibleNavItems, role } = usePermissions();
+  const { visibleNavItems, role, permissions } = usePermissions();
   const { isSimpleMode, toggleMode } = useSimpleMode();
   const { simpleMenuItems } = useSimpleMenuConfig();
   const [open, setOpen] = useState(false);
   const [tenantFeatures, setTenantFeatures] = useState<string[] | null>(null);
+  const [moduleVisibility, setModuleVisibility] = useState<ModuleVisibilityConfig | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -109,6 +116,7 @@ export function MobileNav() {
       if (!session?.user?.tenantId) {
         if (isMounted) {
           setTenantFeatures([]);
+          setModuleVisibility(null);
         }
         return;
       }
@@ -118,6 +126,7 @@ export function MobileNav() {
         if (!response.ok) {
           if (isMounted) {
             setTenantFeatures([]);
+            setModuleVisibility(null);
           }
           return;
         }
@@ -128,10 +137,12 @@ export function MobileNav() {
         );
         if (isMounted) {
           setTenantFeatures(currentTenant?.features ?? []);
+          setModuleVisibility(currentTenant?.moduleVisibilityConfig ?? null);
         }
       } catch {
         if (isMounted) {
           setTenantFeatures([]);
+          setModuleVisibility(null);
         }
       }
     };
@@ -142,10 +153,21 @@ export function MobileNav() {
     };
   }, [session?.user?.tenantId]);
 
-  // Filtrer navigasjon basert på tilganger OG enkel/avansert modus
+  // Filtrer navigasjon basert på tilganger, modul-synlighet OG enkel/avansert modus
   const allowedNavItems = navItems.filter((item) => {
     if (!visibleNavItems[item.permission as keyof typeof visibleNavItems]) return false;
     if (item.feature && !tenantFeatures?.includes(item.feature)) return false;
+    if (
+      role &&
+      !isNavItemAllowedByModuleVisibility(
+        item.permission,
+        role as Role,
+        moduleVisibility,
+        permissions
+      )
+    ) {
+      return false;
+    }
     if (!isSimpleMode) return true;
     if (simpleMenuItems !== null && Array.isArray(simpleMenuItems)) {
       return simpleMenuItems.includes(item.href);

@@ -12,12 +12,22 @@ import {
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   updateModuleVisibility,
 } from "@/server/actions/settings.actions";
 import {
-  ALL_ROLES,
   MODULE_DEFAULTS,
   MODULE_LABELS,
   type ModuleKey,
@@ -127,6 +137,7 @@ export function ModuleVisibilitySettings({
           <CardDescription>
             Velg hvilke roller som kan <strong>lese og behandle</strong> innsendt data i hvert modul.
             Roller som ikke er huket av vil ikke se andres innsendte data. ADMIN har alltid full tilgang.
+            Endringer logges i revisjonssporet.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -182,7 +193,6 @@ export function ModuleVisibilitySettings({
               </thead>
               <tbody>
                 {ALL_MODULES.map((mod, idx) => {
-                  const allRolesChecked = ROLES_IN_ORDER.every(r => config[mod].has(r));
                   const checkedCount = ROLES_IN_ORDER.filter(r => config[mod].has(r)).length;
                   const isRestricted = checkedCount < ROLES_IN_ORDER.length;
                   return (
@@ -231,10 +241,30 @@ export function ModuleVisibilitySettings({
               <Save className="mr-2 h-4 w-4" />
               {loading ? "Lagrer..." : "Lagre innstillinger"}
             </Button>
-            <Button variant="outline" onClick={resetToDefault} disabled={loading}>
-              <RotateCcw className="mr-2 h-4 w-4" />
-              Tilbakestill til standard
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" disabled={loading} className="bg-transparent">
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Tilbakestill til standard
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Tilbakestille tilgangsinnstillinger?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Dette setter alle moduler tilbake til systemets standardtilgang.
+                    Eventuelle begrensninger du har satt fjernes i skjemaet.
+                    Du må trykke «Lagre innstillinger» etterpå for at endringen skal tre i kraft.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Avbryt</AlertDialogCancel>
+                  <AlertDialogAction onClick={resetToDefault}>
+                    Tilbakestill
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             <p className="text-xs text-muted-foreground ml-auto">
               Endringer trer i kraft umiddelbart for nye sideinnlastinger.
             </p>

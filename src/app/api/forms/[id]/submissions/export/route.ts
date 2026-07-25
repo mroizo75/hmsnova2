@@ -12,8 +12,9 @@ import {
   getWeek,
 } from "date-fns";
 import { nb } from "date-fns/locale";
-import { getPermissions } from "@/lib/permissions";
+import { resolveEffectivePermissions } from "@/lib/server-authorization";
 import { tenantCanUseGlobalFormTemplate } from "@/lib/form-template-industry";
+import { Role } from "@prisma/client";
 
 // ── Hjelpefunksjoner ──────────────────────────────────────────────────────────
 
@@ -154,7 +155,10 @@ export async function GET(
       },
       select: { role: true },
     });
-    const permissions = getPermissions(userTenant?.role ?? "ANSATT");
+    const permissions = await resolveEffectivePermissions(
+      tenantContext.tenantId,
+      (userTenant?.role ?? "ANSATT") as Role
+    );
 
     const { searchParams } = new URL(request.url);
     const period = searchParams.get("period");

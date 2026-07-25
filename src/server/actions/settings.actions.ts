@@ -940,10 +940,27 @@ export async function updateModuleVisibility(config: Record<string, string[]>) {
     const { parseModuleVisibilityConfig } = await import("@/lib/module-visibility");
     const validated = parseModuleVisibilityConfig(config);
 
+    const previous = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { moduleVisibilityConfig: true },
+    });
+
     await prisma.tenant.update({
       where: { id: tenantId },
       data: { moduleVisibilityConfig: validated ?? {} },
     });
+
+    await AuditLog.log(
+      tenantId,
+      user.id,
+      "MODULE_VISIBILITY_UPDATED",
+      "Tenant",
+      tenantId,
+      {
+        before: parseModuleVisibilityConfig(previous?.moduleVisibilityConfig),
+        after: validated ?? {},
+      }
+    );
 
     revalidatePath("/dashboard/settings");
     revalidatePath("/dashboard");

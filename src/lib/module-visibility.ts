@@ -1,13 +1,15 @@
 /**
  * Modul-synlighet per tenant
  *
- * Admin kan konfigurere hvilke roller som kan SE (lese) hvert modul.
+ * Admin kan konfigurere hvilke roller som kan SE (lese) hvert servert modul.
  * ADMIN-rollen har alltid tilgang og kan ikke fjernes.
  * Konfigurasjonen lagres som JSON i Tenant.moduleVisibilityConfig.
+ *
+ * null i DB betyr systemstandard (MODULE_DEFAULTS) – aldri «ingen begrensning».
  */
 
 import { Role } from "@prisma/client";
-import type { RolePermissions } from "@/lib/permissions";
+import { getPermissions, type RolePermissions } from "@/lib/permissions";
 
 export type ModuleKey =
   | "incidents"
@@ -41,7 +43,7 @@ export const ALL_ROLES: Role[] = [
   "REVISOR",
 ];
 
-/** Standard synlighet – speiler rolePermissions-matrisen */
+/** Standard synlighet – speiler rolePermissions-matrisen for lesing av andres data */
 export const MODULE_DEFAULTS: Record<ModuleKey, Role[]> = {
   incidents:    ["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "BHT", "REVISOR"],
   ruh:          ["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "ANSATT", "BHT", "REVISOR"],
@@ -61,7 +63,6 @@ export const MODULE_DEFAULTS: Record<ModuleKey, Role[]> = {
   whistleblowing: ["ADMIN", "HMS"],
   feedback:     ["ADMIN", "HMS", "LEDER", "BHT", "REVISOR"],
   // Standard: kun ADMIN ser ALLE andres samtaler.
-  // Legg til HMS, LEDER eller REVISOR her for å gi full oversiktstilgang.
   // Alle brukere ser alltid egne samtaler uavhengig av dette.
   employeeReviews: ["ADMIN"],
 };
@@ -91,25 +92,23 @@ export const MODULE_LABELS: Record<ModuleKey, string> = {
 /**
  * Hvilke RolePermissions-flagg hvert modul kontrollerer.
  *
- * VIKTIG: canCreate* / canFill* er IKKE med her – alle som har den retten
- * skal fortsatt kunne sende inn/rapportere selv om de ikke ser andres data.
- * Modul-synlighet styrer kun LESING og BEHANDLING.
+ * VIKTIG:
+ * - canCreate* / canFill* er IKKE med – innsending forblir åpen.
+ * - canReadOwn* er IKKE med – egne innsendinger/samtaler forblir synlige.
+ * Modul-synlighet styrer kun LESING AV ANDRES data og BEHANDLING.
  */
 export const MODULE_PERMISSION_KEYS: Record<ModuleKey, Array<keyof RolePermissions>> = {
   incidents: [
     "canReadIncidents",
-    "canReadOwnIncidents",
     "canInvestigateIncidents",
     "canCloseIncidents",
   ],
   ruh: [
     "canReadRuh",
-    "canReadOwnRuh",
     "canHandleRuh",
   ],
   sja: [
     "canReadSja",
-    "canReadOwnSja",
     "canApproveSja",
   ],
   risks:        ["canReadRisks", "canApproveRisks", "canDeleteRisks"],
@@ -118,21 +117,58 @@ export const MODULE_PERMISSION_KEYS: Record<ModuleKey, Array<keyof RolePermissio
   chemicals:    ["canReadChemicals"],
   audits:       ["canReadAudits", "canConductAudits", "canCloseAudits"],
   inspections:  ["canReadInspections", "canConductInspections", "canCloseInspections"],
-  training:     ["canReadOwnTraining", "canReadAllTraining"],
+  training:     ["canReadAllTraining"],
   actions:      ["canReadActions"],
   goals:        ["canReadGoals"],
   environment:  ["canReadEnvironment"],
   meetings:     ["canReadMeetings", "canViewAllMeetings"],
   routines:     ["canReadRoutines"],
   whistleblowing: ["canViewWhistleblowing", "canHandleWhistleblowing"],
-  feedback:     ["canReadOwnFeedback", "canReadAllFeedback"],
-  // Kontrollerer kun "se alle" – egne samtaler er alltid synlige
+  feedback:     ["canReadAllFeedback"],
   employeeReviews: ["canReadAllEmployeeReviews"],
+};
+
+/** Mapping fra nav-permission til modul-nøkkel */
+export const NAV_PERMISSION_TO_MODULE: Partial<Record<string, ModuleKey>> = {
+  incidents: "incidents",
+  hseStatistics: "incidents",
+  sja: "sja",
+  forms: "forms",
+  documents: "documents",
+  chemicals: "chemicals",
+  audits: "audits",
+  inspections: "inspections",
+  training: "training",
+  actions: "actions",
+  goals: "goals",
+  environment: "environment",
+  meetings: "meetings",
+  routines: "routines",
+  whistleblowing: "whistleblowing",
+  feedback: "feedback",
+  risks: "risks",
+  riskRegister: "risks",
+  employeeReviews: "employeeReviews",
+};
+
+/**
+ * Create/submit-tillatelser som holder nav synlig selv om lesing av andres data er stengt.
+ */
+export const MODULE_CREATE_PERMISSION: Partial<Record<ModuleKey, keyof RolePermissions>> = {
+  incidents: "canCreateIncidents",
+  ruh: "canCreateRuh",
+  sja: "canCreateSja",
+  forms: "canFillForms",
+  chemicals: "canCreateChemicals",
+  inspections: "canCreateInspections",
+  training: "canCreateTraining",
+  actions: "canCreateActions",
+  whistleblowing: "canSubmitWhistleblowing",
 };
 
 /**
  * Hent hvilke roller som har tilgang til et modul.
- * ADMIN er alltid inkludert.
+ * ADMIN er alltid inkludert. null-config → MODULE_DEFAULTS.
  */
 export function getVisibleRolesForModule(
   config: ModuleVisibilityConfig | null | undefined,
@@ -158,14 +194,14 @@ export function canRoleAccessModule(
 
 /**
  * Appliser modul-synlighet på et permissions-objekt.
- * Setter canRead*-flagg til false hvis rollen ikke har tilgang til modulet.
+ * null/undefined config behandles som MODULE_DEFAULTS (aldri «ingen begrensning»).
  */
 export function applyModuleVisibility(
   permissions: RolePermissions,
   config: ModuleVisibilityConfig | null | undefined,
   role: Role
 ): RolePermissions {
-  if (!config || role === "ADMIN") return permissions;
+  if (role === "ADMIN") return permissions;
 
   const overridden = { ...permissions };
 
@@ -178,6 +214,33 @@ export function applyModuleVisibility(
   }
 
   return overridden;
+}
+
+/**
+ * Effektiv tilgang for rolle + tenant-config (ren funksjon).
+ */
+export function getEffectivePermissions(
+  role: Role,
+  config: ModuleVisibilityConfig | null | undefined
+): RolePermissions {
+  return applyModuleVisibility(getPermissions(role), config, role);
+}
+
+/**
+ * Om et nav-element skal vises gitt modul-synlighet.
+ * Tillater innsendingsmoduler selv om lesing av andres data er stengt.
+ */
+export function isNavItemAllowedByModuleVisibility(
+  permission: string,
+  role: Role,
+  config: ModuleVisibilityConfig | null | undefined,
+  permissions: RolePermissions | null | undefined
+): boolean {
+  const moduleKey = NAV_PERMISSION_TO_MODULE[permission];
+  if (!moduleKey) return true;
+  if (canRoleAccessModule(config, moduleKey, role)) return true;
+  const createPermKey = MODULE_CREATE_PERMISSION[moduleKey];
+  return Boolean(createPermKey && permissions?.[createPermKey] === true);
 }
 
 /**

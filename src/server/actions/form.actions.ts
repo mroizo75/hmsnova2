@@ -7,7 +7,7 @@
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { getPermissions } from "@/lib/permissions";
+import { resolveEffectivePermissions } from "@/lib/server-authorization";
 
 /**
  * Kopierer et globalt skjema til tenant som en egendefinert kopi
@@ -121,7 +121,11 @@ export async function deleteFormTemplate(formId: string, force = false) {
       where: { userId: session.user.id, tenantId: session.user.tenantId },
       select: { role: true },
     });
-    if (!getPermissions(userTenant?.role ?? "ANSATT").canManageForms) {
+    const deletePerms = await resolveEffectivePermissions(
+      session.user.tenantId,
+      userTenant?.role ?? "ANSATT"
+    );
+    if (!deletePerms.canManageForms) {
       return { success: false, error: "Ingen tilgang til å slette skjemaer" };
     }
 
@@ -189,7 +193,11 @@ export async function toggleFormTemplateActive(formId: string, isActive: boolean
       where: { userId: session.user.id, tenantId: session.user.tenantId },
       select: { role: true },
     });
-    if (!getPermissions(ut?.role ?? "ANSATT").canManageForms) {
+    const togglePerms = await resolveEffectivePermissions(
+      session.user.tenantId,
+      ut?.role ?? "ANSATT"
+    );
+    if (!togglePerms.canManageForms) {
       return { success: false, error: "Ingen tilgang" };
     }
 

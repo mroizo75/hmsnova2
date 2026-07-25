@@ -4,7 +4,7 @@ import { Role } from "@prisma/client";
 
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getPermissions } from "@/lib/permissions";
+import { resolveEffectivePermissions } from "@/lib/server-authorization";
 
 export async function GET() {
   try {
@@ -33,7 +33,7 @@ export async function GET() {
 
     const tenantId = selectedMembership.tenantId;
     const role = selectedMembership.role as Role;
-    const permissions = getPermissions(role);
+    const permissions = await resolveEffectivePermissions(tenantId, role);
 
     const [
       incidentsTotal,

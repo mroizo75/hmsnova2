@@ -4,7 +4,7 @@ import { Role, RoutineStatus } from "@prisma/client";
 
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getPermissions } from "@/lib/permissions";
+import { resolveEffectivePermissions } from "@/lib/server-authorization";
 
 const employeeVisibleRoutineStatuses: RoutineStatus[] = [RoutineStatus.ACTIVE, RoutineStatus.NEEDS_REVIEW];
 
@@ -34,7 +34,10 @@ export async function GET(_request: NextRequest, context: Context) {
       return NextResponse.json({ error: "Ingen tenant-tilgang" }, { status: 403 });
     }
 
-    const permissions = getPermissions(membership.role as Role);
+    const permissions = await resolveEffectivePermissions(
+      session.user.tenantId,
+      membership.role as Role
+    );
     if (!permissions.canReadRoutines) {
       return NextResponse.json({ error: "Ingen tilgang" }, { status: 403 });
     }

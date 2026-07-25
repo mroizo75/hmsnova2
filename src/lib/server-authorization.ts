@@ -8,10 +8,10 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Role } from "@prisma/client";
-import { getPermissions, type RolePermissions } from "@/lib/permissions";
+import { type RolePermissions } from "@/lib/permissions";
 import {
   parseModuleVisibilityConfig,
-  applyModuleVisibility,
+  getEffectivePermissions,
   type ModuleVisibilityConfig,
 } from "@/lib/module-visibility";
 
@@ -22,6 +22,26 @@ export interface AuthContext {
   role: Role;
   permissions: RolePermissions;
   moduleVisibilityConfig: ModuleVisibilityConfig | null;
+}
+
+/**
+ * Hent effektiv tilgang for en rolle i en tenant.
+ * Respekterer moduleVisibilityConfig (null = MODULE_DEFAULTS).
+ * Bruk denne i API-ruter i stedet for rå getPermissions(role).
+ */
+export async function resolveEffectivePermissions(
+  tenantId: string,
+  role: Role
+): Promise<RolePermissions> {
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { moduleVisibilityConfig: true },
+  });
+
+  return getEffectivePermissions(
+    role,
+    parseModuleVisibilityConfig(tenant?.moduleVisibilityConfig)
+  );
 }
 
 /**
@@ -65,7 +85,6 @@ export async function getAuthContext(): Promise<AuthContext | null> {
   }
 
   const role = userTenant.role;
-  const basePermissions = getPermissions(role);
 
   const tenant = await prisma.tenant.findUnique({
     where: { id: userTenant.tenantId },
@@ -76,7 +95,7 @@ export async function getAuthContext(): Promise<AuthContext | null> {
     tenant?.moduleVisibilityConfig
   );
 
-  const permissions = applyModuleVisibility(basePermissions, moduleVisibilityConfig, role);
+  const permissions = getEffectivePermissions(role, moduleVisibilityConfig);
 
   return {
     userId: user.id,
