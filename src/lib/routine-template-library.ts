@@ -1018,10 +1018,299 @@ const newIndustryTemplates: RoutineTemplateLibraryEntry[] = [
   },
 ];
 
+// ─── Reiseliv / Hotell og Restaurant ────────────────────────────────────────
+// Kategori: HOTELL_RESTAURANT
+// Hjemmel: AML, IK-HMS, Matlovforskriften, BHT-forskriften
+const hotelRestaurantTemplates: RoutineTemplateLibraryEntry[] = [
+  {
+    title: "Renholdsrutine – housekeeping (daglig/ukentlig)",
+    description: "Rutine for daglig og ukentlig renhold av rom og felles arealer. Kjemikalier, ergonomi og kvalitetssikring.",
+    category: "HOTELL_RESTAURANT",
+    legalReference: "IK-HMS § 5, AML § 4-5 (kjemikalier), AML § 4-4 (ergonomi)",
+    industryScope: ["hospitality", "HOTELL_OVERNATTING"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal: "Sikre rent og hygienisk miljø for gjester og ansatte, og forebygge arbeidsrelaterte skader i renholdsarbeid.",
+      omfang: "Gjelder alt renholdsarbeid på rom, fellesarealer, bad og kjøkken.",
+      ansvar: [
+        "Renholdsansvarlig: planlegge og fordele oppgaver.",
+        "Housekeeping-ansatt: utføre renhold iht. rutine og bruke riktig verneutstyr.",
+        "HMS-ansvarlig: sørge for opplæring og oppdatert stoffkartotek.",
+      ],
+      gjennomforing: [
+        "Daglig: senging, tøm søppel, rengjør bad, bytt håndklær og sengitøy ved utsjekk.",
+        "Ukentlig: grundig rengjøring av alle flater, møbler og garderobeinnhold.",
+        "Bruk alltid vernehansker og følg doseringsveiledning for kjemikalier.",
+        "Bruk ergonomisk riktig teknikk ved støvsuging og moppearbeid (kort/langt skaft).",
+        "Meld fra om defekter (ødelagte møbler, lekkasjer) umiddelbart.",
+      ],
+      dokumentasjon: [
+        "Renholdslogg for hvert rom (dato, initialer, avvik).",
+        "Stoffkartotek tilgjengelig og oppdatert.",
+        "Opplæring i kjemikaliehåndtering dokumentert.",
+      ],
+      avvikOppfolging: [
+        "Avvik meldes umiddelbart til renholdsansvarlig.",
+        "Kjemikaliehendelser (søl, innånding) meldes som avvik og behandles iht. sikkerhetsdatablad.",
+      ],
+      revisjon: "Revideres ved endring i kjemikalier/metoder eller ved avvik. Ellers hvert år.",
+      kilder: [
+        "AML § 4-5 – kjemikalier",
+        "AML § 4-4 – ergonomi",
+        "IK-HMS § 5 – internkontroll",
+        "Arbeidstilsynet: renholdsarbeid",
+      ],
+    }),
+  },
+  {
+    title: "Temperaturkontroll – kjølerom og fryser",
+    description: "Rutine for daglig temperaturlogging av kjøle- og fryseanlegg. HACCP – kritisk kontrollpunkt (CCP). Matlovforskriften.",
+    category: "HOTELL_RESTAURANT",
+    legalReference: "Matlovforskriften, Forordning (EF) 852/2004 Art. 5 (HACCP CCP)",
+    industryScope: ["hospitality", "RESTAURANT_SERVERING", "HOTELL_OVERNATTING"],
+    reviewIntervalMonths: 6,
+    content: createContent({
+      formaal: "Forebygge matforgiftning ved å sikre at matvarer oppbevares ved korrekt temperatur til enhver tid.",
+      omfang: "Gjelder alle kjøle- og fryseanlegg i virksomheten.",
+      ansvar: [
+        "Kjøkkenansvarlig: sørge for daglig logging og oppfølging av avvik.",
+        "Kokk/kjøkkenansatt: utføre daglig temperaturmåling og registrering.",
+        "HACCP-ansvarlig: revidere CCP-grensene og oppdatere HACCP-planen ved endringer.",
+      ],
+      gjennomforing: [
+        "Mål og registrer temperatur i alle kjøle- og fryseanlegg minst én gang per dag.",
+        "Kjølesoner: 0–4°C for kjøtt og fisk, 0–8°C for øvrige varer.",
+        "Frysoner: under –18°C.",
+        "Ved avvik: kontroller innhold, iverksett strakstiltak (flytt varer, meld til leder).",
+        "Kontroller at alarmsystemer er koblet opp (varsel ved temperaturavvik).",
+      ],
+      dokumentasjon: [
+        "Temperaturlogg: dato, klokkeslett, målt temperatur, ansvarlig.",
+        "Avviksskjema ved temperaturer utenfor grenseverdiene.",
+        "Kalibrering av termometere – dokumenter siste kalibreringsdato.",
+      ],
+      avvikOppfolging: [
+        "Ved temperaturavvik: vurder mattrygghet, kast mat ved tvil.",
+        "Meld avvik i avvikssystemet med bilde og beskrivelse.",
+        "Teknisk feil meldes umiddelbart til servicepartner.",
+      ],
+      revisjon: "Revideres halvårlig eller ved endringer i menyen/produktmiksen.",
+      kilder: [
+        "Forordning (EF) 852/2004 Art. 5 – HACCP",
+        "Mattilsynet: veiledning til temperaturkrav",
+        "IK-mat-forskriften",
+      ],
+    }),
+  },
+  {
+    title: "Allergeninformasjon og merking",
+    description: "Rutine for håndtering og kommunikasjon av allergeninformasjon til gjester. EU-forordning 1169/2011 – de 14 EU-allergener.",
+    category: "HOTELL_RESTAURANT",
+    legalReference: "EU-forordning 1169/2011, Matmerkeforskriften § 5",
+    industryScope: ["hospitality", "RESTAURANT_SERVERING"],
+    reviewIntervalMonths: 6,
+    content: createContent({
+      formaal: "Forebygge alvorlige allergireaksjoner ved å sikre korrekt og tilgjengelig allergeninformasjon for alle retter.",
+      omfang: "Gjelder all mat og drikke som serveres i restauranten, inkludert bufét, barmat og catering.",
+      ansvar: [
+        "Kjøkkensjef: oppdatere allergenliste ved menyendringer.",
+        "Servitør: informere gjester og videreformidle allergispørsmål til kjøkken.",
+        "Innkjøpsansvarlig: sjekke allergeninformasjon for nye ingredienser.",
+      ],
+      gjennomforing: [
+        "Oppdater allergenliste ved hver menyendring – de 14 EU-allergener: gluten, krepsdyr, egg, fisk, peanøtter, soya, melk/laktose, nøtter, selleri, sennep, sesamfrø, svoveldioksid/sulfitt, lupin, bløtdyr.",
+        "Gjør allergenlisten tilgjengelig for gjester (meny, QR-kode, skriftlig ved forespørsel).",
+        "Servitørene skal alltid spørre gjester ved allergiforespørsel om å få bekreftet allergier skriftlig til kjøkken.",
+        "Unngå kryssk kontaminasjon: egne redskaper, skjærebrett og arbeidsflater for allergenkrit mat.",
+        "Gi all ny ansatt opplæring i de 14 EU-allergener og håndtering av allergiforespørsler.",
+      ],
+      dokumentasjon: [
+        "Allergenliste per rett – oppdatert dato og signatur.",
+        "Opplæring av serveringspersonell dokumentert.",
+        "Avvik/hendelser med allergireaksjoner registrert.",
+      ],
+      avvikOppfolging: [
+        "Ved allergireaksjon: tilkall hjelp umiddelbart, meld avvik.",
+        "Evaluer om allergeninformasjonen var korrekt og tilgjengelig.",
+      ],
+      revisjon: "Revideres ved menyendringer og minst hvert halvår.",
+      kilder: [
+        "EU-forordning 1169/2011",
+        "Matmerkeforskriften",
+        "Mattilsynet: allergen-veiledning",
+      ],
+    }),
+  },
+  {
+    title: "Nattarbeid og alenearbeidsvurdering",
+    description: "Rutine for vurdering av nattarbeid og alenearbeid i overnatting og servering. AML § 10-11 og § 4-1.",
+    category: "HOTELL_RESTAURANT",
+    legalReference: "AML § 10-11 (nattarbeid), AML § 4-1 (forsvarlig arbeidsmiljø), IK-HMS § 5",
+    industryScope: ["hospitality", "HOTELL_OVERNATTING"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal: "Sikre at nattarbeid og alenearbeid er lovlig begrunnet, forsvarlig tilrettelagt og at ansatte er ivaretatt.",
+      omfang: "Gjelder all nattarbeid (kl. 21–06) og alenearbeid i hotell, overnatting og restaurant.",
+      ansvar: [
+        "Leder/HR: gjennomføre skriftlig vurdering av nødvendigheten av nattarbeid.",
+        "HMS-ansvarlig: sørge for tilbud om helseundersøkelse for nattarbeidere.",
+        "Nattansatt: kjenne rutiner for alenearbeid og nødsituasjoner.",
+      ],
+      gjennomforing: [
+        "Dokumenter skriftlig at nattarbeid er nødvendig for virksomhetens art (krav i AML § 10-11).",
+        "Tilby helseundersøkelse ved ansettelse og deretter hvert år for faste nattarbeidere.",
+        "Vurder om alenearbeid er forsvarlig: er det to ansatte om natten, eller kreves duoprinsipp?",
+        "Sørg for at nattvakt alltid har kommunikasjonsmiddel (telefon/alarm) og sjekk-inn-rutine.",
+        "Etabler varslingsknapp/alarm i resepsjon for alenearbeidere om natten.",
+      ],
+      dokumentasjon: [
+        "Skriftlig nattarbeidsvurdering – dato og signatur.",
+        "Dokumentasjon av helseundersøkelse for nattarbeidere.",
+        "Alenearbeidsvurdering – risikobeskrivelse og tiltak.",
+      ],
+      avvikOppfolging: [
+        "Hendelse under nattarbeid/alenearbeid meldes som avvik.",
+        "Evaluer om tiltak er tilstrekkelige og oppdater vurderingen.",
+      ],
+      revisjon: "Revideres hvert år, og ved endringer i bemanningsplan.",
+      kilder: [
+        "AML § 10-11 – nattarbeid",
+        "AML § 4-1 – forsvarlig arbeidsmiljø",
+        "Arbeidstilsynet: alenearbeid",
+        "IK-HMS § 5",
+      ],
+    }),
+  },
+  {
+    title: "Vold, trusler og krevende kundesituasjoner",
+    description: "Rutine for forebygging og håndtering av vold og trusler i resepsjon, servering og bar. AML § 4-3.",
+    category: "HOTELL_RESTAURANT",
+    legalReference: "AML § 4-3 (psykososialt arbeidsmiljø), IK-HMS § 5, Arbeidstilsynet",
+    industryScope: ["hospitality", "HOTELL_OVERNATTING", "RESTAURANT_SERVERING"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal: "Forebygge og håndtere vold, trusler og krevende kundesituasjoner for å beskytte ansatte.",
+      omfang: "Gjelder alle ansatte i kontakt med gjester/kunder: resepsjon, servering, bar, vakt.",
+      ansvar: [
+        "Leder: kartlegge risiko for vold/trusler, etablere skriftlig rutine.",
+        "Alle ansatte: kjenne rutinen og varsle leder ved hendelser.",
+        "HMS-ansvarlig: sørge for opplæring og øvelse.",
+      ],
+      gjennomforing: [
+        "Risikovurdering: identifiser situasjoner med høy risiko for vold/trusler (bar om natten, alene-nattvakt, kasse).",
+        "Fysiske tiltak: varslingsknapp, sikkerhetsglass ved kasse, kontroll av kontanter.",
+        "Opplæring: deeskalering, «nå-stop»-signal mellom kollegaer.",
+        "Prosedyre ved truende atferd: trekk deg rolig unna, trykk på alarm, tilkall hjelp.",
+        "Etter hendelse: debrifing samme dag, tilbud om krisestøtte.",
+      ],
+      dokumentasjon: [
+        "Risikovurdering – vold og trusler.",
+        "Rutine tilgjengelig for alle ansatte.",
+        "Opplæring dokumentert.",
+        "Hendelseslogg – alle volds-/trusselhendelser.",
+      ],
+      avvikOppfolging: [
+        "Alle hendelser meldes i avvikssystemet.",
+        "Evaluer om rutine og tiltak var tilstrekkelige.",
+        "Psykisk ettervern: tilby samtale/krisestøtte til berørte ansatte.",
+      ],
+      revisjon: "Revideres etter alvorlige hendelser og ellers hvert år.",
+      kilder: [
+        "AML § 4-3 – psykososialt arbeidsmiljø",
+        "Arbeidstilsynet: vold og trusler i arbeidslivet",
+        "IK-HMS § 5",
+      ],
+    }),
+  },
+  {
+    title: "Smilefjesberedskap – Mattilsynets tilsyn",
+    description: "Rutine for forberedelse til og oppfølging av Mattilsynets tilsyn. Smilefjesordningen for serveringssteder.",
+    category: "HOTELL_RESTAURANT",
+    legalReference: "Matlovforskriften, Smilefjesforskriften (FOR 2016-05-19-501)",
+    industryScope: ["hospitality", "RESTAURANT_SERVERING"],
+    reviewIntervalMonths: 6,
+    content: createContent({
+      formaal: "Sikre at virksomheten alltid er forberedt på tilsyn fra Mattilsynet og opprettholder et strålende smilefjes.",
+      omfang: "Gjelder kjøkken, serveringsarealer, lager og all matvarehåndtering.",
+      ansvar: [
+        "Daglig leder: ansvarlig for Mattilsynet-oppfølging og søksmålslogg.",
+        "Kjøkkensjef: sikre daglig etterlevelse av HACCP og renholdsrutiner.",
+        "Alle ansatte: melde avvik og følge rutiner.",
+      ],
+      gjennomforing: [
+        "Hold HACCP-plan, temperaturlogg og allergenoversikt oppdatert til enhver tid.",
+        "Gjennomfør månedlig intern sjekk mot Mattilsynets tilsynspunkter.",
+        "Sørg for at alle ansatte kjenner hygienereglene (håndhygiene, sykdomsmelding).",
+        "Renholdsplan skal følges og dokumenteres (dato, initialer).",
+        "Meld fra til Mattilsynet om endringer i virksomheten (lokaler, meny, eierskap).",
+      ],
+      dokumentasjon: [
+        "HACCP-plan med CCP-punkt og grenseverdier.",
+        "Temperaturlogger – siste 3 måneder.",
+        "Renholdslogg.",
+        "Tilsynsrapporter og oppfølgingslogg.",
+        "Ansattes opplæring i mattrygghet.",
+      ],
+      avvikOppfolging: [
+        "Feil funnet av Mattilsynet behandles som avvik.",
+        "Iverksett korrigerende tiltak innen fristen.",
+        "Dokumenter tiltak og send svar til Mattilsynet.",
+      ],
+      revisjon: "Revideres halvårlig og etter hvert tilsyn.",
+      kilder: [
+        "Smilefjesforskriften FOR 2016-05-19-501",
+        "Matlovforskriften",
+        "Mattilsynet: smilefjesordningen",
+      ],
+    }),
+  },
+  {
+    title: "Sesongoppstart – HMS-sjekkliste",
+    description: "Rutine for HMS-forberedelser ved sesongoppstart. Onboarding av sesongansatte, utstyrkontroll og mattrygghet.",
+    category: "HOTELL_RESTAURANT",
+    legalReference: "IK-HMS § 5, AML § 3-2 (opplæring), Matlovforskriften",
+    industryScope: ["hospitality", "HOTELL_OVERNATTING", "RESTAURANT_SERVERING", "ATTRAKSJON_OPPLEVELSE"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal: "Sikre at virksomheten er HMS-klar ved sesongoppstart og at alle ansatte er riktig opplært.",
+      omfang: "Gjelder alle avdelinger og alle ansatte ved oppstart av ny sesong.",
+      ansvar: [
+        "Daglig leder: ansvarlig for sesongoppstartssjekk.",
+        "Avdelingsledere: gjennomføre sjekkliste for sin avdeling.",
+        "HR/HMS: koordinere onboarding og dokumentere opplæring.",
+      ],
+      gjennomforing: [
+        "Oppdater HMS-plan, risikovurderinger og beredskapsplan.",
+        "Gjennomfør onboarding med alle nye og returnerende sesongansatte: HMS, brann, mattrygghet.",
+        "Kontroller og sertifiser utstyr (kjøkken, aktivitets-/sportsutstyr, løfteutstyr).",
+        "Sjekk at kjøle- og fryseanlegg er kalibrert og fungerer.",
+        "Gjennomgå brannslokkeutstyr og evakueringsplan.",
+        "Oppdater allergenoversikt og HACCP-plan for sesongens meny.",
+      ],
+      dokumentasjon: [
+        "Sesongoppstartssjekkliste – signert av avdelingsleder.",
+        "Opplæringslogg for alle nye ansatte.",
+        "Utstyrskontroll – signert.",
+      ],
+      avvikOppfolging: [
+        "Avvik funnet ved sesongoppstart prioriteres og lukkes før åpning.",
+        "Meldes i avvikssystemet.",
+      ],
+      revisjon: "Revideres hvert år før sesongoppstart.",
+      kilder: [
+        "IK-HMS § 5",
+        "AML § 3-2 – opplæring",
+        "Matlovforskriften – HACCP",
+      ],
+    }),
+  },
+];
+
 export const GLOBAL_ROUTINE_TEMPLATE_LIBRARY: ReadonlyArray<RoutineTemplateLibraryEntry> = [
   ...commonTemplates,
   ...industrySpecificTemplates,
   ...newIndustryTemplates,
+  ...hotelRestaurantTemplates,
 ];
 
 export function getGlobalRoutineTemplateLibrary(): RoutineTemplateLibraryEntry[] {

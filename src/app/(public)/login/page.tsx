@@ -51,6 +51,8 @@ export default function LoginPage() {
           router.push("/admin");
         } else if (session?.user?.role === "ANSATT") {
           router.push("/ansatt");
+        } else if (session?.user?.isTavleOnly) {
+          router.push("/dashboard/hms-tavle");
         } else {
           router.push("/dashboard");
         }

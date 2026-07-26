@@ -44,7 +44,7 @@ export function getDocumentDeliveryEmail({
   downloadLinks,
 }: DocumentDeliveryEmailProps): { subject: string; html: string } {
   const dashboardUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://hmsnova.no";
-  const supportEmail = process.env.SUPPORT_EMAIL ?? "support@hmsnova.no";
+  const supportEmail = process.env.SUPPORT_EMAIL ?? "post@hmsnova.no";
   const logoBase64 = getLogoBase64();
 
   const html = `
@@ -258,7 +258,7 @@ export function getCustomerWelcomeEmail({
 }: CustomerWelcomeEmailProps): string {
   const logoBase64 = getLogoBase64();
   const dashboardUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://hmsnova.no";
-  const supportEmail = process.env.SUPPORT_EMAIL ?? "support@hmsnova.no";
+  const supportEmail = process.env.SUPPORT_EMAIL ?? "post@hmsnova.no";
 
   return `
 <!DOCTYPE html>

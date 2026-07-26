@@ -315,6 +315,7 @@ export const authOptions: NextAuthOptions = {
                   select: {
                     name: true,
                     status: true,
+                    isTavleOnly: true,
                   },
                 },
               },
@@ -344,6 +345,7 @@ export const authOptions: NextAuthOptions = {
           token.tenantId = selectedTenant?.tenantId || null;
           token.role = selectedTenant?.role || undefined;
           token.tenantName = selectedTenant?.tenant?.name || null;
+          token.isTavleOnly = selectedTenant?.tenant?.isTavleOnly ?? false;
         }
       }
       
@@ -387,6 +389,7 @@ export const authOptions: NextAuthOptions = {
         session.user.tenantName = token.tenantName as string | null;
         session.user.hasMultipleTenants = token.hasMultipleTenants as boolean;
         session.user.preferredLocale = (token.preferredLocale as string | undefined) ?? "nb";
+        session.user.isTavleOnly = (token.isTavleOnly as boolean | undefined) ?? false;
       }
       return session;
     },

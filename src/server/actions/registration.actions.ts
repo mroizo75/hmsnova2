@@ -33,6 +33,11 @@ const registrationSchema = z.object({
   postalCode: z.string().optional().nullable(),
   city: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
+  // Avtaleaksept — begge må være "true" for at registrering skal godtas
+  acceptedTerms: z.literal("true", { message: "Du må godta abonnementsavtalen." }),
+  acceptedAngrerrett: z.literal("true", {
+    message: "Du må bekrefte at du har lest angreretten.",
+  }),
 });
 
 function calculatePricingTier(employeeCount: string): PricingTier {
@@ -79,6 +84,8 @@ export async function submitRegistrationRequest(formData: FormData) {
       postalCode: formData.get("postalCode") as string | null,
       city: formData.get("city") as string | null,
       notes: formData.get("notes") as string | null,
+      acceptedTerms: formData.get("acceptedTerms") as string,
+      acceptedAngrerrett: formData.get("acceptedAngrerrett") as string,
     };
 
     const validated = registrationSchema.parse(data);
@@ -148,6 +155,9 @@ export async function submitRegistrationRequest(formData: FormData) {
         industry: normalizedIndustry,
         notes: mergedNotes || undefined,
         onboardingStatus: "NOT_STARTED", // Venter på godkjenning
+        // Avtaleaksept — tidsstempler for juridisk dokumentasjon
+        termsAcceptedAt: new Date(),
+        angrerrettInfoAt: new Date(),
         // VIKTIG: subscription opprettes FØRST når superadmin aktiverer
         // VIKTIG: users opprettes FØRST når superadmin aktiverer
       },

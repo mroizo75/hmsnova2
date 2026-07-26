@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CheckCircle2, ArrowLeft, Building2, Mail, Phone, User, MapPin } from "lucide-react";
+import { CheckCircle2, ArrowLeft, Building2, Mail, Phone, User, MapPin, FileText, ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { submitRegistrationRequest } from "@/server/actions/registration.actions";
 import { AGRICULTURE_FARM_TYPES, SUPPORTED_INDUSTRIES } from "@/lib/industry-packages";
@@ -27,13 +27,23 @@ export default function RegistrerBedriftPage() {
   const [error, setError] = useState<string | null>(null);
   const [useEHF, setUseEHF] = useState(true);
   const [industry, setIndustry] = useState<string>("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedAngrerrett, setAcceptedAngrerrett] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    if (!acceptedAngrerrett || !acceptedTerms) {
+      setError("Du må lese og godta begge avtale-dokumentene for å fortsette.");
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
 
     const formData = new FormData(e.currentTarget);
+    formData.set("acceptedTerms", "true");
+    formData.set("acceptedAngrerrett", "true");
 
     try {
       const result = await submitRegistrationRequest(formData);
@@ -341,6 +351,83 @@ export default function RegistrerBedriftPage() {
                   />
                 </div>
 
+                {/* Avtaledokumenter */}
+                <div className="border-t pt-6 space-y-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <FileText className="h-4 w-4 text-primary" />
+                    <h3 className="font-semibold">Avtaledokumenter</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Les begge dokumentene og bekreft godkjenning for å fullføre søknaden.
+                  </p>
+
+                  {/* Angreretten */}
+                  <div className="p-4 border rounded-lg bg-muted/30 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium text-sm">Angrerettserklæring</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Frivillig 14-dagers betenkningstid fra bestillingsdato
+                        </p>
+                      </div>
+                      <a
+                        href="/api/documents/angrerett"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs text-primary hover:underline whitespace-nowrap"
+                      >
+                        Åpne PDF
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <Checkbox
+                        id="acceptAngrerrett"
+                        checked={acceptedAngrerrett}
+                        onCheckedChange={(checked) => setAcceptedAngrerrett(checked === true)}
+                      />
+                      <Label htmlFor="acceptAngrerrett" className="text-sm cursor-pointer leading-snug">
+                        Jeg har lest og forstått angrerettserklæringen, inkludert at den frivillige
+                        14-dagers betenkningstiden gjelder fra bestillingsdatoen.
+                      </Label>
+                    </div>
+                  </div>
+
+                  {/* Abonnementsavtale */}
+                  <div className="p-4 border rounded-lg bg-muted/30 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium text-sm">Abonnementsavtale</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          12 måneder binding · 3 måneders oppsigelse
+                        </p>
+                      </div>
+                      <a
+                        href="/api/documents/abonnementsavtale"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs text-primary hover:underline whitespace-nowrap"
+                      >
+                        Åpne PDF
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <Checkbox
+                        id="acceptTerms"
+                        checked={acceptedTerms}
+                        onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+                      />
+                      <Label htmlFor="acceptTerms" className="text-sm cursor-pointer leading-snug">
+                        Jeg godtar abonnementsavtalen, herunder{" "}
+                        <strong>12 måneders binding</strong> og{" "}
+                        <strong>3 måneders oppsigelsestid</strong> etter bindingsperioden.
+                        Avtalen er juridisk bindende ved innsending.
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Error message */}
                 {error && (
                   <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
@@ -349,12 +436,12 @@ export default function RegistrerBedriftPage() {
                 )}
 
                 {/* Submit */}
-                <div className="flex flex-col sm:flex-row gap-4 pt-6">
+                <div className="flex flex-col sm:flex-row gap-4 pt-2">
                   <Button
                     type="submit"
                     size="lg"
                     className="flex-1"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !acceptedTerms || !acceptedAngrerrett}
                   >
                     {isSubmitting ? "Sender..." : "Send søknad"}
                   </Button>
@@ -366,9 +453,9 @@ export default function RegistrerBedriftPage() {
                 </div>
 
                 <p className="text-xs text-center text-muted-foreground">
-                  Ved å sende inn dette skjemaet godtar du våre{" "}
+                  Ved å sende inn dette skjemaet godtar du også våre{" "}
                   <Link href="/vilkar" className="underline">
-                    vilkår
+                    bruksvilkår
                   </Link>{" "}
                   og{" "}
                   <Link href="/personvern" className="underline">

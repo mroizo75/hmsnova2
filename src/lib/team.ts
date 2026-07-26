@@ -58,7 +58,7 @@ I dag jobber Kenneth med å utvikle HMS Nova videre og hjelper bedrifter med dig
       "Ledelsessystemer"
     ],
     contact: {
-      email: "kenneth@hmsnova.no",
+      email: "kenneth@kksas.no",
       phone: "+47 99 11 29 16",
       linkedin: ""
     },
@@ -96,7 +96,7 @@ I dag er Kai Arne et naturlig første kontaktpunkt for bedrifter som vurderer HM
       "Oppstart og drift av selskaper"
     ],
     contact: {
-      email: "kai.arne@hmsnova.no",
+      email: "kai@kksas.no",
       phone: "+47 91 54 08 24",
       linkedin: ""
     },

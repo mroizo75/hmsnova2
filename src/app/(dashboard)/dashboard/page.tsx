@@ -33,6 +33,12 @@ export default async function DashboardPage() {
   if (!selectedMembership) {
     return <div>Du har ikke tilgang til valgt tenant.</div>;
   }
+
+  // isTavleOnly-kunder har ikke tilgang til HMS Nova-dashbordet
+  if (selectedMembership.tenant.isTavleOnly) {
+    redirect("/dashboard/hms-tavle");
+  }
+
   const tenantId = selectedMembership.tenantId;
   const userRole = selectedMembership.role;
   const permissions = getPermissions(userRole);

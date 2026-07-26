@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { RingMegDialog } from "@/components/ring-meg-dialog";
 
-const SUPPORT_EMAIL = "support@hmsnova.no";
+const SUPPORT_EMAIL = "post@hmsnova.no";
 const KURS_EMAIL_SUBJECT = "Kurs diisocyanater – forespørsel";
 
 interface IsocyanateWarningProps {

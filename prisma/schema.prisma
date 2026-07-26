@@ -209,6 +209,11 @@ model Tenant {
   azureAdDomain      String? // Primary domain (f.eks. "firma.no")
   azureAdAutoRole    Role? // Standard rolle for nye brukere fra Azure AD
 
+  // Avtaleaksept ved registrering
+  termsAcceptedAt        DateTime? // Tidspunkt kunden godtok vilkår og abonnementsavtale
+  angrerrettInfoAt       DateTime? // Tidspunkt kunden bekreftet å ha lest angreretten
+  contractAcceptedIp     String?   // IP-adresse ved aksept (ikke-sensitiv, for bevis)
+
   // Bransjekurs.no integrasjon
   bransjekursEnabled     Boolean   @default(false) // Bedriften har kursavtale via HMS Nova
   bransjekursActivatedAt DateTime? // Tidspunkt avtalen ble aktivert av admin
@@ -307,6 +312,18 @@ model Tenant {
   dashboardConfigs             DashboardConfig[]
   fireDrills                   FireDrill[]
   employeeReviews              EmployeeReview[]
+  haccpPlans                   HaccpPlan[]
+  temperaturLogs               TemperaturLog[]
+  allergenOversikter           AllergenOversikt[]
+  mattilsynetInspeksjoner      MattilsynetInspeksjon[]
+  gjesteHendelser              GjesteHendelse[]
+  hotellEvakueringsplaner      HotellEvakueringsplan[]
+  aktivitetssjekker            AktivitetsUtstyrssjekk[]
+  transportJournaler           TransportJournal[]
+  bhtAvtaler                   BhtAvtale[]
+  nattarbeidVurderinger        NattarbeidVurdering[]
+  sjaforDokumenter             SjaforDokument[]
+  loyveRegister                LoyveRegister[]
   createdAt                    DateTime                       @default(now())
   updatedAt                    DateTime                       @updatedAt
 
@@ -4001,6 +4018,7 @@ model HmsTavle {
   externalLinks       HmsTavleExternalLink[]
   subcontractorPortal SubcontractorPortal?
   checkins            TavleCheckin[]
+  guestSubmissions    TavleGuestSubmission[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -4014,13 +4032,14 @@ model HmsTavle {
 
 /// Seksjon på en HMS-tavle – modulær og konfigurerbar
 model HmsTavleSection {
-  id        String              @id @default(cuid())
-  tavleId   String
-  type      HmsTavleSectionType
-  title     String? // Overstyrer standard tittel
-  order     Int
-  isVisible Boolean             @default(true)
-  config    Json // Type-spesifikk konfig (f.eks. hvilke kontakter som vises)
+  id          String              @id @default(cuid())
+  tavleId     String
+  type        HmsTavleSectionType
+  title       String? // Overstyrer standard tittel
+  order       Int
+  isVisible   Boolean             @default(true)
+  displayMode TavleDisplayMode    @default(KARUSELL)
+  config      Json // Type-spesifikk konfig (f.eks. hvilke kontakter som vises)
 
   tavle HmsTavle @relation(fields: [tavleId], references: [id], onDelete: Cascade)
 
@@ -4049,6 +4068,15 @@ enum HmsTavleSectionType {
   LOVKRAV_SJEKKLISTE // Sanntids-indikator: alle lovkrav oppfylt?
   NYHETER_MELDINGER  // Meldinger/nyheter fra prosjektledelsen
   SNARVEIER          // Konfigurerbare hurtigtilganger til HMS-funksjoner
+  GJEST_SKJEMA       // Gjesteskjema – IK-HMS § 5, Matlovforskriften
+}
+
+/// Visningsmode for seksjon på HMS-tavle
+enum TavleDisplayMode {
+  SIDEBAR   // Fast i venstre kolonne (nødetater, kontakter)
+  FAST      // Alltid synlig i hoveddelen – roteres aldri bort
+  KARUSELL  // Roterer i kiosk-modus
+  FOKUS     // Fremhevet – tar full bredde øverst
 }
 
 /// Ekstern systemlenke på tavlen (Excel, SharePoint, andre HMS-systemer)
@@ -4331,4 +4359,361 @@ model TavleCheckin {
 
   @@index([tavleId])
   @@index([date])
+}
+
+/// Gjestemelding sendt direkte fra HMS-tavlens offentlige visning
+/// Hjemmel: IK-HMS § 5 (avvik), Matlovforskriften (mattrygghet), intern KPI (klager)
+model TavleGuestSubmission {
+  id          String              @id @default(cuid())
+  tavleId     String
+  type        GuestSubmissionType
+  message     String              @db.Text
+  guestName   String?
+  guestEmail  String?
+  guestPhone  String?
+  roomOrTable String?             // Romnummer, bordnummer e.l. – tilpasset bransje
+  status      String              @default("NY") // NY | LEST | BEHANDLET | LUKKET
+  response    String?             @db.Text
+  respondedAt DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  tavle HmsTavle @relation(fields: [tavleId], references: [id], onDelete: Cascade)
+
+  @@index([tavleId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+/// Meldingstyper fra gjesteskjema på HMS-tavle
+enum GuestSubmissionType {
+  AVVIK           // Farlig situasjon observert – IK-HMS § 5
+  KLAGE           // Misnøye med tjeneste eller forhold
+  MATFORGIFTNING  // Matforgiftning/allergirespons – Matlovforskriften
+  SPORSMAAL       // Generell henvendelse
+  TILBAKEMELDING  // Positiv/negativ tilbakemelding
+}
+
+// ─── Beredskap reiseliv ──────────────────────────────────────────────────────
+// Hjemmel: AML § 4-2, Pakkereiseloven § 14, IK-HMS § 5
+
+/// Gjestehendelse – skade, sykdom eller kritisk situasjon for gjest
+/// Hjemmel: AML § 5-2, Produktkontrolloven § 5, Pakkereiseloven § 14
+model GjesteHendelse {
+  id               String    @id @default(cuid())
+  tenantId         String
+  type             String    // SKADE_PA_GJEST | SAVNET_GJEST | MEDISINSK_NODSITUASJON | BRANN | ANNET
+  description      String    @db.Text
+  location         String?   // Sted for hendelsen
+  guestName        String?   // Navn på gjest (dersom kjent)
+  guestContact     String?   // Kontaktinfo (e-post/telefon)
+  injurySeverity   String?   // INGEN | LETT | ALVORLIG | LIVSTRUENDE
+  actionsTaken     String?   @db.Text
+  notifiedPolice   Boolean   @default(false)
+  notifiedAmbulance Boolean  @default(false)
+  notifiedParents  Boolean   @default(false) // Pårørende varslet
+  reportedToMattilsynet Boolean @default(false) // Kun ved matforgiftning
+  status           String    @default("AAPEN") // AAPEN | UNDER_BEHANDLING | LUKKET
+  closedAt         DateTime?
+  closedBy         String?
+  occurredAt       DateTime
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([occurredAt])
+}
+
+/// Hotell-evakueringsplan med etasje- og soneansvarlige
+model HotellEvakueringsplan {
+  id              String    @id @default(cuid())
+  tenantId        String
+  planName        String
+  buildingName    String?
+  totalFloors     Int       @default(1)
+  maxOccupancy    Int?
+  assemblyPoint   String?   // Samlingspunkt
+  fireWarden      String?   // Brannvernansvarlig
+  isActive        Boolean   @default(true)
+  lastReviewedAt  DateTime?
+  floors          Json      @default("[]") // [{floorNr, responsible, roomCount, notes}]
+  emergencyContacts Json    @default("[]") // [{name, role, phone}]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+// ─── Aktivitetssikkerhet ─────────────────────────────────────────────────────
+// Hjemmel: Produktkontrolloven § 3, AML § 3-1, IK-HMS § 5
+
+/// Daglig utstyrssjekk for aktivitetsbedrifter (kano, sykkel, klatrevegg, etc.)
+/// Hjemmel: Produktkontrolloven § 3 – sikkerhet for forbrukerprodukter
+model AktivitetsUtstyrssjekk {
+  id           String    @id @default(cuid())
+  tenantId     String
+  utstyrsType  String    // KANO | SYKKEL | SKI | KLATREVEGG | ZIPLINE | ANNET
+  utstyrsNavn  String    // Beskrivende navn (eks. "Kano nr. 12")
+  checkDate    DateTime
+  checkedBy    String?
+  status       String    @default("OK") // OK | AVVIK | KASSERT
+  findings     String?   @db.Text
+  actionsTaken String?   @db.Text
+  nextCheckAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([checkDate])
+}
+
+// ─── Transportmodul ──────────────────────────────────────────────────────────
+// Hjemmel: Yrkestransportlova § 4, Vegtransportloven § 7, Forskrift om yrkessjåfør
+
+/// Transport-journal – kjøre-/hviletid og kjøretøykontroll
+/// Hjemmel: Vegtransportloven § 7 (kjøre-/hviletid), Yrkestransportlova
+model TransportJournal {
+  id              String    @id @default(cuid())
+  tenantId        String
+  vehicleReg      String    // Registreringsnummer
+  driverName      String
+  date            String    // YYYY-MM-DD
+  departureTime   String    // HH:MM
+  arrivalTime     String?   // HH:MM
+  routeDesc       String?   // Kort rutebeskrivelse
+  kmStart         Float?
+  kmEnd           Float?
+  drivingHours    Float?    // Timer kjøring
+  breakHours      Float?    // Timer pause
+  preCheckDone    Boolean   @default(false) // Forhåndskontroll kjøretøy utført
+  preCheckNote    String?   @db.Text
+  incidents       String?   @db.Text
+  createdAt       DateTime  @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([date])
+  @@index([vehicleReg])
+}
+
+// ─── Transport – sjåfør- og løyvedokumentasjon ───────────────────────────────
+// Hjemmel: Yrkestransportlova § 4, Vegtransportloven kap. 3
+
+/// Sjåførdokument – kompetansebevis, yrkessjåfør
+/// Hjemmel: Yrkestransportlova § 4, EU forordning 2003/59
+model SjaforDokument {
+  id              String    @id @default(cuid())
+  tenantId        String
+  driverName      String
+  driverPhone     String?
+  kompetansebevis String?   // Nummer på kompetansebevis
+  kbUtlopDato     DateTime?
+  forerkortNr     String?
+  forerkortKlasse String?   // C, D, CE, DE etc.
+  forerkortUtlop  DateTime?
+  adrSertifikat   String?
+  adrUtlop        DateTime?
+  notat           String?   @db.Text
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+/// Løyvedokument – rutegående transport og turvogn
+/// Hjemmel: Yrkestransportlova § 4 og § 6
+model LoyveRegister {
+  id            String    @id @default(cuid())
+  tenantId      String
+  loyveType     String    // RUTELOEYVE, TURVOGN, GODS, TURBUSS
+  loyveNummer   String
+  kjoretoyReg   String?
+  utstedtAv     String?
+  utlopDato     DateTime?
+  vilkar        String?   @db.Text
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+// ─── IK-mat / HACCP ─────────────────────────────────────────────────────────
+// Hjemmel: Matlovforskriften, Forordning (EF) 852/2004 Art. 5 (HACCP)
+
+/// HACCP-plan – Hazard Analysis and Critical Control Points
+/// Hjemmel: Forordning (EF) 852/2004 Art. 5, IK-mat-forskriften
+model HaccpPlan {
+  id          String   @id @default(cuid())
+  tenantId    String
+  title       String
+  description String?  @db.Text
+  isActive    Boolean  @default(true)
+  version     Int      @default(1)
+  approvedBy  String?
+  approvedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant    Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ccp       HaccpCcp[]
+
+  @@index([tenantId])
+}
+
+/// CCP – Kritisk kontrollpunkt i HACCP-planen
+model HaccpCcp {
+  id             String   @id @default(cuid())
+  planId         String
+  stepName       String   // Prosesstrinn (mottak, lagring, tilberedning, servering)
+  hazardDesc     String   @db.Text  // Fareanalyse
+  hazardType     String   // BIOLOGISK | KJEMISK | FYSISK
+  criticalLimit  String   // Kritisk grenseverdi (f.eks. 75°C kjernetemperatur)
+  monitorMethod  String   // Overvåkningsmetode
+  monitorFreq    String   // Frekvens (daglig, per parti, etc.)
+  corrAction     String   @db.Text  // Korrigerende tiltak
+  verifyMethod   String   // Verifiseringsmetode
+  recordRequired String   // Hva skal dokumenteres
+  order          Int      @default(0)
+
+  plan HaccpPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId])
+}
+
+/// Temperaturlogg for kjøle-/fryseanlegg – HACCP CCP
+/// Hjemmel: Forordning (EF) 852/2004 Art. 5 (HACCP)
+model TemperaturLog {
+  id           String    @id @default(cuid())
+  tenantId     String
+  unitName     String    // Navn på kjøle-/fryseanlegg
+  unitType     String    // KJOLEROM | FRYSER | VARMHOLDING | ANNET
+  measuredAt   DateTime
+  temperature  Float     // Grader Celsius
+  measuredBy   String?   // Navn/initialer
+  isDeviation  Boolean   @default(false) // Om temperaturen er utenfor grenseverdiene
+  deviationNote String?  @db.Text
+  createdAt    DateTime  @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([measuredAt])
+  @@index([unitName])
+}
+
+/// Allergenoversikt – de 14 EU-allergener
+/// Hjemmel: EU-forordning 1169/2011, Matmerkeforskriften § 5
+model AllergenOversikt {
+  id           String   @id @default(cuid())
+  tenantId     String
+  dishName     String   // Navn på rett/produkt
+  category     String?  // Kategori (Forrett, Hovedrett, Dessert, etc.)
+  // Allergener som boolske flagg – de 14 EU-allergener
+  hasGluten    Boolean  @default(false)
+  hasKrepsdyr  Boolean  @default(false)
+  hasEgg       Boolean  @default(false)
+  hasFisk      Boolean  @default(false)
+  hasPeanut    Boolean  @default(false)
+  hasSoya      Boolean  @default(false)
+  hasMelk      Boolean  @default(false)
+  hasNotter    Boolean  @default(false)
+  hasSelleri   Boolean  @default(false)
+  hasSennep    Boolean  @default(false)
+  hasSesamfro  Boolean  @default(false)
+  hasSulfitt   Boolean  @default(false)
+  hasLupin     Boolean  @default(false)
+  hasBlotkdyr  Boolean  @default(false)
+  additionalInfo String? @db.Text // Merknader
+  isActive     Boolean  @default(true)
+  lastVerified DateTime?
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+/// Mattilsynet-inspeksjon / Smilefjeskarakter
+/// Hjemmel: Smilefjesforskriften FOR 2016-05-19-501
+model MattilsynetInspeksjon {
+  id               String    @id @default(cuid())
+  tenantId         String
+  inspectedAt      DateTime
+  inspector        String?
+  smilejesKarakter String?   // STRAALENDE | GODT | NOYTRAL | TRIST (Mattilsynets kategorier)
+  findings         String?   @db.Text  // Funn og merknader
+  followUpDeadline DateTime?
+  followUpNote     String?   @db.Text
+  closedAt         DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([inspectedAt])
+}
+
+// ─── BHT og nattarbeid ───────────────────────────────────────────────────────
+// Hjemmel: AML § 3-3 (BHT-plikt), AML § 10-11 (nattarbeid)
+// BHT kode 55.1 (hotell), 56.1 (restaurant) er obligatoriske bransjer
+
+/// BHT-avtale – Bedriftshelsetjeneste
+/// Hjemmel: AML § 3-3, Forskrift om organisering av arbeidsmiljøarbeid § 2-1
+model BhtAvtale {
+  id               String    @id @default(cuid())
+  tenantId         String
+  leverandorNavn   String
+  leverandorOrgnr  String?
+  kontaktperson    String?
+  kontaktTelefon   String?
+  kontaktEpost     String?
+  startDato        DateTime
+  sluttDato        DateTime?
+  arsTimeverk      Int?      // Avtalte timer per år
+  naringskode      String?   // f.eks. 55.1, 56.1, 56.3
+  bransjeKrav      String?   // Beskrivelse av BHT-pliktig aktivitet
+  avtaleUrl        String?
+  isActive         Boolean   @default(true)
+  notat            String?   @db.Text
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+/// Nattarbeidsvurdering per stilling/avdeling
+/// Hjemmel: AML § 10-11 – nattarbeid tillatt kun ved særlige behov, arbeidsgivers vurderingsplikt
+model NattarbeidVurdering {
+  id              String    @id @default(cuid())
+  tenantId        String
+  stillingNavn    String    // Stilling eller avdeling, f.eks. "Nattresepsjonist"
+  begrunnelse     String    @db.Text // Lovpålagt begrunnelse for nattarbeid
+  alternativVurd  String?   @db.Text // Vurdering av alternativer til nattarbeid
+  helseVurdering  Boolean   @default(false) // Helsevurdering gjennomført?
+  samRadVo        Boolean   @default(false) // Drøftet med verneombud?
+  godkjentAv      String?
+  godkjentDato    DateTime?
+  gyldigTil       DateTime? // Vurderingen revideres periodisk
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
 }

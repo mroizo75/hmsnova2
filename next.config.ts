@@ -4,6 +4,19 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      // Cloudflare R2 presigned URLs
+      {
+        protocol: "https",
+        hostname: "*.r2.cloudflarestorage.com",
+      },
+      // Valgfritt: eget R2-domene om satt opp
+      ...(process.env.NEXT_PUBLIC_R2_PUBLIC_URL
+        ? [{ protocol: "https" as const, hostname: new URL(process.env.NEXT_PUBLIC_R2_PUBLIC_URL).hostname }]
+        : []),
+    ],
+  },
   // jsPDF → fflate bruker dynamisk Worker-sti; Turbopack klarer ikke å bundle det. Last fra node_modules på serveren.
   serverExternalPackages: ["jspdf", "jspdf-autotable", "fflate"],
   async redirects() {

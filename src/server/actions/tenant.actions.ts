@@ -1255,7 +1255,7 @@ export async function resendActivationEmail(input: z.infer<typeof resendActivati
         </p>
 
         <p style="margin-top: 30px; color: #666; font-size: 14px;">
-          Hvis du har spørsmål, kontakt oss på support@hmsnova.no
+          Hvis du har spørsmål, kontakt oss på post@hmsnova.no
         </p>
         
         <p>Hilsen HMS Nova teamet</p>

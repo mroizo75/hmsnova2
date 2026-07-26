@@ -27,6 +27,7 @@ declare module "next-auth" {
       role?: Role;
       hasMultipleTenants?: boolean;
       preferredLocale?: string;
+      isTavleOnly?: boolean;
     };
   }
 }
@@ -41,5 +42,6 @@ declare module "next-auth/jwt" {
     role?: Role;
     hasMultipleTenants?: boolean;
     preferredLocale?: string;
+    isTavleOnly?: boolean;
   }
 }

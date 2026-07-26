@@ -40,10 +40,10 @@ export function PublicNav() {
               BHT
             </Link>
             <Link 
-              href="/hms-kurs" 
+              href="/digital-hms-tavle" 
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
-              Kurs
+              Digital HMS Tavle
             </Link>
             <Link 
               href="/hva-er-hms-nova" 
@@ -116,11 +116,11 @@ export function PublicNav() {
               BHT
             </Link>
             <Link 
-              href="/hms-kurs" 
+              href="/digital-hms-tavle" 
               className="block py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
               onClick={() => setMobileMenuOpen(false)}
             >
-              Kurs
+              Digital HMS Tavle
             </Link>
             <Link 
               href="/hva-er-hms-nova" 
