@@ -936,6 +936,7 @@ export function getVisibleNavItems(role: Role) {
     legalRegister: perms.canReadLegalRegister,
     exposureRegister: perms.canReadExposureRegister,
     constructionCompliance: perms.canReadConstructionCompliance,
+    hmsTavle: perms.canViewHmsTavle || perms.canManageHmsTavle,
     employeeReviews: perms.canReadOwnEmployeeReviews || perms.canReadAllEmployeeReviews,
   };
 }
