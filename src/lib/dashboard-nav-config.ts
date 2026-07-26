@@ -73,7 +73,7 @@ export const DASHBOARD_NAV_CONFIG: DashboardNavItemConfig[] = [
   { href: "/dashboard/meetings", label: "nav.meetings", permission: "meetings", defaultSimple: false },
   { href: "/dashboard/time-registration", label: "nav.timeRegistration", permission: "timeRegistration", defaultSimple: true },
   { href: "/dashboard/construction-compliance", label: "nav.constructionCompliance", permission: "constructionCompliance", defaultSimple: true },
-  { href: "/dashboard/hms-tavle", label: "nav.hmsTavle", permission: "hmsTavle", defaultSimple: true },
+  // HMS-tavle nav aktiveres når tavle-modulen merges (mangler sider på master inntil da)
   { href: "/dashboard/ik-mat", label: "nav.ikMat", permission: "ikMat", defaultSimple: false },
   { href: "/dashboard/beredskap-reiseliv", label: "nav.beredskapReiseliv", permission: "inspections", defaultSimple: false },
   { href: "/dashboard/aktivitetssikkerhet", label: "nav.aktivitetssikkerhet", permission: "aktivitetssikkerhet", defaultSimple: false },
