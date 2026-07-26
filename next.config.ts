@@ -24,6 +24,11 @@ const nextConfig: NextConfig = {
       { source: "/gratis-hms-system", destination: "/registrer-bedrift", permanent: true },
       { source: "/gratis-hms-system/:path*", destination: "/registrer-bedrift", permanent: true },
       { source: "/komplett-pakke", destination: "/bedriftshelsetjeneste", permanent: true },
+      {
+        source: "/digital-hms-tavle-hotell",
+        destination: "/digital-hms-tavle#gjesteservice",
+        permanent: true,
+      },
     ];
   },
   experimental: {

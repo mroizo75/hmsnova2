@@ -1090,7 +1090,8 @@ const marinePackage: IndustryPackage = {
 };
 
 // ─── Hospitality-pakke (Hotell og restaurant) ────────────────────────────────
-// Hjemmel: AML, IK-HMS, Matlovforskriften, BHT-forskriften kode 55.1/56.11/56.3
+// Hjemmel: AML, IK-HMS, IK-mat, næringsmiddelhygieneforskriften,
+// BHT-forskriften kode 55.1/56.11/56.3
 const hospitalityPackage: IndustryPackage = {
   industry: "hospitality",
   displayName: "Hotell og restaurant",
@@ -1163,7 +1164,7 @@ const hospitalityPackage: IndustryPackage = {
     },
     {
       title: "Mattrygghetsfare – HACCP",
-      context: "Matlovforskriften krever HACCP for alle serveringssteder. Feil temperaturstyring og krysskontaminasjon er vanlige farekilder.",
+      context: "Forordning (EF) 852/2004 art. 5 krever HACCP-basert internkontroll for alle serveringssteder. Feil temperaturstyring og krysskontaminasjon er vanlige farekilder.",
       category: "SAFETY",
       likelihood: 3,
       consequence: 4,
@@ -1364,7 +1365,7 @@ const hospitalityPackage: IndustryPackage = {
     },
   ],
   courseTemplates: [
-    { courseKey: "hospitality_food_safety_haccp", title: "Mattrygghet og HACCP", description: "Kurs i HACCP-prinsippene, temperaturkontroll, allergenbehandling og mattrygghet. Matlovforskriften.", isRequired: true, validityYears: 2 },
+    { courseKey: "hospitality_food_safety_haccp", title: "Mattrygghet og HACCP", description: "Kurs i HACCP-prinsippene, temperaturkontroll, allergenbehandling og mattrygghet. Forordning (EF) 852/2004 art. 5.", isRequired: true, validityYears: 2 },
     { courseKey: "hospitality_fire_evacuation", title: "Brann og evakuering – hotell/restaurant", description: "Brannopplæring tilpasset hotell og restaurant: slukkeutstyr, evakueringsplan, gjestehåndtering.", isRequired: true, validityYears: 3 },
     { courseKey: "hospitality_first_aid", title: "Førstehjelp – grunnkurs", description: "Grunnleggende førstehjelp for ansatte i servering og overnatting.", isRequired: true, validityYears: 3 },
     { courseKey: "hospitality_alcohol_service", title: "Ansvarlig alkoholservering", description: "Kurs i alkoholloven, servering til mindreårige og ansvaret ved overservering. Alkoholloven § 1-7c.", isRequired: true, validityYears: 2 },
@@ -1379,7 +1380,8 @@ const hospitalityPackage: IndustryPackage = {
     { title: "Arbeidsmiljøloven – varsling og registrering av skader", paragraphRef: "AML § 5-1, § 5-2, § 5-3", description: "Plikt til å registrere yrkesskader og sykdommer, varsle Arbeidstilsynet og politiet ved alvorlig skade.", sourceUrl: "https://lovdata.no/dokument/NL/lov/2005-06-17-62/KAPITTEL_5" },
     { title: "Internkontrollforskriften – systematisk HMS-arbeid", paragraphRef: "IK-HMS § 5", description: "Krav til skriftlige mål, dokumentert organisering, risikovurdering og avviksrutiner.", sourceUrl: "https://lovdata.no/dokument/SF/forskrift/1996-12-06-1127" },
     { title: "BHT-plikt – hoteller og restauranter", paragraphRef: "Forskrift om org. ledelse § 1-1", description: "Næringskodene 55.1 (hoteller), 56.11 (restauranter) og 56.3 (barer) er BHT-pliktige.", sourceUrl: "https://lovdata.no/dokument/SF/forskrift/2011-12-06-1355/VEDLEGG_1" },
-    { title: "Matlovforskriften – internkontroll og HACCP", paragraphRef: "Forordning 852/2004 Art. 5", description: "Alle serveringssteder skal ha internkontroll basert på HACCP-prinsipper.", sourceUrl: "https://lovdata.no/dokument/NL/lov/2003-12-19-124" },
+    { title: "Næringsmiddelhygieneforskriften – HACCP-basert internkontroll", paragraphRef: "Forordning (EF) 852/2004 art. 5", description: "Alle serveringssteder skal ha internkontroll basert på HACCP-prinsippene.", sourceUrl: "https://lovdata.no/dokument/SF/forskrift/2008-12-22-1623" },
+    { title: "IK-mat – plikt til internkontroll for næringsmidler", paragraphRef: "IK-mat § 4 og § 5", description: "Virksomheter som omsetter næringsmidler skal ha dokumentert internkontroll, inkludert rutiner ved avvik og for å hindre gjentakelse.", sourceUrl: "https://lovdata.no/dokument/SF/forskrift/1994-12-15-1187" },
     { title: "Allergeninformasjon for ikke-ferdigpakket mat", paragraphRef: "EU-forordning 1169/2011", description: "Skriftlig allergeninformasjon for de 14 EU-allergener er påkrevd for ikke-ferdigpakket mat.", sourceUrl: "https://lovdata.no/dokument/SF/forskrift/2014-10-28-1372" },
     { title: "Alkoholloven – ansvarlig servering", paragraphRef: "Alkoholloven § 1-7c", description: "Krav om kompetansebevis i ansvarlig alkoholservering for serveringssteder.", sourceUrl: "https://lovdata.no/dokument/NL/lov/1989-06-02-27" },
     { title: "Nattarbeid i reiseliv", paragraphRef: "AML § 10-11", description: "Nattarbeid er bare tillatt når arbeidets art gjør det nødvendig. Krav om helseundersøkelse.", sourceUrl: "https://lovdata.no/dokument/NL/lov/2005-06-17-62/KAPITTEL_10" },

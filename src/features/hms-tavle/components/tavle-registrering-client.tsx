@@ -39,6 +39,7 @@ const PLAN_HIGHLIGHTS: Record<HmsTavlePlan, string[]> = {
     "3 tavler",
     "QR-innsjekk (§ 15)",
     "UE-portal",
+    "Gjesteservice med QR og statussporing",
     "Avvik og mannskapsliste",
     "Yr.no-integrering",
   ],
@@ -61,10 +62,10 @@ const DURATION_OPTIONS = [
 
 type Step = "plan" | "company" | "confirm" | "success";
 
-export function TavleRegistreringClient() {
+export function TavleRegistreringClient({ initialPlan }: { initialPlan?: HmsTavlePlan }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("plan");
-  const [selectedPlan, setSelectedPlan] = useState<HmsTavlePlan | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<HmsTavlePlan | null>(initialPlan ?? null);
   const [duration, setDuration] = useState(3);
   const [orgSearch, setOrgSearch] = useState("");
   const [company, setCompany] = useState<{
@@ -309,7 +310,7 @@ export function TavleRegistreringClient() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label>Org.nr *</Label>
                   <Input
@@ -335,7 +336,7 @@ export function TavleRegistreringClient() {
                   placeholder="Gateveien 1, 0001 Oslo"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label>Kontaktperson *</Label>
                   <Input

@@ -7,6 +7,12 @@ import {
   DEFAULT_SNARVEIER_CONFIG,
   type SnarveiConfig,
 } from "@/features/hms-tavle/lib/snarveier-config";
+import {
+  GUEST_TYPE_VALUES,
+  TRUST_PANEL_MIN_VOLUME,
+  type GuestType,
+} from "@/features/hms-tavle/lib/gjesteservice-config";
+import { getGuestDictionary, GUEST_TYPE_EMOJI } from "@/features/hms-tavle/lib/guest-i18n";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -145,7 +151,7 @@ function AvvikConfig({ cfg, set, isAddon }: { cfg: any; set: (k: string, v: any)
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">Oppdater tallene manuelt når du ønsker å vise statistikk på tavlen.</p>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
           { key: "openCount", label: "Åpne avvik" },
           { key: "criticalCount", label: "Kritiske" },
@@ -160,6 +166,219 @@ function AvvikConfig({ cfg, set, isAddon }: { cfg: any; set: (k: string, v: any)
       <div className="space-y-1.5">
         <Label>Sist oppdatert</Label>
         <Input type="date" value={cfg.lastUpdated ?? new Date().toISOString().slice(0, 10)} onChange={(e) => set("lastUpdated", e.target.value)} />
+      </div>
+    </div>
+  );
+}
+
+/** Tallfelter som fylles inn manuelt av standalone-kunder */
+function TallConfig({
+  cfg,
+  set,
+  felter,
+  hjelpetekst,
+  isAddon,
+}: {
+  cfg: any;
+  set: (k: string, v: any) => void;
+  felter: ReadonlyArray<{ key: string; label: string }>;
+  hjelpetekst: string;
+  isAddon: boolean;
+}) {
+  if (isAddon) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        HMS Nova-tilkobling: tallene hentes automatisk fra systemet.
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">{hjelpetekst}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {felter.map(({ key, label }) => (
+          <div key={key} className="space-y-1.5">
+            <Label>{label}</Label>
+            <Input
+              type="number"
+              min={0}
+              value={cfg[key] ?? ""}
+              onChange={(e) => set(key, parseInt(e.target.value) || 0)}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Vernerunde (manuell) ─── */
+function VernerundeConfig({ cfg, set, isAddon }: { cfg: any; set: (k: string, v: any) => void; isAddon: boolean }) {
+  if (isAddon) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        HMS Nova-tilkobling: vernerunder og åpne funn hentes automatisk.
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Vernerunder dokumenterer den systematiske kartleggingen etter arbeidsmiljøloven § 3-1.
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label>Sist gjennomført</Label>
+          <Input
+            type="date"
+            value={cfg.lastCompletedAt ?? ""}
+            onChange={(e) => set("lastCompletedAt", e.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Neste planlagt</Label>
+          <Input
+            type="date"
+            value={cfg.nextPlannedAt ?? ""}
+            onChange={(e) => set("nextPlannedAt", e.target.value)}
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label>Åpne funn</Label>
+          <Input
+            type="number"
+            min={0}
+            value={cfg.openFindings ?? ""}
+            onChange={(e) => set("openFindings", parseInt(e.target.value) || 0)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Gjennomført siste 12 mnd.</Label>
+          <Input
+            type="number"
+            min={0}
+            value={cfg.completedLast12Months ?? ""}
+            onChange={(e) => set("completedLast12Months", parseInt(e.target.value) || 0)}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Aktive SJA (manuell) ─── */
+function SjaConfig({ cfg, set, isAddon }: { cfg: any; set: (k: string, v: any) => void; isAddon: boolean }) {
+  if (isAddon) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        HMS Nova-tilkobling: aktive sikker jobb-analyser hentes automatisk fra prosjektet.
+      </p>
+    );
+  }
+
+  const items: any[] = cfg.items ?? [];
+
+  function oppdater(index: number, key: string, value: string) {
+    const neste = items.map((item, i) => (i === index ? { ...item, [key]: value } : item));
+    set("items", neste);
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">
+        Vis planlagt arbeid som krever egen sikker jobb-analyse.
+      </p>
+      {items.map((item, i) => (
+        <div key={i} className="space-y-2 border rounded-lg p-3">
+          <Input
+            placeholder="Tittel på arbeidet"
+            value={item.title ?? ""}
+            onChange={(e) => oppdater(i, "title", e.target.value)}
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <Input
+              placeholder="Sted"
+              value={item.workLocation ?? ""}
+              onChange={(e) => oppdater(i, "workLocation", e.target.value)}
+            />
+            <Input
+              placeholder="Ansvarlig"
+              value={item.responsibleName ?? ""}
+              onChange={(e) => oppdater(i, "responsibleName", e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2">
+            <Input
+              type="date"
+              value={item.plannedDate ?? ""}
+              onChange={(e) => oppdater(i, "plannedDate", e.target.value)}
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-red-500 shrink-0"
+              onClick={() => set("items", items.filter((_, index) => index !== i))}
+            >
+              Fjern
+            </Button>
+          </div>
+        </div>
+      ))}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => set("items", [...items, { title: "", workLocation: "", responsibleName: "", plannedDate: "" }])}
+      >
+        Legg til SJA
+      </Button>
+    </div>
+  );
+}
+
+/* ─── HMS-årshjul (manuell) ─── */
+function AarshjulConfig({ cfg, set, isAddon }: { cfg: any; set: (k: string, v: any) => void; isAddon: boolean }) {
+  if (isAddon) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        HMS Nova-tilkobling: framdriften i årsplanen hentes automatisk.
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Årshjulet viser hvor langt virksomheten er kommet i den systematiske gjennomgangen
+        etter internkontrollforskriften § 5.
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="space-y-1.5">
+          <Label>År</Label>
+          <Input
+            type="number"
+            value={cfg.year ?? new Date().getFullYear()}
+            onChange={(e) => set("year", parseInt(e.target.value) || new Date().getFullYear())}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Gjennomførte punkter</Label>
+          <Input
+            type="number"
+            min={0}
+            value={cfg.completed ?? ""}
+            onChange={(e) => set("completed", parseInt(e.target.value) || 0)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Punkter totalt</Label>
+          <Input
+            type="number"
+            min={1}
+            value={cfg.total ?? ""}
+            onChange={(e) => set("total", parseInt(e.target.value) || 0)}
+          />
+        </div>
       </div>
     </div>
   );
@@ -568,8 +787,224 @@ function SnarveierConfig({ cfg, set, isAddon }: { cfg: any; set: (k: string, v: 
   );
 }
 
+/* ─── Gjesteskjema konfig (reiseliv) ─── */
+function GjestSkjemaConfig({ cfg, set }: { cfg: any; set: (k: string, v: any) => void }) {
+  const activeTypes: GuestType[] = Array.isArray(cfg.activeTypes)
+    ? cfg.activeTypes
+    : GUEST_TYPE_VALUES;
+  const nb = getGuestDictionary("nb");
+
+  function toggleType(type: GuestType) {
+    const next = activeTypes.includes(type)
+      ? activeTypes.filter((t) => t !== type)
+      : [...activeTypes, type];
+    set("activeTypes", next.length > 0 ? next : [type]);
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="space-y-1.5">
+        <Label>Velkomsttekst (norsk)</Label>
+        <Textarea
+          rows={2}
+          placeholder="Vi ønsker å gjøre oppholdet ditt best mulig..."
+          value={cfg.welcomeText ?? ""}
+          onChange={(e) => set("welcomeText", e.target.value)}
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Velkomsttekst (engelsk)</Label>
+        <Textarea
+          rows={2}
+          placeholder="We want your stay to be as good as possible..."
+          value={cfg.welcomeTextEn ?? ""}
+          onChange={(e) => set("welcomeTextEn", e.target.value)}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Meldingstyper gjesten kan velge</Label>
+        <div className="space-y-1.5">
+          {GUEST_TYPE_VALUES.map((type) => (
+            <label key={type} className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={activeTypes.includes(type)}
+                onChange={() => toggleType(type)}
+                className="rounded border-gray-300"
+              />
+              <span>
+                {GUEST_TYPE_EMOJI[type]} {nb.types[type].label}
+              </span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-2 border-t pt-4">
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input
+            type="checkbox"
+            checked={cfg.showRoomField === true}
+            onChange={(e) => set("showRoomField", e.target.checked)}
+            className="rounded border-gray-300"
+          />
+          <span>Spør om rom- eller bordnummer</span>
+        </label>
+        {cfg.showRoomField === true && (
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Feltnavn (norsk)</Label>
+              <Input
+                placeholder="Romnummer"
+                value={cfg.roomLabel ?? ""}
+                onChange={(e) => set("roomLabel", e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Feltnavn (engelsk)</Label>
+              <Input
+                placeholder="Room number"
+                value={cfg.roomLabelEn ?? ""}
+                onChange={(e) => set("roomLabelEn", e.target.value)}
+              />
+            </div>
+          </div>
+        )}
+        <label className="flex items-center gap-2 text-sm cursor-pointer pt-1">
+          <input
+            type="checkbox"
+            checked={cfg.allowAttachments !== false}
+            onChange={(e) => set("allowAttachments", e.target.checked)}
+            className="rounded border-gray-300"
+          />
+          <span>Tillat at gjesten legger ved bilder</span>
+        </label>
+      </div>
+
+      <div className="space-y-3 border-t pt-4">
+        <div>
+          <Label>Serviceløfte – svarfrist i minutter</Label>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Saker som ikke er påbegynt innen frist eskaleres til ledelsen.
+          </p>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Kritisk</Label>
+            <Input
+              type="number"
+              min={5}
+              placeholder="60"
+              value={cfg.slaKritiskMinutes ?? ""}
+              onChange={(e) => set("slaKritiskMinutes", Number(e.target.value) || undefined)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Høy</Label>
+            <Input
+              type="number"
+              min={5}
+              placeholder="240"
+              value={cfg.slaHoyMinutes ?? ""}
+              onChange={(e) => set("slaHoyMinutes", Number(e.target.value) || undefined)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Normal</Label>
+            <Input
+              type="number"
+              min={5}
+              placeholder="1440"
+              value={cfg.slaNormalMinutes ?? ""}
+              onChange={(e) => set("slaNormalMinutes", Number(e.target.value) || undefined)}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-3 border-t pt-4">
+        <div className="space-y-1.5">
+          <Label>Varsle på e-post (komma-separert)</Label>
+          <Input
+            placeholder="resepsjon@hotell.no, drift@hotell.no"
+            value={(cfg.notifyEmails ?? []).join(", ")}
+            onChange={(e) =>
+              set(
+                "notifyEmails",
+                e.target.value
+                  .split(",")
+                  .map((v: string) => v.trim())
+                  .filter(Boolean)
+              )
+            }
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label>SMS ved kritiske saker (komma-separert)</Label>
+          <Input
+            placeholder="+4791234567"
+            value={(cfg.notifySmsNumbers ?? []).join(", ")}
+            onChange={(e) =>
+              set(
+                "notifySmsNumbers",
+                e.target.value
+                  .split(",")
+                  .map((v: string) => v.trim())
+                  .filter(Boolean)
+              )
+            }
+          />
+          <p className="text-xs text-muted-foreground">
+            Brukes kun ved matforgiftning og andre kritiske saker.
+          </p>
+        </div>
+      </div>
+
+      <p className="text-xs text-muted-foreground border-t pt-4">
+        Innholdet i gjestmeldinger vises aldri på den offentlige tavlen. Gjesten får en privat
+        sporingslenke og ser kun sin egen sak.
+      </p>
+    </div>
+  );
+}
+
+/* ─── Tillitspanel konfig (anonymiserte tall) ─── */
+function GjesteserviceStatusConfig({ cfg, set }: { cfg: any; set: (k: string, v: any) => void }) {
+  return (
+    <div className="space-y-5">
+      <div className="space-y-1.5">
+        <Label>Serviceløfte (norsk)</Label>
+        <Textarea
+          rows={2}
+          placeholder="Vi svarer på alle tilbakemeldinger innen 24 timer."
+          value={cfg.servicePromise ?? ""}
+          onChange={(e) => set("servicePromise", e.target.value)}
+        />
+      </div>
+      <div className="space-y-1.5">
+        <Label>Serviceløfte (engelsk)</Label>
+        <Textarea
+          rows={2}
+          placeholder="We respond to all feedback within 24 hours."
+          value={cfg.servicePromiseEn ?? ""}
+          onChange={(e) => set("servicePromiseEn", e.target.value)}
+        />
+      </div>
+      <p className="text-xs text-muted-foreground border-t pt-4">
+        Panelet viser kun anonymiserte tall: antall tilbakemeldinger, andel løst og median svartid
+        siste 30 dager. Saksinnhold, navn og romnummer vises aldri. Tallene skjules automatisk når
+        det er færre enn {TRUST_PANEL_MIN_VOLUME} saker.
+      </p>
+    </div>
+  );
+}
+
 const SECTION_TITLES: Partial<Record<HmsTavleSectionType, string>> = {
   SNARVEIER: "Hurtigtilganger",
+  GJEST_SKJEMA: "Gjesteskjema og serviceløfte",
+  GJESTESERVICE_STATUS: "Tillitspanel for gjesteservice",
   SHA_PLAN: "Rediger SHA-plan",
   BEREDSKAPSPLAN: "Rediger beredskapsplan",
   AVVIK_STATISTIKK: "Rediger avviksstatistikk",
@@ -605,6 +1040,41 @@ export function TavleSectionConfigDialog({ open, onClose, type, config, isAddon,
       case "AVVIK_STATISTIKK":
       case "RUH_LISTE":
         return <AvvikConfig cfg={cfg} set={set} isAddon={isAddon} />;
+      case "KPI_DASHBOARD":
+        return (
+          <TallConfig
+            cfg={cfg}
+            set={set}
+            isAddon={isAddon}
+            hjelpetekst="Nøkkeltallene vises som store tall på tavlen. Oppdater dem når du ønsker."
+            felter={[
+              { key: "openIncidents", label: "Åpne avvik" },
+              { key: "criticalIncidents", label: "Kritiske" },
+              { key: "openMeasures", label: "Åpne tiltak" },
+              { key: "daysSinceLastIncident", label: "Dager siden hendelse" },
+            ]}
+          />
+        );
+      case "OPPLARING_STATUS":
+        return (
+          <TallConfig
+            cfg={cfg}
+            set={set}
+            isAddon={isAddon}
+            hjelpetekst="Opplæring skal dokumenteres etter arbeidsmiljøloven § 3-2."
+            felter={[
+              { key: "valid", label: "Gyldige bevis" },
+              { key: "expiringSoon", label: "Utløper snart" },
+              { key: "expired", label: "Utløpt" },
+            ]}
+          />
+        );
+      case "VERNERUNDE_STATUS":
+        return <VernerundeConfig cfg={cfg} set={set} isAddon={isAddon} />;
+      case "SJA_AKTIVE":
+        return <SjaConfig cfg={cfg} set={set} isAddon={isAddon} />;
+      case "HMS_PLAN_AARSHJUL":
+        return <AarshjulConfig cfg={cfg} set={set} isAddon={isAddon} />;
       case "KONTAKTINFO":
         return <KontaktConfig cfg={cfg} set={set} />;
       case "NYHETER_MELDINGER":
@@ -618,6 +1088,10 @@ export function TavleSectionConfigDialog({ open, onClose, type, config, isAddon,
         return <GenericMediaConfig cfg={cfg} set={set} tavleId={tavleId} />;
       case "SNARVEIER":
         return <SnarveierConfig cfg={cfg} set={set} isAddon={isAddon} />;
+      case "GJEST_SKJEMA":
+        return <GjestSkjemaConfig cfg={cfg} set={set} />;
+      case "GJESTESERVICE_STATUS":
+        return <GjesteserviceStatusConfig cfg={cfg} set={set} />;
       case "VAERMELDING":
         return (
           <div className="space-y-2">

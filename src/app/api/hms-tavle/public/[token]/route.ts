@@ -1,6 +1,9 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { createErrorResponse, createSuccessResponse, handleApiError, ErrorCodes } from "@/lib/validations/api";
+import { getGuestServiceStats } from "@/features/hms-tavle/lib/gjesteservice-stats";
+import { getTavleLiveData } from "@/features/hms-tavle/lib/tavle-live-data";
+import { getPlanLimits } from "@/features/hms-tavle/lib/tavle-plan-limits";
 
 export async function GET(
   _req: NextRequest,
@@ -55,7 +58,27 @@ export async function GET(
           })
         : [];
 
-    return createSuccessResponse({ tavle, checkins, plan: subscription.plan });
+    // Tillitspanel: kun aggregerte tall, aldri rader med saksinnhold
+    const harTillitspanel = tavle.sections.some((s) => s.type === "GJESTESERVICE_STATUS");
+    const guestStats = harTillitspanel ? await getGuestServiceStats(tavle.id) : null;
+
+    // Live HMS Nova-data er forbeholdt planer med full integrasjon
+    const liveData =
+      getPlanLimits(subscription.plan).hasLiveHmsNovaData
+        ? await getTavleLiveData({
+            tenantId: tavle.tenantId,
+            projectId: tavle.projectId,
+            sectionTypes: tavle.sections.map((s) => s.type),
+          })
+        : null;
+
+    return createSuccessResponse({
+      tavle,
+      checkins,
+      plan: subscription.plan,
+      guestStats,
+      liveData,
+    });
   } catch (error) {
     return handleApiError(error);
   }

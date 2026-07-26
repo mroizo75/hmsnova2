@@ -69,6 +69,7 @@ export function getSectionLabels(bransje: string | null | undefined): Record<str
     NYHETER_MELDINGER:   isReiseliv ? "Meldinger til gjester og ansatte" : "Meldinger",
     SNARVEIER:           "Hurtigtilganger",
     GJEST_SKJEMA:        isReiseliv ? "Gjesteskjema" : "Tilbakemeldingsskjema",
+    GJESTESERVICE_STATUS: isReiseliv ? "Vårt serviceløfte" : "Tilbakemeldinger og svartid",
   };
 
   return baseLabels;
@@ -76,9 +77,15 @@ export function getSectionLabels(bransje: string | null | undefined): Record<str
 
 /**
  * Lovkrav-sjekkliste tilpasset bransje.
- * Hjemmel: AML / IK-HMS / Matlovforskriften / Pakkereiseloven / Vegtransportloven
+ * Hjemmel: AML / IK-HMS / IK-mat / næringsmiddelhygieneforskriften /
+ * Pakkereiseloven / Yrkestransportlova
  */
-export function getLovkravItems(bransje: string | null | undefined, isAddon: boolean, tavle: any): Array<{
+export function getLovkravItems(
+  bransje: string | null | undefined,
+  isAddon: boolean,
+  tavle: any,
+  checkinsToday?: number
+): Array<{
   label: string; ok: boolean | null; ref: string;
 }> {
   const isConstruction = !bransje || bransje === "BYGG_ANLEGG";
@@ -87,10 +94,18 @@ export function getLovkravItems(bransje: string | null | undefined, isAddon: boo
 
   if (isConstruction) {
     return [
+      // § 7 krever SHA-plan, § 8 stiller kravene til innholdet i planen
       { label: "SHA-plan godkjent",           ok: isAddon ? shaPlan?.status === "ACTIVE" : null, ref: "§ 7+8" },
-      { label: "Forhåndsmelding sendt",        ok: isAddon ? !!preNotif?.sentAt : null,           ref: "§ 12" },
-      { label: "Mannskapsliste aktiv",         ok: null,                                           ref: "§ 15" },
-      { label: "Koordineringsansvar avklart",  ok: null,                                           ref: "§ 18" },
+      // Forhåndsmelding til Arbeidstilsynet er § 10, og skal stå synlig på plassen
+      { label: "Forhåndsmelding sendt",       ok: isAddon ? !!preNotif?.sentAt : null,           ref: "§ 10" },
+      // § 15 krever at oversiktslisten kontrolleres og oppdateres daglig
+      {
+        label: "Mannskapsliste ført i dag",
+        ok: checkinsToday === undefined ? null : checkinsToday > 0,
+        ref: "§ 15",
+      },
+      // Koordinator utpekes etter § 13 og følger opp arbeidet etter § 14
+      { label: "Koordinator utpekt",           ok: null,                                          ref: "§ 13+14" },
     ];
   }
 
@@ -108,8 +123,9 @@ export function getLovkravItems(bransje: string | null | undefined, isAddon: boo
   if (bransje === "RESTAURANT_SERVERING") {
     return [
       { label: "HMS-plan oppdatert",               ok: null, ref: "IK-HMS § 5" },
-      { label: "IK-mat / HACCP dokumentert",        ok: null, ref: "Matlovforskriften" },
-      { label: "Registrert hos Mattilsynet",        ok: null, ref: "Næringsmiddelforskriften" },
+      { label: "Internkontroll for mat dokumentert", ok: null, ref: "IK-mat § 4" },
+      { label: "HACCP-basert fareanalyse på plass",  ok: null, ref: "Forordning 852/2004 art. 5" },
+      { label: "Registrert hos Mattilsynet",         ok: null, ref: "Forordning 852/2004 art. 6" },
       { label: "Allergeninformasjon tilgjengelig",  ok: null, ref: "EU-forordning 1169/2011" },
       { label: "BHT-tilknytning dokumentert",       ok: null, ref: "Forskrift kode 56.11/56.3" },
       { label: "Ansvarlig alkoholservering",        ok: null, ref: "Alkoholloven § 1-7c" },

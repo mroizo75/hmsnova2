@@ -42,6 +42,9 @@ import {
   Bell,
   Search,
   MessageSquare,
+  Lock,
+  ShieldCheck,
+  CalendarClock,
   X,
   Send,
   type LucideIcon,
@@ -52,6 +55,15 @@ import {
   type SnarveiConfig,
 } from "@/features/hms-tavle/lib/snarveier-config";
 import { getLovkravItems } from "@/features/hms-tavle/lib/bransje-config";
+import type { GuestServiceStats } from "@/features/hms-tavle/lib/gjesteservice-stats";
+import type {
+  TavleAarshjulData,
+  TavleKpiData,
+  TavleLiveData,
+  TavleOpplaringData,
+  TavleSjaItem,
+  TavleVernerundeData,
+} from "@/features/hms-tavle/lib/tavle-live-data";
 
 // ─── Klokke ──────────────────────────────────────────────────────
 function LiveClock({ large = false }: { large?: boolean }) {
@@ -148,8 +160,7 @@ function TavleLogo({ logoUrl, name }: { logoUrl?: string | null; name?: string }
       <img
         src={logoUrl}
         alt={name ?? "Logo"}
-        className="object-contain"
-        style={{ maxHeight: "84px", maxWidth: "280px", width: "auto", height: "auto" }}
+        className="object-contain w-auto h-auto max-h-11 max-w-[120px] sm:max-h-16 sm:max-w-[200px] lg:max-h-[84px] lg:max-w-[280px]"
       />
     );
   }
@@ -301,7 +312,7 @@ const SNARVEI_ICONS: Record<string, LucideIcon> = {
 // ─── Roterende seksjonskomponenter ───────────────────────────────
 
 function SectionCard({
-  type, title, config, tavle, checkins, plan, appUrl, publicToken, weatherData, locale,
+  type, title, config, tavle, checkins, plan, appUrl, publicToken, weatherData, locale, guestStats, liveData,
 }: {
   type: HmsTavleSectionType;
   title: string | null;
@@ -313,6 +324,8 @@ function SectionCard({
   publicToken: string;
   weatherData: WeatherData | null;
   locale?: "nb" | "en";
+  guestStats: GuestServiceStats | null;
+  liveData: TavleLiveData | null;
 }) {
   const isAddon = plan === "ADDON";
   switch (type) {
@@ -326,7 +339,7 @@ function SectionCard({
       return <MannskapslisteSection title={title} checkins={checkins} tavle={tavle} appUrl={appUrl} publicToken={publicToken} />;
     case "AVVIK_STATISTIKK":
     case "RUH_LISTE":
-      return <AvvikSection title={title} config={config} isAddon={isAddon} />;
+      return <AvvikSection title={title} config={config} isAddon={isAddon} live={liveData?.kpi ?? null} />;
     case "DOKUMENT_HUB":
       return <DokumentHubSection title={title} config={config} tavle={tavle} />;
     case "EKSTERN_LENKE":
@@ -336,9 +349,17 @@ function SectionCard({
     case "NYHETER_MELDINGER":
       return <NyheterSection title={title} config={config} />;
     case "LOVKRAV_SJEKKLISTE":
-      return <LovkravSection title={title} tavle={tavle} isAddon={isAddon} />;
+      return <LovkravSection title={title} tavle={tavle} isAddon={isAddon} checkins={checkins} />;
     case "KPI_DASHBOARD":
-      return <KpiSection title={title} />;
+      return <KpiSection title={title} config={config} isAddon={isAddon} live={liveData?.kpi ?? null} />;
+    case "SJA_AKTIVE":
+      return <SjaSection title={title} config={config} isAddon={isAddon} live={liveData?.sja ?? []} />;
+    case "VERNERUNDE_STATUS":
+      return <VernerundeSection title={title} config={config} isAddon={isAddon} live={liveData?.vernerunde ?? null} />;
+    case "OPPLARING_STATUS":
+      return <OpplaringSection title={title} config={config} isAddon={isAddon} live={liveData?.opplaring ?? null} />;
+    case "HMS_PLAN_AARSHJUL":
+      return <AarshjulSection title={title} config={config} isAddon={isAddon} live={liveData?.aarshjul ?? null} />;
     case "FREMDRIFTSPLAN":
       return <FremdriftsplanSection title={title} config={config} />;
     case "RIGGPLAN":
@@ -348,7 +369,9 @@ function SectionCard({
     case "SNARVEIER":
       return <SnarveierSection title={title} config={config} isAddon={isAddon} publicToken={publicToken} appUrl={appUrl} />;
     case "GJEST_SKJEMA":
-      return <GjestSkjemaSection title={title} config={config} publicToken={publicToken} tavle={tavle} locale={locale} />;
+      return <GjestSkjemaSection title={title} config={config} publicToken={publicToken} appUrl={appUrl} locale={locale} />;
+    case "GJESTESERVICE_STATUS":
+      return <GjesteserviceStatusSection title={title} config={config} stats={guestStats} locale={locale} />;
     default:
       return <Wrapper icon={<BarChart3 className="h-6 w-6" />} title={title ?? type}><p className="text-white/50">Ingen data</p></Wrapper>;
   }
@@ -379,7 +402,7 @@ function SnarveierSection({ title, config, isAddon, publicToken, appUrl }: {
       {!harNoe ? (
         <p className="text-white/50 text-sm">Ingen snarveier aktivert.</p>
       ) : (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {aktive.map((s) => {
             const def = ALLE_SNARVEIER.find((d) => d.id === s.id);
             if (!def) return null;
@@ -488,12 +511,12 @@ function SnarveierKompaktBar({ config, isAddon, publicToken, appUrl: _appUrl }: 
 
 function Wrapper({ icon, title, badge, children }: { icon: React.ReactNode; title: string; badge?: string; children: React.ReactNode }) {
   return (
-    <div className="h-full flex flex-col bg-white/10 rounded-2xl border border-white/20 p-5 gap-3 overflow-hidden">
+    <div className="h-full flex flex-col bg-white/10 rounded-2xl border border-white/20 p-4 sm:p-5 gap-3 overflow-hidden">
       <div className="flex items-center gap-3 shrink-0">
         <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
           {icon}
         </div>
-        <h3 className="text-white font-bold text-base leading-tight">{title}</h3>
+        <h3 className="text-white font-bold text-sm sm:text-base leading-tight min-w-0">{title}</h3>
         {badge && <span className="ml-auto text-blue-300 text-xs border border-blue-400/40 rounded px-2 py-0.5 shrink-0">{badge}</span>}
       </div>
       <div className="flex-1 min-h-0 overflow-auto">{children}</div>
@@ -508,7 +531,7 @@ function KontaktDetaljerSection({ title, config, tavle }: { title: string | null
       {contacts.length === 0 ? (
         <p className="text-white/50">Ingen kontakter registrert — legg til via innstillinger</p>
       ) : (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {contacts.map((c: any, i: number) => (
             <div key={i} className="bg-white/10 rounded-xl p-3 space-y-0.5">
               <p className="text-white font-semibold leading-tight">{c.name}</p>
@@ -665,19 +688,36 @@ function MannskapslisteSection({ title, checkins, tavle, appUrl, publicToken }: 
     });
   }, [checkinUrl]);
 
+  // § 15 krever at listen viser hvem som faktisk er på plassen, ikke bare hvem
+  // som har vært innom. Utsjekkede vises derfor nedtonet.
+  const paaPlassen = checkins.filter((c: any) => !c.checkedOutAt);
+
   return (
     <Wrapper icon={<Users className="h-6 w-6" />} title={title ?? "Mannskapsliste"} badge="§ 15">
       <div className="flex gap-4 h-full">
         {/* Venstre: teller + navn */}
         <div className="flex-1 min-w-0 space-y-3">
           <div className="flex items-end gap-2">
-            <span className="text-white text-5xl font-black tabular-nums">{checkins.length}</span>
-            <span className="text-blue-300 text-sm mb-1.5">innsjekket i dag</span>
+            <span className="text-white text-5xl font-black tabular-nums">{paaPlassen.length}</span>
+            <span className="text-blue-300 text-sm mb-1.5">på plassen nå</span>
           </div>
+          {checkins.length > paaPlassen.length && (
+            <p className="text-white/50 text-xs">
+              {checkins.length} innsjekket i dag, {checkins.length - paaPlassen.length} utsjekket
+            </p>
+          )}
           <div className="grid grid-cols-1 gap-1.5 overflow-hidden max-h-40">
             {checkins.slice(0, 10).map((c: any) => (
-              <div key={c.id} className="bg-white/10 rounded-lg px-2.5 py-1 text-sm flex items-center gap-2">
-                <span className="text-white font-medium truncate">{c.name}</span>
+              <div
+                key={c.id}
+                className={cn(
+                  "rounded-lg px-2.5 py-1 text-sm flex items-center gap-2",
+                  c.checkedOutAt ? "bg-white/5" : "bg-white/10"
+                )}
+              >
+                <span className={cn("font-medium truncate", c.checkedOutAt ? "text-white/40 line-through" : "text-white")}>
+                  {c.name}
+                </span>
                 {c.employer && <span className="text-blue-300 text-xs truncate shrink-0">· {c.employer}</span>}
               </div>
             ))}
@@ -705,34 +745,43 @@ function MannskapslisteSection({ title, checkins, tavle, appUrl, publicToken }: 
   );
 }
 
-function AvvikSection({ title, config, isAddon }: { title: string | null; config: any; isAddon: boolean }) {
-  if (isAddon) {
-    return (
-      <Wrapper icon={<AlertTriangle className="h-6 w-6" />} title={title ?? "Avvik og RUH"} badge="HMS Nova">
-        <p className="text-white/50 text-sm">Live avviksstatistikk fra HMS Nova lastes her.</p>
-      </Wrapper>
-    );
-  }
-  const { openCount, criticalCount, closedThisMonth, lastUpdated } = config ?? {};
+function AvvikSection({ title, config, isAddon, live }: {
+  title: string | null; config: any; isAddon: boolean; live: TavleKpiData | null;
+}) {
+  // Add-on-tavler viser tall direkte fra HMS Nova, standalone viser manuelle tall.
+  const kilde = isAddon && live
+    ? {
+        openCount: live.openIncidents,
+        criticalCount: live.criticalIncidents,
+        closedThisMonth: live.closedThisMonth,
+        lastUpdated: undefined as string | undefined,
+      }
+    : config ?? {};
+
+  const { openCount, criticalCount, closedThisMonth, lastUpdated } = kilde;
   const hasData = openCount !== undefined || criticalCount !== undefined || closedThisMonth !== undefined;
   return (
-    <Wrapper icon={<AlertTriangle className="h-6 w-6" />} title={title ?? "Avvik og RUH"}>
+    <Wrapper
+      icon={<AlertTriangle className="h-6 w-6" />}
+      title={title ?? "Avvik og RUH"}
+      badge={isAddon && live ? "HMS Nova" : undefined}
+    >
       {!hasData ? (
         <p className="text-white/50 text-sm">Ingen statistikk registrert ennå — oppdater via innstillinger.</p>
       ) : (
         <div className="space-y-3">
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-red-900/50 border border-red-700/40 rounded-xl p-3 text-center">
-              <p className="text-red-300 text-3xl font-black tabular-nums">{openCount ?? 0}</p>
-              <p className="text-white/60 text-xs mt-1">Åpne avvik</p>
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            <div className="bg-red-900/50 border border-red-700/40 rounded-xl p-2 sm:p-3 text-center">
+              <p className="text-red-300 text-2xl sm:text-3xl font-black tabular-nums">{openCount ?? 0}</p>
+              <p className="text-white/60 text-[11px] sm:text-xs mt-1">Åpne avvik</p>
             </div>
-            <div className="bg-orange-900/50 border border-orange-700/40 rounded-xl p-3 text-center">
-              <p className="text-orange-300 text-3xl font-black tabular-nums">{criticalCount ?? 0}</p>
-              <p className="text-white/60 text-xs mt-1">Kritiske</p>
+            <div className="bg-orange-900/50 border border-orange-700/40 rounded-xl p-2 sm:p-3 text-center">
+              <p className="text-orange-300 text-2xl sm:text-3xl font-black tabular-nums">{criticalCount ?? 0}</p>
+              <p className="text-white/60 text-[11px] sm:text-xs mt-1">Kritiske</p>
             </div>
-            <div className="bg-green-900/50 border border-green-700/40 rounded-xl p-3 text-center">
-              <p className="text-green-300 text-3xl font-black tabular-nums">{closedThisMonth ?? 0}</p>
-              <p className="text-white/60 text-xs mt-1">Lukket mnd.</p>
+            <div className="bg-green-900/50 border border-green-700/40 rounded-xl p-2 sm:p-3 text-center">
+              <p className="text-green-300 text-2xl sm:text-3xl font-black tabular-nums">{closedThisMonth ?? 0}</p>
+              <p className="text-white/60 text-[11px] sm:text-xs mt-1">Lukket mnd.</p>
             </div>
           </div>
           {lastUpdated && (
@@ -756,7 +805,7 @@ function DokumentHubSection({ title, config, tavle }: { title: string | null; co
         {config?.imageUrl && (
           <img src={toImageUrl(config.imageUrl)} alt="Dokument" className="w-full rounded-xl object-contain max-h-48 border border-white/10" />
         )}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {config?.pdfUrl && (
             <a href={config.pdfUrl} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-3 bg-white/10 rounded-xl px-4 py-3 text-blue-200 hover:text-white hover:bg-white/20 transition-colors">
@@ -772,7 +821,7 @@ function DokumentHubSection({ title, config, tavle }: { title: string | null; co
             </a>
           ))}
           {!config?.pdfUrl && items.length === 0 && (
-            <p className="text-white/50 col-span-2">Ingen dokumenter lagt til</p>
+            <p className="text-white/50 sm:col-span-2">Ingen dokumenter lagt til</p>
           )}
         </div>
       </div>
@@ -784,7 +833,7 @@ function EksternLenkeSection({ title, tavle }: { title: string | null; tavle: an
   const links = tavle.externalLinks ?? [];
   return (
     <Wrapper icon={<ExternalLink className="h-6 w-6" />} title={title ?? "Systemer og lenker"}>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {links.map((l: any) => (
           <a key={l.id} href={l.url} target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-3 bg-white/10 rounded-xl px-4 py-3 text-blue-200 hover:text-white hover:bg-white/20 transition-colors">
@@ -792,7 +841,7 @@ function EksternLenkeSection({ title, tavle }: { title: string | null; tavle: an
             <span className="text-sm font-medium truncate">{l.title}</span>
           </a>
         ))}
-        {links.length === 0 && <p className="text-white/50 col-span-2">Ingen lenker konfigurert</p>}
+        {links.length === 0 && <p className="text-white/50 sm:col-span-2">Ingen lenker konfigurert</p>}
       </div>
     </Wrapper>
   );
@@ -947,9 +996,11 @@ function NyheterSection({ title, config }: { title: string | null; config: any }
   );
 }
 
-function LovkravSection({ title, tavle, isAddon }: { title: string | null; tavle: any; isAddon: boolean }) {
+function LovkravSection({ title, tavle, isAddon, checkins }: {
+  title: string | null; tavle: any; isAddon: boolean; checkins: any[];
+}) {
   const bransje = tavle?.bransje ?? null;
-  const items = getLovkravItems(bransje, isAddon, tavle);
+  const items = getLovkravItems(bransje, isAddon, tavle, checkins.length);
   return (
     <Wrapper icon={<CheckSquare className="h-6 w-6" />} title={title ?? "Lovkrav-sjekkliste"}>
       <div className="space-y-3">
@@ -974,10 +1025,277 @@ function LovkravSection({ title, tavle, isAddon }: { title: string | null; tavle
   );
 }
 
-function KpiSection({ title }: { title: string | null }) {
+/** Felles tallkort brukt av KPI- og statusseksjonene */
+function StatTile({ value, label, tone }: { value: string | number; label: string; tone: "red" | "orange" | "green" | "blue" }) {
+  const toner = {
+    red: "bg-red-900/50 border-red-700/40 text-red-300",
+    orange: "bg-orange-900/50 border-orange-700/40 text-orange-300",
+    green: "bg-green-900/50 border-green-700/40 text-green-300",
+    blue: "bg-blue-900/50 border-blue-700/40 text-blue-300",
+  } as const;
+
   return (
-    <Wrapper icon={<BarChart3 className="h-6 w-6" />} title={title ?? "KPI og H-verdi"}>
-      <p className="text-white/50">Live KPI krever HMS Nova add-on</p>
+    <div className={cn("rounded-xl border p-2 sm:p-3 text-center", toner[tone])}>
+      <p className="text-2xl sm:text-3xl font-black tabular-nums">{value}</p>
+      <p className="text-white/60 text-[11px] sm:text-xs mt-1 leading-tight">{label}</p>
+    </div>
+  );
+}
+
+function KpiSection({ title, config, isAddon, live }: {
+  title: string | null; config: any; isAddon: boolean; live: TavleKpiData | null;
+}) {
+  const data = isAddon && live ? live : null;
+  const manuelt = config ?? {};
+  const harManuelt =
+    manuelt.openIncidents !== undefined ||
+    manuelt.daysSinceLastIncident !== undefined ||
+    manuelt.openMeasures !== undefined;
+
+  return (
+    <Wrapper
+      icon={<BarChart3 className="h-6 w-6" />}
+      title={title ?? "KPI og nøkkeltall"}
+      badge={data ? "HMS Nova" : undefined}
+    >
+      {!data && !harManuelt ? (
+        <p className="text-white/50 text-sm">
+          Ingen nøkkeltall registrert ennå — oppdater via innstillinger.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+            <StatTile
+              value={data ? data.openIncidents : manuelt.openIncidents ?? 0}
+              label="Åpne avvik"
+              tone="red"
+            />
+            <StatTile
+              value={data ? data.criticalIncidents : manuelt.criticalIncidents ?? 0}
+              label="Kritiske"
+              tone="orange"
+            />
+            <StatTile
+              value={data ? data.openMeasures : manuelt.openMeasures ?? 0}
+              label="Åpne tiltak"
+              tone="blue"
+            />
+            <StatTile
+              value={
+                (data ? data.daysSinceLastIncident : manuelt.daysSinceLastIncident) ?? "–"
+              }
+              label="Dager siden hendelse"
+              tone="green"
+            />
+          </div>
+          {data && (
+            <p className="text-white/40 text-xs text-right">
+              {data.closedThisMonth} lukket denne måneden
+            </p>
+          )}
+        </div>
+      )}
+    </Wrapper>
+  );
+}
+
+/** Aktive sikker jobb-analyser – Byggherreforskriften § 18 andre ledd og § 19 */
+function SjaSection({ title, config, isAddon, live }: {
+  title: string | null; config: any; isAddon: boolean; live: TavleSjaItem[];
+}) {
+  const manuelle: any[] = Array.isArray(config?.items) ? config.items : [];
+  const items = isAddon && live.length > 0
+    ? live
+    : manuelle.map((item, i) => ({
+        id: `manuell-${i}`,
+        title: item.title ?? "",
+        workLocation: item.workLocation ?? "",
+        responsibleName: item.responsibleName ?? "",
+        plannedDate: item.plannedDate ?? "",
+      }));
+
+  return (
+    <Wrapper
+      icon={<ClipboardList className="h-6 w-6" />}
+      title={title ?? "Aktive SJA"}
+      badge={isAddon && live.length > 0 ? "HMS Nova" : undefined}
+    >
+      {items.length === 0 ? (
+        <p className="text-white/50 text-sm">
+          Ingen aktive sikker jobb-analyser registrert.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {items.map((item) => (
+            <div key={item.id} className="bg-white/10 rounded-xl px-3 py-2">
+              <div className="flex items-start gap-2">
+                <p className="text-white font-semibold text-sm leading-tight min-w-0 flex-1">
+                  {item.title}
+                </p>
+                {item.plannedDate && (
+                  <span className="text-blue-300 text-xs shrink-0 tabular-nums">
+                    {new Date(item.plannedDate).toLocaleDateString("nb-NO", {
+                      day: "2-digit",
+                      month: "2-digit",
+                    })}
+                  </span>
+                )}
+              </div>
+              <p className="text-white/50 text-xs mt-0.5 truncate">
+                {[item.workLocation, item.responsibleName].filter(Boolean).join(" · ")}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </Wrapper>
+  );
+}
+
+/** Vernerundestatus – AML § 3-1 andre ledd bokstav e om systematisk kartlegging */
+function VernerundeSection({ title, config, isAddon, live }: {
+  title: string | null; config: any; isAddon: boolean; live: TavleVernerundeData | null;
+}) {
+  const data = isAddon && live ? live : null;
+  const sisteDato = data?.lastCompletedAt ?? config?.lastCompletedAt ?? null;
+  const nesteDato = data?.nextPlannedAt ?? config?.nextPlannedAt ?? null;
+  const apneFunn = data ? data.openFindings : config?.openFindings;
+
+  if (!sisteDato && !nesteDato && apneFunn === undefined) {
+    return (
+      <Wrapper icon={<CheckSquare className="h-6 w-6" />} title={title ?? "Vernerunde"}>
+        <p className="text-white/50 text-sm">
+          Ingen vernerunde registrert ennå — oppdater via innstillinger.
+        </p>
+      </Wrapper>
+    );
+  }
+
+  return (
+    <Wrapper
+      icon={<CheckSquare className="h-6 w-6" />}
+      title={title ?? "Vernerunde"}
+      badge={data ? "HMS Nova" : undefined}
+    >
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+          <div className="bg-white/10 rounded-xl p-3">
+            <p className="text-white/50 text-xs">Sist gjennomført</p>
+            <p className="text-white font-bold text-lg leading-tight mt-0.5">
+              {sisteDato ? new Date(sisteDato).toLocaleDateString("nb-NO") : "–"}
+            </p>
+          </div>
+          <div className="bg-white/10 rounded-xl p-3">
+            <p className="text-white/50 text-xs">Neste planlagt</p>
+            <p className="text-white font-bold text-lg leading-tight mt-0.5">
+              {nesteDato ? new Date(nesteDato).toLocaleDateString("nb-NO") : "Ikke satt"}
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+          <StatTile value={apneFunn ?? 0} label="Åpne funn" tone={apneFunn ? "orange" : "green"} />
+          <StatTile
+            value={data ? data.completedLast12Months : config?.completedLast12Months ?? "–"}
+            label="Siste 12 mnd."
+            tone="blue"
+          />
+        </div>
+      </div>
+    </Wrapper>
+  );
+}
+
+/** Opplæringsstatus – AML § 3-2 første ledd bokstav a om nødvendig opplæring */
+function OpplaringSection({ title, config, isAddon, live }: {
+  title: string | null; config: any; isAddon: boolean; live: TavleOpplaringData | null;
+}) {
+  const data = isAddon && live && live.totalRegistered > 0 ? live : null;
+  const manuelt = config ?? {};
+  const harManuelt = manuelt.valid !== undefined || manuelt.expired !== undefined;
+
+  if (!data && !harManuelt) {
+    return (
+      <Wrapper icon={<GraduationCap className="h-6 w-6" />} title={title ?? "Opplæring"}>
+        <p className="text-white/50 text-sm">
+          Ingen opplæring registrert ennå — oppdater via innstillinger.
+        </p>
+      </Wrapper>
+    );
+  }
+
+  const utlopt = data ? data.expired : manuelt.expired ?? 0;
+
+  return (
+    <Wrapper
+      icon={<GraduationCap className="h-6 w-6" />}
+      title={title ?? "Opplæring og kompetanse"}
+      badge={data ? "HMS Nova" : undefined}
+    >
+      <div className="space-y-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          <StatTile value={data ? data.valid : manuelt.valid ?? 0} label="Gyldige bevis" tone="green" />
+          <StatTile
+            value={data ? data.expiringSoon : manuelt.expiringSoon ?? 0}
+            label="Utløper snart"
+            tone="orange"
+          />
+          <StatTile value={utlopt} label="Utløpt" tone={utlopt ? "red" : "green"} />
+        </div>
+        {utlopt > 0 && (
+          <p className="text-orange-300 text-xs">
+            Utløpte bevis må fornyes før arbeid utføres — AML § 3-2.
+          </p>
+        )}
+      </div>
+    </Wrapper>
+  );
+}
+
+/** HMS-årshjul – internkontrollforskriften § 5 om systematisk gjennomgang */
+function AarshjulSection({ title, config, isAddon, live }: {
+  title: string | null; config: any; isAddon: boolean; live: TavleAarshjulData | null;
+}) {
+  const data = isAddon && live ? live : null;
+  const completed = data ? data.completed : config?.completed;
+  const total = data ? data.total : config?.total;
+
+  if (completed === undefined || total === undefined || !total) {
+    return (
+      <Wrapper icon={<CalendarClock className="h-6 w-6" />} title={title ?? "HMS-årshjul"}>
+        <p className="text-white/50 text-sm">
+          Ingen årsplan registrert ennå — oppdater via innstillinger.
+        </p>
+      </Wrapper>
+    );
+  }
+
+  const prosent = Math.min(Math.round((completed / total) * 100), 100);
+  const aar = data ? data.year : config?.year ?? new Date().getFullYear();
+
+  return (
+    <Wrapper
+      icon={<CalendarClock className="h-6 w-6" />}
+      title={title ?? "HMS-årshjul"}
+      badge={data ? "HMS Nova" : undefined}
+    >
+      <div className="space-y-3">
+        <div className="flex items-end gap-2">
+          <span className="text-white text-5xl font-black tabular-nums">{prosent}%</span>
+          <span className="text-blue-300 text-sm mb-1.5">fullført i {aar}</span>
+        </div>
+        <div className="h-3 w-full rounded-full bg-white/10 overflow-hidden">
+          <div
+            className={cn(
+              "h-full rounded-full transition-all",
+              prosent >= 75 ? "bg-green-400" : prosent >= 40 ? "bg-yellow-400" : "bg-orange-400"
+            )}
+            style={{ width: `${prosent}%` }}
+          />
+        </div>
+        <p className="text-white/50 text-xs">
+          {completed} av {total} punkter gjennomført
+        </p>
+      </div>
     </Wrapper>
   );
 }
@@ -1031,7 +1349,7 @@ function RisikomatriseSection({ title, config }: { title: string | null; config:
 }
 
 // ─── Gjesteskjema ────────────────────────────────────────────────
-// Hjemmel: IK-HMS § 5 (avvik), Matlovforskriften (matforgiftning), intern KPI (klager)
+// Hjemmel: IK-HMS § 5 nr. 7 (avvik), IK-mat § 5 nr. 4 (matforgiftning), intern KPI (klager)
 
 type GuestType = "AVVIK" | "KLAGE" | "MATFORGIFTNING" | "SPORSMAAL" | "TILBAKEMELDING";
 
@@ -1043,213 +1361,148 @@ const GUEST_TYPES: { value: GuestType; label: string; emoji: string; color: stri
   { value: "TILBAKEMELDING", label: "Tilbakemelding",      emoji: "💬",  color: "bg-green-500/20 border-green-500/40 text-green-300 hover:bg-green-500/30" },
 ];
 
-function GjestSkjemaSection({ title, config, publicToken, tavle, locale = "nb" }: {
-  title: string | null; config: any; publicToken: string; tavle: any; locale?: "nb" | "en";
+function GjestSkjemaSection({ title, config, publicToken, appUrl, locale = "nb" }: {
+  title: string | null; config: any; publicToken: string; appUrl: string; locale?: "nb" | "en";
 }) {
-  const [open, setOpen] = useState(false);
-  const [step, setStep] = useState<"type" | "form" | "sent">("type");
-  const [selectedType, setSelectedType] = useState<GuestType | null>(null);
-  const [message, setMessage] = useState("");
-  const [guestName, setGuestName] = useState("");
-  const [guestEmail, setGuestEmail] = useState("");
-  const [roomOrTable, setRoomOrTable] = useState("");
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   const isEn = locale === "en";
-  const welcomeText: string = config?.welcomeText ?? (isEn ? "We want to make your experience as good as possible. Send us a message below." : "Vi ønsker å gjøre din opplevelse best mulig. Send oss en melding nedenfor.");
-  const showRoomField: boolean = config?.showRoomField ?? false;
-  const roomLabel: string = config?.roomLabel ?? (isEn ? "Room / table" : "Rom / bord");
-  const activeTypes: GuestType[] = config?.activeTypes ?? ["AVVIK", "KLAGE", "MATFORGIFTNING", "SPORSMAAL", "TILBAKEMELDING"];
-  const synligeTyper = GUEST_TYPES.filter((t) => activeTypes.includes(t.value));
+  const meldingUrl = `${appUrl}/tavle/${publicToken}/melding${isEn ? "?lang=en" : ""}`;
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
 
-  function reset() {
-    setStep("type");
-    setSelectedType(null);
-    setMessage("");
-    setGuestName("");
-    setGuestEmail("");
-    setRoomOrTable("");
-    setError(null);
-    setSending(false);
-  }
+  useEffect(() => {
+    import("qrcode").then((QRCode) => {
+      QRCode.toDataURL(meldingUrl, {
+        width: 220,
+        margin: 1,
+        color: { dark: "#0f172a", light: "#ffffff" },
+      }).then(setQrDataUrl);
+    });
+  }, [meldingUrl]);
 
-  function handleClose() {
-    setOpen(false);
-    setTimeout(reset, 300);
-  }
-
-  async function handleSend() {
-    if (!selectedType || !message.trim()) return;
-    setSending(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/hms-tavle/public/${publicToken}/gjest`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: selectedType,
-          message: message.trim(),
-          guestName: guestName.trim() || null,
-          guestEmail: guestEmail.trim() || null,
-          roomOrTable: roomOrTable.trim() || null,
-        }),
-      });
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
-        throw new Error(json.error ?? "Innsending feilet");
-      }
-      setStep("sent");
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setSending(false);
-    }
-  }
-
-  const selectedTypeCfg = GUEST_TYPES.find((t) => t.value === selectedType);
+  const welcomeText: string =
+    (isEn ? config?.welcomeTextEn ?? config?.welcomeText : config?.welcomeText) ??
+    (isEn
+      ? "We want your stay to be as good as possible. Scan the code and send us a message."
+      : "Vi ønsker å gjøre opplevelsen din best mulig. Skann koden og send oss en melding.");
 
   return (
-    <>
-      <Wrapper icon={<MessageSquare className="h-6 w-6" />} title={title ?? "Send melding"}>
-        <div className="flex flex-col items-center justify-center gap-4 h-full py-4">
-          <p className="text-white/70 text-sm text-center leading-relaxed">{welcomeText}</p>
-          <button
-            onClick={() => setOpen(true)}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold px-6 py-3 rounded-xl transition-colors shadow-lg text-sm"
+    <Wrapper icon={<MessageSquare className="h-6 w-6" />} title={title ?? (isEn ? "Send us a message" : "Meld fra til oss")}>
+      <div className="flex items-center gap-5 h-full">
+        <div className="flex-1 min-w-0 space-y-3">
+          <p className="text-white/70 text-sm leading-relaxed">{welcomeText}</p>
+          <a
+            href={meldingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors shadow-lg text-sm"
           >
             <MessageSquare className="h-4 w-4" />
             {isEn ? "Report / Leave feedback" : "Meld fra / Send tilbakemelding"}
-          </button>
-          <p className="text-white/30 text-xs">{isEn ? "No login required" : "Ingen innlogging nødvendig"}</p>
-        </div>
-      </Wrapper>
-
-      {/* Modal */}
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-white/20 rounded-2xl w-full max-w-md shadow-2xl">
-            {/* Modalheader */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5 text-blue-400" />
-                <span className="text-white font-semibold text-base">
-                  {step === "sent" ? "Takk!" : step === "form" && selectedTypeCfg ? `${selectedTypeCfg.emoji} ${selectedTypeCfg.label}` : "Hva vil du melde?"}
-                </span>
-              </div>
-              <button onClick={handleClose} className="text-white/50 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="p-5">
-              {/* Steg 1: Velg type */}
-              {step === "type" && (
-                <div className="space-y-3">
-                  <p className="text-white/60 text-sm">{welcomeText}</p>
-                  <div className="grid grid-cols-1 gap-2">
-                    {synligeTyper.map((t) => (
-                      <button
-                        key={t.value}
-                        onClick={() => { setSelectedType(t.value); setStep("form"); }}
-                        className={cn("flex items-center gap-3 px-4 py-3 rounded-xl border font-medium text-sm transition-colors", t.color)}
-                      >
-                        <span className="text-xl">{t.emoji}</span>
-                        <span>{t.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Steg 2: Fyll inn skjema */}
-              {step === "form" && (
-                <div className="space-y-4">
-                  <button onClick={() => setStep("type")} className="text-blue-400 text-xs hover:text-blue-300 flex items-center gap-1">
-                    ← Endre type
-                  </button>
-
-                  <div>
-                    <label className="text-white/70 text-xs font-medium mb-1 block">Din melding *</label>
-                    <textarea
-                      className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm placeholder-white/30 resize-none focus:outline-none focus:border-blue-400"
-                      rows={4}
-                      placeholder={selectedType === "MATFORGIFTNING" ? "Beskriv symptomer og hva du spiste..." : "Beskriv hva som skjedde..."}
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      maxLength={2000}
-                    />
-                  </div>
-
-                  {showRoomField && (
-                    <div>
-                      <label className="text-white/70 text-xs font-medium mb-1 block">{roomLabel}</label>
-                      <input
-                        className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm placeholder-white/30 focus:outline-none focus:border-blue-400"
-                        placeholder={roomLabel}
-                        value={roomOrTable}
-                        onChange={(e) => setRoomOrTable(e.target.value)}
-                      />
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="text-white/70 text-xs font-medium mb-1 block">Ditt navn (valgfritt)</label>
-                    <input
-                      className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm placeholder-white/30 focus:outline-none focus:border-blue-400"
-                      placeholder="Navn"
-                      value={guestName}
-                      onChange={(e) => setGuestName(e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-white/70 text-xs font-medium mb-1 block">E-post (valgfritt – for svar)</label>
-                    <input
-                      type="email"
-                      className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm placeholder-white/30 focus:outline-none focus:border-blue-400"
-                      placeholder="din@epost.no"
-                      value={guestEmail}
-                      onChange={(e) => setGuestEmail(e.target.value)}
-                    />
-                  </div>
-
-                  {error && <p className="text-red-400 text-xs">{error}</p>}
-
-                  <button
-                    onClick={handleSend}
-                    disabled={sending || !message.trim()}
-                    className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-4 py-3 rounded-xl transition-colors"
-                  >
-                    <Send className="h-4 w-4" />
-                    {sending ? "Sender..." : "Send melding"}
-                  </button>
-                </div>
-              )}
-
-              {/* Steg 3: Kvittering */}
-              {step === "sent" && (
-                <div className="flex flex-col items-center gap-4 py-4 text-center">
-                  <div className="w-16 h-16 rounded-full bg-green-500/20 border border-green-500/40 flex items-center justify-center">
-                    <CheckCircle2 className="h-8 w-8 text-green-400" />
-                  </div>
-                  <div>
-                    <p className="text-white font-semibold text-lg">Meldingen er mottatt!</p>
-                    <p className="text-white/60 text-sm mt-1">Takk for at du tok kontakt. Vi behandler henvendelsen din.</p>
-                    {selectedType === "MATFORGIFTNING" && (
-                      <p className="text-red-400 text-xs mt-2 font-medium">Ved alvorlige symptomer – ring 113 umiddelbart</p>
-                    )}
-                  </div>
-                  <button onClick={handleClose} className="bg-white/10 hover:bg-white/20 text-white px-6 py-2 rounded-lg text-sm transition-colors">
-                    Lukk
-                  </button>
-                </div>
-              )}
-            </div>
+          </a>
+          <div className="flex items-start gap-2 text-white/40 text-xs">
+            <Lock className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+            <p>
+              {isEn
+                ? "Your message is confidential and is never shown to other guests. No login required."
+                : "Meldingen din er konfidensiell og vises aldri til andre gjester. Ingen innlogging nødvendig."}
+            </p>
           </div>
         </div>
-      )}
-    </>
+
+        <div className="shrink-0 flex flex-col items-center gap-2">
+          {qrDataUrl ? (
+            <a href={meldingUrl} target="_blank" rel="noopener noreferrer" className="group">
+              <div className="bg-white rounded-xl p-2 shadow-lg group-hover:scale-105 transition-transform">
+                <img src={qrDataUrl} alt={isEn ? "QR message" : "QR meld fra"} className="w-32 h-32 block" />
+              </div>
+            </a>
+          ) : (
+            <div className="w-32 h-32 bg-white/10 rounded-xl animate-pulse" />
+          )}
+          <p className="text-white/60 text-xs text-center leading-tight">
+            {isEn ? "Scan with\nyour phone" : "Skann med\nmobilen"}
+          </p>
+        </div>
+      </div>
+    </Wrapper>
+  );
+}
+
+// ─── Tillitspanel: anonymiserte tall, aldri saksinnhold ──────────
+// GDPR art. 5: kun aggregerte tall vises offentlig. Tall skjules under
+// TRUST_PANEL_MIN_VOLUME saker slik at enkeltsaker ikke kan utledes.
+
+function GjesteserviceStatusSection({ title, config, stats, locale = "nb" }: {
+  title: string | null;
+  config: any;
+  stats: GuestServiceStats | null;
+  locale?: "nb" | "en";
+}) {
+  const isEn = locale === "en";
+  const servicePromise: string | null =
+    (isEn ? config?.servicePromiseEn ?? config?.servicePromise : config?.servicePromise) ?? null;
+
+  const heading = title ?? (isEn ? "Our service promise" : "Vårt serviceløfte");
+
+  if (!stats || !stats.visible) {
+    return (
+      <Wrapper icon={<ShieldCheck className="h-6 w-6" />} title={heading}>
+        <div className="flex flex-col justify-center h-full gap-3">
+          <p className="text-white/70 text-sm leading-relaxed">
+            {servicePromise ??
+              (isEn
+                ? "We respond to all guest feedback and follow every case through to completion."
+                : "Vi svarer på alle tilbakemeldinger fra gjester og følger hver sak til den er løst.")}
+          </p>
+          <p className="text-white/30 text-xs">
+            {isEn
+              ? "Statistics are shown once enough feedback has been received."
+              : "Statistikk vises når vi har mottatt nok tilbakemeldinger."}
+          </p>
+        </div>
+      </Wrapper>
+    );
+  }
+
+  const svartid =
+    stats.medianResponseMinutes === null
+      ? "–"
+      : stats.medianResponseMinutes < 60
+        ? `${stats.medianResponseMinutes} min`
+        : `${Math.round(stats.medianResponseMinutes / 60)} t`;
+
+  return (
+    <Wrapper icon={<ShieldCheck className="h-6 w-6" />} title={heading}>
+      <div className="flex flex-col justify-center h-full gap-4">
+        {servicePromise && (
+          <p className="text-white/70 text-sm leading-relaxed">{servicePromise}</p>
+        )}
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          <div className="bg-white/10 border border-white/10 rounded-xl px-2 py-3 sm:px-3 text-center">
+            <p className="text-white text-2xl sm:text-3xl font-black tabular-nums leading-none">{stats.total}</p>
+            <p className="text-blue-300 text-[11px] sm:text-xs mt-1 leading-tight">
+              {isEn ? "Messages" : "Tilbakemeldinger"}
+            </p>
+          </div>
+          <div className="bg-white/10 border border-white/10 rounded-xl px-2 py-3 sm:px-3 text-center">
+            <p className="text-green-400 text-2xl sm:text-3xl font-black tabular-nums leading-none">
+              {stats.resolved}
+            </p>
+            <p className="text-blue-300 text-[11px] sm:text-xs mt-1 leading-tight">{isEn ? "Resolved" : "Løst"}</p>
+          </div>
+          <div className="bg-white/10 border border-white/10 rounded-xl px-2 py-3 sm:px-3 text-center">
+            <p className="text-white text-lg sm:text-3xl font-black tabular-nums leading-none whitespace-nowrap">{svartid}</p>
+            <p className="text-blue-300 text-[11px] sm:text-xs mt-1 leading-tight">
+              {isEn ? "Median reply" : "Median svartid"}
+            </p>
+          </div>
+        </div>
+        <p className="text-white/30 text-xs">
+          {isEn
+            ? "Last 30 days. Individual cases are confidential and never shown here."
+            : "Siste 30 dager. Enkeltsaker er konfidensielle og vises aldri her."}
+        </p>
+      </div>
+    </Wrapper>
   );
 }
 
@@ -1464,9 +1717,11 @@ interface TavleDisplayProps {
   publicToken: string;
   forceKiosk: boolean;
   appUrl: string;
+  guestStats: GuestServiceStats | null;
+  liveData?: TavleLiveData | null;
 }
 
-export function TavlePublicDisplay({ tavle, checkins, plan, publicToken, forceKiosk, appUrl }: TavleDisplayProps) {
+export function TavlePublicDisplay({ tavle, checkins, plan, publicToken, forceKiosk, appUrl, guestStats, liveData = null }: TavleDisplayProps) {
   const router = useRouter();
   const [kioskActive, setKioskActive] = useState(forceKiosk);
   const [activeIdx, setActiveIdx] = useState(0);
@@ -1613,7 +1868,7 @@ export function TavlePublicDisplay({ tavle, checkins, plan, publicToken, forceKi
                   config={fokusSection.config}
                   tavle={tavle} checkins={checkins}
                   plan={plan} appUrl={appUrl} publicToken={publicToken}
-                  weatherData={weatherData} locale={locale}
+                  weatherData={weatherData} locale={locale} guestStats={guestStats} liveData={liveData}
                 />
               </div>
             )}
@@ -1624,7 +1879,7 @@ export function TavlePublicDisplay({ tavle, checkins, plan, publicToken, forceKi
                 {otherFastSections.map((s: any) => (
                   <SectionCard key={s.id} type={s.type} title={s.title} config={s.config}
                     tavle={tavle} checkins={checkins} plan={plan} appUrl={appUrl}
-                    publicToken={publicToken} weatherData={weatherData} locale={locale}
+                    publicToken={publicToken} weatherData={weatherData} locale={locale} guestStats={guestStats} liveData={liveData}
                   />
                 ))}
               </div>
@@ -1642,7 +1897,7 @@ export function TavlePublicDisplay({ tavle, checkins, plan, publicToken, forceKi
                     config={riggplanSection.config}
                     tavle={tavle} checkins={checkins}
                     plan={plan} appUrl={appUrl} publicToken={publicToken}
-                    weatherData={weatherData} locale={locale}
+                    weatherData={weatherData} locale={locale} guestStats={guestStats} liveData={liveData}
                   />
                 </div>
               )}
@@ -1658,7 +1913,7 @@ export function TavlePublicDisplay({ tavle, checkins, plan, publicToken, forceKi
                         config={rotatingSections[activeIdx].config}
                         tavle={tavle} checkins={checkins}
                         plan={plan} appUrl={appUrl} publicToken={publicToken}
-                        weatherData={weatherData} locale={locale}
+                        weatherData={weatherData} locale={locale} guestStats={guestStats} liveData={liveData}
                       />
                     ) : null}
                   </div>
@@ -1686,19 +1941,19 @@ export function TavlePublicDisplay({ tavle, checkins, plan, publicToken, forceKi
     <div className="min-h-screen" style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #1e1b4b 100%)" }}>
 
       {/* Header */}
-      <div className="border-b border-white/10 px-4 py-3 flex items-center gap-3 sticky top-0 z-10 backdrop-blur bg-slate-900/80">
+      <div className="border-b border-white/10 px-3 sm:px-4 py-3 flex flex-wrap items-center gap-x-3 gap-y-2 sticky top-0 z-10 backdrop-blur bg-slate-900/80">
         {/* Logo + navn */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 min-w-0 flex-1 lg:flex-none">
           <TavleLogo logoUrl={tavle.logoUrl} name={tavle.name} />
-          <div>
-            <h1 className="text-white font-bold text-sm leading-tight">{tavle.name}</h1>
-            {tavle.project?.name && <p className="text-blue-300 text-xs">{tavle.project.name}</p>}
+          <div className="min-w-0">
+            <h1 className="text-white font-bold text-sm leading-tight truncate">{tavle.name}</h1>
+            {tavle.project?.name && <p className="text-blue-300 text-xs truncate">{tavle.project.name}</p>}
           </div>
         </div>
 
-        {/* Mannskap + QR — midt i headeren */}
+        {/* Mannskap + QR — midt i headeren på store skjermer, egen rad på mobil */}
         {plan !== "ENKEL" && (
-          <div className="flex-1 flex items-center justify-center">
+          <div className="order-last w-full lg:order-none lg:w-auto lg:flex-1 flex items-center lg:justify-center">
             <HeaderMannskapsBlock
               checkins={checkins}
               publicToken={publicToken}
@@ -1708,7 +1963,7 @@ export function TavlePublicDisplay({ tavle, checkins, plan, publicToken, forceKi
         )}
 
         {/* Høyre: vær, klokke, knapper */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center justify-end gap-2 shrink-0 ml-auto">
           {/* Språkvelger */}
           <div className="flex rounded-lg border border-white/20 overflow-hidden text-xs">
             <button onClick={() => setLocale("nb")} className={`px-2 py-1 transition-colors ${locale === "nb" ? "bg-white/20 text-white font-semibold" : "text-white/50 hover:bg-white/10"}`}>NO</button>
@@ -1721,7 +1976,7 @@ export function TavlePublicDisplay({ tavle, checkins, plan, publicToken, forceKi
               {weatherLocation && <span className="text-blue-300 text-xs hidden sm:block">{weatherLocation}</span>}
             </div>
           )}
-          <div className="flex items-center gap-1.5 text-sm text-white/60">
+          <div className="hidden sm:flex items-center gap-1.5 text-sm text-white/60">
             <Clock className="h-3.5 w-3.5" />
             <LiveClock />
           </div>
@@ -1736,21 +1991,21 @@ export function TavlePublicDisplay({ tavle, checkins, plan, publicToken, forceKi
         </div>
       </div>
 
-      {/* To-kolonner: fast venstre + grid høyre */}
-      <div className="flex gap-4 p-4 max-w-7xl mx-auto">
-        <div className="w-64 shrink-0">
+      {/* To-kolonner på store skjermer, stablet på mobil */}
+      <div className="flex flex-col lg:flex-row gap-4 p-3 sm:p-4 max-w-7xl mx-auto">
+        <div className="w-full lg:w-64 lg:shrink-0">
           <FixedSidebar
             tavle={tavle} checkins={checkins} isAddon={isAddon}
             publicToken={publicToken} plan={plan} appUrl={appUrl}
           />
         </div>
-        <div className="flex-1 space-y-4">
+        <div className="flex-1 min-w-0 space-y-4">
           {/* Fokus-seksjon øverst */}
           {fokusSection && (
             <SectionCard
               type={fokusSection.type} title={fokusSection.title} config={fokusSection.config}
               tavle={tavle} checkins={checkins} plan={plan} appUrl={appUrl}
-              publicToken={publicToken} weatherData={weatherData} locale={locale}
+              publicToken={publicToken} weatherData={weatherData} locale={locale} guestStats={guestStats} liveData={liveData}
             />
           )}
           {/* Fast-seksjoner */}
@@ -1759,7 +2014,7 @@ export function TavlePublicDisplay({ tavle, checkins, plan, publicToken, forceKi
               {otherFastSections.map((s: any) => (
                 <SectionCard key={s.id} type={s.type} title={s.title} config={s.config}
                   tavle={tavle} checkins={checkins} plan={plan} appUrl={appUrl}
-                  publicToken={publicToken} weatherData={weatherData} locale={locale}
+                  publicToken={publicToken} weatherData={weatherData} locale={locale} guestStats={guestStats} liveData={liveData}
                 />
               ))}
             </div>
@@ -1774,7 +2029,7 @@ export function TavlePublicDisplay({ tavle, checkins, plan, publicToken, forceKi
               <SectionCard
                 type={section.type} title={section.title} config={section.config}
                 tavle={tavle} checkins={checkins} plan={plan} appUrl={appUrl}
-                publicToken={publicToken} weatherData={weatherData} locale={locale}
+                publicToken={publicToken} weatherData={weatherData} locale={locale} guestStats={guestStats} liveData={liveData}
               />
             </div>
           ))}

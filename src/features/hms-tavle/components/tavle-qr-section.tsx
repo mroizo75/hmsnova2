@@ -5,14 +5,18 @@ import QRCode from "qrcode";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, QrCode, Users, FileText } from "lucide-react";
+import { Download, QrCode, Users, FileText, MessageSquare } from "lucide-react";
 import { HmsTavlePlan } from "@prisma/client";
+import { TavleRomQr } from "./tavle-rom-qr";
 
 interface Props {
   tavleUrl: string;
   portalUrl: string | null;
   checkinUrl: string;
   plan: HmsTavlePlan;
+  hasGuestForm: boolean;
+  tenantName: string;
+  logoUrl: string | null;
 }
 
 function QrDisplay({ url, label }: { url: string; label: string }) {
@@ -39,7 +43,7 @@ function QrDisplay({ url, label }: { url: string; label: string }) {
 
   return (
     <div className="flex flex-col items-center gap-3 p-4 border rounded-lg">
-      <canvas ref={canvasRef} className="rounded" />
+      <canvas ref={canvasRef} className="rounded max-w-full h-auto" />
       <p className="text-sm font-medium text-center">{label}</p>
       <p className="text-xs text-muted-foreground font-mono text-center break-all max-w-[200px]">
         {url}
@@ -52,7 +56,15 @@ function QrDisplay({ url, label }: { url: string; label: string }) {
   );
 }
 
-export function TavleQrSection({ tavleUrl, portalUrl, checkinUrl, plan }: Props) {
+export function TavleQrSection({
+  tavleUrl,
+  portalUrl,
+  checkinUrl,
+  plan,
+  hasGuestForm,
+  tenantName,
+  logoUrl,
+}: Props) {
   const hasCheckin = plan !== "ENKEL";
   const hasPortal = plan !== "ENKEL";
 
@@ -96,7 +108,10 @@ export function TavleQrSection({ tavleUrl, portalUrl, checkinUrl, plan }: Props)
             <CardContent>
               <QrDisplay url={checkinUrl} label="Innsjekk" />
               <p className="text-xs text-muted-foreground mt-2">
-                Oppfyller Byggherreforskriften § 15 – elektronisk oversiktsliste
+                Elektronisk føring av navn, fødselsdato, arbeidsgiver og HMS-kortnummer
+                etter Byggherreforskriften § 15 bokstav e. Byggherren må selv sørge for
+                opplysningene i bokstav a–d og oppbevare listen i seks måneder etter at
+                arbeidet er avsluttet.
               </p>
             </CardContent>
           </Card>
@@ -119,6 +134,23 @@ export function TavleQrSection({ tavleUrl, portalUrl, checkinUrl, plan }: Props)
           </Card>
         )}
 
+        {hasGuestForm && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-purple-600" />
+                Meld fra (gjest)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <QrDisplay url={`${tavleUrl}/melding`} label="Meld fra" />
+              <p className="text-xs text-muted-foreground mt-2">
+                Gjester melder fra uten innlogging. Meldingen er konfidensiell.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         {!hasPortal && (
           <Card className="border-dashed opacity-60">
             <CardContent className="p-6 text-center text-sm text-muted-foreground">
@@ -127,6 +159,10 @@ export function TavleQrSection({ tavleUrl, portalUrl, checkinUrl, plan }: Props)
           </Card>
         )}
       </div>
+
+      {hasGuestForm && (
+        <TavleRomQr tavleUrl={tavleUrl} plan={plan} tenantName={tenantName} logoUrl={logoUrl} />
+      )}
     </div>
   );
 }

@@ -87,6 +87,18 @@ export default async function TavleAdminPage({ params, searchParams }: Props) {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://hmsnova.no";
 
+  // Ansvarlige som kan tildeles gjestmeldinger
+  const medlemmer = await prisma.userTenant.findMany({
+    where: { tenantId: auth.tenantId, role: { in: ["ADMIN", "HMS", "LEDER", "VERNEOMBUD"] } },
+    select: { userId: true, user: { select: { name: true, email: true } } },
+    orderBy: { role: "asc" },
+  });
+
+  const teamMembers = medlemmer.map((medlem) => ({
+    id: medlem.userId,
+    name: medlem.user.name ?? medlem.user.email ?? "Ukjent bruker",
+  }));
+
   return (
     <TavleAdminClient
       tavle={JSON.parse(JSON.stringify(tavle))}
@@ -97,6 +109,7 @@ export default async function TavleAdminPage({ params, searchParams }: Props) {
       isAddon={subscription.isAddon}
       appUrl={appUrl}
       defaultTab={tab}
+      teamMembers={teamMembers}
     />
   );
 }

@@ -90,7 +90,8 @@ export function TavleUePortalConfig({
         <h3 className="font-semibold">Underentreprenør-portal</h3>
         <p className="text-sm text-muted-foreground">
           Underentreprenører kan sende inn avvik, RUH, SJA og PDF-rapporter uten å opprette
-          HMS Nova-konto. Oppfyller Byggherreforskriften § 18.
+          HMS Nova-konto. Støtter arbeidsgiverens plikt til å informere byggherren om
+          risikoforhold etter Byggherreforskriften § 18.
         </p>
       </div>
 
@@ -124,7 +125,7 @@ export function TavleUePortalConfig({
           {[
             { key: "allowAvvik", label: "Avvik", desc: "AML § 5-2, IK-HMS § 5" },
             { key: "allowRuh", label: "RUH – Rapport om uønsket hendelse", desc: "Nestenulykker og observasjoner" },
-            { key: "allowSja", label: "SJA – Sikker jobb-analyse", desc: "Byggherreforskriften § 18" },
+            { key: "allowSja", label: "SJA – Sikker jobb-analyse", desc: "Byggherreforskriften § 18 andre ledd" },
             { key: "allowPdfUpload", label: "PDF-rapport opplasting", desc: "Fra UEs eget HMS-system (Synergi, EHS osv.)" },
           ].map(({ key, label, desc }) => (
             <div key={key} className="flex items-center justify-between">

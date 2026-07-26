@@ -82,49 +82,49 @@ model User {
   lockedUntil         DateTime?
   lastLoginAttempt    DateTime?
 
-  accounts                  Account[]
-  sessions                  Session[]
-  tenants                   UserTenant[]
-  blogPosts                 BlogPost[] // Blogg-artikler skrevet av bruker
-  passwordResetTokens       PasswordResetToken[]
-  meetingParticipants       MeetingParticipant[]           @relation("MeetingParticipants")
-  meetingDecisions          MeetingDecision[]              @relation("MeetingDecisions")
-  documentsApproved         Document[]                     @relation("DocumentApprovedBy")
-  ownedDocuments            Document[]                     @relation("DocumentOwner")
-  ownedRisks                Risk[]                         @relation("RiskOwner")
-  riskControlsOwned         RiskControl[]                  @relation("RiskControlOwner")
-  securityAssetsOwned       SecurityAsset[]                @relation("SecurityAssetOwner")
-  securityControlsOwned     SecurityControl[]              @relation("SecurityControlOwner")
-  securityEvidenceCollected SecurityEvidence[]             @relation("SecurityEvidenceCollector")
-  environmentalAspects      EnvironmentalAspect[]          @relation("EnvironmentalAspectOwner")
-  measures                  Measure[]                      @relation("MeasureResponsible")
-  environmentalMeasurements EnvironmentalMeasurement[]     @relation("EnvironmentalMeasurementResponsible")
-  accessReviewsOwned        AccessReview[]                 @relation("AccessReviewOwner")
-  accessReviewDecisions     AccessReviewEntry[]            @relation("AccessReviewDecider")
-  feedbackRecorded          CustomerFeedback[]             @relation("FeedbackRecorder")
-  feedbackFollowUp          CustomerFeedback[]             @relation("FeedbackFollowUpOwner")
-  notifications             Notification[]
-  notificationPushTokens    NotificationPushToken[]
-  scheduledReminders        ScheduledReminder[]            @relation("UserReminders")
-  hmsAnnualPlanCompletions  HmsAnnualPlanCompletion[]
-  formSubmissions           FormSubmission[]
-  projectsCreated           Project[]                      @relation("ProjectCreatedBy")
-  projectsManaged           Project[]                      @relation("ProjectManager")
-  timeEntries               TimeEntry[]
-  editedTimeEntries         TimeEntry[]                    @relation("TimeEntryEditedBy")
-  mileageEntries            MileageEntry[]
-  editedMileageEntries      MileageEntry[]                 @relation("MileageEntryEditedBy")
-  constructionRosterChecks  ConstructionRosterDailyCheck[] @relation("ConstructionRosterCheckedBy")
-  exposureRegisters         ExposureRegister[]             @relation("ExposureRegisterEmployee")
-  routinesResponsible       Routine[]                      @relation("RoutineResponsible")
-  electroComplianceCreated  ElectroComplianceDeclaration[] @relation("ElectroComplianceCreatedBy")
-  routineUploadedDocumentsCreated RoutineUploadedDocument[]  @relation("RoutineUploadedDocumentCreatedBy")
-  documentSignatures        DocumentSignature[]            @relation("DocumentSignatures")
-  dashboardConfigs          DashboardConfig[]
-  employeeReviews           EmployeeReview[]               @relation("EmployeeReviews")
-  conductedReviews          EmployeeReview[]               @relation("ReviewerReviews")
-  createdAt                 DateTime                       @default(now())
-  updatedAt                 DateTime                       @updatedAt
+  accounts                        Account[]
+  sessions                        Session[]
+  tenants                         UserTenant[]
+  blogPosts                       BlogPost[] // Blogg-artikler skrevet av bruker
+  passwordResetTokens             PasswordResetToken[]
+  meetingParticipants             MeetingParticipant[]           @relation("MeetingParticipants")
+  meetingDecisions                MeetingDecision[]              @relation("MeetingDecisions")
+  documentsApproved               Document[]                     @relation("DocumentApprovedBy")
+  ownedDocuments                  Document[]                     @relation("DocumentOwner")
+  ownedRisks                      Risk[]                         @relation("RiskOwner")
+  riskControlsOwned               RiskControl[]                  @relation("RiskControlOwner")
+  securityAssetsOwned             SecurityAsset[]                @relation("SecurityAssetOwner")
+  securityControlsOwned           SecurityControl[]              @relation("SecurityControlOwner")
+  securityEvidenceCollected       SecurityEvidence[]             @relation("SecurityEvidenceCollector")
+  environmentalAspects            EnvironmentalAspect[]          @relation("EnvironmentalAspectOwner")
+  measures                        Measure[]                      @relation("MeasureResponsible")
+  environmentalMeasurements       EnvironmentalMeasurement[]     @relation("EnvironmentalMeasurementResponsible")
+  accessReviewsOwned              AccessReview[]                 @relation("AccessReviewOwner")
+  accessReviewDecisions           AccessReviewEntry[]            @relation("AccessReviewDecider")
+  feedbackRecorded                CustomerFeedback[]             @relation("FeedbackRecorder")
+  feedbackFollowUp                CustomerFeedback[]             @relation("FeedbackFollowUpOwner")
+  notifications                   Notification[]
+  notificationPushTokens          NotificationPushToken[]
+  scheduledReminders              ScheduledReminder[]            @relation("UserReminders")
+  hmsAnnualPlanCompletions        HmsAnnualPlanCompletion[]
+  formSubmissions                 FormSubmission[]
+  projectsCreated                 Project[]                      @relation("ProjectCreatedBy")
+  projectsManaged                 Project[]                      @relation("ProjectManager")
+  timeEntries                     TimeEntry[]
+  editedTimeEntries               TimeEntry[]                    @relation("TimeEntryEditedBy")
+  mileageEntries                  MileageEntry[]
+  editedMileageEntries            MileageEntry[]                 @relation("MileageEntryEditedBy")
+  constructionRosterChecks        ConstructionRosterDailyCheck[] @relation("ConstructionRosterCheckedBy")
+  exposureRegisters               ExposureRegister[]             @relation("ExposureRegisterEmployee")
+  routinesResponsible             Routine[]                      @relation("RoutineResponsible")
+  electroComplianceCreated        ElectroComplianceDeclaration[] @relation("ElectroComplianceCreatedBy")
+  routineUploadedDocumentsCreated RoutineUploadedDocument[]      @relation("RoutineUploadedDocumentCreatedBy")
+  documentSignatures              DocumentSignature[]            @relation("DocumentSignatures")
+  dashboardConfigs                DashboardConfig[]
+  employeeReviews                 EmployeeReview[]               @relation("EmployeeReviews")
+  conductedReviews                EmployeeReview[]               @relation("ReviewerReviews")
+  createdAt                       DateTime                       @default(now())
+  updatedAt                       DateTime                       @updatedAt
 
   @@index([email])
   @@index([isSuperAdmin])
@@ -210,122 +210,122 @@ model Tenant {
   azureAdAutoRole    Role? // Standard rolle for nye brukere fra Azure AD
 
   // Avtaleaksept ved registrering
-  termsAcceptedAt        DateTime? // Tidspunkt kunden godtok vilkår og abonnementsavtale
-  angrerrettInfoAt       DateTime? // Tidspunkt kunden bekreftet å ha lest angreretten
-  contractAcceptedIp     String?   // IP-adresse ved aksept (ikke-sensitiv, for bevis)
+  termsAcceptedAt    DateTime? // Tidspunkt kunden godtok vilkår og abonnementsavtale
+  angrerrettInfoAt   DateTime? // Tidspunkt kunden bekreftet å ha lest angreretten
+  contractAcceptedIp String? // IP-adresse ved aksept (ikke-sensitiv, for bevis)
 
   // Bransjekurs.no integrasjon
   bransjekursEnabled     Boolean   @default(false) // Bedriften har kursavtale via HMS Nova
   bransjekursActivatedAt DateTime? // Tidspunkt avtalen ble aktivert av admin
   bransjekursLastSyncAt  DateTime? // Siste vellykkede brukersynk til Bransjekurs.no
 
-  users                        UserTenant[]
-  activities                   TenantActivity[]
-  documents                    Document[]
-  documentVersions             DocumentVersion[]
-  documentTemplates            DocumentTemplate[]
-  electroComplianceDeclarations ElectroComplianceDeclaration[]
-  routineUploadedDocuments      RoutineUploadedDocument[]
-  risks                        Risk[]
-  riskAssessments              RiskAssessment[]
-  riskControls                 RiskControl[]
-  riskDocumentLinks            RiskDocumentLink[]
-  riskAuditLinks               RiskAuditLink[]
-  riskChemicalLinks            RiskChemicalLink[]
-  riskTrainingRequirements     RiskTrainingRequirement[]
-  securityAssets               SecurityAsset[]
-  securityControls             SecurityControl[]
-  securityControlDocuments     SecurityControlDocument[]
-  securityEvidences            SecurityEvidence[]
-  accessReviews                AccessReview[]
-  accessReviewEntries          AccessReviewEntry[]
-  customerFeedbacks            CustomerFeedback[]
-  incidents                    Incident[]
-  trainings                    Training[]
-  courseTemplates              CourseTemplate[]
-  actions                      Measure[]
-  environmentalAspects         EnvironmentalAspect[]
-  environmentalMeasurements    EnvironmentalMeasurement[]
-  audits                       Audit[]
-  goals                        Goal[]
-  chemicals                    Chemical[]
-  attachments                  Attachment[]
-  auditLogs                    AuditLog[]
-  subscription                 Subscription?
-  offers                       TenantOffer[]
-  invoices                     Invoice[]
-  formTemplates                FormTemplate[] // Digital forms
-  notifications                Notification[]
-  notificationPushTokens       NotificationPushToken[]
-  formSubmissions              FormSubmission[] // Digital forms
-  kpiMeasurements              KpiMeasurement[] // KPI målinger
-  inspections                  Inspection[] // Vernerunde/Inspeksjoner
-  inspectionTemplates          InspectionTemplate[]
-  routineTemplates             RoutineTemplate[]
-  routines                     Routine[]
-  managementReviews            ManagementReview[] // Ledelsens gjennomgang
-  meetings                     Meeting[] // AMU/VO møter
-  whistleblowings              Whistleblowing[] // Varslinger
-  scheduledReminders           ScheduledReminder[] // Planlagte påminnelser
-  bhtClient                    BhtClient? // BHT-kunde (hvis aktivert)
-  navigationItems              NavigationItem[] // Meny-konfigurasjoner
-  simpleMenuItems              Json? // Hrefs som vises i enkel meny (null = standard)
-  dashboardLocked              Boolean @default(false) // Admin kan låse dashboardet for alle ansatte
-  lockedDashboardConfig        Json? // Widget-konfig som brukes av alle når dashboardet er låst
-  moduleVisibilityConfig       Json? // Hvilke roller kan se hvert modul (null = systemstandard)
-  hmsAnnualPlanCompletions     HmsAnnualPlanCompletion[] // Avkryssing av årlig HMS-plan (sjekkliste)
+  users                               UserTenant[]
+  activities                          TenantActivity[]
+  documents                           Document[]
+  documentVersions                    DocumentVersion[]
+  documentTemplates                   DocumentTemplate[]
+  electroComplianceDeclarations       ElectroComplianceDeclaration[]
+  routineUploadedDocuments            RoutineUploadedDocument[]
+  risks                               Risk[]
+  riskAssessments                     RiskAssessment[]
+  riskControls                        RiskControl[]
+  riskDocumentLinks                   RiskDocumentLink[]
+  riskAuditLinks                      RiskAuditLink[]
+  riskChemicalLinks                   RiskChemicalLink[]
+  riskTrainingRequirements            RiskTrainingRequirement[]
+  securityAssets                      SecurityAsset[]
+  securityControls                    SecurityControl[]
+  securityControlDocuments            SecurityControlDocument[]
+  securityEvidences                   SecurityEvidence[]
+  accessReviews                       AccessReview[]
+  accessReviewEntries                 AccessReviewEntry[]
+  customerFeedbacks                   CustomerFeedback[]
+  incidents                           Incident[]
+  trainings                           Training[]
+  courseTemplates                     CourseTemplate[]
+  actions                             Measure[]
+  environmentalAspects                EnvironmentalAspect[]
+  environmentalMeasurements           EnvironmentalMeasurement[]
+  audits                              Audit[]
+  goals                               Goal[]
+  chemicals                           Chemical[]
+  attachments                         Attachment[]
+  auditLogs                           AuditLog[]
+  subscription                        Subscription?
+  offers                              TenantOffer[]
+  invoices                            Invoice[]
+  formTemplates                       FormTemplate[] // Digital forms
+  notifications                       Notification[]
+  notificationPushTokens              NotificationPushToken[]
+  formSubmissions                     FormSubmission[] // Digital forms
+  kpiMeasurements                     KpiMeasurement[] // KPI målinger
+  inspections                         Inspection[] // Vernerunde/Inspeksjoner
+  inspectionTemplates                 InspectionTemplate[]
+  routineTemplates                    RoutineTemplate[]
+  routines                            Routine[]
+  managementReviews                   ManagementReview[] // Ledelsens gjennomgang
+  meetings                            Meeting[] // AMU/VO møter
+  whistleblowings                     Whistleblowing[] // Varslinger
+  scheduledReminders                  ScheduledReminder[] // Planlagte påminnelser
+  bhtClient                           BhtClient? // BHT-kunde (hvis aktivert)
+  navigationItems                     NavigationItem[] // Meny-konfigurasjoner
+  simpleMenuItems                     Json? // Hrefs som vises i enkel meny (null = standard)
+  dashboardLocked                     Boolean                        @default(false) // Admin kan låse dashboardet for alle ansatte
+  lockedDashboardConfig               Json? // Widget-konfig som brukes av alle når dashboardet er låst
+  moduleVisibilityConfig              Json? // Hvilke roller kan se hvert modul (null = systemstandard)
+  hmsAnnualPlanCompletions            HmsAnnualPlanCompletion[] // Avkryssing av årlig HMS-plan (sjekkliste)
   // Timeregistrering (prosjekter, timer, kjøring)
-  timeRegistrationEnabled      Boolean                        @default(false) // Aktiver modul per tenant
-  weeklyHoursNorm              Float                          @default(37.5) // Ordinær uke (timer)
-  overtime50Multiplier         Float                          @default(1.5) // Overtid 50 % = 1.5x
-  overtime40Multiplier         Float                          @default(1.4) // Overtid 40 % = 1.4x (kundespesifikk)
-  overtime100Multiplier        Float                          @default(2) // Overtid 100 % = 2x
-  useOvertime40Percent         Boolean                        @default(false) // Bruk 40 % i stedet for 50 % hverdag
-  defaultKmRate                Float                          @default(4.5) // Standard kr/km
-  kmAllowanceTaxable           Boolean                        @default(false) // true = overskudd over 3,50 kr/km skattes, false = km utenom
-  lunchBreakMinutes            Int                            @default(30) // Lunsj som trekkes fra klokketimer (0 = ingen)
-  eveningOvertimeFromHour      Int? // Fra denne kl (man–fre) = 100 % overtid. Null = alt 50 %
-  saturdayOvertime40LimitHours Float? // Lørdag: første X t ved 40 %, resten 100 %. Null = alt 100 %
-  defaultHourlyRate            Float? // Timelønn (N.Rate) for ca. utbetaling. Null = skjul
-  approximateTaxPercent        Float? // Ca. skatt i % (f.eks. 25). Brukes for ca. utbetaling
-  constructionDailyCheckAlertsEnabled Boolean @default(true) // Varsling ved manglende daglig kontroll i bygg/anlegg
-  constructionDailyCheckAlertRole Role @default(HMS) // Hvilken rolle som varsles for bygg/anlegg-kontroll
+  timeRegistrationEnabled             Boolean                        @default(false) // Aktiver modul per tenant
+  weeklyHoursNorm                     Float                          @default(37.5) // Ordinær uke (timer)
+  overtime50Multiplier                Float                          @default(1.5) // Overtid 50 % = 1.5x
+  overtime40Multiplier                Float                          @default(1.4) // Overtid 40 % = 1.4x (kundespesifikk)
+  overtime100Multiplier               Float                          @default(2) // Overtid 100 % = 2x
+  useOvertime40Percent                Boolean                        @default(false) // Bruk 40 % i stedet for 50 % hverdag
+  defaultKmRate                       Float                          @default(4.5) // Standard kr/km
+  kmAllowanceTaxable                  Boolean                        @default(false) // true = overskudd over 3,50 kr/km skattes, false = km utenom
+  lunchBreakMinutes                   Int                            @default(30) // Lunsj som trekkes fra klokketimer (0 = ingen)
+  eveningOvertimeFromHour             Int? // Fra denne kl (man–fre) = 100 % overtid. Null = alt 50 %
+  saturdayOvertime40LimitHours        Float? // Lørdag: første X t ved 40 %, resten 100 %. Null = alt 100 %
+  defaultHourlyRate                   Float? // Timelønn (N.Rate) for ca. utbetaling. Null = skjul
+  approximateTaxPercent               Float? // Ca. skatt i % (f.eks. 25). Brukes for ca. utbetaling
+  constructionDailyCheckAlertsEnabled Boolean                        @default(true) // Varsling ved manglende daglig kontroll i bygg/anlegg
+  constructionDailyCheckAlertRole     Role                           @default(HMS) // Hvilken rolle som varsles for bygg/anlegg-kontroll
   // Digital HMS Tavle
-  isTavleOnly                  Boolean                        @default(false) // true = kun tavle-abonnement, ikke full HMS Nova
-  hmsTavler                    HmsTavle[]
-  tavleSubscription            HmsTavleSubscription?
-  projects                     Project[]
-  constructionShaPlans         ConstructionShaPlan[]
-  constructionPreNotifications ConstructionPreNotification[]
-  constructionRosterEntries    ConstructionRosterEntry[]
-  constructionRosterChecks     ConstructionRosterDailyCheck[]
-  timeEntries                  TimeEntry[]
-  mileageEntries               MileageEntry[]
-  sequences                    TenantSequence[]
-  ruhReports                   RuhReport[]
-  incidentSubcategoryOptions   IncidentSubcategoryOption[]
-  sjaAnalyses                  SjaAnalysis[]
-  sjaTemplates                 SjaTemplate[]
-  exposureRegisters            ExposureRegister[]
-  documentSignatures           DocumentSignature[]
-  orgChartNodes                OrgChartNode[]
-  dashboardConfigs             DashboardConfig[]
-  fireDrills                   FireDrill[]
-  employeeReviews              EmployeeReview[]
-  haccpPlans                   HaccpPlan[]
-  temperaturLogs               TemperaturLog[]
-  allergenOversikter           AllergenOversikt[]
-  mattilsynetInspeksjoner      MattilsynetInspeksjon[]
-  gjesteHendelser              GjesteHendelse[]
-  hotellEvakueringsplaner      HotellEvakueringsplan[]
-  aktivitetssjekker            AktivitetsUtstyrssjekk[]
-  transportJournaler           TransportJournal[]
-  bhtAvtaler                   BhtAvtale[]
-  nattarbeidVurderinger        NattarbeidVurdering[]
-  sjaforDokumenter             SjaforDokument[]
-  loyveRegister                LoyveRegister[]
-  createdAt                    DateTime                       @default(now())
-  updatedAt                    DateTime                       @updatedAt
+  isTavleOnly                         Boolean                        @default(false) // true = kun tavle-abonnement, ikke full HMS Nova
+  hmsTavler                           HmsTavle[]
+  tavleSubscription                   HmsTavleSubscription?
+  projects                            Project[]
+  constructionShaPlans                ConstructionShaPlan[]
+  constructionPreNotifications        ConstructionPreNotification[]
+  constructionRosterEntries           ConstructionRosterEntry[]
+  constructionRosterChecks            ConstructionRosterDailyCheck[]
+  timeEntries                         TimeEntry[]
+  mileageEntries                      MileageEntry[]
+  sequences                           TenantSequence[]
+  ruhReports                          RuhReport[]
+  incidentSubcategoryOptions          IncidentSubcategoryOption[]
+  sjaAnalyses                         SjaAnalysis[]
+  sjaTemplates                        SjaTemplate[]
+  exposureRegisters                   ExposureRegister[]
+  documentSignatures                  DocumentSignature[]
+  orgChartNodes                       OrgChartNode[]
+  dashboardConfigs                    DashboardConfig[]
+  fireDrills                          FireDrill[]
+  employeeReviews                     EmployeeReview[]
+  haccpPlans                          HaccpPlan[]
+  temperaturLogs                      TemperaturLog[]
+  allergenOversikter                  AllergenOversikt[]
+  mattilsynetInspeksjoner             MattilsynetInspeksjon[]
+  gjesteHendelser                     GjesteHendelse[]
+  hotellEvakueringsplaner             HotellEvakueringsplan[]
+  aktivitetssjekker                   AktivitetsUtstyrssjekk[]
+  transportJournaler                  TransportJournal[]
+  bhtAvtaler                          BhtAvtale[]
+  nattarbeidVurderinger               NattarbeidVurdering[]
+  sjaforDokumenter                    SjaforDokument[]
+  loyveRegister                       LoyveRegister[]
+  createdAt                           DateTime                       @default(now())
+  updatedAt                           DateTime                       @updatedAt
 
   @@index([status])
   @@index([fikenCompanyId])
@@ -787,14 +787,14 @@ model DocumentTemplate {
 /// Digital signatur på dokument (IK-HMS § 5: dokumenter skal signeres av ansvarlige)
 /// Hver signatur inneholder hvem som signerte, rolle, tidspunkt og selve signaturbilde (base64 data-URL).
 model DocumentSignature {
-  id           String              @id @default(cuid())
+  id           String             @id @default(cuid())
   tenantId     String
   documentId   String
   signedById   String
   role         DocumentSignerRole
-  signatureImg String              @db.MediumText // base64 data-URL fra SignaturePad
-  comment      String?             @db.Text
-  signedAt     DateTime            @default(now())
+  signatureImg String             @db.MediumText // base64 data-URL fra SignaturePad
+  comment      String?            @db.Text
+  signedAt     DateTime           @default(now())
 
   tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
@@ -814,15 +814,15 @@ enum DocumentSignerRole {
 /// Organisasjonskart – hierarkisk trestruktur (AML § 3-1: organisering av HMS-ansvar)
 /// Selvhenvisende: parentId peker på overordnet node. Null = rotnode.
 model OrgChartNode {
-  id          String   @id @default(cuid())
-  tenantId    String
-  parentId    String? // Null = rotnode (øverste leder)
-  title       String // Stillingstittel / rolle (f.eks. "Daglig leder")
-  name        String? // Navn på person i rollen
-  department  String? // Avdeling
-  sortOrder   Int      @default(0) // Rekkefølge blant søsken
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  tenantId   String
+  parentId   String? // Null = rotnode (øverste leder)
+  title      String // Stillingstittel / rolle (f.eks. "Daglig leder")
+  name       String? // Navn på person i rollen
+  department String? // Avdeling
+  sortOrder  Int      @default(0) // Rekkefølge blant søsken
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   parent   OrgChartNode?  @relation("OrgChartHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
@@ -904,7 +904,7 @@ model LegalReference {
 
 /// Årlig eller periodisk risikovurdering (f.eks. "Risikovurdering 2026"). ISO 45001: systematisk vurdering med identifiserte risikopunkter.
 model RiskAssessment {
-  id             String @id @default(cuid())
+  id             String  @id @default(cuid())
   tenantId       String
   projectId      String?
   title          String // f.eks. "Risikovurdering 2026"
@@ -924,9 +924,9 @@ model RiskAssessment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  risks  Risk[]
+  risks   Risk[]
 
   @@index([tenantId])
   @@index([projectId])
@@ -2417,17 +2417,17 @@ model Inspection {
 }
 
 model InspectionTemplate {
-  id           String        @id @default(cuid())
-  tenantId     String?
-  name         String
-  description  String?       @db.Text
-  category     String?
-  riskCategory RiskCategory?
-  checklist    Json?
+  id            String        @id @default(cuid())
+  tenantId      String?
+  name          String
+  description   String?       @db.Text
+  category      String?
+  riskCategory  RiskCategory?
+  checklist     Json?
   industryScope Json? // ["all"] eller ["construction", "healthcare"]
-  isGlobal     Boolean       @default(false)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  isGlobal      Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   tenant      Tenant?      @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   inspections Inspection[] @relation("TemplateInspections")
@@ -3183,6 +3183,10 @@ enum NotificationType {
   DAILY_DIGEST // Daglig sammendrag
   WEEKLY_DIGEST // Ukentlig sammendrag
   SYSTEM_ALERT // Systemvarsel
+
+  // Nye verdier må legges bakerst: MySQL kan da utvide ENUM in-place uten å
+  // bygge om Notification-tabellen. Innsetting midt i listen tvinger full kopi.
+  GUEST_SUBMISSION // Ny gjestmelding på HMS-tavle – IK-HMS § 5
 }
 
 // ============================================
@@ -3856,13 +3860,13 @@ model NavigationItem {
 
 /// Brukerens tilpassede dashboard-oppsett per tenant
 model DashboardConfig {
-  id        String   @id @default(cuid())
-  userId    String
-  tenantId  String
-  widgets   Json // Array av { id: string, order: number }
+  id            String   @id @default(cuid())
+  userId        String
+  tenantId      String
+  widgets       Json // Array av { id: string, order: number }
   hmsPulseItems Json? // Array av HmsPulseItem for tilsynsvisning
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -3877,44 +3881,44 @@ model DashboardConfig {
 // ============================================
 
 model FireDrill {
-  id String @id @default(cuid())
+  id       String @id @default(cuid())
   tenantId String
 
   // Planleggingsfase — § 12b/c/d: rutiner for evakuering, kunnskap og informasjon
-  title            String
-  drillType        FireDrillType   @default(EVACUATION)
-  isAnnounced      Boolean         @default(true)
-  status           FireDrillStatus @default(PLANNED)
-  plannedDate      DateTime
-  location         String
-  responsibleId    String // Øvingsleder
-  objectives       String          @db.Text // Mål for øvelsen
-  scenario         String?         @db.Text // Scenario-beskrivelse
-  riskAssessment   String?         @db.Text // Risikovurdering
-  participantIds   String?         @db.Text // JSON array av planlagte deltakere (userId[])
+  title          String
+  drillType      FireDrillType   @default(EVACUATION)
+  isAnnounced    Boolean         @default(true)
+  status         FireDrillStatus @default(PLANNED)
+  plannedDate    DateTime
+  location       String
+  responsibleId  String // Øvingsleder
+  objectives     String          @db.Text // Mål for øvelsen
+  scenario       String?         @db.Text // Scenario-beskrivelse
+  riskAssessment String?         @db.Text // Risikovurdering
+  participantIds String?         @db.Text // JSON array av planlagte deltakere (userId[])
 
   // Delte lokaler — § 4 tredje ledd: eier skal sikre samordning mellom brukere
   sharedPremises           Boolean  @default(false) // Deler virksomheten lokaler med andre?
   buildingOwnerCoordinated Boolean? // Er byggeier/gårdeier koordinert og informert?
-  buildingOwnerName        String?  // Navn/kontakt for byggeier eller samordningsansvarlig
+  buildingOwnerName        String? // Navn/kontakt for byggeier eller samordningsansvarlig
   otherTenantsInformed     Boolean? // Er øvrige leietakere/virksomheter informert?
   fullBuildingEvacuation   Boolean? // Var øvelsen felles for hele bygget (ikke bare egne lokaler)?
-  totalBuildingOccupants   Int?     // Totalt antall personer i bygget under øvelsen — § 13
+  totalBuildingOccupants   Int? // Totalt antall personer i bygget under øvelsen — § 13
 
   // Gjennomføringsfase — § 13: dokumentasjonskrav
-  completedAt              DateTime?
-  actualParticipantCount   Int?    // Antall faktiske deltakere (egne ansatte/tilhørende)
-  evacuationTimeSeconds    Int?    // Evakueringstid i sekunder
-  observations             String? @db.Text // Observasjoner under øvelsen
+  completedAt            DateTime?
+  actualParticipantCount Int? // Antall faktiske deltakere (egne ansatte/tilhørende)
+  evacuationTimeSeconds  Int? // Evakueringstid i sekunder
+  observations           String?   @db.Text // Observasjoner under øvelsen
 
   // Evalueringsfase — § 12e + § 13: avdekke og rette opp mangler
-  objectivesAchieved    String? // FULL | PARTIAL | NOT_ACHIEVED
-  evaluation            String? @db.Text // Evaluering og vurdering
-  improvementPoints     String? @db.Text // Forbedringspunkter
+  objectivesAchieved     String? // FULL | PARTIAL | NOT_ACHIEVED
+  evaluation             String?   @db.Text // Evaluering og vurdering
+  improvementPoints      String?   @db.Text // Forbedringspunkter
   procedureChangesNeeded Boolean?
-  procedureChangesDesc  String? @db.Text
-  evaluatedBy           String? // userId for øvingsleder som bekreftet
-  evaluatedAt           DateTime?
+  procedureChangesDesc   String?   @db.Text
+  evaluatedBy            String? // userId for øvingsleder som bekreftet
+  evaluatedAt            DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3931,19 +3935,19 @@ model FireDrill {
 
 // § 12b: type øvelse som gjennomføres
 enum FireDrillType {
-  EVACUATION     // Evakueringsøvelse
+  EVACUATION // Evakueringsøvelse
   FIRE_SUPPRESSION // Slokkeopplæring
-  ALARM_TEST     // Brannalarmtest
-  FULL_SCALE     // Fullskalaøvelse
+  ALARM_TEST // Brannalarmtest
+  FULL_SCALE // Fullskalaøvelse
 }
 
 // Livssyklusstatus for en brannøvelse
 enum FireDrillStatus {
-  PLANNED      // Planlagt
-  IN_PROGRESS  // Pågår
-  COMPLETED    // Gjennomført (mangler evaluering)
-  EVALUATED    // Evaluert og dokumentert — § 13 oppfylt
-  CANCELLED    // Avlyst
+  PLANNED // Planlagt
+  IN_PROGRESS // Pågår
+  COMPLETED // Gjennomført (mangler evaluering)
+  EVALUATED // Evaluert og dokumentert — § 13 oppfylt
+  CANCELLED // Avlyst
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -3975,10 +3979,10 @@ model HmsTavleSubscription {
 
 /// Plan-nivåer for HMS Tavle – styrer hvilke seksjoner og funksjoner som er tilgjengelige
 enum HmsTavlePlan {
-  ENKEL    // kr 390/mnd – kontaktinfo, dokumentlenker, SHA-lenke
+  ENKEL // kr 390/mnd – kontaktinfo, dokumentlenker, SHA-lenke
   STANDARD // kr 590/mnd – UE-portal, QR-innsjekk, alle seksjoner
   AVANSERT // kr 790/mnd – kiosk-modus, AI-innsikt, lovkrav-sjekkliste
-  ADDON    // kr 290/mnd – tillegg for eksisterende HMS Nova-kunder
+  ADDON // kr 290/mnd – tillegg for eksisterende HMS Nova-kunder
 }
 
 /// Status for tavle-abonnement
@@ -3992,7 +3996,7 @@ enum HmsTavleSubscriptionStatus {
 
 /// Digital HMS-tavle for ett prosjekt/byggeplass – Byggherreforskriften § 7, § 15
 model HmsTavle {
-  id          String @id @default(cuid())
+  id          String  @id @default(cuid())
   tenantId    String
   projectId   String? @unique // Koblet til HMS Nova-prosjekt (Scenario B)
   name        String
@@ -4003,7 +4007,15 @@ model HmsTavle {
   kioskMode Boolean @default(false) // Fullskjerm kiosk-modus
 
   // Bransje – tilpasser seksjonstekster og lovkrav-referanser
-  bransje   String? @default("BYGG_ANLEGG") // Se BRANSJE_OPTIONS i koden
+  bransje String? @default("BYGG_ANLEGG") // Se BRANSJE_OPTIONS i koden
+
+  // Opplysninger til oversiktslisten – Byggherreforskriften § 15 bokstav a og b
+  siteAddress String? // Bygge- eller anleggsplassens adresse
+  clientName  String? // Byggherrens navn
+
+  /// Dato arbeidet ble avsluttet. Styrer sletting av oversiktslisten, som skal
+  /// oppbevares i seks måneder etter avsluttet arbeid – Byggherreforskriften § 15.
+  workEndedAt DateTime?
 
   // Branding
   logoUrl    String?
@@ -4048,35 +4060,36 @@ model HmsTavleSection {
 
 /// Seksjontyper for HMS-tavlen
 enum HmsTavleSectionType {
-  SHA_PLAN           // Byggherreforskriften § 7+8
-  MANNSKAPSLISTE     // Byggherreforskriften § 15
-  AVVIK_STATISTIKK   // AML § 5-1/5-2, IK-HMS § 5
-  RUH_LISTE          // Rapport om uønsket hendelse
-  SJA_AKTIVE         // Aktive sikker jobb-analyser
-  VERNERUNDE_STATUS  // Status siste vernerunde
-  KONTAKTINFO        // AML § 6-2 – verneombud synlig
-  BEREDSKAPSPLAN     // AML § 5-2 – beredskap tilgjengelig
-  DOKUMENT_HUB       // Samling av relevante dokumenter
-  EKSTERN_LENKE      // Lenker til Excel/SharePoint/andre systemer
-  VAERMELDING        // Yr-basert værvarsling for utendørsarbeid
-  KPI_DASHBOARD      // H-verdi, fraværsprosent, åpne tiltak
-  HMS_PLAN_AARSHJUL  // Årshjul for HMS-plan (kun HMS Nova add-on)
-  FREMDRIFTSPLAN     // Prosjektets fremdriftsplan
-  RIGGPLAN           // Riggplan / situasjonskart for byggeplassen
-  RISIKOMATRISE      // Risikooversikt (kun HMS Nova add-on)
-  OPPLARING_STATUS   // Kompetansestatus (kun HMS Nova add-on)
+  SHA_PLAN // Byggherreforskriften § 7+8
+  MANNSKAPSLISTE // Byggherreforskriften § 15
+  AVVIK_STATISTIKK // AML § 5-1/5-2, IK-HMS § 5
+  RUH_LISTE // Rapport om uønsket hendelse
+  SJA_AKTIVE // Aktive sikker jobb-analyser
+  VERNERUNDE_STATUS // Status siste vernerunde
+  KONTAKTINFO // AML § 6-2 – verneombud synlig
+  BEREDSKAPSPLAN // AML § 5-2 – beredskap tilgjengelig
+  DOKUMENT_HUB // Samling av relevante dokumenter
+  EKSTERN_LENKE // Lenker til Excel/SharePoint/andre systemer
+  VAERMELDING // Yr-basert værvarsling for utendørsarbeid
+  KPI_DASHBOARD // H-verdi, fraværsprosent, åpne tiltak
+  HMS_PLAN_AARSHJUL // Årshjul for HMS-plan (kun HMS Nova add-on)
+  FREMDRIFTSPLAN // Prosjektets fremdriftsplan
+  RIGGPLAN // Riggplan / situasjonskart for byggeplassen
+  RISIKOMATRISE // Risikooversikt (kun HMS Nova add-on)
+  OPPLARING_STATUS // Kompetansestatus (kun HMS Nova add-on)
   LOVKRAV_SJEKKLISTE // Sanntids-indikator: alle lovkrav oppfylt?
-  NYHETER_MELDINGER  // Meldinger/nyheter fra prosjektledelsen
-  SNARVEIER          // Konfigurerbare hurtigtilganger til HMS-funksjoner
-  GJEST_SKJEMA       // Gjesteskjema – IK-HMS § 5, Matlovforskriften
+  NYHETER_MELDINGER // Meldinger/nyheter fra prosjektledelsen
+  SNARVEIER // Konfigurerbare hurtigtilganger til HMS-funksjoner
+  GJEST_SKJEMA // Gjesteskjema – IK-HMS § 5 nr. 7, IK-mat § 5 nr. 4
+  GJESTESERVICE_STATUS // Anonymisert tillitspanel – kun aggregerte tall, aldri saksinnhold
 }
 
 /// Visningsmode for seksjon på HMS-tavle
 enum TavleDisplayMode {
-  SIDEBAR   // Fast i venstre kolonne (nødetater, kontakter)
-  FAST      // Alltid synlig i hoveddelen – roteres aldri bort
-  KARUSELL  // Roterer i kiosk-modus
-  FOKUS     // Fremhevet – tar full bredde øverst
+  SIDEBAR // Fast i venstre kolonne (nødetater, kontakter)
+  FAST // Alltid synlig i hoveddelen – roteres aldri bort
+  KARUSELL // Roterer i kiosk-modus
+  FOKUS // Fremhevet – tar full bredde øverst
 }
 
 /// Ekstern systemlenke på tavlen (Excel, SharePoint, andre HMS-systemer)
@@ -4098,7 +4111,7 @@ model HmsTavleExternalLink {
 enum ExternalLinkType {
   EXCEL
   PDF
-  HMS_SYSTEM  // Synergi, EHS Manager, m.fl.
+  HMS_SYSTEM // Synergi, EHS Manager, m.fl.
   SHAREPOINT
   ANNET
 }
@@ -4106,15 +4119,15 @@ enum ExternalLinkType {
 /// Underentreprenør-portal tilknyttet en tavle
 /// Byggherreforskriften § 18 – UE skal integrere SHA-plan i eget HMS-arbeid
 model SubcontractorPortal {
-  id            String  @id @default(cuid())
-  tavleId       String  @unique
-  portalToken   String  @unique @default(cuid()) // Eget token for UE-portal
-  allowAvvik    Boolean @default(true)
-  allowRuh      Boolean @default(true)
-  allowSja      Boolean @default(true)
+  id             String  @id @default(cuid())
+  tavleId        String  @unique
+  portalToken    String  @unique @default(cuid()) // Eget token for UE-portal
+  allowAvvik     Boolean @default(true)
+  allowRuh       Boolean @default(true)
+  allowSja       Boolean @default(true)
   allowPdfUpload Boolean @default(true)
-  requireEmail  Boolean @default(true)
-  autoApprove   Boolean @default(false) // true = innsendinger godkjennes direkte
+  requireEmail   Boolean @default(true)
+  autoApprove    Boolean @default(false) // true = innsendinger godkjennes direkte
 
   submissions SubcontractorSubmission[]
 
@@ -4135,7 +4148,7 @@ model SubcontractorSubmission {
   company        String?
   orgNr          String?
   data           Json // Type-spesifikk innsendingsdata
-  attachmentUrls Json    @default("[]") // Opplastede filer (R2-URL-er)
+  attachmentUrls Json                          @default("[]") // Opplastede filer (R2-URL-er)
 
   // Kobling til HMS Nova-objekter etter gjennomgang (Scenario B)
   linkedIncidentId String?
@@ -4144,7 +4157,7 @@ model SubcontractorSubmission {
 
   reviewedById String?
   reviewedAt   DateTime?
-  reviewNotes  String? @db.Text
+  reviewNotes  String?   @db.Text
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -4168,10 +4181,10 @@ enum SubcontractorSubmissionType {
 
 /// Status for UE-innsending
 enum SubcontractorSubmissionStatus {
-  PENDING      // Venter på gjennomgang
+  PENDING // Venter på gjennomgang
   UNDER_REVIEW // Under behandling
-  LINKED       // Koblet til HMS Nova-objekt
-  REJECTED     // Avvist
+  LINKED // Koblet til HMS Nova-objekt
+  REJECTED // Avvist
 }
 
 // ─── Medarbeidersamtale ─────────────────────────────────────────────────────
@@ -4182,11 +4195,11 @@ enum SubcontractorSubmissionStatus {
 
 /// Status for en medarbeidersamtale
 enum EmployeeReviewStatus {
-  PLANLAGT     // Samtalen er planlagt men ikke gjennomført
-  FORBEREDT    // Ansatt har levert forberedelse
-  GJENNOMFORT  // Samtalen er gjennomført, referat fylt ut
-  SIGNERT      // Begge parter har signert/godkjent
-  AVBRUTT      // Samtalen er avbrutt
+  PLANLAGT // Samtalen er planlagt men ikke gjennomført
+  FORBEREDT // Ansatt har levert forberedelse
+  GJENNOMFORT // Samtalen er gjennomført, referat fylt ut
+  SIGNERT // Begge parter har signert/godkjent
+  AVBRUTT // Samtalen er avbrutt
 }
 
 /// Status for et mål knyttet til medarbeidersamtalen
@@ -4199,28 +4212,28 @@ enum EmployeeReviewGoalStatus {
 
 /// Kategori for mål i medarbeidersamtalen
 enum EmployeeReviewGoalCategory {
-  FAGLIG       // Faglig utvikling og kompetanse
-  PERSONLIG    // Personlig utvikling
-  VIRKSOMHET   // Bidrag til virksomhetens mål
+  FAGLIG // Faglig utvikling og kompetanse
+  PERSONLIG // Personlig utvikling
+  VIRKSOMHET // Bidrag til virksomhetens mål
 }
 
 /// Vurderingsnivå for psykososiale faktorer (AML § 4-3, 2026)
 enum PsykososialtNiva {
-  FORSVARLIG          // Tilstanden er fullt forsvarlig
-  DELVIS_FORSVARLIG   // Tilstanden krever oppfølging
-  IKKE_FORSVARLIG     // Tilstanden er ikke forsvarlig – tiltak kreves
+  FORSVARLIG // Tilstanden er fullt forsvarlig
+  DELVIS_FORSVARLIG // Tilstanden krever oppfølging
+  IKKE_FORSVARLIG // Tilstanden er ikke forsvarlig – tiltak kreves
 }
 
 /// Medarbeidersamtale mellom leder og ansatt
 /// AML § 4-2 (2): arbeidsgiver skal legge til rette for faglig og personlig utvikling
 /// AML § 4-3 (2026): systematisk kartlegging av psykososiale arbeidsmiljøfaktorer
 model EmployeeReview {
-  id         String   @id @default(cuid())
+  id         String @id @default(cuid())
   tenantId   String
   employeeId String // Ansatt som samtalen gjelder
   reviewerId String // Leder/HR som gjennomfører samtalen
 
-  scheduledDate  DateTime  // Planlagt dato for samtalen
+  scheduledDate  DateTime // Planlagt dato for samtalen
   completedDate  DateTime? // Faktisk gjennomføringsdato
   nextReviewDate DateTime? // Planlagt dato for neste samtale
 
@@ -4228,8 +4241,8 @@ model EmployeeReview {
 
   // --- Ansattens forberedelse (fylles ut før samtalen) ---
   // Ansatt skal forberedes og ha mulighet til medvirkning (AML § 4-2 (2))
-  ansattForberedelse  String? @db.Text // Hva vil ansatt ta opp?
-  ansattMedvirkning   String? @db.Text // Ansatts innspill til arbeidssituasjonen
+  ansattForberedelse String? @db.Text // Hva vil ansatt ta opp?
+  ansattMedvirkning  String? @db.Text // Ansatts innspill til arbeidssituasjonen
 
   // --- Trivsel og arbeidssituasjon (AML § 4-2) ---
   trivselScore       Int? // 1-5: Generell trivsel på arbeidsplassen
@@ -4240,13 +4253,13 @@ model EmployeeReview {
   // § 4-3(2)a: uklare eller motstridende krav og forventninger i arbeidet
   psykKravOgForventninger PsykososialtNiva?
   // § 4-3(2)b: emosjonelle krav og belastninger i arbeid med mennesker
-  psykEmosjonelleKrav PsykososialtNiva?
+  psykEmosjonelleKrav     PsykososialtNiva?
   // § 4-3(2)c: arbeidsmengde og tidspress – ubalanse mellom krav og tid
-  psykArbeidsmengde PsykososialtNiva?
+  psykArbeidsmengde       PsykososialtNiva?
   // § 4-3(2)d: støtte og hjelp i arbeidet
-  psykStotteOgHjelp PsykososialtNiva?
+  psykStotteOgHjelp       PsykososialtNiva?
   // Fritekstkommentar til psykososiale faktorer
-  psykKommentar String? @db.Text
+  psykKommentar           String?           @db.Text
 
   // --- Mål og resultater ---
   maloppnaelseKommentar String? @db.Text // Gjennomgang av forrige periodes mål
@@ -4257,8 +4270,8 @@ model EmployeeReview {
   karrierePlaner      String? @db.Text // Karriereplaner og ambisjoner
 
   // --- Tilrettelegging (AML § 4-2 (1)) ---
-  tilretteleggingBehov  String? @db.Text // Behov for tilrettelegging
-  arbeidstidKommentar   String? @db.Text // Kommentarer til arbeidstid/balanse
+  tilretteleggingBehov String? @db.Text // Behov for tilrettelegging
+  arbeidstidKommentar  String? @db.Text // Kommentarer til arbeidstid/balanse
 
   // --- Gjensidig tilbakemelding ---
   lederTilbakemeldingTilAnsatt String? @db.Text
@@ -4325,7 +4338,7 @@ model EmployeeReviewAction {
   reviewId String
   tenantId String
 
-  description String   @db.Text
+  description String    @db.Text
   ansvarlig   String? // "LEDER" | "ANSATT" | "BEGGE"
   dueDate     DateTime?
   completed   Boolean   @default(false)
@@ -4344,25 +4357,28 @@ model EmployeeReviewAction {
 /// Innsjekk av mannskap via QR-kode på tavlen
 /// Støtter Byggherreforskriften § 15 – elektronisk oversiktsliste
 model TavleCheckin {
-  id           String   @id @default(cuid())
-  tavleId      String
-  name         String
-  employer     String? // Arbeidsgiver/virksomhet
-  hmsCardNr    String? // HMS-kortnummer (påkrevd iflg. § 15)
-  birthDate    String? // Fødselsdato (YYYY-MM-DD)
-  phone        String?
-  checkedInAt  DateTime @default(now())
-  checkedOutAt DateTime?
-  date         String // YYYY-MM-DD – for daglig filtrering
+  id            String    @id @default(cuid())
+  tavleId       String
+  name          String // § 15 bokstav e
+  employer      String? // Arbeidsgiver/innleievirksomhet – § 15 bokstav c
+  employerOrgNr String? // Organisasjonsnummer – § 15 bokstav d
+  hmsCardNr     String? // HMS-kortnummer – § 15 bokstav e
+  birthDate     String? // Fødselsdato (YYYY-MM-DD) – § 15 bokstav e
+  phone         String?
+  checkedInAt   DateTime  @default(now())
+  checkedOutAt  DateTime?
+  date          String // YYYY-MM-DD – for daglig filtrering
 
   tavle HmsTavle @relation(fields: [tavleId], references: [id], onDelete: Cascade)
 
   @@index([tavleId])
   @@index([date])
+  // Historikkvisning, CSV-eksport og oppbevaringsjobben for § 15
+  @@index([tavleId, checkedInAt])
 }
 
 /// Gjestemelding sendt direkte fra HMS-tavlens offentlige visning
-/// Hjemmel: IK-HMS § 5 (avvik), Matlovforskriften (mattrygghet), intern KPI (klager)
+/// Hjemmel: IK-HMS § 5 nr. 7 (avvik), IK-mat § 5 nr. 4 (mattrygghet), intern KPI (klager)
 model TavleGuestSubmission {
   id          String              @id @default(cuid())
   tavleId     String
@@ -4371,27 +4387,55 @@ model TavleGuestSubmission {
   guestName   String?
   guestEmail  String?
   guestPhone  String?
-  roomOrTable String?             // Romnummer, bordnummer e.l. – tilpasset bransje
+  roomOrTable String? // Romnummer, bordnummer e.l. – tilpasset bransje
   status      String              @default("NY") // NY | LEST | BEHANDLET | LUKKET
   response    String?             @db.Text
   respondedAt DateTime?
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
+
+  // Privat statussporing – gjesten følger saken uten innlogging
+  trackingToken String @unique @default(cuid())
+
+  // Gjestens språk – styrer e-post og statusside
+  locale String @default("nb") // nb | en
+
+  // Prioritet settes automatisk ut fra meldingstype
+  priority String @default("NORMAL") // NORMAL | HOY | KRITISK
+
+  // Vedlegg lastet opp av gjest – [{key, name, size}] (MySQL støtter ikke scalar list)
+  attachments Json?
+
+  // GDPR art. 6 – samtykke til å bli kontaktet om saken
+  consentContact Boolean @default(false)
+
+  // Interne notater vises ALDRI på offentlig statusside
+  internalNotes String? @db.Text
+
+  assignedToId String?
+
+  // SLA – serviceløfte og eskalering
+  acknowledgedAt DateTime?
+  closedAt       DateTime?
+  slaDueAt       DateTime?
+  escalatedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   tavle HmsTavle @relation(fields: [tavleId], references: [id], onDelete: Cascade)
 
   @@index([tavleId])
   @@index([status])
   @@index([createdAt])
+  @@index([tavleId, status, createdAt])
 }
 
 /// Meldingstyper fra gjesteskjema på HMS-tavle
 enum GuestSubmissionType {
-  AVVIK           // Farlig situasjon observert – IK-HMS § 5
-  KLAGE           // Misnøye med tjeneste eller forhold
-  MATFORGIFTNING  // Matforgiftning/allergirespons – Matlovforskriften
-  SPORSMAAL       // Generell henvendelse
-  TILBAKEMELDING  // Positiv/negativ tilbakemelding
+  AVVIK // Farlig situasjon observert – IK-HMS § 5
+  KLAGE // Misnøye med tjeneste eller forhold
+  MATFORGIFTNING // Matforgiftning/allergirespons – IK-mat § 5 nr. 4
+  SPORSMAAL // Generell henvendelse
+  TILBAKEMELDING // Positiv/negativ tilbakemelding
 }
 
 // ─── Beredskap reiseliv ──────────────────────────────────────────────────────
@@ -4400,25 +4444,25 @@ enum GuestSubmissionType {
 /// Gjestehendelse – skade, sykdom eller kritisk situasjon for gjest
 /// Hjemmel: AML § 5-2, Produktkontrolloven § 5, Pakkereiseloven § 14
 model GjesteHendelse {
-  id               String    @id @default(cuid())
-  tenantId         String
-  type             String    // SKADE_PA_GJEST | SAVNET_GJEST | MEDISINSK_NODSITUASJON | BRANN | ANNET
-  description      String    @db.Text
-  location         String?   // Sted for hendelsen
-  guestName        String?   // Navn på gjest (dersom kjent)
-  guestContact     String?   // Kontaktinfo (e-post/telefon)
-  injurySeverity   String?   // INGEN | LETT | ALVORLIG | LIVSTRUENDE
-  actionsTaken     String?   @db.Text
-  notifiedPolice   Boolean   @default(false)
-  notifiedAmbulance Boolean  @default(false)
-  notifiedParents  Boolean   @default(false) // Pårørende varslet
-  reportedToMattilsynet Boolean @default(false) // Kun ved matforgiftning
-  status           String    @default("AAPEN") // AAPEN | UNDER_BEHANDLING | LUKKET
-  closedAt         DateTime?
-  closedBy         String?
-  occurredAt       DateTime
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id                    String    @id @default(cuid())
+  tenantId              String
+  type                  String // SKADE_PA_GJEST | SAVNET_GJEST | MEDISINSK_NODSITUASJON | BRANN | ANNET
+  description           String    @db.Text
+  location              String? // Sted for hendelsen
+  guestName             String? // Navn på gjest (dersom kjent)
+  guestContact          String? // Kontaktinfo (e-post/telefon)
+  injurySeverity        String? // INGEN | LETT | ALVORLIG | LIVSTRUENDE
+  actionsTaken          String?   @db.Text
+  notifiedPolice        Boolean   @default(false)
+  notifiedAmbulance     Boolean   @default(false)
+  notifiedParents       Boolean   @default(false) // Pårørende varslet
+  reportedToMattilsynet Boolean   @default(false) // Kun ved matforgiftning
+  status                String    @default("AAPEN") // AAPEN | UNDER_BEHANDLING | LUKKET
+  closedAt              DateTime?
+  closedBy              String?
+  occurredAt            DateTime
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -4428,20 +4472,20 @@ model GjesteHendelse {
 
 /// Hotell-evakueringsplan med etasje- og soneansvarlige
 model HotellEvakueringsplan {
-  id              String    @id @default(cuid())
-  tenantId        String
-  planName        String
-  buildingName    String?
-  totalFloors     Int       @default(1)
-  maxOccupancy    Int?
-  assemblyPoint   String?   // Samlingspunkt
-  fireWarden      String?   // Brannvernansvarlig
-  isActive        Boolean   @default(true)
-  lastReviewedAt  DateTime?
-  floors          Json      @default("[]") // [{floorNr, responsible, roomCount, notes}]
-  emergencyContacts Json    @default("[]") // [{name, role, phone}]
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id                String    @id @default(cuid())
+  tenantId          String
+  planName          String
+  buildingName      String?
+  totalFloors       Int       @default(1)
+  maxOccupancy      Int?
+  assemblyPoint     String? // Samlingspunkt
+  fireWarden        String? // Brannvernansvarlig
+  isActive          Boolean   @default(true)
+  lastReviewedAt    DateTime?
+  floors            Json      @default("[]") // [{floorNr, responsible, roomCount, notes}]
+  emergencyContacts Json      @default("[]") // [{name, role, phone}]
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -4456,8 +4500,8 @@ model HotellEvakueringsplan {
 model AktivitetsUtstyrssjekk {
   id           String    @id @default(cuid())
   tenantId     String
-  utstyrsType  String    // KANO | SYKKEL | SKI | KLATREVEGG | ZIPLINE | ANNET
-  utstyrsNavn  String    // Beskrivende navn (eks. "Kano nr. 12")
+  utstyrsType  String // KANO | SYKKEL | SKI | KLATREVEGG | ZIPLINE | ANNET
+  utstyrsNavn  String // Beskrivende navn (eks. "Kano nr. 12")
   checkDate    DateTime
   checkedBy    String?
   status       String    @default("OK") // OK | AVVIK | KASSERT
@@ -4478,22 +4522,22 @@ model AktivitetsUtstyrssjekk {
 /// Transport-journal – kjøre-/hviletid og kjøretøykontroll
 /// Hjemmel: Vegtransportloven § 7 (kjøre-/hviletid), Yrkestransportlova
 model TransportJournal {
-  id              String    @id @default(cuid())
-  tenantId        String
-  vehicleReg      String    // Registreringsnummer
-  driverName      String
-  date            String    // YYYY-MM-DD
-  departureTime   String    // HH:MM
-  arrivalTime     String?   // HH:MM
-  routeDesc       String?   // Kort rutebeskrivelse
-  kmStart         Float?
-  kmEnd           Float?
-  drivingHours    Float?    // Timer kjøring
-  breakHours      Float?    // Timer pause
-  preCheckDone    Boolean   @default(false) // Forhåndskontroll kjøretøy utført
-  preCheckNote    String?   @db.Text
-  incidents       String?   @db.Text
-  createdAt       DateTime  @default(now())
+  id            String   @id @default(cuid())
+  tenantId      String
+  vehicleReg    String // Registreringsnummer
+  driverName    String
+  date          String // YYYY-MM-DD
+  departureTime String // HH:MM
+  arrivalTime   String? // HH:MM
+  routeDesc     String? // Kort rutebeskrivelse
+  kmStart       Float?
+  kmEnd         Float?
+  drivingHours  Float? // Timer kjøring
+  breakHours    Float? // Timer pause
+  preCheckDone  Boolean  @default(false) // Forhåndskontroll kjøretøy utført
+  preCheckNote  String?  @db.Text
+  incidents     String?  @db.Text
+  createdAt     DateTime @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -4512,10 +4556,10 @@ model SjaforDokument {
   tenantId        String
   driverName      String
   driverPhone     String?
-  kompetansebevis String?   // Nummer på kompetansebevis
+  kompetansebevis String? // Nummer på kompetansebevis
   kbUtlopDato     DateTime?
   forerkortNr     String?
-  forerkortKlasse String?   // C, D, CE, DE etc.
+  forerkortKlasse String? // C, D, CE, DE etc.
   forerkortUtlop  DateTime?
   adrSertifikat   String?
   adrUtlop        DateTime?
@@ -4532,17 +4576,17 @@ model SjaforDokument {
 /// Løyvedokument – rutegående transport og turvogn
 /// Hjemmel: Yrkestransportlova § 4 og § 6
 model LoyveRegister {
-  id            String    @id @default(cuid())
-  tenantId      String
-  loyveType     String    // RUTELOEYVE, TURVOGN, GODS, TURBUSS
-  loyveNummer   String
-  kjoretoyReg   String?
-  utstedtAv     String?
-  utlopDato     DateTime?
-  vilkar        String?   @db.Text
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id          String    @id @default(cuid())
+  tenantId    String
+  loyveType   String // RUTELOEYVE, TURVOGN, GODS, TURBUSS
+  loyveNummer String
+  kjoretoyReg String?
+  utstedtAv   String?
+  utlopDato   DateTime?
+  vilkar      String?   @db.Text
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -4550,42 +4594,42 @@ model LoyveRegister {
 }
 
 // ─── IK-mat / HACCP ─────────────────────────────────────────────────────────
-// Hjemmel: Matlovforskriften, Forordning (EF) 852/2004 Art. 5 (HACCP)
+// Hjemmel: IK-mat § 4 og § 5, forordning (EF) 852/2004 art. 5 (HACCP)
 
 /// HACCP-plan – Hazard Analysis and Critical Control Points
 /// Hjemmel: Forordning (EF) 852/2004 Art. 5, IK-mat-forskriften
 model HaccpPlan {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   tenantId    String
   title       String
-  description String?  @db.Text
-  isActive    Boolean  @default(true)
-  version     Int      @default(1)
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  version     Int       @default(1)
   approvedBy  String?
   approvedAt  DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  tenant    Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  ccp       HaccpCcp[]
+  tenant Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ccp    HaccpCcp[]
 
   @@index([tenantId])
 }
 
 /// CCP – Kritisk kontrollpunkt i HACCP-planen
 model HaccpCcp {
-  id             String   @id @default(cuid())
+  id             String @id @default(cuid())
   planId         String
-  stepName       String   // Prosesstrinn (mottak, lagring, tilberedning, servering)
-  hazardDesc     String   @db.Text  // Fareanalyse
-  hazardType     String   // BIOLOGISK | KJEMISK | FYSISK
-  criticalLimit  String   // Kritisk grenseverdi (f.eks. 75°C kjernetemperatur)
-  monitorMethod  String   // Overvåkningsmetode
-  monitorFreq    String   // Frekvens (daglig, per parti, etc.)
-  corrAction     String   @db.Text  // Korrigerende tiltak
-  verifyMethod   String   // Verifiseringsmetode
-  recordRequired String   // Hva skal dokumenteres
-  order          Int      @default(0)
+  stepName       String // Prosesstrinn (mottak, lagring, tilberedning, servering)
+  hazardDesc     String @db.Text // Fareanalyse
+  hazardType     String // BIOLOGISK | KJEMISK | FYSISK
+  criticalLimit  String // Kritisk grenseverdi (f.eks. 75°C kjernetemperatur)
+  monitorMethod  String // Overvåkningsmetode
+  monitorFreq    String // Frekvens (daglig, per parti, etc.)
+  corrAction     String @db.Text // Korrigerende tiltak
+  verifyMethod   String // Verifiseringsmetode
+  recordRequired String // Hva skal dokumenteres
+  order          Int    @default(0)
 
   plan HaccpPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
 
@@ -4595,16 +4639,16 @@ model HaccpCcp {
 /// Temperaturlogg for kjøle-/fryseanlegg – HACCP CCP
 /// Hjemmel: Forordning (EF) 852/2004 Art. 5 (HACCP)
 model TemperaturLog {
-  id           String    @id @default(cuid())
-  tenantId     String
-  unitName     String    // Navn på kjøle-/fryseanlegg
-  unitType     String    // KJOLEROM | FRYSER | VARMHOLDING | ANNET
-  measuredAt   DateTime
-  temperature  Float     // Grader Celsius
-  measuredBy   String?   // Navn/initialer
-  isDeviation  Boolean   @default(false) // Om temperaturen er utenfor grenseverdiene
+  id            String   @id @default(cuid())
+  tenantId      String
+  unitName      String // Navn på kjøle-/fryseanlegg
+  unitType      String // KJOLEROM | FRYSER | VARMHOLDING | ANNET
+  measuredAt    DateTime
+  temperature   Float // Grader Celsius
+  measuredBy    String? // Navn/initialer
+  isDeviation   Boolean  @default(false) // Om temperaturen er utenfor grenseverdiene
   deviationNote String?  @db.Text
-  createdAt    DateTime  @default(now())
+  createdAt     DateTime @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -4616,30 +4660,30 @@ model TemperaturLog {
 /// Allergenoversikt – de 14 EU-allergener
 /// Hjemmel: EU-forordning 1169/2011, Matmerkeforskriften § 5
 model AllergenOversikt {
-  id           String   @id @default(cuid())
-  tenantId     String
-  dishName     String   // Navn på rett/produkt
-  category     String?  // Kategori (Forrett, Hovedrett, Dessert, etc.)
+  id             String    @id @default(cuid())
+  tenantId       String
+  dishName       String // Navn på rett/produkt
+  category       String? // Kategori (Forrett, Hovedrett, Dessert, etc.)
   // Allergener som boolske flagg – de 14 EU-allergener
-  hasGluten    Boolean  @default(false)
-  hasKrepsdyr  Boolean  @default(false)
-  hasEgg       Boolean  @default(false)
-  hasFisk      Boolean  @default(false)
-  hasPeanut    Boolean  @default(false)
-  hasSoya      Boolean  @default(false)
-  hasMelk      Boolean  @default(false)
-  hasNotter    Boolean  @default(false)
-  hasSelleri   Boolean  @default(false)
-  hasSennep    Boolean  @default(false)
-  hasSesamfro  Boolean  @default(false)
-  hasSulfitt   Boolean  @default(false)
-  hasLupin     Boolean  @default(false)
-  hasBlotkdyr  Boolean  @default(false)
-  additionalInfo String? @db.Text // Merknader
-  isActive     Boolean  @default(true)
-  lastVerified DateTime?
-  updatedAt    DateTime @updatedAt
-  createdAt    DateTime @default(now())
+  hasGluten      Boolean   @default(false)
+  hasKrepsdyr    Boolean   @default(false)
+  hasEgg         Boolean   @default(false)
+  hasFisk        Boolean   @default(false)
+  hasPeanut      Boolean   @default(false)
+  hasSoya        Boolean   @default(false)
+  hasMelk        Boolean   @default(false)
+  hasNotter      Boolean   @default(false)
+  hasSelleri     Boolean   @default(false)
+  hasSennep      Boolean   @default(false)
+  hasSesamfro    Boolean   @default(false)
+  hasSulfitt     Boolean   @default(false)
+  hasLupin       Boolean   @default(false)
+  hasBlotkdyr    Boolean   @default(false)
+  additionalInfo String?   @db.Text // Merknader
+  isActive       Boolean   @default(true)
+  lastVerified   DateTime?
+  updatedAt      DateTime  @updatedAt
+  createdAt      DateTime  @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -4653,8 +4697,8 @@ model MattilsynetInspeksjon {
   tenantId         String
   inspectedAt      DateTime
   inspector        String?
-  smilejesKarakter String?   // STRAALENDE | GODT | NOYTRAL | TRIST (Mattilsynets kategorier)
-  findings         String?   @db.Text  // Funn og merknader
+  smilejesKarakter String? // STRAALENDE | GODT | NOYTRAL | TRIST (Mattilsynets kategorier)
+  findings         String?   @db.Text // Funn og merknader
   followUpDeadline DateTime?
   followUpNote     String?   @db.Text
   closedAt         DateTime?
@@ -4674,23 +4718,23 @@ model MattilsynetInspeksjon {
 /// BHT-avtale – Bedriftshelsetjeneste
 /// Hjemmel: AML § 3-3, Forskrift om organisering av arbeidsmiljøarbeid § 2-1
 model BhtAvtale {
-  id               String    @id @default(cuid())
-  tenantId         String
-  leverandorNavn   String
-  leverandorOrgnr  String?
-  kontaktperson    String?
-  kontaktTelefon   String?
-  kontaktEpost     String?
-  startDato        DateTime
-  sluttDato        DateTime?
-  arsTimeverk      Int?      // Avtalte timer per år
-  naringskode      String?   // f.eks. 55.1, 56.1, 56.3
-  bransjeKrav      String?   // Beskrivelse av BHT-pliktig aktivitet
-  avtaleUrl        String?
-  isActive         Boolean   @default(true)
-  notat            String?   @db.Text
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  tenantId        String
+  leverandorNavn  String
+  leverandorOrgnr String?
+  kontaktperson   String?
+  kontaktTelefon  String?
+  kontaktEpost    String?
+  startDato       DateTime
+  sluttDato       DateTime?
+  arsTimeverk     Int? // Avtalte timer per år
+  naringskode     String? // f.eks. 55.1, 56.1, 56.3
+  bransjeKrav     String? // Beskrivelse av BHT-pliktig aktivitet
+  avtaleUrl       String?
+  isActive        Boolean   @default(true)
+  notat           String?   @db.Text
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -4700,18 +4744,18 @@ model BhtAvtale {
 /// Nattarbeidsvurdering per stilling/avdeling
 /// Hjemmel: AML § 10-11 – nattarbeid tillatt kun ved særlige behov, arbeidsgivers vurderingsplikt
 model NattarbeidVurdering {
-  id              String    @id @default(cuid())
-  tenantId        String
-  stillingNavn    String    // Stilling eller avdeling, f.eks. "Nattresepsjonist"
-  begrunnelse     String    @db.Text // Lovpålagt begrunnelse for nattarbeid
-  alternativVurd  String?   @db.Text // Vurdering av alternativer til nattarbeid
-  helseVurdering  Boolean   @default(false) // Helsevurdering gjennomført?
-  samRadVo        Boolean   @default(false) // Drøftet med verneombud?
-  godkjentAv      String?
-  godkjentDato    DateTime?
-  gyldigTil       DateTime? // Vurderingen revideres periodisk
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id             String    @id @default(cuid())
+  tenantId       String
+  stillingNavn   String // Stilling eller avdeling, f.eks. "Nattresepsjonist"
+  begrunnelse    String    @db.Text // Lovpålagt begrunnelse for nattarbeid
+  alternativVurd String?   @db.Text // Vurdering av alternativer til nattarbeid
+  helseVurdering Boolean   @default(false) // Helsevurdering gjennomført?
+  samRadVo       Boolean   @default(false) // Drøftet med verneombud?
+  godkjentAv     String?
+  godkjentDato   DateTime?
+  gyldigTil      DateTime? // Vurderingen revideres periodisk
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 

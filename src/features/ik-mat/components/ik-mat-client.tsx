@@ -113,7 +113,7 @@ export function IkMatClient({ haccpPlans, latestLogs, allergenItems, inspeksjone
           IK-mat og HACCP
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Matlovforskriften, Forordning (EF) 852/2004 Art. 5 – internkontroll mat og HACCP
+          IK-mat § 4 og § 5 og forordning (EF) 852/2004 art. 5 – internkontroll for mat og HACCP
         </p>
       </div>
 
@@ -215,7 +215,7 @@ export function IkMatClient({ haccpPlans, latestLogs, allergenItems, inspeksjone
                 <ClipboardList className="h-8 w-8 opacity-30" />
                 <p className="text-sm">Ingen HACCP-planer opprettet ennå</p>
                 <p className="text-xs text-center max-w-sm">
-                  HACCP krever fareanalyse og kritiske kontrollpunkter (CCP) for alle produksjonstrinn. Matlovforskriften, Art. 5.
+                  HACCP krever fareanalyse og kritiske kontrollpunkter (CCP) for alle produksjonstrinn. Forordning (EF) 852/2004 art. 5.
                 </p>
               </CardContent>
             </Card>

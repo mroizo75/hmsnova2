@@ -7,14 +7,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle2, Users, LogIn, ChevronDown } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Users, LogIn, LogOut, ChevronDown } from "lucide-react";
 
 const LS_KEY = (token: string) => `innsjekk_info_${token}`;
+const LS_AKTIV_KEY = (token: string) => `innsjekk_aktiv_${token}`;
 
 interface HmsNovaUser {
   name: string;
   employer: string;
   phone: string;
+}
+
+interface AktivInnsjekk {
+  checkinId: string;
+  date: string;
+  name: string;
 }
 
 interface Props {
@@ -25,6 +32,10 @@ interface Props {
   brandColor: string | null;
   todayCount: number;
   hmsNovaUser: HmsNovaUser | null;
+}
+
+function iDag(): string {
+  return new Date().toISOString().slice(0, 10);
 }
 
 export function InnsjekksClient({
@@ -41,11 +52,32 @@ export function InnsjekksClient({
   const [submitting, setSubmitting] = useState(false);
   const [showManual, setShowManual] = useState(!hmsNovaUser);
   const [checkedInAs, setCheckedInAs] = useState<string>("");
+  const [aktiv, setAktiv] = useState<AktivInnsjekk | null>(null);
 
   // Manuelt skjema — laster lagret info fra localStorage
-  const [form, setForm] = useState({ name: "", employer: "", hmsCardNr: "", phone: "" });
+  const [form, setForm] = useState({
+    name: "",
+    employer: "",
+    employerOrgNr: "",
+    hmsCardNr: "",
+    birthDate: "",
+    phone: "",
+  });
 
   useEffect(() => {
+    // Aktiv innsjekk gjelder kun inneværende dag, slik at utsjekk aldri
+    // tilbys for en liste som allerede er avsluttet.
+    try {
+      const lagret = localStorage.getItem(LS_AKTIV_KEY(publicToken));
+      if (lagret) {
+        const parsed = JSON.parse(lagret) as AktivInnsjekk;
+        if (parsed.date === iDag()) setAktiv(parsed);
+        else localStorage.removeItem(LS_AKTIV_KEY(publicToken));
+      }
+    } catch {
+      // ignorer
+    }
+
     if (hmsNovaUser) return; // HMS Nova-brukere trenger ikke husket info
     try {
       const saved = localStorage.getItem(LS_KEY(publicToken));
@@ -58,7 +90,24 @@ export function InnsjekksClient({
     }
   }, [publicToken, hmsNovaUser]);
 
-  async function doCheckin(data: { name: string; employer: string; hmsCardNr?: string; phone?: string }) {
+  function lagreAktiv(neste: AktivInnsjekk | null) {
+    setAktiv(neste);
+    try {
+      if (neste) localStorage.setItem(LS_AKTIV_KEY(publicToken), JSON.stringify(neste));
+      else localStorage.removeItem(LS_AKTIV_KEY(publicToken));
+    } catch {
+      // ignorer
+    }
+  }
+
+  async function doCheckin(data: {
+    name: string;
+    employer: string;
+    employerOrgNr?: string;
+    hmsCardNr?: string;
+    birthDate?: string;
+    phone?: string;
+  }) {
     setSubmitting(true);
     try {
       const res = await fetch(`/api/hms-tavle/public/${publicToken}/innsjekk`, {
@@ -70,7 +119,29 @@ export function InnsjekksClient({
       if (!res.ok) throw new Error(json.error ?? "Feil ved innsjekk");
       setCount((prev) => prev + 1);
       setCheckedInAs(data.name);
+      const checkinId = json.data?.checkin?.id;
+      if (checkinId) lagreAktiv({ checkinId, date: iDag(), name: data.name });
       setStep("success");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleCheckout() {
+    if (!aktiv) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/hms-tavle/public/${publicToken}/innsjekk`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ checkinId: aktiv.checkinId }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Feil ved utsjekk");
+      lagreAktiv(null);
+      toast.success("Du er sjekket ut");
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -93,10 +164,7 @@ export function InnsjekksClient({
 
     // Lagre alt inkl. HMS-kortnummer til neste gang
     try {
-      localStorage.setItem(
-        LS_KEY(publicToken),
-        JSON.stringify({ name: form.name, employer: form.employer, phone: form.phone, hmsCardNr: form.hmsCardNr })
-      );
+      localStorage.setItem(LS_KEY(publicToken), JSON.stringify(form));
     } catch {
       // ignorer localStorage-feil
     }
@@ -130,13 +198,36 @@ export function InnsjekksClient({
           </div>
           <h1 className="text-2xl font-bold">Innsjekk</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Byggherreforskriften § 15 – elektronisk mannsoversikt
+            Byggherreforskriften § 15 – elektronisk oversiktsliste
           </p>
           <div className="mt-3 inline-flex items-center gap-2 bg-green-50 text-green-800 text-sm px-3 py-1 rounded-full border border-green-200">
             <Users className="h-3.5 w-3.5" />
             {count} innsjekket i dag
           </div>
         </div>
+
+        {/* ── Utsjekk av egen innsjekk ────────────────────────── */}
+        {aktiv && (
+          <Card className="border-amber-200 bg-amber-50/60">
+            <CardContent className="p-4 space-y-3">
+              <div>
+                <p className="font-semibold text-sm">Du er innsjekket</p>
+                <p className="text-xs text-muted-foreground">
+                  {aktiv.name} – sjekk ut når du forlater plassen.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                className="w-full bg-transparent"
+                onClick={handleCheckout}
+                disabled={submitting}
+              >
+                <LogOut className="h-4 w-4 mr-1.5" />
+                {submitting ? "Sjekker ut..." : "Sjekk ut"}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {step === "form" && (
           <div className="space-y-4">
@@ -221,12 +312,30 @@ export function InnsjekksClient({
                       />
                     </div>
                     <div className="space-y-1.5">
+                      <Label>Fødselsdato</Label>
+                      <Input
+                        type="date"
+                        value={form.birthDate}
+                        onChange={(e) => setForm({ ...form, birthDate: e.target.value })}
+                        max={iDag()}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
                       <Label>Arbeidsgiver / bedrift</Label>
                       <Input
                         value={form.employer}
                         onChange={(e) => setForm({ ...form, employer: e.target.value })}
                         placeholder="Firmanavn"
                         autoComplete="organization"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Organisasjonsnummer</Label>
+                      <Input
+                        value={form.employerOrgNr}
+                        onChange={(e) => setForm({ ...form, employerOrgNr: e.target.value })}
+                        placeholder="9 siffer"
+                        inputMode="numeric"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -247,6 +356,10 @@ export function InnsjekksClient({
                         autoComplete="tel"
                       />
                     </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Fødselsdato, arbeidsgiver, organisasjonsnummer og HMS-kortnummer kreves i
+                      oversiktslisten etter Byggherreforskriften § 15 bokstav c–e.
+                    </p>
                   </CardContent>
                 </Card>
 
@@ -255,8 +368,11 @@ export function InnsjekksClient({
                 </Button>
 
                 <p className="text-xs text-muted-foreground text-center">
-                  GDPR: Data lagres kun for prosjektets varighet og slettes automatisk.
-                  Navn, arbeidsgiver, telefon og HMS-kortnummer huskes på denne enheten.
+                  Opplysningene føres i oversiktslisten for bygge- eller anleggsplassen.
+                  Behandlingsgrunnlaget er rettslig forpliktelse etter Byggherreforskriften
+                  § 15, jf. GDPR art. 6 nr. 1 bokstav c. Listen oppbevares i seks måneder
+                  etter at arbeidet er avsluttet, og kan vises til arbeidsgiver, verneombud,
+                  Arbeidstilsynet og skattemyndighetene. Opplysningene huskes på denne enheten.
                 </p>
               </form>
             )}
@@ -275,12 +391,24 @@ export function InnsjekksClient({
               <div className="mt-4 bg-green-50 rounded-lg p-4 text-sm text-green-800 border border-green-200">
                 {count} person(er) totalt innsjekket i dag
               </div>
+              <p className="text-xs text-muted-foreground mt-3">
+                Husk å sjekke ut når du forlater plassen.
+              </p>
             </div>
             <div className="flex flex-col gap-2">
               <Button
                 onClick={() => {
                   setStep("form");
-                  if (!hmsNovaUser) setForm({ name: "", employer: "", hmsCardNr: "", phone: "" });
+                  if (!hmsNovaUser) {
+                    setForm({
+                      name: "",
+                      employer: "",
+                      employerOrgNr: "",
+                      hmsCardNr: "",
+                      birthDate: "",
+                      phone: "",
+                    });
+                  }
                 }}
                 variant="outline"
               >

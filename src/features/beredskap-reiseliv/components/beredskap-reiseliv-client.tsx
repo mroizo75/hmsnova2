@@ -338,7 +338,7 @@ export function BeredskapReiselivClient({ hendelser, evakueringsplaner, canEdit 
               },
               {
                 title: "Mal: Intern krisehåndteringsplan – turoperatør",
-                content: `1. STRAKS: Sikre liv og helse – tilkall hjelp (113/112/110). 2. REGISTRER: Dato, tid, sted, involverte. 3. VARSLE: Daglig leder, nødetater, pårørende. 4. DOKUMENTER: Foto, vitner, hendelsesrapport. 5. RAPPORTER: Matlovforskriften (matforgiftning), Pakkereiseloven (reisehendelse). 6. FØLG OPP: Tilbud om støtte til berørte, intern evaluering.`,
+                content: `1. STRAKS: Sikre liv og helse – tilkall hjelp (113/112/110). 2. REGISTRER: Dato, tid, sted, involverte. 3. VARSLE: Daglig leder, nødetater, pårørende. 4. DOKUMENTER: Foto, vitner, hendelsesrapport. 5. RAPPORTER: Mattilsynet ved mistanke om matforgiftning (matloven § 6 og IK-mat § 5 nr. 4), Pakkereiseloven ved reisehendelse. 6. FØLG OPP: Tilbud om støtte til berørte, intern evaluering.`,
               },
             ].map((m, i) => (
               <Card key={i}>

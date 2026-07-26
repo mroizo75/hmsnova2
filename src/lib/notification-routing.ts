@@ -52,6 +52,7 @@ const immediateEmailTypes = new Set<NotificationType>([
   "TRAINING_EXPIRED",
   "SYSTEM_ALERT",
   "INSPECTION_FINDING",
+  "GUEST_SUBMISSION",
 ]);
 
 export function isNotificationTypeEnabledForUser(

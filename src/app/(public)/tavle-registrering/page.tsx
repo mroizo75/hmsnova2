@@ -9,7 +9,18 @@ export const metadata: Metadata = {
     "Kom i gang med Digital HMS Tavle for byggeplassen din. Ingen HMS Nova-abonnement nødvendig. Velg plan og prosjektvarighet.",
 };
 
-export default function TavleRegistreringPage() {
+interface Props {
+  searchParams: Promise<{ plan?: string }>;
+}
+
+const GYLDIGE_PLANER = ["ENKEL", "STANDARD", "AVANSERT"] as const;
+
+export default async function TavleRegistreringPage({ searchParams }: Props) {
+  const { plan } = await searchParams;
+  const initialPlan = GYLDIGE_PLANER.find(
+    (gyldig) => gyldig === plan?.toUpperCase()
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="max-w-2xl mx-auto px-4 py-8">
@@ -44,7 +55,7 @@ export default function TavleRegistreringPage() {
           </p>
         </div>
 
-        <TavleRegistreringClient />
+        <TavleRegistreringClient initialPlan={initialPlan} />
       </div>
     </div>
   );

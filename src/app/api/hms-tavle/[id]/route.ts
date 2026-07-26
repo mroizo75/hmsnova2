@@ -17,6 +17,11 @@ const updateSchema = z.object({
   bransje: z.string().optional().nullable(),
   manualContacts: z.array(z.any()).optional(),
   manualDocuments: z.array(z.any()).optional(),
+  // Opplysninger til oversiktslisten – Byggherreforskriften § 15 bokstav a og b
+  siteAddress: z.string().max(255).optional().nullable(),
+  clientName: z.string().max(255).optional().nullable(),
+  // Sluttdato styrer når oversiktslisten kan slettes, jf. § 15 fjerde ledd
+  workEndedAt: z.coerce.date().optional().nullable(),
 });
 
 export async function GET(

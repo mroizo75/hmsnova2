@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getPermissions } from "@/lib/permissions";
 import { createErrorResponse, createSuccessResponse, handleApiError, ErrorCodes } from "@/lib/validations/api";
+import { getBransjeSeedSections } from "@/features/hms-tavle/lib/bransje-seed";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 const createSchema = z.object({
@@ -72,16 +74,37 @@ export async function POST(req: NextRequest) {
       return createErrorResponse(ErrorCodes.CONFLICT, `Maks ${limits.maxTavler} tavle(r) på din plan`, 400);
     }
 
-    const tavle = await prisma.hmsTavle.create({
+    const bransje = parsed.data.bransje ?? "BYGG_ANLEGG";
+    const seedSections = getBransjeSeedSections(bransje, subscription.plan);
+
+    const opprettet = await prisma.hmsTavle.create({
       data: {
         tenantId: session.user.tenantId,
         name: parsed.data.name,
         description: parsed.data.description,
         projectId: parsed.data.projectId,
         brandColor: parsed.data.brandColor,
-        bransje: parsed.data.bransje ?? "BYGG_ANLEGG",
+        bransje,
       },
-      include: { sections: true },
+    });
+
+    if (seedSections.length > 0) {
+      await prisma.hmsTavleSection.createMany({
+        data: seedSections.map((section) => ({
+          tavleId: opprettet.id,
+          type: section.type,
+          title: section.title,
+          order: section.order,
+          isVisible: section.isVisible,
+          displayMode: section.displayMode,
+          config: section.config as Prisma.InputJsonValue,
+        })),
+      });
+    }
+
+    const tavle = await prisma.hmsTavle.findUniqueOrThrow({
+      where: { id: opprettet.id },
+      include: { sections: { orderBy: { order: "asc" } } },
     });
 
     return createSuccessResponse(tavle, undefined, 201);

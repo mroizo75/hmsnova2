@@ -1020,7 +1020,7 @@ const newIndustryTemplates: RoutineTemplateLibraryEntry[] = [
 
 // ─── Reiseliv / Hotell og Restaurant ────────────────────────────────────────
 // Kategori: HOTELL_RESTAURANT
-// Hjemmel: AML, IK-HMS, Matlovforskriften, BHT-forskriften
+// Hjemmel: AML, IK-HMS, IK-mat, næringsmiddelhygieneforskriften, BHT-forskriften
 const hotelRestaurantTemplates: RoutineTemplateLibraryEntry[] = [
   {
     title: "Renholdsrutine – housekeeping (daglig/ukentlig)",
@@ -1064,9 +1064,9 @@ const hotelRestaurantTemplates: RoutineTemplateLibraryEntry[] = [
   },
   {
     title: "Temperaturkontroll – kjølerom og fryser",
-    description: "Rutine for daglig temperaturlogging av kjøle- og fryseanlegg. HACCP – kritisk kontrollpunkt (CCP). Matlovforskriften.",
+    description: "Rutine for daglig temperaturlogging av kjøle- og fryseanlegg. HACCP – kritisk kontrollpunkt (CCP).",
     category: "HOTELL_RESTAURANT",
-    legalReference: "Matlovforskriften, Forordning (EF) 852/2004 Art. 5 (HACCP CCP)",
+    legalReference: "Næringsmiddelhygieneforskriften, forordning (EF) 852/2004 art. 5 (HACCP CCP)",
     industryScope: ["hospitality", "RESTAURANT_SERVERING", "HOTELL_OVERNATTING"],
     reviewIntervalMonths: 6,
     content: createContent({
@@ -1226,7 +1226,7 @@ const hotelRestaurantTemplates: RoutineTemplateLibraryEntry[] = [
     title: "Smilefjesberedskap – Mattilsynets tilsyn",
     description: "Rutine for forberedelse til og oppfølging av Mattilsynets tilsyn. Smilefjesordningen for serveringssteder.",
     category: "HOTELL_RESTAURANT",
-    legalReference: "Matlovforskriften, Smilefjesforskriften (FOR 2016-05-19-501)",
+    legalReference: "Næringsmiddelhygieneforskriften, smilefjesforskriften (FOR-2016-05-19-501)",
     industryScope: ["hospitality", "RESTAURANT_SERVERING"],
     reviewIntervalMonths: 6,
     content: createContent({
@@ -1258,8 +1258,8 @@ const hotelRestaurantTemplates: RoutineTemplateLibraryEntry[] = [
       ],
       revisjon: "Revideres halvårlig og etter hvert tilsyn.",
       kilder: [
-        "Smilefjesforskriften FOR 2016-05-19-501",
-        "Matlovforskriften",
+        "Smilefjesforskriften FOR-2016-05-19-501",
+        "Næringsmiddelhygieneforskriften – forordning (EF) 852/2004",
         "Mattilsynet: smilefjesordningen",
       ],
     }),
@@ -1268,7 +1268,7 @@ const hotelRestaurantTemplates: RoutineTemplateLibraryEntry[] = [
     title: "Sesongoppstart – HMS-sjekkliste",
     description: "Rutine for HMS-forberedelser ved sesongoppstart. Onboarding av sesongansatte, utstyrkontroll og mattrygghet.",
     category: "HOTELL_RESTAURANT",
-    legalReference: "IK-HMS § 5, AML § 3-2 (opplæring), Matlovforskriften",
+    legalReference: "IK-HMS § 5, AML § 3-2 (opplæring), IK-mat § 5 nr. 9 (kompetanse)",
     industryScope: ["hospitality", "HOTELL_OVERNATTING", "RESTAURANT_SERVERING", "ATTRAKSJON_OPPLEVELSE"],
     reviewIntervalMonths: 12,
     content: createContent({
@@ -1300,7 +1300,7 @@ const hotelRestaurantTemplates: RoutineTemplateLibraryEntry[] = [
       kilder: [
         "IK-HMS § 5",
         "AML § 3-2 – opplæring",
-        "Matlovforskriften – HACCP",
+        "Forordning (EF) 852/2004 art. 5 – HACCP",
       ],
     }),
   },

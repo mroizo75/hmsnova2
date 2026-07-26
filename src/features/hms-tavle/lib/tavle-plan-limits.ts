@@ -11,6 +11,8 @@ export interface TavlePlanLimits {
   hasAiInsight: boolean;
   hasLovkravSjekkliste: boolean;
   hasLiveHmsNovaData: boolean; // Kun ADDON
+  hasGuestSlaEscalation: boolean; // Automatisk eskalering av gjestmeldinger forbi SLA
+  hasBulkRoomQr: boolean; // Rom-/bord-QR i skala med utskriftsark
 }
 
 const ALLE_SEKSJONER: HmsTavleSectionType[] = [
@@ -35,6 +37,7 @@ const ALLE_SEKSJONER: HmsTavleSectionType[] = [
   "NYHETER_MELDINGER",
   "SNARVEIER",
   "GJEST_SKJEMA",
+  "GJESTESERVICE_STATUS",
 ];
 
 export const PLAN_LIMITS: Record<HmsTavlePlan, TavlePlanLimits> = {
@@ -57,6 +60,8 @@ export const PLAN_LIMITS: Record<HmsTavlePlan, TavlePlanLimits> = {
     hasAiInsight: false,
     hasLovkravSjekkliste: false,
     hasLiveHmsNovaData: false,
+    hasGuestSlaEscalation: false,
+    hasBulkRoomQr: false,
   },
   STANDARD: {
     maxTavler: 3,
@@ -78,6 +83,7 @@ export const PLAN_LIMITS: Record<HmsTavlePlan, TavlePlanLimits> = {
       "NYHETER_MELDINGER",
       "SNARVEIER",
       "GJEST_SKJEMA",
+      "GJESTESERVICE_STATUS",
     ],
     hasUePortal: true,
     hasQrCheckin: true,
@@ -85,6 +91,8 @@ export const PLAN_LIMITS: Record<HmsTavlePlan, TavlePlanLimits> = {
     hasAiInsight: false,
     hasLovkravSjekkliste: false,
     hasLiveHmsNovaData: false,
+    hasGuestSlaEscalation: false,
+    hasBulkRoomQr: false,
   },
   AVANSERT: {
     maxTavler: 10,
@@ -97,6 +105,8 @@ export const PLAN_LIMITS: Record<HmsTavlePlan, TavlePlanLimits> = {
     hasAiInsight: true,
     hasLovkravSjekkliste: true,
     hasLiveHmsNovaData: false,
+    hasGuestSlaEscalation: true,
+    hasBulkRoomQr: true,
   },
   ADDON: {
     maxTavler: 999,
@@ -109,6 +119,8 @@ export const PLAN_LIMITS: Record<HmsTavlePlan, TavlePlanLimits> = {
     hasAiInsight: true,
     hasLovkravSjekkliste: true,
     hasLiveHmsNovaData: true, // Full HMS Nova-integrasjon
+    hasGuestSlaEscalation: true,
+    hasBulkRoomQr: true,
   },
 };
 

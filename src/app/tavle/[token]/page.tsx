@@ -1,6 +1,9 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { TavlePublicDisplay } from "@/features/hms-tavle/components/tavle-public-display";
+import { getGuestServiceStats } from "@/features/hms-tavle/lib/gjesteservice-stats";
+import { getTavleLiveData } from "@/features/hms-tavle/lib/tavle-live-data";
+import { getPlanLimits } from "@/features/hms-tavle/lib/tavle-plan-limits";
 import type { Metadata } from "next";
 
 interface Props {
@@ -101,6 +104,20 @@ export default async function PublicTavlePage({ params, searchParams }: Props) {
   const forceKiosk = kiosk === "1";
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://hmsnova.no";
 
+  // Kun anonymiserte tall – aldri saksinnhold på offentlig tavle
+  const harTillitspanel = tavle.sections.some((s) => s.type === "GJESTESERVICE_STATUS");
+  const guestStats = harTillitspanel ? await getGuestServiceStats(tavle.id) : null;
+
+  // Live HMS Nova-data er forbeholdt planer med full integrasjon
+  const liveData =
+    getPlanLimits(subscription.plan).hasLiveHmsNovaData
+      ? await getTavleLiveData({
+          tenantId: tavle.tenantId,
+          projectId: tavle.projectId,
+          sectionTypes: tavle.sections.map((s) => s.type),
+        })
+      : null;
+
   return (
     <TavlePublicDisplay
       tavle={JSON.parse(JSON.stringify(tavle))}
@@ -109,6 +126,8 @@ export default async function PublicTavlePage({ params, searchParams }: Props) {
       publicToken={token}
       forceKiosk={forceKiosk || tavle.kioskMode}
       appUrl={appUrl}
+      guestStats={guestStats}
+      liveData={liveData}
     />
   );
 }

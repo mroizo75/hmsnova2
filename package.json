@@ -13,6 +13,9 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
+    "db:migrate:gjesteservice": "tsx scripts/migrate-gjesteservice.ts",
+    "db:migrate:oversiktsliste": "tsx scripts/migrate-oversiktsliste.ts",
+    "db:repair:tavlecheckin": "tsx scripts/repair-tavlecheckin-fk.ts",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts"
   },

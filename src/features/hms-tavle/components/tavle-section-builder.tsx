@@ -66,6 +66,7 @@ export const SECTION_LABELS: Record<HmsTavleSectionType, string> = {
   NYHETER_MELDINGER: "Meldinger",
   SNARVEIER: "Hurtigtilganger",
   GJEST_SKJEMA: "Gjesteskjema",
+  GJESTESERVICE_STATUS: "Tillitspanel for gjesteservice",
 };
 
 const DISPLAY_MODE_CONFIG: Record<TavleDisplayMode, { label: string; icon: React.ReactNode; cls: string }> = {
@@ -80,6 +81,7 @@ const CONFIGURABLE_TYPES = new Set<HmsTavleSectionType>([
   "SHA_PLAN", "BEREDSKAPSPLAN", "AVVIK_STATISTIKK", "RUH_LISTE",
   "KONTAKTINFO", "NYHETER_MELDINGER", "FREMDRIFTSPLAN", "RIGGPLAN",
   "RISIKOMATRISE", "DOKUMENT_HUB", "VAERMELDING", "SNARVEIER",
+  "GJEST_SKJEMA", "GJESTESERVICE_STATUS",
 ]);
 
 const ALL_TYPES = Object.keys(SECTION_LABELS) as HmsTavleSectionType[];

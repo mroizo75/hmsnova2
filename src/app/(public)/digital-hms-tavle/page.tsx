@@ -27,6 +27,15 @@ import {
   ChevronDown,
   ChevronRight,
   Star,
+  AlarmClock,
+  BellRing,
+  ClipboardCheck,
+  Languages,
+  Lock,
+  MessageSquare,
+  ShieldCheck,
+  Timer,
+  UtensilsCrossed,
 } from "lucide-react";
 import { useState } from "react";
 import { PLAN_PRICES, PLAN_LABELS } from "@/features/hms-tavle/lib/tavle-plan-limits";
@@ -74,19 +83,24 @@ const STEPS = [
 const SECTION_TYPES = [
   { icon: Shield, label: "Kontaktinfo og beredskap", desc: "Verneombud, nødetater og ansvarlige" },
   { icon: FileText, label: "SHA-plan", desc: "Lenke og status for planen (Byggherreforskriften § 7)" },
-  { icon: Users, label: "Mannskapsliste", desc: "QR-innsjekk av alle på byggeplassen (§ 15)" },
+  { icon: Users, label: "Oversiktsliste", desc: "QR-innsjekk med navn, fødselsdato, arbeidsgiver og HMS-kort (§ 15)" },
   { icon: AlertTriangle, label: "Avvik og RUH", desc: "Live-statistikk fra systemet" },
   { icon: ClipboardList, label: "SJA-oversikt", desc: "Aktive sikker jobb-analyser" },
   { icon: LinkIcon, label: "Dokumenthub", desc: "Excel, PDF, egne systemer" },
   { icon: Thermometer, label: "Yr.no-vær", desc: "Lokal værmelding for byggeplassen" },
-  { icon: HardHat, label: "Lovkrav-sjekkliste", desc: "§ 8, § 15, § 18 status i sanntid" },
+  { icon: HardHat, label: "Lovkrav-sjekkliste", desc: "SHA-plan (§ 7+8), forhåndsmelding (§ 10) og oversiktsliste (§ 15)" },
   { icon: BarChart2, label: "KPI-dashboard", desc: "Nøkkeltall og trender" },
   { icon: Cloud, label: "Beredskapsplan", desc: "Manuell eller hentet fra HMS Nova" },
 ];
 
 /* ─── Bransjer ─── */
 const BRANSJER = [
-  { emoji: "🏗️", label: "Bygg og anlegg",       desc: "SHA-plan, mannskapsliste, SJA, Byggherreforskriften §7–18" },
+  { emoji: "🏗️", label: "Bygg og anlegg",       desc: "SHA-plan, elektronisk oversiktsliste og UE-portal for avvik og SJA" },
+  { emoji: "🏨", label: "Hotell og overnatting",  desc: "Rom-QR, gjesteservice, beredskap og verneombud på ett sted" },
+  { emoji: "🍽️", label: "Restaurant og servering", desc: "Bord-QR, gjestemeldinger og dokumentert avviksrutine for matsaker" },
+  { emoji: "🎡", label: "Attraksjon og opplevelse", desc: "Gjestesikkerhet, sesongoppstart og hendelsesmelding" },
+  { emoji: "✈️", label: "Turoperatør",            desc: "Reisehendelser etter pakkereiseloven og GDPR-protokoll" },
+  { emoji: "🚌", label: "Turisttransport",        desc: "Avganger, kjøre- og hviletid og hendelser underveis" },
   { emoji: "🏢", label: "Eiendom og forvaltning", desc: "Driftsavvik, beredskap, kontaktinfo for eiendommer og bygg" },
   { emoji: "🏘️", label: "Borettslag og sameie",  desc: "HMS-informasjon, beredskapsplan og avvikshåndtering" },
   { emoji: "🏥", label: "Sykehus og helse",       desc: "Beredskapsrutiner, ansattoversikt, HMS-sjekklister" },
@@ -97,9 +111,99 @@ const BRANSJER = [
   { emoji: "🛒", label: "Butikk og kjede",        desc: "HMS-informasjon for ansatte, beredskapsplan per butikk" },
 ];
 
+/* ─── Gjesteservice for reiseliv: den lukkede sløyfen ─── */
+const GJESTESERVICE_STEG = [
+  {
+    nr: 1,
+    icon: QrCode,
+    title: "Gjesten skanner QR på rommet",
+    desc: "Hver QR er knyttet til rom, bord eller sted. Rommet er ferdig utfylt, så gjesten skriver bare meldingen.",
+    color: "bg-blue-100 text-blue-700",
+  },
+  {
+    nr: 2,
+    icon: Languages,
+    title: "Melder fra på eget språk",
+    desc: "Skjemaet finnes på norsk og engelsk, med mulighet for bilder. Ingen app og ingen innlogging.",
+    color: "bg-indigo-100 text-indigo-700",
+  },
+  {
+    nr: 3,
+    icon: BellRing,
+    title: "Resepsjonen varsles på sekundet",
+    desc: "Varsel i dashboard og på mobil. Kritiske saker som mistanke om matforgiftning utløser SMS.",
+    color: "bg-violet-100 text-violet-700",
+  },
+  {
+    nr: 4,
+    icon: Timer,
+    title: "Serviceløftet starter klokken",
+    desc: "Hver sak får en svarfrist ut fra alvorlighet. Saker som ikke påbegynnes i tid eskaleres til ledelsen.",
+    color: "bg-purple-100 text-purple-700",
+  },
+  {
+    nr: 5,
+    icon: ClipboardCheck,
+    title: "Gjesten ser hva som ble gjort",
+    desc: "På en privat lenke følger gjesten saken som en pakkesporing – helt til den er løst.",
+    color: "bg-fuchsia-100 text-fuchsia-700",
+  },
+];
+
+const GJESTESERVICE_FORDELER = [
+  {
+    icon: Lock,
+    title: "Konfidensielt fra første sekund",
+    desc: "Klager og avvik vises aldri offentlig. Tavlen viser kun anonymiserte tall, og gjesten ser bare sin egen sak.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Tillitspanel som beviser service",
+    desc: "«47 tilbakemeldinger siste 30 dager – 44 løst – median svartid 38 min.» Tall, aldri saksinnhold.",
+  },
+  {
+    icon: UtensilsCrossed,
+    title: "Mat og allergi håndteres straks",
+    desc: "Saker om mat og drikke settes automatisk til kritisk, med varsling og kort svarfrist. Gir den dokumenterte avviksrutinen IK-mat § 5 nr. 4 og 5 krever.",
+  },
+  {
+    icon: AlarmClock,
+    title: "Målbar responstid",
+    desc: "Median svartid, åpne saker og saker forbi frist rett i driftsbildet. Dokumentasjon når tilsynet spør.",
+  },
+  {
+    icon: Smartphone,
+    title: "Alt fra mobilen",
+    desc: "Gjesten melder fra mobilen, resepsjonen behandler fra mobilen. Ingen opplæring nødvendig.",
+  },
+  {
+    icon: MessageSquare,
+    title: "Lukket sløyfe, ikke en postkasse",
+    desc: "Saken kan ikke avsluttes uten at det er skrevet hva som ble gjort. Gjesten får svaret på sitt språk.",
+  },
+];
+
+const PERSONVERN_FLATER = [
+  {
+    title: "Offentlig tavle og kiosk",
+    body: "HMS-informasjon virksomheten selv velger, «Meld fra»-QR og anonymiserte tall. Aldri saksinnhold, navn eller romnummer.",
+    tone: "border-green-200 bg-green-50",
+  },
+  {
+    title: "Gjestens private lenke",
+    body: "Kun den ene saken lenken peker på: status, tidsstempler og hva som ble gjort. Ikke indeksert, ingen oversikt over andre saker.",
+    tone: "border-blue-200 bg-blue-50",
+  },
+  {
+    title: "Dashboard for ansatte",
+    body: "Full sak for roller med tavle-tilgang, inkludert interne notater som aldri deles utad. Alle statusendringer logges.",
+    tone: "border-slate-200 bg-white",
+  },
+];
+
 /* ─── Hvem passer det for ─── */
 const TARGETS = [
-  { icon: Building2, title: "Totalentreprenører og BH", desc: "Fullfør lovkrav etter Byggherreforskriften. En tavle per prosjekt." },
+  { icon: Building2, title: "Totalentreprenører og BH", desc: "Dokumenter SHA-arbeidet etter Byggherreforskriften. En tavle per prosjekt." },
   { icon: HardHat, title: "Underentreprenører", desc: "Send inn avvik og SJA via portal – uten eget system." },
   { icon: Shield, title: "Verneombud og HMS-ledere", desc: "Full oversikt over status, avvik og mannskap i sanntid." },
   { icon: Smartphone, title: "Eksisterende HMS Nova-kunder", desc: "Aktiver som tilleggsmodul (kr 290/mnd). All data hentet live." },
@@ -113,11 +217,31 @@ const FAQ = [
   },
   {
     q: "Fungerer det for andre bransjer enn bygg og anlegg?",
-    a: "Ja. Tavlen brukes i dag av eiendomsselskaper, borettslag, sykehus, skoler, barnehager, lager- og logistikkbedrifter, industri, verksteder og butikkjeder. Seksjonstekster og lovkrav-referanser tilpasses automatisk til valgt bransje.",
+    a: "Ja. Tavlen brukes i dag av hoteller, restauranter, attraksjoner, turoperatører, turisttransport, eiendomsselskaper, borettslag, sykehus, skoler, barnehager, lager- og logistikkbedrifter, industri, verksteder og butikkjeder. Seksjonstekster og lovkrav-referanser tilpasses automatisk til valgt bransje.",
   },
   {
     q: "Hvilke lovkrav støttes?",
-    a: "For bygg og anlegg: Byggherreforskriften §7, §8, §15 og §18. For øvrige bransjer: Arbeidsmiljøloven, IK-HMS §5, GDPR og ISO 45001:2018.",
+    a: "Tavlen er et verktøy for å vise og dokumentere HMS-informasjon – virksomheten er selv ansvarlig for at innholdet er korrekt og oppdatert. For bygg og anlegg: SHA-planen (Byggherreforskriften § 7 og § 8), forhåndsmeldingen som skal stå synlig på plassen (§ 10), elektronisk oversiktsliste med navn, fødselsdato, arbeidsgiver og HMS-kortnummer (§ 15 bokstav e) og informasjon til arbeidstakere og verneombud (§ 19). For hotell og reiseliv: en dokumentert avviksrutine etter internkontrollforskriften § 5 og IK-mat § 5 nr. 4 og 5, der ingen sak kan lukkes uten at det er skrevet hva som ble gjort. Personopplysninger behandles etter GDPR artikkel 5, 6 og 9. HACCP, temperaturkontroll og allergenoversikt ligger i IK-mat-modulen i HMS Nova, ikke i tavlen.",
+  },
+  {
+    q: "Kan andre gjester se klagen min?",
+    a: "Nei. Klager og avvik er alltid konfidensielle. Den offentlige tavlen viser kun anonymiserte tall, aldri saksinnhold, navn eller romnummer. Gjesten får en privat sporingslenke som bare viser egen sak, og lenken indekseres ikke av søkemotorer.",
+  },
+  {
+    q: "Hva skjer hvis en gjest melder om matforgiftning?",
+    a: "Saken settes automatisk til kritisk prioritet, resepsjonen får varsel i dashboard, push og SMS, og svarfristen er som standard én time. Slike saker er helseopplysninger etter GDPR artikkel 9 og vises aldri på tavlen.",
+  },
+  {
+    q: "Må gjesten laste ned en app?",
+    a: "Nei. Gjesten skanner QR-koden med mobilkameraet og melder fra i nettleseren. Ingen app og ingen innlogging.",
+  },
+  {
+    q: "Hvilke språk støttes for gjesten?",
+    a: "Meldingsskjema, kvittering, statusside og e-post finnes på norsk og engelsk. Svaret fra virksomheten sendes på det språket gjesten valgte.",
+  },
+  {
+    q: "Hvor lenge lagres gjestmeldinger?",
+    a: "Gjestmeldinger og vedlegg slettes automatisk etter 24 måneder, i tråd med GDPR artikkel 5 om lagringsbegrensning. Kontaktopplysninger brukes kun til å følge opp den aktuelle saken.",
   },
   {
     q: "Hva skjer med dataene etter prosjektet er ferdig?",
@@ -176,7 +300,7 @@ const PLANS = [
       "Ubegrenset antall tavler",
       "Alt i Standard",
       "Kiosk-modus (auto-rotasjon)",
-      "Lovkrav-sjekkliste (§ 8, § 15, § 18)",
+      "Lovkrav-sjekkliste (§ 7+8, § 10, § 15)",
       "KPI-dashboard",
       "AI-innsikt og rapporter",
     ],
@@ -217,53 +341,69 @@ export default function DigitalHmsTavlePage() {
         {/* Mørk gradient over bildet for lesbarhet */}
         <div className="absolute inset-0 bg-gradient-to-r from-blue-950/90 via-blue-900/75 to-blue-900/30" />
 
-        <div className="relative z-10 max-w-6xl mx-auto px-4 py-20 md:py-28 w-full">
+        <div className="relative z-10 max-w-6xl mx-auto px-4 py-16 sm:py-20 md:py-28 w-full">
           <div className="max-w-2xl">
-            <div className="flex flex-wrap gap-2 mb-5">
-              {["🏗️ Bygg", "🏥 Helse", "📦 Lager", "🏭 Industri", "🏫 Skole", "🛒 Butikk"].map((b) => (
-                <Badge key={b} className="bg-blue-500/30 text-blue-100 border-blue-400/30 text-xs">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-5">
+              {["🏗️ Bygg", "🏨 Hotell", "🍽️ Servering", "🏥 Helse", "📦 Lager", "🏭 Industri", "🏫 Skole", "🛒 Butikk"].map((b) => (
+                <Badge key={b} className="bg-blue-500/30 text-blue-100 border-blue-400/30 text-[11px] sm:text-xs">
                   {b}
                 </Badge>
               ))}
             </div>
-            <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-6 drop-shadow-lg">
+            <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold leading-tight mb-5 sm:mb-6 drop-shadow-lg">
               Digital HMS Tavle
               <br />
               <span className="text-blue-300">for alle bransjer</span>
             </h1>
-            <p className="text-xl text-blue-100 mb-8 leading-relaxed drop-shadow">
-              Én løsning for bygg og anlegg, sykehus, skoler, lager, industri, butikkjeder og mer.
-              Dekker lovkrav etter AML, IK-HMS og Byggherreforskriften — ingen HMS Nova-abonnement nødvendig.
+            <p className="text-base sm:text-lg md:text-xl text-blue-100 mb-8 leading-relaxed drop-shadow">
+              Én løsning for bygg og anlegg, hotell og reiseliv, sykehus, skoler, lager, industri og butikkjeder.
+              Bygget på dokumentasjonskravene i Byggherreforskriften, internkontrollforskriften § 5 og
+              arbeidsmiljøloven — ingen HMS Nova-abonnement nødvendig.
             </p>
-            <div className="flex flex-wrap gap-3">
-              <Link href="/tavle-registrering">
-                <Button size="lg" className="bg-white text-blue-800 hover:bg-blue-50 font-semibold h-12 px-8 shadow-lg">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3">
+              <Link href="/tavle-registrering" className="w-full sm:w-auto">
+                <Button size="lg" className="w-full sm:w-auto bg-white text-blue-800 hover:bg-blue-50 font-semibold h-12 px-6 sm:px-8 shadow-lg">
                   Bestill nå – fra kr {PLAN_PRICES.ENKEL}/mnd
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
-              <a href="#slik-virker-det">
-                <Button size="lg" variant="outline" className="border-white/40 text-white bg-transparent hover:bg-white/10 h-12 px-8">
+              <a href="#slik-virker-det" className="w-full sm:w-auto">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto border-white/40 text-white bg-transparent hover:bg-white/10 h-12 px-6 sm:px-8">
                   Se hvordan det virker
                 </Button>
               </a>
             </div>
+            <a
+              href="#gjesteservice"
+              className="inline-flex items-center gap-2 mt-6 text-sm text-blue-200 hover:text-white transition-colors"
+            >
+              <QrCode className="h-4 w-4 shrink-0" />
+              Nytt: gjesteservice med serviceløfte for hotell og reiseliv
+              <ChevronRight className="h-4 w-4 shrink-0" />
+            </a>
           </div>
         </div>
       </section>
 
       {/* ═══ LOVKRAV-BANNER ═══ */}
       <section className="bg-blue-50 border-y border-blue-100">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex flex-wrap items-center justify-center gap-6 text-sm text-blue-800">
-          {[
-            "✅ Byggherreforskriften § 7 – SHA-plan",
-            "✅ § 8 – Forhåndsmelding",
-            "✅ § 15 – Elektronisk mannskapsliste",
-            "✅ § 18 – Koordineringsansvar",
-            "✅ AML § 5-2 – Avviksregistrering",
-          ].map((krav) => (
-            <span key={krav} className="font-medium">{krav}</span>
-          ))}
+        <div className="max-w-6xl mx-auto px-4 py-4">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:gap-x-6 text-xs sm:text-sm text-blue-800">
+            {[
+              "✅ Byggherreforskriften § 7+8 – SHA-plan",
+              "✅ § 15 – Elektronisk oversiktsliste",
+              "✅ § 19 – Informasjon til ansatte og verneombud",
+              "✅ IK-HMS § 5 – Dokumentert avviksrutine",
+              "✅ IK-mat § 5 nr. 4 – Avviksrutine ved matsaker",
+              "✅ GDPR art. 5, 6 og 9",
+            ].map((krav) => (
+              <span key={krav} className="font-medium">{krav}</span>
+            ))}
+          </div>
+          <p className="mt-3 text-center text-[11px] sm:text-xs text-blue-700/80">
+            Tavlen er et verktøy for å vise og dokumentere HMS-informasjon. Virksomheten er
+            selv ansvarlig for at innholdet er korrekt og oppdatert.
+          </p>
         </div>
       </section>
 
@@ -282,13 +422,13 @@ export default function DigitalHmsTavlePage() {
           {/* Linje mellom stegene */}
           <div className="hidden md:block absolute top-12 left-[10%] right-[10%] h-0.5 bg-gradient-to-r from-blue-200 via-violet-200 to-fuchsia-200 z-0" />
 
-          <div className="grid md:grid-cols-5 gap-6 relative z-10">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-x-4 gap-y-8 relative z-10">
             {STEPS.map((step) => {
               const Icon = step.icon;
               return (
-                <div key={step.nr} className="flex flex-col items-center text-center">
-                  <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-4 ${step.color} shadow-sm`}>
-                    <Icon className="h-9 w-9" />
+                <div key={step.nr} className="flex flex-col items-center text-center last:col-span-2 md:last:col-span-1">
+                  <div className={`w-14 h-14 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center mb-3 sm:mb-4 ${step.color} shadow-sm`}>
+                    <Icon className="h-7 w-7 sm:h-9 sm:w-9" />
                   </div>
                   <div className="w-7 h-7 rounded-full bg-gray-900 text-white flex items-center justify-center text-xs font-bold mb-3">
                     {step.nr}
@@ -363,7 +503,7 @@ export default function DigitalHmsTavlePage() {
               </div>
               <div className="px-1">
                 <p className="font-semibold text-gray-900 text-sm">QR-innsjekk på mobil</p>
-                <p className="text-xs text-gray-500">Mannskap skanner QR-koden og sjekker inn direkte fra mobilen – oppfyller Byggherreforskriften § 15.</p>
+                <p className="text-xs text-gray-500">Mannskap skanner QR-koden og sjekker inn direkte fra mobilen – oversiktslisten føres elektronisk etter Byggherreforskriften § 15.</p>
               </div>
             </div>
           </div>
@@ -396,6 +536,98 @@ export default function DigitalHmsTavlePage() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ GJESTESERVICE FOR REISELIV ═══ */}
+      <section id="gjesteservice" className="border-y bg-white">
+        <div className="max-w-6xl mx-auto px-4 py-16 sm:py-20">
+          <div className="text-center mb-10 sm:mb-12">
+            <Badge variant="outline" className="mb-3">Hotell og reiseliv</Badge>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Gjesteservice med serviceløfte
+            </h2>
+            <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
+              Reiselivet mangler noe mellom gjesteboka og et tungt avvikssystem. Gjesten skanner QR på
+              rommet, melder fra på eget språk og følger saken på en privat lenke. Klager og avvik er
+              alltid konfidensielle.
+            </p>
+          </div>
+
+          {/* Den lukkede sløyfen */}
+          <div className="relative mb-14 sm:mb-16">
+            <div className="hidden md:block absolute top-10 left-[10%] right-[10%] h-0.5 bg-gradient-to-r from-blue-200 via-violet-200 to-fuchsia-200 z-0" />
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-x-4 gap-y-8 relative z-10">
+              {GJESTESERVICE_STEG.map((steg) => {
+                const Icon = steg.icon;
+                return (
+                  <div key={steg.nr} className="flex flex-col items-center text-center last:col-span-2 md:last:col-span-1">
+                    <div className={`w-14 h-14 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center mb-3 sm:mb-4 ${steg.color} shadow-sm`}>
+                      <Icon className="h-7 w-7 sm:h-9 sm:w-9" />
+                    </div>
+                    <div className="w-7 h-7 rounded-full bg-gray-900 text-white flex items-center justify-center text-xs font-bold mb-3">
+                      {steg.nr}
+                    </div>
+                    <h3 className="font-semibold text-gray-900 mb-2 text-sm leading-tight">{steg.title}</h3>
+                    <p className="text-xs text-gray-500 leading-relaxed">{steg.desc}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Personvern – tre flater */}
+          <div className="mb-14 sm:mb-16">
+            <div className="text-center mb-8">
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+                Sensitivt innhold forlater aldri huset
+              </h3>
+              <p className="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto">
+                Tre flater, tre nivåer av innsyn. Det er ingen vei fra tavlen inn i en enkeltsak.
+              </p>
+            </div>
+            <div className="grid md:grid-cols-3 gap-4 sm:gap-6">
+              {PERSONVERN_FLATER.map((flate) => (
+                <Card key={flate.title} className={flate.tone}>
+                  <CardContent className="p-5 sm:p-6 space-y-2">
+                    <h4 className="font-semibold text-gray-900">{flate.title}</h4>
+                    <p className="text-sm text-gray-600 leading-relaxed">{flate.body}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* Fordeler */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {GJESTESERVICE_FORDELER.map((fordel) => {
+              const Icon = fordel.icon;
+              return (
+                <Card key={fordel.title}>
+                  <CardContent className="p-5 sm:p-6 space-y-3">
+                    <div className="w-11 h-11 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900">{fordel.title}</h4>
+                    <p className="text-sm text-gray-600 leading-relaxed">{fordel.desc}</p>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link href="/tavle-registrering?plan=STANDARD" className="w-full sm:w-auto">
+              <Button size="lg" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white h-12 px-6 sm:px-8">
+                Kom i gang med gjesteservice
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+            <p className="text-sm text-gray-500 flex items-center gap-2 text-center">
+              <Lock className="h-4 w-4 shrink-0" />
+              Ingen app for gjesten. Ingen saksinnhold på tavlen.
+            </p>
           </div>
         </div>
       </section>
@@ -477,14 +709,15 @@ export default function DigitalHmsTavlePage() {
           <div className="text-center mb-12">
             <Badge className="bg-blue-500/30 text-blue-200 border-blue-400/30 mb-3">For alle bransjer</Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Én tavle — alle arbeidsplasser</h2>
-            <p className="text-blue-200/80 max-w-2xl mx-auto text-lg leading-relaxed">
+            <p className="text-blue-200/80 max-w-2xl mx-auto text-base sm:text-lg leading-relaxed">
               Digital HMS Tavle er ikke bare for byggeplassen. Samme løsning brukes av
-              sykehus, skoler, lager, industribedrifter og butikkjeder — tilpasset din bransjes krav og terminologi.
+              hoteller, restauranter, sykehus, skoler, lager, industribedrifter og butikkjeder — tilpasset
+              din bransjes krav og terminologi.
             </p>
           </div>
 
           {/* Bransjegrid */}
-          <div className="grid sm:grid-cols-3 lg:grid-cols-3 gap-4 mb-14">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-14">
             {BRANSJER.map((b) => (
               <div
                 key={b.label}
@@ -502,10 +735,12 @@ export default function DigitalHmsTavlePage() {
             <p className="text-blue-200 text-sm font-medium uppercase tracking-wider mb-2">Lovkrav som støttes</p>
             <div className="flex flex-wrap justify-center gap-3">
               {[
-                "Byggherreforskriften §7, §8, §15, §18",
+                "Byggherreforskriften §7, §8, §10, §15, §19",
                 "Arbeidsmiljøloven §2-3, §5-1, §5-2, §6-2",
                 "IK-HMS §5",
-                "GDPR / Personopplysningsloven",
+                "IK-mat §5 nr. 4 og 5",
+                "Pakkereiseloven §14",
+                "GDPR art. 5, 6 og 9",
                 "ISO 45001:2018",
               ].map((ref) => (
                 <span key={ref} className="bg-white/10 rounded-full px-3 py-1 text-xs text-blue-200">
@@ -651,18 +886,18 @@ export default function DigitalHmsTavlePage() {
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             Klar til å digitalisere byggeplassen?
           </h2>
-          <p className="text-blue-200 text-lg mb-8">
+          <p className="text-blue-200 text-base sm:text-lg mb-8">
             Kom i gang på 2 minutter. Konto aktiveres umiddelbart etter registrering.
           </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link href="/tavle-registrering">
-              <Button size="lg" className="bg-white text-blue-800 hover:bg-blue-50 font-semibold h-12 px-10">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:justify-center gap-3 sm:gap-4">
+            <Link href="/tavle-registrering" className="w-full sm:w-auto">
+              <Button size="lg" className="w-full sm:w-auto bg-white text-blue-800 hover:bg-blue-50 font-semibold h-12 px-6 sm:px-10">
                 Bestill Digital HMS Tavle
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
-            <a href="mailto:hei@hmsnova.no">
-              <Button size="lg" variant="outline" className="border-white/40 text-white bg-transparent hover:bg-white/10 h-12 px-8">
+            <a href="mailto:hei@hmsnova.no" className="w-full sm:w-auto">
+              <Button size="lg" variant="outline" className="w-full sm:w-auto border-white/40 text-white bg-transparent hover:bg-white/10 h-12 px-6 sm:px-8">
                 Ta kontakt
               </Button>
             </a>

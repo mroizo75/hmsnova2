@@ -23,13 +23,10 @@ import {
   Copy,
   CheckCircle2,
   AlertTriangle,
-  Clock,
-  FileText,
   Plus,
   Upload,
   Image as ImageIcon,
   Zap,
-  MessageSquare,
 } from "lucide-react";
 import { PLAN_LABELS } from "@/features/hms-tavle/lib/tavle-plan-limits";
 import { TavleQrSection } from "./tavle-qr-section";
@@ -37,6 +34,8 @@ import { TavleSectionBuilder } from "./tavle-section-builder";
 import { TavleExternalLinks } from "./tavle-external-links";
 import { TavleUePortalConfig } from "./tavle-ue-portal-config";
 import { TavleSubmissionsReview } from "./tavle-submissions-review";
+import { TavleOversiktslistePane } from "./tavle-oversiktsliste-pane";
+import { GjesteservicePane, type GuestSubmissionRow } from "./gjesteservice-pane";
 import type {
   HmsTavle,
   HmsTavleSection,
@@ -67,6 +66,7 @@ interface Props {
   isAddon: boolean;
   appUrl: string;
   defaultTab?: string;
+  teamMembers: { id: string; name: string }[];
 }
 
 export function TavleAdminClient({
@@ -78,6 +78,7 @@ export function TavleAdminClient({
   isAddon,
   appUrl,
   defaultTab,
+  teamMembers,
 }: Props) {
   const router = useRouter();
   const [isPublic, setIsPublic] = useState(tavle.isPublic);
@@ -86,6 +87,12 @@ export function TavleAdminClient({
   const [savingKiosk, setSavingKiosk] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string>(tavle.logoUrl ?? "");
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [siteAddress, setSiteAddress] = useState<string>(tavle.siteAddress ?? "");
+  const [clientName, setClientName] = useState<string>(tavle.clientName ?? "");
+  const [workEndedAt, setWorkEndedAt] = useState<string>(
+    tavle.workEndedAt ? new Date(tavle.workEndedAt).toISOString().slice(0, 10) : ""
+  );
+  const [savingSiteInfo, setSavingSiteInfo] = useState(false);
 
   const tavleUrl = `${appUrl}/tavle/${tavle.publicToken}`;
   const portalUrl = tavle.subcontractorPortal
@@ -113,6 +120,29 @@ export function TavleAdminClient({
       toast.error("Kunne ikke endre synlighet");
     } finally {
       setSavingPublic(false);
+    }
+  }
+
+  /** Lagrer opplysningene oversiktslisten krever – Byggherreforskriften § 15. */
+  async function saveOversiktslisteInfo() {
+    setSavingSiteInfo(true);
+    try {
+      const res = await fetch(`/api/hms-tavle/${tavle.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          siteAddress: siteAddress.trim() || null,
+          clientName: clientName.trim() || null,
+          workEndedAt: workEndedAt || null,
+        }),
+      });
+      if (!res.ok) throw new Error("Feil ved lagring");
+      toast.success("Opplysningene er lagret");
+      router.refresh();
+    } catch {
+      toast.error("Kunne ikke lagre opplysningene");
+    } finally {
+      setSavingSiteInfo(false);
     }
   }
 
@@ -186,8 +216,8 @@ export function TavleAdminClient({
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <Link
               href="/dashboard/hms-tavle"
               className="text-sm text-muted-foreground hover:underline"
@@ -197,7 +227,7 @@ export function TavleAdminClient({
             <span className="text-muted-foreground">/</span>
             <span className="text-sm font-medium">{tavle.name}</span>
           </div>
-          <h1 className="text-2xl font-bold">{tavle.name}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold break-words">{tavle.name}</h1>
           {tavle.project && (
             <p className="text-muted-foreground text-sm mt-1">Prosjekt: {tavle.project.name}</p>
           )}
@@ -254,6 +284,7 @@ export function TavleAdminClient({
           <TabsTrigger value="oversikt">Oversikt</TabsTrigger>
           <TabsTrigger value="seksjoner">Seksjoner</TabsTrigger>
           <TabsTrigger value="lenker">Eksterne lenker</TabsTrigger>
+          <TabsTrigger value="oversiktsliste">Oversiktsliste</TabsTrigger>
           <TabsTrigger value="ue-portal">UE-portal</TabsTrigger>
           {canReview && (
             <TabsTrigger value="innsendinger" className="relative">
@@ -327,11 +358,11 @@ export function TavleAdminClient({
             <CardContent className="p-4 space-y-3">
               <p className="font-medium text-sm">Tavle-URL</p>
               <div className="flex gap-2">
-                <Input value={tavleUrl} readOnly className="text-xs font-mono" />
-                <Button size="icon" variant="outline" onClick={() => copyUrl(tavleUrl)}>
+                <Input value={tavleUrl} readOnly className="text-xs font-mono min-w-0" />
+                <Button size="icon" variant="outline" className="shrink-0" onClick={() => copyUrl(tavleUrl)}>
                   <Copy className="h-4 w-4" />
                 </Button>
-                <Button size="icon" variant="outline" asChild>
+                <Button size="icon" variant="outline" className="shrink-0" asChild>
                   <a href={tavleUrl} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="h-4 w-4" />
                   </a>
@@ -355,6 +386,7 @@ export function TavleAdminClient({
             plan={subscription.plan}
             canManage={canManage}
             isAddon={isAddon}
+            bransje={tavle.bransje}
           />
         </TabsContent>
 
@@ -364,6 +396,14 @@ export function TavleAdminClient({
             tavleId={tavle.id}
             links={tavle.externalLinks}
             canManage={canManage}
+          />
+        </TabsContent>
+
+        {/* OVERSIKTSLISTE */}
+        <TabsContent value="oversiktsliste" className="mt-4">
+          <TavleOversiktslistePane
+            tavleId={tavle.id}
+            hasCheckin={subscription.plan !== "ENKEL"}
           />
         </TabsContent>
 
@@ -393,10 +433,11 @@ export function TavleAdminClient({
 
         {/* GJESTMELDINGER */}
         <TabsContent value="gjestmeldinger" className="mt-4">
-          <GjestmeldingPane
-            submissions={tavle.guestSubmissions ?? []}
+          <GjesteservicePane
+            submissions={(tavle.guestSubmissions ?? []) as unknown as GuestSubmissionRow[]}
             tavleId={tavle.id}
             canManage={canManage}
+            teamMembers={teamMembers}
             onRefresh={() => router.refresh()}
           />
         </TabsContent>
@@ -408,6 +449,9 @@ export function TavleAdminClient({
             portalUrl={portalUrl}
             checkinUrl={`${tavleUrl}/innsjekk`}
             plan={subscription.plan}
+            hasGuestForm={tavle.sections.some((s) => s.type === "GJEST_SKJEMA")}
+            tenantName={tavle.name}
+            logoUrl={logoUrl || null}
           />
         </TabsContent>
 
@@ -508,6 +552,62 @@ export function TavleAdminClient({
             </CardContent>
           </Card>
 
+          {/* Oversiktslisten – Byggherreforskriften § 15 */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Users className="h-4 w-4" /> Oversiktsliste
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Byggherreforskriften § 15 krever at oversiktslisten inneholder plassens adresse
+                og byggherrens navn, og at den oppbevares i seks måneder etter at arbeidet er
+                avsluttet. Settes sluttdato, slettes listen automatisk når fristen er ute.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="site-address">Bygge-/anleggsplassens adresse</Label>
+                  <Input
+                    id="site-address"
+                    value={siteAddress}
+                    onChange={(e) => setSiteAddress(e.target.value)}
+                    placeholder="Storgata 1, 0155 Oslo"
+                    disabled={!canManage}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="client-name">Byggherrens navn</Label>
+                  <Input
+                    id="client-name"
+                    value={clientName}
+                    onChange={(e) => setClientName(e.target.value)}
+                    placeholder="Byggherre AS"
+                    disabled={!canManage}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="work-ended">Arbeidet avsluttet</Label>
+                  <Input
+                    id="work-ended"
+                    type="date"
+                    value={workEndedAt}
+                    onChange={(e) => setWorkEndedAt(e.target.value)}
+                    disabled={!canManage}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    La stå tom mens arbeidet pågår.
+                  </p>
+                </div>
+              </div>
+              {canManage && (
+                <Button size="sm" onClick={saveOversiktslisteInfo} disabled={savingSiteInfo}>
+                  {savingSiteInfo ? "Lagrer..." : "Lagre"}
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Hurtigguide */}
           <Card className="border-blue-100 bg-blue-50/50">
             <CardHeader className="pb-3">
@@ -532,134 +632,6 @@ export function TavleAdminClient({
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
-  );
-}
-
-// ─── Gjestmeldinger-pane ──────────────────────────────────────────────────────
-
-const GUEST_TYPE_LABELS: Record<string, string> = {
-  AVVIK: "Avvik / hendelse",
-  KLAGE: "Klage",
-  MATFORGIFTNING: "Matforgiftning",
-  SPORSMAAL: "Spørsmål",
-  TILBAKEMELDING: "Tilbakemelding",
-};
-
-const GUEST_STATUS_LABELS: Record<string, { label: string; cls: string }> = {
-  NY: { label: "Ny", cls: "bg-blue-100 text-blue-700" },
-  LEST: { label: "Lest", cls: "bg-yellow-100 text-yellow-700" },
-  BEHANDLET: { label: "Behandlet", cls: "bg-green-100 text-green-700" },
-  LUKKET: { label: "Lukket", cls: "bg-gray-100 text-gray-600" },
-};
-
-function GjestmeldingPane({
-  submissions,
-  tavleId,
-  canManage,
-  onRefresh,
-}: {
-  submissions: TavleGuestSubmission[];
-  tavleId: string;
-  canManage: boolean;
-  onRefresh: () => void;
-}) {
-  const [updating, setUpdating] = useState<string | null>(null);
-
-  async function updateStatus(id: string, status: string) {
-    setUpdating(id);
-    try {
-      const res = await fetch(
-        `/api/hms-tavle/${tavleId}/gjest-submissions?submissionId=${id}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status }),
-        }
-      );
-      if (!res.ok) throw new Error("Feil ved oppdatering");
-      toast.success("Status oppdatert");
-      onRefresh();
-    } catch {
-      toast.error("Kunne ikke oppdatere status");
-    } finally {
-      setUpdating(null);
-    }
-  }
-
-  if (submissions.length === 0) {
-    return (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-muted-foreground">
-          <MessageSquare className="h-8 w-8 opacity-30" />
-          <p className="text-sm">Ingen gjestmeldinger ennå</p>
-          <p className="text-xs text-center max-w-xs">
-            Legg til en <strong>Gjesteskjema</strong>-seksjon på tavlen, så kan gjester sende meldinger uten innlogging.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{submissions.length} meldinger totalt</p>
-        <div className="flex gap-2 text-xs text-muted-foreground">
-          {Object.entries(GUEST_STATUS_LABELS).map(([key, val]) => (
-            <span key={key} className={`px-2 py-0.5 rounded-full ${val.cls}`}>
-              {submissions.filter((s) => s.status === key).length} {val.label}
-            </span>
-          ))}
-        </div>
-      </div>
-      {submissions.map((s) => {
-        const statusCfg = GUEST_STATUS_LABELS[s.status] ?? GUEST_STATUS_LABELS.NY;
-        return (
-          <Card key={s.id}>
-            <CardContent className="p-4 space-y-2">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-semibold">{GUEST_TYPE_LABELS[s.type] ?? s.type}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${statusCfg.cls}`}>{statusCfg.label}</span>
-                  {s.roomOrTable && (
-                    <span className="text-xs bg-muted px-2 py-0.5 rounded-full">{s.roomOrTable}</span>
-                  )}
-                </div>
-                <span className="text-xs text-muted-foreground shrink-0">
-                  {new Date(s.createdAt).toLocaleString("nb-NO", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
-                </span>
-              </div>
-              <p className="text-sm text-foreground bg-muted/40 rounded-lg px-3 py-2">{s.message}</p>
-              {(s.guestName || s.guestEmail) && (
-                <p className="text-xs text-muted-foreground">
-                  {s.guestName && <span className="font-medium">{s.guestName}</span>}
-                  {s.guestName && s.guestEmail && " · "}
-                  {s.guestEmail && <a href={`mailto:${s.guestEmail}`} className="hover:underline">{s.guestEmail}</a>}
-                </p>
-              )}
-              {canManage && s.status !== "LUKKET" && (
-                <div className="flex gap-2 pt-1">
-                  {s.status === "NY" && (
-                    <Button size="sm" variant="outline" disabled={!!updating} onClick={() => updateStatus(s.id, "LEST")}>
-                      Merk som lest
-                    </Button>
-                  )}
-                  {(s.status === "NY" || s.status === "LEST") && (
-                    <Button size="sm" variant="outline" disabled={!!updating} onClick={() => updateStatus(s.id, "BEHANDLET")}>
-                      Merk som behandlet
-                    </Button>
-                  )}
-                  <Button size="sm" variant="ghost" disabled={!!updating} onClick={() => updateStatus(s.id, "LUKKET")}
-                    className="text-muted-foreground">
-                    Lukk
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        );
-      })}
     </div>
   );
 }
