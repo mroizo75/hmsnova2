@@ -18,8 +18,14 @@ export default async function NyRuh() {
 
   const tenant = await prisma.tenant.findUnique({
     where: { id: session.user.tenantId },
-    select: { industry: true },
+    select: { industry: true, ruhModuleEnabled: true },
   });
+
+  // Virksomheter som samler alt under Avvik skal ikke kunne registrere nye RUH
+  if (tenant && !tenant.ruhModuleEnabled) {
+    redirect("/ansatt/avvik/ny");
+  }
+
   const isHealthcareTenant = hasTenantFeature(tenant?.industry, "helseforetak");
 
   return (

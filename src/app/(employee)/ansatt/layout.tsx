@@ -42,6 +42,7 @@ export default async function EmployeeLayout({
             timeRegistrationEnabled: true,
             dashboardLocked: true,
             lockedDashboardConfig: true,
+            ruhModuleEnabled: true,
           },
         })
       : null,
@@ -53,6 +54,10 @@ export default async function EmployeeLayout({
 
   if (!tenant?.timeRegistrationEnabled) {
     allWidgets = allWidgets.filter((w) => w.id !== "emp-time");
+  }
+
+  if (tenant && !tenant.ruhModuleEnabled) {
+    allWidgets = allWidgets.filter((w) => w.id !== "emp-ruh");
   }
 
   const bottomNavItems = getEmployeeBottomNavItems(allWidgets);

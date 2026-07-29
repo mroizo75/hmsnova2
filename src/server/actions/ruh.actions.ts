@@ -116,6 +116,18 @@ export async function getRuhReport(id: string) {
 export async function createRuhReport(input: any) {
   try {
     const { user, tenantId } = await getSessionContext();
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { ruhModuleEnabled: true },
+    });
+    if (tenant && !tenant.ruhModuleEnabled) {
+      return {
+        success: false,
+        error: "RUH er ikke i bruk i denne virksomheten. Registrer hendelsen som avvik.",
+      };
+    }
+
     const normalizedInput = {
       ...input,
       tenantId,

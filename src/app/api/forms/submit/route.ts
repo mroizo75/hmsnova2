@@ -230,11 +230,11 @@ export async function POST(request: NextRequest) {
         if (!description) {
           continue;
         }
-        const severityRaw =
-          typeof findingInput.severity === "number" && Number.isFinite(findingInput.severity)
-            ? findingInput.severity
-            : 3;
-        const severity = Math.max(1, Math.min(5, severityRaw));
+        const hasSeverity =
+          typeof findingInput.severity === "number" && Number.isFinite(findingInput.severity);
+        const severity = hasSeverity ? Math.max(1, Math.min(5, findingInput.severity!)) : 3;
+        // Avviket får null når funnet ikke er gradert, slik at leder vurderer det
+        const incidentSeverity = hasSeverity ? severity : null;
         const title = (findingInput.title || findingInput.fieldLabel || "Funn fra vernerunde").trim();
         const location = (findingInput.location || "").trim();
         const imageKeys = Array.isArray(findingInput.imageKeys)
@@ -275,7 +275,7 @@ export async function POST(request: NextRequest) {
             type: "AVVIK",
             title: `[Vernerunde] ${finding.title}`,
             description: incidentDescription,
-            severity,
+            severity: incidentSeverity,
             occurredAt,
             reportedBy: session.user.id,
             location: location || inspection.location || null,

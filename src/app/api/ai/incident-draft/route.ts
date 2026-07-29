@@ -17,7 +17,10 @@ export async function POST(request: NextRequest) {
       type: typeof body.type === "string" ? body.type : "",
       title: typeof body.title === "string" ? body.title : "",
       description: typeof body.description === "string" ? body.description : "",
-      severity: typeof body.severity === "number" ? body.severity : Number(body.severity),
+      severity:
+        typeof body.severity === "number" && Number.isFinite(body.severity)
+          ? body.severity
+          : null,
       incidentContext: typeof body.incidentContext === "string" ? body.incidentContext : undefined,
       availableIncidentTypes: Array.isArray(body.availableIncidentTypes)
         ? body.availableIncidentTypes.filter((item: unknown): item is string => typeof item === "string")

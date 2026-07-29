@@ -35,6 +35,14 @@ import {
 import Image from "next/image";
 import type { IncidentType } from "@prisma/client";
 import { cn } from "@/lib/utils";
+import {
+  getIncidentTypeGroup,
+  getIncidentTypeGroups,
+  getIncidentTypesForGroup,
+  getSingleTypeForGroup,
+  type IncidentTypeGroup,
+} from "@/features/incidents/schemas/incident.schema";
+import { PROJECT_REFERENCE_MAX_LENGTH } from "@/lib/incident-project-reference";
 
 interface SubcategoryOption {
   id: string;
@@ -53,6 +61,7 @@ interface IncidentFormProps {
   defaultProjectId?: string;
   isTabletMode?: boolean;
   templatePreset?: "homeVisitRisk" | "violenceThreat" | "infectionExposure";
+  ruhModuleEnabled?: boolean;
 }
 
 interface OfflineIncidentQueueItem {
@@ -71,30 +80,16 @@ interface TemplatePresetDefaults {
 
 const OFFLINE_INCIDENT_QUEUE_KEY = "hmsnova.offline.incidentQueue.v1";
 
-type MainCategory = "AVVIK" | "RUH";
-
-const avvikTypeOptions: Array<{ value: IncidentType; labelKey: string; descKey: string }> = [
-  { value: "AVVIK", labelKey: "types.AVVIK.label", descKey: "types.AVVIK.desc" },
-  { value: "MILJO", labelKey: "types.MILJO.label", descKey: "types.MILJO.desc" },
-  { value: "KVALITET", labelKey: "types.KVALITET.label", descKey: "types.KVALITET.desc" },
-  { value: "CUSTOMER", labelKey: "types.CUSTOMER.label", descKey: "types.CUSTOMER.desc" },
-];
-
-const ruhTypeOptions: Array<{ value: IncidentType; labelKey: string; descKey: string }> = [
-  { value: "ULYKKE", labelKey: "types.ULYKKE.label", descKey: "types.ULYKKE.desc" },
-  { value: "NESTEN", labelKey: "types.NESTEN.label", descKey: "types.NESTEN.desc" },
-  { value: "FARLIG_SITUASJON", labelKey: "types.FARLIG_SITUASJON.label", descKey: "types.FARLIG_SITUASJON.desc" },
-  { value: "YRKESSYKDOM", labelKey: "types.YRKESSYKDOM.label", descKey: "types.YRKESSYKDOM.desc" },
-];
-
-const RUH_TYPE_SET = new Set<IncidentType>(["ULYKKE", "NESTEN", "FARLIG_SITUASJON", "YRKESSYKDOM"]);
-
-function resolveMainCategory(type: IncidentType | ""): MainCategory | "" {
-  if (!type) return "";
-  return RUH_TYPE_SET.has(type) ? "RUH" : "AVVIK";
-}
-
 const HMS_TYPES: IncidentType[] = ["ULYKKE", "NESTEN", "FARLIG_SITUASJON", "YRKESSYKDOM"];
+
+// Typene som heter "... / RUH" i standardoppsettet. Uten RUH-modulen brukes ren etikett.
+const RUH_LABELLED_TYPES: ReadonlySet<IncidentType> = new Set<IncidentType>(["ULYKKE", "NESTEN"]);
+
+function getTypeLabelKey(type: IncidentType, ruhModuleEnabled: boolean): string {
+  return !ruhModuleEnabled && RUH_LABELLED_TYPES.has(type)
+    ? `types.${type}.labelWithoutRuh`
+    : `types.${type}.label`;
+}
 
 const severityLevels = [
   { value: 1, labelKey: "severity.1.label", descKey: "severity.1.desc" },
@@ -108,6 +103,9 @@ const NO_RISK_REFERENCE_VALUE = "__none_risk_reference__";
 
 const NO_PROJECT_VALUE = "__none_project__";
 
+// Alvorlighetsgrad er valgfri ved registrering – leder setter grad ved behandling
+const NOT_ASSESSED_SEVERITY_VALUE = "__not_assessed__";
+
 export function IncidentForm({
   tenantId,
   userId,
@@ -118,27 +116,29 @@ export function IncidentForm({
   defaultProjectId,
   isTabletMode = false,
   templatePreset,
+  ruhModuleEnabled = true,
 }: IncidentFormProps) {
   const t = useTranslations("incidentForm");
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [mainCategory, setMainCategory] = useState<MainCategory | "">(
-    resolveMainCategory(defaultType || "")
+  const [typeGroup, setTypeGroup] = useState<IncidentTypeGroup | null>(
+    getIncidentTypeGroup(defaultType || "", ruhModuleEnabled)
   );
   const [selectedType, setSelectedType] = useState<IncidentType | "">(
     defaultType || ""
   );
 
-  const typeOptionsForCategory = mainCategory === "AVVIK"
-    ? avvikTypeOptions
-    : mainCategory === "RUH"
-      ? ruhTypeOptions
-      : [];
+  const groups = getIncidentTypeGroups(ruhModuleEnabled);
+  const typesInGroup = typeGroup
+    ? getIncidentTypesForGroup(typeGroup, ruhModuleEnabled)
+    : [];
+  const needsTypeChoice = typesInGroup.length > 1;
 
-  function handleMainCategoryChange(value: MainCategory) {
-    setMainCategory(value);
-    setSelectedType("");
+  function handleTypeGroupChange(group: IncidentTypeGroup) {
+    setTypeGroup(group);
+    // Grupper med bare én type velger typen direkte, slik at steg 2 kan hoppes over
+    setSelectedType(getSingleTypeForGroup(group, ruhModuleEnabled) ?? "");
     setSubcategoryOptions([]);
     setSelectedSubcategories([]);
   }
@@ -191,6 +191,9 @@ export function IncidentForm({
   const activeTemplate = templatePreset ? templateDefaults[templatePreset] : null;
 
   const isHmsType = selectedType ? HMS_TYPES.includes(selectedType as IncidentType) : false;
+  // Personinvolvering og skadeomfang er ukjent når avviket meldes. Uten RUH-modulen
+  // fylles disse ut av leder under behandlingen i stedet (AML § 5-1 registreringsplikt).
+  const showHmsSpecificFields = ruhModuleEnabled && isHmsType;
   const isCustomerType = selectedType === "CUSTOMER";
 
   useEffect(() => {
@@ -208,10 +211,10 @@ export function IncidentForm({
 
   useEffect(() => {
     if (!selectedType && activeTemplate?.type) {
-      setMainCategory(resolveMainCategory(activeTemplate.type));
+      setTypeGroup(getIncidentTypeGroup(activeTemplate.type, ruhModuleEnabled));
       setSelectedType(activeTemplate.type);
     }
-  }, [activeTemplate, selectedType]);
+  }, [activeTemplate, selectedType, ruhModuleEnabled]);
 
   useEffect(() => {
     if (activeTemplate?.immediateActionKey && immediateActionValue.length === 0) {
@@ -343,17 +346,31 @@ export function IncidentForm({
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (!selectedType) {
+      toast({
+        variant: "destructive",
+        title: t("toasts.error.title"),
+        description: t("fields.type.placeholder"),
+      });
+      return;
+    }
+
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
     const rawRiskReferenceId = formData.get("riskReferenceId") as string | null;
+    const rawSeverity = formData.get("severity") as string | null;
 
     const data = {
       tenantId,
-      type: formData.get("type") as IncidentType,
+      type: selectedType as IncidentType,
       title: formData.get("title") as string,
       description: formData.get("description") as string,
-      severity: parseInt(formData.get("severity") as string),
+      severity:
+        rawSeverity && rawSeverity !== NOT_ASSESSED_SEVERITY_VALUE
+          ? parseInt(rawSeverity, 10)
+          : null,
       occurredAt: formData.get("occurredAt") as string,
       reportedBy: userId,
       location: (formData.get("location") as string) || undefined,
@@ -379,6 +396,7 @@ export function IncidentForm({
       // Prosjektkobling
       projectId:
         selectedProjectId !== NO_PROJECT_VALUE ? selectedProjectId : undefined,
+      projectReference: (formData.get("projectReference") as string) || undefined,
       // Underkategorier
       subcategoryKeys: selectedSubcategories,
       // RUH-felt
@@ -450,7 +468,9 @@ export function IncidentForm({
     }
   };
 
-  const selectedTypeInfo = [...avvikTypeOptions, ...ruhTypeOptions].find((t) => t.value === selectedType);
+  const selectedTypeDescriptionKey = selectedType
+    ? `types.${selectedType}.desc`
+    : null;
 
   return (
     <form
@@ -493,78 +513,74 @@ export function IncidentForm({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Steg 1: Hovedkategori */}
+          {/* Steg 1: Fagområde / hovedkategori */}
           <div className="space-y-2">
             <Label>{t("fields.mainCategory.label")}</Label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => handleMainCategoryChange("AVVIK")}
-                disabled={loading}
-                className={cn(
-                  "flex flex-col items-center gap-2 rounded-lg border-2 p-4 text-center transition-colors",
-                  mainCategory === "AVVIK"
-                    ? "border-primary bg-primary/5 text-primary"
-                    : "border-muted hover:border-muted-foreground/30",
-                )}
-              >
-                <span className="text-lg font-semibold">{t("fields.mainCategory.avvik")}</span>
-                <span className="text-xs text-muted-foreground">{t("fields.mainCategory.avvikDesc")}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleMainCategoryChange("RUH")}
-                disabled={loading}
-                className={cn(
-                  "flex flex-col items-center gap-2 rounded-lg border-2 p-4 text-center transition-colors",
-                  mainCategory === "RUH"
-                    ? "border-orange-500 bg-orange-50 text-orange-700"
-                    : "border-muted hover:border-muted-foreground/30",
-                )}
-              >
-                <span className="text-lg font-semibold">{t("fields.mainCategory.ruh")}</span>
-                <span className="text-xs text-muted-foreground">{t("fields.mainCategory.ruhDesc")}</span>
-              </button>
+            <div className={cn("grid gap-3", groups.length > 2 ? "grid-cols-2 md:grid-cols-4" : "grid-cols-2")}>
+              {groups.map((definition) => (
+                <button
+                  key={definition.group}
+                  type="button"
+                  onClick={() => handleTypeGroupChange(definition.group)}
+                  disabled={loading}
+                  className={cn(
+                    "flex flex-col items-center gap-2 rounded-lg border-2 p-4 text-center transition-colors",
+                    typeGroup === definition.group
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-muted hover:border-muted-foreground/30",
+                  )}
+                >
+                  <span className="text-lg font-semibold">
+                    {t(`fields.typeGroup.${definition.group}.label`)}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {t(`fields.typeGroup.${definition.group}.desc`)}
+                  </span>
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Steg 2: Type + alvorlighet */}
-          {mainCategory && (
+          {/* Steg 2: Type + alvorlighet. Grupper med bare én type hopper over typevalget */}
+          {typeGroup && (
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="type">{t("fields.type.label")}</Label>
-                <Select
-                  name="type"
-                  required
-                  disabled={loading}
-                  value={selectedType || undefined}
-                  onValueChange={(value) => setSelectedType(value as IncidentType)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t("fields.type.placeholder")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {typeOptionsForCategory.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {t(type.labelKey)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {selectedTypeInfo && (
-                  <p className="text-xs text-muted-foreground">
-                    {t(selectedTypeInfo.descKey)}
-                  </p>
-                )}
-              </div>
+              {needsTypeChoice && (
+                <div className="space-y-2">
+                  <Label htmlFor="type">{t("fields.type.label")}</Label>
+                  <Select
+                    disabled={loading}
+                    value={selectedType || undefined}
+                    onValueChange={(value) => setSelectedType(value as IncidentType)}
+                  >
+                    <SelectTrigger id="type">
+                      <SelectValue placeholder={t("fields.type.placeholder")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {typesInGroup.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {t(getTypeLabelKey(type, ruhModuleEnabled))}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedTypeDescriptionKey && (
+                    <p className="text-xs text-muted-foreground">
+                      {t(selectedTypeDescriptionKey)}
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="severity">{t("fields.severity.label")}</Label>
-                <Select name="severity" required disabled={loading}>
-                  <SelectTrigger>
+                <Select name="severity" disabled={loading} defaultValue={NOT_ASSESSED_SEVERITY_VALUE}>
+                  <SelectTrigger id="severity">
                     <SelectValue placeholder={t("fields.severity.placeholder")} />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value={NOT_ASSESSED_SEVERITY_VALUE}>
+                      {t("fields.severity.notAssessedOption")}
+                    </SelectItem>
                     {severityLevels.map((level) => (
                       <SelectItem
                         key={level.value}
@@ -575,6 +591,9 @@ export function IncidentForm({
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  {t("fields.severity.help")}
+                </p>
               </div>
             </div>
           )}
@@ -608,6 +627,21 @@ export function IncidentForm({
               </p>
             </div>
           )}
+
+          {/* ── Prosjektnummer som fritekst for uregistrerte oppdrag ── */}
+          <div className="space-y-2">
+            <Label htmlFor="projectReference">{t("fields.projectReference.label")}</Label>
+            <Input
+              id="projectReference"
+              name="projectReference"
+              placeholder={t("fields.projectReference.placeholder")}
+              maxLength={PROJECT_REFERENCE_MAX_LENGTH}
+              disabled={loading}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("fields.projectReference.help")}
+            </p>
+          </div>
 
           {/* ── Underkategorier (sjekkbokser) ── */}
           {selectedType && subcategoryOptions.length > 0 && (
@@ -732,8 +766,41 @@ export function IncidentForm({
         </CardContent>
       </Card>
 
+      {/* Risikokoblingen beholdes selv om resten av RUH-feltene er skjult */}
+      {isHmsType && !showHmsSpecificFields && (
+        <Card>
+          <CardContent className="space-y-2 pt-6">
+            <Label htmlFor="riskReferenceId">{t("fields.riskReference.label")}</Label>
+            <Select name="riskReferenceId" disabled={loading || risks.length === 0}>
+              <SelectTrigger>
+                <SelectValue
+                  placeholder={
+                    risks.length
+                      ? t("fields.riskReference.placeholder")
+                      : t("fields.riskReference.noneAvailable")
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_RISK_REFERENCE_VALUE}>
+                  {t("fields.riskReference.noneOption")}
+                </SelectItem>
+                {risks.map((risk) => (
+                  <SelectItem key={risk.id} value={risk.id}>
+                    {t("fields.riskReference.optionWithScore", {
+                      title: risk.title,
+                      score: risk.score,
+                    })}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+      )}
+
       {/* ── RUH / HMS-spesifikke felt ── */}
-      {isHmsType && (
+      {showHmsSpecificFields && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

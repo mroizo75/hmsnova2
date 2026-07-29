@@ -13,7 +13,7 @@ const incidentDraftSchema = z.object({
   type: z.string().min(2),
   title: z.string().min(2),
   description: z.string().min(10),
-  severity: z.number().int().min(1).max(5),
+  severity: z.number().int().min(1).max(5).nullish(),
   incidentContext: z.string().optional(),
   availableIncidentTypes: z.array(z.string()).optional(),
   availableRuhCategories: z.array(z.string()).optional(),
@@ -25,7 +25,7 @@ const incidentQualitySchema = z.object({
   description: z.string().min(10),
   immediateAction: z.string().optional(),
   suggestedActions: z.string().optional(),
-  severity: z.number().int().min(1).max(5),
+  severity: z.number().int().min(1).max(5).nullish(),
 });
 
 const sjaSummarySchema = z.object({
@@ -60,7 +60,7 @@ export async function generateAiIncidentCaseDraft(input: {
   type: string;
   title: string;
   description: string;
-  severity: number;
+  severity?: number | null;
   incidentContext?: string;
   availableIncidentTypes?: string[];
   availableRuhCategories?: string[];
@@ -98,7 +98,7 @@ Hendelse:
 - Type: ${validated.type}
 - Tittel: ${validated.title}
 - Beskrivelse: ${validated.description}
-- Alvorlighetsgrad nå: ${validated.severity}
+- Alvorlighetsgrad nå: ${validated.severity ?? "ikke vurdert"}
 - Kontekst: ${validated.incidentContext || "ikke oppgitt"}
 
 Krav:
@@ -136,7 +136,7 @@ Krav:
         severitySuggestion:
           typeof parsed.severitySuggestion === "number"
             ? Math.max(1, Math.min(5, Math.round(parsed.severitySuggestion)))
-            : validated.severity,
+            : validated.severity ?? null,
         suggestedType: (parsed.suggestedType || "").trim(),
         suggestedRuhCategory: (parsed.suggestedRuhCategory || "").trim(),
       },
@@ -318,7 +318,7 @@ export async function runAiIncidentQualityCheck(input: {
   description: string;
   immediateAction?: string;
   suggestedActions?: string;
-  severity: number;
+  severity?: number | null;
 }) {
   try {
     const { tenantId } = await getActionContext();
@@ -333,7 +333,7 @@ Data:
 - Beskrivelse: ${validated.description}
 - Umiddelbar handling: ${validated.immediateAction || "Mangler"}
 - Foreslåtte tiltak: ${validated.suggestedActions || "Mangler"}
-- Alvorlighetsgrad: ${validated.severity}
+- Alvorlighetsgrad: ${validated.severity ?? "ikke vurdert"}
 
 Gi maks 4 konkrete varsler, kun hvis viktig informasjon mangler/er uklar.`;
 

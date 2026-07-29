@@ -1,27 +1,48 @@
 import { NextAuthOptions } from "next-auth";
+import type { Adapter } from "next-auth/adapters";
 import CredentialsProvider from "next-auth/providers/credentials";
 import AzureADProvider from "next-auth/providers/azure-ad";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/lib/db";
+import { sanitizeAdapterAccount } from "@/lib/oauth-account";
 import bcrypt from "bcryptjs";
 
+const prismaAdapter = PrismaAdapter(prisma);
+
+const adapter: Adapter = {
+  ...prismaAdapter,
+  linkAccount: (account) => prismaAdapter.linkAccount!(sanitizeAdapterAccount(account)),
+};
+
+const azureAdClientId = process.env.AZURE_AD_CLIENT_ID;
+const azureAdClientSecret = process.env.AZURE_AD_CLIENT_SECRET;
+const isAzureAdConfigured = Boolean(azureAdClientId && azureAdClientSecret);
+
 export const authOptions: NextAuthOptions = {
-  // VIKTIG: Vi bruker PrismaAdapter, men må disable den for OAuth
-  // fordi vi må kontrollere tenant-tilknytning manuelt i signIn-callback
-  adapter: PrismaAdapter(prisma),
+  adapter,
   providers: [
-    // Microsoft/Office 365 SSO
-    AzureADProvider({
-      clientId: process.env.AZURE_AD_CLIENT_ID || "",
-      clientSecret: process.env.AZURE_AD_CLIENT_SECRET || "",
-      tenantId: process.env.AZURE_AD_TENANT_ID || "common",
-      authorization: {
-        params: {
-          scope: "openid profile email User.Read",
-          prompt: "select_account", // Tvinger bruker til å velge konto
-        },
-      },
-    }),
+    // Microsoft/Office 365 SSO.
+    // Registreres kun når appen faktisk har credentials, slik at vi ikke sender
+    // en tom client_id til Microsoft og får en uforståelig AADSTS-feil tilbake.
+    ...(isAzureAdConfigured
+      ? [
+          AzureADProvider({
+            clientId: azureAdClientId!,
+            clientSecret: azureAdClientSecret!,
+            tenantId: process.env.AZURE_AD_TENANT_ID || "common",
+            // Tenant-tilknytning og brukeropprettelse skjer i signIn-callbacken under.
+            // Uten dette avviser PrismaAdapter hver førstegangsinnlogging med
+            // OAuthAccountNotLinked fordi brukeren allerede er opprettet der.
+            allowDangerousEmailAccountLinking: true,
+            authorization: {
+              params: {
+                scope: "openid profile email User.Read",
+                prompt: "select_account", // Tvinger bruker til å velge konto
+              },
+            },
+          }),
+        ]
+      : []),
     // Traditional credentials login
     CredentialsProvider({
       name: "credentials",
@@ -186,6 +207,7 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: "/login",
+    error: "/login",
   },
   callbacks: {
     async signIn({ user, account, profile }) {

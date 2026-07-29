@@ -85,6 +85,7 @@ model User {
   accounts                        Account[]
   sessions                        Session[]
   tenants                         UserTenant[]
+  managedUserTenants              UserTenant[]                   @relation("UserTenantManager") // Ansatte denne brukeren er nærmeste leder for
   blogPosts                       BlogPost[] // Blogg-artikler skrevet av bruker
   passwordResetTokens             PasswordResetToken[]
   meetingParticipants             MeetingParticipant[]           @relation("MeetingParticipants")
@@ -273,6 +274,7 @@ model Tenant {
   dashboardLocked                     Boolean                        @default(false) // Admin kan låse dashboardet for alle ansatte
   lockedDashboardConfig               Json? // Widget-konfig som brukes av alle når dashboardet er låst
   moduleVisibilityConfig              Json? // Hvilke roller kan se hvert modul (null = systemstandard)
+  ruhModuleEnabled                    Boolean                        @default(true) // false = skjul RUH, kun Avvik brukes (IK-HMS § 5: virksomheten velger egen avviksstruktur)
   hmsAnnualPlanCompletions            HmsAnnualPlanCompletion[] // Avkryssing av årlig HMS-plan (sjekkliste)
   // Timeregistrering (prosjekter, timer, kjøring)
   timeRegistrationEnabled             Boolean                        @default(false) // Aktiver modul per tenant
@@ -636,6 +638,10 @@ model UserTenant {
   // Intern ansatt-ID (bedriftens eget nummersystem, f.eks. "A-0042")
   employeeNumber String?
 
+  // Organisasjonshierarki (AML § 3-1: HMS-ansvar skal være plassert i linjen)
+  managerId String? // UserId for nærmeste leder. Null = fall tilbake til rollebasert varsling
+  position  String? // Stillingstittel, f.eks. "Tømrer", "Prosjektleder"
+
   // Tenant-spesifikke brukerinnstillinger (kan være ulike per tenant)
   displayName String? // Visningsnavn i denne tenanten (kan være annerledes enn User.name)
   phone       String? // Telefonnummer for denne tenanten
@@ -661,12 +667,14 @@ model UserTenant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant  Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  manager User?  @relation("UserTenantManager", fields: [managerId], references: [id], onDelete: SetNull)
 
   @@unique([userId, tenantId])
   @@index([userId])
   @@index([tenantId])
+  @@index([managerId])
 }
 
 enum Role {
@@ -1623,7 +1631,7 @@ model Incident {
   type                     IncidentType
   title                    String
   description              String               @db.Text
-  severity                 Int // 1-5 (ISO 9001: Alvorlighetsgrad)
+  severity                 Int? // 1-5 (ISO 9001: Alvorlighetsgrad). Null = ikke vurdert ennå, leder setter grad ved behandling
   occurredAt               DateTime
   reportedBy               String // UserId for den som registrerte avviket
   reportedForUserId        String? // Valgfritt: UserId for den avviket gjelder (rapportert på vegne av)
@@ -1672,6 +1680,8 @@ model Incident {
   subcategoryKeys          String?              @db.Text
   // Prosjektkobling (valgfritt – AML § 3-1 systematisk HMS per arbeidssted)
   projectId                String?
+  // Fritekst prosjektnummer/referanse for sporbarhet når prosjektet ikke er registrert
+  projectReference         String?
   // Kilde: INTERNAL (opprettet i systemet) eller EXTERNAL (mottatt utenfra, f.eks. PDF via e-post)
   source                   String               @default("INTERNAL")
   createdAt                DateTime             @default(now())

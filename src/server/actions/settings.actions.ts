@@ -6,6 +6,7 @@ import { getRequiredTenantContext } from "@/lib/tenant-context";
 import bcrypt from "bcryptjs";
 import ExcelJS from "exceljs";
 import { AuditLog } from "@/lib/audit-log";
+import { assertNoManagerCycle } from "@/lib/incident-notification-routing";
 import { Role } from "@prisma/client";
 
 async function getSessionContext() {
@@ -52,6 +53,22 @@ interface ImportRow {
   email: string;
   name: string;
   role: Role;
+  /** Stillingstittel, kolonne 4. Valgfri. */
+  position: string | null;
+  /** E-post til nærmeste leder, kolonne 5. Valgfri, kobles etter at alle brukere er opprettet. */
+  managerEmail: string | null;
+}
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function normalizeOptionalCell(value: unknown): string | null {
+  const text = String(value ?? "").trim();
+  return text.length > 0 ? text.slice(0, 100) : null;
+}
+
+function normalizeManagerEmail(value: unknown): string | null {
+  const email = String(value ?? "").toLowerCase().trim();
+  return EMAIL_PATTERN.test(email) ? email : null;
 }
 
 function parseCsvToRows(buffer: Buffer): ImportRow[] {
@@ -64,7 +81,7 @@ function parseCsvToRows(buffer: Buffer): ImportRow[] {
     const line = lines[i];
     const cells = line.split(sep).map((c) => c.replace(/^"|"$/g, "").trim());
     if (cells.length < 3) continue;
-    const [emailRaw, nameRaw, roleRaw] = cells;
+    const [emailRaw, nameRaw, roleRaw, positionRaw, managerRaw] = cells;
     const email = emailRaw?.toLowerCase().trim() ?? "";
     const name = nameRaw?.trim() ?? "";
     const role = normalizeRole(roleRaw ?? "");
@@ -73,10 +90,15 @@ function parseCsvToRows(buffer: Buffer): ImportRow[] {
       i === 0 &&
       (email === "email" || email === "e-post" || name.toLowerCase() === "navn" || role.toLowerCase() === "rolle");
     if (isHeader) continue;
-    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    if (!emailValid) continue;
+    if (!EMAIL_PATTERN.test(email)) continue;
     if (!VALID_ROLES.includes(role)) continue;
-    rows.push({ email, name, role });
+    rows.push({
+      email,
+      name,
+      role,
+      position: normalizeOptionalCell(positionRaw),
+      managerEmail: normalizeManagerEmail(managerRaw),
+    });
   }
   return rows;
 }
@@ -97,9 +119,15 @@ async function parseExcelToRows(buffer: Buffer): Promise<ImportRow[]> {
       rowNumber === 1 &&
       (email === "email" || email === "e-post" || name.toLowerCase() === "navn" || role.toLowerCase() === "rolle");
     if (isHeader) return;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+    if (!EMAIL_PATTERN.test(email)) return;
     if (!VALID_ROLES.includes(role)) return;
-    rows.push({ email, name, role });
+    rows.push({
+      email,
+      name,
+      role,
+      position: normalizeOptionalCell(cells[4]),
+      managerEmail: normalizeManagerEmail(cells[5]),
+    });
   });
   return rows;
 }
@@ -536,7 +564,10 @@ export async function importUsersFromFile(formData: FormData): Promise<ImportUse
     }
 
     if (rows.length === 0) {
-      return { success: false, error: "Ingen gyldige rader i filen. Bruk kolonner: e-post, navn, rolle." };
+      return {
+        success: false,
+        error: "Ingen gyldige rader i filen. Bruk kolonner: e-post, navn, rolle, og valgfritt stilling og leder.",
+      };
     }
 
     if (rows.length > MAX_IMPORT_ROWS) {
@@ -592,6 +623,7 @@ export async function importUsersFromFile(formData: FormData): Promise<ImportUse
               userId: createdUser.id,
               tenantId,
               role: row.role,
+              position: row.position,
               invitationSentAt: null,
             },
           });
@@ -604,6 +636,7 @@ export async function importUsersFromFile(formData: FormData): Promise<ImportUse
             userId: existingUser.id,
             tenantId,
             role: row.role,
+            position: row.position,
             invitationSentAt: null,
           },
         });
@@ -611,10 +644,52 @@ export async function importUsersFromFile(formData: FormData): Promise<ImportUse
       imported++;
     }
 
+    // Andre runde: koble nærmeste leder når alle rader er opprettet, slik at
+    // rekkefølgen i filen ikke spiller noen rolle (AML § 3-1)
+    const managerAssignments = rows.filter((row) => row.managerEmail !== null);
+    if (managerAssignments.length > 0) {
+      const emailsInTenant = await prisma.userTenant.findMany({
+        where: { tenantId },
+        select: { userId: true, user: { select: { email: true } } },
+      });
+      const userIdByEmail = new Map(
+        emailsInTenant.map((membership) => [
+          membership.user.email.toLowerCase(),
+          membership.userId,
+        ])
+      );
+
+      for (const row of managerAssignments) {
+        const managerId = userIdByEmail.get(row.managerEmail!);
+        const employeeId = userIdByEmail.get(row.email);
+
+        if (!employeeId) continue;
+        if (!managerId) {
+          errors.push(`${row.email}: fant ingen bruker med leder-e-post ${row.managerEmail}`);
+          continue;
+        }
+        if (managerId === employeeId) {
+          errors.push(`${row.email}: kan ikke være sin egen leder`);
+          continue;
+        }
+
+        try {
+          await assertNoManagerCycle(employeeId, managerId, createManagerLookup(tenantId));
+          await prisma.userTenant.update({
+            where: { userId_tenantId: { userId: employeeId, tenantId } },
+            data: { managerId },
+          });
+        } catch (cycleError: any) {
+          errors.push(`${row.email}: ${cycleError.message}`);
+        }
+      }
+    }
+
     await AuditLog.log(tenantId, user.id, "USERS_IMPORTED", "User", "", {
       imported,
       skipped,
       total: rows.length,
+      managerWarnings: errors.length,
     });
 
     revalidatePath("/dashboard/settings");
@@ -895,6 +970,133 @@ export async function updateEmployeeNumber(userId: string, employeeNumber: strin
 }
 
 // ============================================================================
+// ORGANISASJONSHIERARKI (AML § 3-1: HMS-ansvar plassert i linjen)
+// ============================================================================
+
+async function requireAdminContext() {
+  const { user, tenantId } = await getSessionContext();
+  const userTenant = user.tenants.find((t) => t.tenantId === tenantId);
+  if (!userTenant || userTenant.role !== "ADMIN") {
+    throw new Error("Kun administratorer kan endre organisasjonshierarkiet");
+  }
+  return { user, tenantId };
+}
+
+function createManagerLookup(tenantId: string) {
+  return async (userId: string): Promise<string | null> => {
+    const membership = await prisma.userTenant.findUnique({
+      where: { userId_tenantId: { userId, tenantId } },
+      select: { managerId: true },
+    });
+    return membership?.managerId ?? null;
+  };
+}
+
+async function assertMembership(userId: string, tenantId: string) {
+  const membership = await prisma.userTenant.findUnique({
+    where: { userId_tenantId: { userId, tenantId } },
+    select: { id: true },
+  });
+  if (!membership) {
+    throw new Error("Brukeren er ikke medlem i denne virksomheten");
+  }
+}
+
+export async function updateUserManager(userId: string, managerId: string | null) {
+  try {
+    const { user, tenantId } = await requireAdminContext();
+    await assertMembership(userId, tenantId);
+
+    if (managerId) {
+      await assertMembership(managerId, tenantId);
+      await assertNoManagerCycle(userId, managerId, createManagerLookup(tenantId));
+    }
+
+    await prisma.userTenant.update({
+      where: { userId_tenantId: { userId, tenantId } },
+      data: { managerId },
+    });
+
+    await AuditLog.log(tenantId, user.id, "USER_MANAGER_UPDATED", "UserTenant", userId, {
+      managerId,
+    });
+
+    revalidatePath("/dashboard/settings");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Kunne ikke oppdatere nærmeste leder" };
+  }
+}
+
+export async function updateUserPosition(userId: string, position: string) {
+  try {
+    const { user, tenantId } = await requireAdminContext();
+    await assertMembership(userId, tenantId);
+
+    const value = position.trim().slice(0, 100) || null;
+
+    await prisma.userTenant.update({
+      where: { userId_tenantId: { userId, tenantId } },
+      data: { position: value },
+    });
+
+    await AuditLog.log(tenantId, user.id, "USER_POSITION_UPDATED", "UserTenant", userId, {
+      position: value,
+    });
+
+    revalidatePath("/dashboard/settings");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Kunne ikke oppdatere stilling" };
+  }
+}
+
+export async function assignManagerToUsers(userIds: string[], managerId: string | null) {
+  try {
+    const { user, tenantId } = await requireAdminContext();
+
+    const uniqueUserIds = Array.from(new Set(userIds.filter((id) => id.trim().length > 0)));
+    if (uniqueUserIds.length === 0) {
+      return { success: false, error: "Ingen ansatte er valgt" };
+    }
+    if (managerId && uniqueUserIds.includes(managerId)) {
+      return { success: false, error: "En ansatt kan ikke være sin egen leder" };
+    }
+
+    const memberships = await prisma.userTenant.findMany({
+      where: { tenantId, userId: { in: uniqueUserIds } },
+      select: { userId: true },
+    });
+    if (memberships.length !== uniqueUserIds.length) {
+      return { success: false, error: "En eller flere av de valgte brukerne finnes ikke i virksomheten" };
+    }
+
+    if (managerId) {
+      await assertMembership(managerId, tenantId);
+      const lookup = createManagerLookup(tenantId);
+      for (const id of uniqueUserIds) {
+        await assertNoManagerCycle(id, managerId, lookup);
+      }
+    }
+
+    const result = await prisma.userTenant.updateMany({
+      where: { tenantId, userId: { in: uniqueUserIds } },
+      data: { managerId },
+    });
+
+    await AuditLog.log(tenantId, user.id, "USER_MANAGER_BULK_UPDATED", "UserTenant", tenantId, {
+      managerId,
+      userCount: result.count,
+    });
+
+    revalidatePath("/dashboard/settings");
+    return { success: true, updated: result.count };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Kunne ikke tildele nærmeste leder" };
+  }
+}
+
+// ============================================================================
 // SUBSCRIPTION & INVOICES
 // ============================================================================
 
@@ -984,6 +1186,49 @@ export async function getModuleVisibilityConfig() {
     return { success: true, data: config };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke hente modul-synlighet" };
+  }
+}
+
+// ============================================================================
+// RUH-MODUL
+// ============================================================================
+
+/**
+ * Slår RUH-modulen av eller på for virksomheten.
+ * IK-HMS § 5 stiller krav om systematisk avviksbehandling, men ikke om at
+ * uønskede hendelser må registreres i et eget spor. Virksomheter som samler alt
+ * under Avvik kan derfor skjule RUH.
+ */
+export async function updateRuhModuleEnabled(enabled: boolean) {
+  try {
+    const { user, tenantId } = await getSessionContext();
+
+    const userTenant = user.tenants.find((t) => t.tenantId === tenantId);
+    if (!userTenant || userTenant.role !== "ADMIN") {
+      return { success: false, error: "Kun administratorer kan endre RUH-modulen" };
+    }
+
+    const previous = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { ruhModuleEnabled: true },
+    });
+
+    await prisma.tenant.update({
+      where: { id: tenantId },
+      data: { ruhModuleEnabled: enabled },
+    });
+
+    await AuditLog.log(tenantId, user.id, "RUH_MODULE_UPDATED", "Tenant", tenantId, {
+      before: previous?.ruhModuleEnabled ?? true,
+      after: enabled,
+    });
+
+    revalidatePath("/dashboard/settings");
+    revalidatePath("/dashboard/incidents");
+    revalidatePath("/ansatt");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Kunne ikke oppdatere RUH-modulen" };
   }
 }
 

@@ -15,17 +15,23 @@ export async function GET() {
     { header: "email", key: "email", width: 30 },
     { header: "navn", key: "navn", width: 25 },
     { header: "rolle", key: "rolle", width: 18 },
+    { header: "stilling", key: "stilling", width: 22 },
+    { header: "leder", key: "leder", width: 30 },
   ];
 
   sheet.addRow({
     email: "ola.nordmann@example.com",
     navn: "Ola Nordmann",
     rolle: "ANSATT",
+    stilling: "Tømrer",
+    leder: "kari.leder@example.com",
   });
   sheet.addRow({
     email: "kari.leder@example.com",
     navn: "Kari Leder",
     rolle: "LEDER",
+    stilling: "Prosjektleder",
+    leder: "",
   });
 
   sheet.getRow(1).font = { bold: true };

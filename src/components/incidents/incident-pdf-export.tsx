@@ -29,6 +29,7 @@ interface IncidentData {
   description: string;
   occurredAt: Date | null;
   location?: string | null;
+  projectReference?: string | null;
   witnessName?: string | null;
   immediateAction?: string | null;
   rootCause?: string | null;
@@ -182,6 +183,15 @@ export function IncidentPDFExport({ incident, typeLabel, severityLabel, statusLa
         doc.text("Sted:", margin, yPos);
         doc.setFont("helvetica", "normal");
         doc.text(incident.location, margin + 30, yPos);
+        yPos += 6;
+      }
+
+      // Prosjektnummer/referanse for oppdrag som ikke er registrert som prosjekt
+      if (incident.projectReference) {
+        doc.setFont("helvetica", "bold");
+        doc.text("Prosjektnr.:", margin, yPos);
+        doc.setFont("helvetica", "normal");
+        doc.text(incident.projectReference, margin + 30, yPos);
         yPos += 6;
       }
 

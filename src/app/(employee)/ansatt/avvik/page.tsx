@@ -9,6 +9,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Plus, Clock, CheckCircle } from "lucide-react";
 import Link from "next/link";
+import type { IncidentType } from "@prisma/client";
+
+const TYPE_LABEL_KEYS: Record<IncidentType, string> = {
+  AVVIK: "type.AVVIK",
+  HMS: "type.HMS",
+  NESTEN: "type.NESTEN",
+  ULYKKE: "type.ULYKKE",
+  SKADE: "type.SKADE",
+  FARLIG_SITUASJON: "type.FARLIG_SITUASJON",
+  YRKESSYKDOM: "type.YRKESSYKDOM",
+  MILJO: "type.MILJO",
+  KVALITET: "type.KVALITET",
+  CUSTOMER: "type.CUSTOMER",
+};
 
 export default async function AnsattAvvik() {
   const session = await getServerSession(authOptions);
@@ -194,43 +208,23 @@ export default async function AnsattAvvik() {
                 }
 
                 // Type badge
-                let typeBadge;
-                switch (incident.type) {
-                  case "AVVIK":
-                    typeBadge = t("type.AVVIK");
-                    break;
-                  case "NESTEN":
-                    typeBadge = t("type.NESTEN");
-                    break;
-                  case "ULYKKE":
-                  case "SKADE":
-                    typeBadge = t("type.SKADE");
-                    break;
-                  case "FARLIG_SITUASJON":
-                    typeBadge = t("type.FARLIG_SITUASJON");
-                    break;
-                  case "YRKESSYKDOM":
-                    typeBadge = t("type.YRKESSYKDOM");
-                    break;
-                  case "MILJO":
-                    typeBadge = t("type.MILJO");
-                    break;
-                  case "KVALITET":
-                    typeBadge = t("type.KVALITET");
-                    break;
-                  default:
-                    typeBadge = incident.type;
-                }
+                const typeBadge = t(TYPE_LABEL_KEYS[incident.type] ?? "type.AVVIK");
 
-                // Severity badge
-                let severityColor = "bg-gray-100 text-gray-700";
-                if (incident.severity >= 4) {
-                  severityColor = "bg-red-100 text-red-700";
-                } else if (incident.severity === 3) {
-                  severityColor = "bg-yellow-100 text-yellow-700";
-                } else {
-                  severityColor = "bg-green-100 text-green-700";
+                // Severity badge. Null = leder har ikke vurdert grad ennå
+                let severityColor = "bg-slate-100 text-slate-700";
+                if (incident.severity !== null) {
+                  if (incident.severity >= 4) {
+                    severityColor = "bg-red-100 text-red-700";
+                  } else if (incident.severity === 3) {
+                    severityColor = "bg-yellow-100 text-yellow-700";
+                  } else {
+                    severityColor = "bg-green-100 text-green-700";
+                  }
                 }
+                const severityBadgeText =
+                  incident.severity === null
+                    ? t("badges.severityNotAssessed")
+                    : t("badges.severity", { severity: incident.severity });
 
                 return (
                   <div
@@ -249,7 +243,7 @@ export default async function AnsattAvvik() {
                             {typeBadge}
                           </Badge>
                           <Badge variant="secondary" className={`text-xs ${severityColor}`}>
-                            {t("badges.severity", { severity: incident.severity })}
+                            {severityBadgeText}
                           </Badge>
                         </div>
 
@@ -257,6 +251,13 @@ export default async function AnsattAvvik() {
                         <div className="text-xs text-muted-foreground space-y-1">
                           {incident.location && (
                             <p>{t("list.location", { location: incident.location })}</p>
+                          )}
+                          {incident.projectReference && (
+                            <p>
+                              {t("list.projectReference", {
+                                reference: incident.projectReference,
+                              })}
+                            </p>
                           )}
                           <p>
                             {t("list.reportedAt", {

@@ -27,6 +27,18 @@ export async function POST(request: NextRequest) {
     if (!tenantId) {
       return NextResponse.json({ error: "Ingen tenant tilgang" }, { status: 403 });
     }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { ruhModuleEnabled: true },
+    });
+    if (tenant && !tenant.ruhModuleEnabled) {
+      return NextResponse.json(
+        { error: "RUH er ikke i bruk i denne virksomheten. Registrer hendelsen som avvik." },
+        { status: 403 }
+      );
+    }
+
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
     const category = formData.get("category") as RuhCategory;

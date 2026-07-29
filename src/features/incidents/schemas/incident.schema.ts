@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ActionEffectiveness, IncidentStage, IncidentType, IncidentStatus } from "@prisma/client";
+import { PROJECT_REFERENCE_MAX_LENGTH } from "@/lib/incident-project-reference";
 
 /**
  * ISO 9001 - 10.2 Avvik og korrigerende tiltak
@@ -22,7 +23,8 @@ export const createIncidentSchema = z.object({
   type: z.nativeEnum(IncidentType),
   title: z.string().min(5, "Tittel må være minst 5 tegn"),
   description: z.string().min(20, "Beskrivelse må være minst 20 tegn"),
-  severity: z.number().int().min(1).max(5, "Alvorlighetsgrad må være 1-5"),
+  // Valgfri: leder vurderer alvorlighetsgrad ved behandling (IK-HMS § 5)
+  severity: z.number().int().min(1).max(5, "Alvorlighetsgrad må være 1-5").nullish(),
   occurredAt: z.date(),
   reportedBy: z.string().cuid(),
   reportedForUserId: z.string().cuid().optional(),
@@ -41,6 +43,8 @@ export const createIncidentSchema = z.object({
   customerSatisfaction: z.number().int().min(1).max(5).optional(),
   // Prosjektkobling
   projectId: z.string().cuid().optional(),
+  // Fritekst prosjektnummer/adresse for oppdrag som ikke er registrert som prosjekt
+  projectReference: z.string().max(PROJECT_REFERENCE_MAX_LENGTH).optional().nullable(),
   // Underkategorier (sjekkbokser per hendelsestype)
   subcategoryKeys: z.array(z.string()).optional(),
   // RUH-felt (AML § 5-2)
@@ -59,7 +63,7 @@ export const updateIncidentSchema = z.object({
   type: z.nativeEnum(IncidentType).optional(),
   title: z.string().min(5).optional(),
   description: z.string().min(20).optional(),
-  severity: z.number().int().min(1).max(5).optional(),
+  severity: z.number().int().min(1).max(5).nullish(),
   occurredAt: z.date().optional(),
   location: z.string().optional(),
   witnessName: z.string().optional(),
@@ -81,6 +85,7 @@ export const updateIncidentSchema = z.object({
   customerSatisfaction: z.number().int().min(1).max(5).optional().nullable(),
   // Prosjektkobling
   projectId: z.string().cuid().optional().nullable(),
+  projectReference: z.string().max(PROJECT_REFERENCE_MAX_LENGTH).optional().nullable(),
   // Underkategorier
   subcategoryKeys: z.array(z.string()).optional(),
   // RUH-felt
@@ -129,6 +134,95 @@ export function getMainCategory(type: IncidentType): MainIncidentCategory {
   return RUH_TYPES.has(type) ? "RUH" : "AVVIK";
 }
 
+/**
+ * Toppnivå i typevalget når et avvik meldes.
+ *
+ * Virksomheter som bruker RUH velger først mellom Avvik og RUH. Virksomheter som
+ * har slått av RUH velger i stedet fagområde, slik at meldeplikten etter
+ * arbeidsmiljøloven § 5-2 dekkes av HMS-gruppen.
+ */
+export type IncidentTypeGroup =
+  | "AVVIK"
+  | "RUH"
+  | "HMS"
+  | "KVALITET"
+  | "MILJO"
+  | "CUSTOMER";
+
+export interface IncidentTypeGroupDefinition {
+  group: IncidentTypeGroup;
+  types: readonly IncidentType[];
+  /**
+   * Typer som hører til gruppen, men ikke tilbys i skjemaet. Dekker eldre data og
+   * systemgenererte avvik, slik at et lagret avvik alltid finner gruppen sin.
+   */
+  legacyTypes?: readonly IncidentType[];
+}
+
+export const RUH_MODE_GROUPS: readonly IncidentTypeGroupDefinition[] = [
+  { group: "AVVIK", types: ["HMS", "KVALITET", "MILJO", "CUSTOMER"], legacyTypes: ["AVVIK"] },
+  {
+    group: "RUH",
+    types: ["ULYKKE", "NESTEN", "FARLIG_SITUASJON", "YRKESSYKDOM"],
+    legacyTypes: ["SKADE"],
+  },
+];
+
+export const AVVIK_ONLY_GROUPS: readonly IncidentTypeGroupDefinition[] = [
+  // AML § 5-1, § 5-2 og § 2-3: ulykke, tilløp, sykdom og farlige forhold
+  {
+    group: "HMS",
+    types: ["HMS", "ULYKKE", "NESTEN", "FARLIG_SITUASJON", "YRKESSYKDOM"],
+    legacyTypes: ["AVVIK", "SKADE"],
+  },
+  { group: "KVALITET", types: ["KVALITET"] },
+  { group: "MILJO", types: ["MILJO"] },
+  { group: "CUSTOMER", types: ["CUSTOMER"] },
+];
+
+export function getIncidentTypeGroups(
+  ruhModuleEnabled: boolean
+): readonly IncidentTypeGroupDefinition[] {
+  return ruhModuleEnabled ? RUH_MODE_GROUPS : AVVIK_ONLY_GROUPS;
+}
+
+export function getIncidentTypesForGroup(
+  group: IncidentTypeGroup,
+  ruhModuleEnabled: boolean
+): readonly IncidentType[] {
+  const definition = getIncidentTypeGroups(ruhModuleEnabled).find(
+    (candidate) => candidate.group === group
+  );
+  return definition?.types ?? [];
+}
+
+/**
+ * Finner gruppen en type hører til, også for typer som bare finnes i eldre data.
+ * Returnerer null når typen ikke hører til noen gruppe i gjeldende oppsett.
+ */
+export function getIncidentTypeGroup(
+  type: IncidentType | "",
+  ruhModuleEnabled: boolean
+): IncidentTypeGroup | null {
+  if (!type) return null;
+  const definition = getIncidentTypeGroups(ruhModuleEnabled).find(
+    (candidate) =>
+      candidate.types.includes(type) || (candidate.legacyTypes?.includes(type) ?? false)
+  );
+  return definition?.group ?? null;
+}
+
+/**
+ * Grupper med bare én type trenger ikke et eget typevalg – typen velges direkte.
+ */
+export function getSingleTypeForGroup(
+  group: IncidentTypeGroup,
+  ruhModuleEnabled: boolean
+): IncidentType | null {
+  const types = getIncidentTypesForGroup(group, ruhModuleEnabled);
+  return types.length === 1 ? types[0] : null;
+}
+
 export function getMainCategoryLabel(category: MainIncidentCategory): string {
   return category === "RUH" ? "RUH" : "Avvik";
 }
@@ -147,7 +241,7 @@ export function getIncidentTypeLabel(type: IncidentType): string {
     AVVIK: "Avvik",
     NESTEN: "Nestenulykke",
     ULYKKE: "Arbeidsulykke",
-    FARLIG_SITUASJON: "Farlig situasjon",
+    FARLIG_SITUASJON: "Farlig situasjon / observasjon",
     YRKESSYKDOM: "Yrkessykdom",
     SKADE: "Personskade",
     MILJO: "Miljøavvik",
@@ -178,9 +272,18 @@ export function getIncidentTypeColor(type: IncidentType): string {
 }
 
 /**
- * Get severity label and color
+ * Get severity label and color.
+ * Null betyr at alvorlighetsgraden ennå ikke er vurdert av leder.
  */
-export function getSeverityInfo(severity: number): { label: string; color: string; bgColor: string; textColor: string } {
+export function getSeverityInfo(severity: number | null | undefined): { label: string; color: string; bgColor: string; textColor: string } {
+  if (severity === null || severity === undefined) {
+    return {
+      label: "Ikke vurdert",
+      color: "text-slate-700",
+      bgColor: "bg-slate-100 border-slate-300",
+      textColor: "text-slate-700",
+    };
+  }
   if (severity >= 5) {
     return {
       label: "Kritisk",

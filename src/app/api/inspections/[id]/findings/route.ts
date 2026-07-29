@@ -124,10 +124,11 @@ export async function POST(
         type: "AVVIK",
         title: `[Vernerunde] ${finding.title}`,
         description: incidentDescription,
+        // Null = ikke vurdert; leder setter grad ved behandling av avviket
         severity:
           typeof data.severity === "number"
             ? Math.max(1, Math.min(5, data.severity))
-            : 3,
+            : null,
         occurredAt,
         reportedBy: session.user.id,
         location: findingLocation || inspection.location || null,

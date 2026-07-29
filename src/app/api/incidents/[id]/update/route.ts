@@ -4,7 +4,8 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { IncidentStage, IncidentStatus, IncidentType } from "@prisma/client";
-import { notifyUsersByRoles } from "@/server/actions/notification.actions";
+import { createNotification, notifyUsersByRoles } from "@/server/actions/notification.actions";
+import { normalizeProjectReference } from "@/lib/incident-project-reference";
 
 function parseBoolean(value: unknown): boolean | undefined {
   if (typeof value === "boolean") {
@@ -28,6 +29,16 @@ function parseNullableNumber(value: unknown): number | null | undefined {
     return Number.isFinite(parsed) ? parsed : undefined;
   }
   return undefined;
+}
+
+function parseNullableText(value: unknown): string | null | undefined {
+  if (value === null) {
+    return null;
+  }
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  return value.trim() || null;
 }
 
 function parseIncidentType(value: unknown): IncidentType | undefined {
@@ -86,9 +97,22 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { status, severity, responsibleId } = body;
+    const { status } = body;
+    const responsibleId =
+      typeof body.responsibleId === "string" && body.responsibleId.trim().length > 0
+        ? body.responsibleId.trim()
+        : null;
+    // Alvorlighetsgrad kan settes tilbake til «ikke vurdert» ved å sende null
+    const severity = parseNullableNumber(body.severity);
+    if (severity !== null && severity !== undefined && (severity < 1 || severity > 5)) {
+      return NextResponse.json({ error: "Ugyldig alvorlighetsgrad." }, { status: 400 });
+    }
     const type = parseIncidentType(body.type);
     const projectId = parseProjectId(body.projectId);
+    const projectReference =
+      body.projectReference === undefined
+        ? undefined
+        : normalizeProjectReference(body.projectReference);
     const subcategoryKeys = Array.isArray(body.subcategoryKeys)
       ? body.subcategoryKeys.filter((value: unknown): value is string => typeof value === "string")
       : undefined;
@@ -105,6 +129,18 @@ export async function PUT(
       });
       if (!project) {
         return NextResponse.json({ error: "Prosjektet finnes ikke i denne virksomheten." }, { status: 400 });
+      }
+    }
+    if (responsibleId) {
+      const membership = await prisma.userTenant.findUnique({
+        where: { userId_tenantId: { userId: responsibleId, tenantId } },
+        select: { id: true },
+      });
+      if (!membership) {
+        return NextResponse.json(
+          { error: "Ansvarlig finnes ikke i denne virksomheten." },
+          { status: 400 }
+        );
       }
     }
     const source = typeof body.source === "string" && ["INTERNAL", "EXTERNAL"].includes(body.source)
@@ -125,6 +161,12 @@ export async function PUT(
       typeof body.environmentalDescription === "string"
         ? body.environmentalDescription.trim() || null
         : undefined;
+    // Personinvolvering og skadeomfang er som regel ukjent ved melding og
+    // registreres under behandlingen (AML § 5-1)
+    const involvedPersons = parseNullableText(body.involvedPersons);
+    const injuryType = parseNullableText(body.injuryType);
+    const injuryDescription = parseNullableText(body.injuryDescription);
+    const suggestedActions = parseNullableText(body.suggestedActions);
 
     const requiresHseCompletion = status && status !== "OPEN";
     if (requiresHseCompletion) {
@@ -162,6 +204,8 @@ export async function PUT(
         type: true,
         severity: true,
         isRestrictedWork: true,
+        responsibleId: true,
+        avviksnummer: true,
       },
     });
 
@@ -180,9 +224,10 @@ export async function PUT(
               ? JSON.stringify(subcategoryKeys)
               : null,
         projectId: projectId === undefined ? undefined : projectId,
+        projectReference,
         status,
         severity,
-        responsibleId: responsibleId || null,
+        responsibleId,
         stage: stageMap[status as IncidentStatus] || "REPORTED",
         medicalAttentionRequired:
           medicalAttentionRequired === undefined ? undefined : medicalAttentionRequired,
@@ -217,12 +262,28 @@ export async function PUT(
             : isEnvironmentalRelease
               ? environmentalDescription
               : null,
+        involvedPersons,
+        injuryType,
+        injuryDescription,
+        suggestedActions,
         source: source ?? undefined,
       },
     });
 
     revalidatePath(`/dashboard/incidents/${id}`);
     revalidatePath("/dashboard/incidents");
+
+    // IK-HMS § 5 nr. 7: den som får avviket til behandling må få beskjed om det
+    if (incident.responsibleId && incident.responsibleId !== existingIncident.responsibleId) {
+      await createNotification({
+        tenantId,
+        userId: incident.responsibleId,
+        type: "NEW_INCIDENT",
+        title: "Avvik tildelt deg",
+        message: `${incident.avviksnummer ?? incident.type}: ${incident.title} er sendt til deg for behandling.`,
+        link: `/dashboard/incidents/${incident.id}`,
+      });
+    }
 
     const becameStopWork =
       existingIncident.isRestrictedWork !== true && incident.isRestrictedWork === true;

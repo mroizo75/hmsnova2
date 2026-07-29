@@ -45,7 +45,12 @@
     "orgChart": "Organisasjonskart",
     "settings": "Innstillinger",
     "employeeReviews": "Medarbeidersamtaler",
-    "hmsTavle": "Digital HMS Tavle"
+    "hmsTavle": "Digital HMS Tavle",
+    "ikMat": "IK-mat og HACCP",
+    "beredskapReiseliv": "Beredskap – reiseliv",
+    "aktivitetssikkerhet": "Aktivitetssikkerhet",
+    "transport": "Transport",
+    "bhtNattarbeid": "BHT og nattarbeid"
   },
   "auth": {
     "login": "Logg inn",
@@ -82,16 +87,18 @@
     "types": {
       "ULYKKE": {
         "label": "Arbeidsulykke / RUH",
+        "labelWithoutRuh": "Arbeidsulykke",
         "desc": "Energi frigitt og skade/tap oppstod på person, materiell eller miljø",
         "badge": "AML § 5-2 – varslingspliktig"
       },
       "NESTEN": {
         "label": "Nestenulykke / RUH",
+        "labelWithoutRuh": "Nestenulykke",
         "desc": "Energi frigitt, men ingen skade – under andre omstendigheter ville ulykke ha skjedd",
         "badge": "AML § 5-2 – tilløp til ulykke"
       },
       "FARLIG_SITUASJON": {
-        "label": "Farlig situasjon / Observasjon",
+        "label": "Farlig situasjon / observasjon",
         "desc": "Farlig tilstand eller uønsket forhold som representerer en fare, men ingen energi frigitt",
         "badge": "AML § 2-3"
       },
@@ -103,6 +110,10 @@
       "AVVIK": {
         "label": "Avvik",
         "desc": "Brudd på lovgivning, interne krav, prosedyrer eller standarder (ISO 9001 kap. 10.2)"
+      },
+      "HMS": {
+        "label": "HMS-avvik",
+        "desc": "Brudd på HMS-krav eller rutiner uten at det oppstod skade eller tilløp til ulykke"
       },
       "MILJO": {
         "label": "Miljøavvik",
@@ -239,19 +250,52 @@
         "ruh": "RUH",
         "ruhDesc": "Rapport om uønsket hendelse, ulykke eller nestenulykke"
       },
+      "typeGroup": {
+        "AVVIK": {
+          "label": "Avvik",
+          "desc": "Avvik innen HMS, kvalitet eller miljø, eller klage fra kunde"
+        },
+        "RUH": {
+          "label": "RUH",
+          "desc": "Rapport om uønsket hendelse, ulykke eller nestenulykke"
+        },
+        "HMS": {
+          "label": "HMS",
+          "desc": "Ulykke, nestenulykke, observasjon eller yrkessykdom"
+        },
+        "KVALITET": {
+          "label": "Kvalitet",
+          "desc": "Produkt- eller tjenestekvalitet som ikke møter krav"
+        },
+        "MILJO": {
+          "label": "Miljø",
+          "desc": "Utslipp, søl eller annet avvik fra miljøkrav"
+        },
+        "CUSTOMER": {
+          "label": "Kundeklage",
+          "desc": "Klage eller tilbakemelding fra kunde"
+        }
+      },
       "type": {
         "label": "Type *",
         "placeholder": "Velg type"
       },
       "severity": {
-        "label": "Alvorlighetsgrad *",
-        "placeholder": "Velg alvorlighet"
+        "label": "Alvorlighetsgrad",
+        "placeholder": "Velg alvorlighet",
+        "notAssessedOption": "Ikke vurdert – leder setter grad",
+        "help": "Valgfritt. Lar du den stå åpen, vurderer leder alvorlighetsgraden ved behandling."
       },
       "project": {
         "label": "Knytt til prosjekt / jobb",
         "placeholder": "Velg prosjekt (valgfritt)",
         "noneOption": "— Ingen / ikke prosjektrelatert —",
         "help": "Kobling til prosjekt gir samlet HMS-rapport per jobb/oppdrag"
+      },
+      "projectReference": {
+        "label": "Prosjektnummer / referanse",
+        "placeholder": "F.eks. 24-1187 eller Storgata 12",
+        "help": "Valgfritt. Brukes når oppdraget ikke er registrert som prosjekt. Skriv internt prosjektnummer eller adresse for sporbarhet."
       },
       "title": {
         "label": "Tittel *",
@@ -894,6 +938,7 @@
       "emptyDescription": "Du har ikke rapportert noen avvik ennå.",
       "emptyCta": "Rapporter første avvik",
       "location": "📍 Sted: {location}",
+      "projectReference": "🔖 Prosjektnr.: {reference}",
       "reportedAt": "🕐 Rapportert: {date}"
     },
     "badges": {
@@ -901,16 +946,20 @@
       "underReview": "🔍 Undersøkes",
       "actions": "🛠 Tiltak",
       "closed": "✓ Lukket",
-      "severity": "Alvorlighet: {severity}"
+      "severity": "Alvorlighet: {severity}",
+      "severityNotAssessed": "Alvorlighet: ikke vurdert"
     },
     "type": {
       "AVVIK": "⚠️ Avvik",
+      "HMS": "🦺 HMS-avvik",
       "NESTEN": "🟡 Nestenulykke",
+      "ULYKKE": "🔴 Arbeidsulykke",
       "SKADE": "🔴 Skade",
-      "FARLIG_SITUASJON": "🟠 Farlig situasjon",
+      "FARLIG_SITUASJON": "🟠 Farlig situasjon / observasjon",
       "YRKESSYKDOM": "🩺 Yrkessykdom",
       "MILJO": "🌍 Miljø",
-      "KVALITET": "📋 Kvalitet"
+      "KVALITET": "📋 Kvalitet",
+      "CUSTOMER": "🙋 Kundeklage"
     },
     "statusHelp": {
       "title": "📚 Status-forklaring",
@@ -1834,11 +1883,12 @@
       }
     },
     "incidentTypes": {
-      "ULYKKE": "Arbeidsulykke / RUH",
-      "NESTEN": "Nestenulykke / RUH",
-      "FARLIG_SITUASJON": "Farlig situasjon / Observasjon",
+      "ULYKKE": "Arbeidsulykke",
+      "NESTEN": "Nestenulykke",
+      "FARLIG_SITUASJON": "Farlig situasjon / observasjon",
       "YRKESSYKDOM": "Yrkessykdom / Arbeidsrelatert sykdom",
       "AVVIK": "Avvik",
+      "HMS": "HMS-avvik",
       "MILJO": "Miljøavvik",
       "KVALITET": "Kvalitetsavvik",
       "CUSTOMER": "Kundeklage"
@@ -1875,12 +1925,43 @@
         "none": "— Ikke prosjektrelatert —",
         "help": "Er avviket knyttet til et bestemt prosjekt eller oppdrag?"
       },
+      "projectReference": {
+        "label": "Prosjektnummer / referanse",
+        "placeholder": "F.eks. 24-1187 eller Storgata 12",
+        "help": "Valgfritt. Står ikke prosjektet i listen, skriv internt prosjektnummer eller adresse."
+      },
       "mainCategory": {
         "label": "Hva vil du rapportere? *",
         "avvik": "Avvik",
         "avvikDesc": "Avvik fra prosedyrer, kvalitet, miljø eller kundeklage",
         "ruh": "RUH",
         "ruhDesc": "Rapport om uønsket hendelse, ulykke eller nestenulykke"
+      },
+      "typeGroup": {
+        "AVVIK": {
+          "label": "Avvik",
+          "desc": "Avvik innen HMS, kvalitet eller miljø, eller klage fra kunde"
+        },
+        "RUH": {
+          "label": "RUH",
+          "desc": "Rapport om uønsket hendelse, ulykke eller nestenulykke"
+        },
+        "HMS": {
+          "label": "HMS",
+          "desc": "Ulykke, nestenulykke, observasjon eller yrkessykdom"
+        },
+        "KVALITET": {
+          "label": "Kvalitet",
+          "desc": "Produkt- eller tjenestekvalitet som ikke møter krav"
+        },
+        "MILJO": {
+          "label": "Miljø",
+          "desc": "Utslipp, søl eller annet avvik fra miljøkrav"
+        },
+        "CUSTOMER": {
+          "label": "Kundeklage",
+          "desc": "Klage eller tilbakemelding fra kunde"
+        }
       },
       "type": {
         "label": "Type *",
@@ -1893,8 +1974,10 @@
         "empty": "Ingen underkategorier konfigurert for valgt type."
       },
       "severity": {
-        "label": "Hvor alvorlig? *",
+        "label": "Hvor alvorlig?",
         "placeholder": "Velg alvorlighetsgrad",
+        "notAssessedOption": "Ikke vurdert – leder setter grad",
+        "help": "Valgfritt. Lar du den stå åpen, vurderer leder alvorlighetsgraden ved behandling.",
         "options": {
           "s5": "🔴 Kritisk (5) - Umiddelbar fare",
           "s4": "🟠 Høy (4) - Alvorlig",
@@ -2444,6 +2527,7 @@
     "empty": "Ingen avvik registrert",
     "dash": "-",
     "risk": "Risiko",
+    "projectReference": "Prosjektnr.",
     "table": {
       "number": "Nr",
       "incident": "Sak",
@@ -2467,7 +2551,7 @@
       "AVVIK": "Avvik",
       "NESTEN": "Nestenulykke",
       "ULYKKE": "Arbeidsulykke",
-      "FARLIG_SITUASJON": "Farlig situasjon",
+      "FARLIG_SITUASJON": "Farlig situasjon / observasjon",
       "YRKESSYKDOM": "Yrkessykdom",
       "SKADE": "Personskade",
       "MILJO": "Miljøavvik",
@@ -2490,6 +2574,8 @@
       "VERIFIED": "Verifisert"
     },
     "severity": {
+      "notAssessed": "Ikke vurdert",
+      "notAssessedShort": "–",
       "1": "Ubetydelig",
       "2": "Mindre",
       "3": "Moderat",
@@ -2537,11 +2623,12 @@
     },
     "labels": {
       "severityPrefix": "Alvorlighet: {value} - {label}",
+      "severityNotAssessed": "Alvorlighet: ikke vurdert",
       "type": {
         "AVVIK": "Avvik",
         "NESTEN": "Nestenulykke",
         "ULYKKE": "Arbeidsulykke",
-        "FARLIG_SITUASJON": "Farlig situasjon",
+        "FARLIG_SITUASJON": "Farlig situasjon / observasjon",
         "YRKESSYKDOM": "Yrkessykdom",
         "SKADE": "Personskade",
         "MILJO": "Miljøavvik",
@@ -2556,6 +2643,7 @@
         "CLOSED": "Lukket"
       },
       "severity": {
+        "notAssessed": "Ikke vurdert",
         "1": "Ubetydelig",
         "2": "Mindre",
         "3": "Moderat",
@@ -2570,6 +2658,7 @@
         "descriptionLabel": "Beskrivelse",
         "time": "Tidspunkt",
         "location": "Sted",
+        "projectReference": "Prosjektnummer / referanse",
         "witnesses": "Vitner",
         "injury": "Skade",
         "noInjuryRegistered": "Ingen skade registrert",
@@ -2579,6 +2668,9 @@
         "lostTimeMinutes": "{minutes} minutter",
         "linkedRisk": "Knyttet risiko",
         "riskScore": "Score {score}",
+        "involvedPersons": "Involverte personer",
+        "injuryDescription": "Beskrivelse av skade",
+        "suggestedActions": "Foreslåtte tiltak",
         "immediateActions": "Umiddelbare tiltak",
         "attachments": "Vedlegg ({count})"
       },

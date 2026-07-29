@@ -50,6 +50,7 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
           tenant: {
             select: {
               industry: true,
+              ruhModuleEnabled: true,
             },
           },
         },
@@ -128,6 +129,7 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
         defaultProjectId={resolvedSearchParams?.projectId}
         isTabletMode={isTabletMode}
         templatePreset={resolvedSearchParams?.template}
+        ruhModuleEnabled={selectedMembership.tenant.ruhModuleEnabled}
       />
     </div>
   );

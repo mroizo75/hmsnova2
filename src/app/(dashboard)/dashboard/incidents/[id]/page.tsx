@@ -116,10 +116,19 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
     orderBy: { name: "asc" },
   });
 
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { ruhModuleEnabled: true },
+  });
+
   const typeLabel = t(`labels.type.${incident.type}`);
   const typeColor = getIncidentTypeColor(incident.type);
   const { bgColor: severityColor, textColor: severityTextColor } = getSeverityInfo(incident.severity);
-  const severityLabel = t(`labels.severity.${incident.severity}`);
+  const severityLabel = t(`labels.severity.${incident.severity ?? "notAssessed"}`);
+  const severityBadgeText =
+    incident.severity === null
+      ? t("labels.severityNotAssessed")
+      : t("labels.severityPrefix", { value: incident.severity, label: severityLabel });
   const statusLabel = t(`labels.status.${incident.status}`);
   const statusColor = getIncidentStatusColor(incident.status);
 
@@ -141,11 +150,12 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
     avviksnummer: incident.avviksnummer,
     title: incident.title,
     type: incident.type,
-    severity: String(incident.severity),
+    severity: incident.severity === null ? "" : String(incident.severity),
     status: incident.status,
     description: incident.description,
     occurredAt: incident.occurredAt,
     location: incident.location,
+    projectReference: incident.projectReference,
     witnessName: incident.witnessName,
     immediateAction: incident.immediateAction,
     rootCause: incident.rootCause,
@@ -198,7 +208,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
               )}
               <Badge className={typeColor}>{typeLabel}</Badge>
               <Badge className={`${severityColor} ${severityTextColor}`}>
-                {t("labels.severityPrefix", { value: incident.severity, label: severityLabel })}
+                {severityBadgeText}
               </Badge>
               <Badge className={statusColor}>{statusLabel}</Badge>
               {(incident.source ?? "INTERNAL") === "EXTERNAL" ? (
@@ -242,6 +252,16 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
                   {t("sections.whatHappened.location")}
                 </h4>
                 <p className="text-sm text-muted-foreground">{incident.location}</p>
+              </div>
+            )}
+
+            {incident.projectReference && (
+              <div>
+                <h4 className="font-semibold mb-1 flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  {t("sections.whatHappened.projectReference")}
+                </h4>
+                <p className="text-sm text-muted-foreground">{incident.projectReference}</p>
               </div>
             )}
 
@@ -295,6 +315,33 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
                   </p>
                 </div>
               )}
+            </div>
+          )}
+
+          {incident.involvedPersons && (
+            <div>
+              <h4 className="font-semibold mb-2">{t("sections.whatHappened.involvedPersons")}</h4>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                {incident.involvedPersons}
+              </p>
+            </div>
+          )}
+
+          {incident.injuryDescription && (
+            <div>
+              <h4 className="font-semibold mb-2">{t("sections.whatHappened.injuryDescription")}</h4>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                {incident.injuryDescription}
+              </p>
+            </div>
+          )}
+
+          {incident.suggestedActions && (
+            <div>
+              <h4 className="font-semibold mb-2">{t("sections.whatHappened.suggestedActions")}</h4>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                {incident.suggestedActions}
+              </p>
             </div>
           )}
 
@@ -370,6 +417,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
               currentType={incident.type}
               currentSubcategoryKeys={parsedSubcategoryKeys}
               currentProjectId={incident.projectId}
+              currentProjectReference={incident.projectReference}
               currentStatus={incident.status}
               currentSeverity={incident.severity}
               currentResponsibleId={incident.responsibleId}
@@ -386,8 +434,13 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
               currentIsEnvironmentalRelease={incident.isEnvironmentalRelease}
               currentEnvironmentalDescription={incident.environmentalDescription}
               currentSource={incident.source ?? "INTERNAL"}
+              currentInvolvedPersons={incident.involvedPersons}
+              currentInjuryType={incident.injuryType}
+              currentInjuryDescription={incident.injuryDescription}
+              currentSuggestedActions={incident.suggestedActions}
               users={tenantUsers}
               projects={tenantProjects}
+              ruhModuleEnabled={tenant?.ruhModuleEnabled ?? true}
             />
           </CardContent>
         </Card>

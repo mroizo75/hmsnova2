@@ -141,7 +141,10 @@ export function IncidentList({ incidents }: IncidentListProps) {
             const typeLabel = t(`types.${incident.type}`);
             const typeColor = getIncidentTypeColor(incident.type);
             const { bgColor: severityColor, textColor: severityTextColor } = getSeverityInfo(incident.severity);
-            const severityLabel = t(`severity.${incident.severity}`);
+            const severityBadgeText =
+              incident.severity === null
+                ? t("severity.notAssessed")
+                : `${incident.severity} - ${t(`severity.${incident.severity}`)}`;
             const statusLabel = t(`status.${incident.status}`);
             const statusColor = getIncidentStatusColor(incident.status);
             const stageLabel = t(`stage.${incident.stage}`);
@@ -160,6 +163,11 @@ export function IncidentList({ incidents }: IncidentListProps) {
                     <div className="text-sm text-muted-foreground line-clamp-1">
                       {incident.description}
                     </div>
+                    {incident.projectReference && (
+                      <div className="text-xs text-muted-foreground">
+                        {t("projectReference")}: {incident.projectReference}
+                      </div>
+                    )}
                     {incident.risk && (
                       <div className="text-xs text-muted-foreground">
                         {t("risk")}: {incident.risk.title}
@@ -184,7 +192,7 @@ export function IncidentList({ incidents }: IncidentListProps) {
                 </TableCell>
                 <TableCell className="text-center">
                   <Badge className={`${severityColor} ${severityTextColor}`}>
-                    {incident.severity} - {severityLabel}
+                    {severityBadgeText}
                   </Badge>
                 </TableCell>
                 <TableCell>
@@ -265,9 +273,14 @@ export function IncidentList({ incidents }: IncidentListProps) {
                       <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
                         {incident.description}
                       </p>
+                      {incident.projectReference && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {t("projectReference")}: {incident.projectReference}
+                        </p>
+                      )}
                     </div>
                     <Badge className={`${severityColor} ${severityTextColor} shrink-0`}>
-                      {incident.severity}
+                      {incident.severity ?? t("severity.notAssessedShort")}
                     </Badge>
                   </div>
 

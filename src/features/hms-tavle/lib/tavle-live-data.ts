@@ -221,6 +221,7 @@ async function hentKpi(
         where: { tenantId, ...prosjektFilter, status: { not: "CLOSED" } },
       }),
       // Alvorlighetsgrad er 1–5. Fire og fem regnes som kritisk.
+      // Avvik uten satt grad (null) telles ikke som kritiske før leder har vurdert dem.
       prisma.incident.count({
         where: { tenantId, ...prosjektFilter, status: { not: "CLOSED" }, severity: { gte: 4 } },
       }),

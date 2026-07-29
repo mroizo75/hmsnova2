@@ -12,12 +12,34 @@ import { AzureAdIntegration } from "@/features/settings/components/azure-ad-inte
 import { NotificationSettings } from "@/features/settings/components/notification-settings";
 import { SimpleMenuSettings } from "@/features/settings/components/simple-menu-settings";
 import { ModuleVisibilitySettings } from "@/features/settings/components/module-visibility-settings";
+import { RuhModuleSettings } from "@/features/settings/components/ruh-module-settings";
 import { parseModuleVisibilityConfig } from "@/lib/module-visibility";
+import {
+  buildMicrosoftAdminConsentUrl,
+  type MicrosoftConsentResult,
+} from "@/lib/microsoft-admin-consent";
 import { Building2, User, Users, CreditCard, Cloud, Bell, PanelLeft, Lock } from "lucide-react";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
 import { helpContent } from "@/lib/help-content";
 
-export default async function SettingsPage() {
+const CONSENT_RESULTS: MicrosoftConsentResult[] = ["granted", "denied", "failed"];
+
+function buildAdminConsentUrl(): string | null {
+  const clientId = process.env.AZURE_AD_CLIENT_ID;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXTAUTH_URL;
+
+  if (!clientId || !appUrl) {
+    return null;
+  }
+
+  return buildMicrosoftAdminConsentUrl({ clientId, appUrl });
+}
+
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ consent?: string }>;
+}) {
   const session = await getServerSession(authOptions);
   const t = await getTranslations("dashboardSettingsPage");
 
@@ -72,15 +94,21 @@ export default async function SettingsPage() {
     orderBy: { createdAt: "desc" },
   });
 
-  // Bygg opp brukerliste med employeeNumber for UserManagement
+  // Bygg opp brukerliste med employeeNumber, stilling og nærmeste leder for UserManagement
   const usersWithEmployeeNumber = tenantUsers.map((ut) => ({
     ...ut,
     employeeNumber: ut.employeeNumber ?? null,
+    position: ut.position ?? null,
+    managerId: ut.managerId ?? null,
   }));
 
   // Hent brukergrense basert på pricing tier
   const { getSubscriptionLimits } = await import("@/lib/subscription");
   const limits = getSubscriptionLimits(tenant.pricingTier as any);
+
+  // Etter admin-samtykke hos Microsoft sendes admin tilbake hit — åpne SSO-fanen direkte.
+  const { consent } = await searchParams;
+  const consentResult = CONSENT_RESULTS.find((result) => result === consent) ?? null;
 
   return (
     <div className="space-y-6">
@@ -96,7 +124,7 @@ export default async function SettingsPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="company" className="space-y-6">
+      <Tabs defaultValue={consentResult ? "sso" : "company"} className="space-y-6">
         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8">
           <TabsTrigger value="company" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
@@ -145,7 +173,11 @@ export default async function SettingsPage() {
           />
         </TabsContent>
 
-        <TabsContent value="visibility">
+        <TabsContent value="visibility" className="space-y-6">
+          <RuhModuleSettings
+            initialEnabled={tenant.ruhModuleEnabled}
+            isAdmin={isAdmin}
+          />
           <ModuleVisibilitySettings
             initialConfig={parseModuleVisibilityConfig(
               (tenant as any).moduleVisibilityConfig ?? null
@@ -173,7 +205,12 @@ export default async function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="sso">
-          <AzureAdIntegration tenant={tenant as any} isAdmin={isAdmin} />
+          <AzureAdIntegration
+            tenant={tenant as any}
+            isAdmin={isAdmin}
+            adminConsentUrl={buildAdminConsentUrl()}
+            consentResult={consentResult}
+          />
         </TabsContent>
 
         <TabsContent value="subscription">

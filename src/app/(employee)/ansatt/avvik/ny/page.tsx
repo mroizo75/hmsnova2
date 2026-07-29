@@ -15,11 +15,17 @@ export default async function NyttAvvik() {
     redirect("/login");
   }
 
-  const projects = await prisma.project.findMany({
-    where: { tenantId: session.user.tenantId, status: { in: ["PLANNING", "ACTIVE"] } },
-    select: { id: true, name: true, code: true },
-    orderBy: { name: "asc" },
-  });
+  const [projects, tenant] = await Promise.all([
+    prisma.project.findMany({
+      where: { tenantId: session.user.tenantId, status: { in: ["PLANNING", "ACTIVE"] } },
+      select: { id: true, name: true, code: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.tenant.findUnique({
+      where: { id: session.user.tenantId },
+      select: { ruhModuleEnabled: true },
+    }),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -53,6 +59,7 @@ export default async function NyttAvvik() {
             tenantId={session.user.tenantId}
             reportedBy={session.user.name || session.user.email || t("employeeFallback")}
             projects={projects}
+            ruhModuleEnabled={tenant?.ruhModuleEnabled ?? true}
           />
         </CardContent>
       </Card>

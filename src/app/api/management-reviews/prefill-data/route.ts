@@ -217,17 +217,26 @@ function generateIncidentStatistics(incidents: any[]): string {
   text += `- 👁️ Observasjoner: ${types.OBSERVATION}\n`;
   text += `- 🏥 Sykdom/helseplager: ${types.ILLNESS}\n\n`;
 
-  // Gruppér etter alvorlighetsgrad
+  // Gruppér etter alvorlighetsgrad (1-5, null = ikke vurdert av leder ennå)
   const severities = {
     LOW: 0,
     MEDIUM: 0,
     HIGH: 0,
     CRITICAL: 0,
+    NOT_ASSESSED: 0,
   };
 
   incidents.forEach((incident) => {
-    if (incident.severity in severities) {
-      severities[incident.severity as keyof typeof severities]++;
+    if (incident.severity === null || incident.severity === undefined) {
+      severities.NOT_ASSESSED++;
+    } else if (incident.severity >= 5) {
+      severities.CRITICAL++;
+    } else if (incident.severity === 4) {
+      severities.HIGH++;
+    } else if (incident.severity === 3) {
+      severities.MEDIUM++;
+    } else {
+      severities.LOW++;
     }
   });
 
@@ -235,7 +244,8 @@ function generateIncidentStatistics(incidents: any[]): string {
   text += `- 🟢 Lav: ${severities.LOW}\n`;
   text += `- 🟡 Middels: ${severities.MEDIUM}\n`;
   text += `- 🟠 Høy: ${severities.HIGH}\n`;
-  text += `- 🔴 Kritisk: ${severities.CRITICAL}\n\n`;
+  text += `- 🔴 Kritisk: ${severities.CRITICAL}\n`;
+  text += `- ⚪ Ikke vurdert: ${severities.NOT_ASSESSED}\n\n`;
 
   // Status på hendelser
   const statuses = {

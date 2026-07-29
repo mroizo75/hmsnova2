@@ -31,6 +31,7 @@ export default async function AnsattDashboard() {
       industry: true,
       dashboardLocked: true,
       lockedDashboardConfig: true,
+      ruhModuleEnabled: true,
     },
   });
   const isAgricultureTenant = tenant?.industry?.toLowerCase() === "agriculture";
@@ -46,6 +47,10 @@ export default async function AnsattDashboard() {
 
   if (!tenant?.timeRegistrationEnabled) {
     visibleWidgets = visibleWidgets.filter((w) => w.id !== "emp-time");
+  }
+
+  if (tenant && !tenant.ruhModuleEnabled) {
+    visibleWidgets = visibleWidgets.filter((w) => w.id !== "emp-ruh");
   }
 
   return (

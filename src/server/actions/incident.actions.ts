@@ -17,6 +17,9 @@ import {
   parseModuleVisibilityConfig,
   getNotifyRolesForModule,
 } from "@/lib/module-visibility";
+import { dispatchNewIncidentNotifications } from "@/lib/incident-notification-routing.server";
+import { normalizeProjectReference } from "@/lib/incident-project-reference";
+import { resolveIncidentProjectId } from "@/lib/incident-project-reference.server";
 
 async function getSessionContext() {
   const context = await getRequiredTenantContext();
@@ -300,6 +303,14 @@ export async function createIncident(input: any) {
       new Date(validated.occurredAt).getFullYear()
     );
 
+    const projectReference = normalizeProjectReference(validated.projectReference);
+    // Treffer referansen et registrert prosjekt, varsles prosjektlederen for det
+    const projectId = await resolveIncidentProjectId({
+      tenantId,
+      projectId: validated.projectId ?? null,
+      projectReference,
+    });
+
     const incident = await prisma.incident.create({
       data: {
         tenantId: validated.tenantId,
@@ -307,7 +318,7 @@ export async function createIncident(input: any) {
         type: validated.type,
         title: validated.title,
         description: validated.description,
-        severity: validated.severity,
+        severity: validated.severity ?? null,
         occurredAt: validated.occurredAt,
         reportedBy: user.id,
         reportedForUserId: validated.reportedForUserId ?? null,
@@ -325,7 +336,8 @@ export async function createIncident(input: any) {
         responseDeadline: validated.responseDeadline ?? null,
         customerSatisfaction: validated.customerSatisfaction ?? null,
         // Prosjektkobling
-        projectId: validated.projectId ?? null,
+        projectId,
+        projectReference,
         // Underkategorier
         subcategoryKeys: validated.subcategoryKeys?.length
           ? JSON.stringify(validated.subcategoryKeys)
@@ -378,13 +390,16 @@ export async function createIncident(input: any) {
         });
         const visConfig = await getTenantModuleVisibility(tenantId);
         const notifyRoles = getNotifyRolesForModule(visConfig, "incidents", ["ADMIN", "HMS", "LEDER"]);
-        await notifyUsersByRoles(tenantId, notifyRoles, {
-          type: "NEW_INCIDENT",
-          title: "Nytt avvik registrert",
-          message: `${incident.type}: ${incident.title}`,
-          link: `/dashboard/incidents/${incident.id}`,
+        await dispatchNewIncidentNotifications({
+          tenantId,
+          reporterId: user.id,
+          projectId: incident.projectId,
+          fallbackRoles: notifyRoles,
+          incidentId: incident.id,
+          title: incident.title,
+          typeLabel: incident.type,
         });
-        if (incident.isRestrictedWork || incident.severity >= 5) {
+        if (incident.isRestrictedWork || (incident.severity ?? 0) >= 5) {
           const criticalRoles = getNotifyRolesForModule(visConfig, "incidents", ["ADMIN", "HMS"]);
           await notifyUsersByRoles(
             tenantId,
@@ -463,6 +478,9 @@ export async function updateIncident(input: any) {
     if (validated.responseDeadline !== undefined) updateData.responseDeadline = validated.responseDeadline ?? null;
     if (validated.customerSatisfaction !== undefined) updateData.customerSatisfaction = validated.customerSatisfaction ?? null;
     if (validated.projectId !== undefined) updateData.projectId = validated.projectId ?? null;
+    if (validated.projectReference !== undefined) {
+      updateData.projectReference = normalizeProjectReference(validated.projectReference);
+    }
     if (validated.subcategoryKeys !== undefined) {
       updateData.subcategoryKeys = validated.subcategoryKeys.length
         ? JSON.stringify(validated.subcategoryKeys)
@@ -518,7 +536,7 @@ export async function updateIncident(input: any) {
             link: `/dashboard/incidents/${incident.id}`,
           });
         }
-        if (becameStopWork || incident.severity >= 5) {
+        if (becameStopWork || (incident.severity ?? 0) >= 5) {
           const criticalRoles = getNotifyRolesForModule(visConfig, "incidents", ["ADMIN", "HMS"]);
           await notifyUsersByRoles(
             tenantId,
@@ -682,7 +700,8 @@ export async function createUploadedIncident(formData: FormData) {
         description: source === "EXTERNAL"
           ? "Eksternt avvik – se vedlagt fil for detaljer."
           : "Avvik opprettet via filopplasting.",
-        severity: 3,
+        // Ikke vurdert – leder setter alvorlighetsgrad ved behandling
+        severity: null,
         occurredAt: new Date(),
         reportedBy: user.id,
         status: "OPEN",
@@ -812,10 +831,11 @@ export async function getIncidentStats(_tenantId: string) {
         kvalitet: incidents.filter(i => i.type === "KVALITET").length,
       },
       bySeverity: {
-        critical: incidents.filter(i => i.severity >= 5).length,
+        critical: incidents.filter(i => (i.severity ?? 0) >= 5).length,
         high: incidents.filter(i => i.severity === 4).length,
         medium: incidents.filter(i => i.severity === 3).length,
-        low: incidents.filter(i => i.severity <= 2).length,
+        low: incidents.filter(i => i.severity !== null && i.severity <= 2).length,
+        notAssessed: incidents.filter(i => i.severity === null).length,
       },
     };
     

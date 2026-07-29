@@ -45,7 +45,12 @@
     "orgChart": "Organization Chart",
     "settings": "Settings",
     "employeeReviews": "Employee Reviews",
-    "hmsTavle": "HMS Board"
+    "hmsTavle": "HMS Board",
+    "ikMat": "Food safety and HACCP",
+    "beredskapReiseliv": "Emergency preparedness – tourism",
+    "aktivitetssikkerhet": "Activity safety",
+    "transport": "Transport",
+    "bhtNattarbeid": "Occupational health and night work"
   },
   "auth": {
     "login": "Login",
@@ -81,17 +86,19 @@
   "incidentForm": {
     "types": {
       "ULYKKE": {
-        "label": "Work accident / RUH",
+        "label": "Work accident",
+        "labelWithoutRuh": "Work accident",
         "desc": "Energy was released and caused injury/loss to person, equipment, or environment",
         "badge": "Working Environment Act § 5-2 – mandatory notification"
       },
       "NESTEN": {
-        "label": "Near miss / RUH",
+        "label": "Near miss",
+        "labelWithoutRuh": "Near miss",
         "desc": "Energy was released, but no injury occurred - under different circumstances an accident would have happened",
         "badge": "Working Environment Act § 5-2 – near accident"
       },
       "FARLIG_SITUASJON": {
-        "label": "Hazardous situation / Observation",
+        "label": "Hazardous situation / observation",
         "desc": "Hazardous condition or unwanted circumstance that represents danger, but no energy released",
         "badge": "Working Environment Act § 2-3"
       },
@@ -103,6 +110,10 @@
       "AVVIK": {
         "label": "Deviation",
         "desc": "Breach of legislation, internal requirements, procedures, or standards (ISO 9001 ch. 10.2)"
+      },
+      "HMS": {
+        "label": "HSE deviation",
+        "desc": "Breach of HSE requirements or routines without injury or near miss"
       },
       "MILJO": {
         "label": "Environmental deviation",
@@ -239,19 +250,52 @@
         "ruh": "RUH",
         "ruhDesc": "Report of unwanted incident, accident, or near miss"
       },
+      "typeGroup": {
+        "AVVIK": {
+          "label": "Deviation",
+          "desc": "Deviation in HSE, quality or environment, or a customer complaint"
+        },
+        "RUH": {
+          "label": "RUH",
+          "desc": "Report of unwanted incident, accident, or near miss"
+        },
+        "HMS": {
+          "label": "HSE",
+          "desc": "Accident, near miss, observation, or occupational illness"
+        },
+        "KVALITET": {
+          "label": "Quality",
+          "desc": "Product or service quality that does not meet requirements"
+        },
+        "MILJO": {
+          "label": "Environment",
+          "desc": "Emissions, spills, or other deviation from environmental requirements"
+        },
+        "CUSTOMER": {
+          "label": "Customer complaint",
+          "desc": "Complaint or feedback from a customer"
+        }
+      },
       "type": {
         "label": "Type *",
         "placeholder": "Select type"
       },
       "severity": {
-        "label": "Severity *",
-        "placeholder": "Select severity"
+        "label": "Severity",
+        "placeholder": "Select severity",
+        "notAssessedOption": "Not assessed - manager decides",
+        "help": "Optional. If left open, the manager assesses severity during handling."
       },
       "project": {
         "label": "Link to project / job",
         "placeholder": "Select project (optional)",
         "noneOption": "- None / not project-related -",
         "help": "Project link provides aggregated HSE reporting per job/assignment"
+      },
+      "projectReference": {
+        "label": "Project number / reference",
+        "placeholder": "E.g. 24-1187 or 12 Main Street",
+        "help": "Optional. Use when the job is not registered as a project. Enter internal project number or address for traceability."
       },
       "title": {
         "label": "Title *",
@@ -894,6 +938,7 @@
       "emptyDescription": "You have not reported any incidents yet.",
       "emptyCta": "Report first incident",
       "location": "📍 Location: {location}",
+      "projectReference": "🔖 Project no.: {reference}",
       "reportedAt": "🕐 Reported: {date}"
     },
     "badges": {
@@ -901,16 +946,20 @@
       "underReview": "🔍 Under review",
       "actions": "🛠 Actions",
       "closed": "✓ Closed",
-      "severity": "Severity: {severity}"
+      "severity": "Severity: {severity}",
+      "severityNotAssessed": "Severity: not assessed"
     },
     "type": {
       "AVVIK": "⚠️ Deviation",
+      "HMS": "🦺 HSE deviation",
       "NESTEN": "🟡 Near miss",
+      "ULYKKE": "🔴 Work accident",
       "SKADE": "🔴 Injury",
-      "FARLIG_SITUASJON": "🟠 Hazardous situation",
+      "FARLIG_SITUASJON": "🟠 Hazardous situation / observation",
       "YRKESSYKDOM": "🩺 Occupational disease",
       "MILJO": "🌍 Environment",
-      "KVALITET": "📋 Quality"
+      "KVALITET": "📋 Quality",
+      "CUSTOMER": "🙋 Customer complaint"
     },
     "statusHelp": {
       "title": "📚 Status explanation",
@@ -1834,11 +1883,12 @@
       }
     },
     "incidentTypes": {
-      "ULYKKE": "Work accident / RUH",
-      "NESTEN": "Near miss / RUH",
-      "FARLIG_SITUASJON": "Dangerous situation / Observation",
+      "ULYKKE": "Work accident",
+      "NESTEN": "Near miss",
+      "FARLIG_SITUASJON": "Dangerous situation / observation",
       "YRKESSYKDOM": "Occupational disease / Work-related illness",
       "AVVIK": "Incident",
+      "HMS": "HSE incident",
       "MILJO": "Environmental incident",
       "KVALITET": "Quality incident",
       "CUSTOMER": "Customer complaint"
@@ -1875,12 +1925,43 @@
         "none": "- Not project-related -",
         "help": "Is the incident related to a specific project or assignment?"
       },
+      "projectReference": {
+        "label": "Project number / reference",
+        "placeholder": "E.g. 24-1187 or 12 Main Street",
+        "help": "Optional. If the project is not in the list, enter internal project number or address."
+      },
       "mainCategory": {
         "label": "What do you want to report? *",
         "avvik": "Deviation",
         "avvikDesc": "Deviation from procedures, quality, environment, or customer complaint",
         "ruh": "RUH",
         "ruhDesc": "Report of unwanted incident, accident, or near miss"
+      },
+      "typeGroup": {
+        "AVVIK": {
+          "label": "Deviation",
+          "desc": "Deviation in HSE, quality or environment, or a customer complaint"
+        },
+        "RUH": {
+          "label": "RUH",
+          "desc": "Report of unwanted incident, accident, or near miss"
+        },
+        "HMS": {
+          "label": "HSE",
+          "desc": "Accident, near miss, observation, or occupational illness"
+        },
+        "KVALITET": {
+          "label": "Quality",
+          "desc": "Product or service quality that does not meet requirements"
+        },
+        "MILJO": {
+          "label": "Environment",
+          "desc": "Emissions, spills, or other deviation from environmental requirements"
+        },
+        "CUSTOMER": {
+          "label": "Customer complaint",
+          "desc": "Complaint or feedback from a customer"
+        }
       },
       "type": {
         "label": "Type *",
@@ -1893,8 +1974,10 @@
         "empty": "No subcategories configured for selected type."
       },
       "severity": {
-        "label": "How severe? *",
+        "label": "How severe?",
         "placeholder": "Select severity",
+        "notAssessedOption": "Not assessed - manager decides",
+        "help": "Optional. If left open, the manager assesses severity during handling.",
         "options": {
           "s5": "🔴 Critical (5) - Immediate danger",
           "s4": "🟠 High (4) - Serious",
@@ -2444,6 +2527,7 @@
     "empty": "No incidents registered",
     "dash": "-",
     "risk": "Risk",
+    "projectReference": "Project no.",
     "table": {
       "number": "No.",
       "incident": "Case",
@@ -2467,7 +2551,7 @@
       "AVVIK": "Deviation",
       "NESTEN": "Near miss",
       "ULYKKE": "Work accident",
-      "FARLIG_SITUASJON": "Dangerous situation",
+      "FARLIG_SITUASJON": "Dangerous situation / observation",
       "YRKESSYKDOM": "Occupational disease",
       "SKADE": "Personal injury",
       "MILJO": "Environmental deviation",
@@ -2490,6 +2574,8 @@
       "VERIFIED": "Verified"
     },
     "severity": {
+      "notAssessed": "Not assessed",
+      "notAssessedShort": "–",
       "1": "Negligible",
       "2": "Minor",
       "3": "Moderate",
@@ -2537,11 +2623,12 @@
     },
     "labels": {
       "severityPrefix": "Severity: {value} - {label}",
+      "severityNotAssessed": "Severity: not assessed",
       "type": {
         "AVVIK": "Deviation",
         "NESTEN": "Near miss",
         "ULYKKE": "Work accident",
-        "FARLIG_SITUASJON": "Dangerous situation",
+        "FARLIG_SITUASJON": "Dangerous situation / observation",
         "YRKESSYKDOM": "Occupational disease",
         "SKADE": "Personal injury",
         "MILJO": "Environmental deviation",
@@ -2556,6 +2643,7 @@
         "CLOSED": "Closed"
       },
       "severity": {
+        "notAssessed": "Not assessed",
         "1": "Negligible",
         "2": "Minor",
         "3": "Moderate",
@@ -2570,6 +2658,7 @@
         "descriptionLabel": "Description",
         "time": "Time",
         "location": "Location",
+        "projectReference": "Project number / reference",
         "witnesses": "Witnesses",
         "injury": "Injury",
         "noInjuryRegistered": "No injury registered",
@@ -2579,6 +2668,9 @@
         "lostTimeMinutes": "{minutes} minutes",
         "linkedRisk": "Linked risk",
         "riskScore": "Score {score}",
+        "involvedPersons": "Involved persons",
+        "injuryDescription": "Injury description",
+        "suggestedActions": "Suggested actions",
         "immediateActions": "Immediate actions",
         "attachments": "Attachments ({count})"
       },

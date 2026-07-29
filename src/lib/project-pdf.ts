@@ -29,7 +29,7 @@ interface ProjectReportData {
     avviksnummer: string | null;
     title: string;
     type: string;
-    severity: number;
+    severity: number | null;
     status: string;
     occurredAt: Date;
     isFatal: boolean;
@@ -90,11 +90,13 @@ const STATUS_LABELS: Record<string, string> = {
 const INCIDENT_TYPE_LABELS: Record<string, string> = {
   ULYKKE: "Ulykke",
   NESTEN: "Nestenulykke",
-  FARLIG_SITUASJON: "Farlig situasjon",
+  FARLIG_SITUASJON: "Farlig situasjon / observasjon",
   YRKESSYKDOM: "Yrkessykdom",
   AVVIK: "Avvik",
+  HMS: "HMS-avvik",
   KVALITET: "Kvalitetsavvik",
   MILJO: "Miljøavvik",
+  CUSTOMER: "Kundeklage",
   ANNET: "Annet",
 };
 
@@ -376,7 +378,7 @@ export async function generateProjectReport(data: ProjectReportData): Promise<Bu
         i.title,
         INCIDENT_TYPE_LABELS[i.type] ?? i.type,
         fmt(i.occurredAt),
-        SEVERITY_LABELS[i.severity] ?? String(i.severity),
+        i.severity === null ? "Ikke vurdert" : SEVERITY_LABELS[i.severity] ?? String(i.severity),
         INCIDENT_STATUS_LABELS[i.status] ?? i.status,
       ]),
       styles: { fontSize: 8, cellPadding: 2 },

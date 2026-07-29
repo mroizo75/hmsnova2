@@ -39,7 +39,11 @@ import {
   activateUserInTenant,
   activateAllPendingUsers,
   updateEmployeeNumber,
+  updateUserManager,
+  updateUserPosition,
+  assignManagerToUsers,
 } from "@/server/actions/settings.actions";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, FileSpreadsheet, Send, HelpCircle, Pencil, Check, X } from "lucide-react";
 
@@ -49,6 +53,8 @@ interface UserManagementProps {
     role: string;
     invitationSentAt: Date | null;
     employeeNumber: string | null;
+    position: string | null;
+    managerId: string | null;
     user: {
       id: string;
       name: string | null;
@@ -62,6 +68,8 @@ interface UserManagementProps {
   maxUsers: number;
 }
 
+const NO_MANAGER_VALUE = "__no_manager__";
+
 export function UserManagement({ users, currentUserId, isAdmin, pricingTier, maxUsers }: UserManagementProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -74,6 +82,11 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
   const [activatingAll, setActivatingAll] = useState(false);
   const [editingEmployeeNumber, setEditingEmployeeNumber] = useState<string | null>(null);
   const [employeeNumberDraft, setEmployeeNumberDraft] = useState("");
+  const [editingPosition, setEditingPosition] = useState<string | null>(null);
+  const [positionDraft, setPositionDraft] = useState("");
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [bulkManagerId, setBulkManagerId] = useState(NO_MANAGER_VALUE);
+  const [bulkAssigning, setBulkAssigning] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -93,10 +106,15 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
           (u.user.name?.toLowerCase().includes(q)) ||
           u.user.email.toLowerCase().includes(q) ||
           u.role.toLowerCase().includes(q) ||
-          (u.employeeNumber?.toLowerCase().includes(q))
+          (u.employeeNumber?.toLowerCase().includes(q)) ||
+          (u.position?.toLowerCase().includes(q))
         );
       })
     : users;
+
+  const userLabelById = new Map(
+    users.map((u) => [u.userId, u.user.name || u.user.email] as const)
+  );
 
   const totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
   const safePage = Math.min(currentPage, totalPages);
@@ -229,13 +247,17 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
       return;
     }
 
-    const msg =
+    const baseMsg =
       result.skipped > 0
         ? `${result.imported} importert, ${result.skipped} allerede medlem. Aktiver brukere under Handlinger når du vil sende invitasjon.`
         : `${result.imported} brukere importert. Aktiver under Handlinger for å sende invitasjon.`;
+    const warningMsg =
+      result.errors.length > 0
+        ? ` ${result.errors.length} rad${result.errors.length === 1 ? "" : "er"} fikk ikke leder: ${result.errors[0]}`
+        : "";
     toast({
       title: "Import fullført",
-      description: msg,
+      description: baseMsg + warningMsg,
       className: "bg-green-50 border-green-200",
     });
     router.refresh();
@@ -307,6 +329,90 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
         variant: "destructive",
         title: "Feil",
         description: result.error || "Kunne ikke oppdatere ansattnummer",
+      });
+    }
+  };
+
+  const handlePositionSave = async (userId: string) => {
+    const result = await updateUserPosition(userId, positionDraft);
+    if (result.success) {
+      toast({
+        title: "Stilling oppdatert",
+        className: "bg-green-50 border-green-200",
+      });
+      setEditingPosition(null);
+      router.refresh();
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Feil",
+        description: result.error || "Kunne ikke oppdatere stilling",
+      });
+    }
+  };
+
+  const handleManagerChange = async (userId: string, value: string) => {
+    setLoading(userId);
+    const result = await updateUserManager(
+      userId,
+      value === NO_MANAGER_VALUE ? null : value
+    );
+    setLoading(null);
+
+    if (result.success) {
+      toast({
+        title: "Nærmeste leder oppdatert",
+        className: "bg-green-50 border-green-200",
+      });
+      router.refresh();
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Feil",
+        description: result.error || "Kunne ikke oppdatere nærmeste leder",
+      });
+    }
+  };
+
+  const toggleUserSelection = (userId: string) => {
+    setSelectedUserIds((current) =>
+      current.includes(userId)
+        ? current.filter((id) => id !== userId)
+        : [...current, userId]
+    );
+  };
+
+  const toggleAllVisibleSelection = () => {
+    const visibleIds = paginatedUsers.map((u) => u.userId);
+    const allSelected = visibleIds.every((id) => selectedUserIds.includes(id));
+    setSelectedUserIds((current) =>
+      allSelected
+        ? current.filter((id) => !visibleIds.includes(id))
+        : Array.from(new Set([...current, ...visibleIds]))
+    );
+  };
+
+  const handleBulkManagerAssign = async () => {
+    setBulkAssigning(true);
+    const result = await assignManagerToUsers(
+      selectedUserIds,
+      bulkManagerId === NO_MANAGER_VALUE ? null : bulkManagerId
+    );
+    setBulkAssigning(false);
+
+    if (result.success) {
+      toast({
+        title: "Nærmeste leder tildelt",
+        description: `${result.updated} ansatt${result.updated === 1 ? "" : "e"} oppdatert`,
+        className: "bg-green-50 border-green-200",
+      });
+      setSelectedUserIds([]);
+      router.refresh();
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Feil",
+        description: result.error || "Kunne ikke tildele nærmeste leder",
       });
     }
   };
@@ -412,6 +518,7 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
                   <div className="mt-3 space-y-2 border-t pt-3 text-muted-foreground">
                     <p><strong>1. Last ned eksempelfil</strong> – Klikk «Last ned Excel-eksempel» for å få en ferdig mal.</p>
                     <p><strong>2. Fyll ut Excel-filen</strong> – Bruk kolonnene <code className="rounded bg-muted px-1">email</code>, <code className="rounded bg-muted px-1">navn</code> og <code className="rounded bg-muted px-1">rolle</code>. Gyldige roller: ANSATT, LEDER, HMS, VERNEOMBUD, BHT, REVISOR, ADMIN.</p>
+                    <p><strong>2b. Valgfritt: stilling og leder</strong> – Kolonnen <code className="rounded bg-muted px-1">stilling</code> tar en fritekst som «Tømrer», og <code className="rounded bg-muted px-1">leder</code> tar e-postadressen til nærmeste leder. Lederen kan stå hvor som helst i filen; koblingen gjøres etter at alle radene er lest. Ukjent leder-e-post gir en advarsel, men stopper ikke importen.</p>
                     <p><strong>3. Importer filen</strong> – Velg din fil og klikk «Importer». Brukere legges til uten invitasjon.</p>
                     <p><strong>4. Aktiver brukere</strong> – Klikk «Aktiver alle» for å sende invitasjon med passord til alle importerte brukere, eller aktiver en og en under Handlinger.</p>
                     <p className="text-xs pt-1">Støtter både .csv og .xlsx (Excel). Maks 500 brukere per import, filstørrelse inntil 2 MB.</p>
@@ -550,6 +657,44 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
           </div>
         )}
 
+        {isAdmin && selectedUserIds.length > 0 && (
+          <div className="mb-4 flex flex-col gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-blue-900">
+              {selectedUserIds.length} ansatt{selectedUserIds.length === 1 ? "" : "e"} valgt.
+              Sett nærmeste leder for alle på én gang.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={bulkManagerId} onValueChange={setBulkManagerId}>
+                <SelectTrigger className="w-[200px] bg-white">
+                  <SelectValue placeholder="Velg nærmeste leder" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_MANAGER_VALUE}>Fjern nærmeste leder</SelectItem>
+                  {users
+                    .filter((candidate) => !selectedUserIds.includes(candidate.userId))
+                    .map((candidate) => (
+                      <SelectItem key={candidate.userId} value={candidate.userId}>
+                        {candidate.user.name || candidate.user.email}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <Button size="sm" onClick={handleBulkManagerAssign} disabled={bulkAssigning}>
+                {bulkAssigning ? "Lagrer..." : "Sett nærmeste leder for valgte"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-transparent text-foreground"
+                onClick={() => setSelectedUserIds([])}
+                disabled={bulkAssigning}
+              >
+                Nullstill valg
+              </Button>
+            </div>
+          </div>
+        )}
+
         {filteredUsers.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
             {searchQuery.trim().length > 0
@@ -561,10 +706,24 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
             <Table>
               <TableHeader>
                 <TableRow>
+                  {isAdmin && (
+                    <TableHead className="w-[40px]">
+                      <Checkbox
+                        checked={
+                          paginatedUsers.length > 0 &&
+                          paginatedUsers.every((u) => selectedUserIds.includes(u.userId))
+                        }
+                        onCheckedChange={toggleAllVisibleSelection}
+                        aria-label="Velg alle synlige ansatte"
+                      />
+                    </TableHead>
+                  )}
                   <TableHead>Navn</TableHead>
                   <TableHead>E-post</TableHead>
                   <TableHead>Ansattnr.</TableHead>
+                  <TableHead>Stilling</TableHead>
                   <TableHead>Rolle</TableHead>
+                  <TableHead>Nærmeste leder</TableHead>
                   <TableHead>Medlem siden</TableHead>
                   {isAdmin && <TableHead className="text-right">Handlinger</TableHead>}
                 </TableRow>
@@ -575,6 +734,15 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
 
                   return (
                     <TableRow key={userTenant.userId}>
+                      {isAdmin && (
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedUserIds.includes(userTenant.userId)}
+                            onCheckedChange={() => toggleUserSelection(userTenant.userId)}
+                            aria-label={`Velg ${userTenant.user.name || userTenant.user.email}`}
+                          />
+                        </TableCell>
+                      )}
                       <TableCell className="font-medium">
                         {userTenant.user.name || "Ingen navn"}
                         {isCurrentUser && (
@@ -635,6 +803,56 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
                         )}
                       </TableCell>
                       <TableCell>
+                        {isAdmin && editingPosition === userTenant.userId ? (
+                          <div className="flex items-center gap-1">
+                            <Input
+                              value={positionDraft}
+                              onChange={(e) => setPositionDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handlePositionSave(userTenant.userId);
+                                if (e.key === "Escape") setEditingPosition(null);
+                              }}
+                              placeholder="f.eks. Tømrer"
+                              className="h-7 w-32 text-xs"
+                              autoFocus
+                            />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => handlePositionSave(userTenant.userId)}
+                            >
+                              <Check className="h-3.5 w-3.5 text-green-600" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => setEditingPosition(null)}
+                            >
+                              <X className="h-3.5 w-3.5 text-muted-foreground" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <button
+                            className={`group flex items-center gap-1.5 text-sm ${isAdmin ? "cursor-pointer hover:text-foreground" : "cursor-default"}`}
+                            onClick={() => {
+                              if (!isAdmin) return;
+                              setPositionDraft(userTenant.position ?? "");
+                              setEditingPosition(userTenant.userId);
+                            }}
+                            title={isAdmin ? "Klikk for å redigere" : undefined}
+                          >
+                            <span className={userTenant.position ? "text-xs" : "text-muted-foreground text-xs italic"}>
+                              {userTenant.position || (isAdmin ? "Sett stilling" : "—")}
+                            </span>
+                            {isAdmin && (
+                              <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-60 transition-opacity" />
+                            )}
+                          </button>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         {isAdmin && !isCurrentUser ? (
                           <Select
                             value={userTenant.role}
@@ -658,6 +876,37 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
                           </Select>
                         ) : (
                           getRoleBadge(userTenant.role)
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {isAdmin ? (
+                          <Select
+                            value={userTenant.managerId ?? NO_MANAGER_VALUE}
+                            onValueChange={(value) =>
+                              handleManagerChange(userTenant.userId, value)
+                            }
+                            disabled={loading === userTenant.userId}
+                          >
+                            <SelectTrigger className="w-[170px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value={NO_MANAGER_VALUE}>Ingen leder satt</SelectItem>
+                              {users
+                                .filter((candidate) => candidate.userId !== userTenant.userId)
+                                .map((candidate) => (
+                                  <SelectItem key={candidate.userId} value={candidate.userId}>
+                                    {candidate.user.name || candidate.user.email}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            {userTenant.managerId
+                              ? userLabelById.get(userTenant.managerId) ?? "—"
+                              : "—"}
+                          </span>
                         )}
                       </TableCell>
                       <TableCell>

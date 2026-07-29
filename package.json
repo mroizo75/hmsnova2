@@ -17,7 +17,8 @@
     "db:migrate:oversiktsliste": "tsx scripts/migrate-oversiktsliste.ts",
     "db:repair:tavlecheckin": "tsx scripts/repair-tavlecheckin-fk.ts",
     "db:studio": "prisma studio",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "db:seed:subcategories": "tsx scripts/seed-incident-subcategories.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts",

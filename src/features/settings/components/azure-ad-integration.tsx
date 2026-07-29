@@ -10,9 +10,30 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Cloud, CheckCircle2, AlertCircle, Info, Sparkles } from "lucide-react";
+import { Cloud, CheckCircle2, AlertCircle, Info, Sparkles, ShieldCheck } from "lucide-react";
 import type { Tenant } from "@prisma/client";
 import { updateAzureAdSettings } from "@/server/actions/azure-ad.actions";
+import type { MicrosoftConsentResult } from "@/lib/microsoft-admin-consent";
+
+const LOGIN_URL = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://www.hmsnova.no"}/login`;
+
+const CONSENT_FEEDBACK: Record<MicrosoftConsentResult, { className: string; message: string }> = {
+  granted: {
+    className: "border-green-200 bg-green-50 text-green-900",
+    message:
+      "✅ HMS Nova er godkjent for hele bedriften. Alle ansatte kan nå logge inn med Microsoft uten å bli spurt om tilgang.",
+  },
+  denied: {
+    className: "border-yellow-200 bg-yellow-50 text-yellow-900",
+    message:
+      "Godkjenningen ble avbrutt. Ansatte kan fortsatt bli stoppet av Microsoft ved innlogging. Prøv igjen når du er logget inn som global administrator.",
+  },
+  failed: {
+    className: "border-red-200 bg-red-50 text-red-900",
+    message:
+      "Godkjenningen feilet hos Microsoft. Kontroller at du bruker en konto med global administrator-rolle, eller kontakt support@hmsnova.no.",
+  },
+};
 
 interface AzureAdIntegrationProps {
   tenant: Tenant & {
@@ -24,9 +45,16 @@ interface AzureAdIntegrationProps {
     azureAdAutoRole?: string | null;
   };
   isAdmin: boolean;
+  adminConsentUrl: string | null;
+  consentResult: MicrosoftConsentResult | null;
 }
 
-export function AzureAdIntegration({ tenant, isAdmin }: AzureAdIntegrationProps) {
+export function AzureAdIntegration({
+  tenant,
+  isAdmin,
+  adminConsentUrl,
+  consentResult,
+}: AzureAdIntegrationProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -76,6 +104,12 @@ export function AzureAdIntegration({ tenant, isAdmin }: AzureAdIntegrationProps)
 
   return (
     <div className="space-y-6">
+      {consentResult && (
+        <div className={`rounded-lg border p-4 text-sm ${CONSENT_FEEDBACK[consentResult].className}`}>
+          {CONSENT_FEEDBACK[consentResult].message}
+        </div>
+      )}
+
       {/* Status Card */}
       <Card>
         <CardHeader>
@@ -124,19 +158,59 @@ export function AzureAdIntegration({ tenant, isAdmin }: AzureAdIntegrationProps)
                 <li className="font-medium">Skriv inn ditt e-postdomene (f.eks. "bedrift.no")</li>
                 <li>Velg standard rolle for nye ansatte</li>
                 <li>Aktiver SSO med én klikk</li>
+                <li>Godkjenn HMS Nova for bedriften (se steget under)</li>
                 <li className="text-green-900 font-semibold">✅ FERDIG! Alle ansatte kan nå logge inn!</li>
               </ol>
               <div className="bg-white rounded-md p-3 mt-3 border border-green-200">
                 <p className="text-green-900 font-medium mb-1">🔐 Hvordan fungerer det?</p>
                 <p className="text-green-700 text-xs">
-                  Når en ansatt logger inn med Microsoft for første gang, opprettes kontoen deres automatisk i HMS Nova. 
-                  Ingen komplisert oppsett i Azure Portal nødvendig!
+                  Når en ansatt logger inn med Microsoft for første gang, opprettes kontoen deres automatisk i HMS Nova.
+                  Du trenger ikke registrere noe i Azure Portal — men de fleste bedrifter må godkjenne HMS Nova én gang,
+                  og det gjør du med knappen under.
                 </p>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Admin Consent */}
+      {isAdmin && adminConsentUrl && (
+        <Card className="border-blue-200">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <ShieldCheck className="h-6 w-6 text-blue-600" />
+              <div>
+                <CardTitle className="text-base">Godkjenn HMS Nova for bedriften</CardTitle>
+                <CardDescription>
+                  Ett klikk, én gang — gjøres av en global administrator i Microsoft 365
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              De fleste bedrifter har slått på at nye apper må godkjennes av IT-avdelingen. Er det
+              tilfellet hos dere, blir den første ansatte som prøver Microsoft-innlogging stoppet
+              med feilkoden <code className="bg-muted px-1 rounded">AADSTS65001</code>. Godkjenner
+              du HMS Nova her, slipper alle ansatte den meldingen.
+            </p>
+            <Button
+              asChild
+              variant="outline"
+              className="bg-transparent text-foreground hover:bg-muted"
+            >
+              <a href={adminConsentUrl} target="_blank" rel="noopener noreferrer">
+                Godkjenn HMS Nova i Microsoft 365
+              </a>
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              HMS Nova ber kun om å lese navn, e-postadresse og profil for den som logger inn. Er du
+              ikke global administrator, send denne siden videre til den som er det.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Configuration Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -241,7 +315,11 @@ export function AzureAdIntegration({ tenant, isAdmin }: AzureAdIntegrationProps)
                   <div className="text-sm">
                     <p className="font-medium text-green-900">Microsoft SSO er aktivert!</p>
                     <p className="text-green-700 mt-1">
-                      Ansatte kan nå gå til <strong>hmsnova.com/login</strong> og klikke 
+                      Ansatte kan nå gå til{" "}
+                      <a href={LOGIN_URL} className="font-semibold underline">
+                        {LOGIN_URL}
+                      </a>{" "}
+                      og klikke
                       <strong> "Logg inn med Microsoft"</strong> for å logge inn automatisk.
                     </p>
                   </div>
@@ -260,7 +338,22 @@ export function AzureAdIntegration({ tenant, isAdmin }: AzureAdIntegrationProps)
         <CardContent className="space-y-4 text-sm">
           <div>
             <p className="font-medium text-gray-900 mb-1">Må vi gjøre noe i Azure Portal eller Microsoft 365 Admin?</p>
-            <p className="text-gray-600">Nei! Du trenger kun å skrive inn domenet ditt her. Ingen teknisk konfigurasjon nødvendig.</p>
+            <p className="text-gray-600">
+              Du trenger ikke registrere eller konfigurere noe. Det eneste som kan kreves, er at en
+              global administrator godkjenner HMS Nova én gang — bruk knappen «Godkjenn HMS Nova i
+              Microsoft 365» over. Tillater bedriften deres at ansatte godkjenner apper selv, skjer
+              det automatisk ved første innlogging.
+            </p>
+          </div>
+
+          <div>
+            <p className="font-medium text-gray-900 mb-1">
+              En ansatt får «Need admin approval» eller feilkode AADSTS65001. Hva gjør vi?
+            </p>
+            <p className="text-gray-600">
+              Da mangler godkjenningen fra IT-avdelingen. En global administrator klikker «Godkjenn
+              HMS Nova i Microsoft 365» over, så fungerer innloggingen for alle med én gang.
+            </p>
           </div>
           
           <div>

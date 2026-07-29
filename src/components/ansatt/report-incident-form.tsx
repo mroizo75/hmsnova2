@@ -18,9 +18,19 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Camera, X } from "lucide-react";
 import Image from "next/image";
+import type { IncidentType } from "@prisma/client";
+import {
+  getIncidentTypeGroups,
+  getIncidentTypesForGroup,
+  getSingleTypeForGroup,
+  type IncidentTypeGroup,
+} from "@/features/incidents/schemas/incident.schema";
+import { PROJECT_REFERENCE_MAX_LENGTH } from "@/lib/incident-project-reference";
 
 const NO_PROJECT = "__none__";
-type MainCategory = "AVVIK" | "RUH";
+
+// Alvorlighetsgrad er valgfri ved registrering – leder setter grad ved behandling
+const NOT_ASSESSED_SEVERITY = "__not_assessed__";
 
 function getCurrentLocalDateTimeValue(): string {
   const now = new Date();
@@ -32,30 +42,18 @@ function getCurrentLocalDateTimeValue(): string {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
-const avvikTypeOptions: Array<{ value: string; labelKey: string }> = [
-  { value: "AVVIK", labelKey: "incidentTypes.AVVIK" },
-  { value: "MILJO", labelKey: "incidentTypes.MILJO" },
-  { value: "KVALITET", labelKey: "incidentTypes.KVALITET" },
-  { value: "CUSTOMER", labelKey: "incidentTypes.CUSTOMER" },
-];
-
-const ruhTypeOptions: Array<{ value: string; labelKey: string }> = [
-  { value: "ULYKKE", labelKey: "incidentTypes.ULYKKE" },
-  { value: "NESTEN", labelKey: "incidentTypes.NESTEN" },
-  { value: "FARLIG_SITUASJON", labelKey: "incidentTypes.FARLIG_SITUASJON" },
-  { value: "YRKESSYKDOM", labelKey: "incidentTypes.YRKESSYKDOM" },
-];
-
 export function ReportIncidentForm({
   tenantId,
   reportedBy,
   projects = [],
   successRedirectPath = "/ansatt/avvik/takk",
+  ruhModuleEnabled = true,
 }: {
   tenantId: string;
   reportedBy: string;
   projects?: Array<{ id: string; name: string; code: string | null }>;
   successRedirectPath?: string;
+  ruhModuleEnabled?: boolean;
 }) {
   const t = useTranslations("employeeIncidentForm");
   const router = useRouter();
@@ -65,18 +63,19 @@ export function ReportIncidentForm({
   const [occurredAt, setOccurredAt] = useState<string>(getCurrentLocalDateTimeValue());
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const [mainCategory, setMainCategory] = useState<MainCategory | "">("");
-  const [selectedType, setSelectedType] = useState<string>("");
+  const [typeGroup, setTypeGroup] = useState<IncidentTypeGroup | null>(null);
+  const [selectedType, setSelectedType] = useState<IncidentType | "">("");
 
-  const typeOptionsForCategory = mainCategory === "AVVIK"
-    ? avvikTypeOptions
-    : mainCategory === "RUH"
-      ? ruhTypeOptions
-      : [];
+  const groups = getIncidentTypeGroups(ruhModuleEnabled);
+  const typesInGroup = typeGroup
+    ? getIncidentTypesForGroup(typeGroup, ruhModuleEnabled)
+    : [];
+  const needsTypeChoice = typesInGroup.length > 1;
 
-  function handleMainCategoryChange(value: MainCategory) {
-    setMainCategory(value);
-    setSelectedType("");
+  function handleTypeGroupChange(group: IncidentTypeGroup) {
+    setTypeGroup(group);
+    // Grupper med bare én type velger typen direkte, slik at steg 2 kan hoppes over
+    setSelectedType(getSingleTypeForGroup(group, ruhModuleEnabled) ?? "");
   }
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -100,6 +99,16 @@ export function ReportIncidentForm({
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    if (!selectedType) {
+      toast({
+        title: t("toast.error.title"),
+        description: t("fields.type.placeholder"),
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     const formData = new FormData(e.currentTarget);
@@ -110,6 +119,9 @@ export function ReportIncidentForm({
     });
 
     formData.set("type", selectedType);
+    if (formData.get("severity") === NOT_ASSESSED_SEVERITY) {
+      formData.delete("severity");
+    }
     formData.append("tenantId", tenantId);
     formData.append("reportedBy", reportedBy);
     formData.set("occurredAt", occurredAt);
@@ -174,53 +186,69 @@ export function ReportIncidentForm({
         </div>
       )}
 
-      {/* Steg 1: Hovedkategori */}
+      {/* Prosjektnummer som fritekst for oppdrag som ikke er registrert som prosjekt */}
+      <div className="space-y-2">
+        <Label htmlFor="projectReference" className="text-base">
+          {t("fields.projectReference.label")}
+        </Label>
+        <Input
+          id="projectReference"
+          name="projectReference"
+          placeholder={t("fields.projectReference.placeholder")}
+          maxLength={PROJECT_REFERENCE_MAX_LENGTH}
+          disabled={isSubmitting}
+          className="h-12 text-base"
+        />
+        <p className="text-xs text-muted-foreground">
+          {t("fields.projectReference.help")}
+        </p>
+      </div>
+
+      {/* Steg 1: Fagområde / hovedkategori */}
       <div className="space-y-2">
         <Label className="text-base">
           {t("fields.mainCategory.label")}
         </Label>
         <div className="grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => handleMainCategoryChange("AVVIK")}
-            className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 text-center transition-colors ${
-              mainCategory === "AVVIK"
-                ? "border-primary bg-primary/5 text-primary"
-                : "border-muted hover:border-muted-foreground/30"
-            }`}
-          >
-            <span className="text-lg font-semibold">{t("fields.mainCategory.avvik")}</span>
-            <span className="text-xs text-muted-foreground">{t("fields.mainCategory.avvikDesc")}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => handleMainCategoryChange("RUH")}
-            className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 text-center transition-colors ${
-              mainCategory === "RUH"
-                ? "border-orange-500 bg-orange-50 text-orange-700"
-                : "border-muted hover:border-muted-foreground/30"
-            }`}
-          >
-            <span className="text-lg font-semibold">{t("fields.mainCategory.ruh")}</span>
-            <span className="text-xs text-muted-foreground">{t("fields.mainCategory.ruhDesc")}</span>
-          </button>
+          {groups.map((definition) => (
+            <button
+              key={definition.group}
+              type="button"
+              onClick={() => handleTypeGroupChange(definition.group)}
+              className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 text-center transition-colors ${
+                typeGroup === definition.group
+                  ? "border-primary bg-primary/5 text-primary"
+                  : "border-muted hover:border-muted-foreground/30"
+              }`}
+            >
+              <span className="text-lg font-semibold">
+                {t(`fields.typeGroup.${definition.group}.label`)}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {t(`fields.typeGroup.${definition.group}.desc`)}
+              </span>
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Steg 2: Type innenfor valgt kategori */}
-      {mainCategory && (
+      {/* Steg 2: Type innenfor valgt gruppe. Grupper med bare én type hopper over dette */}
+      {typeGroup && needsTypeChoice && (
         <div className="space-y-2">
           <Label htmlFor="type" className="text-base">
             {t("fields.type.label")}
           </Label>
-          <Select name="type" required value={selectedType} onValueChange={setSelectedType}>
-            <SelectTrigger className="h-12 text-base">
+          <Select
+            value={selectedType || undefined}
+            onValueChange={(value) => setSelectedType(value as IncidentType)}
+          >
+            <SelectTrigger id="type" className="h-12 text-base">
               <SelectValue placeholder={t("fields.type.placeholder")} />
             </SelectTrigger>
             <SelectContent>
-              {typeOptionsForCategory.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {t(option.labelKey)}
+              {typesInGroup.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {t(`incidentTypes.${type}`)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -228,16 +256,19 @@ export function ReportIncidentForm({
         </div>
       )}
 
-      {/* Alvorlighetsgrad */}
+      {/* Alvorlighetsgrad – valgfri, leder kan sette grad ved behandling */}
       <div className="space-y-2">
         <Label htmlFor="severity" className="text-base">
           {t("fields.severity.label")}
         </Label>
-        <Select name="severity" required>
-          <SelectTrigger className="h-12 text-base">
+        <Select name="severity" defaultValue={NOT_ASSESSED_SEVERITY}>
+          <SelectTrigger id="severity" className="h-12 text-base">
             <SelectValue placeholder={t("fields.severity.placeholder")} />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value={NOT_ASSESSED_SEVERITY}>
+              {t("fields.severity.notAssessedOption")}
+            </SelectItem>
             <SelectItem value="5">{t("fields.severity.options.s5")}</SelectItem>
             <SelectItem value="4">{t("fields.severity.options.s4")}</SelectItem>
             <SelectItem value="3">{t("fields.severity.options.s3")}</SelectItem>
@@ -245,6 +276,9 @@ export function ReportIncidentForm({
             <SelectItem value="1">{t("fields.severity.options.s1")}</SelectItem>
           </SelectContent>
         </Select>
+        <p className="text-xs text-muted-foreground">
+          {t("fields.severity.help")}
+        </p>
       </div>
 
       <div className="space-y-2">
@@ -321,30 +355,36 @@ export function ReportIncidentForm({
         </p>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="involvedPersons" className="text-base">
-          {t("fields.involvedPersons.label")}
-        </Label>
-        <Textarea
-          id="involvedPersons"
-          name="involvedPersons"
-          placeholder={t("fields.involvedPersons.placeholder")}
-          rows={2}
-          className="text-base resize-none"
-        />
-      </div>
+      {/* Personinvolvering og skadeomfang er ukjent ved melding. Uten RUH-modulen
+          fyller leder dette ut under behandlingen i stedet. */}
+      {ruhModuleEnabled && (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="involvedPersons" className="text-base">
+              {t("fields.involvedPersons.label")}
+            </Label>
+            <Textarea
+              id="involvedPersons"
+              name="involvedPersons"
+              placeholder={t("fields.involvedPersons.placeholder")}
+              rows={2}
+              className="text-base resize-none"
+            />
+          </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="injuryType" className="text-base">
-          {t("fields.injuryType.label")}
-        </Label>
-        <Input
-          id="injuryType"
-          name="injuryType"
-          placeholder={t("fields.injuryType.placeholder")}
-          className="h-12 text-base"
-        />
-      </div>
+          <div className="space-y-2">
+            <Label htmlFor="injuryType" className="text-base">
+              {t("fields.injuryType.label")}
+            </Label>
+            <Input
+              id="injuryType"
+              name="injuryType"
+              placeholder={t("fields.injuryType.placeholder")}
+              className="h-12 text-base"
+            />
+          </div>
+        </>
+      )}
 
       {selectedType === "CUSTOMER" && (
         <div className="space-y-4 rounded-lg border p-4">

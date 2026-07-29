@@ -39,6 +39,7 @@ interface EnvConfig {
   AZURE_AD_CLIENT_ID?: string;
   AZURE_AD_CLIENT_SECRET?: string;
   AZURE_AD_TENANT_ID?: string;
+  NEXT_PUBLIC_ENABLE_SSO?: string;
 
   // SMS — Link Mobility (anbefalt for HMS-varsler)
   SMS_PROVIDER?: string;            // "link_mobility" | "intellisms" | "prosms" | "mock"
@@ -137,6 +138,15 @@ export function validateEnv(): void {
 
   if (!process.env.NEXT_PUBLIC_APP_URL) {
     warnings.push("NEXT_PUBLIC_APP_URL ikke satt - noen lenker i e-poster kan være feil");
+  }
+
+  if (
+    process.env.NEXT_PUBLIC_ENABLE_SSO === "true" &&
+    (!process.env.AZURE_AD_CLIENT_ID || !process.env.AZURE_AD_CLIENT_SECRET)
+  ) {
+    warnings.push(
+      "NEXT_PUBLIC_ENABLE_SSO er aktivert, men AZURE_AD_CLIENT_ID/AZURE_AD_CLIENT_SECRET mangler - Microsoft-innlogging vil ikke fungere"
+    );
   }
 
   // Kast feil hvis det er kritiske mangler

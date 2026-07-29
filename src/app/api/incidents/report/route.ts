@@ -5,7 +5,14 @@ import { prisma } from "@/lib/db";
 import { generateSequenceNumber } from "@/lib/sequence";
 import { AuditLog } from "@/lib/audit-log";
 import { getStorage, generateFileKey } from "@/lib/storage";
-import { createNotification, notifyUsersByRole } from "@/server/actions/notification.actions";
+import { createNotification } from "@/server/actions/notification.actions";
+import { dispatchNewIncidentNotifications } from "@/lib/incident-notification-routing.server";
+import { normalizeProjectReference } from "@/lib/incident-project-reference";
+import { resolveIncidentProjectId } from "@/lib/incident-project-reference.server";
+import {
+  parseModuleVisibilityConfig,
+  getNotifyRolesForModule,
+} from "@/lib/module-visibility";
 import { IncidentType } from "@prisma/client";
 
 const allowedEmployeeIncidentTypes: IncidentType[] = [
@@ -14,6 +21,7 @@ const allowedEmployeeIncidentTypes: IncidentType[] = [
   "FARLIG_SITUASJON",
   "YRKESSYKDOM",
   "AVVIK",
+  "HMS",
   "MILJO",
   "KVALITET",
   "CUSTOMER",
@@ -42,8 +50,9 @@ export async function POST(request: NextRequest) {
     const title = (formData.get("title") as string | null)?.trim() ?? "";
     const description = (formData.get("description") as string | null)?.trim() ?? "";
     const type = (formData.get("type") as string | null)?.trim() ?? "";
-    const severityStr = formData.get("severity") as string;
-    const severity = parseInt(severityStr, 10); // Konverter til number
+    // Alvorlighetsgrad er valgfri: null betyr at leder vurderer den ved behandling
+    const severityStr = (formData.get("severity") as string | null)?.trim() || null;
+    const severity = severityStr ? parseInt(severityStr, 10) : null;
     const location = (formData.get("location") as string | null)?.trim() ?? "";
     const reportedBy = session.user.id;
     const occurredAtRaw = (formData.get("occurredAt") as string | null)?.trim() ?? "";
@@ -64,6 +73,7 @@ export async function POST(request: NextRequest) {
     const contextDetails = (formData.get("contextDetails") as string | null)?.trim() || null;
     const rawSubcategoryKeys = formData.get("subcategoryKeys") as string | null;
     const projectId = (formData.get("projectId") as string | null) || null;
+    const projectReference = normalizeProjectReference(formData.get("projectReference"));
     const subcategoryKeys =
       rawSubcategoryKeys && rawSubcategoryKeys.trim().startsWith("[")
         ? rawSubcategoryKeys
@@ -80,7 +90,7 @@ export async function POST(request: NextRequest) {
     if (!title || !description || !location || !type) {
       return NextResponse.json({ error: "Mangler påkrevde felt." }, { status: 400 });
     }
-    if (!Number.isFinite(severity) || severity < 1 || severity > 5) {
+    if (severity !== null && (!Number.isFinite(severity) || severity < 1 || severity > 5)) {
       return NextResponse.json({ error: "Ugyldig alvorlighetsgrad." }, { status: 400 });
     }
     if (Number.isNaN(occurredAt.getTime())) {
@@ -118,6 +128,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Prosjekt ikke funnet" }, { status: 400 });
       }
       validatedProjectId = project.id;
+    } else if (projectReference) {
+      // Skrev melderen inn et nummer som finnes som prosjektkode eller ordrenummer,
+      // kobles avviket slik at prosjektleder blir varslet
+      validatedProjectId = await resolveIncidentProjectId({
+        tenantId,
+        projectId: null,
+        projectReference,
+      });
     }
 
     // Opprett avvik
@@ -144,6 +162,7 @@ export async function POST(request: NextRequest) {
         contributingFactors: incidentContext || undefined,
         subcategoryKeys,
         projectId: validatedProjectId,
+        projectReference,
         customerName,
         customerEmail,
         customerPhone,
@@ -195,11 +214,22 @@ export async function POST(request: NextRequest) {
           message: `Takk for rapporten! Ditt avvik "${title}" er registrert og vil bli behandlet av HMS-ansvarlig.`,
           link: `/ansatt/avvik`,
         });
-        await notifyUsersByRole(tenantId, "HMS", {
-          type: "NEW_INCIDENT",
-          title: "Nytt avvik rapportert av ansatt",
-          message: `${type}: ${title} - Rapportert av ${reportedBy}`,
-          link: `/dashboard/incidents/${incident.id}`,
+        const visConfig = parseModuleVisibilityConfig(
+          (
+            await prisma.tenant.findUnique({
+              where: { id: tenantId },
+              select: { moduleVisibilityConfig: true },
+            })
+          )?.moduleVisibilityConfig
+        );
+        await dispatchNewIncidentNotifications({
+          tenantId,
+          reporterId: userId,
+          projectId: validatedProjectId,
+          fallbackRoles: getNotifyRolesForModule(visConfig, "incidents", ["HMS"]),
+          incidentId: incident.id,
+          title,
+          typeLabel: type,
         });
       } catch (bgError) {
         console.error("Background notification error:", bgError);

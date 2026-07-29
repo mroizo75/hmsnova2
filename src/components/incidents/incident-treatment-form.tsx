@@ -7,8 +7,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { PROJECT_REFERENCE_MAX_LENGTH } from "@/lib/incident-project-reference";
 
 interface SubcategoryOption {
   id: string;
@@ -22,8 +24,9 @@ interface IncidentTreatmentFormProps {
   currentType: string;
   currentSubcategoryKeys: string[];
   currentProjectId: string | null;
+  currentProjectReference: string | null;
   currentStatus: string;
-  currentSeverity: number;
+  currentSeverity: number | null;
   currentResponsibleId: string | null;
   currentMedicalAttentionRequired: boolean;
   currentIsFatal: boolean;
@@ -38,17 +41,30 @@ interface IncidentTreatmentFormProps {
   currentIsEnvironmentalRelease: boolean;
   currentEnvironmentalDescription: string | null;
   currentSource: string;
+  currentInvolvedPersons: string | null;
+  currentInjuryType: string | null;
+  currentInjuryDescription: string | null;
+  currentSuggestedActions: string | null;
   users: Array<{ id: string; name: string | null; email: string }>;
   projects: Array<{ id: string; name: string; code: string | null; status: string }>;
+  ruhModuleEnabled?: boolean;
 }
 
 const NO_PROJECT_VALUE = "__none_project__";
+
+// Alvorlighetsgrad er valgfri – leder kan la den stå åpen til vurderingen er gjort
+const NOT_ASSESSED_SEVERITY_VALUE = "__not_assessed__";
+
+function severityToSelectValue(severity: number | null): string {
+  return severity === null ? NOT_ASSESSED_SEVERITY_VALUE : severity.toString();
+}
 
 export function IncidentTreatmentForm({
   incidentId,
   currentType,
   currentSubcategoryKeys,
   currentProjectId,
+  currentProjectReference,
   currentStatus,
   currentSeverity,
   currentResponsibleId,
@@ -65,8 +81,13 @@ export function IncidentTreatmentForm({
   currentIsEnvironmentalRelease,
   currentEnvironmentalDescription,
   currentSource,
+  currentInvolvedPersons,
+  currentInjuryType,
+  currentInjuryDescription,
+  currentSuggestedActions,
   users,
   projects,
+  ruhModuleEnabled = true,
 }: IncidentTreatmentFormProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -79,8 +100,9 @@ export function IncidentTreatmentForm({
   );
   const [loadingSubcategories, setLoadingSubcategories] = useState(false);
   const [status, setStatus] = useState(currentStatus);
-  const [severity, setSeverity] = useState(currentSeverity.toString());
+  const [severity, setSeverity] = useState(severityToSelectValue(currentSeverity));
   const [projectId, setProjectId] = useState(currentProjectId ?? NO_PROJECT_VALUE);
+  const [projectReference, setProjectReference] = useState(currentProjectReference ?? "");
   const [responsibleId, setResponsibleId] = useState(currentResponsibleId || "NONE");
   const [medicalAttentionRequired, setMedicalAttentionRequired] = useState(currentMedicalAttentionRequired);
   const [isFatal, setIsFatal] = useState(currentIsFatal);
@@ -102,6 +124,10 @@ export function IncidentTreatmentForm({
   const [environmentalDescription, setEnvironmentalDescription] = useState(
     currentEnvironmentalDescription ?? ""
   );
+  const [involvedPersons, setInvolvedPersons] = useState(currentInvolvedPersons ?? "");
+  const [injuryType, setInjuryType] = useState(currentInjuryType ?? "");
+  const [injuryDescription, setInjuryDescription] = useState(currentInjuryDescription ?? "");
+  const [suggestedActions, setSuggestedActions] = useState(currentSuggestedActions ?? "");
   const requiresHseCompletion = status !== "OPEN";
   const lostWorkdaysValue = lostWorkdays.trim();
   const isLostWorkdaysInvalid =
@@ -183,8 +209,10 @@ export function IncidentTreatmentForm({
           type,
           subcategoryKeys: selectedSubcategories,
           projectId: projectId === NO_PROJECT_VALUE ? null : projectId,
+          projectReference: projectReference.trim() || null,
           status,
-          severity: parseInt(severity, 10),
+          severity:
+            severity === NOT_ASSESSED_SEVERITY_VALUE ? null : parseInt(severity, 10),
           responsibleId: responsibleId === "NONE" ? null : responsibleId,
           medicalAttentionRequired,
           isFatal,
@@ -198,6 +226,10 @@ export function IncidentTreatmentForm({
           estimatedDamageCost: estimatedDamageCost.trim().length > 0 ? parseFloat(estimatedDamageCost) : null,
           isEnvironmentalRelease,
           environmentalDescription: environmentalDescription.trim() || null,
+          involvedPersons: involvedPersons.trim() || null,
+          injuryType: injuryType.trim() || null,
+          injuryDescription: injuryDescription.trim() || null,
+          suggestedActions: suggestedActions.trim() || null,
           source,
         }),
       });
@@ -228,8 +260,9 @@ export function IncidentTreatmentForm({
     type !== currentType ||
     normalizedSelectedSubcategories !== normalizedInitialSubcategories ||
     projectId !== (currentProjectId ?? NO_PROJECT_VALUE) ||
+    projectReference.trim() !== (currentProjectReference ?? "") ||
     status !== currentStatus ||
-    severity !== currentSeverity.toString() ||
+    severity !== severityToSelectValue(currentSeverity) ||
     responsibleId !== (currentResponsibleId || "NONE") ||
     medicalAttentionRequired !== currentMedicalAttentionRequired ||
     isFatal !== currentIsFatal ||
@@ -243,6 +276,10 @@ export function IncidentTreatmentForm({
     estimatedDamageCost !== (typeof currentEstimatedDamageCost === "number" ? currentEstimatedDamageCost.toString() : "") ||
     isEnvironmentalRelease !== currentIsEnvironmentalRelease ||
     environmentalDescription !== (currentEnvironmentalDescription ?? "") ||
+    involvedPersons !== (currentInvolvedPersons ?? "") ||
+    injuryType !== (currentInjuryType ?? "") ||
+    injuryDescription !== (currentInjuryDescription ?? "") ||
+    suggestedActions !== (currentSuggestedActions ?? "") ||
     source !== (currentSource || "INTERNAL");
 
   return (
@@ -255,15 +292,19 @@ export function IncidentTreatmentForm({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ULYKKE">Arbeidsulykke / RUH</SelectItem>
-              <SelectItem value="NESTEN">Nestenulykke / RUH</SelectItem>
-              <SelectItem value="FARLIG_SITUASJON">Farlig situasjon / Observasjon</SelectItem>
+              <SelectItem value="ULYKKE">
+                {ruhModuleEnabled ? "Arbeidsulykke / RUH" : "Arbeidsulykke"}
+              </SelectItem>
+              <SelectItem value="NESTEN">
+                {ruhModuleEnabled ? "Nestenulykke / RUH" : "Nestenulykke"}
+              </SelectItem>
+              <SelectItem value="FARLIG_SITUASJON">Farlig situasjon / observasjon</SelectItem>
               <SelectItem value="YRKESSYKDOM">Yrkessykdom</SelectItem>
               <SelectItem value="AVVIK">Avvik</SelectItem>
-              <SelectItem value="MILJO">Miljoavvik</SelectItem>
+              <SelectItem value="MILJO">Miljøavvik</SelectItem>
               <SelectItem value="KVALITET">Kvalitetsavvik</SelectItem>
               <SelectItem value="CUSTOMER">Kundeklage</SelectItem>
-              <SelectItem value="HMS">HMS-avvik (legacy)</SelectItem>
+              <SelectItem value="HMS">HMS-avvik</SelectItem>
               <SelectItem value="SKADE">Personskade (legacy)</SelectItem>
             </SelectContent>
           </Select>
@@ -290,6 +331,7 @@ export function IncidentTreatmentForm({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value={NOT_ASSESSED_SEVERITY_VALUE}>Ikke vurdert</SelectItem>
               <SelectItem value="1">1 - Ubetydelig</SelectItem>
               <SelectItem value="2">2 - Liten</SelectItem>
               <SelectItem value="3">3 - Moderat</SelectItem>
@@ -331,6 +373,22 @@ export function IncidentTreatmentForm({
               ))}
           </SelectContent>
         </Select>
+      </div>
+
+      <div>
+        <Label htmlFor="projectReference" className="mb-2 block">
+          Prosjektnummer / referanse
+        </Label>
+        <Input
+          id="projectReference"
+          value={projectReference}
+          onChange={(event) => setProjectReference(event.target.value)}
+          placeholder="F.eks. 24-1187 eller Storgata 12"
+          maxLength={PROJECT_REFERENCE_MAX_LENGTH}
+        />
+        <p className="mt-1 text-xs text-muted-foreground">
+          Brukes når oppdraget ikke er registrert som eget prosjekt.
+        </p>
       </div>
 
       <div>
@@ -379,6 +437,58 @@ export function IncidentTreatmentForm({
             ))}
           </div>
         )}
+      </div>
+
+      <div className="rounded-lg border p-4 space-y-4">
+        <div>
+          <Label className="block font-semibold">Personinvolvering og resultat</Label>
+          <p className="text-xs text-muted-foreground mt-1">
+            Fylles ut under behandlingen når omfanget er kjent (AML § 5-1 registreringsplikt).
+          </p>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="involvedPersons">Involverte personer</Label>
+            <Input
+              id="involvedPersons"
+              value={involvedPersons}
+              onChange={(event) => setInvolvedPersons(event.target.value)}
+              placeholder="Navn eller rolle på involverte"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="injuryType">Skadetype</Label>
+            <Input
+              id="injuryType"
+              value={injuryType}
+              onChange={(event) => setInjuryType(event.target.value)}
+              placeholder="F.eks. kuttskade, klemskade"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="injuryDescription">Beskrivelse av skade</Label>
+          <Textarea
+            id="injuryDescription"
+            value={injuryDescription}
+            onChange={(event) => setInjuryDescription(event.target.value)}
+            rows={3}
+            placeholder="Skadeomfang, kroppsdel og behandling"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="suggestedActions">Foreslåtte tiltak</Label>
+          <Textarea
+            id="suggestedActions"
+            value={suggestedActions}
+            onChange={(event) => setSuggestedActions(event.target.value)}
+            rows={3}
+            placeholder="Tiltak for å hindre gjentakelse"
+          />
+        </div>
       </div>
 
       <div className="rounded-lg border p-4 space-y-4">

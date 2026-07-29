@@ -15,7 +15,7 @@ interface Incident {
   avviksnummer: string | null;
   title: string;
   type: string;
-  severity: number;
+  severity: number | null;
   status: string;
   occurredAt: Date;
 }

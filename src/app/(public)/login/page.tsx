@@ -11,6 +11,17 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
 
+const AUTH_ERROR_MESSAGES: Record<string, string> = {
+  AccessDenied:
+    "Microsoft-kontoen din er ikke koblet til en bedrift med aktiv SSO i HMS Nova. Kontakt administratoren din.",
+  OAuthAccountNotLinked:
+    "Det finnes allerede en HMS Nova-bruker med denne e-postadressen. Logg inn med e-post og passord, eller kontakt support@hmsnova.no.",
+  OAuthSignin: "Kunne ikke starte innlogging med Microsoft. Kontakt support@hmsnova.no.",
+  OAuthCallback:
+    "Microsoft avviste innloggingen. Som regel betyr det at IT-ansvarlig hos dere ikke har godkjent HMS Nova ennå — be dem godkjenne appen under Innstillinger → Office 365.",
+  Configuration: "Microsoft-innlogging er ikke ferdig konfigurert. Kontakt support@hmsnova.no.",
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const t = useTranslations();
@@ -20,12 +31,24 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [verified, setVerified] = useState(false);
 
-  // Sjekk for success messages fra URL
+  // Sjekk for status-meldinger fra URL (verifisering og feil fra NextAuth)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("verified") === "true") {
+    const isVerified = params.get("verified") === "true";
+    const errorCode = params.get("error");
+
+    if (isVerified) {
       setVerified(true);
-      // Fjern parameter fra URL
+    }
+
+    if (errorCode) {
+      setError(
+        AUTH_ERROR_MESSAGES[errorCode] ??
+          "Innloggingen feilet. Prøv igjen, eller kontakt support@hmsnova.no."
+      );
+    }
+
+    if (isVerified || errorCode) {
       window.history.replaceState({}, "", "/login");
     }
   }, []);
