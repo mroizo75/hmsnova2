@@ -18,7 +18,7 @@
     "db:repair:tavlecheckin": "tsx scripts/repair-tavlecheckin-fk.ts",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
-    "db:seed:subcategories": "tsx scripts/seed-incident-subcategories.ts"
+    "db:seed:subcategories": "tsx prisma/run-seed-incident-subcategories.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts",
