@@ -16,7 +16,6 @@
     "electro": "Compliance declarations",
     "routines": "Routines",
     "legalRegister": "Legal Register",
-    "forms": "Forms",
     "risks": "Risk Assessments",
     "riskRegister": "Risk Register",
     "incidents": "Incidents & Events",
@@ -43,6 +42,9 @@
     "actions": "Actions",
     "goals": "Goals",
     "orgChart": "Organization Chart",
+    "hmsCockpit": "HMS Cockpit",
+    "benchmark": "Benchmark",
+    "support": "Help & support",
     "settings": "Settings",
     "employeeReviews": "Employee Reviews",
     "hmsTavle": "HMS Board",
@@ -973,35 +975,6 @@
     "emergency": {
       "title": "🚨 In acute danger",
       "description": "Call 110 (fire), 112 (police) or 113 (ambulance) FIRST! Then report the incident here."
-    }
-  },
-  "employeeFormsPage": {
-    "header": {
-      "title": "Digital forms",
-      "description": "Fill out and sign forms digitally",
-      "toggleScoped": "Show industry-specific",
-      "toggleAll": "Show all forms"
-    },
-    "empty": "No forms available at the moment",
-    "fieldCount": "{count} fields",
-    "badges": {
-      "requiresSignature": "✍️ Requires signature",
-      "requiresApproval": "✅ Requires approval"
-    },
-    "tip": {
-      "title": "💡 Tip:",
-      "description": "Tap a form to fill it out. If the form requires signature, you can sign digitally at the end."
-    },
-    "categories": {
-      "CUSTOM": "Custom",
-      "MEETING": "Meeting minutes",
-      "INSPECTION": "Inspection",
-      "INCIDENT": "Incident report",
-      "RISK": "Risk assessment",
-      "TRAINING": "Training",
-      "CHECKLIST": "Checklist",
-      "TIMESHEET": "Timesheet",
-      "WELLBEING": "Psychosocial work environment"
     }
   },
   "employeeInspectionsPage": {
@@ -3386,93 +3359,6 @@
       "draft": "Draft",
       "approved": "Approved",
       "archived": "Archived"
-    }
-  },
-  "dashboardFormsPage": {
-    "title": "Digital forms",
-    "description": "Create, manage and analyze custom forms",
-    "filteredOn": "Filtered on:",
-    "projectLinkActive": "Project link active: submissions will be linked to selected project.",
-    "industryDefault": "Showing industry-adapted templates by default.",
-    "actions": {
-      "showIndustry": "Show industry-adapted",
-      "showAllTemplates": "Show all templates",
-      "newForm": "New form",
-      "createForm": "Create form"
-    },
-    "stats": {
-      "totalForms": {
-        "title": "Total number of forms",
-        "active": "{count} active"
-      },
-      "totalSubmissions": {
-        "title": "Total submissions",
-        "description": "All forms"
-      },
-      "averagePerForm": {
-        "title": "Average per form",
-        "description": "Submissions"
-      }
-    },
-    "tips": {
-      "title": "💡 Tip:",
-      "text1": "Click a form to view all submissions, statistics and download PDFs. Use metrics to track how often forms are used.",
-      "examplesTitle": "Example templates:",
-      "text2": "Forms marked as global are standard templates. Use Copy if you want to edit or add fields. For global templates, regular users only see their own submissions, while form managers in the company see all."
-    },
-    "empty": {
-      "title": "No forms yet",
-      "description": "Create your first digital form with our drag-and-drop builder"
-    },
-    "list": {
-      "title": "All forms",
-      "showing": "Showing {from}-{to} of {total}"
-    },
-    "table": {
-      "formName": "Form name",
-      "category": "Category",
-      "status": "Status",
-      "access": "Access",
-      "fields": "Fields",
-      "submissions": "Submissions",
-      "lastUsed": "Last used",
-      "actions": "Actions"
-    },
-    "badges": {
-      "exampleTemplate": "Example template"
-    },
-    "status": {
-      "active": "Active",
-      "inactive": "Inactive"
-    },
-    "never": "Never",
-    "titles": {
-      "viewDetails": "View details and statistics",
-      "fillForm": "Fill form",
-      "editForm": "Edit form",
-      "export": "Export all answers to Excel"
-    },
-    "categories": {
-      "custom": "Custom",
-      "meeting": "Meeting minutes",
-      "inspection": "Inspection",
-      "incident": "Incident report",
-      "risk": "Risk assessment",
-      "training": "Training",
-      "checklist": "Checklist",
-      "timesheet": "Timesheet"
-    },
-    "roles": {
-      "admin": "Admin",
-      "leader": "Leader",
-      "safetyRep": "Safety representative",
-      "employee": "Employee",
-      "auditor": "Auditor"
-    },
-    "access": {
-      "all": "All",
-      "none": "None",
-      "users": "{count} user{count, plural, one {} other {s}}"
     }
   },
   "dashboardAuditsPage": {

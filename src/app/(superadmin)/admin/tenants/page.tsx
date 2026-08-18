@@ -1,3 +1,5 @@
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,6 +46,15 @@ function getActivityLevel(
 }
 
 export default async function TenantsPage() {
+  const session = await getServerSession(authOptions);
+  const currentUser = session?.user?.email
+    ? await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { isSuperAdmin: true },
+      })
+    : null;
+  const isSuperAdmin = currentUser?.isSuperAdmin ?? false;
+
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -169,13 +180,13 @@ export default async function TenantsPage() {
                 <TableRow>
                   <TableHead>Bedrift</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Avtale</TableHead>
-                  <TableHead>Abonnement</TableHead>
-                  <TableHead className="text-center">Brukere</TableHead>
-                  <TableHead>Siste innlogging</TableHead>
+                  {isSuperAdmin && <TableHead>Avtale</TableHead>}
+                  {isSuperAdmin && <TableHead>Abonnement</TableHead>}
+                  {isSuperAdmin && <TableHead className="text-center">Brukere</TableHead>}
+                  {isSuperAdmin && <TableHead>Siste innlogging</TableHead>}
                   <TableHead className="text-center">Aktivitet (30d)</TableHead>
                   <TableHead>Engasjement</TableHead>
-                  <TableHead>Faktura</TableHead>
+                  {isSuperAdmin && <TableHead>Faktura</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -205,61 +216,69 @@ export default async function TenantsPage() {
                         {tenant.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      {(() => {
-                        const latestOffer = tenant.offers[0];
-                        const isAccepted =
-                          latestOffer?.status === "ACCEPTED" ||
-                          (tenant.status === "ACTIVE" && !latestOffer);
-                        if (isAccepted) {
-                          return (
-                            <Badge
-                              variant="default"
-                              className="flex w-fit items-center gap-1 bg-green-600 hover:bg-green-600"
-                            >
-                              <CheckCircle2 className="h-3 w-3" />
-                              Godkjent
-                            </Badge>
-                          );
-                        }
-                        if (latestOffer?.status === "SENT") {
-                          return <Badge variant="secondary">Sendt</Badge>;
-                        }
-                        return <span className="text-sm text-muted-foreground">-</span>;
-                      })()}
-                    </TableCell>
-                    <TableCell>
-                      {tenant.subscription ? (
-                        <div>
-                          <p className="text-sm font-medium">
-                            {tenant.subscription.plan}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {tenant.subscription.price} kr/
-                            {tenant.subscription.billingInterval === "MONTHLY"
-                              ? "mnd"
-                              : "år"}
-                          </p>
-                        </div>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">{tenant._count.users}</TableCell>
-                    <TableCell>
-                      {tenant.lastLogin ? (
-                        <div>
-                          <p className="text-sm">
-                            {new Date(tenant.lastLogin).toLocaleDateString("no-NO")}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatDaysAgo(tenant.lastLogin)}
-                          </p>
-                        </div>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">Aldri</span>
-                      )}
-                    </TableCell>
+                    {isSuperAdmin && (
+                      <TableCell>
+                        {(() => {
+                          const latestOffer = tenant.offers[0];
+                          const isAccepted =
+                            latestOffer?.status === "ACCEPTED" ||
+                            (tenant.status === "ACTIVE" && !latestOffer);
+                          if (isAccepted) {
+                            return (
+                              <Badge
+                                variant="default"
+                                className="flex w-fit items-center gap-1 bg-green-600 hover:bg-green-600"
+                              >
+                                <CheckCircle2 className="h-3 w-3" />
+                                Godkjent
+                              </Badge>
+                            );
+                          }
+                          if (latestOffer?.status === "SENT") {
+                            return <Badge variant="secondary">Sendt</Badge>;
+                          }
+                          return <span className="text-sm text-muted-foreground">-</span>;
+                        })()}
+                      </TableCell>
+                    )}
+                    {isSuperAdmin && (
+                      <TableCell>
+                        {tenant.subscription ? (
+                          <div>
+                            <p className="text-sm font-medium">
+                              {tenant.subscription.plan}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {tenant.subscription.price} kr/
+                              {tenant.subscription.billingInterval === "MONTHLY"
+                                ? "mnd"
+                                : "år"}
+                            </p>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                    )}
+                    {isSuperAdmin && (
+                      <TableCell className="text-center">{tenant._count.users}</TableCell>
+                    )}
+                    {isSuperAdmin && (
+                      <TableCell>
+                        {tenant.lastLogin ? (
+                          <div>
+                            <p className="text-sm">
+                              {new Date(tenant.lastLogin).toLocaleDateString("no-NO")}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatDaysAgo(tenant.lastLogin)}
+                            </p>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">Aldri</span>
+                        )}
+                      </TableCell>
+                    )}
                     <TableCell className="text-center">
                       <Tooltip>
                         <TooltipTrigger>
@@ -286,16 +305,18 @@ export default async function TenantsPage() {
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      {tenant.invoices.length > 0 ? (
-                        <Badge variant="destructive" className="flex w-fit items-center gap-1">
-                          <AlertTriangle className="h-3 w-3" />
-                          {tenant.invoices.length} forfalt
-                        </Badge>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">OK</span>
-                      )}
-                    </TableCell>
+                    {isSuperAdmin && (
+                      <TableCell>
+                        {tenant.invoices.length > 0 ? (
+                          <Badge variant="destructive" className="flex w-fit items-center gap-1">
+                            <AlertTriangle className="h-3 w-3" />
+                            {tenant.invoices.length} forfalt
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">OK</span>
+                        )}
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>

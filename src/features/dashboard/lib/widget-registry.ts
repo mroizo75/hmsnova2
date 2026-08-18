@@ -33,7 +33,20 @@ import {
   Activity,
   Clock,
   Siren,
+  Gauge,
+  Megaphone,
+  Scale,
+  Truck,
+  TreePine,
+  PersonStanding,
+  MapPin,
+  Moon,
+  UserCheck,
+  Radar,
+  BookOpenCheck,
 } from "lucide-react";
+import { BRANSJE_MODULES } from "@/lib/bransje-modules";
+import { menuPathsToWidgetIds } from "@/lib/menu-widget-sync";
 
 export interface WidgetDefinition {
   id: string;
@@ -185,7 +198,7 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
     label: "Vann",
     description: "Vannsikkerhet og legionella-kontroll",
     icon: Droplets,
-    href: "/dashboard/forms?q=vann",
+    href: "/dashboard/rutiner?q=vann",
     category: "sikkerhet",
     color: "text-cyan-600",
     bgColor: "bg-cyan-50",
@@ -196,7 +209,7 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
     label: "Heis",
     description: "Heiskontroll og vedlikehold",
     icon: Building2,
-    href: "/dashboard/forms?q=heis",
+    href: "/dashboard/rutiner?q=heis",
     category: "sikkerhet",
     color: "text-slate-600",
     bgColor: "bg-slate-50",
@@ -234,7 +247,7 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
     label: "Medisin",
     description: "Medisinhåndtering og oversikt",
     icon: Stethoscope,
-    href: "/dashboard/forms?q=medisin",
+    href: "/dashboard/rutiner?q=medisin",
     category: "helse",
     color: "text-pink-600",
     bgColor: "bg-pink-50",
@@ -245,7 +258,7 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
     label: "Medisinsk utstyr",
     description: "Oversikt over medisinsk utstyr og vedlikehold",
     icon: Siren,
-    href: "/dashboard/forms?q=medisinsk%20utstyr",
+    href: "/dashboard/rutiner?q=medisinsk%20utstyr",
     category: "helse",
     color: "text-rose-600",
     bgColor: "bg-rose-50",
@@ -256,7 +269,7 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
     label: "Renhold",
     description: "Renholdskontroll og hygiene",
     icon: SprayCan,
-    href: "/dashboard/forms?q=renhold",
+    href: "/dashboard/rutiner?q=renhold",
     category: "helse",
     color: "text-sky-600",
     bgColor: "bg-sky-50",
@@ -267,7 +280,7 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
     label: "Mat",
     description: "Matsikkerhet og hygienekontroll",
     icon: UtensilsCrossed,
-    href: "/dashboard/forms?q=mat",
+    href: "/dashboard/rutiner?q=mat",
     category: "helse",
     color: "text-green-600",
     bgColor: "bg-green-50",
@@ -322,19 +335,6 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
     color: "text-indigo-600",
     bgColor: "bg-indigo-50",
     borderColor: "border-indigo-200",
-  },
-  {
-    id: "forms",
-    label: "Skjemaer",
-    description: "Digitale skjemaer og sjekklister",
-    icon: ScrollText,
-    href: "/dashboard/forms",
-    category: "dokumenter",
-    color: "text-violet-600",
-    bgColor: "bg-violet-50",
-    borderColor: "border-violet-200",
-    permission: "forms",
-    isAdvanced: true,
   },
 
   // Personal & Administrasjon
@@ -441,6 +441,193 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
     isAdvanced: true,
   },
 
+  // Ledelse & Oversikt
+  {
+    id: "hms-cockpit",
+    label: "HMS Cockpit",
+    description: "Samlet HMS-score, trender og forbedringsforslag",
+    icon: Gauge,
+    href: "/dashboard/hms-cockpit",
+    category: "kvalitet",
+    color: "text-violet-700",
+    bgColor: "bg-violet-50",
+    borderColor: "border-violet-200",
+    permission: "hmsCockpit",
+  },
+  {
+    id: "hms-handbok",
+    label: "HMS-håndbok",
+    description: "Bedriftens levende HMS-håndbok (IK-HMS § 5)",
+    icon: BookOpenCheck,
+    href: "/dashboard/hms-handbok",
+    category: "dokumenter",
+    color: "text-blue-700",
+    bgColor: "bg-blue-50",
+    borderColor: "border-blue-200",
+    permission: "hmsHandbok",
+  },
+  {
+    id: "annual-hms-plan",
+    label: "Årsplan HMS",
+    description: "Årsplan for HMS-arbeid (IK-HMS § 5 nr. 5)",
+    icon: CalendarDays,
+    href: "/dashboard/annual-hms-plan",
+    category: "kvalitet",
+    color: "text-teal-700",
+    bgColor: "bg-teal-50",
+    borderColor: "border-teal-200",
+    permission: "annualHmsPlan",
+  },
+  {
+    id: "management-reviews",
+    label: "Ledelsens gjennomgang",
+    description: "Ledelsens gjennomgang av HMS-systemet (ISO 45001)",
+    icon: Users,
+    href: "/dashboard/management-reviews",
+    category: "kvalitet",
+    color: "text-slate-700",
+    bgColor: "bg-slate-50",
+    borderColor: "border-slate-200",
+    permission: "managementReviews",
+    isAdvanced: true,
+  },
+  {
+    id: "legal-register",
+    label: "Juridisk register",
+    description: "Lover og forskrifter som gjelder bedriften",
+    icon: Scale,
+    href: "/dashboard/juridisk-register",
+    category: "dokumenter",
+    color: "text-amber-700",
+    bgColor: "bg-amber-50",
+    borderColor: "border-amber-200",
+    permission: "legalRegister",
+  },
+  {
+    id: "whistleblowing",
+    label: "Varsling",
+    description: "Varslingskanal for kritikkverdige forhold (AML § 2A)",
+    icon: Megaphone,
+    href: "/dashboard/whistleblowing",
+    category: "kvalitet",
+    color: "text-red-700",
+    bgColor: "bg-red-50",
+    borderColor: "border-red-200",
+    permission: "whistleblowing",
+    isAdvanced: true,
+  },
+  {
+    id: "employee-reviews",
+    label: "Medarbeidersamtale",
+    description: "Planlegging og gjennomføring av medarbeidersamtaler",
+    icon: UserCheck,
+    href: "/dashboard/medarbeidersamtale",
+    category: "personal",
+    color: "text-violet-600",
+    bgColor: "bg-violet-50",
+    borderColor: "border-violet-200",
+    permission: "employeeReviews",
+    isAdvanced: true,
+  },
+
+  // Bransje-spesifikke moduler
+  {
+    id: "exposure-register",
+    label: "Eksponeringsregister",
+    description: "Register over arbeidstakeres eksponering for helseskadelige stoffer",
+    icon: Radar,
+    href: "/dashboard/exposure-register",
+    category: "helse",
+    color: "text-orange-600",
+    bgColor: "bg-orange-50",
+    borderColor: "border-orange-200",
+    permission: "exposureRegister",
+  },
+  {
+    id: "construction-compliance",
+    label: "SHA / Byggherreforskriften",
+    description: "Sikkerhet, helse og arbeidsmiljø på bygge-/anleggsplasser",
+    icon: HardHat,
+    href: "/dashboard/construction-compliance",
+    category: "sikkerhet",
+    color: "text-amber-700",
+    bgColor: "bg-amber-50",
+    borderColor: "border-amber-200",
+    permission: "constructionCompliance",
+  },
+  {
+    id: "ik-mat",
+    label: "IK-Mat",
+    description: "Internkontroll for mattrygghet (IK-Mat-forskriften)",
+    icon: UtensilsCrossed,
+    href: "/dashboard/ik-mat",
+    category: "helse",
+    color: "text-green-700",
+    bgColor: "bg-green-50",
+    borderColor: "border-green-200",
+    permission: "ikMat",
+  },
+  {
+    id: "aktivitetssikkerhet",
+    label: "Aktivitetssikkerhet",
+    description: "Sikkerhet ved aktiviteter og opplevelser (Produktkontrolloven)",
+    icon: PersonStanding,
+    href: "/dashboard/aktivitetssikkerhet",
+    category: "sikkerhet",
+    color: "text-emerald-700",
+    bgColor: "bg-emerald-50",
+    borderColor: "border-emerald-200",
+    permission: "aktivitetssikkerhet",
+  },
+  {
+    id: "transport",
+    label: "Transport",
+    description: "Transportløyver, sjåfør- og kjøretøykontroll",
+    icon: Truck,
+    href: "/dashboard/transport",
+    category: "sikkerhet",
+    color: "text-blue-600",
+    bgColor: "bg-blue-50",
+    borderColor: "border-blue-200",
+    permission: "transport",
+  },
+  {
+    id: "bht-nattarbeid",
+    label: "BHT / Nattarbeid",
+    description: "Bedriftshelsetjeneste og nattarbeid (AML § 3-3, § 10-11)",
+    icon: Moon,
+    href: "/dashboard/bht-nattarbeid",
+    category: "helse",
+    color: "text-indigo-700",
+    bgColor: "bg-indigo-50",
+    borderColor: "border-indigo-200",
+    permission: "bhtNattarbeid",
+  },
+  {
+    id: "beredskap-reiseliv",
+    label: "Beredskapsplan reiseliv",
+    description: "Beredskapsplan for reiselivsbedrifter",
+    icon: MapPin,
+    href: "/dashboard/beredskap-reiseliv",
+    category: "sikkerhet",
+    color: "text-teal-600",
+    bgColor: "bg-teal-50",
+    borderColor: "border-teal-200",
+    permission: "inspections",
+  },
+  {
+    id: "projects",
+    label: "Prosjekter",
+    description: "Prosjektstyring og prosjektbaserte avvik",
+    icon: TreePine,
+    href: "/dashboard/projects",
+    category: "kvalitet",
+    color: "text-cyan-700",
+    bgColor: "bg-cyan-50",
+    borderColor: "border-cyan-200",
+    permission: "incidents",
+  },
+
   // Spesial-widgeter (dashboard-spesifikke)
   {
     id: "widget-task-center",
@@ -499,47 +686,36 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
   },
 ];
 
+// Fallback-sett for helt ukjent bransje
 export const DEFAULT_WIDGET_IDS = [
+  "hms-cockpit",
   "incidents",
-  "fire-safety",
-  "electrical",
-  "medicine",
-  "food-safety",
-  "water-safety",
-  "medical-equipment",
-  "cleaning",
   "actions",
   "inspections",
-  "documents",
-  "routines",
-  "widget-task-center",
-  "widget-hms-score",
-];
-
-export const HEALTHCARE_DEFAULT_WIDGET_IDS = [
-  "fire-safety",
-  "medicine",
-  "food-safety",
-  "medical-equipment",
-  "cleaning",
-  "water-safety",
-  "electrical",
-  "actions",
-  "incidents",
   "training",
+  "routines",
   "documents",
+  "hms-handbok",
   "widget-task-center",
   "widget-hms-score",
+  "fire-safety",
+  "electrical",
+  "risks",
 ];
 
+/**
+ * Returnerer standard widget-IDer for en gitt bransje.
+ * Bruker BRANSJE_MODULES som én kilde slik at enkel meny
+ * og dashboard-fliser alltid er i synk.
+ */
 export function getDefaultWidgetIdsForIndustry(industry: string | null | undefined): string[] {
-  const normalizedIndustry = (industry || "").trim().toLowerCase();
+  const key = (industry || "").trim().toLowerCase();
+  if (!key) return DEFAULT_WIDGET_IDS;
 
-  if (normalizedIndustry === "healthcare") {
-    return HEALTHCARE_DEFAULT_WIDGET_IDS;
-  }
+  const config = BRANSJE_MODULES[key];
+  if (!config) return DEFAULT_WIDGET_IDS;
 
-  return DEFAULT_WIDGET_IDS;
+  return menuPathsToWidgetIds(config.modules);
 }
 
 export function getWidgetById(id: string): WidgetDefinition | undefined {

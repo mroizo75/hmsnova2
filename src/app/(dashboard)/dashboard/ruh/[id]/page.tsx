@@ -92,28 +92,8 @@ export default async function RuhDetailPage({ params }: { params: Promise<{ id: 
 
         <div className="flex items-center gap-2">
           <RuhPDFExport
-            report={{
-              ruhNummer: report.ruhNummer,
-              title: report.title,
-              category: report.category,
-              description: report.description,
-              occurredAt: report.occurredAt,
-              location: report.location,
-              reportedBy: report.reportedBy,
-              involvedPersons: report.involvedPersons,
-              witnessName: report.witnessName,
-              injuryOccurred: report.injuryOccurred,
-              injuryDescription: report.injuryDescription,
-              immediateAction: report.immediateAction,
-              suggestedActions: report.suggestedActions,
-              status: report.status,
-              reviewComment: report.reviewComment,
-              completedComment: report.completedComment,
-              createdAt: report.createdAt,
-              completedAt: report.completedAt,
-            }}
-            categoryLabel={getRuhCategoryLabel(report.category)}
-            statusLabel={getRuhStatusLabel(report.status)}
+            ruhId={report.id}
+            ruhNummer={report.ruhNummer}
           />
         </div>
       </div>

@@ -3,7 +3,6 @@ import IORedis from "ioredis";
 import { 
   checkOverdueInvoices, 
   sendTrialExpiringReminders,
-  syncInvoicesWithFiken 
 } from "@/server/actions/invoice.actions";
 
 const connection = new IORedis({
@@ -53,17 +52,6 @@ export const invoiceWorker = new Worker(
           console.error(`[Invoice Checker] Error:`, result.error);
           throw new Error(result.error);
         }
-      } else if (job.name === "sync-fiken-morning" || job.name === "sync-fiken-afternoon" || job.name === "sync-fiken-evening") {
-        // Synkroniser betalingsstatus fra Fiken (3 ganger daglig)
-        const result = await syncInvoicesWithFiken();
-        
-        if (result.success) {
-          console.log(`[Invoice Checker] Synced ${result.updated} invoices from Fiken, reactivated ${result.reactivated} tenants`);
-          return { success: true, updated: result.updated, reactivated: result.reactivated };
-        } else {
-          console.error(`[Invoice Checker] Error:`, result.error);
-          throw new Error(result.error);
-        }
       }
     } catch (error) {
       console.error(`[Invoice Checker] Failed:`, error);
@@ -107,42 +95,9 @@ export async function scheduleInvoiceCheck() {
       }
     );
 
-    // 3. Synkroniser med Fiken 3 ganger per dag
-    // Morgen (08:00), Ettermiddag (14:00), Kveld (20:00)
-    await invoiceQueue.add(
-      "sync-fiken-morning",
-      {},
-      {
-        repeat: {
-          pattern: "0 8 * * *", // Cron: Kl 08:00
-        },
-      }
-    );
-
-    await invoiceQueue.add(
-      "sync-fiken-afternoon",
-      {},
-      {
-        repeat: {
-          pattern: "0 14 * * *", // Cron: Kl 14:00
-        },
-      }
-    );
-
-    await invoiceQueue.add(
-      "sync-fiken-evening",
-      {},
-      {
-        repeat: {
-          pattern: "0 20 * * *", // Cron: Kl 20:00
-        },
-      }
-    );
-
     console.log("[Invoice Checker] Scheduled jobs:");
     console.log("  - Overdue check: 02:00 (daily)");
     console.log("  - Trial expiring reminders: 10:00 (daily)");
-    console.log("  - Fiken sync: 08:00, 14:00, 20:00 (3x daily)");
   } catch (error) {
     console.error("[Invoice Checker] Failed to schedule:", error);
   }

@@ -146,39 +146,6 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
   const allMeasuresCompleted = incident.measures.length > 0 && incident.measures.every(m => m.status === "DONE");
   const canClose = incident.rootCause && allMeasuresCompleted && incident.status !== "CLOSED";
 
-  const pdfIncidentData = {
-    avviksnummer: incident.avviksnummer,
-    title: incident.title,
-    type: incident.type,
-    severity: incident.severity === null ? "" : String(incident.severity),
-    status: incident.status,
-    description: incident.description,
-    occurredAt: incident.occurredAt,
-    location: incident.location,
-    projectReference: incident.projectReference,
-    witnessName: incident.witnessName,
-    immediateAction: incident.immediateAction,
-    rootCause: incident.rootCause,
-    contributingFactors: incident.contributingFactors,
-    effectivenessReview: incident.effectivenessReview,
-    lessonsLearned: incident.lessonsLearned,
-    attachments: incident.attachments.map(a => ({
-      id: a.id,
-      fileKey: a.fileKey,
-      name: a.name,
-      mime: a.mime,
-    })),
-    measures: incident.measures.map(m => ({
-      id: m.id,
-      description: m.description || m.title,
-      responsibleName: m.responsible?.name || m.responsible?.email,
-      deadline: m.dueAt,
-      status: m.status,
-      completedAt: m.completedAt,
-    })),
-    createdAt: incident.createdAt,
-    closedAt: incident.closedAt,
-  };
 
   return (
     <div className="space-y-6">
@@ -191,10 +158,8 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
             </Link>
           </Button>
           <IncidentPDFExport
-            incident={pdfIncidentData}
-            typeLabel={typeLabel}
-            severityLabel={severityLabel}
-            statusLabel={statusLabel}
+            incidentId={incident.id}
+            avviksnummer={incident.avviksnummer}
           />
         </div>
         <div className="flex items-start justify-between">

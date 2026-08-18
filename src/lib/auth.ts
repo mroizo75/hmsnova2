@@ -368,6 +368,33 @@ export const authOptions: NextAuthOptions = {
           token.role = selectedTenant?.role || undefined;
           token.tenantName = selectedTenant?.tenant?.name || null;
           token.isTavleOnly = selectedTenant?.tenant?.isTavleOnly ?? false;
+          // Lagre tidspunkt for siste kjente DB-oppdatering av rollen.
+          // Brukes til versjonssjekkk – ingen polling nødvendig.
+          token.roleUpdatedAt = selectedTenant?.updatedAt?.getTime() ?? null;
+        }
+      }
+      
+      // Rolle-versjonskontroll: sjekk om UserTenant.updatedAt har endret seg siden sist.
+      // Ingen polling – vi leser kun ett felt (updatedAt) og bare om token er satt.
+      // Dersom admin har endret rollen vil updatedAt være nyere enn det vi har i token.
+      if (token.id && token.tenantId) {
+        const membership = await prisma.userTenant.findUnique({
+          where: {
+            userId_tenantId: {
+              userId: token.id as string,
+              tenantId: token.tenantId as string,
+            },
+          },
+          select: { role: true, updatedAt: true },
+        });
+        if (membership) {
+          const dbUpdatedAt = membership.updatedAt.getTime();
+          const tokenUpdatedAt = token.roleUpdatedAt as number | null;
+          if (tokenUpdatedAt === null || dbUpdatedAt > tokenUpdatedAt) {
+            // Rollen er endret siden sist – oppdater token
+            token.role = membership.role;
+            token.roleUpdatedAt = dbUpdatedAt;
+          }
         }
       }
       
@@ -396,6 +423,7 @@ export const authOptions: NextAuthOptions = {
         if (selectedMembership) {
           token.role = selectedMembership.role;
           token.tenantName = selectedMembership.tenant.name;
+          token.roleUpdatedAt = selectedMembership.updatedAt.getTime();
         }
       }
       

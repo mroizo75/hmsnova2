@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 export default function PersonvernPage() {
-  const lastUpdated = "2. november 2024";
+  const lastUpdated = "11. august 2026";
 
   return (
     <div className="bg-gradient-to-b from-background to-muted/20">
@@ -136,7 +136,27 @@ export default function PersonvernPage() {
                   <h4 className="font-semibold">Berettiget interesse (Art. 6.1.f)</h4>
                   <p className="text-sm text-muted-foreground">
                     Forbedre tjenesten, analysere bruksmønstre, forebygge svindel og misbruk, 
-                    gi kundesupport.
+                    gi kundesupport. Generere anonymisert bransjestatistikk og benchmarks 
+                    (HMS Nova Safety Intelligence) — se punkt 3b nedenfor.
+                  </p>
+                </div>
+
+                <div className="border-l-4 border-orange-400 pl-4">
+                  <h4 className="font-semibold">3b. Anonymisert bransjestatistikk</h4>
+                  <p className="text-sm text-muted-foreground">
+                    HMS Nova aggregerer anonymiserte HMS-data pa tvers av kunder for a produsere 
+                    bransjestatistikk, trendanalyser og benchmarks. Dataene anonymiseres med 
+                    k-anonymity (minimum 5 bedrifter per gruppe), slik at ingen enkeltstaaende 
+                    bedrift eller person kan identifiseres. Nar data er tilstrekkelig anonymisert 
+                    utgjor det ikke lenger personopplysninger (GDPR fortale 26).
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    <strong>Formaal:</strong> Gi kunder verdifull innsikt i egen prestasjon mot bransjesnittet, 
+                    samt muliggjore forskning og forbedring av HMS-arbeid i Norge.
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    <strong>Reservasjon:</strong> Du kan reservere din bedrift mot deltakelse via 
+                    Innstillinger &gt; Statistikk i HMS Nova.
                   </p>
                 </div>
               </div>

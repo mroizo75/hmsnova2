@@ -44,6 +44,15 @@ import {
 } from "@/features/incidents/schemas/incident.schema";
 import { PROJECT_REFERENCE_MAX_LENGTH } from "@/lib/incident-project-reference";
 
+function toLocalISOString(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  const h = String(date.getHours()).padStart(2, "0");
+  const min = String(date.getMinutes()).padStart(2, "0");
+  return `${y}-${m}-${d}T${h}:${min}`;
+}
+
 interface SubcategoryOption {
   id: string;
   key: string;
@@ -708,7 +717,7 @@ export function IncidentForm({
                 type="datetime-local"
                 required
                 disabled={loading}
-                max={new Date().toISOString().slice(0, 16)}
+                max={toLocalISOString(new Date())}
               />
             </div>
 

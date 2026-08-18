@@ -9,6 +9,7 @@ import { prisma } from "@/lib/db";
 import { LogoutButton } from "@/components/ansatt/logout-button";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { NotificationsProvider } from "@/hooks/useNotifications";
+import { OfflineSyncBannerWrapper } from "@/components/offline-sync-banner-wrapper";
 import {
   EMPLOYEE_WIDGET_REGISTRY,
   getEmployeeWidgetsFromLockedConfig,
@@ -64,8 +65,8 @@ export default async function EmployeeLayout({
 
   return (
     <NotificationsProvider>
-      <div className="min-h-screen bg-gray-50 pb-20">
-        <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
+      <div className="min-h-dvh bg-gray-50 pb-[calc(5rem+env(safe-area-inset-bottom))]">
+        <header className="sticky top-0 z-50 border-b border-gray-200 bg-white shadow-sm pt-[env(safe-area-inset-top)]">
           <div className="container mx-auto px-4 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -111,14 +112,15 @@ export default async function EmployeeLayout({
 
         <main className="container mx-auto px-4 py-6">
           <AppBreadcrumbs />
+          <OfflineSyncBannerWrapper />
           {children}
         </main>
 
-        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
-          <div className="flex justify-around items-center h-16">
+        <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white shadow-lg pb-[env(safe-area-inset-bottom)]">
+          <div className="flex h-16 items-center justify-around">
             <Link
               href="/ansatt"
-              className="flex flex-col items-center justify-center flex-1 h-full hover:bg-gray-50 transition-colors"
+              className="flex min-h-11 flex-1 flex-col items-center justify-center h-full hover:bg-gray-50 transition-colors"
             >
               <Home className="h-5 w-5 text-gray-600" />
               <span className="text-xs mt-1 text-gray-600">Hjem</span>
@@ -128,7 +130,7 @@ export default async function EmployeeLayout({
               <Link
                 key={item.id}
                 href={item.href}
-                className="flex flex-col items-center justify-center flex-1 h-full hover:bg-gray-50 transition-colors"
+                className="flex min-h-11 flex-1 flex-col items-center justify-center h-full hover:bg-gray-50 transition-colors"
               >
                 <item.icon className="h-5 w-5 text-gray-600" />
                 <span className="text-xs mt-1 text-gray-600">{item.label}</span>

@@ -96,7 +96,7 @@ export function TavleMobileNav({ tenantName }: TavleNavProps) {
   const pathname = usePathname();
 
   return (
-    <header className="lg:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 sticky top-0 z-40">
+    <header className="sticky top-0 z-40 flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] lg:hidden">
       <Link href="/dashboard/hms-tavle" className="flex items-center gap-2">
         <HardHat className="h-5 w-5 text-blue-600" />
         <span className="font-semibold text-sm text-gray-900">Digital HMS Tavle</span>
@@ -114,10 +114,11 @@ export function TavleMobileNav({ tenantName }: TavleNavProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                "p-2 rounded-lg transition-colors",
+                "inline-flex h-11 w-11 items-center justify-center rounded-lg transition-colors",
                 isActive ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:bg-gray-100"
               )}
               title={item.label}
+              aria-label={item.label}
             >
               <Icon className="h-5 w-5" />
             </Link>
@@ -129,6 +130,7 @@ export function TavleMobileNav({ tenantName }: TavleNavProps) {
           className="text-gray-500"
           onClick={() => signOut({ callbackUrl: "/login" })}
           title="Logg ut"
+          aria-label="Logg ut"
         >
           <LogOut className="h-5 w-5" />
         </Button>

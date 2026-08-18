@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { jsPDF } from "jspdf";
 import {
   DEFAULT_HMS_PULSE_ITEMS,
   ensureMandatoryHmsPulseItems,
@@ -11,14 +10,6 @@ import {
   type HmsPulseComplianceKey,
 } from "@/features/dashboard/lib/hms-pulse-config";
 import { UserTenant } from "@prisma/client";
-
-function formatDate(date: Date): string {
-  return date.toLocaleDateString("nb-NO", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-}
 
 type ComplianceStatusValue = {
   key: HmsPulseComplianceKey;
@@ -283,96 +274,61 @@ export async function GET() {
       pulseLabel = "Må følges opp";
     }
 
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 16;
-    const maxWidth = pageWidth - margin * 2;
-    let y = 18;
+    const { generateBrandedPdf } = await import("@/lib/pdf-brand");
 
-    doc.setFillColor(15, 23, 42);
-    doc.roundedRect(margin, y - 10, maxWidth, 28, 2, 2, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(18);
-    doc.setFont("helvetica", "bold");
-    doc.text("HMS-puls - Tilsynsrapport", margin + 4, y);
-    y += 8;
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Virksomhet: ${tenant.name}`, margin + 4, y);
-    y += 6;
-    doc.text(`Dato: ${formatDate(now)} | Grunnlag: lovforankret HMS-oversikt`, margin + 4, y);
-    y += 16;
+    const statusRows: [string, string][] = items.map((item) => {
+      const s = item.complianceKey ? statusMap.get(item.complianceKey) : undefined;
+      const palette = getSeverityPalette(s?.severity ?? "ok");
+      return [item.title, `${palette.label}${s ? ` – ${s.value}` : ""}`];
+    });
 
-    doc.setFillColor(239, 246, 255);
-    doc.setDrawColor(191, 219, 254);
-    doc.roundedRect(margin, y - 2, maxWidth, 24, 2, 2, "FD");
-    doc.setTextColor(30, 64, 175);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.text(`Total HMS-puls: ${pulseScore}/100 (${pulseLabel})`, margin + 4, y + 5);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.text(
-      `Statusfordeling: ${okCount} gode, ${warningCount} må følges opp, ${criticalCount} kritiske.`,
-      margin + 4,
-      y + 11
-    );
-    doc.text(
-      "Rapporten er egnet for dialog med tilsyn, revisjon og intern oppfølging.",
-      margin + 4,
-      y + 16
-    );
-    y += 30;
+    const buffer = await generateBrandedPdf({
+      type: "formal",
+      reportLabel: "HMS-puls tilsynsrapport",
+      title: "HMS-puls – Tilsynsrapport",
+      subtitle: `Puls: ${pulseScore}/100 (${pulseLabel}) · ${okCount} gode, ${warningCount} advarsler, ${criticalCount} kritiske`,
+      tenant: { name: tenant.name },
+      generatedAt: now,
+      legalReference: "AML § 3-1, IK-HMS § 5",
+      sections: [
+        {
+          title: "HMS-status oversikt",
+          content: [
+            {
+              type: "keyvalue",
+              pairs: statusRows,
+            },
+          ],
+        },
+        ...(items.some((item) => item.legalRef)
+          ? [{
+              title: "Lovgrunnlag per område",
+              content: [{
+                type: "table" as const,
+                headers: ["Område", "Lovgrunnlag", "Status"],
+                rows: items
+                  .filter((item) => item.legalRef)
+                  .map((item) => {
+                    const s = item.complianceKey ? statusMap.get(item.complianceKey) : undefined;
+                    const palette = getSeverityPalette(s?.severity ?? "ok");
+                    return [item.title, item.legalRef ?? "–", `${palette.label}${s ? ` – ${s.value}` : ""}`];
+                  }),
+              }],
+            }]
+          : []),
+        ...(criticalCount > 0
+          ? [{
+              title: "Kritiske funn",
+              content: [{
+                type: "alert" as const,
+                text: `${criticalCount} kritiske punkt krever rask oppfølging. Gjennomgå systemet og lukk avvikene.`,
+                severity: "danger" as const,
+              }],
+            }]
+          : []),
+      ],
+    });
 
-    for (const item of items) {
-      const status = item.complianceKey ? statusMap.get(item.complianceKey) : undefined;
-      const estimatedHeight = item.legalRef ? 36 : 30;
-      if (y + estimatedHeight > pageHeight - 14) {
-        doc.addPage();
-        y = 18;
-      }
-
-      const palette = getSeverityPalette(status?.severity ?? "ok");
-      doc.setFillColor(palette.fill[0], palette.fill[1], palette.fill[2]);
-      doc.setDrawColor(226, 232, 240);
-      doc.roundedRect(margin, y - 2, maxWidth, estimatedHeight, 2, 2, "FD");
-
-      doc.setFontSize(11);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(15, 23, 42);
-      const title = doc.splitTextToSize(item.title, maxWidth - 64);
-      doc.text(title, margin + 3, y + 4);
-
-      doc.setFillColor(palette.text[0], palette.text[1], palette.text[2]);
-      doc.roundedRect(pageWidth - margin - 43, y + 1, 40, 7, 1.5, 1.5, "F");
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(8);
-      doc.setFont("helvetica", "bold");
-      doc.text(palette.label, pageWidth - margin - 23, y + 6, { align: "center" });
-
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(51, 65, 85);
-      doc.text(`Lenke: ${item.href}`, margin + 3, y + 12);
-
-      if (item.legalRef) {
-        doc.text(`Lovgrunnlag: ${item.legalRef}`, margin + 3, y + 17);
-      }
-
-      if (status) {
-        doc.setTextColor(palette.text[0], palette.text[1], palette.text[2]);
-        doc.text(
-          `Status: ${status.value}. Forklaring: ${palette.explanation}`,
-          margin + 3,
-          item.legalRef ? y + 22 : y + 17
-        );
-      }
-
-      y += estimatedHeight + 4;
-    }
-
-    const buffer = Buffer.from(doc.output("arraybuffer"));
     const filename = `HMS_puls_tilsyn_${safeFilename(tenant.name)}_${now.toISOString().slice(0, 10)}.pdf`;
 
     return new NextResponse(buffer, {

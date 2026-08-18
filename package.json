@@ -2,6 +2,8 @@
   "name": "hmsnova2",
   "version": "0.1.0",
   "private": true,
+  "license": "UNLICENSED",
+  "copyright": "Copyright (c) 2024-2026 HMS Nova AS. All rights reserved.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

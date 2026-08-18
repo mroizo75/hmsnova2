@@ -103,8 +103,8 @@ export default async function InspectionsPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="page-header">
+        <div className="flex min-w-0 items-start gap-3">
           <div>
             <h1 className="text-3xl font-bold">{t("title")}</h1>
             <p className="text-muted-foreground mt-1">
@@ -113,7 +113,7 @@ export default async function InspectionsPage({
           </div>
           <PageHelpDialog content={helpContent.inspections} />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="page-header-actions">
           <Link href={showAll ? "/dashboard/inspections" : "/dashboard/inspections?view=all"}>
             <Button variant="outline"> {showAll ? t("actions.showIndustry") : t("actions.showAll")} </Button>
           </Link>
@@ -181,7 +181,7 @@ export default async function InspectionsPage({
       </div>
 
       {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-3">
             <CardDescription>{t("stats.total")}</CardDescription>

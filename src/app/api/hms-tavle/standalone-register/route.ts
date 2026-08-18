@@ -217,7 +217,7 @@ export async function POST(req: NextRequest) {
 
     const planLabel = PLAN_LABELS[plan as HmsTavlePlan];
     const pricePerMonth = PLAN_PRICES[plan as HmsTavlePlan];
-    const maxTavler = plan === "ENKEL" ? 1 : plan === "STANDARD" ? 3 : 10;
+    const maxTavler = plan === "ENKEL" ? 1 : plan === "STANDARD" ? 3 : 999;
 
     // Generer midlertidig passord
     const tempPassword = generateTempPassword();
@@ -349,6 +349,29 @@ export async function POST(req: NextRequest) {
       });
     } catch {
       // Ikke blokker registreringen om e-post feiler
+    }
+
+    // Varsle HMS Nova om ny bestilling
+    try {
+      await sendEmail({
+        to: "post@hmsnova.no",
+        subject: `Ny HMS Tavle-bestilling: ${company.name}`,
+        html: `<h2>Ny HMS Tavle-bestilling</h2>
+<table style="font-family:sans-serif;font-size:14px;border-collapse:collapse;">
+  <tr><td style="padding:4px 12px 4px 0;font-weight:600;">Bedrift:</td><td>${company.name}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;font-weight:600;">Org.nr:</td><td>${orgNumber}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;font-weight:600;">Plan:</td><td>${planLabel}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;font-weight:600;">Pris:</td><td>kr ${pricePerMonth}/mnd</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;font-weight:600;">Varighet:</td><td>${durationMonths} måneder</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;font-weight:600;">Totalt:</td><td>kr ${totalPrice}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;font-weight:600;">Kontakt:</td><td>${company.contactPerson}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;font-weight:600;">E-post:</td><td>${company.email}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;font-weight:600;">Telefon:</td><td>${company.phone ?? "Ikke oppgitt"}</td></tr>
+</table>
+<p style="margin-top:16px;font-size:13px;color:#666;">Faktura må sendes manuelt.</p>`,
+      });
+    } catch {
+      // Ikke blokker registreringen om intern varsel feiler
     }
 
     return createSuccessResponse(

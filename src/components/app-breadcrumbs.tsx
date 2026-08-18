@@ -19,7 +19,6 @@ const segmentLabels: Record<string, string> = {
   actions: "Tiltak",
   chemicals: "Stoffkartotek",
   "exposure-register": "Eksponeringsregister",
-  forms: "Skjemaer",
   fill: "Utfylling",
   risks: "Risikovurderinger",
   "risk-register": "Risikoregister",
@@ -44,7 +43,6 @@ const segmentLabels: Record<string, string> = {
   new: "Ny",
   ruh: "RUH",
   stoffkartotek: "Stoffkartotek",
-  skjemaer: "Skjemaer",
   opplaering: "Opplaering",
   timeregistrering: "Timeregistrering",
 };
@@ -56,7 +54,6 @@ function isLikelyEntityId(segment: string): boolean {
 function formatSegmentLabel(segment: string, previousSegment?: string): string {
   if (isLikelyEntityId(segment)) {
     if (previousSegment === "projects") return "Prosjekt";
-    if (previousSegment === "forms") return "Skjema";
     if (previousSegment === "incidents") return "Avvik";
     return "Detalj";
   }

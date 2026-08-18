@@ -16,7 +16,6 @@ const DEFAULT_NAVIGATION_ITEMS = [
   { key: "training", label: "nav.training", icon: "GraduationCap", href: "/dashboard/training", permission: "training", isSimpleMode: true, order: 5 },
   { key: "actions", label: "nav.actions", icon: "CheckSquare", href: "/dashboard/actions", permission: "actions", isSimpleMode: true, order: 6 },
   { key: "chemicals", label: "nav.chemicals", icon: "Beaker", href: "/dashboard/chemicals", permission: "chemicals", isSimpleMode: true, order: 7 },
-  { key: "forms", label: "nav.forms", icon: "ClipboardList", href: "/dashboard/forms", permission: "forms", isSimpleMode: false, order: 8 },
   { key: "risks", label: "nav.risks", icon: "ShieldAlert", href: "/dashboard/risks", permission: "risks", isSimpleMode: false, order: 9 },
   { key: "riskRegister", label: "nav.riskRegister", icon: "ScrollText", href: "/dashboard/risk-register", permission: "riskRegister", isSimpleMode: false, order: 10 },
   { key: "wellbeing", label: "nav.wellbeing", icon: "Heart", href: "/dashboard/wellbeing", permission: "wellbeing", isSimpleMode: false, order: 12 },

@@ -1,11 +1,24 @@
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreateInvoiceDialog } from "@/features/admin/components/create-invoice-dialog";
 import { InvoiceTable } from "@/features/admin/components/invoice-table";
-import { SyncInvoicesButton } from "@/components/sync-invoices-button";
+import { InvoiceExportPanel } from "@/features/admin/components/invoice-export-panel";
+
+export const dynamic = "force-dynamic";
 
 export default async function InvoicesPage() {
-  const [invoices, tenants] = await Promise.all([
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) redirect("/login");
+  const currentUser = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { isSuperAdmin: true },
+  });
+  if (!currentUser?.isSuperAdmin) redirect("/admin");
+  const [invoices, tenants, exportHistory] = await Promise.all([
     prisma.invoice.findMany({
       include: {
         tenant: {
@@ -24,7 +37,24 @@ export default async function InvoicesPage() {
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
+    prisma.invoiceExport.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      include: { exportedBy: { select: { name: true, email: true } } },
+    }),
   ]);
+
+  const exportedInvoiceIds = Array.from(
+    new Set(
+      exportHistory.flatMap((e) => {
+        try {
+          return JSON.parse(e.invoiceIds) as string[];
+        } catch {
+          return [];
+        }
+      })
+    )
+  );
 
   const stats = {
     pending: invoices.filter((i) => i.status === "PENDING").length,
@@ -45,13 +75,10 @@ export default async function InvoicesPage() {
         <div>
           <h1 className="text-3xl font-bold">Fakturaer</h1>
           <p className="text-muted-foreground">
-            Manuell fakturahåndtering og oppfølging
+            Fakturahåndtering og Excel-eksport for Fiken
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <SyncInvoicesButton />
-          <CreateInvoiceDialog tenants={tenants} />
-        </div>
+        <CreateInvoiceDialog tenants={tenants} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-5">
@@ -112,7 +139,9 @@ export default async function InvoicesPage() {
         </Card>
       </div>
 
-      <InvoiceTable invoices={invoices} />
+      <InvoiceExportPanel history={exportHistory} exportedInvoiceIds={exportedInvoiceIds} />
+
+      <InvoiceTable invoices={invoices} exportedInvoiceIds={exportedInvoiceIds} />
     </div>
   );
 }

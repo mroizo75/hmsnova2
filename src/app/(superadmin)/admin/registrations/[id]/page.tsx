@@ -1,9 +1,12 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { getServerSession } from "next-auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import { getRegistrationDetails } from "@/server/actions/onboarding.actions";
 import { ActivateTenantForm } from "@/features/admin/components/activate-tenant-form";
 import { RejectRegistrationForm } from "@/features/admin/components/reject-registration-form";
@@ -32,6 +35,15 @@ export const metadata = {
 };
 
 async function RegistrationDetails({ id }: { id: string }) {
+  const session = await getServerSession(authOptions);
+  const currentUser = session?.user?.email
+    ? await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { isSuperAdmin: true },
+      })
+    : null;
+  const isSuperAdmin = currentUser?.isSuperAdmin ?? false;
+
   const result = await getRegistrationDetails(id);
 
   if (!result.success || !result.data) {
@@ -87,56 +99,58 @@ async function RegistrationDetails({ id }: { id: string }) {
           {/* Contact info */}
           <Card>
             <CardHeader>
-              <CardTitle>Kontaktinformasjon</CardTitle>
+              <CardTitle>{isSuperAdmin ? "Kontaktinformasjon" : "Bedriftsinformasjon"}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">
-                      Kontaktperson
-                    </label>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <p className="font-medium">{registration.contactPerson}</p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">
-                      E-post
-                    </label>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <a
-                        href={`mailto:${registration.contactEmail}`}
-                        className="font-medium text-primary hover:underline"
-                      >
-                        {registration.contactEmail}
-                      </a>
-                    </div>
-                  </div>
-
-                  {registration.contactPhone && (
+                {isSuperAdmin && (
+                  <div className="space-y-4">
                     <div>
                       <label className="text-sm font-medium text-muted-foreground">
-                        Telefon
+                        Kontaktperson
                       </label>
                       <div className="flex items-center gap-2 mt-1">
-                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <p className="font-medium">{registration.contactPerson}</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        E-post
+                      </label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
                         <a
-                          href={`tel:${registration.contactPhone}`}
+                          href={`mailto:${registration.contactEmail}`}
                           className="font-medium text-primary hover:underline"
                         >
-                          {registration.contactPhone}
+                          {registration.contactEmail}
                         </a>
                       </div>
                     </div>
-                  )}
-                </div>
+
+                    {registration.contactPhone && (
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">
+                          Telefon
+                        </label>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Phone className="h-4 w-4 text-muted-foreground" />
+                          <a
+                            href={`tel:${registration.contactPhone}`}
+                            className="font-medium text-primary hover:underline"
+                          >
+                            {registration.contactPhone}
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="space-y-4">
-                  {(registration.address || registration.city) && (
+                  {isSuperAdmin && (registration.address || registration.city) && (
                     <div>
                       <label className="text-sm font-medium text-muted-foreground">
                         Adresse
@@ -238,8 +252,8 @@ async function RegistrationDetails({ id }: { id: string }) {
             </Card>
           )}
 
-          {/* Notes */}
-          {registration.notes && (
+          {/* Notes - kun superadmin (CRM-data) */}
+          {isSuperAdmin && registration.notes && (
             <Card>
               <CardHeader>
                 <CardTitle>Merknader</CardTitle>
@@ -250,8 +264,8 @@ async function RegistrationDetails({ id }: { id: string }) {
             </Card>
           )}
 
-          {/* Existing users */}
-          {hasUsers && (
+          {/* Existing users - kun superadmin (persondata) */}
+          {isSuperAdmin && hasUsers && (
             <Card>
               <CardHeader>
                 <CardTitle>Opprettede brukere</CardTitle>

@@ -30,9 +30,9 @@ export default async function AnsattRutinerPage() {
           </h1>
           <p className="max-w-xl text-sm text-muted-foreground leading-relaxed">{t("description")}</p>
         </div>
-        <Link href="/ansatt/skjemaer" className="shrink-0">
+        <Link href="/ansatt/vernerunder" className="shrink-0">
           <Button variant="outline" size="sm">
-            {t("goToForms")}
+            {t("goToInspections")}
           </Button>
         </Link>
       </div>

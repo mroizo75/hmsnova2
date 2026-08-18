@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SignaturePad } from "@/components/forms/signature-pad";
+import { SignaturePad } from "@/components/shared/signature-pad";
 import { signDocument, removeDocumentSignature } from "@/server/actions/document-signature.actions";
 import { useToast } from "@/hooks/use-toast";
 import { PenLine, Trash2, ShieldCheck, UserCheck, FileCheck } from "lucide-react";

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { getServerSession } from "next-auth";
 import { getLocale, getMessages } from "next-intl/server";
 import { authOptions } from "@/lib/auth";
@@ -59,6 +59,13 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#ffffff",
+};
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -70,15 +77,15 @@ export default async function RootLayout({
   const nowISO = new Date().toISOString();
 
   return (
-    <html lang={locale}>
+    <html lang={locale} className="overflow-x-hidden">
       <head>
         <MultipleStructuredData dataArray={[ORGANIZATION_SCHEMA, LOCAL_BUSINESS_SCHEMA]} />
       </head>
-      <body>
+      <body className="min-h-dvh overflow-x-hidden">
         <Providers locale={locale} messages={messages} session={session} nowISO={nowISO}>
           <AITracker />
           {children}
-          <Toaster position="top-right" richColors />
+          <Toaster position="top-center" richColors />
         </Providers>
         <CookieConsent />
       </body>

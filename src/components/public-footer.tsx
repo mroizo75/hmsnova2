@@ -59,6 +59,11 @@ export function PublicFooter() {
                 </Link>
               </li>
               <li>
+                <Link href="/bransjer" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Bransjer
+                </Link>
+              </li>
+              <li>
                 <Link href="/bedriftshelsetjeneste" className="text-muted-foreground hover:text-foreground transition-colors">
                   Bedriftshelsetjeneste (BHT)
                 </Link>

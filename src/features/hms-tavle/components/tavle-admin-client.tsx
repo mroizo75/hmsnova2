@@ -448,6 +448,7 @@ export function TavleAdminClient({
             tavleUrl={tavleUrl}
             portalUrl={portalUrl}
             checkinUrl={`${tavleUrl}/innsjekk`}
+            sesongUrl={`${tavleUrl}/sesong`}
             plan={subscription.plan}
             hasGuestForm={tavle.sections.some((s) => s.type === "GJEST_SKJEMA")}
             tenantName={tavle.name}

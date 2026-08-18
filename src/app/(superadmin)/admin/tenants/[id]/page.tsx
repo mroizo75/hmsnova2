@@ -1,9 +1,12 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { getServerSession } from "next-auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import {
   getTenantDetails,
   getTenantIndustryPackageStatus,
@@ -17,6 +20,8 @@ import { TenantActivityTimeline } from "@/features/admin/components/tenant-activ
 import { TenantOfferCard } from "@/features/admin/components/tenant-offer-card";
 import { IndustryPackageActions } from "@/features/admin/components/industry-package-actions";
 import { KursavtaleCard } from "@/features/admin/components/kursavtale-card";
+import { GdprExportButton } from "@/features/admin/components/gdpr-export-button";
+import { HandbookTemplateImport } from "@/features/admin/components/handbook-template-import";
 import { 
   ArrowLeft,
   Building2, 
@@ -48,6 +53,15 @@ export const metadata = {
 };
 
 async function TenantDetails({ id }: { id: string }) {
+  const session = await getServerSession(authOptions);
+  const currentUser = session?.user?.email
+    ? await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { isSuperAdmin: true },
+      })
+    : null;
+  const isSuperAdmin = currentUser?.isSuperAdmin ?? false;
+
   const result = await getTenantDetails(id);
 
   if (!result.success || !result.data) {
@@ -146,18 +160,20 @@ async function TenantDetails({ id }: { id: string }) {
             </Card>
           </div>
 
-          {/* Tenant Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Bedriftsinformasjon</CardTitle>
-              <CardDescription>
-                Grunnleggende informasjon om bedriften
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <EditTenantForm tenant={tenant} />
-            </CardContent>
-          </Card>
+          {/* Tenant Info - kun synlig for superadmin */}
+          {isSuperAdmin && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Bedriftsinformasjon</CardTitle>
+                <CardDescription>
+                  Grunnleggende informasjon om bedriften
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <EditTenantForm tenant={tenant} />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Årlig HMS-plan / Ledelsens gjennomgang */}
           <Card>
@@ -206,8 +222,12 @@ async function TenantDetails({ id }: { id: string }) {
             </CardContent>
           </Card>
 
-          <TenantActivityTimeline tenantId={tenant.id} activities={tenant.activities || []} />
-          <TenantOfferCard tenant={tenant} />
+          {isSuperAdmin && (
+            <>
+              <TenantActivityTimeline tenantId={tenant.id} activities={tenant.activities || []} />
+              <TenantOfferCard tenant={tenant} />
+            </>
+          )}
 
           {/* Subscription Info */}
           {hasSubscription && (
@@ -270,8 +290,8 @@ async function TenantDetails({ id }: { id: string }) {
             </Card>
           )}
 
-          {/* Recent Invoices */}
-          {tenant.invoices.length > 0 && (
+          {/* Recent Invoices - kun superadmin */}
+          {isSuperAdmin && tenant.invoices.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle>Siste fakturaer</CardTitle>
@@ -315,44 +335,46 @@ async function TenantDetails({ id }: { id: string }) {
             </Card>
           )}
 
-          {/* Users */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Brukere ({tenant.users.length})</CardTitle>
-              <CardDescription>
-                Alle brukere tilknyttet denne bedriften
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {tenant.users.map((userTenant) => (
-                  <div
-                    key={userTenant.id}
-                    className="flex items-center justify-between p-3 border rounded-lg"
-                  >
-                    <div>
-                      <p className="font-medium">{userTenant.user.name || "Ukjent"}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {userTenant.user.email}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Opprettet: {new Date(userTenant.user.createdAt).toLocaleDateString("nb-NO")}
-                      </p>
+          {/* Users - kun superadmin (persondata) */}
+          {isSuperAdmin && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Brukere ({tenant.users.length})</CardTitle>
+                <CardDescription>
+                  Alle brukere tilknyttet denne bedriften
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {tenant.users.map((userTenant) => (
+                    <div
+                      key={userTenant.id}
+                      className="flex items-center justify-between p-3 border rounded-lg"
+                    >
+                      <div>
+                        <p className="font-medium">{userTenant.user.name || "Ukjent"}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {userTenant.user.email}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Opprettet: {new Date(userTenant.user.createdAt).toLocaleDateString("nb-NO")}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {userTenant.user.emailVerified && (
+                          <Badge variant="outline" className="text-green-600">
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Verifisert
+                          </Badge>
+                        )}
+                        <Badge variant="secondary">{userTenant.role}</Badge>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {userTenant.user.emailVerified && (
-                        <Badge variant="outline" className="text-green-600">
-                          <CheckCircle2 className="h-3 w-3 mr-1" />
-                          Verifisert
-                        </Badge>
-                      )}
-                      <Badge variant="secondary">{userTenant.role}</Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Right column - Actions */}
@@ -415,8 +437,8 @@ async function TenantDetails({ id }: { id: string }) {
             </CardContent>
           </Card>
 
-          {/* Update Admin Email */}
-          {adminUser && (
+          {/* Update Admin Email - kun superadmin */}
+          {isSuperAdmin && adminUser && (
             <Card>
               <CardHeader>
                 <CardTitle>Endre admin e-post</CardTitle>
@@ -433,21 +455,23 @@ async function TenantDetails({ id }: { id: string }) {
             </Card>
           )}
 
-          {/* Resend Activation */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Send aktivering på nytt</CardTitle>
-              <CardDescription>
-                Send ny aktiverings-e-post med påloggingsinformasjon
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResendActivationForm
-                tenantId={tenant.id}
-                defaultEmail={adminUser?.email || tenant.contactEmail || ""}
-              />
-            </CardContent>
-          </Card>
+          {/* Resend Activation - kun superadmin */}
+          {isSuperAdmin && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Send aktivering på nytt</CardTitle>
+                <CardDescription>
+                  Send ny aktiverings-e-post med påloggingsinformasjon
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResendActivationForm
+                  tenantId={tenant.id}
+                  defaultEmail={adminUser?.email || tenant.contactEmail || ""}
+                />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Status Actions */}
           <Card>
@@ -531,6 +555,15 @@ async function TenantDetails({ id }: { id: string }) {
             </CardContent>
           </Card>
 
+          {/* HMS-hånbok oppsett */}
+          <HandbookTemplateImport
+            tenantId={tenant.id}
+            tenantName={tenant.name}
+            tenantIndustry={tenant.industry}
+            orgNumber={tenant.orgNumber}
+            adminName={adminUser?.name}
+          />
+
           {/* Bransjekurs.no kursavtale */}
           <KursavtaleCard
             tenantId={tenant.id}
@@ -541,78 +574,97 @@ async function TenantDetails({ id }: { id: string }) {
             userCount={tenant._count.users}
           />
 
-          {/* Status Actions */}
-          <Card className="border-destructive/50">
-            <CardHeader>
-              <CardTitle className="text-destructive">Administrer status</CardTitle>
-              <CardDescription>
-                Endre bedriftens status
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {tenant.status !== "ACTIVE" && (
-                <form action={async () => {
-                  "use server";
-                  await toggleTenantStatus(tenant.id, "ACTIVE");
-                }}>
-                  <Button type="submit" variant="default" className="w-full">
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    Aktiver bedrift
-                  </Button>
-                </form>
-              )}
-              {tenant.status !== "SUSPENDED" && (
-                <form action={async () => {
-                  "use server";
-                  await toggleTenantStatus(tenant.id, "SUSPENDED");
-                }}>
-                  <Button type="submit" variant="outline" className="w-full">
-                    <AlertCircle className="h-4 w-4 mr-2" />
-                    Suspender bedrift
-                  </Button>
-                </form>
-              )}
-              {tenant.status !== "CANCELLED" && (
-                <form action={async () => {
-                  "use server";
-                  await toggleTenantStatus(tenant.id, "CANCELLED");
-                }}>
-                  <Button type="submit" variant="destructive" className="w-full">
-                    <AlertCircle className="h-4 w-4 mr-2" />
-                    Kanseller bedrift
-                  </Button>
-                </form>
-              )}
-            </CardContent>
-          </Card>
+          {/* GDPR-eksport - kun superadmin */}
+          {isSuperAdmin && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Dataeksport (GDPR)</CardTitle>
+                <CardDescription>
+                  Last ned all data for denne bedriften iht. GDPR art. 20
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <GdprExportButton tenantId={tenant.id} />
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Delete Tenant */}
-          <Card className="border-destructive">
-            <CardHeader>
-              <CardTitle className="text-destructive">Fare-sone</CardTitle>
-              <CardDescription>
-                Slett bedrift og alle tilhørende data permanent
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <DeleteTenantDialog
-                tenantId={tenant.id}
-                tenantName={tenant.name}
-                tenantStatus={tenant.status}
-                counts={{
-                  users: tenant._count.users,
-                  documents: tenant._count.documents,
-                  incidents: tenant._count.incidents,
-                  risks: tenant._count.risks,
-                }}
-              />
-              {(tenant.status === "ACTIVE" || tenant.status === "TRIAL") && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  ⚠️ Endre status til SUSPENDED eller CANCELLED før sletting
-                </p>
-              )}
-            </CardContent>
-          </Card>
+          {/* Status Actions - kun superadmin */}
+          {isSuperAdmin && (
+            <Card className="border-destructive/50">
+              <CardHeader>
+                <CardTitle className="text-destructive">Administrer status</CardTitle>
+                <CardDescription>
+                  Endre bedriftens status
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {tenant.status !== "ACTIVE" && (
+                  <form action={async () => {
+                    "use server";
+                    await toggleTenantStatus(tenant.id, "ACTIVE");
+                  }}>
+                    <Button type="submit" variant="default" className="w-full">
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      Aktiver bedrift
+                    </Button>
+                  </form>
+                )}
+                {tenant.status !== "SUSPENDED" && (
+                  <form action={async () => {
+                    "use server";
+                    await toggleTenantStatus(tenant.id, "SUSPENDED");
+                  }}>
+                    <Button type="submit" variant="outline" className="w-full">
+                      <AlertCircle className="h-4 w-4 mr-2" />
+                      Suspender bedrift
+                    </Button>
+                  </form>
+                )}
+                {tenant.status !== "CANCELLED" && (
+                  <form action={async () => {
+                    "use server";
+                    await toggleTenantStatus(tenant.id, "CANCELLED");
+                  }}>
+                    <Button type="submit" variant="destructive" className="w-full">
+                      <AlertCircle className="h-4 w-4 mr-2" />
+                      Kanseller bedrift
+                    </Button>
+                  </form>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Delete Tenant - kun superadmin */}
+          {isSuperAdmin && (
+            <Card className="border-destructive">
+              <CardHeader>
+                <CardTitle className="text-destructive">Fare-sone</CardTitle>
+                <CardDescription>
+                  Slett bedrift og alle tilhørende data permanent
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <DeleteTenantDialog
+                  tenantId={tenant.id}
+                  tenantName={tenant.name}
+                  tenantStatus={tenant.status}
+                  counts={{
+                    users: tenant._count.users,
+                    documents: tenant._count.documents,
+                    incidents: tenant._count.incidents,
+                    risks: tenant._count.risks,
+                  }}
+                />
+                {(tenant.status === "ACTIVE" || tenant.status === "TRIAL") && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Endre status til SUSPENDED eller CANCELLED for sletting
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

@@ -104,8 +104,8 @@ export default async function FireDrillsPage() {
   return (
     <div className="space-y-6">
       {/* Topptekst */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="page-header">
+        <div className="flex min-w-0 items-start gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100">
             <Flame className="h-5 w-5 text-red-600" />
           </div>
@@ -139,7 +139,7 @@ export default async function FireDrillsPage() {
       )}
 
       {/* Statistikk-kort */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Totalt</CardTitle>
@@ -206,6 +206,8 @@ export default async function FireDrillsPage() {
               </Button>
             </div>
           ) : (
+            <>
+            <div className="hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -289,6 +291,44 @@ export default async function FireDrillsPage() {
                 })}
               </TableBody>
             </Table>
+            </div>
+            <div className="space-y-3 md:hidden">
+              {drills.map((drill) => {
+                const statusStyle = getStatusBadge(drill.status);
+                const typeStyle = getTypeBadge(drill.drillType);
+                const openMeasures = drill.measures.filter(
+                  (m) => m.status === "PENDING" || m.status === "IN_PROGRESS",
+                ).length;
+                return (
+                  <div key={drill.id} className="space-y-3 rounded-lg border p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <Link href={`/dashboard/fire-drills/${drill.id}`} className="font-medium hover:underline">
+                          {drill.title}
+                        </Link>
+                        <p className="mt-1 text-sm text-muted-foreground">{drill.location}</p>
+                      </div>
+                      <Badge variant="outline" className={`shrink-0 text-xs ${statusStyle.className}`}>
+                        {statusStyle.label}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+                      <Badge variant="outline" className={typeStyle}>
+                        {FIRE_DRILL_TYPE_LABELS[drill.drillType]}
+                      </Badge>
+                      <span>{format(new Date(drill.plannedDate), "d. MMM yyyy", { locale: nb })}</span>
+                      {openMeasures > 0 ? (
+                        <Badge variant="destructive" className="text-xs">{openMeasures} åpne</Badge>
+                      ) : null}
+                    </div>
+                    <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Link href={`/dashboard/fire-drills/${drill.id}`}>Åpne</Link>
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+            </>
           )}
         </CardContent>
       </Card>

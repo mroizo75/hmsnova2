@@ -17,6 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Camera, Upload, X, MapPin, AlertTriangle, CheckCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { enqueueSafe, isNetworkError, isAvailable, type OfflineQueueEntry } from "@/lib/offline-queue";
 
 interface MobileFindingFormProps {
   inspectionId: string;
@@ -30,6 +31,7 @@ export function MobileFindingForm({ inspectionId, onSuccess }: MobileFindingForm
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [images, setImages] = useState<string[]>([]);
+  const [pendingImageFiles, setPendingImageFiles] = useState<File[]>([]);
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     title: "",
@@ -41,6 +43,16 @@ export function MobileFindingForm({ inspectionId, onSuccess }: MobileFindingForm
   const handleImageCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+
+    if (!navigator.onLine) {
+      const newFiles = Array.from(files);
+      setPendingImageFiles((prev) => [...prev, ...newFiles]);
+      toast({
+        title: t("toasts.imageSaved.title"),
+        description: "Bildet lagres lokalt og lastes opp ved synkronisering.",
+      });
+      return;
+    }
 
     setUploadingImage(true);
 
@@ -58,6 +70,7 @@ export function MobileFindingForm({ inspectionId, onSuccess }: MobileFindingForm
         const data = await response.json();
 
         if (!response.ok) {
+          setPendingImageFiles((prev) => [...prev, file]);
           throw new Error(data.message || t("errors.uploadImage"));
         }
 
@@ -139,11 +152,50 @@ export function MobileFindingForm({ inspectionId, onSuccess }: MobileFindingForm
       // Reset form
       setFormData({ title: "", description: "", severity: "3", location: "" });
       setImages([]);
+      setPendingImageFiles([]);
       setStep(1);
       
       if (onSuccess) onSuccess();
       router.refresh();
     } catch (error: any) {
+      if (isNetworkError(error) && isAvailable()) {
+        const offlineFiles: OfflineQueueEntry["files"] = pendingImageFiles.map((f) => ({
+          fieldName: "file",
+          name: f.name,
+          type: f.type,
+          blob: f,
+        }));
+        const result = await enqueueSafe({
+          id: `finding-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          type: "inspection_finding",
+          createdAt: new Date().toISOString(),
+          endpoint: `/api/inspections/${inspectionId}/findings`,
+          payload: { ...data, imageKeys: images },
+          files: offlineFiles,
+          meta: { inspectionId, uploadEndpoint: "/api/inspections/upload" },
+        });
+        if (result.stored) {
+          toast({
+            title: "Lagret lokalt",
+            description: "Funnet sendes automatisk når du er tilbake online.",
+            className: "bg-amber-50 border-amber-200",
+          });
+          setFormData({ title: "", description: "", severity: "3", location: "" });
+          setImages([]);
+          setPendingImageFiles([]);
+          setStep(1);
+          if (onSuccess) onSuccess();
+          return;
+        }
+        toast({
+          title: "Offline-køen er full",
+          description: result.reason === "quota_size"
+            ? "For mange bilder lagret lokalt. Koble til nett og synkroniser først."
+            : "Maks antall ventende registreringer nådd. Synkroniser først.",
+          variant: "destructive",
+        });
+        return;
+      }
       toast({
         title: t("toasts.error.title"),
         description: error.message,

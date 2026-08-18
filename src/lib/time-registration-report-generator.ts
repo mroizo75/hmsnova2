@@ -377,170 +377,70 @@ export async function generateTimeRegistrationExcel(
 export async function generateTimeRegistrationPdf(
   data: TimeRegistrationReportData
 ): Promise<Buffer> {
-  const { default: jsPDF } = await import("jspdf");
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const marginX = 15;
-  const lineHeight = 5;
-  let y = 25;
+  const { generateBrandedPdf } = await import("@/lib/pdf-brand");
+  const { tenantName, dateRange, timeEntries, mileageEntries, userDisplayNames } = data;
+  const defaultKmRate = data.config?.defaultKmRate ?? 4.5;
 
-  const addLine = (text: string, opts?: { size?: number; bold?: boolean }) => {
-    const size = opts?.size ?? 9;
-    doc.setFont("helvetica", opts?.bold ? "bold" : "normal");
-    doc.setFontSize(size);
-    const lines = doc.splitTextToSize(text, pageWidth - 2 * marginX);
-    for (const line of lines) {
-      if (y + lineHeight > pageHeight - 20) {
-        doc.addPage();
-        y = 20;
-      }
-      doc.text(line, marginX, y);
-      y += lineHeight;
-    }
-  };
-
-  const { tenantName, dateRange, timeEntries, mileageEntries, userDisplayNames } =
-    data;
-  const defaultKmRatePdf = data.config?.defaultKmRate ?? 4.5;
-
-  doc.setFontSize(10);
-  doc.text(
-    `${tenantName} – Timeregistrering`,
-    pageWidth - marginX,
-    15,
-    { align: "right" }
-  );
-  doc.setDrawColor(200, 200, 200);
-  doc.line(marginX, 18, pageWidth - marginX, 18);
-
-  addLine("Timeregistrering – Rapport", { size: 16, bold: true });
-  addLine(`Periode: ${format(dateRange.from, "d. MMM yyyy", { locale: nb })} – ${format(dateRange.to, "d. MMM yyyy", { locale: nb })}`);
-  addLine(`Generert: ${format(new Date(), "d. MMMM yyyy HH:mm", { locale: nb })}`);
-  y += 6;
-
-  addLine("Timer", { size: 12, bold: true });
-  y += 2;
+  const periodStr = `${format(dateRange.from, "d. MMM yyyy", { locale: nb })} – ${format(dateRange.to, "d. MMM yyyy", { locale: nb })}`;
 
   let totalHours = 0;
-  for (const e of timeEntries) {
-    const name =
-      userDisplayNames[e.user.id] ||
-      e.user.name ||
-      e.user.email ||
-      "–";
-    addLine(
-      `${format(new Date(e.date), "dd.MM.yy")} | ${name} | ${e.project.name} | ${(Math.round(e.hours * 10) / 10).toFixed(1)} t (${TIME_TYPE_LABELS[e.timeType] || e.timeType})`
-    );
-    totalHours += e.hours;
-  }
-  if (timeEntries.length === 0) addLine("Ingen timer registrert.");
-  addLine(`Sum timer: ${totalHours.toFixed(1)}`);
-  y += 6;
-
-  addLine("Km godtgjørelse", { size: 12, bold: true });
-  y += 2;
-
   let totalKm = 0;
-  let totalAmount = 0;
-  for (const e of mileageEntries) {
-    const name =
-      userDisplayNames[e.user.id] ||
-      e.user.name ||
-      e.user.email ||
-      "–";
-    const amt = e.amount ?? e.kilometers * (e.ratePerKm ?? defaultKmRatePdf);
-    addLine(
-      `${format(new Date(e.date), "dd.MM.yy")} | ${name} | ${e.project.name} | ${Math.round(e.kilometers)} km | ${Math.round(amt)} kr`
-    );
-    totalKm += e.kilometers;
-    totalAmount += amt;
-  }
-  if (mileageEntries.length === 0) addLine("Ingen km godtgjørelse registrert.");
-  addLine(`Sum km: ${totalKm.toFixed(0)} | Sum beløp: ${totalAmount.toFixed(0)} kr`);
-  y += 6;
+  let totalKmAmount = 0;
 
-  const cfg = data.config;
-  const rate = cfg?.defaultHourlyRate ?? 0;
-  const taxPercent = cfg?.approximateTaxPercent ?? 25;
-  const defaultKmRate = cfg?.defaultKmRate ?? 4.5;
-  const kmAllowanceTaxable = cfg?.kmAllowanceTaxable ?? false;
-  const mult40 = cfg?.overtime40Multiplier ?? 1.4;
-  const mult50 = cfg?.overtime50Multiplier ?? 1.5;
-  const mult100 = cfg?.overtime100Multiplier ?? 2;
-
-  if (rate > 0) {
-    addLine("Lønnsoversikt", { size: 12, bold: true });
-    y += 2;
-
-    const userIds = [
-      ...new Set([
-        ...timeEntries.map((e) => e.user.id),
-        ...mileageEntries.map((e) => e.user.id),
-      ]),
+  const timeRows = timeEntries.map((e) => {
+    const name = userDisplayNames[e.user.id] || e.user.name || e.user.email || "–";
+    totalHours += e.hours;
+    return [
+      format(new Date(e.date), "dd.MM.yy"),
+      name,
+      e.project.name,
+      `${(Math.round(e.hours * 10) / 10).toFixed(1)} t`,
+      TIME_TYPE_LABELS[e.timeType] ?? e.timeType,
     ];
+  });
 
-    for (const uid of userIds) {
-      const name =
-        userDisplayNames[uid] ||
-        timeEntries.find((e) => e.user.id === uid)?.user.name ||
-        mileageEntries.find((e) => e.user.id === uid)?.user.email ||
-        "–";
+  const kmRows = mileageEntries.map((e) => {
+    const name = userDisplayNames[e.user.id] || e.user.name || e.user.email || "–";
+    const amt = e.amount ?? e.kilometers * (e.ratePerKm ?? defaultKmRate);
+    totalKm += e.kilometers;
+    totalKmAmount += amt;
+    return [
+      format(new Date(e.date), "dd.MM.yy"),
+      name,
+      e.project.name,
+      `${Math.round(e.kilometers)} km`,
+      `${Math.round(amt)} kr`,
+    ];
+  });
 
-      const userTimeEntries = timeEntries.filter((e) => e.user.id === uid);
-      const normalHours = userTimeEntries
-        .filter((e) => e.timeType === "NORMAL" || e.timeType === "TRAVEL")
-        .reduce((s, e) => s + e.hours, 0);
-      const sickHours = userTimeEntries
-        .filter((e) => e.timeType === "SICK_LEAVE")
-        .reduce((s, e) => s + e.hours, 0);
-      const overtime40 = userTimeEntries
-        .filter((e) => e.timeType === "OVERTIME_40")
-        .reduce((s, e) => s + e.hours, 0);
-      const overtime50 = userTimeEntries
-        .filter((e) => e.timeType === "OVERTIME_50")
-        .reduce((s, e) => s + e.hours, 0);
-      const overtime100 = userTimeEntries
-        .filter((e) => e.timeType === "OVERTIME_100" || e.timeType === "WEEKEND")
-        .reduce((s, e) => s + e.hours, 0);
-
-      const grossFromHours =
-        normalHours * rate +
-        sickHours * rate +
-        overtime40 * rate * mult40 +
-        overtime50 * rate * mult50 +
-        overtime100 * rate * mult100;
-
-      const userMileageEntries = mileageEntries.filter((e) => e.user.id === uid);
-      const kmAmount = userMileageEntries.reduce(
-        (s, e) =>
-          s + (e.amount ?? e.kilometers * (e.ratePerKm ?? defaultKmRate)),
-        0
-      );
-      const skattepliktigKmAmount = kmAllowanceTaxable
-        ? userMileageEntries.reduce(
-            (s, e) => {
-              const r = e.ratePerKm ?? defaultKmRate;
-              return s + e.kilometers * Math.max(0, r - TREKKFRI_KM_SATS);
-            },
-            0
-          )
-        : 0;
-
-      const grossTaxable = grossFromHours + skattepliktigKmAmount;
-      const taxAmount = grossTaxable * (taxPercent / 100);
-      const netPay = grossFromHours + kmAmount - taxAmount;
-
-      const kmNote =
-        kmAllowanceTaxable && skattepliktigKmAmount > 0
-          ? ` (${Math.round(skattepliktigKmAmount)} kr skattepliktig)`
-          : " (utenom skatt)";
-      addLine(
-        `${name}: Brutto timer ${Math.round(grossFromHours)} kr | Km ${Math.round(kmAmount)} kr${kmNote} | Ca. utbetaling ${Math.round(netPay)} kr`
-      );
-    }
-  }
-
-  const arrayBuffer = doc.output("arraybuffer") as ArrayBuffer;
-  return Buffer.from(arrayBuffer);
+  return generateBrandedPdf({
+    type: "operational",
+    reportLabel: "Timeregistrering",
+    title: "Timeregistrering – Rapport",
+    subtitle: `Periode: ${periodStr}`,
+    tenant: { name: tenantName },
+    generatedAt: new Date(),
+    sections: [
+      {
+        title: "Timer",
+        content: timeRows.length > 0
+          ? [{
+              type: "table" as const,
+              headers: ["Dato", "Ansatt", "Prosjekt", "Timer", "Type"],
+              rows: [...timeRows, ["", "", "Sum timer", `${totalHours.toFixed(1)} t`, ""]],
+            }]
+          : [{ type: "paragraph" as const, text: "Ingen timer registrert i perioden." }],
+      },
+      {
+        title: "Km-godtgjørelse",
+        content: kmRows.length > 0
+          ? [{
+              type: "table" as const,
+              headers: ["Dato", "Ansatt", "Prosjekt", "Km", "Beløp"],
+              rows: [...kmRows, ["", "", "Sum", `${totalKm.toFixed(0)} km`, `${totalKmAmount.toFixed(0)} kr`]],
+            }]
+          : [{ type: "paragraph" as const, text: "Ingen km-godtgjørelse registrert i perioden." }],
+      },
+    ],
+  });
 }

@@ -71,15 +71,7 @@ function buildTree(nodes: OrgNode[]): TreeNode[] {
 
 // ─── Visual chart node (box) ─────────────────────────
 
-function ChartBox({
-  node,
-  canManage,
-  allNodes,
-}: {
-  node: TreeNode;
-  canManage: boolean;
-  allNodes: OrgNode[];
-}) {
+function useNodeDelete(node: OrgNode) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -93,62 +85,161 @@ function ChartBox({
     });
   }
 
+  return { isPending, handleDelete };
+}
+
+function NodeActions({
+  node,
+  allNodes,
+  isPending,
+  onDelete,
+  compact,
+  onTeal,
+}: {
+  node: TreeNode;
+  allNodes: OrgNode[];
+  isPending: boolean;
+  onDelete: () => void;
+  compact?: boolean;
+  onTeal?: boolean;
+}) {
+  const btn = onTeal
+    ? "inline-flex h-8 w-8 items-center justify-center rounded-md bg-black/20 text-white transition-colors"
+    : compact
+      ? "inline-flex h-7 w-7 items-center justify-center rounded-full transition-colors"
+      : "inline-flex h-11 w-11 items-center justify-center rounded-md bg-white/15 text-white transition-colors hover:bg-white/25";
+
+  return (
+    <div className={compact || onTeal ? "flex shrink-0 items-center gap-0.5" : "flex shrink-0 items-center gap-1"}>
+      <NodeDialog
+        parentId={node.id}
+        allNodes={allNodes}
+        trigger={
+          <button
+            className={compact && !onTeal ? `${btn} text-green-600 hover:bg-green-50` : `${btn} text-green-200`}
+            title="Legg til underordnet"
+            aria-label="Legg til underordnet"
+          >
+            <Plus className={compact || onTeal ? "h-3.5 w-3.5" : "h-4 w-4"} />
+          </button>
+        }
+      />
+      <NodeDialog
+        editNode={node}
+        allNodes={allNodes}
+        trigger={
+          <button
+            className={compact && !onTeal ? `${btn} text-blue-600 hover:bg-blue-50` : `${btn} text-sky-100`}
+            title="Rediger"
+            aria-label="Rediger"
+          >
+            <Edit className={compact || onTeal ? "h-3.5 w-3.5" : "h-4 w-4"} />
+          </button>
+        }
+      />
+      <button
+        className={compact && !onTeal ? `${btn} text-red-500 hover:bg-red-50` : `${btn} text-red-200`}
+        onClick={onDelete}
+        disabled={isPending}
+        title="Slett"
+        aria-label="Slett"
+      >
+        <Trash2 className={compact || onTeal ? "h-3.5 w-3.5" : "h-4 w-4"} />
+      </button>
+    </div>
+  );
+}
+
+function ChartBox({
+  node,
+  canManage,
+  allNodes,
+}: {
+  node: TreeNode;
+  canManage: boolean;
+  allNodes: OrgNode[];
+}) {
+  const { isPending, handleDelete } = useNodeDelete(node);
+
   return (
     <div className="org-chart-node">
-      {/* The box itself */}
       <div className="group relative inline-flex flex-col items-center">
-        <div className="relative bg-[#2b6f7e] text-white rounded-lg shadow-md px-5 py-3 min-w-[140px] max-w-[200px] text-center transition-shadow hover:shadow-lg">
-          <p className="font-semibold text-sm leading-tight">{node.title}</p>
-          {node.name && (
-            <p className="text-xs text-white/80 mt-0.5">{node.name}</p>
-          )}
-          {node.department && (
-            <p className="text-[10px] text-white/60 mt-0.5">{node.department}</p>
-          )}
+        <div className="relative min-w-[140px] max-w-[200px] rounded-lg bg-[#2b6f7e] px-5 py-3 text-center text-white shadow-md transition-shadow hover:shadow-lg">
+          <p className="text-sm font-semibold leading-tight">{node.title}</p>
+          {node.name ? <p className="mt-0.5 text-xs text-white/80">{node.name}</p> : null}
+          {node.department ? <p className="mt-0.5 text-[10px] text-white/60">{node.department}</p> : null}
 
-          {/* Hover actions */}
-          {canManage && (
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 hidden group-hover:flex items-center gap-0.5 bg-white rounded-full shadow-lg border px-1 py-0.5 z-10">
-              <NodeDialog
-                parentId={node.id}
+          {canManage ? (
+            <div className="absolute -top-3 left-1/2 z-10 hidden -translate-x-1/2 items-center gap-0.5 rounded-full border bg-white px-1 py-0.5 shadow-lg group-hover:flex">
+              <NodeActions
+                node={node}
                 allNodes={allNodes}
-                trigger={
-                  <button className="p-1 rounded-full hover:bg-green-50 text-green-600 transition-colors" title="Legg til underordnet">
-                    <Plus className="h-3.5 w-3.5" />
-                  </button>
-                }
+                isPending={isPending}
+                onDelete={handleDelete}
+                compact
               />
-              <NodeDialog
-                editNode={node}
-                allNodes={allNodes}
-                trigger={
-                  <button className="p-1 rounded-full hover:bg-blue-50 text-blue-600 transition-colors" title="Rediger">
-                    <Edit className="h-3.5 w-3.5" />
-                  </button>
-                }
-              />
-              <button
-                className="p-1 rounded-full hover:bg-red-50 text-red-500 transition-colors"
-                onClick={handleDelete}
-                disabled={isPending}
-                title="Slett"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 
-      {/* Children with connectors */}
-      {node.children.length > 0 && (
+      {node.children.length > 0 ? (
         <div className="org-chart-children">
           {node.children.map((child) => (
             <ChartBox key={child.id} node={child} canManage={canManage} allNodes={allNodes} />
           ))}
         </div>
-      )}
+      ) : null}
     </div>
+  );
+}
+
+function MobileOrgNode({
+  node,
+  canManage,
+  allNodes,
+  isRoot = false,
+}: {
+  node: TreeNode;
+  canManage: boolean;
+  allNodes: OrgNode[];
+  isRoot?: boolean;
+}) {
+  const { isPending, handleDelete } = useNodeDelete(node);
+  const subtitle = [node.name, node.department].filter(Boolean).join(" · ");
+
+  return (
+    <li className={isRoot ? "mobile-org-root" : undefined}>
+      <div className="mobile-org-box flex items-center gap-1.5 rounded-md bg-[#2b6f7e] px-2.5 py-1.5 text-white shadow-sm">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold leading-tight">{node.title}</p>
+          {subtitle ? (
+            <p className="mt-0.5 truncate text-[11px] leading-tight text-white/80">{subtitle}</p>
+          ) : null}
+        </div>
+        {canManage ? (
+          <NodeActions
+            node={node}
+            allNodes={allNodes}
+            isPending={isPending}
+            onDelete={handleDelete}
+            onTeal
+          />
+        ) : null}
+      </div>
+      {node.children.length > 0 ? (
+        <ul>
+          {node.children.map((child) => (
+            <MobileOrgNode
+              key={child.id}
+              node={child}
+              canManage={canManage}
+              allNodes={allNodes}
+            />
+          ))}
+        </ul>
+      ) : null}
+    </li>
   );
 }
 
@@ -359,6 +450,62 @@ const chartStyles = `
     padding-left: 12px;
     padding-right: 12px;
   }
+
+  .mobile-org-tree,
+  .mobile-org-tree ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .mobile-org-tree {
+    --org-line: #1e5a66;
+    --org-line-w: 3px;
+    --org-gutter: 18px;
+  }
+
+  .mobile-org-tree > li + li {
+    margin-top: 10px;
+  }
+
+  .mobile-org-tree ul {
+    margin-left: 10px;
+  }
+
+  .mobile-org-tree li {
+    position: relative;
+  }
+
+  .mobile-org-tree li li {
+    padding-top: 8px;
+    padding-left: var(--org-gutter);
+  }
+
+  .mobile-org-tree li li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: var(--org-line-w);
+    height: 100%;
+    background: var(--org-line);
+    border-radius: 1px;
+  }
+
+  .mobile-org-tree li li:last-child::before {
+    height: 20px;
+  }
+
+  .mobile-org-tree li li::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 20px;
+    width: var(--org-gutter);
+    height: var(--org-line-w);
+    background: var(--org-line);
+    border-radius: 1px;
+  }
 `;
 
 // ─── Main export ─────────────────────────────────────
@@ -376,16 +523,16 @@ export function OrgChartTree({ nodes, canManage }: OrgChartTreeProps) {
           <CardContent className="py-16 text-center">
             <Building2 className="h-14 w-14 mx-auto text-muted-foreground/50 mb-4" />
             <h3 className="text-lg font-semibold mb-2">Ingen roller lagt til ennå</h3>
-            <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+            <p className="mx-auto mb-6 max-w-md text-sm text-muted-foreground">
               Start med å legge til øverste leder (f.eks. Daglig leder) for å bygge opp organisasjonskartet.
-              Du kan deretter legge til underordnede roller ved å holde over boksene.
+              Du kan deretter legge til underordnede roller fra hver boks.
             </p>
             {canManage && (
               <NodeDialog
                 allNodes={nodes}
                 trigger={
-                  <Button size="lg">
-                    <Plus className="h-4 w-4 mr-2" />
+                  <Button size="lg" className="w-full sm:w-auto">
+                    <Plus className="mr-2 h-4 w-4" />
                     Legg til øverste leder
                   </Button>
                 }
@@ -395,21 +542,34 @@ export function OrgChartTree({ nodes, canManage }: OrgChartTreeProps) {
         </Card>
       ) : (
         <Card>
-          <CardContent className="pt-6 pb-8">
-            {canManage && (
-              <div className="flex justify-end mb-2">
+          <CardContent className="px-3 pb-6 pt-4 sm:px-6 sm:pb-8 sm:pt-6">
+            {canManage ? (
+              <div className="mb-4 flex justify-stretch sm:justify-end">
                 <NodeDialog
                   allNodes={nodes}
                   trigger={
-                    <Button variant="outline" size="sm">
-                      <Plus className="h-4 w-4 mr-2" />
+                    <Button variant="outline" className="w-full sm:w-auto">
+                      <Plus className="mr-2 h-4 w-4" />
                       Legg til toppnivå
                     </Button>
                   }
                 />
               </div>
-            )}
-            <div className="org-chart-root">
+            ) : null}
+
+            <ul className="mobile-org-tree lg:hidden">
+              {tree.map((root) => (
+                <MobileOrgNode
+                  key={root.id}
+                  node={root}
+                  canManage={canManage}
+                  allNodes={nodes}
+                  isRoot
+                />
+              ))}
+            </ul>
+
+            <div className="org-chart-root hidden lg:block">
               <div className="flex justify-center gap-8">
                 {tree.map((root) => (
                   <ChartBox
@@ -421,11 +581,13 @@ export function OrgChartTree({ nodes, canManage }: OrgChartTreeProps) {
                 ))}
               </div>
             </div>
-            {canManage && (
-              <p className="text-xs text-muted-foreground text-center mt-6">
-                Hold musepekeren over en boks for å legge til underordnede, redigere eller slette
+
+            {canManage ? (
+              <p className="mt-6 text-center text-xs text-muted-foreground">
+                <span className="lg:hidden">Bruk knappene på hver rolle for å legge til underordnede, redigere eller slette</span>
+                <span className="hidden lg:inline">Hold musepekeren over en boks for å legge til underordnede, redigere eller slette</span>
               </p>
-            )}
+            ) : null}
           </CardContent>
         </Card>
       )}

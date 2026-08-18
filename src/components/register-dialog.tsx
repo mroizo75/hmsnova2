@@ -496,7 +496,7 @@ export function RegisterDialog({ trigger, children, onOpenChange }: RegisterDial
             </div>
 
             <p className="text-xs text-center text-muted-foreground px-1">
-              Ved å registrere godtar du våre vilkår og personvernserklæring.
+              Ved å registrere godtar du våre vilkår og personvernerklæring, inkludert deltakelse i anonymisert bransjestatistikk.
             </p>
           </form>
         </ScrollArea>

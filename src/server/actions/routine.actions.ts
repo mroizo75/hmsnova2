@@ -7,6 +7,7 @@ import { matchesIndustryScope, toIndustryScopeJson } from "@/lib/industry-scope"
 import { requirePermission } from "@/lib/server-authorization";
 import { createNotification } from "@/server/actions/notification.actions";
 import { ensureGlobalRoutineTemplateLibrarySeeded } from "@/server/actions/routine-library.actions";
+import { onRoutineUpdated } from "@/features/hms-ai/lib/event-handler";
 
 type RoutineTemplateListInput = {
   query?: string;
@@ -287,6 +288,10 @@ export async function updateRoutine(input: RoutineUpdateInput) {
 
     revalidatePath("/dashboard/rutiner");
     revalidatePath(`/dashboard/rutiner/${routine.id}`);
+
+    // HMS Intelligens-motor: oppdater score etter rutineendring
+    onRoutineUpdated(context.tenantId, routine.id).catch(() => {});
+
     return { success: true, data: routine };
   } catch (error: any) {
     console.error("updateRoutine error:", error);

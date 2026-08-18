@@ -115,8 +115,8 @@ export default async function WhistleblowingListPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="page-header">
+        <div className="flex min-w-0 items-start gap-3">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
             <p className="text-muted-foreground">
@@ -134,7 +134,7 @@ export default async function WhistleblowingListPage() {
       </div>
 
       {/* Statistikk */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{t("stats.total")}</CardTitle>
@@ -198,7 +198,7 @@ export default async function WhistleblowingListPage() {
           </p>
         </div>
       ) : (
-        <div className="rounded-lg border">
+        <div className="hidden rounded-lg border md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -236,6 +236,32 @@ export default async function WhistleblowingListPage() {
               ))}
             </TableBody>
           </Table>
+        </div>
+        <div className="space-y-3 md:hidden">
+          {cases.map((c) => (
+            <div key={c.id} className="space-y-3 rounded-lg border bg-card p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-mono text-xs text-muted-foreground">{c.caseNumber}</p>
+                  <h3 className="font-medium">{c.title}</h3>
+                </div>
+                {getStatusBadge(c.status, t)}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline">{getCategoryLabel(c.category, t)}</Badge>
+                {getSeverityBadge(c.severity, t)}
+                <span className="text-sm text-muted-foreground">
+                  {format(new Date(c.receivedAt), "dd. MMM yyyy", { locale: dateLocale })}
+                </span>
+              </div>
+              <Button variant="outline" size="sm" className="w-full" asChild>
+                <Link href={`/dashboard/whistleblowing/${c.id}`}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  {t("actions.process")}
+                </Link>
+              </Button>
+            </div>
+          ))}
         </div>
       )}
     </div>

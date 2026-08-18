@@ -299,7 +299,7 @@ export async function POST(request: NextRequest) {
         type: "FORM_SUBMITTED",
         title: "Nytt skjema sendt inn",
         message: `${form.title} - venter på godkjenning`,
-        link: `/dashboard/forms/submissions/${submission.id}`,
+        link: `/dashboard/wellbeing`,
       });
     }
 

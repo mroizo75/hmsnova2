@@ -95,7 +95,7 @@ export const PLAN_LIMITS: Record<HmsTavlePlan, TavlePlanLimits> = {
     hasBulkRoomQr: false,
   },
   AVANSERT: {
-    maxTavler: 10,
+    maxTavler: 999,
     maxSections: 999,
     maxExternalLinks: 999,
     allowedSectionTypes: ALLE_SEKSJONER,

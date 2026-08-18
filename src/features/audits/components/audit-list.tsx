@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { ClipboardCheck, Trash2, Eye, Search, Filter, AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import { Card, CardContent } from "@/components/ui/card";
 import { deleteAudit } from "@/server/actions/audit.actions";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -114,10 +115,10 @@ export function AuditList({ audits }: AuditListProps) {
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-full min-w-[140px] sm:w-[140px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -130,7 +131,7 @@ export function AuditList({ audits }: AuditListProps) {
           </Select>
 
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full min-w-[180px] sm:w-[180px]">
               <SelectValue placeholder="Type" />
             </SelectTrigger>
             <SelectContent>
@@ -149,8 +150,7 @@ export function AuditList({ audits }: AuditListProps) {
         Viser {filteredAudits.length} av {audits.length} revisjoner
       </div>
 
-      {/* Table */}
-      <div className="rounded-md border">
+      <div className="hidden rounded-md border md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -244,6 +244,71 @@ export function AuditList({ audits }: AuditListProps) {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="space-y-3 md:hidden">
+        {filteredAudits.length === 0 ? (
+          <p className="py-8 text-center text-muted-foreground">Ingen revisjoner funnet</p>
+        ) : (
+          filteredAudits.map((audit) => {
+            const typeLabel = getAuditTypeLabel(audit.auditType);
+            const typeColor = getAuditTypeColor(audit.auditType);
+            const statusLabel = getAuditStatusLabel(audit.status);
+            const statusColor = getAuditStatusColor(audit.status);
+            const majorNCs = audit.findings.filter((f) => f.findingType === "MAJOR_NC").length;
+            const minorNCs = audit.findings.filter((f) => f.findingType === "MINOR_NC").length;
+            const totalFindings = audit.findings.length;
+
+            return (
+              <Card key={audit.id}>
+                <CardContent className="space-y-3 p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-medium">{audit.title}</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {audit.area}
+                        {audit.department ? ` · ${audit.department}` : ""}
+                      </p>
+                    </div>
+                    <Badge className={statusColor}>{statusLabel}</Badge>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge className={typeColor}>{typeLabel}</Badge>
+                    <span className="text-sm text-muted-foreground">
+                      {new Date(audit.scheduledDate).toLocaleDateString("nb-NO")}
+                    </span>
+                    {totalFindings > 0 ? (
+                      <span className="text-sm">{totalFindings} funn</span>
+                    ) : null}
+                    {majorNCs > 0 ? (
+                      <Badge variant="destructive" className="text-xs">{majorNCs} større</Badge>
+                    ) : null}
+                    {minorNCs > 0 ? (
+                      <Badge className="border-orange-300 bg-orange-100 text-xs text-orange-800">{minorNCs} mindre</Badge>
+                    ) : null}
+                  </div>
+                  <div className="flex gap-2 border-t pt-2">
+                    <Button variant="outline" size="sm" className="flex-1" asChild>
+                      <Link href={`/dashboard/audits/${audit.id}`}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        Åpne
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(audit.id, audit.title)}
+                      disabled={loading === audit.id}
+                      aria-label="Slett revisjon"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
       </div>
     </div>
   );

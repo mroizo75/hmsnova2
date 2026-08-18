@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
+import { Card, CardContent } from "@/components/ui/card";
 import { Target, Trash2, Eye, Search, Filter, TrendingUp, TrendingDown } from "lucide-react";
 import Link from "next/link";
 import { deleteGoal } from "@/server/actions/goal.actions";
@@ -111,10 +112,10 @@ export function GoalList({ goals }: GoalListProps) {
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-full min-w-[140px] sm:w-[140px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -128,7 +129,7 @@ export function GoalList({ goals }: GoalListProps) {
           </Select>
 
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-full min-w-[140px] sm:w-[140px]">
               <SelectValue placeholder="Kategori" />
             </SelectTrigger>
             <SelectContent>
@@ -152,7 +153,7 @@ export function GoalList({ goals }: GoalListProps) {
       </div>
 
       {/* Table */}
-      <div className="rounded-md border">
+      <div className="hidden rounded-md border md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -234,6 +235,68 @@ export function GoalList({ goals }: GoalListProps) {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="space-y-3 md:hidden">
+        {filteredGoals.length === 0 ? (
+          <p className="py-8 text-center text-muted-foreground">Ingen mål funnet</p>
+        ) : (
+          filteredGoals.map((goal) => {
+            const categoryLabel = getCategoryLabel(goal.category);
+            const categoryColor = getCategoryColor(goal.category);
+            const statusLabel = getStatusLabel(goal.status);
+            const statusColor = getStatusColor(goal.status);
+            const progress = calculateProgress(goal.currentValue, goal.targetValue, goal.baseline);
+
+            return (
+              <Card key={goal.id}>
+                <CardContent className="space-y-3 p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-medium">{goal.title}</h3>
+                      {goal.description ? (
+                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{goal.description}</p>
+                      ) : null}
+                    </div>
+                    <Badge className={statusColor}>{statusLabel}</Badge>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge className={categoryColor}>{categoryLabel}</Badge>
+                    <span className="text-sm text-muted-foreground">
+                      {goal.year}{goal.quarter ? ` Q${goal.quarter}` : ""}
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium">{progress}%</span>
+                      <span className="text-muted-foreground">
+                        {goal.currentValue?.toFixed(1) || 0} / {goal.targetValue?.toFixed(1) || 0} {goal.unit || ""}
+                      </span>
+                    </div>
+                    <Progress value={Math.min(progress, 100)} className="h-2" />
+                  </div>
+                  <div className="flex gap-2 border-t pt-2">
+                    <Button variant="outline" size="sm" className="flex-1" asChild>
+                      <Link href={`/dashboard/goals/${goal.id}`}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        Åpne
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(goal.id, goal.title)}
+                      disabled={loading === goal.id}
+                      aria-label="Slett mål"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
       </div>
     </div>
   );

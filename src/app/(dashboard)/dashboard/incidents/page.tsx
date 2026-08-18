@@ -64,8 +64,8 @@ export default async function IncidentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="page-header">
+        <div className="flex min-w-0 items-start gap-3">
           <div>
             <h1 className="text-3xl font-bold">{t("title")}</h1>
             <p className="text-muted-foreground">
@@ -74,7 +74,7 @@ export default async function IncidentsPage() {
           </div>
           <PageHelpDialog content={helpContent.incidents} />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="page-header-actions">
           <UploadIncidentDialog />
           <Button asChild>
             <Link href="/dashboard/incidents/new">
@@ -102,7 +102,7 @@ export default async function IncidentsPage() {
         </Alert>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{t("stats.total.title")}</CardTitle>

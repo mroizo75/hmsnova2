@@ -106,8 +106,8 @@ export default async function RutinerPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+      <div className="page-header">
+        <div className="flex min-w-0 items-start gap-2">
           <div>
             <h1 className="text-3xl font-bold">{t("title")}</h1>
             <p className="text-muted-foreground mt-1">{t("description")}</p>

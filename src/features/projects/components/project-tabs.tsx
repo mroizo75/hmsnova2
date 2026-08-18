@@ -532,7 +532,7 @@ export function ProjectTabs({
         <div className="flex justify-between items-center mb-3">
           <p className="text-sm text-muted-foreground">{t("forms.description")}</p>
           <Button size="sm" asChild>
-            <Link href={`/dashboard/forms?projectId=${projectId}`}>
+            <Link href={`/dashboard/inspections/new?projectId=${projectId}`}>
               <Plus className="mr-1 h-3.5 w-3.5" />
               {t("forms.actions.fill")}
             </Link>
@@ -545,7 +545,7 @@ export function ProjectTabs({
             {formSubmissions.map((submission) => (
               <Link
                 key={submission.id}
-                href={`/dashboard/forms/${submission.formTemplateId}/submissions/${submission.id}`}
+                href={`/dashboard/projects/${projectId}`}
                 className="flex items-center justify-between px-4 py-3 hover:bg-muted/40 transition-colors"
               >
                 <div className="min-w-0">

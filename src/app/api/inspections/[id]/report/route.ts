@@ -35,6 +35,9 @@ export async function GET(
         findings: {
           orderBy: { severity: "desc" },
         },
+        tenant: {
+          select: { name: true, orgNumber: true, logoUrl: true },
+        },
       },
     });
 
@@ -45,6 +48,9 @@ export async function GET(
     const pdfBuffer = await generateInspectionReport({
       ...inspection,
       conductedBy: session.user.name || session.user.email || "Ukjent",
+      tenantName: inspection.tenant.name,
+      tenantOrgNumber: inspection.tenant.orgNumber,
+      tenantLogoUrl: inspection.tenant.logoUrl,
     });
 
     return new NextResponse(pdfBuffer as any, {

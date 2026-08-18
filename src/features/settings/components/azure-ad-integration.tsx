@@ -31,7 +31,7 @@ const CONSENT_FEEDBACK: Record<MicrosoftConsentResult, { className: string; mess
   failed: {
     className: "border-red-200 bg-red-50 text-red-900",
     message:
-      "Godkjenningen feilet hos Microsoft. Kontroller at du bruker en konto med global administrator-rolle, eller kontakt support@hmsnova.no.",
+      "Godkjenningen feilet hos Microsoft. Kontroller at du bruker en konto med global administrator-rolle, eller kontakt post@hmsnova.no.",
   },
 };
 
@@ -380,7 +380,7 @@ export function AzureAdIntegration({
           </div>
 
           <p className="text-muted-foreground mt-4 pt-4 border-t">
-            💡 Trenger du hjelp? Kontakt <strong>support@hmsnova.com</strong>
+            💡 Trenger du hjelp? Kontakt <strong>post@hmsnova.no</strong>
           </p>
         </CardContent>
       </Card>

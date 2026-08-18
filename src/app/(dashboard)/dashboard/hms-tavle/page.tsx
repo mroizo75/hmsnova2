@@ -65,9 +65,8 @@ export default async function HmsTavleOversiktPage() {
   });
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      <div className="page-header">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Monitor className="h-6 w-6 text-blue-600" />

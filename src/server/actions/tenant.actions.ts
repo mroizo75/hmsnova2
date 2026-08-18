@@ -115,6 +115,19 @@ async function requirePrivilegedUser() {
   return user;
 }
 
+async function requireSuperAdmin() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { id: true, isSuperAdmin: true },
+  });
+
+  if (!user?.isSuperAdmin) return null;
+  return user;
+}
+
 function mapAiSeverityToValues(
   severity: string
 ): { likelihood: number; consequence: number } {
@@ -994,6 +1007,9 @@ export async function createTenantActivity(input: z.infer<typeof createTenantAct
  */
 export async function updateTenant(input: z.infer<typeof updateTenantSchema>) {
   try {
+    const superAdmin = await requireSuperAdmin();
+    if (!superAdmin) return { success: false, error: "Kun superadmin har tilgang" };
+
     const validated = updateTenantSchema.parse(input);
 
     // Sjekk at slug er unik (unntatt for denne tenanten)
@@ -1073,6 +1089,9 @@ export async function updateTenant(input: z.infer<typeof updateTenantSchema>) {
  */
 export async function updateTenantAdminEmail(input: z.infer<typeof updateAdminEmailSchema>) {
   try {
+    const superAdmin = await requireSuperAdmin();
+    if (!superAdmin) return { success: false, error: "Kun superadmin har tilgang" };
+
     const validated = updateAdminEmailSchema.parse(input);
 
     // Finn admin-brukeren
@@ -1512,9 +1531,9 @@ export async function createTenant(input: z.infer<typeof createTenantSchema>) {
  */
 export async function deleteTenant(tenantId: string, confirmationText: string) {
   try {
-    const privilegedUser = await requirePrivilegedUser();
+    const privilegedUser = await requireSuperAdmin();
     if (!privilegedUser) {
-      return { success: false, error: "Ingen tilgang" };
+      return { success: false, error: "Kun superadmin kan slette bedrifter" };
     }
 
     // Hent tenant først for å verifisere navn

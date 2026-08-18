@@ -39,7 +39,7 @@ export const DEFAULT_HMS_PULSE_ITEMS: HmsPulseItem[] = [
   {
     id: "compliance-forms-latest",
     title: "Siste utfylte skjemaer",
-    href: "/dashboard/forms",
+    href: "/dashboard/wellbeing",
     source: "compliance",
     complianceKey: "formsLatest",
     legalRef: "IK-HMS § 5 nr. 7 og nr. 8",

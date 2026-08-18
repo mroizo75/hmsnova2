@@ -13,14 +13,19 @@ import { NotificationSettings } from "@/features/settings/components/notificatio
 import { SimpleMenuSettings } from "@/features/settings/components/simple-menu-settings";
 import { ModuleVisibilitySettings } from "@/features/settings/components/module-visibility-settings";
 import { RuhModuleSettings } from "@/features/settings/components/ruh-module-settings";
+import { TenantLogoUpload } from "@/features/settings/components/tenant-logo-upload";
 import { parseModuleVisibilityConfig } from "@/lib/module-visibility";
 import {
   buildMicrosoftAdminConsentUrl,
   type MicrosoftConsentResult,
 } from "@/lib/microsoft-admin-consent";
-import { Building2, User, Users, CreditCard, Cloud, Bell, PanelLeft, Lock } from "lucide-react";
+import { Building2, User, Users, CreditCard, Cloud, Bell, PanelLeft, Lock, BarChart3, Monitor } from "lucide-react";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
 import { helpContent } from "@/lib/help-content";
+import { IntelligenceConsentToggle } from "@/features/intelligence/components/consent-toggle";
+import { getIntelligenceConsent } from "@/server/actions/intelligence-consent.actions";
+import { SetupGuideToggle } from "@/features/settings/components/setup-guide-toggle";
+import { TavleSettingsPane } from "@/features/hms-tavle/components/tavle-settings-pane";
 
 const CONSENT_RESULTS: MicrosoftConsentResult[] = ["granted", "denied", "failed"];
 
@@ -110,6 +115,24 @@ export default async function SettingsPage({
   const { consent } = await searchParams;
   const consentResult = CONSENT_RESULTS.find((result) => result === consent) ?? null;
 
+  const intelligenceConsent = await getIntelligenceConsent();
+
+  // HMS Tavle data
+  const [tavleSubscription, tavleCount] = await Promise.all([
+    prisma.hmsTavleSubscription.findUnique({
+      where: { tenantId },
+      select: {
+        plan: true,
+        status: true,
+        pricePerMonth: true,
+        isAddon: true,
+        endsAt: true,
+        maxTavler: true,
+      },
+    }),
+    prisma.hmsTavle.count({ where: { tenantId } }),
+  ]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -125,43 +148,57 @@ export default async function SettingsPage({
 
       {/* Tabs */}
       <Tabs defaultValue={consentResult ? "sso" : "company"} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8">
-          <TabsTrigger value="company" className="flex items-center gap-2">
+        <TabsList className="flex h-auto w-full min-h-11 justify-start gap-1 overflow-x-auto">
+          <TabsTrigger value="company" className="flex shrink-0 items-center gap-2">
             <Building2 className="h-4 w-4" />
-            <span className="hidden sm:inline">{t("tabs.company")}</span>
+            <span>{t("tabs.company")}</span>
           </TabsTrigger>
-          <TabsTrigger value="menu" className="flex items-center gap-2">
+          <TabsTrigger value="menu" className="flex shrink-0 items-center gap-2">
             <PanelLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">{t("tabs.menu")}</span>
+            <span>{t("tabs.menu")}</span>
           </TabsTrigger>
-          <TabsTrigger value="visibility" className="flex items-center gap-2">
+          <TabsTrigger value="visibility" className="flex shrink-0 items-center gap-2">
             <Lock className="h-4 w-4" />
-            <span className="hidden sm:inline">Tilganger</span>
+            <span>Tilganger</span>
           </TabsTrigger>
-          <TabsTrigger value="profile" className="flex items-center gap-2">
+          <TabsTrigger value="profile" className="flex shrink-0 items-center gap-2">
             <User className="h-4 w-4" />
-            <span className="hidden sm:inline">{t("tabs.profile")}</span>
+            <span>{t("tabs.profile")}</span>
           </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2">
+          <TabsTrigger value="notifications" className="flex shrink-0 items-center gap-2">
             <Bell className="h-4 w-4" />
-            <span className="hidden sm:inline">{t("tabs.notifications")}</span>
+            <span>{t("tabs.notifications")}</span>
           </TabsTrigger>
-          <TabsTrigger value="users" className="flex items-center gap-2">
+          <TabsTrigger value="users" className="flex shrink-0 items-center gap-2">
             <Users className="h-4 w-4" />
-            <span className="hidden sm:inline">{t("tabs.users")}</span>
+            <span>{t("tabs.users")}</span>
           </TabsTrigger>
-          <TabsTrigger value="sso" className="flex items-center gap-2">
+          <TabsTrigger value="sso" className="flex shrink-0 items-center gap-2">
             <Cloud className="h-4 w-4" />
-            <span className="hidden sm:inline">{t("tabs.office365")}</span>
+            <span>{t("tabs.office365")}</span>
           </TabsTrigger>
-          <TabsTrigger value="subscription" className="flex items-center gap-2">
+          <TabsTrigger value="subscription" className="flex shrink-0 items-center gap-2">
             <CreditCard className="h-4 w-4" />
-            <span className="hidden sm:inline">{t("tabs.subscription")}</span>
+            <span>{t("tabs.subscription")}</span>
+          </TabsTrigger>
+          <TabsTrigger value="intelligence" className="flex shrink-0 items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            <span>Statistikk</span>
+          </TabsTrigger>
+          <TabsTrigger value="tavle" className="flex shrink-0 items-center gap-2">
+            <Monitor className="h-4 w-4" />
+            <span>HMS Tavle</span>
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="company">
+        <TabsContent value="company" className="space-y-6">
+          <TenantLogoUpload currentLogoUrl={(tenant as any).logoUrl} isAdmin={isAdmin} />
           <TenantSettingsForm tenant={tenant} isAdmin={isAdmin} />
+          <SetupGuideToggle
+            tenantId={tenantId}
+            currentlyHidden={(tenant as any).setupGuideHidden ?? false}
+            isAdmin={isAdmin}
+          />
         </TabsContent>
 
         <TabsContent value="menu">
@@ -215,6 +252,32 @@ export default async function SettingsPage({
 
         <TabsContent value="subscription">
           <SubscriptionInfo tenant={tenant} />
+        </TabsContent>
+
+        <TabsContent value="intelligence">
+          <IntelligenceConsentToggle
+            initialOptedIn={intelligenceConsent?.optedIn ?? true}
+            isAdmin={isAdmin}
+          />
+        </TabsContent>
+
+        <TabsContent value="tavle">
+          <TavleSettingsPane
+            subscription={
+              tavleSubscription
+                ? {
+                    plan: tavleSubscription.plan,
+                    status: tavleSubscription.status,
+                    pricePerMonth: tavleSubscription.pricePerMonth,
+                    isAddon: tavleSubscription.isAddon,
+                    endsAt: tavleSubscription.endsAt.toISOString(),
+                    maxTavler: tavleSubscription.maxTavler,
+                  }
+                : null
+            }
+            tavleCount={tavleCount}
+            isAdmin={isAdmin}
+          />
         </TabsContent>
       </Tabs>
     </div>

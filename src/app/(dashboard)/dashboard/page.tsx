@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { CustomizableDashboard } from "@/features/dashboard/components/customizable-dashboard";
 import { getPermissions } from "@/lib/permissions";
+import { getSetupGuideProgress } from "@/server/actions/onboarding.actions";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -39,9 +40,46 @@ export default async function DashboardPage() {
     redirect("/dashboard/hms-tavle");
   }
 
+  const permissions = getPermissions(selectedMembership.role);
+  const tenant = selectedMembership.tenant as typeof selectedMembership.tenant & {
+    startpakkeCompleted?: boolean;
+    onboardingStatus?: string;
+    createdAt?: Date;
+  };
+
+  // Sjekk om tenant er ny NOK til å trenge wizard.
+  // Eksisterende kunder beskyttes på tre måter:
+  // 1. onboardingStatus === "COMPLETED" → aldri redirect
+  // 2. startpakkeCompleted === true → aldri redirect
+  // 3. Tenant har eksisterende data → de er en gammel kunde, sett startpakkeCompleted og skip
+  if (
+    permissions.canUpdateSettings &&
+    !tenant.startpakkeCompleted &&
+    tenant.onboardingStatus !== "COMPLETED"
+  ) {
+    // Tell opp eksisterende data for å avgjøre om dette er en gammel kunde
+    const checkTenantId = selectedMembership.tenantId;
+    const incidentCount = await prisma.incident.count({ where: { tenantId: checkTenantId } });
+    const hasExistingData =
+      incidentCount > 0 ||
+      (await prisma.document.count({ where: { tenantId: checkTenantId } })) > 0 ||
+      (await prisma.risk.count({ where: { tenantId: checkTenantId } })) > 0 ||
+      (await prisma.routine.count({ where: { tenantId: checkTenantId } })) > 0;
+
+    if (hasExistingData) {
+      // Eksisterende kunde – marker stiltiende som fullført så wizard aldri vises igjen
+      await prisma.tenant.update({
+        where: { id: checkTenantId },
+        data: { startpakkeCompleted: true },
+      });
+    } else {
+      // Ny tenant uten data – send til wizard
+      redirect("/dashboard/welcome");
+    }
+  }
+
   const tenantId = selectedMembership.tenantId;
   const userRole = selectedMembership.role;
-  const permissions = getPermissions(userRole);
 
   await prisma.$executeRawUnsafe(`
     UPDATE Incident
@@ -151,6 +189,46 @@ export default async function DashboardPage() {
       (r.nextReviewAt && new Date(r.nextReviewAt) <= now)
   );
 
+  // HMS-trender: avvik per uke (siste 10 uker) + lukkede avvik per uke
+  const tenWeeksAgo = new Date(now);
+  tenWeeksAgo.setDate(tenWeeksAgo.getDate() - 70);
+
+  const weeklyTrendData: Array<{ week: string; opened: number; closed: number }> = [];
+  for (let w = 0; w < 10; w++) {
+    const weekStart = new Date(tenWeeksAgo);
+    weekStart.setDate(weekStart.getDate() + w * 7);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+
+    const weekNum = Math.ceil(
+      (weekStart.getTime() - new Date(weekStart.getFullYear(), 0, 1).getTime()) / (7 * 86400000)
+    );
+
+    const opened = incidents.filter(
+      (inc) => new Date(inc.occurredAt) >= weekStart && new Date(inc.occurredAt) < weekEnd
+    ).length;
+    const closed = incidents.filter(
+      (inc) =>
+        inc.closedAt &&
+        new Date(inc.closedAt) >= weekStart &&
+        new Date(inc.closedAt) < weekEnd
+    ).length;
+
+    weeklyTrendData.push({ week: `Uke ${weekNum}`, opened, closed });
+  }
+
+  // Siste 5 avvik for "Siste avvik"-kortet
+  const recentIncidents = [...incidents]
+    .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
+    .slice(0, 5)
+    .map((inc) => ({
+      id: inc.id,
+      title: inc.title,
+      location: inc.location ?? "",
+      occurredAt: inc.occurredAt.toISOString(),
+      status: inc.status,
+    }));
+
   const recentActivities = [
     ...documents.map((d) => ({
       id: d.id,
@@ -246,6 +324,15 @@ export default async function DashboardPage() {
     },
   ];
 
+  const [setupGuideProgress, hasTavleSubscription] = await Promise.all([
+    permissions.canUpdateSettings
+      ? getSetupGuideProgress(tenantId)
+      : Promise.resolve(null),
+    prisma.hmsTavleSubscription
+      .findUnique({ where: { tenantId }, select: { id: true } })
+      .then((s) => !!s),
+  ]);
+
   return (
     <div className="space-y-4">
       <div>
@@ -257,13 +344,15 @@ export default async function DashboardPage() {
       <CustomizableDashboard
         data={{
           moduleCounts,
-          formLinkOptions: forms.map((form) => ({
-            label: form.title,
-            href: `/dashboard/forms/${form.id}`,
-          })),
+          formLinkOptions: [],
           statusItems,
+          weeklyTrendData,
+          recentIncidents,
         }}
         dashboardLocked={selectedMembership.tenant.dashboardLocked && userRole !== "ADMIN"}
+        setupGuideProgress={setupGuideProgress}
+        tenantId={tenantId}
+        showTavleBanner={permissions.canUpdateSettings && !hasTavleSubscription}
       />
     </div>
   );

@@ -58,7 +58,7 @@ export function HmsPulseBuilder({
   const [selectedFunctionHref, setSelectedFunctionHref] = useState(
     functionOptions[0]?.href ?? "/dashboard"
   );
-  const [selectedFormHref, setSelectedFormHref] = useState(formOptions[0]?.href ?? "/dashboard/forms");
+  const [selectedFormHref, setSelectedFormHref] = useState(formOptions[0]?.href ?? "/dashboard/inspections");
   const [customTitle, setCustomTitle] = useState("");
   const [customHref, setCustomHref] = useState("/dashboard");
 

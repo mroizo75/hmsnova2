@@ -86,8 +86,8 @@ export default async function MeetingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="page-header">
+        <div className="flex min-w-0 items-start gap-3">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
             <p className="text-muted-foreground">
@@ -106,7 +106,7 @@ export default async function MeetingsPage() {
         )}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{t("stats.total")}</CardTitle>
@@ -168,7 +168,7 @@ export default async function MeetingsPage() {
           )}
         </div>
       ) : (
-        <div className="rounded-lg border">
+        <div className="hidden rounded-lg border md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -213,6 +213,24 @@ export default async function MeetingsPage() {
               ))}
             </TableBody>
           </Table>
+        </div>
+        <div className="space-y-3 md:hidden">
+          {meetings.map((meeting) => (
+            <div key={meeting.id} className="rounded-lg border bg-card p-4 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="min-w-0 font-medium">{meeting.title}</h3>
+                {getStatusBadge(meeting.status, t)}
+              </div>
+              <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+                {getTypeBadge(meeting.type, t)}
+                <span>{format(new Date(meeting.scheduledDate), "dd. MMM yyyy HH:mm", { locale: dateLocale })}</span>
+                <span>{meeting.participants.length} deltakere</span>
+              </div>
+              <Button variant="outline" size="sm" className="w-full" asChild>
+                <Link href={`/dashboard/meetings/${meeting.id}`}>{t("actions.details")}</Link>
+              </Button>
+            </div>
+          ))}
         </div>
       )}
     </div>

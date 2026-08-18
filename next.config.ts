@@ -29,6 +29,10 @@ const nextConfig: NextConfig = {
         destination: "/digital-hms-tavle#gjesteservice",
         permanent: true,
       },
+      { source: "/beste-hms-system-bygg", destination: "/bransjer/bygg-og-anlegg", permanent: true },
+      { source: "/beste-hms-system-helse", destination: "/bransjer/helse-og-omsorg", permanent: true },
+      { source: "/beste-hms-system-transport", destination: "/bransjer/transport-og-logistikk", permanent: true },
+      { source: "/beste-hms-system-kontor", destination: "/bransjer/teknologi-og-it", permanent: true },
     ];
   },
   experimental: {

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { generateSequenceNumber } from "@/lib/sequence";
+import { onIncidentCreated, onIncidentClosed } from "@/features/hms-ai/lib/event-handler";
 import { getRequiredTenantContext } from "@/lib/tenant-context";
 import { getAuthContext } from "@/lib/server-authorization";
 import {
@@ -413,6 +414,10 @@ export async function createIncident(input: any) {
     })();
 
     revalidatePath("/dashboard/incidents");
+
+    // HMS Intelligens-motor: analyser mønstre og oppdater score
+    onIncidentCreated(tenantId, incident.id).catch(() => {});
+
     return { success: true, data: incident };
   } catch (error: any) {
     console.error("Create incident error:", error);
@@ -515,6 +520,16 @@ export async function updateIncident(input: any) {
     
     const statusChanged = existingIncident.status !== incident.status;
     const becameStopWork = existingIncident.isRestrictedWork !== true && incident.isRestrictedWork === true;
+
+    const substantiveFields = [
+      "injuryDescription", "involvedPersons", "rootCause", "contributingFactors",
+      "immediateAction", "suggestedActions", "injuryType", "medicalAttentionRequired",
+      "isFatal", "isLostTimeIncident", "measureEffectiveness",
+    ] as const;
+    const substantiveChange = !statusChanged && substantiveFields.some(
+      (f) => updateData[f] !== undefined && updateData[f] !== (existingIncident as any)[f],
+    );
+
     void (async () => {
       try {
         await prisma.auditLog.create({
@@ -532,7 +547,25 @@ export async function updateIncident(input: any) {
           await notifyUsersByRoles(tenantId, notifyRoles, {
             type: "INCIDENT_UPDATED",
             title: "Avvik oppdatert",
-            message: `${incident.type}: ${incident.title} - Status endret til ${incident.status}`,
+            message: `${incident.type}: ${incident.title} – Status endret til ${incident.status}`,
+            link: `/dashboard/incidents/${incident.id}`,
+          });
+        } else if (substantiveChange) {
+          const changedLabels: string[] = [];
+          if (updateData.injuryDescription !== undefined) changedLabels.push("skadebeskrivelse");
+          if (updateData.involvedPersons !== undefined) changedLabels.push("involverte personer");
+          if (updateData.rootCause !== undefined) changedLabels.push("årsaksanalyse");
+          if (updateData.contributingFactors !== undefined) changedLabels.push("medvirkende faktorer");
+          if (updateData.immediateAction !== undefined) changedLabels.push("strakstiltak");
+          if (updateData.suggestedActions !== undefined) changedLabels.push("foreslåtte tiltak");
+          if (updateData.measureEffectiveness !== undefined) changedLabels.push("tiltakseffektivitet");
+          if (updateData.isFatal !== undefined || updateData.isLostTimeIncident !== undefined) changedLabels.push("alvorlighetsgrad");
+
+          const notifyRoles = getNotifyRolesForModule(visConfig, "incidents", ["ADMIN", "HMS"]);
+          await notifyUsersByRoles(tenantId, notifyRoles, {
+            type: "INCIDENT_UPDATED",
+            title: "Ny informasjon lagt til i avvik",
+            message: `${incident.type}: ${incident.title} – Oppdatert: ${changedLabels.join(", ")}`,
             link: `/dashboard/incidents/${incident.id}`,
           });
         }
@@ -577,19 +610,34 @@ export async function investigateIncident(input: any) {
       },
     });
     
-    await prisma.auditLog.create({
-      data: {
-        tenantId,
-        userId: user.id,
-        action: "INCIDENT_INVESTIGATED",
-        resource: `Incident:${incident.id}`,
-        metadata: JSON.stringify({
-          title: incident.title,
-          rootCause: validated.rootCause,
-        }),
-      },
-    });
-    
+    void (async () => {
+      try {
+        await prisma.auditLog.create({
+          data: {
+            tenantId,
+            userId: user.id,
+            action: "INCIDENT_INVESTIGATED",
+            resource: `Incident:${incident.id}`,
+            metadata: JSON.stringify({
+              title: incident.title,
+              rootCause: validated.rootCause,
+            }),
+          },
+        });
+
+        const visConfig = await getTenantModuleVisibility(tenantId);
+        const notifyRoles = getNotifyRolesForModule(visConfig, "incidents", ["ADMIN", "HMS", "LEDER"]);
+        await notifyUsersByRoles(tenantId, notifyRoles, {
+          type: "INCIDENT_UPDATED",
+          title: "Årsaksanalyse fullført",
+          message: `${incident.type}: ${incident.title} – Årsaksanalyse er gjennomført av ${user.name ?? "ukjent"}`,
+          link: `/dashboard/incidents/${incident.id}`,
+        });
+      } catch (bgError) {
+        console.error("Background notification error:", bgError);
+      }
+    })();
+
     revalidatePath("/dashboard/incidents");
     revalidatePath(`/dashboard/incidents/${incident.id}`);
     return { success: true, data: incident };
@@ -662,6 +710,10 @@ export async function closeIncident(input: any) {
 
     revalidatePath("/dashboard/incidents");
     revalidatePath(`/dashboard/incidents/${incident.id}`);
+
+    // HMS Intelligens-motor: oppdater score etter lukking
+    onIncidentClosed(tenantId, incident.id).catch(() => {});
+
     return { success: true, data: incident };
   } catch (error: any) {
     console.error("Close incident error:", error);

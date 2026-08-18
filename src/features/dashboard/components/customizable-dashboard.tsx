@@ -19,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertTriangle, Bell, PlusCircle, Pencil, Plus, Save, X, RotateCcw } from "lucide-react";
+import { AlertTriangle, Bell, PlusCircle, Pencil, Plus, Save, X, RotateCcw, TrendingUp, ArrowRight } from "lucide-react";
 import {
   Star, Flag, ClipboardList, Shield, FileText, CheckCircle2,
   Flame, Droplets, Zap, HardHat, Stethoscope, Heart, Leaf,
@@ -28,6 +28,8 @@ import {
 } from "lucide-react";
 import { DashboardTile } from "./dashboard-tile";
 import { WidgetCatalog } from "./widget-catalog";
+import { HmsTrendChart } from "./hms-trend-chart";
+import { RecentIncidentsCard } from "./recent-incidents-card";
 import {
   getWidgetById,
   DEFAULT_WIDGET_IDS,
@@ -37,9 +39,13 @@ import {
 import {
   getDashboardConfig,
   saveDashboardConfig,
+  resetDashboardToDefaults,
   type DashboardWidgetConfig,
 } from "@/server/actions/dashboard-config.actions";
 import Link from "next/link";
+import { SetupGuide } from "@/features/onboarding/components/setup-guide";
+import type { SetupGuideProgress } from "@/server/actions/onboarding.actions";
+import { TavlePromoBanner } from "@/features/hms-tavle/components/tavle-promo-banner";
 
 type WidgetConfig = DashboardWidgetConfig;
 
@@ -53,14 +59,25 @@ interface DashboardData {
     href: string;
     level: "critical" | "warning" | "info";
   }>;
+  weeklyTrendData?: Array<{ week: string; opened: number; closed: number }>;
+  recentIncidents?: Array<{
+    id: string;
+    title: string;
+    location: string;
+    occurredAt: string;
+    status: string;
+  }>;
 }
 
 interface CustomizableDashboardProps {
   data: DashboardData;
   dashboardLocked?: boolean;
+  setupGuideProgress?: SetupGuideProgress | null;
+  tenantId?: string;
+  showTavleBanner?: boolean;
 }
 
-export function CustomizableDashboard({ data, dashboardLocked = false }: CustomizableDashboardProps) {
+export function CustomizableDashboard({ data, dashboardLocked = false, setupGuideProgress, tenantId, showTavleBanner }: CustomizableDashboardProps) {
   const [widgets, setWidgets] = useState<WidgetConfig[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [catalogOpen, setCatalogOpen] = useState(false);
@@ -153,8 +170,13 @@ export function CustomizableDashboard({ data, dashboardLocked = false }: Customi
     setIsEditing(false);
   }, [widgets]);
 
-  const handleReset = useCallback(() => {
-    setWidgets(DEFAULT_WIDGET_IDS.map((id, i) => ({ id, order: i, type: "builtin" })));
+  const handleReset = useCallback(async () => {
+    const result = await resetDashboardToDefaults();
+    if (result.success && result.data) {
+      setWidgets(result.data);
+    } else {
+      setWidgets(DEFAULT_WIDGET_IDS.map((id, i) => ({ id, order: i, type: "builtin" as const })));
+    }
   }, []);
 
   const customIconMap: Record<string, typeof Star> = {
@@ -243,7 +265,7 @@ export function CustomizableDashboard({ data, dashboardLocked = false }: Customi
   const safeFormLinkOptions =
     data.formLinkOptions.length > 0
       ? data.formLinkOptions
-      : [{ label: "Skjemaoversikt", href: "/dashboard/forms" }];
+      : [{ label: "Vernerunder", href: "/dashboard/inspections" }];
 
   if (!loaded) {
     return (
@@ -258,8 +280,17 @@ export function CustomizableDashboard({ data, dashboardLocked = false }: Customi
     );
   }
 
+  const showSetupGuide =
+    setupGuideProgress && !setupGuideProgress.hidden && tenantId;
+
   return (
     <div className="space-y-6">
+      {showSetupGuide && (
+        <SetupGuide tenantId={tenantId} progress={setupGuideProgress} />
+      )}
+
+      {showTavleBanner && <TavlePromoBanner />}
+
       {/* Verktøylinje */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-muted-foreground">Mitt dashboard</h2>
@@ -408,6 +439,18 @@ export function CustomizableDashboard({ data, dashboardLocked = false }: Customi
           )}
         </CardContent>
       </Card>
+
+      {/* HMS-trender og Siste avvik */}
+      {(data.weeklyTrendData?.length || data.recentIncidents?.length) ? (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {data.weeklyTrendData && data.weeklyTrendData.length > 0 && (
+            <HmsTrendChart data={data.weeklyTrendData} />
+          )}
+          {data.recentIncidents && data.recentIncidents.length > 0 && (
+            <RecentIncidentsCard incidents={data.recentIncidents} />
+          )}
+        </div>
+      ) : null}
 
       {/* Widget-katalog */}
       <WidgetCatalog

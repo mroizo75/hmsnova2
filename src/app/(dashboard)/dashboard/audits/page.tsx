@@ -119,6 +119,7 @@ async function AuditsList() {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        <div className="hidden md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -179,6 +180,36 @@ async function AuditsList() {
             })}
           </TableBody>
         </Table>
+        </div>
+        <div className="space-y-3 md:hidden">
+          {audits.map((audit) => {
+            const openFindings = audit.findings.filter((f) => f.status === "OPEN").length;
+            const majorNc = audit.findings.filter((f) => f.findingType === "MAJOR_NC" && f.status === "OPEN").length;
+            return (
+              <div key={audit.id} className="space-y-3 rounded-lg border p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <h3 className="font-medium">{audit.title}</h3>
+                    <p className="text-sm text-muted-foreground">{audit.area}</p>
+                  </div>
+                  {getStatusBadge(audit.status, t)}
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                  {getTypeBadge(audit.auditType, t)}
+                  <span>{format(new Date(audit.scheduledDate), "d. MMM yyyy", { locale: dateLocale })}</span>
+                  {majorNc > 0 ? (
+                    <Badge variant="destructive" className="text-xs">{t("findings.major", { count: majorNc })}</Badge>
+                  ) : openFindings === 0 ? (
+                    <span>{t("findings.none")}</span>
+                  ) : null}
+                </div>
+                <Button variant="outline" size="sm" className="w-full" asChild>
+                  <Link href={`/dashboard/audits/${audit.id}`}>{t("actions.details")}</Link>
+                </Button>
+              </div>
+            );
+          })}
+        </div>
       </CardContent>
     </Card>
   );
@@ -196,8 +227,8 @@ async function AuditsPageContent() {
   const t = await getTranslations("dashboardAuditsPage");
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="page-header">
+        <div className="flex min-w-0 items-start gap-3">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
             <p className="text-muted-foreground">

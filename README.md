@@ -1,5 +1,11 @@
 # HMS Nova 2.0
 
+**Copyright © 2024–2026 HMS Nova AS. Alle rettigheter forbeholdt.**
+
+All kode i dette repositoriet eies av HMS Nova AS. Ingen lisens er gitt.
+Uautorisert bruk, kopiering, endring eller spredning er ulovlig.
+Se [LICENSE](./LICENSE).
+
 HMS/HSEQ-system bygget med Next.js 15, Prisma og MySQL.
 
 ## Komme i gang
@@ -121,6 +127,12 @@ src/
 4. **Konfigurer UploadThing** - For filopplasting
 5. **Deploy** - På VPS eller Vercel
 
-## Lisens
+## Opphavsrett og lisens
 
-Proprietær - HMS Nova AS
+Copyright © 2024–2026 HMS Nova AS, org.nr. 937 190 417.
+
+All kildekode og innhold i dette GitHub-repositoriet eies av HMS Nova AS.
+Ingen bruksrett er gitt. All bruk, kopiering, endring eller spredning uten
+skriftlig avtale med HMS Nova AS er ulovlig.
+
+Fullstendig tekst: [LICENSE](./LICENSE).

@@ -198,8 +198,8 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canDeleteActions: true,
     canReadForms: true,
     canFillForms: true,
-    canCreateForms: true,
-    canManageForms: true,
+    canCreateForms: false,
+    canManageForms: false,
     canReadAllFormSubmissions: true,
     canReadOwnFormSubmissions: true,
     canReadRoutines: true,
@@ -300,8 +300,8 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canDeleteActions: false,
     canReadForms: true,
     canFillForms: true,
-    canCreateForms: true,
-    canManageForms: true,
+    canCreateForms: false,
+    canManageForms: false,
     canReadAllFormSubmissions: true,
     canReadOwnFormSubmissions: true,
     canReadRoutines: true,
@@ -404,8 +404,8 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canDeleteActions: false,
     canReadForms: true,
     canFillForms: true,
-    canCreateForms: true,
-    canManageForms: true,
+    canCreateForms: false,
+    canManageForms: false,
     canReadAllFormSubmissions: true,
     canReadOwnFormSubmissions: true,
     canReadRoutines: true,
@@ -910,7 +910,6 @@ export function getVisibleNavItems(role: Role) {
   return {
     dashboard: perms.canAccessDashboard,
     documents: perms.canReadDocuments,
-    forms: perms.canReadForms,
     routines: perms.canReadRoutines,
     risks: perms.canReadRisks,
     riskRegister: perms.canReadRisks,
@@ -938,6 +937,10 @@ export function getVisibleNavItems(role: Role) {
     constructionCompliance: perms.canReadConstructionCompliance,
     hmsTavle: perms.canViewHmsTavle || perms.canManageHmsTavle,
     employeeReviews: perms.canReadOwnEmployeeReviews || perms.canReadAllEmployeeReviews,
+    support: true, // Alle innloggede brukere kan kontakte HMS-representanter
+    benchmark: true, // Alle kan se benchmark (krever opt-in for data)
+    hmsHandbok: perms.canReadDocuments || perms.canReadRoutines, // Alle som kan lese dokumenter/rutiner ser håndboken
+    hmsCockpit: perms.canReadDocuments, // HMS Cockpit krever lesetilgang til dokumenter
   };
 }
 

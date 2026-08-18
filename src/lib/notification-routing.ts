@@ -41,6 +41,13 @@ const notificationTypePreferenceMap: Partial<Record<NotificationType, Notificati
   TRAINING_ASSIGNED: "notifyTraining",
   CHEMICAL_SDS_REVIEW: "notifyRisks",
   CHEMICAL_EXPIRED: "notifyRisks",
+  // HMS Intelligens-motor
+  IMPROVEMENT_SUGGESTION: "notifyIncidents",
+  IMPROVEMENT_REMINDER: "notifyIncidents",
+  HMS_SCORE_DROP: "notifyIncidents",
+  HMS_SCORE_MILESTONE: "notifyIncidents",
+  ROUTINE_COMPLIANCE_ALERT: "notifyDocuments",
+  LAW_CHANGE_ALERT: "notifyDocuments",
 };
 
 const immediateEmailTypes = new Set<NotificationType>([
@@ -53,6 +60,8 @@ const immediateEmailTypes = new Set<NotificationType>([
   "SYSTEM_ALERT",
   "INSPECTION_FINDING",
   "GUEST_SUBMISSION",
+  "SUPPORT_TICKET",
+  "SUPPORT_MSG",
 ]);
 
 export function isNotificationTypeEnabledForUser(

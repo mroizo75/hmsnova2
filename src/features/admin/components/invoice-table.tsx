@@ -23,7 +23,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { deleteInvoice } from "@/server/actions/invoice.actions";
 import { InvoiceStatusSelect } from "./invoice-status-select";
-import { MoreHorizontal, Trash2 } from "lucide-react";
+import { MoreHorizontal, Trash2, Check } from "lucide-react";
 import type { InvoiceStatus } from "@prisma/client";
 
 interface InvoiceWithTenant {
@@ -93,9 +93,10 @@ function DueDateCell({ dueDate, status }: { dueDate: Date; status: InvoiceStatus
 
 interface InvoiceTableProps {
   invoices: InvoiceWithTenant[];
+  exportedInvoiceIds?: string[];
 }
 
-export function InvoiceTable({ invoices }: InvoiceTableProps) {
+export function InvoiceTable({ invoices, exportedInvoiceIds = [] }: InvoiceTableProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<FilterTab>("ALL");
@@ -168,6 +169,7 @@ export function InvoiceTable({ invoices }: InvoiceTableProps) {
                 <TableHead>Betalt dato</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Periode</TableHead>
+                <TableHead>Eksport</TableHead>
                 <TableHead className="w-[50px]" />
               </TableRow>
             </TableHeader>
@@ -218,6 +220,14 @@ export function InvoiceTable({ invoices }: InvoiceTableProps) {
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {invoice.period || "-"}
+                  </TableCell>
+                  <TableCell>
+                    {exportedInvoiceIds.includes(invoice.id) && (
+                      <Badge variant="outline" className="gap-1 text-green-700 border-green-300 bg-green-50 text-[10px]">
+                        <Check className="h-3 w-3" />
+                        Lastet ned
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>

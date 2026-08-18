@@ -20,7 +20,6 @@ import {
   Target,
   Settings,
   LogOut,
-  ClipboardList,
   Beaker,
   ShieldCheck,
   FileBarChart,
@@ -46,6 +45,8 @@ import {
   Building2,
   Flame,
   Monitor,
+  Headphones,
+  BookOpen,
 } from "lucide-react";
 import { usePermissions } from "@/hooks/use-permissions";
 import { getRoleDisplayName } from "@/lib/permissions";
@@ -77,6 +78,7 @@ const navItems: Array<{
 }> = [
   // === GRUNNLEGGENDE HMS (vises alltid) ===
   { href: "/dashboard", label: "nav.dashboard", icon: LayoutDashboard, permission: "dashboard" as const, simple: true },
+  { href: "/dashboard/hms-handbok", label: "nav.hmsHandbok", icon: BookOpen, permission: "hmsHandbok" as const, simple: true },
   { href: "/dashboard/documents", label: "nav.documents", icon: FileText, permission: "documents" as const, simple: true },
   { href: "/dashboard/rutiner", label: "nav.routines", icon: ListChecks, permission: "routines" as const, simple: true },
   { href: "/dashboard/samsvarserklaringer", label: "nav.electro", icon: FileCheck2, permission: "documents" as const, simple: true },
@@ -95,10 +97,9 @@ const navItems: Array<{
   { href: "/dashboard/exposure-register", label: "nav.exposureRegister", icon: FlaskConical, permission: "exposureRegister" as const, simple: true },
   
   // === AVANSERT (kun i avansert modus) ===
-  { href: "/dashboard/forms", label: "nav.forms", icon: ClipboardList, permission: "forms" as const, simple: false },
   { href: "/dashboard/risks", label: "nav.risks", icon: AlertTriangle, permission: "risks" as const, simple: false },
   { href: "/dashboard/risk-register", label: "nav.riskRegister", icon: Layers, permission: "risks" as const, simple: false },
-  { href: "/dashboard/wellbeing", label: "nav.wellbeing", icon: HeartPulse, permission: "forms" as const, simple: true }, // Psykososial = lovpålagt for alle
+  { href: "/dashboard/wellbeing", label: "nav.wellbeing", icon: HeartPulse, permission: "inspections" as const, simple: true },
   { href: "/dashboard/complaints", label: "nav.complaints", icon: MessageSquare, permission: "incidents" as const, simple: false },
   { href: "/dashboard/feedback", label: "nav.feedback", icon: ThumbsUp, permission: "feedback" as const, simple: false },
   { href: "/dashboard/environment", label: "nav.environment", icon: Leaf, permission: "environment" as const, simple: false },
@@ -114,6 +115,7 @@ const navItems: Array<{
   
   // === ORGANISASJON & INNSTILLINGER (vises alltid) ===
   { href: "/dashboard/organisasjonskart", label: "nav.orgChart", icon: Building2, permission: "settings" as const, simple: true },
+  { href: "/dashboard/support", label: "nav.support", icon: Headphones, permission: "support" as const, simple: true },
   { href: "/dashboard/settings", label: "nav.settings", icon: Settings, permission: "settings" as const, simple: true },
 ];
 
@@ -198,7 +200,7 @@ export function DashboardNav() {
   const tenantName = session?.user?.tenantName;
 
   return (
-    <aside className="hidden lg:block w-64 border-r bg-card">
+    <aside className="hidden w-64 shrink-0 border-r bg-card lg:flex lg:h-dvh lg:flex-col">
       <div className="flex h-full flex-col">
         <div className="border-b p-6">
           <div className="flex items-start justify-between mb-2">

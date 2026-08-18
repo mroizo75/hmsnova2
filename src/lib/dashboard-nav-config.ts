@@ -16,7 +16,6 @@ export type NavPermission =
   | "training"
   | "actions"
   | "chemicals"
-  | "forms"
   | "risks"
   | "feedback"
   | "environment"
@@ -29,12 +28,16 @@ export type NavPermission =
   | "goals"
   | "constructionCompliance"
   | "hmsTavle"
+  | "hmsHandbok"
   | "employeeReviews"
   | "settings"
   | "ikMat"
   | "aktivitetssikkerhet"
   | "transport"
-  | "bhtNattarbeid";
+  | "bhtNattarbeid"
+  | "support"
+  | "benchmark"
+  | "hmsCockpit";
 
 export interface DashboardNavItemConfig {
   href: string;
@@ -45,6 +48,7 @@ export interface DashboardNavItemConfig {
 
 export const DASHBOARD_NAV_CONFIG: DashboardNavItemConfig[] = [
   { href: "/dashboard", label: "nav.dashboard", permission: "dashboard", defaultSimple: true },
+  { href: "/dashboard/hms-handbok", label: "nav.hmsHandbok", permission: "hmsHandbok", defaultSimple: true },
   { href: "/dashboard/documents", label: "nav.documents", permission: "documents", defaultSimple: true },
   { href: "/dashboard/rutiner", label: "nav.routines", permission: "routines", defaultSimple: true },
   { href: "/dashboard/samsvarserklaringer", label: "nav.electro", permission: "documents", defaultSimple: true },
@@ -59,10 +63,9 @@ export const DASHBOARD_NAV_CONFIG: DashboardNavItemConfig[] = [
   { href: "/dashboard/actions", label: "nav.actions", permission: "actions", defaultSimple: true },
   { href: "/dashboard/chemicals", label: "nav.chemicals", permission: "chemicals", defaultSimple: true },
   { href: "/dashboard/exposure-register", label: "nav.exposureRegister", permission: "exposureRegister", defaultSimple: true },
-  { href: "/dashboard/forms", label: "nav.forms", permission: "forms", defaultSimple: false },
   { href: "/dashboard/risks", label: "nav.risks", permission: "risks", defaultSimple: false },
   { href: "/dashboard/risk-register", label: "nav.riskRegister", permission: "risks", defaultSimple: false },
-  { href: "/dashboard/wellbeing", label: "nav.wellbeing", permission: "forms", defaultSimple: true },
+  { href: "/dashboard/wellbeing", label: "nav.wellbeing", permission: "inspections", defaultSimple: true },
   { href: "/dashboard/complaints", label: "nav.complaints", permission: "incidents", defaultSimple: false },
   { href: "/dashboard/feedback", label: "nav.feedback", permission: "feedback", defaultSimple: false },
   { href: "/dashboard/environment", label: "nav.environment", permission: "environment", defaultSimple: false },
@@ -83,6 +86,9 @@ export const DASHBOARD_NAV_CONFIG: DashboardNavItemConfig[] = [
   { href: "/dashboard/whistleblowing", label: "nav.whistleblowing", permission: "whistleblowing", defaultSimple: false },
   { href: "/dashboard/goals", label: "nav.goals", permission: "goals", defaultSimple: false },
   { href: "/dashboard/organisasjonskart", label: "nav.orgChart", permission: "settings", defaultSimple: true },
+  { href: "/dashboard/hms-cockpit", label: "nav.hmsCockpit", permission: "hmsCockpit", defaultSimple: true },
+  { href: "/dashboard/benchmark", label: "nav.benchmark", permission: "benchmark", defaultSimple: false },
+  { href: "/dashboard/support", label: "nav.support", permission: "support", defaultSimple: true },
   { href: "/dashboard/settings", label: "nav.settings", permission: "settings", defaultSimple: true },
 ];
 

@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 export default function VilkarPage() {
-  const lastUpdated = "15. desember 2024";
+  const lastUpdated = "11. august 2026";
 
   return (
     <div className="bg-gradient-to-b from-background to-muted/20">
@@ -365,7 +365,33 @@ export default function VilkarPage() {
               </div>
 
               <div>
-                <h4 className="font-semibold mb-2">8.3 Tilbakemelding</h4>
+                <h4 className="font-semibold mb-2">8.3 Anonymisert bransjestatistikk</h4>
+                <p className="text-sm text-muted-foreground">
+                  HMS Nova samler inn og aggregerer anonymiserte HMS-data pa tvers av alle kunder for a 
+                  generere bransjestatistikk, benchmarks og trendanalyser. Disse dataene brukes til:
+                </p>
+                <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground mt-2">
+                  <li>A gi deg sammenligning mot bransjesnittet (benchmark)</li>
+                  <li>A forbedre tjenesten og identifisere bransjespesifikke risikoer</li>
+                  <li>A publisere anonymiserte bransjerapporter (HMS Nova Safety Intelligence)</li>
+                </ul>
+                <p className="text-sm text-muted-foreground mt-2">
+                  <strong>Anonymisering:</strong> All data aggregeres med k-anonymity (minimum 5 bedrifter per 
+                  bransjegruppe). Ingen enkeltstaaende bedrift, person eller hendelse kan identifiseres i 
+                  rapportene. Bedriftsnavn, organisasjonsnummer og personopplysninger er aldri inkludert.
+                </p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  <strong>Rettslig grunnlag:</strong> GDPR art. 6(1)(f) — berettiget interesse for anonymiserte, 
+                  aggregerte data som ikke utgjor personopplysninger.
+                </p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  <strong>Reservasjon:</strong> Du kan nar som helst reservere din bedrift mot deltakelse i 
+                  bransjestatistikken via Innstillinger &gt; Statistikk i HMS Nova-dashboardet.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-2">8.4 Tilbakemelding</h4>
                 <p className="text-sm text-muted-foreground">
                   Hvis du gir oss tilbakemeldinger, forslag eller ideer til forbedring av HMS Nova, 
                   kan vi fritt bruke disse uten forpliktelser overfor deg.

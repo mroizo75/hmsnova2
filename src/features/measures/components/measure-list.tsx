@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Pencil, Trash2, Clock } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { deleteMeasure } from "@/server/actions/measure.actions";
 import { getMeasureStatusLabel, getMeasureStatusColor } from "@/features/measures/schemas/measure.schema";
 import { useToast } from "@/hooks/use-toast";
@@ -77,7 +78,7 @@ export function MeasureList({ measures }: MeasureListProps) {
 
   return (
     <>
-      <div className="rounded-lg border overflow-x-auto">
+      <div className="hidden rounded-lg border md:block">
       <Table>
         <TableHeader>
           <TableRow>
@@ -202,6 +203,55 @@ export function MeasureList({ measures }: MeasureListProps) {
           })}
         </TableBody>
         </Table>
+      </div>
+
+      <div className="space-y-3 md:hidden">
+        {measures.map((measure) => {
+          const statusLabel = getMeasureStatusLabel(measure.status);
+          const statusColor = getMeasureStatusColor(measure.status);
+          const overdue = isOverdue(measure.dueAt, measure.status);
+
+          return (
+            <Card key={measure.id}>
+              <CardContent className="space-y-3 p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <Link href={`/dashboard/measures/${measure.id}`} className="font-medium hover:underline">
+                      {measure.title}
+                    </Link>
+                    {measure.description ? (
+                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{measure.description}</p>
+                    ) : null}
+                  </div>
+                  <Badge className={statusColor}>{statusLabel}</Badge>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  {overdue ? <Clock className="h-4 w-4 text-red-600" /> : null}
+                  <span className={overdue ? "font-semibold text-red-600" : ""}>
+                    Frist: {formatDate(measure.dueAt)}
+                  </span>
+                </div>
+                <div className="flex gap-2 border-t pt-2">
+                  <Button variant="outline" size="sm" className="flex-1" asChild>
+                    <Link href={`/dashboard/measures/${measure.id}`}>
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Åpne
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(measure.id, measure.title)}
+                    disabled={loading === measure.id}
+                    aria-label="Slett tiltak"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </>
   );

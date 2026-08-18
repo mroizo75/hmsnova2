@@ -453,15 +453,15 @@ export default function RegistrerBedriftPage() {
                 </div>
 
                 <p className="text-xs text-center text-muted-foreground">
-                  Ved å sende inn dette skjemaet godtar du også våre{" "}
+                  Ved å sende inn dette skjemaet godtar du våre{" "}
                   <Link href="/vilkar" className="underline">
                     bruksvilkår
                   </Link>{" "}
                   og{" "}
                   <Link href="/personvern" className="underline">
-                    personvernserklæring
+                    personvernerklæring
                   </Link>
-                  .
+                  , inkludert deltakelse i anonymisert bransjestatistikk (kan deaktiveres i innstillinger).
                 </p>
                 {industry === "agriculture" && (
                   <p className="text-xs text-center text-muted-foreground">

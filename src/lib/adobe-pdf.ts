@@ -555,8 +555,28 @@ async function getRestAccessToken(): Promise<string> {
   return data.access_token as string;
 }
 
-export async function htmlToPdf(htmlContent: string): Promise<Buffer> {
-  const clientId = process.env.ADOBE_CLIENT_ID!;
+interface HtmlToPdfOptions {
+  /** Sideformat: "A4" (standard) eller "letter" */
+  pageSize?: "A4" | "letter";
+  /** Max ventetid i ms for Adobe-jobben. Default 120 000 ms (2 min). */
+  timeoutMs?: number;
+}
+
+/**
+ * Konverter HTML-streng til PDF via Adobe PDF Services REST API.
+ *
+ * Robust wrapper med:
+ * - Eksponentiell backoff for polling (starter 2s, maks 10s)
+ * - Konfigurerbar timeout (default 120s)
+ * - Tydelige feilmeldinger for vanlige feilkoder
+ * - A4-sideformat som standard
+ */
+export async function htmlToPdf(htmlContent: string, options: HtmlToPdfOptions = {}): Promise<Buffer> {
+  const { pageSize = "A4", timeoutMs = 120_000 } = options;
+
+  const clientId = process.env.ADOBE_CLIENT_ID;
+  if (!clientId) throw new Error("ADOBE_CLIENT_ID mangler i .env");
+
   const token = await getRestAccessToken();
 
   const authHeaders = {
@@ -565,21 +585,33 @@ export async function htmlToPdf(htmlContent: string): Promise<Buffer> {
     "Content-Type": "application/json",
   };
 
+  // Opprett asset-slot
   const assetRes = await fetch(`${ADOBE_REST_API_BASE}/assets`, {
     method: "POST",
     headers: authHeaders,
     body: JSON.stringify({ mediaType: "text/html" }),
   });
-  if (!assetRes.ok) throw new Error(`Adobe asset-oppretting feilet: ${assetRes.status}`);
+  if (!assetRes.ok) {
+    throw new Error(`Adobe: Asset-oppretting feilet med ${assetRes.status} ${assetRes.statusText}`);
+  }
+  const { uploadUri, assetID } = (await assetRes.json()) as { uploadUri: string; assetID: string };
 
-  const { uploadUri, assetID } = await assetRes.json();
-
+  // Last opp HTML
   const uploadRes = await fetch(uploadUri, {
     method: "PUT",
     headers: { "Content-Type": "text/html" },
     body: htmlContent,
   });
-  if (!uploadRes.ok) throw new Error(`Adobe opplasting feilet: ${uploadRes.status}`);
+  if (!uploadRes.ok) {
+    throw new Error(`Adobe: HTML-opplasting feilet med ${uploadRes.status} ${uploadRes.statusText}`);
+  }
+
+  // Start HTML→PDF-jobb
+  // A4: 8.27 × 11.69 tomme. Letter: 8.5 × 11 tomme.
+  const pageLayout =
+    pageSize === "A4"
+      ? { pageWidth: 8.27, pageHeight: 11.69 }
+      : { pageWidth: 8.5, pageHeight: 11 };
 
   const jobRes = await fetch(`${ADOBE_REST_API_BASE}/operation/htmltopdf`, {
     method: "POST",
@@ -588,33 +620,54 @@ export async function htmlToPdf(htmlContent: string): Promise<Buffer> {
       assetID,
       json: "{}",
       includeHeaderFooter: false,
-      pageLayout: { pageWidth: 11, pageHeight: 8.5 },
+      pageLayout,
     }),
   });
-  if (!jobRes.ok) throw new Error(`Adobe jobb-start feilet: ${jobRes.status}`);
+  if (!jobRes.ok) {
+    throw new Error(`Adobe: Jobb-start feilet med ${jobRes.status} ${jobRes.statusText}`);
+  }
 
   const jobUrl = jobRes.headers.get("location");
-  if (!jobUrl) throw new Error("Adobe returnerte ingen jobb-URL");
+  if (!jobUrl) throw new Error("Adobe: Ingen jobb-URL i responsen");
 
+  // Poll med eksponentiell backoff til done/failed/timeout
+  const deadline = Date.now() + timeoutMs;
+  let delay = 2_000;
   let downloadUri: string | null = null;
-  for (let attempt = 0; attempt < 30; attempt++) {
-    await new Promise((r) => setTimeout(r, 2000));
+
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, delay));
+    delay = Math.min(delay * 1.5, 10_000);
+
     const statusRes = await fetch(jobUrl, {
       headers: { Authorization: `Bearer ${token}`, "x-api-key": clientId },
     });
     if (!statusRes.ok) continue;
-    const statusData = await statusRes.json();
+
+    const statusData = (await statusRes.json()) as {
+      status: string;
+      asset?: { downloadUri?: string };
+      error?: unknown;
+    };
+
     if (statusData.status === "done") {
       downloadUri = statusData.asset?.downloadUri ?? null;
       break;
     }
+
     if (statusData.status === "failed") {
-      throw new Error(`Adobe PDF feilet: ${JSON.stringify(statusData.error)}`);
+      throw new Error(`Adobe: PDF-konvertering feilet: ${JSON.stringify(statusData.error)}`);
     }
   }
-  if (!downloadUri) throw new Error("Adobe PDF tidsavbrutt");
+
+  if (!downloadUri) {
+    throw new Error(`Adobe: PDF-generering tidsavbrutt etter ${timeoutMs / 1000}s`);
+  }
 
   const pdfRes = await fetch(downloadUri);
-  if (!pdfRes.ok) throw new Error(`Adobe PDF-nedlasting feilet: ${pdfRes.status}`);
+  if (!pdfRes.ok) {
+    throw new Error(`Adobe: PDF-nedlasting feilet med ${pdfRes.status} ${pdfRes.statusText}`);
+  }
+
   return Buffer.from(await pdfRes.arrayBuffer());
 }

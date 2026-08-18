@@ -389,7 +389,7 @@ export function WidgetCatalog({
                         <Input
                           value={customUrl}
                           onChange={(event) => setCustomUrl(event.target.value)}
-                          placeholder="/dashboard/forms"
+                          placeholder="/dashboard/inspections"
                         />
                       </div>
                     )}
@@ -410,7 +410,7 @@ export function WidgetCatalog({
                           setCustomColorKey("blue");
                           setCustomLinkType("function");
                           setCustomFunctionHref(functionLinkOptions[0]?.href || "/dashboard");
-                          setCustomFormHref(formLinkOptions[0]?.href || "/dashboard/forms");
+                          setCustomFormHref(formLinkOptions[0]?.href || "/dashboard/inspections");
                           setCustomUrl("/dashboard");
                           setCustomExpanded(false);
                         }}

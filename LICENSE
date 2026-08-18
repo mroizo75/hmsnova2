@@ -1,0 +1,66 @@
+COPYRIGHT NOTICE — PROPRIETARY SOFTWARE
+Opphavsrett — proprietær programvare
+
+Copyright © 2024–2026 HMS Nova AS. All rights reserved.
+Opphavsrett © 2024–2026 HMS Nova AS. Alle rettigheter forbeholdt.
+
+Organisasjonsnummer: 937 190 417
+
+------------------------------------------------------------------------------
+NORSK
+------------------------------------------------------------------------------
+
+All kildekode, dokumentasjon, design, database-skjema, konfigurasjon og øvrig
+innhold i dette GitHub-repositoriet eies utelukkende av HMS Nova AS.
+
+Ingen lisens er gitt.
+
+Det er forbudt, og dermed ulovlig, uten forutgående skriftlig avtale med
+HMS Nova AS å:
+
+  • bruke koden eller deler av den
+  • kopiere, klone, forke eller laste ned koden for eget eller andres formål
+  • endre, videreutvikle eller lage avledede verk
+  • distribuere, viderelisensiere, selge eller offentliggjøre koden
+  • reverse engineere, dekompilere eller på annen måte utnytte koden
+
+Innsyn i et privat GitHub-repositorium, eller at koden er synlig på GitHub,
+gir ingen bruksrett.
+
+Kunder av HMS Nova AS får bruksrett til tjenesten HMS Nova på de vilkår som
+følger av gjeldende kundeforhold — ikke til kildekoden i dette repositoriet.
+
+Ulovlig bruk, kopiering eller spredning kan medføre erstatningsansvar og
+straff etter åndsverkloven og annen relevant lovgivning.
+
+Henvendelser om rettigheter: post@hmsnova.no
+
+------------------------------------------------------------------------------
+ENGLISH
+------------------------------------------------------------------------------
+
+All source code, documentation, design, database schema, configuration and
+other content in this GitHub repository is owned exclusively by HMS Nova AS.
+
+No license is granted.
+
+Without a prior written agreement with HMS Nova AS it is prohibited, and
+therefore unlawful, to:
+
+  • use the code or any part of it
+  • copy, clone, fork or download the code for any purpose
+  • modify, develop or create derivative works
+  • distribute, sublicense, sell or publish the code
+  • reverse engineer, decompile or otherwise exploit the code
+
+Access to a private GitHub repository, or the mere fact that the code is
+visible on GitHub, does not grant any right to use it.
+
+Customers of HMS Nova AS receive a right to use the HMS Nova service under
+their customer agreement — not a right to the source code in this repository.
+
+Unauthorised use, copying or distribution may give rise to civil and criminal
+liability under the Norwegian Copyright Act (åndsverkloven) and other
+applicable law.
+
+Rights enquiries: post@hmsnova.no

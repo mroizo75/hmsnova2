@@ -18,6 +18,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Camera, X } from "lucide-react";
 import Image from "next/image";
+import { enqueueSafe, formDataToOfflinePayload, isNetworkError, isAvailable } from "@/lib/offline-queue";
 
 type RuhContext = "general" | "homeVisitRisk" | "infectionExposure" | "medicationNearMiss" | "violenceThreat";
 
@@ -146,7 +147,35 @@ export function ReportRuhForm({
       });
 
       router.push(successRedirectPath);
-    } catch {
+    } catch (error) {
+      if (isNetworkError(error) && isAvailable()) {
+        const { payload, files } = formDataToOfflinePayload(formData);
+        const result = await enqueueSafe({
+          id: `ruh-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          type: "ruh",
+          createdAt: new Date().toISOString(),
+          endpoint: "/api/ruh/report",
+          payload,
+          files,
+        });
+        if (result.stored) {
+          toast({
+            title: "Lagret lokalt",
+            description: "RUH-meldingen sendes automatisk når du er tilbake online.",
+            className: "bg-amber-50 border-amber-200",
+          });
+          router.push(successRedirectPath);
+          return;
+        }
+        toast({
+          title: "Offline-køen er full",
+          description: result.reason === "quota_size"
+            ? "For mange bilder lagret lokalt. Koble til nett og synkroniser først."
+            : "Maks antall ventende registreringer nådd. Synkroniser først.",
+          variant: "destructive",
+        });
+        return;
+      }
       toast({
         title: t("toast.error.title"),
         description: t("toast.error.description"),

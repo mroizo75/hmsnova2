@@ -23,7 +23,10 @@ export async function GET(
       if (!sessionTenantId) {
         return new NextResponse("Forbidden", { status: 403 });
       }
-      if (!fileKey.startsWith(`${sessionTenantId}/`)) {
+      const ownedByTenant =
+        fileKey.startsWith(`${sessionTenantId}/`) ||
+        fileKey.startsWith(`logos/${sessionTenantId}/`);
+      if (!ownedByTenant) {
         return new NextResponse("Forbidden", { status: 403 });
       }
     }

@@ -175,7 +175,7 @@ export default async function AnsattVernerunderPage() {
 
                       {canFill && isResponsible && (
                         <Link
-                          href={`/ansatt/skjemaer/${inspection.formTemplate!.id}/fill?inspectionId=${inspection.id}`}
+                          href={`/ansatt/vernerunder/${inspection.id}/fill`}
                           className="shrink-0"
                         >
                           <Button size="sm" className="bg-green-600 hover:bg-green-700">
@@ -240,7 +240,7 @@ export default async function AnsattVernerunderPage() {
 
                       {inspection.formSubmission && inspection.formTemplate && (
                         <Link
-                          href={`/dashboard/forms/${inspection.formTemplate.id}/submissions/${inspection.formSubmission.id}`}
+                          href={`/ansatt/vernerunder/${inspection.id}`}
                           className="shrink-0"
                         >
                           <Button size="sm" variant="outline">

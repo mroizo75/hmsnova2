@@ -5,7 +5,7 @@ import QRCode from "qrcode";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, QrCode, Users, FileText, MessageSquare } from "lucide-react";
+import { Download, QrCode, Users, FileText, MessageSquare, GraduationCap } from "lucide-react";
 import { HmsTavlePlan } from "@prisma/client";
 import { TavleRomQr } from "./tavle-rom-qr";
 
@@ -13,6 +13,7 @@ interface Props {
   tavleUrl: string;
   portalUrl: string | null;
   checkinUrl: string;
+  sesongUrl?: string | null;
   plan: HmsTavlePlan;
   hasGuestForm: boolean;
   tenantName: string;
@@ -60,6 +61,7 @@ export function TavleQrSection({
   tavleUrl,
   portalUrl,
   checkinUrl,
+  sesongUrl,
   plan,
   hasGuestForm,
   tenantName,
@@ -146,6 +148,27 @@ export function TavleQrSection({
               <QrDisplay url={`${tavleUrl}/melding`} label="Meld fra" />
               <p className="text-xs text-muted-foreground mt-2">
                 Gjester melder fra uten innlogging. Meldingen er konfidensiell.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {sesongUrl && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <GraduationCap className="h-4 w-4 text-teal-600" />
+                Sesongarbeider-intro
+                <Badge variant="secondary" className="text-[10px]">
+                  AML § 3-2
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <QrDisplay url={sesongUrl} label="HMS-intro sesong" />
+              <p className="text-xs text-muted-foreground mt-2">
+                5-skjerms HMS-intro på norsk, engelsk, polsk og tysk.
+                Ansatte signerer digitalt etter gjennomgang.
               </p>
             </CardContent>
           </Card>

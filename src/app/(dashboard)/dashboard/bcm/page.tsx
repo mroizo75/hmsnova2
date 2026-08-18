@@ -198,7 +198,7 @@ export default async function BcmPage() {
           <CardContent>
             <div className="grid gap-3 md:grid-cols-2">
               {bcmForms.map((form) => (
-                <Link key={form.id} href={`/dashboard/forms/${form.id}`}>
+                <Link key={form.id} href={`/dashboard/bcm`}>
                   <div className="border rounded-lg p-4 hover:bg-accent transition-colors cursor-pointer">
                     <div className="flex items-start justify-between mb-2">
                       <h3 className="font-medium">{form.title}</h3>

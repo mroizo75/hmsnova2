@@ -62,8 +62,8 @@ export default async function ManagementReviewsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="page-header">
+        <div className="flex min-w-0 items-start gap-3">
           <div>
             <h1 className="text-3xl font-bold">Ledelsens Gjennomgang</h1>
             <p className="text-muted-foreground mt-1">
@@ -83,7 +83,7 @@ export default async function ManagementReviewsPage() {
       </div>
 
       {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-3">
             <CardDescription>Totalt</CardDescription>

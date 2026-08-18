@@ -16,7 +16,7 @@ export type ModuleKey =
   | "ruh"
   | "sja"
   | "risks"
-  | "forms"
+  | "wellbeing"
   | "documents"
   | "chemicals"
   | "audits"
@@ -49,7 +49,7 @@ export const MODULE_DEFAULTS: Record<ModuleKey, Role[]> = {
   ruh:          ["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "ANSATT", "BHT", "REVISOR"],
   sja:          ["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "ANSATT", "BHT", "REVISOR"],
   risks:        ["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "BHT", "REVISOR"],
-  forms:        ["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "ANSATT", "BHT", "REVISOR"],
+  wellbeing:    ["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "ANSATT", "BHT", "REVISOR"],
   documents:    ["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "ANSATT", "BHT", "REVISOR"],
   chemicals:    ["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "ANSATT", "BHT", "REVISOR"],
   audits:       ["ADMIN", "HMS", "LEDER", "BHT", "REVISOR"],
@@ -73,7 +73,7 @@ export const MODULE_LABELS: Record<ModuleKey, string> = {
   ruh:          "RUH – Rapport om uønsket hendelse",
   sja:          "SJA – Sikker jobb-analyse",
   risks:        "Risikovurderinger",
-  forms:        "Skjemaer",
+  wellbeing:    "Psykososialt arbeidsmiljø",
   documents:    "Dokumenter",
   chemicals:    "Stoffkartotek",
   audits:       "Revisjoner",
@@ -112,7 +112,7 @@ export const MODULE_PERMISSION_KEYS: Record<ModuleKey, Array<keyof RolePermissio
     "canApproveSja",
   ],
   risks:        ["canReadRisks", "canApproveRisks", "canDeleteRisks"],
-  forms:        ["canReadForms", "canReadAllFormSubmissions", "canManageForms"],
+  wellbeing:    ["canReadForms", "canReadAllFormSubmissions"],
   documents:    ["canReadDocuments", "canApproveDocuments", "canDeleteDocuments"],
   chemicals:    ["canReadChemicals"],
   audits:       ["canReadAudits", "canConductAudits", "canCloseAudits"],
@@ -133,7 +133,6 @@ export const NAV_PERMISSION_TO_MODULE: Partial<Record<string, ModuleKey>> = {
   incidents: "incidents",
   hseStatistics: "incidents",
   sja: "sja",
-  forms: "forms",
   documents: "documents",
   chemicals: "chemicals",
   audits: "audits",
@@ -158,7 +157,7 @@ export const MODULE_CREATE_PERMISSION: Partial<Record<ModuleKey, keyof RolePermi
   incidents: "canCreateIncidents",
   ruh: "canCreateRuh",
   sja: "canCreateSja",
-  forms: "canFillForms",
+  wellbeing: "canFillForms",
   chemicals: "canCreateChemicals",
   inspections: "canCreateInspections",
   training: "canCreateTraining",

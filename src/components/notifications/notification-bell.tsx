@@ -17,6 +17,10 @@ import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
 
 export function NotificationBell() {
+  return <NotificationBellInner />;
+}
+
+function NotificationBellInner() {
   const pathname = usePathname();
   const {
     notifications,

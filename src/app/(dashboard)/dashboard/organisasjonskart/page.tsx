@@ -27,17 +27,15 @@ export default async function OrgChartPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-3">
-              <Building2 className="h-8 w-8 text-blue-600" />
-              Organisasjonskart
-            </h1>
-            <p className="text-muted-foreground">
-              Hierarkisk oversikt over roller, ansvar og organisering (AML § 3-1)
-            </p>
-          </div>
+      <div className="page-header">
+        <div className="min-w-0">
+          <h1 className="flex items-center gap-2 text-2xl font-bold sm:gap-3 sm:text-3xl">
+            <Building2 className="h-6 w-6 shrink-0 text-blue-600 sm:h-8 sm:w-8" />
+            Organisasjonskart
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground sm:text-base">
+            Hierarkisk oversikt over roller, ansvar og organisering (AML § 3-1)
+          </p>
         </div>
       </div>
 

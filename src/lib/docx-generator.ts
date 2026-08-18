@@ -20,7 +20,14 @@ import {
   ShadingType,
   convertInchesToTwip,
   Packer,
+  Header,
+  Footer,
+  ImageRun,
+  PageNumber,
+  NumberFormat,
 } from "docx";
+import * as fs from "fs";
+import * as path from "path";
 
 // ==================== TYPES ====================
 
@@ -73,11 +80,92 @@ interface GeneratorData {
 
 // ==================== STYLING ====================
 
-const HMS_PRIMARY = "2D9C92"; // Teal
-const HMS_SECONDARY = "3DB88A"; // Green
-const HMS_DARK = "1A1A1A";
-const HMS_GRAY = "666666";
-const HMS_LIGHT_GRAY = "F5F5F5";
+const HMS_PRIMARY = "16a34a"; // HMS Nova grønn (fra brand)
+const HMS_SECONDARY = "15803d"; // Mørkere grønn
+const HMS_DARK = "0f172a"; // Header navy
+const HMS_GRAY = "64748b";
+const HMS_LIGHT_GRAY = "f8fafc";
+
+// ==================== LOGO ====================
+
+let _logoBuffer: Buffer | null = null;
+
+function getLogoBuffer(): Buffer | null {
+  if (_logoBuffer !== null) return _logoBuffer;
+  try {
+    const logoPath = path.join(process.cwd(), "public", "logo-nova.png");
+    if (fs.existsSync(logoPath)) {
+      _logoBuffer = fs.readFileSync(logoPath);
+    } else {
+      _logoBuffer = null;
+    }
+  } catch {
+    _logoBuffer = null;
+  }
+  return _logoBuffer;
+}
+
+function createDocxHeader(companyName: string): Header {
+  const logoBuffer = getLogoBuffer();
+  const children: Paragraph[] = [];
+
+  if (logoBuffer) {
+    children.push(
+      new Paragraph({
+        children: [
+          new ImageRun({
+            data: logoBuffer,
+            transformation: { width: 90, height: 24 },
+            type: "png",
+          }),
+          new TextRun({
+            text: `   ${companyName}`,
+            size: 18,
+            color: HMS_GRAY,
+          }),
+        ],
+        spacing: { after: 80 },
+      })
+    );
+  } else {
+    children.push(
+      new Paragraph({
+        children: [
+          new TextRun({ text: "HMS Nova", bold: true, color: HMS_PRIMARY, size: 20 }),
+          new TextRun({ text: `   ${companyName}`, size: 18, color: HMS_GRAY }),
+        ],
+        spacing: { after: 80 },
+      })
+    );
+  }
+
+  return new Header({ children });
+}
+
+function createDocxFooter(): Footer {
+  return new Footer({
+    children: [
+      new Paragraph({
+        children: [
+          new TextRun({ text: "HMS Nova  ·  hmsnova.no  ·  Side ", size: 16, color: HMS_GRAY }),
+          new TextRun({
+            children: [PageNumber.CURRENT],
+            size: 16,
+            color: HMS_GRAY,
+          }),
+          new TextRun({ text: " av ", size: 16, color: HMS_GRAY }),
+          new TextRun({
+            children: [PageNumber.TOTAL_PAGES],
+            size: 16,
+            color: HMS_GRAY,
+          }),
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 80 },
+      }),
+    ],
+  });
+}
 
 // ==================== HELPER FUNCTIONS ====================
 
@@ -229,7 +317,9 @@ export async function generateDocumentRegister(data: GeneratorData): Promise<Buf
   const doc = new Document({
     sections: [
       {
-        properties: {},
+        properties: { page: { pageNumbers: { formatType: NumberFormat.DECIMAL } } },
+        headers: { default: createDocxHeader(data.companyName) },
+        footers: { default: createDocxFooter() },
         children: [
           // Title
           new Paragraph({
@@ -404,7 +494,9 @@ export async function generateHMSHandbook(data: GeneratorData): Promise<Buffer> 
   const doc = new Document({
     sections: [
       {
-        properties: {},
+        properties: { page: { pageNumbers: { formatType: NumberFormat.DECIMAL } } },
+        headers: { default: createDocxHeader(data.companyName) },
+        footers: { default: createDocxFooter() },
         children: [
           // Title
           new Paragraph({
@@ -604,7 +696,9 @@ export async function generateRiskAssessment(data: GeneratorData): Promise<Buffe
   const doc = new Document({
     sections: [
       {
-        properties: {},
+        properties: { page: { pageNumbers: { formatType: NumberFormat.DECIMAL } } },
+        headers: { default: createDocxHeader(data.companyName) },
+        footers: { default: createDocxFooter() },
         children: [
           // Title
           new Paragraph({
@@ -818,7 +912,9 @@ export async function generateTrainingPlan(data: GeneratorData): Promise<Buffer>
   const doc = new Document({
     sections: [
       {
-        properties: {},
+        properties: { page: { pageNumbers: { formatType: NumberFormat.DECIMAL } } },
+        headers: { default: createDocxHeader(data.companyName) },
+        footers: { default: createDocxFooter() },
         children: [
           // Title
           new Paragraph({
@@ -987,7 +1083,9 @@ export async function generateSafetyRound(data: GeneratorData): Promise<Buffer> 
   const doc = new Document({
     sections: [
       {
-        properties: {},
+        properties: { page: { pageNumbers: { formatType: NumberFormat.DECIMAL } } },
+        headers: { default: createDocxHeader(data.companyName) },
+        footers: { default: createDocxFooter() },
         children: [
           // Title
           new Paragraph({
@@ -1174,7 +1272,9 @@ export async function generateAMUProtocol(data: GeneratorData): Promise<Buffer> 
   const doc = new Document({
     sections: [
       {
-        properties: {},
+        properties: { page: { pageNumbers: { formatType: NumberFormat.DECIMAL } } },
+        headers: { default: createDocxHeader(data.companyName) },
+        footers: { default: createDocxFooter() },
         children: [
           // Title
           new Paragraph({

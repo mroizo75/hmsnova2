@@ -228,7 +228,7 @@ export default async function InspectionDetailPage({
           <CardContent>
             {inspection.formSubmission ? (
               <div className="flex gap-3">
-                <Link href={`/dashboard/forms/${inspection.formTemplate.id}/submissions/${inspection.formSubmissionId}`} className="flex-1">
+                <Link href={`/dashboard/inspections/${id}`} className="flex-1">
                   <Button variant="outline" className="w-full">
                     {t("form.view")}
                   </Button>
@@ -248,7 +248,7 @@ export default async function InspectionDetailPage({
                     {t("form.warning")}
                   </span>
                 </div>
-                <Link href={`/dashboard/forms/${inspection.formTemplate.id}/fill?inspectionId=${id}`}>
+                <Link href={`/dashboard/inspections/${id}/fill`}>
                   <Button className="w-full">
                     {t("form.fillNow")}
                   </Button>

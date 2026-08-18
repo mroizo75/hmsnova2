@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { getDefaultWidgetIdsForIndustry } from "@/features/dashboard/lib/widget-registry";
+import { menuPathsToWidgetIds } from "@/lib/menu-widget-sync";
 import {
   DEFAULT_HMS_PULSE_ITEMS,
   ensureMandatoryHmsPulseItems,
@@ -89,6 +90,21 @@ function resolveActiveTenantId(
   return tenantMemberships[0]?.tenantId ?? null;
 }
 
+/**
+ * Utled widget-IDer fra tenant-data. Prioriterer simpleMenuItems
+ * slik at fliser og enkel meny alltid er i synk.
+ * Faller tilbake til bransje-config hvis simpleMenuItems er tom.
+ */
+function deriveWidgetIdsFromTenant(
+  tenant: { simpleMenuItems?: unknown; industry?: string | null } | null
+): string[] {
+  const menuItems = tenant?.simpleMenuItems;
+  if (Array.isArray(menuItems) && menuItems.length > 0) {
+    return menuPathsToWidgetIds(menuItems as string[]);
+  }
+  return getDefaultWidgetIdsForIndustry(tenant?.industry);
+}
+
 export async function getDashboardConfig(): Promise<{
   success: boolean;
   data?: DashboardWidgetConfig[];
@@ -120,7 +136,7 @@ export async function getDashboardConfig(): Promise<{
 
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
-      select: { industry: true, dashboardLocked: true, lockedDashboardConfig: true },
+      select: { industry: true, simpleMenuItems: true, dashboardLocked: true, lockedDashboardConfig: true },
     });
 
     const membership = user.tenants.find((t) => t.tenantId === tenantId);
@@ -135,10 +151,10 @@ export async function getDashboardConfig(): Promise<{
           locked: true,
         };
       }
-      const defaultWidgetIds = getDefaultWidgetIdsForIndustry(tenant?.industry);
+      const widgetIds = deriveWidgetIdsFromTenant(tenant);
       return {
         success: true,
-        data: defaultWidgetIds.map((id, index) => ({ id, order: index, type: "builtin" as const })),
+        data: widgetIds.map((id, index) => ({ id, order: index, type: "builtin" as const })),
         locked: true,
       };
     }
@@ -148,15 +164,67 @@ export async function getDashboardConfig(): Promise<{
     });
 
     if (!config) {
-      const defaultWidgetIds = getDefaultWidgetIdsForIndustry(tenant?.industry);
+      const widgetIds = deriveWidgetIdsFromTenant(tenant);
       return {
         success: true,
-        data: defaultWidgetIds.map((id, index) => ({ id, order: index, type: "builtin" as const })),
+        data: widgetIds.map((id, index) => ({ id, order: index, type: "builtin" as const })),
       };
     }
 
     const storedWidgets = config.widgets as unknown as DashboardWidgetConfig[];
     return { success: true, data: normalizeDashboardWidgets(storedWidgets) };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Ukjent feil";
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Slett brukerens lagrede dashboard-config og returner bransje-defaults.
+ * Brukes for "Tilbakestill"-knappen i dashboard-redigering.
+ */
+export async function resetDashboardToDefaults(): Promise<{
+  success: boolean;
+  data?: DashboardWidgetConfig[];
+  error?: string;
+}> {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return { success: false, error: "Ikke autentisert" };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      include: { tenants: true },
+    });
+
+    if (!user || user.tenants.length === 0) {
+      return { success: false, error: "Ingen tenant funnet" };
+    }
+
+    const tenantId = resolveActiveTenantId(
+      user.tenants,
+      (session.user as { tenantId?: string }).tenantId
+    );
+    if (!tenantId) {
+      return { success: false, error: "Ingen gyldig tenant-kontekst" };
+    }
+
+    await prisma.dashboardConfig.deleteMany({
+      where: { userId: user.id, tenantId },
+    });
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { industry: true, simpleMenuItems: true },
+    });
+
+    const defaultWidgetIds = deriveWidgetIdsFromTenant(tenant);
+    return {
+      success: true,
+      data: defaultWidgetIds.map((id, index) => ({ id, order: index, type: "builtin" as const })),
+    };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Ukjent feil";
     return { success: false, error: message };

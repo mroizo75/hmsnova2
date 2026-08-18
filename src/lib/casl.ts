@@ -128,11 +128,6 @@ function applyDomainPermissions(perms: typeof rolePermissions[Role], can: Abilit
   }
 
   if (perms.canReadForms) can("read", "FormTemplate");
-  if (perms.canCreateForms) can("create", "FormTemplate");
-  if (perms.canManageForms) {
-    can("update", "FormTemplate");
-    can("delete", "FormTemplate");
-  }
   if (perms.canFillForms) {
     can("create", "FormSubmission");
     can("read", "FormSubmission");

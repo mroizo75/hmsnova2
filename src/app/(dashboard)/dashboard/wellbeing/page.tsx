@@ -15,10 +15,8 @@ import {
   Heart,
   BarChart3,
   MessageSquare,
-  Copy
 } from "lucide-react";
 import Link from "next/link";
-import { CopyFormButton } from "@/components/forms/copy-form-button";
 import { WellbeingReport } from "@/components/wellbeing/wellbeing-report";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -189,7 +187,7 @@ export default async function WellbeingPage() {
       </Card>
 
       {/* Stats cards */}
-      <div className="grid md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -336,21 +334,7 @@ export default async function WellbeingPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-2">
-                        <Link href={`/dashboard/forms/${form.id}?returnUrl=/dashboard/wellbeing`}>
-                          <Button variant="ghost" size="sm" title="Se detaljer">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                        {form.isGlobal ? (
-                          <CopyFormButton formId={form.id} formTitle={form.title} />
-                        ) : (
-                          <Link href={`/dashboard/forms/${form.id}/edit`}>
-                            <Button variant="ghost" size="sm" title="Rediger">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                        )}
-                        <Link href={`/dashboard/forms/${form.id}/fill?returnUrl=/dashboard/wellbeing`}>
+                        <Link href={`/dashboard/wellbeing/${form.id}/fill`}>
                           <Button size="sm" className="bg-green-600 hover:bg-green-700">
                             <FileText className="h-4 w-4 mr-1" />
                             Fyll ut

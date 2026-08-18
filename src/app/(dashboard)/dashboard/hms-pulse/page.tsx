@@ -159,7 +159,7 @@ export default async function HmsPulsePage() {
   }));
   const formOptions = formTemplates.map((template) => ({
     label: template.title,
-    href: `/dashboard/forms/${template.id}`,
+    href: `/dashboard/wellbeing`,
   }));
 
   const complianceStatus = [
@@ -227,26 +227,20 @@ export default async function HmsPulsePage() {
     "/dashboard/documents": documents.length,
     "/dashboard/audits": activeAudits,
     "/dashboard/inspections": openInspections,
-    "/dashboard/forms": formTemplates.length,
+    "/dashboard/wellbeing": formTemplates.length,
   };
 
   for (const form of formTemplates) {
-    itemCountByHref[`/dashboard/forms/${form.id}`] =
-      formSubmissionCountByTemplateId.get(form.id) ?? 0;
+    itemCountByHref[`/dashboard/wellbeing`] =
+      (itemCountByHref[`/dashboard/wellbeing`] ?? 0) + (formSubmissionCountByTemplateId.get(form.id) ?? 0);
   }
 
   for (const option of functionOptions) {
     if (itemCountByHref[option.href] !== undefined) {
       continue;
     }
-    if (option.href.startsWith("/dashboard/forms?q=")) {
-      const q = decodeURIComponent(option.href.split("=")[1] ?? "").trim().toLowerCase();
-      const matchingForms = formTemplates.filter((form) => {
-        const title = form.title.toLowerCase();
-        const description = (form.description || "").toLowerCase();
-        return title.includes(q) || description.includes(q);
-      });
-      itemCountByHref[option.href] = matchingForms.length;
+    if (option.href.startsWith("/dashboard/wellbeing")) {
+      continue;
     }
   }
 
@@ -348,7 +342,7 @@ export default async function HmsPulsePage() {
             {recentFormSubmissions.map((submission) => (
               <Link
                 key={submission.id}
-                href={`/dashboard/forms/${submission.formTemplateId}/submissions/${submission.id}`}
+                href={`/dashboard/wellbeing`}
                 className="flex items-center justify-between rounded-md border p-2 hover:bg-muted/40 transition-colors"
               >
                 <span className="truncate pr-2">{submission.formTemplate.title}</span>

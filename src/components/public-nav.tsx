@@ -11,7 +11,7 @@ export function PublicNav() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b">
+    <nav className="sticky top-0 z-50 border-b bg-white/80 pt-[env(safe-area-inset-top)] backdrop-blur-md">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -20,7 +20,7 @@ export function PublicNav() {
           </Link>
 
           {/* Desktop Menu */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden items-center gap-4 lg:flex xl:gap-6">
             <Link 
               href="/#funksjoner" 
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
@@ -28,16 +28,16 @@ export function PublicNav() {
               Funksjoner
             </Link>
             <Link 
+              href="/bransjer" 
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Bransjer
+            </Link>
+            <Link 
               href="/priser" 
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               Priser
-            </Link>
-            <Link 
-              href="/bedriftshelsetjeneste" 
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              BHT
             </Link>
             <Link 
               href="/digital-hms-tavle" 
@@ -78,7 +78,7 @@ export function PublicNav() {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-md lg:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label={mobileMenuOpen ? "Lukk meny" : "Åpne meny"}
             aria-expanded={mobileMenuOpen}
@@ -93,52 +93,52 @@ export function PublicNav() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-4 space-y-3 border-t">
+          <div className="space-y-1 border-t py-4 lg:hidden">
             <Link 
               href="/#funksjoner" 
-              className="block py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+              className="flex min-h-11 items-center py-3 text-sm font-medium text-muted-foreground hover:text-foreground"
               onClick={() => setMobileMenuOpen(false)}
             >
               Funksjoner
             </Link>
             <Link 
+              href="/bransjer" 
+              className="flex min-h-11 items-center py-3 text-sm font-medium text-muted-foreground hover:text-foreground"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Bransjer
+            </Link>
+            <Link 
               href="/priser" 
-              className="block py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+              className="flex min-h-11 items-center py-3 text-sm font-medium text-muted-foreground hover:text-foreground"
               onClick={() => setMobileMenuOpen(false)}
             >
               Priser
             </Link>
             <Link 
-              href="/bedriftshelsetjeneste" 
-              className="block py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              BHT
-            </Link>
-            <Link 
               href="/digital-hms-tavle" 
-              className="block py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+              className="flex min-h-11 items-center py-3 text-sm font-medium text-muted-foreground hover:text-foreground"
               onClick={() => setMobileMenuOpen(false)}
             >
               Digital HMS Tavle
             </Link>
             <Link 
               href="/hva-er-hms-nova" 
-              className="block py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+              className="flex min-h-11 items-center py-3 text-sm font-medium text-muted-foreground hover:text-foreground"
               onClick={() => setMobileMenuOpen(false)}
             >
               Om HMS Nova
             </Link>
             <Link 
               href="/blogg" 
-              className="block py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+              className="flex min-h-11 items-center py-3 text-sm font-medium text-muted-foreground hover:text-foreground"
               onClick={() => setMobileMenuOpen(false)}
             >
               HMS-blogg
             </Link>
             <Link 
               href="/registrer-bedrift" 
-              className="block py-2 text-sm font-medium text-primary hover:text-primary/80 flex items-center gap-1"
+              className="flex min-h-11 items-center gap-1 py-3 text-sm font-medium text-primary hover:text-primary/80"
               onClick={() => setMobileMenuOpen(false)}
             >
               <Download className="h-4 w-4" />

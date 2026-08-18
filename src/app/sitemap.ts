@@ -1,6 +1,7 @@
 import { MetadataRoute } from "next";
 import { SITE_CONFIG } from "@/lib/seo-config";
 import { prisma } from "@/lib/db";
+import { getAllBransjeSlugs } from "@/lib/bransje-public-data";
 
 /**
  * Dynamisk sitemap for HMS Nova
@@ -175,41 +176,31 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.8,
     },
+    // Bransjesider
+    {
+      url: `${baseUrl}/bransjer`,
+      lastModified: currentDate,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    ...getAllBransjeSlugs().map((slug) => ({
+      url: `${baseUrl}/bransjer/${slug}`,
+      lastModified: currentDate,
+      changeFrequency: "monthly" as const,
+      priority: 0.85,
+    })),
+    // Legacy-sider (redirecter til /bransjer/*)
     {
       url: `${baseUrl}/beste-hms-system-sma-bedrifter`,
       lastModified: currentDate,
       changeFrequency: "monthly",
-      priority: 0.85,
+      priority: 0.5,
     },
     {
       url: `${baseUrl}/beste-hms-system-iso-9001`,
       lastModified: currentDate,
       changeFrequency: "monthly",
-      priority: 0.85,
-    },
-    {
-      url: `${baseUrl}/beste-hms-system-bygg`,
-      lastModified: currentDate,
-      changeFrequency: "monthly",
-      priority: 0.85,
-    },
-    {
-      url: `${baseUrl}/beste-hms-system-helse`,
-      lastModified: currentDate,
-      changeFrequency: "monthly",
-      priority: 0.85,
-    },
-    {
-      url: `${baseUrl}/beste-hms-system-transport`,
-      lastModified: currentDate,
-      changeFrequency: "monthly",
-      priority: 0.85,
-    },
-    {
-      url: `${baseUrl}/beste-hms-system-kontor`,
-      lastModified: currentDate,
-      changeFrequency: "monthly",
-      priority: 0.85,
+      priority: 0.5,
     },
   ];
 

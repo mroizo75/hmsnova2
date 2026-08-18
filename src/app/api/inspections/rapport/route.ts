@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { htmlToPdf } from "@/lib/adobe-pdf";
+import { getLogoBase64, resolveImageToBase64 } from "@/lib/pdf-brand";
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
 import { nb } from "date-fns/locale";
 
@@ -149,6 +150,9 @@ function buildReportHtml(data: {
   periodLabel: string;
   generatedAt: string;
   tenantName: string;
+  tenantOrgNumber?: string | null;
+  tenantLogoBase64?: string;
+  hmsLogoBase64?: string;
   summary: {
     total: number;
     completed: number;
@@ -208,10 +212,10 @@ function buildReportHtml(data: {
   const statsHtml = statsCards
     .map(
       (c) => `
-    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px 20px;min-width:100px;flex:1;">
+    <td style="background-color:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px 20px;vertical-align:top;">
       <div style="font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">${c.label}</div>
       <div style="font-size:26px;font-weight:700;color:${c.color};">${c.value}</div>
-    </div>`
+    </td>`
     )
     .join("");
 
@@ -287,76 +291,102 @@ function buildReportHtml(data: {
     (f) => f.status === "OPEN" || f.status === "IN_PROGRESS"
   ).length;
 
+  const tenantLogoHtml = data.tenantLogoBase64
+    ? `<img src="${data.tenantLogoBase64}" alt="${data.tenantName}" style="height:57px;max-height:57px;width:auto;max-width:260px;" />`
+    : "";
+  const hmsLogoHtml = data.hmsLogoBase64
+    ? `<img src="${data.hmsLogoBase64}" alt="HMS Nova" style="height:36px;width:auto;opacity:0.7;" />`
+    : `<span style="font-size:16px;font-weight:900;color:#16a34a;letter-spacing:-0.5px;">HMS<span style="color:#0f172a;">NOVA</span></span>`;
+
   return `<!DOCTYPE html>
 <html lang="no">
 <head>
 <meta charset="UTF-8"/>
 <style>
-  @page { size: letter landscape; margin: 18mm 20mm 20mm 20mm; }
-  body { font-family: Arial, Helvetica, sans-serif; color: #111827; margin: 0; padding: 0; background: #fff; }
-  h2 { font-size: 18px; color: #14532d; margin: 32px 0 12px; padding-bottom: 6px; border-bottom: 2px solid #d1fae5; }
+  @page { size: letter landscape; margin: 18mm 20mm 40px 20mm; }
+  html, body {
+    font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+    color: #111827; margin: 0; padding: 0; background: #fff;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  h2 { font-size: 18px; color: #0f172a; margin: 32px 0 12px; padding-bottom: 6px; border-bottom: 2px solid #16a34a; }
   h3 { font-size: 13px; color: #14532d; margin: 22px 0 8px; text-transform: uppercase; letter-spacing: .5px; }
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  th { background: #14532d; color: #fff; padding: 9px 10px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+  th { background-color: #16a34a; color: #fff; padding: 9px 10px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
   .page-break { page-break-before: always; }
   .section { margin-bottom: 28px; }
   .no-data { color: #9ca3af; font-size: 13px; font-style: italic; padding: 12px 0; }
   .chart-wrap { margin: 8px 0 18px; }
+  .report-footer { position: fixed; bottom: 0; left: 0; right: 0; border-top: 1px solid #e2e8f0; background-color: #f8fafc; }
+  .report-footer td { padding: 8px 30px; font-size: 9px; color: #94a3b8; vertical-align: middle; }
+  .footer-brand { color: #16a34a; font-weight: 700; }
 </style>
 </head>
 <body>
 
 <!-- HEADER -->
-<div style="background:linear-gradient(135deg,#14532d 0%,#166534 60%,#15803d 100%);color:#fff;padding:28px 36px 24px;border-radius:0 0 12px 12px;margin-bottom:28px;">
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-    <div>
-      <div style="font-size:22px;font-weight:800;letter-spacing:-.3px;margin-bottom:4px;">HMS NOVA</div>
-      <div style="font-size:28px;font-weight:700;margin-bottom:6px;">Inspeksjonsrapport</div>
-      <div style="font-size:16px;opacity:.85;margin-bottom:4px;">${data.periodLabel}</div>
-      <div style="font-size:12px;opacity:.7;">${data.tenantName}</div>
-    </div>
-    <div style="text-align:right;font-size:11px;opacity:.75;">
-      <div>Generert: ${data.generatedAt}</div>
-      <div style="margin-top:4px;">Norsk arbeidsmiljølov § 5-1, § 5-2</div>
-      <div>IK-HMS-forskriften § 5</div>
-    </div>
-  </div>
+<table style="width:100%;border-collapse:collapse;border-bottom:1px solid #e2e8f0;" cellpadding="0" cellspacing="0">
+  <tr>
+    <td style="padding:24px 30px 18px;vertical-align:middle;width:60%;">
+      ${tenantLogoHtml || `<div style="font-size:14px;font-weight:700;color:#0f172a;">${data.tenantName}</div>`}
+      ${tenantLogoHtml ? `<div style="margin-top:4px;"><div style="font-size:14px;font-weight:700;color:#0f172a;">${data.tenantName}</div></div>` : ""}
+      ${data.tenantOrgNumber ? `<div style="font-size:10px;color:#64748b;margin-top:2px;">Org.nr. ${data.tenantOrgNumber}</div>` : ""}
+    </td>
+    <td style="padding:24px 30px 18px;vertical-align:middle;width:40%;text-align:right;">
+      ${hmsLogoHtml}
+    </td>
+  </tr>
+</table>
+<div style="height:4px;background-color:#16a34a;margin:0;"></div>
+
+<!-- Tittel-blokk -->
+<div style="padding:20px 30px 18px;border-bottom:1px solid #e2e8f0;">
+  <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#16a34a;margin-bottom:6px;">Inspeksjonsrapport</div>
+  <div style="font-size:22px;font-weight:800;color:#0f172a;line-height:1.2;">${data.periodLabel}</div>
+  <table style="margin-top:12px;border-collapse:collapse;" cellpadding="0" cellspacing="0">
+    <tr>
+      <td style="font-size:10px;color:#64748b;padding-right:24px;">Generert: <strong style="color:#1e293b;">${data.generatedAt}</strong></td>
+      <td style="font-size:10px;color:#64748b;">Hjemmel: <strong style="color:#1e293b;">AML § 5-1, § 5-2, IK-HMS § 5</strong></td>
+    </tr>
+  </table>
 </div>
 
 <!-- OPPSUMMERING -->
-<div class="section">
+<div class="section" style="padding:0 30px;">
   <h2>Oppsummering</h2>
-  <div style="display:flex;gap:10px;flex-wrap:wrap;">${statsHtml}</div>
+  <table style="width:100%;border-collapse:separate;border-spacing:10px 0;"><tr>${statsHtml}</tr></table>
 </div>
 
 <!-- ANALYSER -->
-<div class="section">
+<div class="section" style="padding:0 30px;">
   <h2>Analyse</h2>
-  <div style="display:flex;gap:32px;flex-wrap:wrap;">
-    <div style="flex:1;min-width:260px;">
+  <table style="width:100%;border-collapse:collapse;"><tr>
+    <td style="width:50%;padding-right:16px;vertical-align:top;">
       <h3>Inspeksjonsstatus</h3>
       <div class="chart-wrap">${statusChartSvg}</div>
-    </div>
-    <div style="flex:1;min-width:260px;">
+    </td>
+    <td style="width:50%;padding-left:16px;vertical-align:top;">
       <h3>Funn per alvorlighetsgrad</h3>
       <div class="chart-wrap">${severityChartSvg}</div>
-    </div>
-  </div>
-  <div style="display:flex;gap:32px;flex-wrap:wrap;margin-top:16px;">
-    <div style="flex:1;min-width:260px;">
+    </td>
+  </tr></table>
+  <table style="width:100%;border-collapse:collapse;margin-top:16px;"><tr>
+    <td style="width:50%;padding-right:16px;vertical-align:top;">
       <h3>Funnstatus</h3>
       <div class="chart-wrap">${findingStatusSvg}</div>
-    </div>
-    <div style="flex:1;min-width:260px;">
+    </td>
+    <td style="width:50%;padding-left:16px;vertical-align:top;">
       <h3>Funn per inspeksjonstype</h3>
       <div class="chart-wrap">${typeChartSvg}</div>
-    </div>
-  </div>
+    </td>
+  </tr></table>
   ${trendSvg ? `<div style="margin-top:16px;"><h3>Månedlig trend – inspeksjoner og funn</h3><div class="chart-wrap">${trendSvg}</div></div>` : ""}
 </div>
 
 <!-- INSPEKSJONER TABELL -->
-<div class="section page-break">
+<div class="section page-break" style="padding:0 30px;">
   <h2>Inspeksjoner i perioden (${data.inspections.length})</h2>
   ${
     data.inspections.length === 0
@@ -380,9 +410,9 @@ function buildReportHtml(data: {
 <!-- ÅPNE TILTAK -->
 ${
   openCount > 0
-    ? `<div class="section">
+    ? `<div class="section" style="padding:0 30px;">
   <h2 style="color:#b91c1c;border-color:#fca5a5;">Åpne tiltak og funn som krever oppfølging (${openCount})</h2>
-  <div style="background:#fff8f0;border:1px solid #fde8c8;border-radius:8px;padding:12px 16px;margin-bottom:12px;font-size:12px;color:#92400e;">
+  <div style="background-color:#fff8f0;border:1px solid #fde8c8;border-radius:8px;padding:12px 16px;margin-bottom:12px;font-size:12px;color:#92400e;">
     Disse funnene er registrert som åpne eller under arbeid. Ledelsen bør følge opp at tiltak gjennomføres innen frist.
     Jf. AML § 3-1 og IK-HMS-forskriften § 5.
   </div>
@@ -398,15 +428,15 @@ ${
     <tbody>${openFindingRowsHtml}</tbody>
   </table>
 </div>`
-    : `<div class="section">
-  <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px;font-size:13px;color:#166534;">
-    ✓ Ingen åpne funn som krever umiddelbar oppfølging i valgt periode.
+    : `<div class="section" style="padding:0 30px;">
+  <div style="background-color:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px;font-size:13px;color:#166534;">
+    Ingen åpne funn som krever umiddelbar oppfølging i valgt periode.
   </div>
 </div>`
 }
 
 <!-- ALLE FUNN -->
-<div class="section page-break">
+<div class="section page-break" style="padding:0 30px;">
   <h2>Alle registrerte funn og tiltak (${data.findings.length})</h2>
   ${
     data.findings.length === 0
@@ -427,11 +457,14 @@ ${
   }
 </div>
 
-<!-- FOOTER -->
-<div style="margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;display:flex;justify-content:space-between;">
-  <span>HMS Nova – Konfidensielt internt dokument</span>
-  <span>Jf. AML § 5-1, § 5-2, IK-HMS-forskriften § 5 | ISO 45001:2018 kap. 9.1</span>
-  <span>Generert: ${data.generatedAt}</span>
+<!-- FOOTER (fixed på hver side) -->
+<div class="report-footer">
+  <table style="width:100%;border-collapse:collapse;" cellpadding="0" cellspacing="0">
+    <tr>
+      <td style="padding:8px 30px;font-size:9px;color:#94a3b8;"><span class="footer-brand">HMS Nova</span> · hmsnova.no</td>
+      <td style="padding:8px 30px;font-size:9px;color:#94a3b8;text-align:right;">${data.tenantName} · Generert ${data.generatedAt}</td>
+    </tr>
+  </table>
 </div>
 
 </body>
@@ -485,7 +518,7 @@ export async function GET(req: NextRequest) {
 
   const tenant = await db.tenant.findUnique({
     where: { id: tenantId },
-    select: { name: true },
+    select: { name: true, orgNumber: true, logoUrl: true },
   });
 
   const allFindings = inspections.flatMap((ins) =>
@@ -554,10 +587,18 @@ export async function GET(req: NextRequest) {
       })
     : [];
 
+  const [tenantLogoBase64, hmsLogoBase64] = await Promise.all([
+    resolveImageToBase64(tenant?.logoUrl),
+    Promise.resolve(getLogoBase64()),
+  ]);
+
   const reportData = {
     periodLabel,
     generatedAt: format(new Date(), "d. MMMM yyyy 'kl.' HH:mm", { locale: nb }),
     tenantName: tenant?.name ?? tenantId,
+    tenantOrgNumber: tenant?.orgNumber,
+    tenantLogoBase64,
+    hmsLogoBase64,
     summary,
     bySeverity,
     byStatus,

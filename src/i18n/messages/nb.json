@@ -16,7 +16,6 @@
     "electro": "Samsvarserklæringer",
     "routines": "Rutiner",
     "legalRegister": "Juridisk register",
-    "forms": "Skjemaer",
     "risks": "Risikovurderinger",
     "riskRegister": "Risiko-register",
     "incidents": "Avvik og hendelser",
@@ -43,6 +42,9 @@
     "actions": "Tiltak",
     "goals": "Mål",
     "orgChart": "Organisasjonskart",
+    "hmsCockpit": "HMS Cockpit",
+    "benchmark": "Benchmark",
+    "support": "Hjelp og support",
     "settings": "Innstillinger",
     "employeeReviews": "Medarbeidersamtaler",
     "hmsTavle": "Digital HMS Tavle",
@@ -50,7 +52,8 @@
     "beredskapReiseliv": "Beredskap – reiseliv",
     "aktivitetssikkerhet": "Aktivitetssikkerhet",
     "transport": "Transport",
-    "bhtNattarbeid": "BHT og nattarbeid"
+    "bhtNattarbeid": "BHT og nattarbeid",
+    "hmsHandbok": "HMS Håndbok"
   },
   "auth": {
     "login": "Logg inn",
@@ -973,35 +976,6 @@
     "emergency": {
       "title": "🚨 Ved akutt fare",
       "description": "Ring 110 (brann), 112 (politi) eller 113 (ambulanse) FØRST! Rapporter deretter avviket her."
-    }
-  },
-  "employeeFormsPage": {
-    "header": {
-      "title": "Digitale skjemaer",
-      "description": "Fyll ut og signer skjemaer digitalt",
-      "toggleScoped": "Vis bransjetilpasset",
-      "toggleAll": "Vis alle skjemaer"
-    },
-    "empty": "Ingen skjemaer tilgjengelig for øyeblikket",
-    "fieldCount": "{count} felt",
-    "badges": {
-      "requiresSignature": "✍️ Krever signatur",
-      "requiresApproval": "✅ Krever godkjenning"
-    },
-    "tip": {
-      "title": "💡 Tips:",
-      "description": "Trykk på et skjema for å fylle det ut. Hvis skjemaet krever signatur, vil du kunne signere digitalt på slutten."
-    },
-    "categories": {
-      "CUSTOM": "Egendefinert",
-      "MEETING": "Møtereferat",
-      "INSPECTION": "Inspeksjon",
-      "INCIDENT": "Hendelsesrapport",
-      "RISK": "Risikovurdering",
-      "TRAINING": "Opplæring",
-      "CHECKLIST": "Sjekkliste",
-      "TIMESHEET": "Timeliste",
-      "WELLBEING": "Psykososialt arbeidsmiljø"
     }
   },
   "employeeInspectionsPage": {
@@ -3386,93 +3360,6 @@
       "draft": "Utkast",
       "approved": "Godkjent",
       "archived": "Arkivert"
-    }
-  },
-  "dashboardFormsPage": {
-    "title": "Digitale skjemaer",
-    "description": "Lag, administrer og analyser egendefinerte skjemaer",
-    "filteredOn": "Filtrert på:",
-    "projectLinkActive": "Prosjektkobling aktiv: utfylling vil knyttes til valgt prosjekt.",
-    "industryDefault": "Viser bransjetilpassede maler som standard.",
-    "actions": {
-      "showIndustry": "Vis bransjetilpasset",
-      "showAllTemplates": "Vis alle maler",
-      "newForm": "Nytt skjema",
-      "createForm": "Opprett skjema"
-    },
-    "stats": {
-      "totalForms": {
-        "title": "Totalt antall skjemaer",
-        "active": "{count} aktive"
-      },
-      "totalSubmissions": {
-        "title": "Totalt antall utfyllinger",
-        "description": "Alle skjemaer"
-      },
-      "averagePerForm": {
-        "title": "Gjennomsnitt per skjema",
-        "description": "Utfyllinger"
-      }
-    },
-    "tips": {
-      "title": "💡 Tips:",
-      "text1": "Klikk på et skjema for å se alle utfyllinger, statistikk og laste ned PDF-er. Bruk målinger for å følge med på hvor ofte skjemaene brukes!",
-      "examplesTitle": "Eksempelmaler:",
-      "text2": "Skjema merket som global er standardmaler. Bruk Kopier hvis du vil endre eller legge til punkter. For globale maler ser vanlige brukere kun egne utfyllinger, mens skjemaansvarlige i bedriften ser alle."
-    },
-    "empty": {
-      "title": "Ingen skjemaer ennå",
-      "description": "Opprett ditt første digitale skjema med vår drag-and-drop builder"
-    },
-    "list": {
-      "title": "Alle skjemaer",
-      "showing": "Viser {from}-{to} av {total}"
-    },
-    "table": {
-      "formName": "Skjemanavn",
-      "category": "Kategori",
-      "status": "Status",
-      "access": "Tilgang",
-      "fields": "Felt",
-      "submissions": "Utfyllinger",
-      "lastUsed": "Sist brukt",
-      "actions": "Handlinger"
-    },
-    "badges": {
-      "exampleTemplate": "Eksempelmal"
-    },
-    "status": {
-      "active": "Aktiv",
-      "inactive": "Inaktiv"
-    },
-    "never": "Aldri",
-    "titles": {
-      "viewDetails": "Se detaljer og statistikk",
-      "fillForm": "Fyll ut skjema",
-      "editForm": "Rediger skjema",
-      "export": "Eksporter alle svar til Excel"
-    },
-    "categories": {
-      "custom": "Egendefinert",
-      "meeting": "Møtereferat",
-      "inspection": "Inspeksjon",
-      "incident": "Hendelsesrapport",
-      "risk": "Risikovurdering",
-      "training": "Opplæring",
-      "checklist": "Sjekkliste",
-      "timesheet": "Timeliste"
-    },
-    "roles": {
-      "admin": "Admin",
-      "leader": "Leder",
-      "safetyRep": "Verneombud",
-      "employee": "Ansatt",
-      "auditor": "Revisor"
-    },
-    "access": {
-      "all": "Alle",
-      "none": "Ingen",
-      "users": "{count} bruker{count, plural, one {} other {e}}"
     }
   },
   "dashboardAuditsPage": {

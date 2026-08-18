@@ -9,7 +9,7 @@ import { AppBreadcrumbs } from "@/components/app-breadcrumbs";
 import { Toaster } from "@/components/ui/toaster";
 import { SessionUser } from "@/types";
 import { DashboardProviders } from "@/components/dashboard-providers";
-
+import { OfflineSyncBannerWrapper } from "@/components/offline-sync-banner-wrapper";
 export default async function DashboardLayout({
   children,
 }: {
@@ -55,11 +55,11 @@ export default async function DashboardLayout({
   // isTavleOnly-kunder: minimal layout uten full HMS Nova-meny
   if (isTavleOnly) {
     return (
-      <div className="flex flex-col lg:flex-row min-h-screen overflow-hidden bg-gray-50">
+      <div className="flex min-h-dvh flex-col overflow-hidden bg-gray-50 lg:flex-row">
         <TavleMobileNav tenantName={sessionUser.tenantName ?? null} />
         <TavleNav tenantName={sessionUser.tenantName ?? null} />
-        <main className="flex-1 p-4 lg:p-8 overflow-x-auto overflow-y-auto">
-          <div className="max-w-[100vw] lg:max-w-none">
+        <main className="min-w-0 flex-1 overflow-y-auto p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4 lg:p-8">
+          <div className="min-w-0 w-full">
             {children}
           </div>
         </main>
@@ -70,12 +70,13 @@ export default async function DashboardLayout({
 
   return (
     <DashboardProviders simpleMenuItems={simpleMenuItems}>
-      <div className="flex flex-col lg:flex-row min-h-screen overflow-hidden">
+      <div className="flex min-h-dvh flex-col overflow-hidden lg:flex-row">
         <MobileNav />
         <DashboardNav />
-        <main className="flex-1 p-4 lg:p-8 overflow-x-auto overflow-y-auto">
-          <div className="max-w-[100vw] lg:max-w-none">
+        <main className="min-w-0 flex-1 overflow-y-auto p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4 lg:p-8">
+          <div className="min-w-0 w-full">
             <AppBreadcrumbs />
+            <OfflineSyncBannerWrapper />
             {children}
           </div>
         </main>

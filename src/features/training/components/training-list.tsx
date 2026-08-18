@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { deleteTraining } from "@/server/actions/training.actions";
 import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   getTrainingStatus,
   getTrainingStatusLabel,
@@ -338,7 +339,7 @@ export function TrainingList({ trainings, tenantUsers = [], requiredCourseKeys =
       {/* === KURS-VISNING === */}
       {viewMode === "courses" && (
         <>
-          <div className="rounded-md border">
+          <div className="hidden rounded-md border md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -497,6 +498,56 @@ export function TrainingList({ trainings, tenantUsers = [], requiredCourseKeys =
             </Table>
           </div>
 
+          <div className="space-y-3 md:hidden">
+            {paginatedTrainings.length === 0 ? (
+              <p className="py-8 text-center text-muted-foreground">Ingen registreringer funnet</p>
+            ) : (
+              paginatedTrainings.map((training) => {
+                const status = getTrainingStatus(training);
+                const statusLabel = getTrainingStatusLabel(status);
+                const statusColor = getTrainingStatusColor(status);
+                return (
+                  <Card key={training.id}>
+                    <CardContent className="space-y-3 p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <Link href={`/dashboard/training/${training.id}`} className="font-medium hover:underline">
+                            {training.title}
+                          </Link>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {training.user?.name || "Ukjent"}
+                            {training.provider ? ` · ${training.provider}` : ""}
+                          </p>
+                        </div>
+                        <Badge className={statusColor}>{statusLabel}</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Gyldig til:{" "}
+                        {training.validUntil
+                          ? new Date(training.validUntil).toLocaleDateString("nb-NO")
+                          : "Utløper ikke"}
+                      </p>
+                      <div className="flex gap-2 border-t pt-2">
+                        <Button variant="outline" size="sm" className="flex-1" asChild>
+                          <Link href={`/dashboard/training/${training.id}`}>Åpne</Link>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(training.id, training.title)}
+                          disabled={loading === training.id}
+                          aria-label="Slett opplæring"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
+          </div>
+
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
@@ -508,7 +559,7 @@ export function TrainingList({ trainings, tenantUsers = [], requiredCourseKeys =
       {/* === ANSATT-VISNING === */}
       {viewMode === "employees" && (
         <>
-          <div className="rounded-md border">
+          <div className="hidden rounded-md border md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -584,6 +635,48 @@ export function TrainingList({ trainings, tenantUsers = [], requiredCourseKeys =
                 )}
               </TableBody>
             </Table>
+          </div>
+
+          <div className="space-y-3 md:hidden">
+            {paginatedEmployees.length === 0 ? (
+              <p className="py-8 text-center text-muted-foreground">Ingen ansatte funnet</p>
+            ) : (
+              paginatedEmployees.map((emp) => {
+                const hasProblems = emp.expiredCount > 0 || emp.missingRequired > 0;
+                const hasWarnings = emp.expiringCount > 0;
+                return (
+                  <Card key={emp.user.id}>
+                    <CardContent className="space-y-3 p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <h3 className="font-medium">{emp.user.name || "Ukjent"}</h3>
+                          <p className="text-sm text-muted-foreground">{emp.user.email}</p>
+                        </div>
+                        {hasProblems ? (
+                          <XCircle className="h-5 w-5 shrink-0 text-red-600" />
+                        ) : hasWarnings ? (
+                          <AlertTriangle className="h-5 w-5 shrink-0 text-yellow-600" />
+                        ) : (
+                          <CheckCircle2 className="h-5 w-5 shrink-0 text-green-600" />
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-sm">
+                        <span>{emp.totalCourses} kurs</span>
+                        {emp.missingRequired > 0 ? (
+                          <Badge variant="destructive" className="text-xs">{emp.missingRequired} mangler</Badge>
+                        ) : null}
+                        {emp.expiringCount > 0 ? (
+                          <Badge className="border-yellow-300 bg-yellow-100 text-xs text-black">{emp.expiringCount} utløper</Badge>
+                        ) : null}
+                        {emp.expiredCount > 0 ? (
+                          <Badge variant="destructive" className="text-xs">{emp.expiredCount} utløpt</Badge>
+                        ) : null}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
           </div>
 
           <Pagination

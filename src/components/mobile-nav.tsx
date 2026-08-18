@@ -22,7 +22,6 @@ import {
   Target,
   Settings,
   LogOut,
-  ClipboardList,
   Beaker,
   ShieldCheck,
   Menu,
@@ -41,6 +40,8 @@ import {
   FileCheck2,
   Building2,
   Monitor,
+  Headphones,
+  BookOpen,
 } from "lucide-react";
 import { usePermissions } from "@/hooks/use-permissions";
 import { getRoleDisplayName } from "@/lib/permissions";
@@ -71,6 +72,7 @@ const navItems: Array<{
 }> = [
   // GRUNNLEGGENDE
   { href: "/dashboard", label: "nav.dashboard", icon: LayoutDashboard, permission: "dashboard" as const, simple: true },
+  { href: "/dashboard/hms-handbok", label: "nav.hmsHandbok", icon: BookOpen, permission: "hmsHandbok" as const, simple: true },
   { href: "/dashboard/documents", label: "nav.documents", icon: FileText, permission: "documents" as const, simple: true },
   { href: "/dashboard/rutiner", label: "nav.routines", icon: ListChecks, permission: "routines" as const, simple: true },
   { href: "/dashboard/samsvarserklaringer", label: "nav.electro", icon: FileCheck2, permission: "documents" as const, simple: true },
@@ -86,9 +88,8 @@ const navItems: Array<{
   { href: "/dashboard/actions", label: "nav.actions", icon: ListTodo, permission: "actions" as const, simple: true },
   { href: "/dashboard/chemicals", label: "nav.chemicals", icon: Beaker, permission: "chemicals" as const, simple: true },
   { href: "/dashboard/exposure-register", label: "nav.exposureRegister", icon: FlaskConical, permission: "exposureRegister" as const, simple: true },
-  { href: "/dashboard/wellbeing", label: "nav.wellbeing", icon: HeartPulse, permission: "forms" as const, simple: true }, // Psykososial = lovpålagt
+  { href: "/dashboard/wellbeing", label: "nav.wellbeing", icon: HeartPulse, permission: "inspections" as const, simple: true },
   // AVANSERT
-  { href: "/dashboard/forms", label: "nav.forms", icon: ClipboardList, permission: "forms" as const, simple: false },
   { href: "/dashboard/risks", label: "nav.risks", icon: AlertTriangle, permission: "risks" as const, simple: false },
   { href: "/dashboard/audits", label: "nav.audits", icon: ClipboardCheck, permission: "audits" as const, simple: false },
   { href: "/dashboard/annual-hms-plan", label: "nav.annualHmsPlan", icon: ListChecks, permission: "annualHmsPlan" as const, simple: true },
@@ -97,6 +98,7 @@ const navItems: Array<{
   { href: "/dashboard/goals", label: "nav.goals", icon: Target, permission: "goals" as const, simple: false },
   // ORGANISASJON & INNSTILLINGER
   { href: "/dashboard/organisasjonskart", label: "nav.orgChart", icon: Building2, permission: "settings" as const, simple: true },
+  { href: "/dashboard/support", label: "nav.support", icon: Headphones, permission: "support" as const, simple: true },
   { href: "/dashboard/settings", label: "nav.settings", icon: Settings, permission: "settings" as const, simple: true },
 ];
 
@@ -179,15 +181,14 @@ export function MobileNav() {
 
   return (
     <div className="lg:hidden">
-      {/* Mobile Header */}
-      <div className="sticky top-0 z-50 border-b bg-card">
+      <div className="sticky top-0 z-50 border-b bg-card pt-[env(safe-area-inset-top)]">
         <div className="flex items-center justify-between px-4 py-3">
           <Image src="/logo-nova.png" alt="HMS Nova" width={100} height={65} />
           <div className="flex items-center gap-2">
             <NotificationBell />
             <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" aria-label="Åpne meny">
                 <Menu className="h-6 w-6" />
               </Button>
             </SheetTrigger>
@@ -235,7 +236,7 @@ export function MobileNav() {
                         href={item.href}
                         onClick={() => setOpen(false)}
                         className={cn(
-                          "flex items-center gap-3 rounded-lg px-3 py-3 text-sm transition-colors",
+                          "flex min-h-11 items-center gap-3 rounded-lg px-3 py-3 text-sm transition-colors",
                           isActive
                             ? "bg-primary text-primary-foreground"
                             : "hover:bg-accent"

@@ -5,11 +5,12 @@ import { prisma } from "@/lib/db";
 import { generateSequenceNumber } from "@/lib/sequence";
 import { getRequiredTenantContext } from "@/lib/tenant-context";
 import { getAuthContext } from "@/lib/server-authorization";
+import { onRuhCreated } from "@/features/hms-ai/lib/event-handler";
 import {
   createRuhSchema,
   updateRuhSchema,
 } from "@/features/ruh/schemas/ruh.schema";
-import { notifyUsersByRole } from "./notification.actions";
+import { notifyUsersByRole, notifyUsersByRoles } from "./notification.actions";
 import { RuhStatus } from "@prisma/client";
 import {
   parseModuleVisibilityConfig,
@@ -188,6 +189,10 @@ export async function createRuhReport(input: any) {
     }
 
     revalidatePath("/dashboard/ruh");
+
+    // HMS Intelligens-motor: analyser mønstre og oppdater score
+    onRuhCreated(tenantId, report.id).catch(() => {});
+
     return { success: true, data: report };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke opprette RUH-rapport" };
@@ -244,15 +249,66 @@ export async function updateRuhReport(input: any) {
       data: updateData,
     });
 
-    await prisma.auditLog.create({
-      data: {
-        tenantId,
-        userId: user.id,
-        action: "RUH_UPDATED",
-        resource: `RuhReport:${report.id}`,
-        metadata: JSON.stringify({ title: report.title, status: report.status }),
-      },
-    });
+    const statusChanged = existing.status !== report.status;
+    const substantiveRuhFields = [
+      "injuryDescription", "involvedPersons", "immediateAction",
+      "suggestedActions", "injuryOccurred", "reviewComment", "completedComment",
+    ] as const;
+    const substantiveChange = substantiveRuhFields.some(
+      (f) => updateData[f] !== undefined && updateData[f] !== (existing as any)[f],
+    );
+
+    void (async () => {
+      try {
+        await prisma.auditLog.create({
+          data: {
+            tenantId,
+            userId: user.id,
+            action: "RUH_UPDATED",
+            resource: `RuhReport:${report.id}`,
+            metadata: JSON.stringify({ title: report.title, status: report.status }),
+          },
+        });
+
+        const tenant = await prisma.tenant.findUnique({
+          where: { id: tenantId },
+          select: { moduleVisibilityConfig: true },
+        });
+        const visConfig = parseModuleVisibilityConfig(tenant?.moduleVisibilityConfig);
+
+        if (statusChanged) {
+          const statusLabels: Record<string, string> = {
+            SUBMITTED: "Innsendt",
+            UNDER_REVIEW: "Under behandling",
+            COMPLETED: "Fullført",
+          };
+          const notifyRoles = getNotifyRolesForModule(visConfig, "ruh", ["ADMIN", "HMS", "LEDER"]);
+          await notifyUsersByRoles(tenantId, notifyRoles, {
+            type: "INCIDENT_UPDATED",
+            title: "RUH-rapport oppdatert",
+            message: `RUH: ${report.title} – Status endret til ${statusLabels[report.status] ?? report.status}`,
+            link: `/dashboard/ruh/${report.id}`,
+          });
+        } else if (substantiveChange) {
+          const changedLabels: string[] = [];
+          if (updateData.injuryDescription !== undefined) changedLabels.push("skadebeskrivelse");
+          if (updateData.involvedPersons !== undefined) changedLabels.push("involverte personer");
+          if (updateData.immediateAction !== undefined) changedLabels.push("strakstiltak");
+          if (updateData.suggestedActions !== undefined) changedLabels.push("foreslåtte tiltak");
+          if (updateData.injuryOccurred !== undefined) changedLabels.push("skade oppstått");
+
+          const notifyRoles = getNotifyRolesForModule(visConfig, "ruh", ["ADMIN", "HMS"]);
+          await notifyUsersByRoles(tenantId, notifyRoles, {
+            type: "INCIDENT_UPDATED",
+            title: "Ny informasjon lagt til i RUH",
+            message: `RUH: ${report.title} – Oppdatert: ${changedLabels.join(", ")}`,
+            link: `/dashboard/ruh/${report.id}`,
+          });
+        }
+      } catch (bgError) {
+        console.error("Background RUH notification error:", bgError);
+      }
+    })();
 
     revalidatePath("/dashboard/ruh");
     revalidatePath(`/dashboard/ruh/${report.id}`);

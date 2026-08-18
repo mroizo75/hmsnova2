@@ -114,7 +114,7 @@ export default async function InspectionMobilePage({
                   <CheckCircle className="h-4 w-4" />
                   <span>{t("form.completed")}</span>
                 </div>
-                <Link href={`/dashboard/forms/${inspection.formTemplate.id}/fill?inspectionId=${id}`}>
+                <Link href={`/dashboard/inspections/${id}`}>
                   <Button variant="outline" className="w-full">
                     {t("form.view")}
                   </Button>
@@ -126,7 +126,7 @@ export default async function InspectionMobilePage({
                   <Clock className="h-4 w-4" />
                   <span>{t("form.warning")}</span>
                 </div>
-                <Link href={`/dashboard/forms/${inspection.formTemplate.id}/fill?inspectionId=${id}`}>
+                <Link href={`/dashboard/inspections/${id}/fill`}>
                   <Button className="w-full">
                     {t("form.fill")}
                   </Button>

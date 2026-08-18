@@ -26,7 +26,6 @@ export function usePermissions() {
         documents: false,
         routines: false,
         legalRegister: false,
-        forms: false,
         risks: false,
         riskRegister: false,
         incidents: false,
@@ -52,6 +51,7 @@ export function usePermissions() {
         constructionCompliance: false,
         hmsTavle: false,
         employeeReviews: false,
+        support: false,
       },
     };
   }
