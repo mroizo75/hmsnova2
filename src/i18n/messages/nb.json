@@ -4377,6 +4377,14 @@
       "createOwnTitle": "💡 Opprett ditt eget vernerunde-skjema",
       "createOwnDescription": "Gå til Skjemaer → Nytt skjema og velg kategori \"Inspeksjon / Vernerunde\"",
       "availableCount": "✅ {count} vernerunde-skjema tilgjengelig"
+    },
+    "riskCategories": {
+      "safety": "Sikkerhet",
+      "health": "Helse",
+      "environmental": "Miljø",
+      "operational": "Operasjonell",
+      "legal": "Juridisk / Regulatorisk",
+      "informationSecurity": "Informasjonssikkerhet"
     }
   },
   "dashboardInspectionEditPage": {

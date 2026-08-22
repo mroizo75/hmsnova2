@@ -111,7 +111,13 @@ export default async function WhistleblowingListPage() {
     redirect("/dashboard");
   }
 
-  const cases = await getWhistleblowings(session.user.tenantId);
+  const [cases, tenant] = await Promise.all([
+    getWhistleblowings(session.user.tenantId),
+    db.tenant.findUnique({
+      where: { id: session.user.tenantId },
+      select: { slug: true },
+    }),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -126,7 +132,7 @@ export default async function WhistleblowingListPage() {
           <PageHelpDialog content={helpContent.whistleblowing} />
         </div>
         <Button asChild variant="outline">
-          <Link href="/varsling">
+          <Link href={`/varsling/${tenant?.slug ?? ""}`} target="_blank">
             <Shield className="mr-2 h-4 w-4" />
             {t("actions.publicPage")}
           </Link>
@@ -198,6 +204,7 @@ export default async function WhistleblowingListPage() {
           </p>
         </div>
       ) : (
+        <>
         <div className="hidden rounded-lg border md:block">
           <Table>
             <TableHeader>
@@ -263,6 +270,7 @@ export default async function WhistleblowingListPage() {
             </div>
           ))}
         </div>
+        </>
       )}
     </div>
   );

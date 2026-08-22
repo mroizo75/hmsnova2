@@ -28,19 +28,25 @@ const applySecurityHeaders = (response: NextResponse): NextResponse => {
   response.headers.set("X-DNS-Prefetch-Control", "on");
 
   // Content-Security-Policy (CSP)
-  // SIKKERHET: Streng CSP uten unsafe-eval
-  // Note: unsafe-inline er nødvendig for Next.js, men vi kompenserer med andre tiltak
+  // I development trenger React eval() for stack trace-rekonstruksjon.
+  // I produksjon er unsafe-eval fjernet for maksimal sikkerhet.
+  const isDev = process.env.NODE_ENV === "development";
+
+  const scriptSrc = isDev
+    ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com"
+    : "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com";
+
   const cspHeader = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com", // Fjernet unsafe-eval
+    scriptSrc,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "img-src 'self' data: blob: https: http:", // Tillat bilder fra R2/CDN
+    "img-src 'self' data: blob: https: http:",
     "font-src 'self' data: https://fonts.gstatic.com",
     "connect-src 'self' https://*.r2.cloudflarestorage.com https://*.cloudflare.com",
     "frame-ancestors 'self'",
     "base-uri 'self'",
     "form-action 'self'",
-    "object-src 'none'", // Blokker plugins (Flash, Java, etc.)
+    "object-src 'none'",
     "media-src 'self'",
     "worker-src 'self' blob:",
     "manifest-src 'self'",

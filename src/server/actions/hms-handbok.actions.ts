@@ -136,7 +136,7 @@ const DEFAULT_SECTIONS = [
     content: "<p>Varslingsrutiner, intern varslingskanal, behandlingsprosess for varsler og vern av varslere. Alle ansatte skal ha tilgang til informasjon om hvordan varsling foregår.</p>",
     legalRef: "AML § 2 A-1 til § 2 A-7, Varslerloven",
     sortOrder: 14,
-    moduleLink: null,
+    moduleLink: "/dashboard/whistleblowing",
   },
   {
     sectionKey: "s12",
