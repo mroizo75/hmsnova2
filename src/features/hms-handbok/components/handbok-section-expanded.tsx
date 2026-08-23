@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { TipTapEditor } from "@/components/admin/tiptap-editor";
 import {
   ExternalLink,
   CheckCircle2,
@@ -127,11 +127,10 @@ export function HandbokSectionExpanded({
           {/* Innhold */}
           {editing && isDraft ? (
             <div className="space-y-3">
-              <Textarea
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                rows={8}
-                className="font-mono text-sm"
+              <TipTapEditor
+                content={editContent}
+                onChange={(html) => setEditContent(html)}
+                placeholder="Skriv innholdet for denne seksjonen..."
               />
               <div className="flex gap-2">
                 <Button onClick={handleSave} disabled={saving} size="sm" className="gap-1.5">
