@@ -168,70 +168,72 @@ export default async function MeetingsPage() {
           )}
         </div>
       ) : (
-        <div className="hidden rounded-lg border md:block">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("table.title")}</TableHead>
-                <TableHead>{t("table.type")}</TableHead>
-                <TableHead>{t("table.date")}</TableHead>
-                <TableHead>{t("table.participants")}</TableHead>
-                <TableHead>{t("table.decisions")}</TableHead>
-                <TableHead>{t("table.status")}</TableHead>
-                <TableHead className="text-right">{t("table.actions")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {meetings.map((meeting) => (
-                <TableRow key={meeting.id}>
-                  <TableCell className="font-medium">{meeting.title}</TableCell>
-                  <TableCell>{getTypeBadge(meeting.type, t)}</TableCell>
-                  <TableCell>
-                    {format(new Date(meeting.scheduledDate), "dd. MMM yyyy HH:mm", { locale: dateLocale })}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Users className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-sm">{meeting.participants.length}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <FileText className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-sm">{meeting.decisions.length}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{getStatusBadge(meeting.status, t)}</TableCell>
-                  <TableCell className="text-right">
-                    <Link href={`/dashboard/meetings/${meeting.id}`}>
-                      <Button variant="ghost" size="sm">
-                        {t("actions.details")}
-                      </Button>
-                    </Link>
-                  </TableCell>
+        <>
+          <div className="hidden rounded-lg border md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("table.title")}</TableHead>
+                  <TableHead>{t("table.type")}</TableHead>
+                  <TableHead>{t("table.date")}</TableHead>
+                  <TableHead>{t("table.participants")}</TableHead>
+                  <TableHead>{t("table.decisions")}</TableHead>
+                  <TableHead>{t("table.status")}</TableHead>
+                  <TableHead className="text-right">{t("table.actions")}</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-        <div className="space-y-3 md:hidden">
-          {meetings.map((meeting) => (
-            <div key={meeting.id} className="rounded-lg border bg-card p-4 space-y-3">
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="min-w-0 font-medium">{meeting.title}</h3>
-                {getStatusBadge(meeting.status, t)}
+              </TableHeader>
+              <TableBody>
+                {meetings.map((meeting) => (
+                  <TableRow key={meeting.id}>
+                    <TableCell className="font-medium">{meeting.title}</TableCell>
+                    <TableCell>{getTypeBadge(meeting.type, t)}</TableCell>
+                    <TableCell>
+                      {format(new Date(meeting.scheduledDate), "dd. MMM yyyy HH:mm", { locale: dateLocale })}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Users className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-sm">{meeting.participants.length}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <FileText className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-sm">{meeting.decisions.length}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{getStatusBadge(meeting.status, t)}</TableCell>
+                    <TableCell className="text-right">
+                      <Link href={`/dashboard/meetings/${meeting.id}`}>
+                        <Button variant="ghost" size="sm">
+                          {t("actions.details")}
+                        </Button>
+                      </Link>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <div className="space-y-3 md:hidden">
+            {meetings.map((meeting) => (
+              <div key={meeting.id} className="rounded-lg border bg-card p-4 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="min-w-0 font-medium">{meeting.title}</h3>
+                  {getStatusBadge(meeting.status, t)}
+                </div>
+                <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+                  {getTypeBadge(meeting.type, t)}
+                  <span>{format(new Date(meeting.scheduledDate), "dd. MMM yyyy HH:mm", { locale: dateLocale })}</span>
+                  <span>{meeting.participants.length} deltakere</span>
+                </div>
+                <Button variant="outline" size="sm" className="w-full" asChild>
+                  <Link href={`/dashboard/meetings/${meeting.id}`}>{t("actions.details")}</Link>
+                </Button>
               </div>
-              <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-                {getTypeBadge(meeting.type, t)}
-                <span>{format(new Date(meeting.scheduledDate), "dd. MMM yyyy HH:mm", { locale: dateLocale })}</span>
-                <span>{meeting.participants.length} deltakere</span>
-              </div>
-              <Button variant="outline" size="sm" className="w-full" asChild>
-                <Link href={`/dashboard/meetings/${meeting.id}`}>{t("actions.details")}</Link>
-              </Button>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
