@@ -47,7 +47,7 @@ const ALL_MODULES = Object.keys(MODULE_DEFAULTS) as ModuleKey[];
 const ROLES_IN_ORDER: Role[] = ["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "ANSATT", "BHT", "REVISOR"];
 
 // Moduler der ansatte alltid kan sende inn, selv om de ikke ser andres data
-const SUBMIT_ONLY_MODULES = new Set<ModuleKey>(["incidents", "ruh", "sja", "forms"]);
+const SUBMIT_ONLY_MODULES = new Set<ModuleKey>(["incidents", "ruh", "sja", "feedback"]);
 
 export function ModuleVisibilitySettings({
   initialConfig,

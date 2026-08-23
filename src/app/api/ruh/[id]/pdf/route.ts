@@ -54,9 +54,15 @@ export async function GET(
     where: { id, tenantId },
     include: {
       tenant: { select: { name: true, orgNumber: true, logoUrl: true } },
-      reportedByUser: { select: { name: true, email: true } },
     },
   });
+
+  const reportedByUser = ruh?.reportedById
+    ? await prisma.user.findUnique({
+        where: { id: ruh.reportedById },
+        select: { name: true, email: true },
+      })
+    : null;
 
   if (!ruh) {
     return NextResponse.json({ error: "RUH-rapport ikke funnet" }, { status: 404 });
@@ -74,7 +80,7 @@ export async function GET(
       orgNumber: ruh.tenant.orgNumber,
       logoUrl: ruh.tenant.logoUrl,
     },
-    generatedBy: ruh.reportedByUser?.name ?? ruh.reportedByUser?.email ?? "Ukjent",
+    generatedBy: reportedByUser?.name ?? reportedByUser?.email ?? ruh.reportedBy ?? "Ukjent",
     generatedAt: now,
     legalReference: "AML § 5-2 (3)b, IK-HMS § 5 nr. 7",
     sections: [
@@ -89,7 +95,7 @@ export async function GET(
               ["Status", STATUS_LABELS[ruh.status] ?? ruh.status],
               ["Dato", fmtDate(ruh.occurredAt)],
               ["Sted", (ruh as any).location ?? "–"],
-              ["Innrapportert av", ruh.reportedByUser?.name ?? ruh.reportedByUser?.email ?? "–"],
+              ["Innrapportert av", reportedByUser?.name ?? reportedByUser?.email ?? ruh.reportedBy ?? "–"],
               ...(ruh.involvedPersons ? [["Involverte", ruh.involvedPersons] as [string, string]] : []),
               ...(ruh.witnessName ? [["Vitne", ruh.witnessName] as [string, string]] : []),
               ["Personskade", ruh.injuryOccurred ? "Ja" : "Nei"],
@@ -115,7 +121,7 @@ export async function GET(
 
   const filename = `RUH-rapport-${(ruh as any).ruhNummer ?? id}-${format(now, "yyyy-MM-dd")}.pdf`;
 
-  return new NextResponse(pdfBuffer, {
+  return new NextResponse(new Uint8Array(pdfBuffer), {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="${filename}"`,

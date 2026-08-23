@@ -62,8 +62,8 @@ export async function markSuggestionImplemented(
     description: string
     legalReference?: string
     routineId?: string
-    beforeSnapshot?: Record<string, unknown>
-    afterSnapshot?: Record<string, unknown>
+    beforeSnapshot?: object
+    afterSnapshot?: object
   },
 ) {
   const context = await requirePermission("canUpdateSettings")
@@ -100,8 +100,8 @@ export async function markSuggestionImplemented(
       suggestionId,
       routineId: input.routineId ?? suggestion.targetRoutineId,
       incidentIds: suggestion.pattern.linkedIncidentIds,
-      beforeSnapshot: input.beforeSnapshot ?? undefined,
-      afterSnapshot: input.afterSnapshot ?? undefined,
+      beforeSnapshot: (input.beforeSnapshot ?? undefined) as any,
+      afterSnapshot: (input.afterSnapshot ?? undefined) as any,
       changedById: context.userId,
       followUpDate,
     },

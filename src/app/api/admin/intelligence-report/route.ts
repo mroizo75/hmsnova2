@@ -31,7 +31,7 @@ export async function GET(request: Request) {
   const quarter = Math.ceil((now.getMonth() + 1) / 3);
   const filename = `HMS_Nova_Safety_Intelligence_${year}_Q${quarter}.xlsx`;
 
-  return new NextResponse(buffer, {
+  return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "Content-Disposition": `attachment; filename="${filename}"`,

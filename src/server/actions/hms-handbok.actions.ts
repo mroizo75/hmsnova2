@@ -912,7 +912,7 @@ export async function getHandbookSuggestions(tenantId: string) {
 const applyTemplateSchema = z.object({
   tenantId: z.string().min(1),
   industryKey: z.string().min(1),
-  variables: z.record(z.string()),
+  variables: z.record(z.string(), z.string()),
 });
 
 export async function applyHandbookTemplate(
@@ -924,8 +924,11 @@ export async function applyHandbookTemplate(
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) return { success: false, error: "Ikke autorisert" };
 
-    const role = session.user.role as import("@prisma/client").Role;
-    if (role !== "SUPERADMIN" && role !== "SUPPORT") {
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { isSuperAdmin: true, isSupport: true },
+    });
+    if (!currentUser?.isSuperAdmin && !currentUser?.isSupport) {
       return { success: false, error: "Kun superadmin/support kan importere maler" };
     }
 

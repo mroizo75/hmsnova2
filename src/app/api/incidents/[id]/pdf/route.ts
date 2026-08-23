@@ -132,7 +132,7 @@ export async function GET(
             m.description,
             m.status,
             m.responsible?.name ?? "–",
-            fmtDate(m.deadline),
+            fmtDate(m.dueAt),
           ]),
         },
       ],
@@ -196,7 +196,7 @@ export async function GET(
 
   const filename = `Avviksrapport-${incident.avviksnummer ?? id}-${format(now, "yyyy-MM-dd")}.pdf`;
 
-  return new NextResponse(pdfBuffer, {
+  return new NextResponse(new Uint8Array(pdfBuffer), {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="${filename}"`,

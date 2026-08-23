@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import type { Prisma } from "@prisma/client";
 import { type TenantDataBucket } from "./anonymizer";
 import { predictRisk } from "./risk-predictor";
 import { getCurrentPeriod } from "./metrics";
@@ -14,7 +15,7 @@ interface ScoreResult {
   measureScore: number;
   inspectionScore: number;
   industryPercentile: number | null;
-  factors: Record<string, unknown>;
+  factors: Prisma.InputJsonValue;
 }
 
 /**
@@ -117,10 +118,10 @@ function computeScore(bucket: TenantDataBucket): ScoreResult {
     inspectionScore,
     industryPercentile: null,
     factors: {
-      riskFactors: prediction.factors,
+      riskFactors: prediction.factors as unknown as Prisma.InputJsonValue,
       incidentRate: bucket.employeeCount > 0 ? bucket.incidents.total / bucket.employeeCount : 0,
       mttr: bucket.incidents.avgMttrDays,
-    },
+    } as unknown as Prisma.InputJsonValue,
   };
 }
 

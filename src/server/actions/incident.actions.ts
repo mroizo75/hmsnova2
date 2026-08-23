@@ -30,6 +30,7 @@ async function getSessionContext() {
     select: {
       id: true,
       email: true,
+      name: true,
     },
   });
   

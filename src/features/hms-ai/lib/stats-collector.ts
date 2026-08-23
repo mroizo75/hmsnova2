@@ -65,9 +65,9 @@ export async function collectAnonymizedStats(
         status: "CLOSED",
       },
     }),
-    prisma.training.count({ where: { tenantId, status: "ACTIVE" } }),
+    prisma.training.count({ where: { tenantId } }),
     prisma.training.count({
-      where: { tenantId, status: "ACTIVE", validUntil: { lte: new Date() } },
+      where: { tenantId, validUntil: { lte: new Date() } },
     }),
     prisma.measure.count({
       where: { tenantId, createdAt: { gte: periodStart, lte: periodEnd } },
@@ -75,15 +75,15 @@ export async function collectAnonymizedStats(
     prisma.measure.count({
       where: {
         tenantId,
-        status: "COMPLETED",
+        status: "DONE",
         completedAt: { gte: periodStart, lte: periodEnd },
       },
     }),
     prisma.measure.count({
       where: {
         tenantId,
-        status: { not: "COMPLETED" },
-        dueDate: { lte: new Date() },
+        status: { not: "DONE" },
+        dueAt: { lte: new Date() },
       },
     }),
     prisma.chemical.count({ where: { tenantId } }),
@@ -143,7 +143,7 @@ export async function collectAnonymizedStats(
   const completedMeasures = await prisma.measure.findMany({
     where: {
       tenantId,
-      status: "COMPLETED",
+      status: "DONE",
       completedAt: { gte: periodStart, lte: periodEnd },
     },
     select: { createdAt: true, completedAt: true },
@@ -167,7 +167,7 @@ export async function collectAnonymizedStats(
     ltir,
     risksTotal: risks,
     risksHighCount: await prisma.risk.count({
-      where: { tenantId, riskScore: { gte: 15 } },
+      where: { tenantId, score: { gte: 15 } },
     }),
     inspectionsTotal: inspections,
     findingsTotal: findings,

@@ -75,12 +75,12 @@ export async function validateApiKey(request: Request): Promise<ApiKeyContext | 
 export async function logApiRequest(
   apiKeyId: string,
   endpoint: string,
-  params: Record<string, unknown> | null,
+  params: object | null,
   startTime: number,
 ) {
   const responseMs = Date.now() - startTime;
   await prisma.intelligenceApiLog.create({
-    data: { apiKeyId, endpoint, params, responseMs },
+    data: { apiKeyId, endpoint, params: params as any, responseMs },
   });
 }
 

@@ -72,7 +72,7 @@ export async function generateAnnualHmsPlanReport(data: AnnualHmsPlanReportData)
         ...(completedPercent < 50
           ? [{ type: "alert" as const, text: `Kun ${completedPercent}% av HMS-planen er fullført. Øk tempo for å nå årets mål.`, severity: "warning" as const }]
           : completedPercent === 100
-          ? [{ type: "alert" as const, text: "Alle steg i HMS-planen er fullført for dette året. Godt jobbet!", severity: "ok" as const }]
+          ? [{ type: "alert" as const, text: "Alle steg i HMS-planen er fullført for dette året. Godt jobbet!", severity: "info" as const }]
           : []),
       ],
     },

@@ -11,7 +11,7 @@ import { nb } from "date-fns/locale";
 import type {
   PreNotificationRequirementResult,
   ConstructionComplianceValidation,
-} from "@/features/construction/lib/construction-compliance";
+} from "@/lib/construction-compliance-rules";
 
 interface ConstructionCompliancePdfData {
   tenantName: string;

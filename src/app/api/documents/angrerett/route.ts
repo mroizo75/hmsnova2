@@ -100,14 +100,17 @@ export async function GET() {
           },
           {
             type: "signature-block",
-            names: ["Dato for bestilling", "Elektronisk aksept i bestillingsskjema"],
+            signatures: [
+              { name: "Dato for bestilling", date: "" },
+              { name: "Elektronisk aksept i bestillingsskjema", date: "" },
+            ],
           },
         ],
       },
     ],
   });
 
-  return new NextResponse(pdfBuffer, {
+  return new NextResponse(new Uint8Array(pdfBuffer), {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",

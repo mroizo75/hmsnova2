@@ -197,9 +197,9 @@ interface TrainingMetrics {
 
 async function getTrainingMetrics(tenantId: string): Promise<TrainingMetrics> {
   const [totalActive, expiredCount] = await Promise.all([
-    prisma.training.count({ where: { tenantId, status: "ACTIVE" } }),
+    prisma.training.count({ where: { tenantId } }),
     prisma.training.count({
-      where: { tenantId, status: "ACTIVE", validUntil: { lte: new Date() } },
+      where: { tenantId, validUntil: { lte: new Date() } },
     }),
   ])
   return {
@@ -219,7 +219,7 @@ async function getRiskMetrics(tenantId: string): Promise<RiskMetrics> {
   const windowDate = daysAgo(365)
   const [totalCount, highRiskCount, assessedLast365] = await Promise.all([
     prisma.risk.count({ where: { tenantId } }),
-    prisma.risk.count({ where: { tenantId, riskScore: { gte: 15 } } }),
+    prisma.risk.count({ where: { tenantId, score: { gte: 15 } } }),
     prisma.riskAssessment.count({
       where: { tenantId, createdAt: { gte: windowDate } },
     }),
@@ -238,12 +238,12 @@ async function getMeasureMetrics(tenantId: string): Promise<MeasureMetrics> {
   const [totalCount, completedCount, overdueCount, closedMeasures] =
     await Promise.all([
       prisma.measure.count({ where: { tenantId } }),
-      prisma.measure.count({ where: { tenantId, status: "COMPLETED" } }),
+      prisma.measure.count({ where: { tenantId, status: "DONE" } }),
       prisma.measure.count({
-        where: { tenantId, status: { not: "COMPLETED" }, dueDate: { lte: new Date() } },
+        where: { tenantId, status: { not: "DONE" }, dueAt: { lte: new Date() } },
       }),
       prisma.measure.findMany({
-        where: { tenantId, status: "COMPLETED", completedAt: { not: null } },
+        where: { tenantId, status: "DONE", completedAt: { not: null } },
         select: { createdAt: true, completedAt: true },
         take: 100,
         orderBy: { completedAt: "desc" },

@@ -134,14 +134,18 @@ export async function GET() {
           },
           {
             type: "signature-block",
-            names: ["Bedrift / org.nr.", "Dato", "Elektronisk aksept i bestillingsskjema"],
+            signatures: [
+              { name: "Bedrift / org.nr.", date: "" },
+              { name: "Dato", date: "" },
+              { name: "Elektronisk aksept i bestillingsskjema", date: "" },
+            ],
           },
         ],
       },
     ],
   });
 
-  return new NextResponse(pdfBuffer, {
+  return new NextResponse(new Uint8Array(pdfBuffer), {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
