@@ -14,6 +14,9 @@ import type {
   LiveHandbookStats,
 } from "@/server/actions/hms-handbok.actions";
 
+// Seksjoner som kun er relevante for ledelse/admin (IK-HMS § 5 nr. 8)
+const ADMIN_ONLY_SECTIONS = new Set(["s9", "s10", "s13", "s14"]);
+
 interface HandbokViewerProps {
   tenantId: string;
   tenantName: string;
@@ -26,6 +29,7 @@ interface HandbokViewerProps {
   currentUserId: string;
   canManage: boolean;
   canApprove: boolean;
+  isEmployee?: boolean;
   suggestions?: Array<{
     id: string;
     title: string;
@@ -63,6 +67,7 @@ export function HandbokViewer({
   currentUserId,
   canManage,
   canApprove,
+  isEmployee = false,
   suggestions = [],
 }: HandbokViewerProps) {
   const currentVersion = handbook.currentVersion;
@@ -167,7 +172,9 @@ export function HandbokViewer({
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Innhold i HMS Håndbok – v{currentVersion.version}
           </h2>
-          {currentVersion.sections.map((section) => (
+          {currentVersion.sections
+            .filter((section) => !isEmployee || !ADMIN_ONLY_SECTIONS.has(section.sectionKey))
+            .map((section) => (
             <HandbokSectionExpanded
               key={section.id}
               section={section}

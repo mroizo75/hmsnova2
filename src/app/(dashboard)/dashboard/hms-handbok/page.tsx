@@ -70,6 +70,7 @@ export default async function HmsHandbokPage() {
         currentUserId={userId}
         canManage={canManage}
         canApprove={canApprove}
+        isEmployee={auth.role === "ANSATT"}
         suggestions={suggestions}
       />
     </div>
