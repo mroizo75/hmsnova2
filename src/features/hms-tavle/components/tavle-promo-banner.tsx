@@ -1,24 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Monitor, X, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const STORAGE_KEY = "hmsnova-tavle-banner-dismissed";
+import { dismissTavleBanner } from "@/server/actions/onboarding.actions";
 
 export function TavlePromoBanner() {
-  const [dismissed, setDismissed] = useState(true);
-
-  useEffect(() => {
-    setDismissed(localStorage.getItem(STORAGE_KEY) === "true");
-  }, []);
+  const [dismissed, setDismissed] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   if (dismissed) return null;
 
   function handleDismiss() {
-    localStorage.setItem(STORAGE_KEY, "true");
     setDismissed(true);
+    startTransition(async () => {
+      await dismissTavleBanner();
+    });
   }
 
   return (
@@ -47,8 +45,9 @@ export function TavlePromoBanner() {
       </Button>
       <button
         onClick={handleDismiss}
+        disabled={isPending}
         className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-blue-200 text-blue-700 hover:bg-blue-300 transition-colors"
-        aria-label="Lukk"
+        aria-label="Lukk permanent"
       >
         <X className="h-3 w-3" />
       </button>

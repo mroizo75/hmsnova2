@@ -307,3 +307,27 @@ export async function toggleSetupGuideVisibility(
     return { success: false, error: "Noe gikk galt" };
   }
 }
+
+export async function dismissTavleBanner(): Promise<{ success: boolean; error?: string }> {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id || !session.user.tenantId) {
+      return { success: false, error: "Ikke autorisert" };
+    }
+
+    const permissions = getPermissions(session.user.role as Role);
+    if (!permissions.canUpdateSettings) {
+      return { success: false, error: "Kun admin kan skjule banneret" };
+    }
+
+    await prisma.tenant.update({
+      where: { id: session.user.tenantId },
+      data: { tavleBannerDismissed: true },
+    });
+
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch {
+    return { success: false, error: "Noe gikk galt" };
+  }
+}

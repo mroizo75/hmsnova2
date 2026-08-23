@@ -233,6 +233,7 @@ model Tenant {
   // Onboarding / Startpakke
   startpakkeCompleted    Boolean  @default(false) // true = startpakke-wizard er fullført av bedriften
   setupGuideHidden       Boolean  @default(false) // true = "Klar for tilsyn"-veiviseren er skjult av admin
+  tavleBannerDismissed   Boolean  @default(false) // true = HMS Tavle promo-banner er permanent skjult
 
   users                               UserTenant[]
   activities                          TenantActivity[]

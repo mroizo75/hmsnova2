@@ -352,7 +352,7 @@ export default async function DashboardPage() {
         dashboardLocked={selectedMembership.tenant.dashboardLocked && userRole !== "ADMIN"}
         setupGuideProgress={setupGuideProgress}
         tenantId={tenantId}
-        showTavleBanner={permissions.canUpdateSettings && !hasTavleSubscription}
+        showTavleBanner={permissions.canUpdateSettings && !hasTavleSubscription && !selectedMembership.tenant.tavleBannerDismissed}
       />
     </div>
   );
