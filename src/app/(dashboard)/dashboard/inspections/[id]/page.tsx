@@ -227,14 +227,26 @@ export default async function InspectionDetailPage({
           </CardHeader>
           <CardContent>
             {inspection.formSubmission ? (
-              <div className="flex gap-3">
-                <Link href={`/dashboard/inspections/${id}`} className="flex-1">
-                  <Button variant="outline" className="w-full">
-                    {t("form.view")}
-                  </Button>
-                </Link>
+              <div className="space-y-4">
+                <div className="rounded-md border p-4 space-y-3">
+                  {inspection.formTemplate.fields.map((field) => {
+                    const value = inspection.formSubmission!.fieldValues.find(
+                      (v) => v.fieldId === field.id,
+                    );
+                    return (
+                      <div key={field.id} className="space-y-1">
+                        <p className="text-sm font-medium text-muted-foreground">
+                          {field.label}
+                        </p>
+                        <p className="text-sm">
+                          {value?.value || "–"}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
                 <Link href={`/api/forms/${inspection.formTemplate.id}/submissions/${inspection.formSubmissionId}/pdf`} target="_blank">
-                  <Button variant="outline">
+                  <Button variant="outline" size="sm">
                     <Download className="h-4 w-4 mr-2" />
                     {t("actions.downloadPdf")}
                   </Button>
