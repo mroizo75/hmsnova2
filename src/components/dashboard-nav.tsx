@@ -47,6 +47,7 @@ import {
   Monitor,
   Headphones,
   BookOpen,
+  Users,
 } from "lucide-react";
 import { usePermissions } from "@/hooks/use-permissions";
 import { getRoleDisplayName } from "@/lib/permissions";
@@ -114,6 +115,7 @@ const navItems: Array<{
   { href: "/dashboard/goals", label: "nav.goals", icon: Target, permission: "goals" as const, simple: false },
   
   // === ORGANISASJON & INNSTILLINGER (vises alltid) ===
+  { href: "/dashboard/brukere", label: "nav.users", icon: Users, permission: "settings" as const, simple: true },
   { href: "/dashboard/organisasjonskart", label: "nav.orgChart", icon: Building2, permission: "settings" as const, simple: true },
   { href: "/dashboard/support", label: "nav.support", icon: Headphones, permission: "support" as const, simple: true },
   { href: "/dashboard/settings", label: "nav.settings", icon: Settings, permission: "settings" as const, simple: true },
