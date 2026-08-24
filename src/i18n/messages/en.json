@@ -1990,6 +1990,11 @@
         "label": "Type of injury/exposure (optional)",
         "placeholder": "E.g.: Cut injury, fall injury, chemical exposure"
       },
+      "immediateAction": {
+        "label": "Immediate actions taken (optional)",
+        "placeholder": "E.g.: Cleaned up spill, secured area, notified supervisor",
+        "help": "Describe what you did right after the incident to limit damage or clean up."
+      },
       "customer": {
         "title": "Customer information",
         "customerName": {

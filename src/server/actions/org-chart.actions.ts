@@ -57,6 +57,7 @@ export async function createOrgChartNode(input: {
     });
 
     revalidatePath("/dashboard/organisasjonskart");
+    revalidatePath("/dashboard");
     return { success: true, data: node };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke opprette node" };
@@ -101,6 +102,7 @@ export async function updateOrgChartNode(input: {
     });
 
     revalidatePath("/dashboard/organisasjonskart");
+    revalidatePath("/dashboard");
     return { success: true, data: node };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke oppdatere node" };
@@ -133,6 +135,7 @@ export async function deleteOrgChartNode(id: string) {
     });
 
     revalidatePath("/dashboard/organisasjonskart");
+    revalidatePath("/dashboard");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke slette node" };

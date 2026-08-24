@@ -384,6 +384,23 @@ export function ReportIncidentForm({
         </p>
       </div>
 
+      {/* Umiddelbare tiltak – valgfritt, nyttig om ansatt har ryddet opp (ISO 9001 kap. 10.2) */}
+      <div className="space-y-2">
+        <Label htmlFor="immediateAction" className="text-base">
+          {t("fields.immediateAction.label")}
+        </Label>
+        <Textarea
+          id="immediateAction"
+          name="immediateAction"
+          placeholder={t("fields.immediateAction.placeholder")}
+          rows={3}
+          className="text-base resize-none"
+        />
+        <p className="text-xs text-muted-foreground">
+          {t("fields.immediateAction.help")}
+        </p>
+      </div>
+
       {/* Personinvolvering og skadeomfang er ukjent ved melding. Uten RUH-modulen
           fyller leder dette ut under behandlingen i stedet. */}
       {ruhModuleEnabled && (

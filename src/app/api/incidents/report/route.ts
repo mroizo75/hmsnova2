@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
         injuryType,
         medicalAttentionRequired: medicalAttention === "yes",
         lostTimeMinutes: lostTime ? parseInt(lostTime, 10) : undefined,
-        immediateAction: null,
+        immediateAction: (formData.get("immediateAction") as string)?.trim() || null,
         suggestedActions: null,
         involvedPersons,
         contributingFactors: incidentContext || undefined,

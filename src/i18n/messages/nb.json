@@ -1991,6 +1991,11 @@
         "label": "Type skade/eksponering (valgfritt)",
         "placeholder": "F.eks: Kuttskade, fallskade, kjemisk eksponering"
       },
+      "immediateAction": {
+        "label": "Umiddelbare tiltak (valgfritt)",
+        "placeholder": "F.eks: Ryddet opp søl, sikret området, varslet leder",
+        "help": "Beskriv hva du gjorde rett etter hendelsen for å begrense skade eller rydde opp."
+      },
       "customer": {
         "title": "Kundeinformasjon",
         "customerName": {
