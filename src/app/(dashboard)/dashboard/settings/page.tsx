@@ -6,7 +6,6 @@ import { prisma } from "@/lib/db";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TenantSettingsForm } from "@/features/settings/components/tenant-settings-form";
 import { UserProfileForm } from "@/features/settings/components/user-profile-form";
-import { UserManagement } from "@/features/settings/components/user-management";
 import { SubscriptionInfo } from "@/features/settings/components/subscription-info";
 import { AzureAdIntegration } from "@/features/settings/components/azure-ad-integration";
 import { NotificationSettings } from "@/features/settings/components/notification-settings";
@@ -19,7 +18,7 @@ import {
   buildMicrosoftAdminConsentUrl,
   type MicrosoftConsentResult,
 } from "@/lib/microsoft-admin-consent";
-import { Building2, User, Users, CreditCard, Cloud, Bell, PanelLeft, Lock, BarChart3, Monitor } from "lucide-react";
+import { Building2, User, CreditCard, Cloud, Bell, PanelLeft, Lock, BarChart3, Monitor } from "lucide-react";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
 import { helpContent } from "@/lib/help-content";
 import { IntelligenceConsentToggle } from "@/features/intelligence/components/consent-toggle";
@@ -83,33 +82,6 @@ export default async function SettingsPage({
   const userTenant = selectedMembership; // Inneholder tenant-spesifikke innstillinger
   const isAdmin = userTenant.role === "ADMIN";
 
-  // Hent alle brukere i tenant (inkl. invitationSentAt for «Aktiver»-knapp)
-  const tenantUsers = await prisma.userTenant.findMany({
-    where: { tenantId },
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          createdAt: true,
-        },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  // Bygg opp brukerliste med employeeNumber, stilling og nærmeste leder for UserManagement
-  const usersWithEmployeeNumber = tenantUsers.map((ut) => ({
-    ...ut,
-    employeeNumber: ut.employeeNumber ?? null,
-    position: ut.position ?? null,
-    managerId: ut.managerId ?? null,
-  }));
-
-  // Hent brukergrense basert på pricing tier
-  const { getSubscriptionLimits } = await import("@/lib/subscription");
-  const limits = getSubscriptionLimits(tenant.pricingTier as any);
 
   // Etter admin-samtykke hos Microsoft sendes admin tilbake hit — åpne SSO-fanen direkte.
   const { consent } = await searchParams;
@@ -169,10 +141,6 @@ export default async function SettingsPage({
             <Bell className="h-4 w-4" />
             <span>{t("tabs.notifications")}</span>
           </TabsTrigger>
-          <TabsTrigger value="users" className="flex shrink-0 items-center gap-2">
-            <Users className="h-4 w-4" />
-            <span>{t("tabs.users")}</span>
-          </TabsTrigger>
           <TabsTrigger value="sso" className="flex shrink-0 items-center gap-2">
             <Cloud className="h-4 w-4" />
             <span>{t("tabs.office365")}</span>
@@ -231,15 +199,6 @@ export default async function SettingsPage({
           <NotificationSettings user={user as any} userTenant={userTenant} tenant={tenant as any} isAdmin={isAdmin} />
         </TabsContent>
 
-        <TabsContent value="users">
-          <UserManagement
-            users={usersWithEmployeeNumber}
-            currentUserId={user.id}
-            isAdmin={isAdmin}
-            pricingTier={tenant.pricingTier}
-            maxUsers={limits.maxUsers}
-          />
-        </TabsContent>
 
         <TabsContent value="sso">
           <AzureAdIntegration

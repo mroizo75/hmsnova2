@@ -75,6 +75,7 @@ const navItems: Array<{
   icon: any;
   permission: string;
   simple: boolean;
+  alwaysShow?: boolean;
   feature?: TenantFeature;
 }> = [
   // === GRUNNLEGGENDE HMS (vises alltid) ===
@@ -114,11 +115,11 @@ const navItems: Array<{
   { href: "/dashboard/whistleblowing", label: "nav.whistleblowing", icon: Shield, permission: "whistleblowing" as const, simple: false },
   { href: "/dashboard/goals", label: "nav.goals", icon: Target, permission: "goals" as const, simple: false },
   
-  // === ORGANISASJON & INNSTILLINGER (vises alltid) ===
-  { href: "/dashboard/brukere", label: "nav.users", icon: Users, permission: "settings" as const, simple: true },
-  { href: "/dashboard/organisasjonskart", label: "nav.orgChart", icon: Building2, permission: "settings" as const, simple: true },
-  { href: "/dashboard/support", label: "nav.support", icon: Headphones, permission: "support" as const, simple: true },
-  { href: "/dashboard/settings", label: "nav.settings", icon: Settings, permission: "settings" as const, simple: true },
+  // === ORGANISASJON & INNSTILLINGER (vises alltid, uavhengig av simpleMenuItems) ===
+  { href: "/dashboard/brukere", label: "nav.users", icon: Users, permission: "settings" as const, simple: true, alwaysShow: true },
+  { href: "/dashboard/organisasjonskart", label: "nav.orgChart", icon: Building2, permission: "settings" as const, simple: true, alwaysShow: true },
+  { href: "/dashboard/support", label: "nav.support", icon: Headphones, permission: "support" as const, simple: true, alwaysShow: true },
+  { href: "/dashboard/settings", label: "nav.settings", icon: Settings, permission: "settings" as const, simple: true, alwaysShow: true },
 ];
 
 export function DashboardNav() {
@@ -192,6 +193,7 @@ export function DashboardNav() {
       return false;
     }
     if (!isSimpleMode) return true;
+    if (item.alwaysShow) return true;
     // I enkel modus: bruk tenant-valg hvis satt, ellers standard (item.simple)
     if (simpleMenuItems !== null && Array.isArray(simpleMenuItems)) {
       return simpleMenuItems.includes(item.href);
