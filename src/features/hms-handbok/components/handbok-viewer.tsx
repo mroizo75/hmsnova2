@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { BookOpen, PenLine, Download, AlertTriangle } from "lucide-react";
+import { TilsynsrapportDialog } from "./tilsynsrapport-dialog";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
 import { HandbokSectionExpanded } from "./handbok-section-expanded";
@@ -114,6 +115,7 @@ export function HandbokViewer({
                 alreadySigned={alreadySigned}
                 versionId={currentVersion?.id}
               />
+              <TilsynsrapportDialog />
               <Button asChild variant="outline" size="sm" className="gap-2">
                 <a href="/api/hms-handbok/pdf" download>
                   <Download className="h-4 w-4" />
