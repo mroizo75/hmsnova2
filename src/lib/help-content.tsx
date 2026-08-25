@@ -1778,4 +1778,39 @@ export const helpContent: Record<string, HelpContent> = {
       "Sørg for at alle ansatte har lest og forstått rutinene som gjelder dem",
     ],
   },
+  forms: {
+    title: "Skjemaer",
+    description: "Bygg egne skjemaer og sjekklister for din virksomhet",
+    sections: [
+      {
+        heading: "Hva er skjemamodulen?",
+        emoji: "📋",
+        content:
+          "Her kan du bygge egendefinerte skjemaer, sjekklister og rapporter tilpasset din virksomhet. Skjemaene kan brukes til vernerunder, møtereferater, inspeksjoner og mye mer.",
+      },
+      {
+        heading: "Slik bruker du skjemabyggeren",
+        emoji: "🛠️",
+        items: [
+          {
+            title: "Opprett nytt skjema",
+            description: "Klikk «Nytt skjema» og dra felt fra biblioteket til skjemaet.",
+          },
+          {
+            title: "Fyll ut skjema",
+            description: "Klikk på et skjema for å fylle det ut. Svarene lagres automatisk.",
+          },
+          {
+            title: "Eksporter data",
+            description: "Eksporter alle svar til Excel for analyse og rapportering.",
+          },
+        ],
+      },
+    ],
+    tips: [
+      "Bruk kategorier for å organisere skjemaene dine",
+      "Globale maler kan kopieres og tilpasses din virksomhet",
+      "Sjekklister kan kobles til vernerunder og inspeksjoner",
+    ],
+  },
 };
