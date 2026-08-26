@@ -37,11 +37,12 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      bodySizeLimit: "50mb", // Øk til 50MB for dokumentopplasting
+      bodySizeLimit: "50mb",
     },
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore — outputFileTracingIgnores finnes i runtime men mangler i TS-typer for denne versjonen
     outputFileTracingIgnores: ["**/storage/**"],
+    workerThreads: false,
   },
   output: "standalone",
 };
