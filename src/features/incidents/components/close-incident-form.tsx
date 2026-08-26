@@ -15,9 +15,11 @@ import { useTranslations } from "next-intl";
 interface CloseIncidentFormProps {
   incidentId: string;
   userId: string;
+  routines?: Array<{ id: string; title: string }>;
+  currentRoutineId?: string | null;
 }
 
-export function CloseIncidentForm({ incidentId, userId }: CloseIncidentFormProps) {
+export function CloseIncidentForm({ incidentId, userId, routines = [], currentRoutineId }: CloseIncidentFormProps) {
   const t = useTranslations("dashboardIncidentCloseForm");
   const router = useRouter();
   const { toast } = useToast();
@@ -28,12 +30,14 @@ export function CloseIncidentForm({ incidentId, userId }: CloseIncidentFormProps
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
+    const relatedRoutineId = formData.get("relatedRoutineId") as string;
     const data = {
       id: incidentId,
       closedBy: userId,
       effectivenessReview: formData.get("effectivenessReview") as string,
       lessonsLearned: formData.get("lessonsLearned") as string || undefined,
       measureEffectiveness: formData.get("measureEffectiveness") as string,
+      relatedRoutineId: relatedRoutineId || null,
     };
 
     try {
@@ -133,6 +137,31 @@ export function CloseIncidentForm({ incidentId, userId }: CloseIncidentFormProps
               {t("hints.lessonsLearned")}
             </p>
           </div>
+
+          {routines.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="relatedRoutineId">Relatert rutine</Label>
+              <p className="text-xs text-muted-foreground">
+                Koble avviket til en rutine som bør vurderes for revisjon
+              </p>
+              <Select
+                name="relatedRoutineId"
+                defaultValue={currentRoutineId ?? undefined}
+                disabled={loading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Velg rutine (valgfritt)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {routines.map((routine) => (
+                    <SelectItem key={routine.id} value={routine.id}>
+                      {routine.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
             <p className="text-sm font-medium text-blue-900 mb-2">{t("compliance.title")}</p>

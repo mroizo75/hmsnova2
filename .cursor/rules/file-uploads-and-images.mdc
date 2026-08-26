@@ -1,0 +1,37 @@
+---
+description: Regler for filopplasting, bildevisning og /api/files/-ruten
+globs: "**/api/files/**,**/api/**/logo/**,**/*upload*,**/*logo*"
+alwaysApply: false
+---
+
+# Filopplasting og bildevisning
+
+## /api/files/ tilgangskontroll
+
+`src/app/api/files/[...path]/route.ts` sjekker eierskap basert på `fileKey`-prefix. Når nye filtyper legges til (f.eks. konsern-logoer), MÅ tilgangskontroll-logikken oppdateres til å tillate den nye prefiksen.
+
+Gjeldende tillatte prefikser:
+- `{tenantId}/` — tenant-eide filer
+- `logos/{tenantId}/` — tenant-logoer
+- `logos/konsern/{corporateGroupId}/` — konsern-logoer
+- `blog/images/` — offentlige blogg-bilder
+
+Når du legger til en ny filtype, sjekk ALLTID at `/api/files/`-ruten tillater den.
+
+## Bilder fra R2/S3
+
+- Lagre **relativ URL** i databasen: `/api/files/logos/konsern/{id}/logo.png`
+- ALDRI lagre full URL med hostname (f.eks. `http://localhost:3000/api/files/...`)
+- Bruk vanlig `<img>` for brukeropplastet innhold — IKKE `next/image`
+- `next/image` krever konfigurert hostname og er kun for statiske/kjente bilder
+
+```tsx
+// ❌ FEIL — next/image for dynamisk innhold
+<Image src={user.logoUrl} alt="Logo" width={96} height={96} />
+
+// ✅ RIKTIG — vanlig img for dynamisk innhold
+<img src={user.logoUrl} alt="Logo" className="h-24 w-24 object-contain" />
+
+// ✅ RIKTIG — next/image for statiske bilder
+<Image src="/logo-nova.png" alt="HMS Nova" width={96} height={96} />
+```

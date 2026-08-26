@@ -11,6 +11,7 @@ import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import {
   LayoutDashboard,
   Building2,
+  Landmark,
   FileText,
   Users,
   Settings,
@@ -24,6 +25,7 @@ import {
   BookOpenCheck,
   Brain,
   Menu,
+  Wrench,
 } from "lucide-react";
 import { Badge } from "./ui/badge";
 
@@ -33,6 +35,8 @@ const allNavItems = [
   { href: "/admin/registrations", label: "Nye registreringer", icon: UserPlus, supportAccess: true },
   { href: "/admin/tenants", label: "Bedrifter", icon: Building2, supportAccess: true },
   { href: "/admin/bht", label: "BHT-kunder", icon: Stethoscope, supportAccess: true },
+  { href: "/admin/service-requests", label: "Serviceforespørsler", icon: Wrench, supportAccess: true },
+  { href: "/admin/konsern", label: "Konsern", icon: Landmark, supportAccess: false },
   { href: "/admin/invoices", label: "Fakturaer", icon: FileText, supportAccess: false },
   { href: "/admin/legal-references", label: "Juridisk register", icon: Scale, supportAccess: true },
   { href: "/admin/routine-library", label: "Rutinebibliotek", icon: BookOpenCheck, supportAccess: true },

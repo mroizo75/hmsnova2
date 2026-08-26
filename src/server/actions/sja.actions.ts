@@ -11,6 +11,7 @@ import {
   createSjaTemplateSchema,
 } from "@/features/sja/schemas/sja.schema";
 import { SjaStatus, SjaConclusion } from "@prisma/client";
+import { AuditLog } from "@/lib/audit-log";
 
 async function getSessionContext() {
   const context = await getRequiredTenantContext();
@@ -74,7 +75,12 @@ export async function getSjaAnalysis(id: string) {
     const analysis = await prisma.sjaAnalysis.findFirst({
       where: { id, tenantId, ...ownerFilter },
       include: {
-        hazards: { orderBy: { sortOrder: "asc" } },
+        hazards: {
+          orderBy: { sortOrder: "asc" },
+          include: {
+            linkedRisk: { select: { id: true, title: true, score: true } },
+          },
+        },
       },
     });
 
@@ -148,21 +154,14 @@ export async function createSjaAnalysis(input: any) {
             riskLevel: h.probability * h.severity,
             measures: h.measures,
             responsibleName: h.responsibleName ?? null,
+            linkedRiskId: h.linkedRiskId ?? null,
           })),
         },
       },
       include: { hazards: true },
     });
 
-    await prisma.auditLog.create({
-      data: {
-        tenantId,
-        userId: user.id,
-        action: "SJA_CREATED",
-        resource: `SjaAnalysis:${analysis.id}`,
-        metadata: JSON.stringify({ title: analysis.title }),
-      },
-    });
+    AuditLog.log(tenantId, user.id, "SJA_CREATED", "SjaAnalysis", analysis.id, { title: analysis.title }).catch(() => {});
 
     revalidatePath("/dashboard/sja");
     if (validated.projectId) {
@@ -232,6 +231,7 @@ export async function updateSjaAnalysis(input: any) {
           riskLevel: h.probability * h.severity,
           measures: h.measures,
           responsibleName: h.responsibleName ?? null,
+          linkedRiskId: h.linkedRiskId ?? null,
         })),
       });
     }
@@ -242,15 +242,15 @@ export async function updateSjaAnalysis(input: any) {
       include: { hazards: { orderBy: { sortOrder: "asc" } } },
     });
 
-    await prisma.auditLog.create({
-      data: {
-        tenantId,
-        userId: user.id,
-        action: "SJA_UPDATED",
-        resource: `SjaAnalysis:${analysis.id}`,
-        metadata: JSON.stringify({ title: analysis.title, status: analysis.status }),
-      },
-    });
+    AuditLog.log(tenantId, user.id, "SJA_UPDATED", "SjaAnalysis", analysis.id, { title: analysis.title, status: analysis.status }).catch(() => {});
+
+    if (validated.conclusion === SjaConclusion.APPROVED || validated.conclusion === SjaConclusion.CONDITIONAL) {
+      AuditLog.log(tenantId, user.id, "SJA_APPROVED", "SjaAnalysis", analysis.id, {
+        title: analysis.title,
+        conclusion: validated.conclusion,
+        conclusionComment: validated.conclusionComment ?? null,
+      }).catch(() => {});
+    }
 
     revalidatePath("/dashboard/sja");
     revalidatePath(`/dashboard/sja/${analysis.id}`);
@@ -275,15 +275,7 @@ export async function deleteSjaAnalysis(id: string) {
 
     await prisma.sjaAnalysis.delete({ where: { id, tenantId } });
 
-    await prisma.auditLog.create({
-      data: {
-        tenantId,
-        userId: user.id,
-        action: "SJA_DELETED",
-        resource: `SjaAnalysis:${id}`,
-        metadata: JSON.stringify({ title: analysis.title }),
-      },
-    });
+    AuditLog.log(tenantId, user.id, "SJA_DELETED", "SjaAnalysis", id, { title: analysis.title }).catch(() => {});
 
     revalidatePath("/dashboard/sja");
     revalidatePath("/ansatt/sja");
@@ -345,15 +337,7 @@ export async function createSjaTemplate(input: any) {
       include: { hazards: true },
     });
 
-    await prisma.auditLog.create({
-      data: {
-        tenantId,
-        userId: user.id,
-        action: "SJA_TEMPLATE_CREATED",
-        resource: `SjaTemplate:${template.id}`,
-        metadata: JSON.stringify({ name: template.name }),
-      },
-    });
+    AuditLog.log(tenantId, user.id, "SJA_TEMPLATE_CREATED", "SjaTemplate", template.id, { name: template.name }).catch(() => {});
 
     revalidatePath("/dashboard/sja");
     revalidatePath("/ansatt/sja");
@@ -380,21 +364,29 @@ export async function deleteSjaTemplate(id: string) {
       data: { isActive: false },
     });
 
-    await prisma.auditLog.create({
-      data: {
-        tenantId,
-        userId: user.id,
-        action: "SJA_TEMPLATE_DELETED",
-        resource: `SjaTemplate:${id}`,
-        metadata: JSON.stringify({ name: template.name }),
-      },
-    });
+    AuditLog.log(tenantId, user.id, "SJA_TEMPLATE_DELETED", "SjaTemplate", id, { name: template.name }).catch(() => {});
 
     revalidatePath("/dashboard/sja");
     revalidatePath("/ansatt/sja");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke slette SJA-mal" };
+  }
+}
+
+export async function getTenantRisksForLinking(_tenantId: string) {
+  try {
+    const context = await getSessionContext();
+
+    const risks = await prisma.risk.findMany({
+      where: { tenantId: context.tenantId },
+      select: { id: true, title: true, score: true },
+      orderBy: { title: "asc" },
+    });
+
+    return { success: true, data: risks };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Kunne ikke hente risikoer" };
   }
 }
 

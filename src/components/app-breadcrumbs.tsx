@@ -45,6 +45,18 @@ const segmentLabels: Record<string, string> = {
   stoffkartotek: "Stoffkartotek",
   opplaering: "Opplaering",
   timeregistrering: "Timeregistrering",
+  konsern: "Konsern",
+  bedrifter: "Bedrifter",
+  brukere: "Brukere",
+  innhold: "Innhold",
+  distribusjon: "Distribusjon",
+  logg: "Revisjonslogg",
+  innstillinger: "Innstillinger",
+  rediger: "Rediger",
+  rutiner: "Rutiner",
+  risikovurderinger: "Risikovurderinger",
+  vernerunder: "Vernerunder",
+  ansatte: "Ansatte",
 };
 
 function isLikelyEntityId(segment: string): boolean {
@@ -55,6 +67,7 @@ function formatSegmentLabel(segment: string, previousSegment?: string): string {
   if (isLikelyEntityId(segment)) {
     if (previousSegment === "projects") return "Prosjekt";
     if (previousSegment === "incidents") return "Avvik";
+    if (previousSegment === "bedrifter") return "Bedrift";
     return "Detalj";
   }
 
@@ -71,7 +84,7 @@ export function AppBreadcrumbs() {
   const segments = pathname.split("/").filter(Boolean);
 
   if (segments.length === 0) return null;
-  if (segments[0] !== "dashboard" && segments[0] !== "ansatt") return null;
+  if (segments[0] !== "dashboard" && segments[0] !== "ansatt" && segments[0] !== "konsern") return null;
 
   const crumbs = segments.map((segment, index) => {
     const href = `/${segments.slice(0, index + 1).join("/")}`;

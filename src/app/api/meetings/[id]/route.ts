@@ -59,6 +59,9 @@ export async function GET(
                 email: true,
               },
             },
+            measure: {
+              select: { id: true, title: true, status: true },
+            },
           },
           orderBy: { createdAt: "asc" },
         },
@@ -143,6 +146,9 @@ export async function PATCH(
                 name: true,
                 email: true,
               },
+            },
+            measure: {
+              select: { id: true, title: true, status: true },
             },
           },
         },

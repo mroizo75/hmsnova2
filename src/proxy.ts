@@ -75,6 +75,7 @@ export async function proxy(request: NextRequest) {
     "/dashboard",
     "/admin",
     "/ansatt",
+    "/konsern",
   ];
 
   const isProtectedRoute = protectedRoutes.some((route) =>
@@ -94,6 +95,18 @@ export async function proxy(request: NextRequest) {
       return applySecurityHeaders(NextResponse.redirect(url));
     }
 
+    // Konsern-bruker uten tenant: redirect til konsern-dashboard
+    if (
+      !token.tenantId &&
+      token.corporateGroupId &&
+      !token.isSuperAdmin &&
+      !token.isSupport &&
+      !pathname.startsWith("/konsern") &&
+      !pathname.startsWith("/api")
+    ) {
+      return applySecurityHeaders(NextResponse.redirect(new URL("/konsern", request.url)));
+    }
+
     // Multi-tenant: Redirect til tenant-velger hvis brukeren har flere tenants og ingen tenant er valgt
     if (
       token.hasMultipleTenants === true &&
@@ -110,6 +123,17 @@ export async function proxy(request: NextRequest) {
       const isSupport = token.isSupport === true;
 
       if (!isSuperAdmin && !isSupport) {
+        return applySecurityHeaders(NextResponse.redirect(new URL("/dashboard", request.url)));
+      }
+    }
+
+    // Konsern access control
+    if (pathname.startsWith("/konsern")) {
+      const hasCorporateGroup = Boolean(token.corporateGroupId);
+      const isSuperAdmin = token.isSuperAdmin === true;
+      const isSupport = token.isSupport === true;
+
+      if (!hasCorporateGroup && !isSuperAdmin && !isSupport) {
         return applySecurityHeaders(NextResponse.redirect(new URL("/dashboard", request.url)));
       }
     }

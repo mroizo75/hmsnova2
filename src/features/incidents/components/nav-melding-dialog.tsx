@@ -99,6 +99,11 @@ export function NavMeldingDialog({ incident, tenant }: NavMeldingDialogProps) {
       a.click();
       URL.revokeObjectURL(url);
       toast({ title: "PDF generert", description: "NAV-meldingen er klar for sending." });
+      await fetch(`/api/incidents/${incident.id}/report-authority`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note: tilleggsInfo }),
+      });
       setOpen(false);
     } catch {
       toast({ title: "Feil", description: "Kunne ikke generere PDF. Prøv igjen.", variant: "destructive" });

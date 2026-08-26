@@ -19,6 +19,8 @@ import {
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { generateRiskAnalysis } from "@/lib/ai";
+import { brregClient } from "@/lib/brreg";
+import { getSubIndustryFromNace } from "@/lib/nace-mapping";
 
 // Valideringsskjemaer
 const updateTenantSchema = z.object({
@@ -1505,6 +1507,28 @@ export async function createTenant(input: z.infer<typeof createTenantSchema>) {
         // Subscription opprettes når tenant aktiveres
       },
     });
+
+    // Hent NACE-kode fra Brreg og persist på tenant
+    if (validated.orgNumber) {
+      try {
+        const enhet = await brregClient.getEnhet(validated.orgNumber);
+        if (enhet?.naeringskode1) {
+          const naceCode = enhet.naeringskode1.kode;
+          const naceDescription = enhet.naeringskode1.beskrivelse;
+          const subIndustry = getSubIndustryFromNace(naceCode);
+          await prisma.tenant.update({
+            where: { id: tenant.id },
+            data: {
+              naceCode,
+              naceDescription,
+              ...(subIndustry ? { subIndustry } : {}),
+            },
+          });
+        }
+      } catch {
+        // NACE-oppslag er ikke kritisk — fortsett uten
+      }
+    }
 
     await provisionIndustryPackage(tenant.id);
 

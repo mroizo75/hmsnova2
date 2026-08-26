@@ -46,6 +46,7 @@ import {
   AlertTriangle,
   Clock,
   Building2,
+  FileText,
 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -97,6 +98,8 @@ interface FireDrill {
   otherTenantsInformed: boolean | null;
   fullBuildingEvacuation: boolean | null;
   totalBuildingOccupants: number | null;
+  routineId: string | null;
+  routine: { id: string; title: string; status: string } | null;
   measures: Measure[];
   createdAt: string;
 }
@@ -448,6 +451,25 @@ export default function FireDrillDetailPage() {
                     <span className="text-muted-foreground">Felles evakueringsøvelse for hele bygget</span>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {drill.routine && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  Koblet rutine
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Link
+                  href={`/dashboard/rutiner/${drill.routine.id}`}
+                  className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                >
+                  {drill.routine.title}
+                </Link>
               </CardContent>
             </Card>
           )}

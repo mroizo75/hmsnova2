@@ -89,6 +89,7 @@ export const DASHBOARD_NAV_CONFIG: DashboardNavItemConfig[] = [
   { href: "/dashboard/hms-cockpit", label: "nav.hmsCockpit", permission: "hmsCockpit", defaultSimple: true },
   { href: "/dashboard/benchmark", label: "nav.benchmark", permission: "benchmark", defaultSimple: false },
   { href: "/dashboard/support", label: "nav.support", permission: "support", defaultSimple: true },
+  { href: "/dashboard/aktivitetslogg", label: "nav.aktivitetslogg", permission: "settings", defaultSimple: false },
   { href: "/dashboard/settings", label: "nav.settings", permission: "settings", defaultSimple: true },
 ];
 

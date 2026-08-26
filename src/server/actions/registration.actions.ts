@@ -12,6 +12,8 @@ import {
   normalizeIndustryValue,
 } from "@/lib/industry-packages";
 import { provisionIndustryPackage } from "@/server/actions/industry-provision.actions";
+import { brregClient } from "@/lib/brreg";
+import { getSubIndustryFromNace } from "@/lib/nace-mapping";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -162,6 +164,26 @@ export async function submitRegistrationRequest(formData: FormData) {
         // VIKTIG: users opprettes FØRST når superadmin aktiverer
       },
     });
+
+    // Hent NACE-kode fra Brreg og persist på tenant
+    try {
+      const enhet = await brregClient.getEnhet(validated.orgNumber);
+      if (enhet?.naeringskode1) {
+        const naceCode = enhet.naeringskode1.kode;
+        const naceDescription = enhet.naeringskode1.beskrivelse;
+        const subIndustry = getSubIndustryFromNace(naceCode);
+        await prisma.tenant.update({
+          where: { id: tenant.id },
+          data: {
+            naceCode,
+            naceDescription,
+            ...(subIndustry ? { subIndustry } : {}),
+          },
+        });
+      }
+    } catch {
+      // NACE-oppslag er ikke kritisk — fortsett uten
+    }
 
     // Opprett bransjepakke idempotent (på registreringstidspunktet)
     await provisionIndustryPackage(tenant.id);

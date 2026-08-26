@@ -19,7 +19,7 @@ export default async function NewSjaPage({ searchParams }: PageProps) {
 
   const { mal: templateId, projectId } = await searchParams;
 
-  const [project, projects, template] = await Promise.all([
+  const [project, projects, template, risks] = await Promise.all([
     projectId
       ? prisma.project.findFirst({
           where: {
@@ -51,6 +51,11 @@ export default async function NewSjaPage({ searchParams }: PageProps) {
           include: { hazards: { orderBy: { sortOrder: "asc" } } },
         })
       : Promise.resolve(null),
+    prisma.risk.findMany({
+      where: { tenantId: session.user.tenantId },
+      select: { id: true, title: true, score: true },
+      orderBy: { title: "asc" },
+    }),
   ]);
 
   const safeProjectId = project?.id;
@@ -137,6 +142,7 @@ export default async function NewSjaPage({ searchParams }: PageProps) {
             userName={session.user.name || session.user.email || "Bruker"}
             projectId={safeProjectId}
             projects={projects}
+            risks={risks}
             successRedirectPath={successRedirectPath}
             initialData={templateData}
           />

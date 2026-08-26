@@ -20,14 +20,21 @@ export async function GET(
     }
     if (!isPublicBlogImage) {
       const sessionTenantId = session?.user?.tenantId;
-      if (!sessionTenantId) {
-        return new NextResponse("Forbidden", { status: 403 });
-      }
-      const ownedByTenant =
-        fileKey.startsWith(`${sessionTenantId}/`) ||
-        fileKey.startsWith(`logos/${sessionTenantId}/`);
-      if (!ownedByTenant) {
-        return new NextResponse("Forbidden", { status: 403 });
+      const corporateGroupId = session?.user?.corporateGroupId;
+
+      const isKonsernLogo =
+        corporateGroupId && fileKey.startsWith(`logos/konsern/${corporateGroupId}/`);
+
+      if (!isKonsernLogo) {
+        if (!sessionTenantId) {
+          return new NextResponse("Forbidden", { status: 403 });
+        }
+        const ownedByTenant =
+          fileKey.startsWith(`${sessionTenantId}/`) ||
+          fileKey.startsWith(`logos/${sessionTenantId}/`);
+        if (!ownedByTenant) {
+          return new NextResponse("Forbidden", { status: 403 });
+        }
       }
     }
 

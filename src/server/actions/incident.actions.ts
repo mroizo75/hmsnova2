@@ -607,6 +607,7 @@ export async function investigateIncident(input: any) {
         investigatedAt: new Date(),
         status: "INVESTIGATING",
         stage: IncidentStage.ROOT_CAUSE,
+        relatedRoutineId: validated.relatedRoutineId ?? undefined,
         updatedAt: new Date(),
       },
     });
@@ -677,6 +678,7 @@ export async function closeIncident(input: any) {
         effectivenessReview: validated.effectivenessReview,
         lessonsLearned: validated.lessonsLearned,
         measureEffectiveness: validated.measureEffectiveness,
+        relatedRoutineId: validated.relatedRoutineId ?? undefined,
         stage: IncidentStage.VERIFIED,
         updatedAt: new Date(),
       },

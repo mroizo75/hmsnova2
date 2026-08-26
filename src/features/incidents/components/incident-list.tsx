@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Eye, Trash2, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Eye, Trash2, Calendar, ChevronLeft, ChevronRight, Send } from "lucide-react";
 import Link from "next/link";
 import { deleteIncident } from "@/server/actions/incident.actions";
 import {
@@ -155,7 +155,14 @@ export function IncidentList({ incidents }: IncidentListProps) {
             return (
               <TableRow key={incident.id}>
                 <TableCell className="font-mono text-sm text-muted-foreground">
-                  {incident.avviksnummer || "–"}
+                  <div className="flex items-center gap-1.5">
+                    {incident.avviksnummer || "–"}
+                    {incident.reportedToAuthorityAt && (
+                      <span title="Varslet til myndigheter">
+                        <Send className="h-3.5 w-3.5 text-orange-500" />
+                      </span>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <div>
@@ -265,8 +272,11 @@ export function IncidentList({ incidents }: IncidentListProps) {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       {incident.avviksnummer && (
-                        <p className="text-xs font-mono text-muted-foreground mb-1">
+                        <p className="text-xs font-mono text-muted-foreground mb-1 flex items-center gap-1.5">
                           {incident.avviksnummer}
+                          {incident.reportedToAuthorityAt && (
+                            <Send className="h-3 w-3 text-orange-500" />
+                          )}
                         </p>
                       )}
                       <h3 className="font-medium line-clamp-1">{incident.title}</h3>

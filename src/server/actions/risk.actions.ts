@@ -12,6 +12,7 @@ import {
 import { ControlFrequency, RiskCategory } from "@prisma/client";
 import { calculateNextReviewDate } from "@/lib/document-utils";
 import { getActionContext } from "./action-context";
+import { AuditLog } from "@/lib/audit-log";
 import { generateRiskAnalysis, generateRiskAssessmentItemDraft } from "@/lib/ai";
 import { getIndustryLabel, isSupportedIndustry } from "@/lib/industry-packages";
 import { z } from "zod";
@@ -251,16 +252,7 @@ export async function createRisk(input: any) {
       },
     });
     
-    // Audit log
-    await prisma.auditLog.create({
-      data: {
-        tenantId,
-        userId: user.id,
-        action: "RISK_CREATED",
-        resource: `Risk:${risk.id}`,
-        metadata: JSON.stringify({ title: risk.title, score }),
-      },
-    });
+    AuditLog.log(tenantId, user.id, "RISK_CREATED", "Risk", risk.id, { title: risk.title, score }).catch(() => {});
     
     revalidatePath("/dashboard/risks");
     return { success: true, data: risk };
@@ -364,15 +356,7 @@ export async function updateRisk(input: any) {
       data: updateData,
     });
     
-    await prisma.auditLog.create({
-      data: {
-        tenantId,
-        userId: user.id,
-        action: "RISK_UPDATED",
-        resource: `Risk:${risk.id}`,
-        metadata: JSON.stringify({ title: risk.title, score }),
-      },
-    });
+    AuditLog.log(tenantId, user.id, "RISK_UPDATED", "Risk", risk.id, { title: risk.title, score }).catch(() => {});
     
     revalidatePath("/dashboard/risks");
     revalidatePath(`/dashboard/risks/${risk.id}`);
@@ -400,15 +384,7 @@ export async function deleteRisk(id: string) {
       where: { id, tenantId },
     });
     
-    await prisma.auditLog.create({
-      data: {
-        tenantId,
-        userId: user.id,
-        action: "RISK_DELETED",
-        resource: `Risk:${id}`,
-        metadata: JSON.stringify({ title: risk.title }),
-      },
-    });
+    AuditLog.log(tenantId, user.id, "RISK_DELETED", "Risk", id, { title: risk.title }).catch(() => {});
     
     revalidatePath("/dashboard/risks");
     return { success: true };
@@ -481,15 +457,7 @@ export async function createRiskAssessment(input: {
       },
     });
 
-    await prisma.auditLog.create({
-      data: {
-        tenantId,
-        userId: user.id,
-        action: "RISK_ASSESSMENT_CREATED",
-        resource: `RiskAssessment:${assessment.id}`,
-        metadata: JSON.stringify({ title: assessment.title, year: assessment.assessmentYear }),
-      },
-    });
+    AuditLog.log(tenantId, user.id, "RISK_ASSESSMENT_CREATED", "RiskAssessment", assessment.id, { title: assessment.title, year: assessment.assessmentYear }).catch(() => {});
 
     revalidatePath("/dashboard/risks");
     revalidatePath(`/dashboard/risks/assessment/${assessment.id}`);
@@ -540,18 +508,10 @@ export async function updateRiskAssessment(input: {
       },
     });
 
-    await prisma.auditLog.create({
-      data: {
-        tenantId,
-        userId: user.id,
-        action: "RISK_ASSESSMENT_UPDATED",
-        resource: `RiskAssessment:${assessment.id}`,
-        metadata: JSON.stringify({
-          title: assessment.title,
-          previousTitle: validated.title !== undefined ? existing.title : undefined,
-        }),
-      },
-    });
+    AuditLog.log(tenantId, user.id, "RISK_ASSESSMENT_UPDATED", "RiskAssessment", assessment.id, {
+      title: assessment.title,
+      previousTitle: validated.title !== undefined ? existing.title : undefined,
+    }).catch(() => {});
 
     revalidatePath(`/dashboard/risks/assessment/${assessment.id}`);
     revalidatePath("/dashboard/risks");
@@ -612,15 +572,7 @@ export async function deleteRiskAssessment(assessmentId: string) {
 
     await prisma.riskAssessment.delete({ where: { id: assessmentId } });
 
-    await prisma.auditLog.create({
-      data: {
-        tenantId,
-        userId: user.id,
-        action: "RISK_ASSESSMENT_DELETED",
-        resource: `RiskAssessment:${assessmentId}`,
-        metadata: JSON.stringify({ title: assessment.title, risksCount: assessment._count.risks }),
-      },
-    });
+    AuditLog.log(tenantId, user.id, "RISK_ASSESSMENT_DELETED", "RiskAssessment", assessmentId, { title: assessment.title, risksCount: assessment._count.risks }).catch(() => {});
 
     revalidatePath("/dashboard/risks");
     return { success: true };
@@ -645,7 +597,7 @@ export async function addRiskAssessmentItem(input: {
   suggestedMeasures?: string[];
 }) {
   try {
-    const { tenantId: ctxTenantId } = await getActionContext();
+    const { user, tenantId: ctxTenantId } = await getActionContext();
     if (input.tenantId !== ctxTenantId) return { success: false, error: "Ugyldig tenant" };
 
     const assessment = await prisma.riskAssessment.findFirst({
@@ -708,6 +660,13 @@ export async function addRiskAssessmentItem(input: {
 
       return createdRisk;
     });
+
+    AuditLog.log(ctxTenantId, user.id, "RISK_CREATED", "Risk", risk.id, {
+      title: risk.title,
+      score: risk.score,
+      riskAssessmentId: input.riskAssessmentId,
+      measuresCount: normalizedMeasures.length,
+    }).catch(() => {});
 
     revalidatePath("/dashboard/risks");
     revalidatePath(`/dashboard/risks/assessment/${input.riskAssessmentId}`);
@@ -806,12 +765,20 @@ export async function previewAiRiskSuggestions() {
       select: {
         industry: true,
         employeeCount: true,
+        naceCode: true,
+        naceDescription: true,
+        subIndustry: true,
       },
     });
 
     if (!tenant) {
       return { success: false, error: "Bedrift ikke funnet" };
     }
+
+    const activityProfile = await prisma.tenantActivityProfile.findUnique({
+      where: { tenantId },
+      select: { activeActivities: true },
+    });
 
     const [existingRisks, existingIncidents] = await Promise.all([
       prisma.risk.findMany({
@@ -828,8 +795,22 @@ export async function previewAiRiskSuggestions() {
       }),
     ]);
 
+    let industryLabel = resolveIndustryPromptLabel(tenant.industry);
+    if (tenant.naceCode && tenant.naceDescription) {
+      industryLabel += ` (NACE ${tenant.naceCode}: ${tenant.naceDescription})`;
+    }
+    if (tenant.subIndustry) {
+      industryLabel += `, sub-bransje: ${tenant.subIndustry}`;
+    }
+    if (activityProfile?.activeActivities) {
+      const activities = activityProfile.activeActivities as string[];
+      if (activities.length > 0) {
+        industryLabel += `. Aktive aktiviteter: ${activities.join(", ")}`;
+      }
+    }
+
     const analysis = await generateRiskAnalysis(
-      resolveIndustryPromptLabel(tenant.industry),
+      industryLabel,
       tenant.employeeCount || 1,
       existingRisks.map((item) => item.title),
       existingIncidents.map((item) => item.title),
@@ -870,7 +851,7 @@ export async function applyAiRiskSuggestions(input: {
   suggestions: Array<{ title: string; severity: string; category: string }>;
 }) {
   try {
-    const { tenantId, role } = await getActionContext();
+    const { user, tenantId, role } = await getActionContext();
     const permissions = getPermissions(role);
     if (!permissions.canCreateRisks) {
       return { success: false, error: "Ingen tilgang til å lagre AI-risikoforslag" };
@@ -951,6 +932,12 @@ export async function applyAiRiskSuggestions(input: {
         created += 1;
       }
     });
+
+    AuditLog.log(tenantId, user.id, "RISK_AI_SUGGESTIONS_APPLIED", "RiskAssessment", tenantId, {
+      assessmentTitle: validated.assessmentTitle,
+      created,
+      skipped,
+    }).catch(() => {});
 
     revalidatePath("/dashboard/risks");
     return { success: true, data: { created, skipped } };

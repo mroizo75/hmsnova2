@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/server-authorization";
 import { prisma } from "@/lib/db";
-import { getHandbookData, getHandbookSuggestions } from "@/server/actions/hms-handbok.actions";
+import { getHandbookData, getHandbookSuggestions, getVersionHistory } from "@/server/actions/hms-handbok.actions";
 import { HandbokViewer } from "@/features/hms-handbok/components/handbok-viewer";
+import { HandbokVersionHistory } from "@/features/hms-handbok/components/handbok-version-history";
 import { BookOpen } from "lucide-react";
 
 export const metadata = { title: "HMS Håndbok" };
@@ -15,7 +16,7 @@ export default async function HmsHandbokPage() {
     redirect("/dashboard");
   }
 
-  const [tenant, handbookResult, suggestions] = await Promise.all([
+  const [tenant, handbookResult, suggestions, versionHistory] = await Promise.all([
     prisma.tenant.findUniqueOrThrow({
       where: { id: tenantId },
       select: {
@@ -28,6 +29,7 @@ export default async function HmsHandbokPage() {
     }),
     getHandbookData(tenantId),
     getHandbookSuggestions(tenantId),
+    getVersionHistory(tenantId),
   ]);
 
   if (!handbookResult.success) {
@@ -73,6 +75,23 @@ export default async function HmsHandbokPage() {
         isEmployee={auth.role === "ANSATT"}
         suggestions={suggestions}
       />
+
+      {canManage && versionHistory.length > 0 && (
+        <HandbokVersionHistory
+          versions={versionHistory.map((v) => ({
+            id: v.id,
+            version: v.version,
+            status: v.status,
+            changeNote: v.changeNote,
+            rejectedNote: v.rejectedNote,
+            approvedAt: v.approvedAt?.toISOString() ?? null,
+            publishedAt: v.publishedAt?.toISOString() ?? null,
+            createdAt: v.createdAt.toISOString(),
+            approvedBy: v.approvedBy,
+            _count: v._count,
+          }))}
+        />
+      )}
     </div>
   );
 }

@@ -436,6 +436,10 @@ export async function updateDocument(input: any) {
       return { success: false, error: "Dokument ikke funnet" };
     }
 
+    if (document.isLockedByGroup) {
+      return { success: false, error: "Dette dokumentet er styrt av konsernet og kan ikke redigeres lokalt" };
+    }
+
     if (validated.ownerId) {
       try {
         await assertTenantUser(document.tenantId, validated.ownerId);

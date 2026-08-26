@@ -2,14 +2,19 @@
 
 import { brregClient, type BrregEnhet } from "@/lib/brreg";
 
-/**
- * Valider og hent bedriftsinformasjon fra Brønnøysundregistrene
- */
-export async function validateOrgNumber(orgNumber: string): Promise<{
+export interface BrregValidationResult {
   success: boolean;
   data?: BrregEnhet;
+  naceCode?: string;
+  naceDescription?: string;
   error?: string;
-}> {
+}
+
+/**
+ * Valider og hent bedriftsinformasjon fra Brønnøysundregistrene.
+ * Returnerer også NACE-kode (naeringskode1) når tilgjengelig.
+ */
+export async function validateOrgNumber(orgNumber: string): Promise<BrregValidationResult> {
   try {
     const enhet = await brregClient.getEnhet(orgNumber);
 
@@ -23,6 +28,8 @@ export async function validateOrgNumber(orgNumber: string): Promise<{
     return {
       success: true,
       data: enhet,
+      naceCode: enhet.naeringskode1?.kode,
+      naceDescription: enhet.naeringskode1?.beskrivelse,
     };
   } catch (error: any) {
     console.error("Validate org number error:", error);

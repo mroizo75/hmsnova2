@@ -41,6 +41,7 @@ import {
   Building2,
   Monitor,
   Headphones,
+  Activity,
   BookOpen,
   Users,
 } from "lucide-react";
@@ -101,6 +102,7 @@ const navItems: Array<{
   // ORGANISASJON & INNSTILLINGER (vises alltid)
   { href: "/dashboard/brukere", label: "nav.users", icon: Users, permission: "settings" as const, simple: true, alwaysShow: true },
   { href: "/dashboard/organisasjonskart", label: "nav.orgChart", icon: Building2, permission: "settings" as const, simple: true, alwaysShow: true },
+  { href: "/dashboard/aktivitetslogg", label: "nav.aktivitetslogg", icon: Activity, permission: "settings" as const, simple: false, alwaysShow: true },
   { href: "/dashboard/support", label: "nav.support", icon: Headphones, permission: "support" as const, simple: true, alwaysShow: true },
   { href: "/dashboard/settings", label: "nav.settings", icon: Settings, permission: "settings" as const, simple: true, alwaysShow: true },
 ];

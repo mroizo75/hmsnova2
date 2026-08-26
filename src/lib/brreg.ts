@@ -37,6 +37,10 @@ export interface BrregEnhet {
   overordnetEnhet?: string;
   registreringsdatoEnhetsregisteret?: string;
   slettedato?: string;
+  naeringskode1?: {
+    kode: string;
+    beskrivelse: string;
+  };
 }
 
 export class BrregClient {

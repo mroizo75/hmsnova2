@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
         participantIds: validated.participantIds
           ? JSON.stringify(validated.participantIds)
           : null,
+        routineId: validated.routineId ?? null,
         status: "PLANNED",
       },
     });

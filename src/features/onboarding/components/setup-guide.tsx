@@ -17,9 +17,19 @@ import {
   EyeOff,
   Loader2,
   Trophy,
+  ClipboardCheck,
+  FileCheck,
+  AlertTriangle,
+  Bell,
+  Flame,
+  ChevronDown,
+  ChevronRight,
+  X,
 } from "lucide-react";
 import { toggleSetupGuideVisibility } from "@/server/actions/onboarding.actions";
-import type { SetupGuideProgress } from "@/server/actions/onboarding.actions";
+import { dismissServiceOffer } from "@/server/actions/service-request.actions";
+import type { SetupGuideProgress, SetupGuideGroup } from "@/server/actions/onboarding.actions";
+import { ServiceRequestDialog } from "./service-request-dialog";
 
 const ICON_MAP: Record<string, React.ElementType> = {
   Users,
@@ -27,6 +37,11 @@ const ICON_MAP: Record<string, React.ElementType> = {
   BookOpen,
   ShieldAlert,
   PenLine,
+  ClipboardCheck,
+  FileCheck,
+  AlertTriangle,
+  Bell,
+  Flame,
 };
 
 interface SetupGuideProps {
@@ -37,90 +52,199 @@ interface SetupGuideProps {
 export function SetupGuide({ tenantId, progress }: SetupGuideProps) {
   const [hidden, setHidden] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
+    () => {
+      const initial: Record<string, boolean> = {};
+      for (const g of progress.groups) {
+        initial[g.key] = g.percentage < 100;
+      }
+      return initial;
+    },
+  );
+  const [offerDismissed, setOfferDismissed] = useState(progress.serviceOfferDismissed);
+  const [showServiceDialog, setShowServiceDialog] = useState(false);
+  const [isDismissing, startDismissTransition] = useTransition();
 
   if (hidden) return null;
 
-  const percent =
-    progress.totalSteps > 0
-      ? Math.round((progress.totalCompleted / progress.totalSteps) * 100)
-      : 0;
-
-  const allDone = progress.totalCompleted === progress.totalSteps;
+  const allDone = progress.completedCount === progress.totalCount;
 
   function handleHide() {
     startTransition(async () => {
-      const result = await toggleSetupGuideVisibility({
-        tenantId,
-        hidden: true,
-      });
+      const result = await toggleSetupGuideVisibility({ tenantId, hidden: true });
       if (result.success) setHidden(true);
     });
   }
 
-  return (
-    <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            {allDone ? (
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30">
-                <Trophy className="h-5 w-5 text-green-600" />
-              </div>
-            ) : (
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                <ShieldAlert className="h-5 w-5 text-primary" />
-              </div>
-            )}
-            <div>
-              <CardTitle className="text-lg">
-                {allDone ? "Klar for tilsyn!" : "Bli klar for tilsyn"}
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                {allDone
-                  ? "Alle grunnleggende HMS-steg er fullført. Godt jobbet!"
-                  : `${progress.totalCompleted} av ${progress.totalSteps} steg fullført`}
-              </p>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleHide}
-            disabled={isPending}
-            className="shrink-0 text-xs text-muted-foreground"
-          >
-            {isPending ? (
-              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-            ) : (
-              <EyeOff className="mr-1 h-3 w-3" />
-            )}
-            Skjul
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <Progress value={percent} className="h-2" />
+  function toggleGroup(key: string) {
+    setExpandedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
 
-        <div className="space-y-1">
-          {progress.steps.map((step) => {
+  function handleDismissOffer() {
+    startDismissTransition(async () => {
+      const result = await dismissServiceOffer();
+      if (result.success) setOfferDismissed(true);
+    });
+  }
+
+  return (
+    <>
+      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background">
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              {allDone ? (
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30">
+                  <Trophy className="h-5 w-5 text-green-600" />
+                </div>
+              ) : (
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                  <ShieldAlert className="h-5 w-5 text-primary" />
+                </div>
+              )}
+              <div>
+                <CardTitle className="text-lg">
+                  {allDone ? "Klar for tilsyn!" : "Bli klar for tilsyn"}
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {allDone
+                    ? "Alle grunnleggende HMS-steg er fullført. Godt jobbet!"
+                    : `${progress.compliancePercentage}% compliance – ${progress.completedCount} av ${progress.totalCount} steg fullført`}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleHide}
+              disabled={isPending}
+              className="shrink-0 text-xs text-muted-foreground"
+            >
+              {isPending ? (
+                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+              ) : (
+                <EyeOff className="mr-1 h-3 w-3" />
+              )}
+              Skjul
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Progress value={progress.compliancePercentage} className="h-2" />
+
+          <div className="space-y-3">
+            {progress.groups.map((group) => (
+              <StepGroup
+                key={group.key}
+                group={group}
+                expanded={expandedGroups[group.key] ?? false}
+                onToggle={() => toggleGroup(group.key)}
+              />
+            ))}
+          </div>
+
+          {!offerDismissed && !allDone && (
+            <div className="flex items-center justify-between border-t pt-3">
+              <p className="text-xs text-muted-foreground">
+                Trenger du hjelp? Vi kan sette opp HMS-systemet for deg.{" "}
+                <button
+                  type="button"
+                  onClick={() => setShowServiceDialog(true)}
+                  className="text-primary underline-offset-2 hover:underline"
+                >
+                  Les mer
+                </button>
+              </p>
+              <button
+                type="button"
+                onClick={handleDismissOffer}
+                disabled={isDismissing}
+                className="shrink-0 p-1 text-muted-foreground/50 hover:text-muted-foreground"
+              >
+                {isDismissing ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <X className="h-3 w-3" />
+                )}
+              </button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <ServiceRequestDialog
+        open={showServiceDialog}
+        onOpenChange={setShowServiceDialog}
+      />
+    </>
+  );
+}
+
+function StepGroup({
+  group,
+  expanded,
+  onToggle,
+}: {
+  group: SetupGuideGroup;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const done = group.percentage === 100;
+
+  return (
+    <div className="rounded-lg border bg-background/50">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center gap-3 px-3 py-2.5 text-left"
+      >
+        {expanded ? (
+          <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+        ) : (
+          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className={`text-sm font-medium ${done ? "text-green-600" : "text-foreground"}`}>
+              {group.title}
+            </span>
+            <span className="text-xs text-muted-foreground">({group.legalRef})</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">
+            {group.completedCount}/{group.totalCount}
+          </span>
+          <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
+            <div
+              className={`h-full rounded-full transition-all ${done ? "bg-green-500" : "bg-primary"}`}
+              style={{ width: `${group.percentage}%` }}
+            />
+          </div>
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="border-t px-1 pb-1">
+          {group.steps.map((step) => {
             const Icon = ICON_MAP[step.icon] ?? Circle;
 
             return (
               <Link
                 key={step.key}
                 href={step.href}
-                className="group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-muted/50"
+                className="group flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-muted/50"
               >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-muted bg-background transition-colors group-hover:border-primary/30">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-muted bg-background transition-colors group-hover:border-primary/30">
                   {step.completed ? (
-                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
                   ) : (
-                    <Icon className="h-4 w-4 text-muted-foreground" />
+                    <Icon className="h-3.5 w-3.5 text-muted-foreground" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p
-                    className={`text-sm font-medium ${
+                    className={`text-sm ${
                       step.completed
                         ? "text-muted-foreground line-through"
                         : "text-foreground"
@@ -141,7 +265,7 @@ export function SetupGuide({ tenantId, progress }: SetupGuideProps) {
             );
           })}
         </div>
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
 }

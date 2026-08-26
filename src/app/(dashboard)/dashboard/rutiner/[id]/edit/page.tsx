@@ -2,7 +2,7 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth/next";
-import { AlertCircle, ArrowLeft, BookOpen, Settings2, RefreshCw, FileText } from "lucide-react";
+import { AlertCircle, ArrowLeft, BookOpen, Settings2, RefreshCw, FileText, History } from "lucide-react";
 import { RoutineStatus } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -129,6 +129,9 @@ export default async function EditRoutinePage({
     const responsibleId = String(formData.get("responsibleId") || "").trim();
     const registerReview = formData.get("registerReview") === "on";
 
+    const changeSummary = String(formData.get("changeSummary") || "").trim();
+    const changeReason = String(formData.get("changeReason") || "").trim();
+
     const content = mergeRoutineContentFromForm(formData, existingRow?.content ?? null);
 
     const interval = Math.max(
@@ -170,6 +173,8 @@ export default async function EditRoutinePage({
       ...(nextReviewAt !== undefined ? { nextReviewAt } : {}),
       ...(lastReviewedAt !== undefined ? { lastReviewedAt } : {}),
       ...(status !== undefined ? { status } : {}),
+      changeSummary: changeSummary || undefined,
+      changeReason: changeReason || undefined,
     });
 
     if (updateResult.success && responsibleId) {
@@ -516,6 +521,42 @@ export default async function EditRoutinePage({
                 rows={4}
                 defaultValue={stringArrayToMultiline(c.kilder)}
                 placeholder="Lover, forskrifter eller standarder"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ── Seksjon 4: Endringslogg ───────────────────────── */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <History className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <CardTitle>Endringslogg (IK-HMS § 5 nr. 7)</CardTitle>
+                <CardDescription>
+                  Beskriv hva som ble endret og hvorfor, slik at endringshistorikken er sporbar.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="changeSummary">Hva ble endret? *</Label>
+              <Textarea
+                id="changeSummary"
+                name="changeSummary"
+                rows={3}
+                required
+                placeholder="Beskriv kort hva som ble endret, f.eks. 'Oppdatert ansvarsliste og lagt til nytt punkt om risikovurdering'"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="changeReason">Begrunnelse for endring (valgfritt)</Label>
+              <Textarea
+                id="changeReason"
+                name="changeReason"
+                rows={2}
+                placeholder="F.eks. 'Etter tilsyn fra Arbeidstilsynet', 'Ny forskrift trådte i kraft'"
               />
             </div>
           </CardContent>

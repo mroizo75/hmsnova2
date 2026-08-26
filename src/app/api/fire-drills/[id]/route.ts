@@ -18,6 +18,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
     const drill = await prisma.fireDrill.findFirst({
       where: { id, tenantId: session.user.tenantId },
       include: {
+        routine: { select: { id: true, title: true, status: true } },
         measures: {
           include: {
             responsible: { select: { id: true, name: true, email: true } },
@@ -75,6 +76,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
         ...(validated.participantIds !== undefined && {
           participantIds: JSON.stringify(validated.participantIds),
         }),
+        ...(validated.routineId !== undefined && { routineId: validated.routineId ?? null }),
         ...(validated.status !== undefined && { status: validated.status }),
       },
     });

@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getPermissions } from "@/lib/permissions";
+import { AuditLog } from "@/lib/audit-log";
 import { notifyUsersByRoles } from "@/server/actions/notification.actions";
 import type { HandbookVersionStatus } from "@prisma/client";
 
@@ -46,7 +47,7 @@ const DEFAULT_SECTIONS = [
     content: "<p>Oversikt over de lover og forskrifter i HMS-lovgivningen som gjelder for virksomheten, med særlig fokus på krav som er av spesiell viktighet for bedriftens bransje og aktiviteter.</p>",
     legalRef: "IK-HMS § 5 nr. 1",
     sortOrder: 4,
-    moduleLink: null,
+    moduleLink: "/dashboard/juridisk-register",
   },
   {
     sectionKey: "s3",
@@ -237,6 +238,18 @@ export type AnnualPlanProgress = {
   }>;
 };
 
+export type LegalRequirementForHandbook = {
+  id: string;
+  title: string;
+  legalBasis: string;
+  sourceUrl: string | null;
+  hmsNovaRoute: string | null;
+  severity: string;
+  status: "COMPLIANT" | "PARTIAL" | "MISSING" | "NOT_APPLICABLE";
+  isCustom?: boolean;
+  hasOverride?: boolean;
+};
+
 export type LiveHandbookStats = {
   activeRiskAssessments: number;
   activeRoutines: number;
@@ -246,6 +259,7 @@ export type LiveHandbookStats = {
   lastRiskReviewAt: Date | string | null;
   lastRoutineReviewAt: Date | string | null;
   annualPlanProgress: AnnualPlanProgress | null;
+  legalRequirements: LegalRequirementForHandbook[];
 };
 
 // ── Hjelpefunksjoner ─────────────────────────────────────────────────────────
@@ -266,6 +280,15 @@ async function getOrCreateHandbook(tenantId: string) {
     if (existing.versions.length === 0) {
       await seedDefaultVersion(existing.id, tenantId);
     }
+    // Patch: sett moduleLink for s2c-seksjoner som mangler den
+    await prisma.handbookSection.updateMany({
+      where: {
+        sectionKey: "s2c",
+        moduleLink: null,
+        version: { handbook: { tenantId } },
+      },
+      data: { moduleLink: "/dashboard/juridisk-register" },
+    });
     return existing;
   }
 
@@ -484,6 +507,7 @@ export async function getHandbookData(tenantId: string): Promise<{
         lastRiskReviewAt: lastRiskReview?.updatedAt ?? null,
         lastRoutineReviewAt: lastRoutineReview?.lastReviewedAt ?? null,
         annualPlanProgress: await getAnnualPlanProgress(tenantId),
+        legalRequirements: await getLegalRequirementsForHandbook(tenantId),
       },
     };
   } catch {
@@ -523,6 +547,30 @@ async function getAnnualPlanProgress(
     };
   } catch {
     return null;
+  }
+}
+
+async function getLegalRequirementsForHandbook(
+  tenantId: string,
+): Promise<LegalRequirementForHandbook[]> {
+  try {
+    const { getRegulatoryStatusForTenant } = await import(
+      "@/server/actions/regulatory.actions"
+    );
+    const status = await getRegulatoryStatusForTenant(tenantId);
+    return status.requirements.map((r: Record<string, unknown>) => ({
+      id: r.id as string,
+      title: r.title as string,
+      legalBasis: r.legalBasis as string,
+      sourceUrl: r.sourceUrl as string | null,
+      hmsNovaRoute: r.hmsNovaRoute as string | null,
+      severity: r.severity as string,
+      status: r.status as "COMPLIANT" | "PARTIAL" | "MISSING" | "NOT_APPLICABLE",
+      isCustom: (r.isCustom as boolean) ?? false,
+      hasOverride: (r.hasOverride as boolean) ?? false,
+    }));
+  } catch {
+    return [];
   }
 }
 
@@ -587,6 +635,8 @@ export async function createNewDraft(
         })),
       });
     }
+
+    AuditLog.log(tenantId, session.user.id, "HANDBOOK_DRAFT_CREATED", "HandbookVersion", newVersion.id, { version: nextVersion }).catch(() => {});
 
     revalidatePath("/dashboard/hms-handbok");
     return { success: true, versionId: newVersion.id };
@@ -672,6 +722,8 @@ export async function submitForApproval(
       data: { status: "PENDING_APPROVAL" },
     });
 
+    AuditLog.log(version.handbook.tenantId, session.user.id, "HANDBOOK_SUBMITTED_FOR_APPROVAL", "HandbookVersion", versionId, { version: version.version }).catch(() => {});
+
     notifyUsersByRoles(version.handbook.tenantId, ["ADMIN", "HMS"], {
       type: "HANDBOOK_APPROVAL_REQUESTED",
       title: "HMS Håndbok krever godkjenning",
@@ -740,6 +792,8 @@ export async function approveVersion(
         reviewedById: session.user.id,
       },
     });
+
+    AuditLog.log(version.handbook.tenantId, session.user.id, "HANDBOOK_VERSION_APPROVED", "HandbookVersion", versionId, { version: version.version }).catch(() => {});
 
     notifyUsersByRoles(version.handbook.tenantId, ["EMPLOYEE", "VERNEOMBUD", "HMS", "ADMIN"], {
       type: "HANDBOOK_NEW_VERSION",

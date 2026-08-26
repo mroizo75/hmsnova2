@@ -7,13 +7,18 @@ import { MeasureForm } from "@/features/measures/components/measure-form";
 import { MeasureList } from "@/features/measures/components/measure-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, HardHat } from "lucide-react";
 import Link from "next/link";
 import { RiskControlForm } from "@/features/risks/components/risk-control-form";
 import { RiskControlList } from "@/features/risks/components/risk-control-list";
 import { RiskDocumentLinks } from "@/features/risks/components/risk-document-links";
 import { RiskAuditLinks } from "@/features/risks/components/risk-audit-links";
+import { RiskRoutineLinker } from "@/features/risks/components/risk-routine-linker";
+import { RiskTrainingRequirements } from "@/components/risk-training-requirements";
+import { getTrainingRequirementsForRisk } from "@/server/actions/risk-training.actions";
 import { getTranslations } from "next-intl/server";
+import { getResourceHistory } from "@/server/actions/activity-history.actions";
+import { ResourceHistory } from "@/components/shared/resource-history";
 
 export default async function EditRiskPage({ params }: { params: Promise<{ id: string }> }) {
   const t = await getTranslations("dashboardRiskDetailPage");
@@ -79,6 +84,8 @@ export default async function EditRiskPage({ params }: { params: Promise<{ id: s
     },
   });
 
+  const history = await getResourceHistory(id);
+
   if (!risk) {
     return <div>{t("notFound")}</div>;
   }
@@ -127,6 +134,32 @@ export default async function EditRiskPage({ params }: { params: Promise<{ id: s
     orderBy: { scheduledDate: "desc" },
     take: 100,
   });
+
+  const sjaHazards = await prisma.sjaHazard.findMany({
+    where: { linkedRiskId: id },
+    include: {
+      sjaAnalysis: { select: { id: true, title: true, sjaNummer: true } },
+    },
+  });
+
+  const routineLinks = await prisma.riskRoutineLink.findMany({
+    where: { riskId: id },
+    include: {
+      routine: {
+        select: { id: true, title: true, status: true, category: true },
+      },
+    },
+  });
+  const linkedRoutines = routineLinks.map((l) => l.routine);
+
+  const availableRoutines = await prisma.routine.findMany({
+    where: { tenantId, status: "ACTIVE" },
+    select: { id: true, title: true },
+    orderBy: { title: "asc" },
+  });
+
+  const trainingResult = await getTrainingRequirementsForRisk(id);
+  const trainingRequirements = trainingResult.success ? trainingResult.data ?? [] : [];
 
   return (
     <div className="space-y-6">
@@ -184,6 +217,55 @@ export default async function EditRiskPage({ params }: { params: Promise<{ id: s
         </CardContent>
       </Card>
 
+      <RiskRoutineLinker
+        riskId={risk.id}
+        linkedRoutines={linkedRoutines}
+        availableRoutines={availableRoutines}
+      />
+
+      {sjaHazards.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <HardHat className="h-5 w-5 text-orange-500" />
+              Koblede SJA-analyser
+            </CardTitle>
+            <CardDescription>
+              SJA-analyser som har farer koblet til denne risikoen
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {sjaHazards.map((hazard) => (
+                <Link
+                  key={hazard.id}
+                  href={`/dashboard/sja/${hazard.sjaAnalysis.id}`}
+                  className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors"
+                >
+                  <div>
+                    <p className="text-sm font-medium">{hazard.sjaAnalysis.title}</p>
+                    {hazard.sjaAnalysis.sjaNummer && (
+                      <p className="text-xs text-muted-foreground font-mono">
+                        {hazard.sjaAnalysis.sjaNummer}
+                      </p>
+                    )}
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    Fare: {hazard.hazard}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <RiskTrainingRequirements
+        riskId={risk.id}
+        requirements={trainingRequirements}
+        canEdit={true}
+      />
+
       <Card>
         <CardHeader>
           <CardTitle>{t("documents.title")}</CardTitle>
@@ -203,6 +285,8 @@ export default async function EditRiskPage({ params }: { params: Promise<{ id: s
           <RiskAuditLinks riskId={risk.id} audits={audits} links={risk.auditLinks} />
         </CardContent>
       </Card>
+
+      <ResourceHistory entries={history} />
     </div>
   );
 }

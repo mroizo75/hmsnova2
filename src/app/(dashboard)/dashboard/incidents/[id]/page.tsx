@@ -11,12 +11,13 @@ import { InvestigationForm } from "@/features/incidents/components/investigation
 import { CloseIncidentForm } from "@/features/incidents/components/close-incident-form";
 import { IncidentTreatmentForm } from "@/components/incidents/incident-treatment-form";
 import { IncidentPDFExport } from "@/components/incidents/incident-pdf-export";
+import { NavMeldingDialog } from "@/features/incidents/components/nav-melding-dialog";
 import {
   getIncidentTypeColor,
   getSeverityInfo,
   getIncidentStatusColor,
 } from "@/features/incidents/schemas/incident.schema";
-import { ArrowLeft, AlertTriangle, User, MapPin, Eye, Clock, FileText } from "lucide-react";
+import { ArrowLeft, AlertTriangle, User, MapPin, Eye, Clock, FileText, Send, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 
@@ -118,7 +119,19 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
 
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
-    select: { ruhModuleEnabled: true },
+    select: {
+      ruhModuleEnabled: true,
+      name: true,
+      orgNumber: true,
+      address: true,
+      contactPhone: true,
+    },
+  });
+
+  const tenantRoutines = await prisma.routine.findMany({
+    where: { tenantId, status: "ACTIVE" },
+    select: { id: true, title: true },
+    orderBy: { title: "asc" },
   });
 
   const typeLabel = t(`labels.type.${incident.type}`);
@@ -157,10 +170,35 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
               {t("actions.backToIncidents")}
             </Link>
           </Button>
-          <IncidentPDFExport
-            incidentId={incident.id}
-            avviksnummer={incident.avviksnummer}
-          />
+          <div className="flex items-center gap-2">
+            {(incident.type === "ULYKKE" || incident.type === "YRKESSYKDOM") && tenant && (
+              <NavMeldingDialog
+                incident={{
+                  id: incident.id,
+                  avviksnummer: incident.avviksnummer,
+                  type: incident.type,
+                  title: incident.title,
+                  description: incident.description,
+                  occurredAt: incident.occurredAt,
+                  location: incident.location,
+                  injuryType: incident.injuryType,
+                  injuryDescription: incident.injuryDescription,
+                  isFatal: incident.isFatal,
+                  isLostTimeIncident: incident.isLostTimeIncident,
+                  lostWorkdays: incident.lostWorkdays,
+                  medicalAttentionRequired: incident.medicalAttentionRequired,
+                  witnessName: incident.witnessName,
+                  immediateAction: incident.immediateAction,
+                  reportedForUserName: null,
+                }}
+                tenant={tenant}
+              />
+            )}
+            <IncidentPDFExport
+              incidentId={incident.id}
+              avviksnummer={incident.avviksnummer}
+            />
+          </div>
         </div>
         <div className="flex items-start justify-between">
           <div className="flex-1">
@@ -185,6 +223,24 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
           </div>
         </div>
       </div>
+
+      {incident.reportedToAuthorityAt && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardContent className="flex items-start gap-3 py-4">
+            <CheckCircle className="h-5 w-5 text-orange-600 mt-0.5 shrink-0" />
+            <div className="space-y-1">
+              <p className="font-semibold text-orange-900">Varslet til myndigheter (AML § 5-2)</p>
+              <p className="text-sm text-orange-800">
+                {formatDate(incident.reportedToAuthorityAt)}
+                {incident.reportedToAuthorityBy && ` · Varslet av bruker-ID: ${incident.reportedToAuthorityBy}`}
+              </p>
+              {incident.reportedToAuthorityNote && (
+                <p className="text-sm text-orange-700 whitespace-pre-wrap">{incident.reportedToAuthorityNote}</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* ISO 9001: a) Reagere på avvik */}
       <Card>
@@ -413,7 +469,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
 
       {/* ISO 9001: b) Vurdere behovet for tiltak - Årsaksanalyse */}
       {!incident.rootCause ? (
-        <InvestigationForm incidentId={incident.id} users={tenantUsers} />
+        <InvestigationForm incidentId={incident.id} users={tenantUsers} routines={tenantRoutines} />
       ) : (
         <Card>
           <CardHeader>
@@ -474,7 +530,12 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
 
       {/* ISO 9001: d) Gjennomgå effektiviteten */}
       {canClose ? (
-        <CloseIncidentForm incidentId={incident.id} userId={user.id} />
+        <CloseIncidentForm
+          incidentId={incident.id}
+          userId={user.id}
+          routines={tenantRoutines}
+          currentRoutineId={incident.relatedRoutineId}
+        />
       ) : incident.status === "CLOSED" ? (
         <Card>
           <CardHeader>

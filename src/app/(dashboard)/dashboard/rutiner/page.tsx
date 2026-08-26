@@ -11,6 +11,7 @@ import { listTenantRoutines } from "@/server/actions/routine.actions";
 import { listRoutineUploadedDocumentsForDashboard } from "@/server/actions/routine-upload.actions";
 import { RoutineUploadsSection } from "@/features/routines/components/routine-uploads-section";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
+import { CorporateGroupLockBadge } from "@/components/corporate-group-lock-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -257,6 +258,7 @@ export default async function RutinerPage({
                             Tilpasset
                           </Badge>
                         )}
+                        <CorporateGroupLockBadge isLockedByGroup={(routine as any).isLockedByGroup ?? false} />
                       </div>
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
                         {routine.category && (
@@ -284,7 +286,7 @@ export default async function RutinerPage({
 
                     {/* Handlingsknapper */}
                     <div className="flex shrink-0 items-center gap-1">
-                      {routinePerms?.canCreateRoutines && (
+                      {routinePerms?.canCreateRoutines && !(routine as any).isLockedByGroup && (
                         <Link href={`/dashboard/rutiner/${routine.id}/edit`}>
                           <Button
                             variant="ghost"

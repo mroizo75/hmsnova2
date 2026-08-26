@@ -21,7 +21,7 @@ export default async function NySja({ searchParams }: PageProps) {
 
   const { mal: templateId, projectId } = await searchParams;
 
-  const [projects, selectedProject] = await Promise.all([
+  const [projects, selectedProject, risks] = await Promise.all([
     prisma.project.findMany({
       where: {
         tenantId: session.user.tenantId,
@@ -46,6 +46,11 @@ export default async function NySja({ searchParams }: PageProps) {
           },
         })
       : Promise.resolve(null),
+    prisma.risk.findMany({
+      where: { tenantId: session.user.tenantId },
+      select: { id: true, title: true, score: true },
+      orderBy: { title: "asc" },
+    }),
   ]);
 
   let templateData: {
@@ -147,6 +152,7 @@ export default async function NySja({ searchParams }: PageProps) {
             userName={session.user.name || session.user.email || t("employeeFallback")}
             projectId={selectedProject?.id}
             projects={projects}
+            risks={risks}
             initialData={templateData}
           />
         </CardContent>

@@ -7,12 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MeasureForm } from "@/features/measures/components/measure-form";
 import { MeasureList } from "@/features/measures/components/measure-list";
 import { ListTodo, Clock, CheckCircle, AlertTriangle } from "lucide-react";
+import Link from "next/link";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
 import { helpContent } from "@/lib/help-content";
 import { getTranslations } from "next-intl/server";
 
 interface ActionsPageProps {
-  searchParams: Promise<{ projectId?: string }>;
+  searchParams: Promise<{ projectId?: string; source?: string }>;
 }
 
 export default async function ActionsPage({ searchParams }: ActionsPageProps) {
@@ -40,7 +41,7 @@ export default async function ActionsPage({ searchParams }: ActionsPageProps) {
   }
 
   const tenantId = selectedMembership.tenantId;
-  const { projectId } = await searchParams;
+  const { projectId, source } = await searchParams;
   const selectedProject = projectId
     ? await prisma.project.findFirst({
         where: {
@@ -54,10 +55,39 @@ export default async function ActionsPage({ searchParams }: ActionsPageProps) {
       })
     : null;
 
+  const sourceFilter: Record<string, object> = {
+    risk: { riskId: { not: null } },
+    incident: { incidentId: { not: null } },
+    audit: { auditId: { not: null } },
+    goal: { goalId: { not: null } },
+    inspection: { inspectionFindings: { some: {} } },
+    meeting: { decisionMeasures: { some: {} } },
+  };
+
   const measures = await prisma.measure.findMany({
-    where: { tenantId },
+    where: {
+      tenantId,
+      ...(source && sourceFilter[source] ? sourceFilter[source] : {}),
+    },
     include: {
       risk: { select: { id: true, title: true } },
+      incident: { select: { id: true, title: true, avviksnummer: true } },
+      audit: { select: { id: true, title: true } },
+      goal: { select: { id: true, title: true } },
+      inspectionFindings: {
+        select: {
+          id: true,
+          title: true,
+          inspection: { select: { id: true, title: true } },
+        },
+      },
+      decisionMeasures: {
+        select: {
+          id: true,
+          title: true,
+          meeting: { select: { id: true, title: true } },
+        },
+      },
     },
     orderBy: [
       { status: "asc" },
@@ -160,12 +190,37 @@ export default async function ActionsPage({ searchParams }: ActionsPageProps) {
         </Card>
       </div>
 
+      <div className="flex flex-wrap gap-2">
+        {[
+          { key: undefined, label: "Alle" },
+          { key: "risk", label: "Risiko" },
+          { key: "incident", label: "Avvik" },
+          { key: "audit", label: "Revisjon" },
+          { key: "inspection", label: "Inspeksjon" },
+          { key: "meeting", label: "AMU" },
+          { key: "goal", label: "Mål" },
+        ].map((f) => {
+          const isActive = (source ?? undefined) === f.key;
+          const href = f.key ? `/dashboard/actions?source=${f.key}` : "/dashboard/actions";
+          return (
+            <Link key={f.label} href={href}>
+              <Button
+                variant={isActive ? "default" : "outline"}
+                size="sm"
+              >
+                {f.label}
+              </Button>
+            </Link>
+          );
+        })}
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>{t("list.title")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <MeasureList measures={measures} />
+          <MeasureList measures={measures} showSourceBadges />
         </CardContent>
       </Card>
 

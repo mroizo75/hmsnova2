@@ -3,10 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { NotificationType, Role, RoutineStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { generateChangeNumber } from "@/lib/change-number";
 import { matchesIndustryScope, toIndustryScopeJson } from "@/lib/industry-scope";
 import { requirePermission } from "@/lib/server-authorization";
 import { createNotification } from "@/server/actions/notification.actions";
 import { ensureGlobalRoutineTemplateLibrarySeeded } from "@/server/actions/routine-library.actions";
+import { AuditLog } from "@/lib/audit-log";
 import { onRoutineUpdated } from "@/features/hms-ai/lib/event-handler";
 
 type RoutineTemplateListInput = {
@@ -26,6 +28,8 @@ type RoutineUpdateInput = {
   reviewIntervalMonths?: number;
   nextReviewAt?: Date | null;
   lastReviewedAt?: Date | null;
+  changeSummary?: string;
+  changeReason?: string;
 };
 
 async function getTenantIndustry(tenantId: string): Promise<string | null> {
@@ -243,6 +247,21 @@ export async function createRoutineFromTemplate(templateId: string) {
       },
     });
 
+    const changeNumber = await generateChangeNumber(context.tenantId);
+    await prisma.routineVersion.create({
+      data: {
+        routineId: routine.id,
+        versionNumber: 1,
+        changeNumber,
+        changeSummary: `Rutine opprettet fra mal: ${template.title}`,
+        content: template.content ?? {},
+        legalReference: template.legalReference,
+        changedById: context.userId,
+      },
+    });
+
+    AuditLog.log(context.tenantId, context.userId, "ROUTINE_CREATED", "Routine", routine.id, { title: routine.title, templateId: template.id }).catch(() => {});
+
     revalidatePath("/dashboard/rutiner");
     revalidatePath("/dashboard/rutiner/maler");
     return { success: true, data: routine };
@@ -256,40 +275,77 @@ export async function updateRoutine(input: RoutineUpdateInput) {
   try {
     const context = await requirePermission("canCreateDocuments");
 
+
     const existing = await prisma.routine.findFirst({
       where: {
         id: input.id,
         tenantId: context.tenantId,
       },
-      select: { id: true },
+      select: {
+        id: true,
+        isLockedByGroup: true,
+        content: true,
+        legalReference: true,
+        tenantId: true,
+      },
     });
 
     if (!existing) {
       return { success: false, error: "Rutine ikke funnet" };
     }
 
-    const routine = await prisma.routine.update({
-      where: { id: input.id },
-      data: {
-        title: input.title,
-        description: input.description,
-        category: input.category,
-        content: input.content as any,
-        legalReference: input.legalReference,
-        ...(input.status !== undefined ? { status: input.status } : {}),
-        ...(input.reviewIntervalMonths !== undefined
-          ? { reviewIntervalMonths: input.reviewIntervalMonths }
-          : {}),
-        ...(input.nextReviewAt !== undefined ? { nextReviewAt: input.nextReviewAt } : {}),
-        ...(input.lastReviewedAt !== undefined ? { lastReviewedAt: input.lastReviewedAt } : {}),
-        updatedBy: context.userId,
-      },
-    });
+    if (existing.isLockedByGroup) {
+      return { success: false, error: "Denne rutinen er styrt av konsernet og kan ikke redigeres lokalt" };
+    }
+
+    const [latestVersion, changeNumber] = await Promise.all([
+      prisma.routineVersion.findFirst({
+        where: { routineId: input.id },
+        orderBy: { versionNumber: "desc" },
+        select: { versionNumber: true },
+      }),
+      generateChangeNumber(existing.tenantId),
+    ]);
+
+    const nextVersionNumber = (latestVersion?.versionNumber ?? 0) + 1;
+
+    const [routine] = await prisma.$transaction([
+      prisma.routine.update({
+        where: { id: input.id },
+        data: {
+          title: input.title,
+          description: input.description,
+          category: input.category,
+          content: input.content as any,
+          legalReference: input.legalReference,
+          ...(input.status !== undefined ? { status: input.status } : {}),
+          ...(input.reviewIntervalMonths !== undefined
+            ? { reviewIntervalMonths: input.reviewIntervalMonths }
+            : {}),
+          ...(input.nextReviewAt !== undefined ? { nextReviewAt: input.nextReviewAt } : {}),
+          ...(input.lastReviewedAt !== undefined ? { lastReviewedAt: input.lastReviewedAt } : {}),
+          updatedBy: context.userId,
+        },
+      }),
+      prisma.routineVersion.create({
+        data: {
+          routineId: input.id,
+          versionNumber: nextVersionNumber,
+          changeNumber,
+          changeSummary: input.changeSummary?.trim() || "Rutine oppdatert",
+          changeReason: input.changeReason?.trim() || null,
+          content: existing.content ?? {},
+          legalReference: existing.legalReference,
+          changedById: context.userId,
+        },
+      }),
+    ]);
+
+    AuditLog.log(context.tenantId, context.userId, "ROUTINE_UPDATED", "Routine", input.id, { changeSummary: input.changeSummary, changeNumber, versionNumber: nextVersionNumber }).catch(() => {});
 
     revalidatePath("/dashboard/rutiner");
     revalidatePath(`/dashboard/rutiner/${routine.id}`);
 
-    // HMS Intelligens-motor: oppdater score etter rutineendring
     onRoutineUpdated(context.tenantId, routine.id).catch(() => {});
 
     return { success: true, data: routine };
@@ -429,4 +485,102 @@ export async function createRoutineTemplate(input: {
     console.error("createRoutineTemplate error:", error);
     return { success: false, error: error.message || "Kunne ikke opprette rutinemal" };
   }
+}
+
+export async function getRoutineVersions(routineId: string) {
+  try {
+    const context = await requirePermission("canReadDocuments");
+
+    const routine = await prisma.routine.findFirst({
+      where: { id: routineId, tenantId: context.tenantId },
+      select: { id: true },
+    });
+
+    if (!routine) {
+      return { success: false, error: "Rutine ikke funnet" };
+    }
+
+    const versions = await prisma.routineVersion.findMany({
+      where: { routineId },
+      orderBy: { versionNumber: "desc" },
+      select: {
+        id: true,
+        versionNumber: true,
+        changeNumber: true,
+        changeSummary: true,
+        changeReason: true,
+        legalReference: true,
+        createdAt: true,
+        changedBy: {
+          select: { id: true, name: true },
+        },
+      },
+    });
+
+    return { success: true, data: versions };
+  } catch (error: any) {
+    console.error("getRoutineVersions error:", error);
+    return { success: false, error: error.message || "Kunne ikke hente versjonshistorikk" };
+  }
+}
+
+export async function getRoutineVersion(versionId: string) {
+  try {
+    const context = await requirePermission("canReadDocuments");
+
+    const version = await prisma.routineVersion.findFirst({
+      where: {
+        id: versionId,
+        routine: { tenantId: context.tenantId },
+      },
+      include: {
+        changedBy: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
+
+    if (!version) {
+      return { success: false, error: "Versjon ikke funnet" };
+    }
+
+    return { success: true, data: version };
+  } catch (error: any) {
+    console.error("getRoutineVersion error:", error);
+    return { success: false, error: error.message || "Kunne ikke hente versjon" };
+  }
+}
+
+export async function deleteRoutine(routineId: string) {
+  const context = await requirePermission("canCreateDocuments");
+  const { tenantId } = context;
+
+  const routine = await prisma.routine.findFirst({
+    where: { id: routineId, tenantId },
+    include: {
+      relatedIncidents: { select: { id: true }, take: 1 },
+    },
+  });
+
+  if (!routine) {
+    return { success: false, error: "Rutine ikke funnet" };
+  }
+
+  if (routine.relatedIncidents.length > 0) {
+    return {
+      success: false,
+      error: "Kan ikke slette rutine som er koblet til avvik. Arkiver den i stedet.",
+    };
+  }
+
+  await prisma.$transaction([
+    prisma.routineVersion.deleteMany({ where: { routineId } }),
+    prisma.riskRoutineLink.deleteMany({ where: { routineId } }),
+    prisma.routine.delete({ where: { id: routineId } }),
+  ]);
+
+  AuditLog.log(tenantId, context.userId, "ROUTINE_DELETED", "Routine", routineId, { title: routine.title }).catch(() => {});
+
+  revalidatePath("/dashboard/rutiner");
+  return { success: true };
 }

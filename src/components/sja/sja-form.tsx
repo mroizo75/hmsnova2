@@ -41,6 +41,7 @@ interface HazardRow {
   severity: number;
   measures: string;
   responsibleName: string;
+  linkedRiskId?: string | null;
 }
 
 const emptyHazard: HazardRow = {
@@ -51,7 +52,14 @@ const emptyHazard: HazardRow = {
   severity: 1,
   measures: "",
   responsibleName: "",
+  linkedRiskId: null,
 };
+
+interface RiskOption {
+  id: string;
+  title: string;
+  score: number | null;
+}
 
 interface SjaFormProps {
   tenantId: string;
@@ -62,6 +70,7 @@ interface SjaFormProps {
     name: string;
     location?: string | null;
   }>;
+  risks?: RiskOption[];
   onSuccess?: () => void;
   successRedirectPath?: string;
   initialData?: {
@@ -80,6 +89,7 @@ export function SjaForm({
   userName,
   projectId,
   projects = [],
+  risks = [],
   onSuccess,
   successRedirectPath = "/ansatt/sja",
   initialData,
@@ -187,6 +197,7 @@ export function SjaForm({
       hazards: validHazards.map((h, i) => ({
         ...h,
         sortOrder: i,
+        linkedRiskId: h.linkedRiskId || null,
       })),
     };
 
@@ -578,6 +589,31 @@ export function SjaForm({
                   className="text-sm resize-none"
                 />
               </div>
+
+              {risks.length > 0 && (
+                <div className="space-y-1">
+                  <Label className="text-sm">Koble til risiko</Label>
+                  <Select
+                    value={hazard.linkedRiskId ?? "__none__"}
+                    onValueChange={(v) =>
+                      updateHazard(index, "linkedRiskId", v === "__none__" ? "" : v)
+                    }
+                  >
+                    <SelectTrigger className="text-sm">
+                      <SelectValue placeholder="Velg risiko (valgfritt)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Ingen kobling</SelectItem>
+                      {risks.map((risk) => (
+                        <SelectItem key={risk.id} value={risk.id}>
+                          {risk.title}
+                          {risk.score != null ? ` (score: ${risk.score})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           ))}
 

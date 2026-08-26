@@ -1,6 +1,6 @@
 import "next-auth";
 import "next-auth/jwt";
-import { Role } from "@prisma/client";
+import { Role, CorporateGroupRole } from "@prisma/client";
 
 declare module "next-auth" {
   interface User {
@@ -12,6 +12,8 @@ declare module "next-auth" {
     role?: Role;
     hasMultipleTenants?: boolean;
     preferredLocale?: string;
+    corporateGroupId?: string | null;
+    corporateGroupRole?: CorporateGroupRole | null;
   }
 
   interface Session {
@@ -28,6 +30,8 @@ declare module "next-auth" {
       hasMultipleTenants?: boolean;
       preferredLocale?: string;
       isTavleOnly?: boolean;
+      corporateGroupId?: string | null;
+      corporateGroupRole?: CorporateGroupRole | null;
     };
   }
 }
@@ -43,5 +47,7 @@ declare module "next-auth/jwt" {
     hasMultipleTenants?: boolean;
     preferredLocale?: string;
     isTavleOnly?: boolean;
+    corporateGroupId?: string | null;
+    corporateGroupRole?: CorporateGroupRole | null;
   }
 }

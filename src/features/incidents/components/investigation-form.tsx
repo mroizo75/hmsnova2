@@ -23,9 +23,10 @@ import { useTranslations } from "next-intl";
 interface InvestigationFormProps {
   incidentId: string;
   users: Array<{ id: string; name: string | null; email: string }>;
+  routines?: Array<{ id: string; title: string }>;
 }
 
-export function InvestigationForm({ incidentId, users }: InvestigationFormProps) {
+export function InvestigationForm({ incidentId, users, routines = [] }: InvestigationFormProps) {
   const t = useTranslations("dashboardIncidentInvestigationForm");
   const router = useRouter();
   const { toast } = useToast();
@@ -75,11 +76,13 @@ export function InvestigationForm({ incidentId, users }: InvestigationFormProps)
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
+    const relatedRoutineId = formData.get("relatedRoutineId") as string;
     const data = {
       id: incidentId,
       rootCause: formData.get("rootCause") as string,
       contributingFactors: formData.get("contributingFactors") as string || undefined,
       investigatedBy: formData.get("investigatedBy") as string,
+      relatedRoutineId: relatedRoutineId || null,
     };
 
     try {
@@ -199,6 +202,27 @@ export function InvestigationForm({ incidentId, users }: InvestigationFormProps)
               </SelectContent>
             </Select>
           </div>
+
+          {routines.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="relatedRoutineId">Relatert rutine</Label>
+              <p className="text-xs text-muted-foreground">
+                Koble avviket til en rutine som bør vurderes for revisjon
+              </p>
+              <Select name="relatedRoutineId" disabled={loading || aiLoading}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Velg rutine (valgfritt)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {routines.map((routine) => (
+                    <SelectItem key={routine.id} value={routine.id}>
+                      {routine.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="flex justify-end gap-4">
             <Button type="submit" disabled={loading || aiLoading}>

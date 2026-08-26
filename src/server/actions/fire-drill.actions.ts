@@ -36,6 +36,7 @@ export async function createFireDrill(input: CreateFireDrillInput) {
       participantIds: validated.participantIds
         ? JSON.stringify(validated.participantIds)
         : null,
+      routineId: validated.routineId ?? null,
       status: "PLANNED",
     },
   });
@@ -66,6 +67,7 @@ export async function updateFireDrill(id: string, input: UpdateFireDrillInput) {
       ...(validated.participantIds !== undefined && {
         participantIds: JSON.stringify(validated.participantIds),
       }),
+      ...(validated.routineId !== undefined && { routineId: validated.routineId ?? null }),
       ...(validated.status !== undefined && { status: validated.status }),
     },
   });
@@ -156,6 +158,7 @@ export async function getFireDrillById(id: string) {
   return prisma.fireDrill.findFirst({
     where: { id, tenantId },
     include: {
+      routine: { select: { id: true, title: true, status: true } },
       measures: {
         include: {
           responsible: {

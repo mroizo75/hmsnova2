@@ -10,6 +10,7 @@ export const sjaHazardSchema = z.object({
   measures: z.string().min(1, "Tiltak er påkrevd"),
   responsibleName: z.string().optional(),
   sortOrder: z.number().default(0),
+  linkedRiskId: z.string().cuid().optional().nullable(),
 });
 
 export const createSjaSchema = z.object({

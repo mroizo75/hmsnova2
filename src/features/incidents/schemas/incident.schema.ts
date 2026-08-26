@@ -106,6 +106,7 @@ export const investigateIncidentSchema = z.object({
   rootCause: z.string().min(20, "Årsaksanalyse må være minst 20 tegn"),
   contributingFactors: z.string().optional(),
   investigatedBy: z.string().cuid(),
+  relatedRoutineId: z.string().cuid().optional().nullable(),
 });
 
 export const closeIncidentSchema = z.object({
@@ -114,6 +115,7 @@ export const closeIncidentSchema = z.object({
   effectivenessReview: z.string().min(20, "Effektivitetsvurdering må være minst 20 tegn"),
   lessonsLearned: z.string().optional(),
   measureEffectiveness: z.nativeEnum(ActionEffectiveness).optional(),
+  relatedRoutineId: z.string().cuid().optional().nullable(),
 });
 
 export type CreateIncidentInput = z.infer<typeof createIncidentSchema>;

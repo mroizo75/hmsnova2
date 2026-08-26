@@ -29,6 +29,8 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { getResourceHistory } from "@/server/actions/activity-history.actions";
+import { ResourceHistory } from "@/components/shared/resource-history";
 
 export default async function SjaDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -59,10 +61,17 @@ export default async function SjaDetailPage({ params }: { params: Promise<{ id: 
   const analysis = await prisma.sjaAnalysis.findUnique({
     where: { id, tenantId },
     include: {
-      hazards: { orderBy: { sortOrder: "asc" } },
+      hazards: {
+        orderBy: { sortOrder: "asc" },
+        include: {
+          linkedRisk: { select: { id: true, title: true, score: true } },
+        },
+      },
       attachments: true,
     },
   });
+
+  const history = await getResourceHistory(id);
 
   if (!analysis) {
     return (
@@ -241,6 +250,21 @@ export default async function SjaDetailPage({ params }: { params: Promise<{ id: 
                         Tiltak gjennomført
                       </div>
                     )}
+
+                    {hazard.linkedRisk && (
+                      <div className="flex items-center gap-2 pt-1">
+                        <Link
+                          href={`/dashboard/risks/${hazard.linkedRisk.id}`}
+                          className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-200 hover:bg-blue-200 transition-colors"
+                        >
+                          <ShieldAlert className="h-3 w-3" />
+                          Risiko: {hazard.linkedRisk.title}
+                          {hazard.linkedRisk.score != null && (
+                            <span className="font-medium ml-1">(score: {hazard.linkedRisk.score})</span>
+                          )}
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -359,6 +383,8 @@ export default async function SjaDetailPage({ params }: { params: Promise<{ id: 
             currentStatus={analysis.status}
             currentConclusion={analysis.conclusion}
           />
+
+          <ResourceHistory entries={history} />
         </div>
       </div>
     </div>

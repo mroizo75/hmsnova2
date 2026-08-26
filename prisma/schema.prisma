@@ -131,6 +131,11 @@ model User {
   handbookSignatures              HandbookSignature[]            @relation("HandbookSignatures")
   handbookReviews                 HmsHandbook[]                  @relation("HandbookReviewer")
   handbookApprovals               HandbookVersion[]              @relation("HandbookApprover")
+  handbookVersionsCreated         HandbookVersion[]              @relation("HandbookVersionCreator")
+  documentVersionsUploaded        DocumentVersion[]              @relation("DocumentVersionUploader")
+  corporateGroupMemberships       CorporateGroupUser[]
+  routineVersions                 RoutineVersion[]
+  requirementOverridesVerified    TenantRequirementOverride[]     @relation("RequirementOverrideVerifier")
   createdAt                       DateTime                       @default(now())
   updatedAt                       DateTime                       @updatedAt
 
@@ -234,6 +239,14 @@ model Tenant {
   startpakkeCompleted    Boolean  @default(false) // true = startpakke-wizard er fullført av bedriften
   setupGuideHidden       Boolean  @default(false) // true = "Klar for tilsyn"-veiviseren er skjult av admin
   tavleBannerDismissed   Boolean  @default(false) // true = HMS Tavle promo-banner er permanent skjult
+
+  // Brreg/NACE (lagres automatisk ved registrering)
+  naceCode               String?  // F.eks. "55.10" fra Brreg
+  naceDescription        String?  // F.eks. "Hotellvirksomhet"
+  subIndustry            String?  // Utledet fra NACE: "hotell", "restaurant", "bar" etc.
+
+  // Servicetilbud
+  serviceOfferDismissed  Boolean  @default(false) // Skjuler "Vi kan hjelpe"-linjen i veiviseren
 
   users                               UserTenant[]
   activities                          TenantActivity[]
@@ -350,6 +363,12 @@ model Tenant {
   improvementLogs                     ImprovementLog[]
   tenantHmsScores                     TenantHmsScore[]
   anonymizedStats                     AnonymizedTenantStats[]
+  corporateGroupMemberships           CorporateGroupTenant[]
+  corporateGroupDistributions         CorporateGroupDistribution[]
+  activityProfile                     TenantActivityProfile?
+  regulatoryProfile                   TenantRegulatoryProfile?
+  serviceRequests                     ServiceRequest[]
+  requirementOverrides                TenantRequirementOverride[]
   createdAt                           DateTime                       @default(now())
   updatedAt                           DateTime                       @updatedAt
 
@@ -746,6 +765,7 @@ model Document {
   approvedBy           String?
   approvedAt           DateTime?
   updatedBy            String?
+  createdBy            String?
   ownerId              String?
   templateId           String?
   nextReviewDate       DateTime? // Når skal dokumentet gjennomgås igjen?
@@ -756,9 +776,11 @@ model Document {
   doSummary            String?      @db.Text
   checkSummary         String?      @db.Text
   actSummary           String?      @db.Text
-  visibleToRoles       Json? // Array av roller som skal se dokumentet ["ANSATT", "LEDER"]. Null = alle
-  createdAt            DateTime     @default(now())
-  updatedAt            DateTime     @updatedAt
+  visibleToRoles           Json? // Array av roller som skal se dokumentet ["ANSATT", "LEDER"]. Null = alle
+  corporateGroupContentId  String?
+  isLockedByGroup          Boolean  @default(false)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
 
   tenant                   Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   versions                 DocumentVersion[] // Historikk av alle versjoner
@@ -774,6 +796,7 @@ model Document {
   @@index([tenantId])
   @@index([status])
   @@index([nextReviewDate])
+  @@index([corporateGroupContentId])
 }
 
 // Versjonshåndtering - ALLE versjoner lagres
@@ -786,13 +809,15 @@ model DocumentVersion {
   mime          String    @default("application/pdf") // MIME-type for denne versjonen
   changeComment String?   @db.Text // Hva ble endret?
   uploadedBy    String
+  uploadedById  String?
   approvedBy    String?
   approvedAt    DateTime?
   supersededAt  DateTime? // Når ble denne erstattet av ny versjon?
   createdAt     DateTime  @default(now())
 
-  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  document     Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  uploadedByUser User?  @relation("DocumentVersionUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([documentId])
@@ -971,6 +996,11 @@ model RiskAssessment {
   reviewedById String?
   reviewedAt   DateTime?
 
+  corporateGroupContentId String?
+  isLockedByGroup         Boolean  @default(false)
+
+  createdBy String?
+  updatedBy String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -983,6 +1013,7 @@ model RiskAssessment {
   @@index([assessmentYear])
   @@index([approvedById])
   @@index([reviewedById])
+  @@index([corporateGroupContentId])
 }
 
 model Risk {
@@ -1016,6 +1047,8 @@ model Risk {
   trend                RiskTrend            @default(STABLE)
   reviewedAt           DateTime?
   assessmentDate       DateTime? // vurderingsdato for dette punktet (i listen)
+  createdBy            String?
+  updatedBy            String?
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
 
@@ -1027,6 +1060,7 @@ model Risk {
   inspectionTemplate   InspectionTemplate?       @relation("RiskInspectionTemplate", fields: [inspectionTemplateId], references: [id])
   linkedIncidents      Incident[]                @relation("IncidentRiskReference")
   inspectionFindings   InspectionFinding[]       @relation("InspectionFindingRisk")
+  sjaHazards           SjaHazard[]               @relation("SjaHazardRisk")
   documentLinks        RiskDocumentLink[]
   auditLinks           RiskAuditLink[]
   controls             RiskControl[]
@@ -1034,6 +1068,7 @@ model Risk {
   chemicalLinks        RiskChemicalLink[]
   trainingRequirements RiskTrainingRequirement[]
   exposureRegisters    ExposureRegister[]
+  routineLinks         RiskRoutineLink[]
 
   @@index([tenantId])
   @@index([riskAssessmentId])
@@ -1529,6 +1564,7 @@ model Measure {
   responsible         User                 @relation("MeasureResponsible", fields: [responsibleId], references: [id], onDelete: Cascade)
   environmentalAspect EnvironmentalAspect? @relation(fields: [environmentalAspectId], references: [id], onDelete: SetNull)
   inspectionFindings  InspectionFinding[]  @relation("InspectionFindingMeasure")
+  decisionMeasures    MeetingDecision[]    @relation("DecisionMeasure")
   project             Project?             @relation("ProjectMeasures", fields: [projectId], references: [id], onDelete: SetNull)
   fireDrill           FireDrill?           @relation(fields: [fireDrillId], references: [id], onDelete: SetNull)
 
@@ -1729,6 +1765,10 @@ model Incident {
   // HMS Intelligens-motor: kobling til rutine og standardisert område for mønstergjenkjenning
   relatedRoutineId         String?
   areaTag                  String? // Standardisert område (f.eks. "fallsikring", "kjemikalier", "ergonomi")
+  // AML § 5-2: Dokumentert varsling til myndigheter
+  reportedToAuthorityAt    DateTime?
+  reportedToAuthorityBy    String?
+  reportedToAuthorityNote  String?              @db.Text
   createdAt                DateTime             @default(now())
   updatedAt                DateTime             @updatedAt
 
@@ -1933,10 +1973,13 @@ model SjaHazard {
   measures        String  @db.Text
   responsibleName String?
   completed       Boolean @default(false)
+  linkedRiskId    String?
 
   sjaAnalysis SjaAnalysis @relation(fields: [sjaAnalysisId], references: [id], onDelete: Cascade)
+  linkedRisk  Risk?       @relation("SjaHazardRisk", fields: [linkedRiskId], references: [id], onDelete: SetNull)
 
   @@index([sjaAnalysisId])
+  @@index([linkedRiskId])
 }
 
 model SjaTemplate {
@@ -1946,6 +1989,8 @@ model SjaTemplate {
   description  String? @db.Text
   workLocation String?
   isActive     Boolean @default(true)
+  corporateGroupContentId String?
+  isLockedByGroup         Boolean @default(false)
 
   createdById   String
   createdByName String
@@ -1957,6 +2002,7 @@ model SjaTemplate {
 
   @@index([tenantId])
   @@index([tenantId, isActive])
+  @@index([corporateGroupContentId])
 }
 
 model SjaTemplateHazard {
@@ -2009,6 +2055,7 @@ model Training {
   effectiveness String?   @db.Text // ISO 9001: Evaluering av effektivitet
   evaluatedBy   String?
   evaluatedAt   DateTime?
+  createdBy     String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -2033,6 +2080,8 @@ model CourseTemplate {
   validityYears Int? // Hvor lenge er kurset gyldig (null = ikke utløpsdato)
   isGlobal      Boolean  @default(false) // Globalt standard HMS-kurs
   isActive      Boolean  @default(true)
+  corporateGroupContentId String?
+  isLockedByGroup         Boolean @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -2042,6 +2091,7 @@ model CourseTemplate {
   @@index([tenantId])
   @@index([isGlobal])
   @@index([isActive])
+  @@index([corporateGroupContentId])
 }
 
 // ============================================
@@ -2261,6 +2311,8 @@ model Chemical {
   autoSuggestedAlternatives String?   @db.Text // JSON array av foreslåtte alternativer
   lastEchaSync              DateTime? // Sist synkronisert med ECHA
   aiExtractedData           String?   @db.Text // JSON med AI-ekstraherte data fra SDS
+  corporateGroupContentId   String?
+  isLockedByGroup           Boolean   @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2277,6 +2329,7 @@ model Chemical {
   @@index([isSVHC])
   @@index([containsIsocyanates])
   @@index([hazardLevel])
+  @@index([corporateGroupContentId])
 }
 
 enum ChemicalStatus {
@@ -2388,6 +2441,7 @@ model Attachment {
   name          String
   mime          String
   size          Int?
+  uploadedById  String?
   createdAt     DateTime @default(now())
 
   tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -2452,6 +2506,8 @@ model Inspection {
   followUpById     String?
   nextInspection   DateTime?
   projectId        String?
+  createdBy        String?
+  updatedBy        String?
   findings         InspectionFinding[]
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
@@ -2484,6 +2540,8 @@ model InspectionTemplate {
   checklist     Json?
   industryScope Json? // ["all"] eller ["construction", "healthcare"]
   isGlobal      Boolean       @default(false)
+  corporateGroupContentId String?
+  isLockedByGroup         Boolean  @default(false)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
@@ -2495,6 +2553,7 @@ model InspectionTemplate {
   @@index([category])
   @@index([riskCategory])
   @@index([isGlobal])
+  @@index([corporateGroupContentId])
 }
 
 model InspectionFinding {
@@ -2724,22 +2783,28 @@ model Routine {
   responsibleId        String?
   reviewIntervalMonths Int           @default(12)
   nextReviewAt         DateTime?
-  lastReviewedAt       DateTime? // Sist rutinen ble revidert (registreres ved gjennomført revisjon)
-  createdBy            String
-  updatedBy            String?
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
+  lastReviewedAt          DateTime? // Sist rutinen ble revidert (registreres ved gjennomført revisjon)
+  corporateGroupContentId String?
+  isLockedByGroup         Boolean      @default(false)
+  createdBy               String
+  updatedBy               String?
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
 
   tenant           Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   template         RoutineTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
   responsibleUser  User?            @relation("RoutineResponsible", fields: [responsibleId], references: [id], onDelete: SetNull)
   relatedIncidents Incident[]       @relation("IncidentRelatedRoutine")
+  versions         RoutineVersion[]
+  riskLinks        RiskRoutineLink[]
+  fireDrills       FireDrill[]      @relation("FireDrillRoutine")
 
   @@index([tenantId])
   @@index([templateId])
   @@index([status])
   @@index([responsibleId])
   @@index([nextReviewAt])
+  @@index([corporateGroupContentId])
 }
 
 enum RoutineStatus {
@@ -2924,6 +2989,8 @@ model Meeting {
   decisions    MeetingDecision[]
   attachments  String?              @db.Text // JSON array of file keys
 
+  createdBy String?
+  updatedBy String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -2967,8 +3034,11 @@ model MeetingDecision {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  meeting     Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-  responsible User?   @relation("MeetingDecisions", fields: [responsibleId], references: [id], onDelete: SetNull)
+  measureId String?
+
+  meeting     Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  responsible User?    @relation("MeetingDecisions", fields: [responsibleId], references: [id], onDelete: SetNull)
+  measure     Measure? @relation("DecisionMeasure", fields: [measureId], references: [id], onDelete: SetNull)
 
   @@index([meetingId])
   @@index([responsibleId])
@@ -4076,7 +4146,10 @@ model FireDrill {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  routineId String?
+
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  routine  Routine?  @relation("FireDrillRoutine", fields: [routineId], references: [id], onDelete: SetNull)
   measures Measure[]
 
   @@index([tenantId])
@@ -5089,6 +5162,9 @@ model HandbookVersion {
   approvedAt   DateTime?
   rejectedNote String?  @db.Text
 
+  createdById  String?
+  createdByUser User?   @relation("HandbookVersionCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
   basedOnTemplateId String?
   basedOnVersionId  String?
 
@@ -5120,6 +5196,7 @@ model HandbookSection {
   legalRef      String? // "AML § 3-1, IK-HMS § 5"
   sortOrder     Int
   moduleLink    String? // Kobling til HMS Nova-modul: "/dashboard/risks"
+  updatedById   String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -5424,4 +5501,326 @@ enum ScoreTrend {
   IMPROVING
   STABLE
   DECLINING
+}
+
+// ============================================
+// Konsern / Kjede (Corporate Group)
+// ============================================
+
+model CorporateGroup {
+  id           String  @id @default(cuid())
+  name         String
+  orgNumber    String?
+  slug         String  @unique
+  contactEmail String?
+  contactPhone String?
+  logo         String?
+  settings     Json?
+
+  tenants       CorporateGroupTenant[]
+  users         CorporateGroupUser[]
+  content       CorporateGroupContent[]
+  distributions CorporateGroupDistribution[]
+  auditLogs     CorporateGroupAuditLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+}
+
+model CorporateGroupTenant {
+  id       String                     @id @default(cuid())
+  groupId  String
+  tenantId String
+  status   CorporateGroupTenantStatus @default(ACTIVE)
+  joinedAt DateTime                   @default(now())
+
+  group  CorporateGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  tenant Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, tenantId])
+  @@index([groupId])
+  @@index([tenantId])
+}
+
+enum CorporateGroupTenantStatus {
+  ACTIVE
+  SUSPENDED
+  REMOVED
+}
+
+model CorporateGroupUser {
+  id      String             @id @default(cuid())
+  groupId String
+  userId  String
+  role    CorporateGroupRole
+
+  group CorporateGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([groupId, userId])
+  @@index([groupId])
+  @@index([userId])
+}
+
+enum CorporateGroupRole {
+  GROUP_ADMIN
+  GROUP_HMS
+  GROUP_READER
+}
+
+model CorporateGroupContent {
+  id               String                       @id @default(cuid())
+  groupId          String
+  contentType      CorporateGroupContentType
+  title            String
+  description      String?                      @db.Text
+  content          Json?
+  fileKey          String?
+  mime             String?
+  distributionMode CorporateGroupDistMode       @default(CUSTOMIZABLE)
+  status           CorporateGroupContentStatus  @default(DRAFT)
+  version          String                       @default("1.0")
+  legalReference   String?
+  category         String?
+  createdById      String
+  updatedById      String?
+  createdAt        DateTime                     @default(now())
+  updatedAt        DateTime                     @updatedAt
+
+  group         CorporateGroup               @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  distributions CorporateGroupDistribution[]
+
+  @@index([groupId])
+  @@index([contentType])
+  @@index([status])
+}
+
+enum CorporateGroupContentType {
+  ROUTINE
+  DOCUMENT
+  RISK_ASSESSMENT
+  INSPECTION_TEMPLATE
+  SJA_TEMPLATE
+  TRAINING_COURSE
+  CHEMICAL
+  HANDBOOK_SECTION
+}
+
+enum CorporateGroupDistMode {
+  LOCKED
+  CUSTOMIZABLE
+}
+
+enum CorporateGroupContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model CorporateGroupDistribution {
+  id              String                          @id @default(cuid())
+  contentId       String
+  groupId         String
+  tenantId        String
+  status          CorporateGroupDistributionStatus @default(PENDING)
+  localResourceId String?
+  locallyModified Boolean                         @default(false)
+  distributedAt   DateTime?
+  distributedById String?
+
+  content CorporateGroupContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  group   CorporateGroup        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  tenant  Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([contentId, tenantId])
+  @@index([contentId])
+  @@index([groupId])
+  @@index([tenantId])
+  @@index([status])
+}
+
+enum CorporateGroupDistributionStatus {
+  PENDING
+  DISTRIBUTED
+  REJECTED
+  WITHDRAWN
+}
+
+model CorporateGroupAuditLog {
+  id         String @id @default(cuid())
+  groupId    String
+  userId     String
+  action     String
+  targetType String?
+  targetId   String?
+  details    Json?
+  ipAddress  String?
+
+  group CorporateGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([groupId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ============================================
+// Rutineversjonering (IK-HMS § 5 nr. 7-8)
+// ============================================
+
+model RoutineVersion {
+  id            String   @id @default(cuid())
+  routineId     String
+  versionNumber Int
+  changeNumber  String // Format: "ENR-2026-001"
+  changeSummary String   @db.Text
+  changeReason  String?  @db.Text
+  content       Json
+  legalReference String?
+  changedById   String
+  createdAt     DateTime @default(now())
+
+  routine   Routine @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  changedBy User    @relation(fields: [changedById], references: [id])
+
+  @@unique([routineId, versionNumber])
+  @@index([routineId])
+}
+
+// ============================================
+// Risiko-rutine kobling
+// ============================================
+
+model RiskRoutineLink {
+  id        String   @id @default(cuid())
+  riskId    String
+  routineId String
+  createdAt DateTime @default(now())
+
+  risk    Risk    @relation(fields: [riskId], references: [id], onDelete: Cascade)
+  routine Routine @relation(fields: [routineId], references: [id], onDelete: Cascade)
+
+  @@unique([riskId, routineId])
+}
+
+// ============================================
+// Mitt Regelverk: Virksomhetsprofil og regelverksmotor
+// ============================================
+
+model TenantActivityProfile {
+  id               String    @id @default(cuid())
+  tenantId         String    @unique
+  answers          Json // { "has_chemicals": true, "work_at_height": false, ... }
+  activeActivities Json // ["chemicals", "height_work", ...] utledet fra svar + NACE
+  completedAt      DateTime?
+  updatedAt        DateTime  @updatedAt
+  createdAt        DateTime  @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model RegulatoryRequirement {
+  id                String   @id @default(cuid())
+  title             String
+  description       String   @db.Text
+  legalBasis        String // Lov/forskrift-referanse
+  sourceUrl         String? // Lenke til lovdata.no
+  triggerActivities Json // ["chemicals"] - matcher activeActivities
+  hmsNovaFeature    String? // "chemical_register", "risk_assessment", etc.
+  hmsNovaRoute      String? // "/dashboard/stoffkartotek"
+  routineCategory   String? // Kobling til rutine-kategori
+  severity          String   @default("MANDATORY") // MANDATORY, RECOMMENDED, OPTIONAL
+  sortOrder         Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  overrides TenantRequirementOverride[]
+}
+
+model TenantRegulatoryProfile {
+  id           String   @id @default(cuid())
+  tenantId     String   @unique
+  generatedAt  DateTime @default(now())
+  requirements Json // [{ requirementId, status, checkedAt }]
+  updatedAt    DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// Serviceforespørsel (HMS-oppsett som tjeneste)
+// ============================================
+
+model ServiceRequest {
+  id          String               @id @default(cuid())
+  tenantId    String
+  type        ServiceRequestType
+  status      ServiceRequestStatus @default(PENDING)
+  description String?              @db.Text
+  price       Int? // Pris i øre
+  notes       String?              @db.Text
+  completedAt DateTime?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+// ============================================
+// Manuell overstyring/bekreftelse av lovkrav
+// ============================================
+
+model TenantRequirementOverride {
+  id                      String    @id @default(cuid())
+  tenantId                String
+  regulatoryRequirementId String?
+  customTitle             String?
+  customDescription       String?   @db.Text
+  customLegalBasis        String?
+  manualStatus            String // COMPLIANT, PARTIAL, NOT_APPLICABLE
+  statusNote              String?   @db.Text
+  verifiedAt              DateTime?
+  verifiedById            String?
+  documentUrl             String?
+  documentName            String?
+  isCustomRequirement     Boolean   @default(false)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  tenant      Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  verifiedBy  User?                   @relation("RequirementOverrideVerifier", fields: [verifiedById], references: [id])
+  requirement RegulatoryRequirement?  @relation(fields: [regulatoryRequirementId], references: [id])
+
+  @@unique([tenantId, regulatoryRequirementId])
+  @@index([tenantId])
+}
+
+enum ServiceRequestType {
+  FULL_SETUP
+  RISK_ASSESSMENT
+  ROUTINE_SETUP
+  HANDBOOK_SETUP
+  REGULATORY_PROFILE
+  CUSTOM
+}
+
+enum ServiceRequestStatus {
+  PENDING
+  QUOTED
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
 }

@@ -20,13 +20,21 @@ import { getMeasureStatusLabel, getMeasureStatusColor } from "@/features/measure
 import { useToast } from "@/hooks/use-toast";
 import type { ActionEffectiveness, Measure } from "@prisma/client";
 
-interface MeasureListProps {
-  measures: (Measure & {
-    risk?: { id: string; title: string } | null;
-  })[];
+interface MeasureWithSources extends Measure {
+  risk?: { id: string; title: string } | null;
+  incident?: { id: string; title: string; avviksnummer?: string | null } | null;
+  audit?: { id: string; title: string } | null;
+  goal?: { id: string; title: string } | null;
+  inspectionFindings?: { id: string; title: string; inspection: { id: string; title: string } }[];
+  decisionMeasures?: { id: string; title: string; meeting: { id: string; title: string } }[];
 }
 
-export function MeasureList({ measures }: MeasureListProps) {
+interface MeasureListProps {
+  measures: MeasureWithSources[];
+  showSourceBadges?: boolean;
+}
+
+export function MeasureList({ measures, showSourceBadges }: MeasureListProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
@@ -129,6 +137,50 @@ export function MeasureList({ measures }: MeasureListProps) {
                         {measure.description}
                       </p>
                     )}
+                    {showSourceBadges && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {measure.risk && (
+                          <Link href={`/dashboard/risks/${measure.risk.id}`}>
+                            <Badge className="bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200 text-xs">
+                              Risiko: {measure.risk.title}
+                            </Badge>
+                          </Link>
+                        )}
+                        {measure.incident && (
+                          <Link href={`/dashboard/incidents/${measure.incident.id}`}>
+                            <Badge className="bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200 text-xs">
+                              Avvik {measure.incident.avviksnummer || measure.incident.title}
+                            </Badge>
+                          </Link>
+                        )}
+                        {measure.audit && (
+                          <Link href={`/dashboard/audits/${measure.audit.id}`}>
+                            <Badge className="bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200 text-xs">
+                              Revisjon: {measure.audit.title}
+                            </Badge>
+                          </Link>
+                        )}
+                        {measure.goal && (
+                          <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">
+                            Mål: {measure.goal.title}
+                          </Badge>
+                        )}
+                        {measure.inspectionFindings?.map((f) => (
+                          <Link key={f.id} href={`/dashboard/inspections/${f.inspection.id}`}>
+                            <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200 text-xs">
+                              Inspeksjon: {f.inspection.title}
+                            </Badge>
+                          </Link>
+                        ))}
+                        {measure.decisionMeasures?.map((d) => (
+                          <Link key={d.id} href={`/dashboard/meetings/${d.meeting.id}`}>
+                            <Badge className="bg-teal-100 text-teal-800 border-teal-200 hover:bg-teal-200 text-xs">
+                              AMU: {d.meeting.title}
+                            </Badge>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
@@ -222,6 +274,28 @@ export function MeasureList({ measures }: MeasureListProps) {
                     {measure.description ? (
                       <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{measure.description}</p>
                     ) : null}
+                    {showSourceBadges && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {measure.risk && (
+                          <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-xs">Risiko</Badge>
+                        )}
+                        {measure.incident && (
+                          <Badge className="bg-orange-100 text-orange-800 border-orange-200 text-xs">Avvik</Badge>
+                        )}
+                        {measure.audit && (
+                          <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-xs">Revisjon</Badge>
+                        )}
+                        {measure.goal && (
+                          <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">Mål</Badge>
+                        )}
+                        {(measure.inspectionFindings?.length ?? 0) > 0 && (
+                          <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 text-xs">Inspeksjon</Badge>
+                        )}
+                        {(measure.decisionMeasures?.length ?? 0) > 0 && (
+                          <Badge className="bg-teal-100 text-teal-800 border-teal-200 text-xs">AMU</Badge>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <Badge className={statusColor}>{statusLabel}</Badge>
                 </div>

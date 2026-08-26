@@ -118,6 +118,11 @@ export default async function InspectionDetailPage({
     include: {
       findings: {
         orderBy: { createdAt: "desc" },
+        include: {
+          linkedMeasure: {
+            select: { id: true, title: true, status: true },
+          },
+        },
       },
       formTemplate: {
         include: {
@@ -423,7 +428,7 @@ export default async function InspectionDetailPage({
               <p className="text-sm mt-1">{t("findings.noneHelp")}</p>
             </div>
           ) : (
-            <InspectionFindingList findings={inspection.findings} />
+            <InspectionFindingList findings={inspection.findings} inspectionId={inspection.id} />
           )}
         </CardContent>
       </Card>

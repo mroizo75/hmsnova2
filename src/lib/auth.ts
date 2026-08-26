@@ -141,9 +141,15 @@ export const authOptions: NextAuthOptions = {
         }
 
         if (!user.isSuperAdmin && !user.isSupport && user.tenants.length === 0) {
-          throw new Error(
-            "Kontoen er ikke koblet til en bedrift. Kontakt administrator eller support."
-          );
+          const groupMembership = await prisma.corporateGroupUser.findFirst({
+            where: { userId: user.id },
+            select: { id: true },
+          });
+          if (!groupMembership) {
+            throw new Error(
+              "Kontoen er ikke koblet til en bedrift. Kontakt administrator eller support."
+            );
+          }
         }
 
         // SIKKERHET: Sjekk om tenant er suspendert pga ubetalt faktura
@@ -371,6 +377,13 @@ export const authOptions: NextAuthOptions = {
           // Lagre tidspunkt for siste kjente DB-oppdatering av rollen.
           // Brukes til versjonssjekkk – ingen polling nødvendig.
           token.roleUpdatedAt = selectedTenant?.updatedAt?.getTime() ?? null;
+
+          const groupMembership = await prisma.corporateGroupUser.findFirst({
+            where: { userId: dbUser.id },
+            select: { groupId: true, role: true },
+          });
+          token.corporateGroupId = groupMembership?.groupId ?? null;
+          token.corporateGroupRole = groupMembership?.role ?? null;
         }
       }
       
@@ -440,6 +453,8 @@ export const authOptions: NextAuthOptions = {
         session.user.hasMultipleTenants = token.hasMultipleTenants as boolean;
         session.user.preferredLocale = (token.preferredLocale as string | undefined) ?? "nb";
         session.user.isTavleOnly = (token.isTavleOnly as boolean | undefined) ?? false;
+        session.user.corporateGroupId = (token.corporateGroupId as string | null) ?? null;
+        session.user.corporateGroupRole = (token.corporateGroupRole as any) ?? null;
       }
       return session;
     },

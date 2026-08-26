@@ -48,6 +48,7 @@ import {
   Headphones,
   BookOpen,
   Users,
+  Activity,
 } from "lucide-react";
 import { usePermissions } from "@/hooks/use-permissions";
 import { getRoleDisplayName } from "@/lib/permissions";
@@ -118,6 +119,7 @@ const navItems: Array<{
   // === ORGANISASJON & INNSTILLINGER (vises alltid, uavhengig av simpleMenuItems) ===
   { href: "/dashboard/brukere", label: "nav.users", icon: Users, permission: "settings" as const, simple: true, alwaysShow: true },
   { href: "/dashboard/organisasjonskart", label: "nav.orgChart", icon: Building2, permission: "settings" as const, simple: true, alwaysShow: true },
+  { href: "/dashboard/aktivitetslogg", label: "nav.aktivitetslogg", icon: Activity, permission: "settings" as const, simple: false, alwaysShow: true },
   { href: "/dashboard/support", label: "nav.support", icon: Headphones, permission: "support" as const, simple: true, alwaysShow: true },
   { href: "/dashboard/settings", label: "nav.settings", icon: Settings, permission: "settings" as const, simple: true, alwaysShow: true },
 ];
@@ -279,6 +281,17 @@ export function DashboardNav() {
           <div className="mb-2 px-3 text-xs text-muted-foreground truncate">
             {session?.user?.name || session?.user?.email}
           </div>
+          {session?.user?.corporateGroupId && (
+            <Link href="/konsern">
+              <Button
+                variant="ghost"
+                className="mb-1 w-full justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+              >
+                <Building2 className="mr-3 h-4 w-4" />
+                Konsern-dashboard
+              </Button>
+            </Link>
+          )}
           <Button
             variant="ghost"
             className="w-full justify-start"

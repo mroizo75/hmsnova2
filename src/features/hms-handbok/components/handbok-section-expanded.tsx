@@ -22,6 +22,7 @@ import { updateDraftSection } from "@/server/actions/hms-handbok.actions";
 import type {
   HandbookSectionData,
   AnnualPlanProgress,
+  LegalRequirementForHandbook,
 } from "@/server/actions/hms-handbok.actions";
 import type { HandbookVersionStatus } from "@prisma/client";
 import { HandbokAnnualPlan } from "./handbok-annual-plan";
@@ -31,6 +32,7 @@ interface HandbokSectionExpandedProps {
   versionStatus: HandbookVersionStatus;
   canEdit: boolean;
   annualPlanProgress?: AnnualPlanProgress | null;
+  legalRequirements?: LegalRequirementForHandbook[];
   suggestions?: Array<{
     id: string;
     title: string;
@@ -45,6 +47,7 @@ export function HandbokSectionExpanded({
   versionStatus,
   canEdit,
   annualPlanProgress,
+  legalRequirements = [],
   suggestions = [],
 }: HandbokSectionExpandedProps) {
   const [expanded, setExpanded] = useState(false);
@@ -175,6 +178,89 @@ export function HandbokSectionExpanded({
           {section.sectionKey === "s13" && annualPlanProgress && (
             <div className="rounded-lg border bg-muted/30 p-4">
               <HandbokAnnualPlan progress={annualPlanProgress} />
+            </div>
+          )}
+
+          {/* Live lovkrav fra regelverksmotor (seksjon s2c – punkt 4) */}
+          {section.sectionKey === "s2c" && legalRequirements.length > 0 && (() => {
+            const activeReqs = legalRequirements.filter((r) => r.status !== "NOT_APPLICABLE");
+            const naReqs = legalRequirements.filter((r) => r.status === "NOT_APPLICABLE");
+            return (
+              <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">
+                    Identifiserte lovkrav ({activeReqs.length})
+                  </p>
+                  <Link
+                    href="/dashboard/juridisk-register"
+                    className="text-xs text-primary hover:underline flex items-center gap-1"
+                  >
+                    Se fullstendig register
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
+                </div>
+                <div className="space-y-1.5">
+                  {activeReqs.map((req) => (
+                    <div
+                      key={req.id}
+                      className="flex items-center gap-2.5 rounded-md bg-background border px-3 py-2"
+                    >
+                      {req.status === "COMPLIANT" ? (
+                        <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
+                      ) : req.status === "PARTIAL" ? (
+                        <Lightbulb className="h-4 w-4 shrink-0 text-yellow-600" />
+                      ) : (
+                        <X className="h-4 w-4 shrink-0 text-red-500" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-medium truncate">{req.title}</p>
+                          {req.isCustom && (
+                            <span className="shrink-0 rounded-sm bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                              Egendefinert
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">{req.legalBasis}</p>
+                      </div>
+                      {req.hmsNovaRoute && (
+                        <Link
+                          href={req.hmsNovaRoute}
+                          className="shrink-0 text-xs text-primary hover:underline"
+                        >
+                          Åpne
+                        </Link>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {activeReqs.some((r) => r.status === "MISSING") && (
+                  <p className="text-xs text-muted-foreground">
+                    Krav merket med rødt mangler dokumentasjon eller tiltak i HMS Nova.{" "}
+                    <Link href="/dashboard/juridisk-register" className="text-primary hover:underline">
+                      Gå til juridisk register
+                    </Link>{" "}
+                    for detaljer.
+                  </p>
+                )}
+                {naReqs.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {naReqs.length} krav er merket som ikke relevante for virksomheten.
+                  </p>
+                )}
+              </div>
+            );
+          })()}
+
+          {section.sectionKey === "s2c" && legalRequirements.length === 0 && (
+            <div className="rounded-lg border border-dashed bg-muted/30 p-4 text-center">
+              <p className="text-sm text-muted-foreground">
+                Ingen lovkrav er kartlagt ennå.{" "}
+                <Link href="/dashboard/juridisk-register" className="text-primary hover:underline">
+                  Kartlegg regelverk
+                </Link>{" "}
+                for å automatisk identifisere gjeldende lover og forskrifter.
+              </p>
             </div>
           )}
 

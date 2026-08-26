@@ -51,6 +51,7 @@ export const createFireDrillSchema = z.object({
   scenario: z.string().optional(),
   riskAssessment: z.string().optional(),
   participantIds: z.array(z.string().cuid()).optional(),
+  routineId: z.string().cuid().optional().nullable(),
   // § 4 tredje ledd: samordning mellom brukere i delt bygg
   sharedPremises: z.boolean().default(false),
   buildingOwnerCoordinated: z.boolean().optional(),
@@ -95,6 +96,7 @@ export const updateFireDrillSchema = z.object({
   scenario: z.string().optional(),
   riskAssessment: z.string().optional(),
   participantIds: z.array(z.string().cuid()).optional(),
+  routineId: z.string().cuid().optional().nullable(),
   status: z.enum(FIRE_DRILL_STATUSES).optional(),
   sharedPremises: z.boolean().optional(),
   buildingOwnerCoordinated: z.boolean().optional(),

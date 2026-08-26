@@ -91,6 +91,8 @@ export async function markSuggestionImplemented(
   const followUpDate = new Date()
   followUpDate.setDate(followUpDate.getDate() + 90)
 
+  const routineId = input.routineId ?? suggestion.targetRoutineId
+
   const log = await prisma.improvementLog.create({
     data: {
       tenantId: context.tenantId,
@@ -98,7 +100,7 @@ export async function markSuggestionImplemented(
       description: input.description,
       legalReference: input.legalReference ?? suggestion.legalBasis,
       suggestionId,
-      routineId: input.routineId ?? suggestion.targetRoutineId,
+      routineId,
       incidentIds: suggestion.pattern.linkedIncidentIds,
       beforeSnapshot: (input.beforeSnapshot ?? undefined) as any,
       afterSnapshot: (input.afterSnapshot ?? undefined) as any,
@@ -106,6 +108,40 @@ export async function markSuggestionImplemented(
       followUpDate,
     },
   })
+
+  // IK-HMS § 5 nr. 7: Opprett RoutineVersion automatisk ved godkjent forslag
+  if (routineId && (changeType === "ROUTINE_UPDATED" || changeType === "ROUTINE_CREATED")) {
+    try {
+      const { generateChangeNumber } = await import("@/lib/change-number")
+      const routine = await prisma.routine.findUnique({
+        where: { id: routineId },
+        select: { content: true, tenantId: true },
+      })
+      if (routine) {
+        const maxVersion = await prisma.routineVersion.aggregate({
+          where: { routineId },
+          _max: { versionNumber: true },
+        })
+        const nextVersion = (maxVersion._max.versionNumber ?? 0) + 1
+        const changeNumber = await generateChangeNumber(routine.tenantId)
+
+        await prisma.routineVersion.create({
+          data: {
+            routineId,
+            versionNumber: nextVersion,
+            changeNumber,
+            changeSummary: input.description,
+            changeReason: `Systemforslag: ${suggestion.title}`,
+            content: routine.content ?? {},
+            legalReference: input.legalReference ?? suggestion.legalBasis,
+            changedById: context.userId,
+          },
+        })
+      }
+    } catch {
+      // Non-critical: versioning failure should not block suggestion implementation
+    }
+  }
 
   // Marker mønsteret som løst
   await prisma.patternCache.update({

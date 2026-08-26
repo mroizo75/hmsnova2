@@ -19,6 +19,8 @@ import {
   Check,
   X,
   Trash2,
+  ClipboardList,
+  ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -113,6 +115,8 @@ interface Decision {
   dueDate?: string;
   status: DecisionStatus;
   notes?: string;
+  measureId?: string;
+  measure?: { id: string; title: string; status: string };
 }
 
 function getStatusBadge(status: MeetingStatus, t: ReturnType<typeof useTranslations>) {
@@ -330,6 +334,36 @@ export default function MeetingDetailPage() {
         description: error.message,
         variant: "destructive",
       });
+    }
+  };
+
+  const [creatingMeasureFor, setCreatingMeasureFor] = useState<string | null>(null);
+
+  const createMeasureFromDecision = async (decision: Decision) => {
+    setCreatingMeasureFor(decision.id);
+    try {
+      const response = await fetch(`/api/meetings/${params.id}/decisions/${decision.id}/measure`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Kunne ikke opprette tiltak");
+      }
+
+      toast({
+        title: "Tiltak opprettet",
+        description: `Tiltak «${data.data.title}» er koblet til vedtaket.`,
+      });
+
+      fetchMeeting();
+    } catch (error: any) {
+      toast({ title: "Feil", description: error.message, variant: "destructive" });
+    } finally {
+      setCreatingMeasureFor(null);
     }
   };
 
@@ -726,7 +760,27 @@ export default function MeetingDetailPage() {
                         )}
                       </div>
                     </div>
-                    {getDecisionStatusBadge(decision.status, t)}
+                    <div className="flex flex-col items-end gap-2">
+                      {getDecisionStatusBadge(decision.status, t)}
+                      {decision.measureId && decision.measure ? (
+                        <Link href={`/dashboard/measures/${decision.measure.id}`}>
+                          <Badge variant="outline" className="gap-1 cursor-pointer hover:bg-muted">
+                            <ExternalLink className="h-3 w-3" />
+                            {decision.measure.title}
+                          </Badge>
+                        </Link>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => createMeasureFromDecision(decision)}
+                          disabled={creatingMeasureFor === decision.id}
+                        >
+                          <ClipboardList className="mr-2 h-4 w-4" />
+                          {creatingMeasureFor === decision.id ? "Oppretter…" : "Opprett tiltak"}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}

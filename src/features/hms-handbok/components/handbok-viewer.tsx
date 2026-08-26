@@ -183,6 +183,7 @@ export function HandbokViewer({
               versionStatus={currentVersion.status}
               canEdit={canManage}
               annualPlanProgress={stats.annualPlanProgress}
+              legalRequirements={stats.legalRequirements}
               suggestions={suggestions.filter(
                 (s) => s.targetSectionKey === section.sectionKey,
               )}

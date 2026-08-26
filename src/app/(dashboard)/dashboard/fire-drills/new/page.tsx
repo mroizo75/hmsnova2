@@ -17,7 +17,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Building2, Flame, Save } from "lucide-react";
+import { ArrowLeft, Building2, FileText, Flame, Save } from "lucide-react";
 import Link from "next/link";
 import { FIRE_DRILL_TYPE_LABELS } from "@/features/fire-drills/schemas/fire-drill.schema";
 import type { FireDrillType } from "@/features/fire-drills/schemas/fire-drill.schema";
@@ -34,6 +34,9 @@ export default function NewFireDrillPage() {
   const [users, setUsers] = useState<TenantUser[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
 
+  const [routines, setRoutines] = useState<{ id: string; title: string }[]>([]);
+  const [loadingRoutines, setLoadingRoutines] = useState(true);
+
   const [form, setForm] = useState({
     title: "",
     drillType: "EVACUATION" as FireDrillType,
@@ -44,6 +47,7 @@ export default function NewFireDrillPage() {
     objectives: "",
     scenario: "",
     riskAssessment: "",
+    routineId: "__none__",
     sharedPremises: false,
     buildingOwnerCoordinated: false,
     buildingOwnerName: "",
@@ -53,24 +57,33 @@ export default function NewFireDrillPage() {
   });
 
   useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchData = async () => {
       if (!session?.user?.tenantId) return;
       try {
-        const res = await fetch(`/api/tenants/${session.user.tenantId}/users`);
-        const data = await res.json();
-        if (res.ok && data.users) {
-          setUsers(data.users);
+        const [usersRes, routinesResult] = await Promise.all([
+          fetch(`/api/tenants/${session.user.tenantId}/users`),
+          import("@/server/actions/routine.actions").then((mod) =>
+            mod.listTenantRoutines()
+          ),
+        ]);
+        const usersData = await usersRes.json();
+        if (usersRes.ok && usersData.users) {
+          setUsers(usersData.users);
           if (session.user.id) {
             setForm((prev) => ({ ...prev, responsibleId: session.user.id ?? "" }));
           }
+        }
+        if (routinesResult.success && routinesResult.data) {
+          setRoutines(routinesResult.data.map((r: { id: string; title: string }) => ({ id: r.id, title: r.title })));
         }
       } catch {
         // silent
       } finally {
         setLoadingUsers(false);
+        setLoadingRoutines(false);
       }
     };
-    fetchUsers();
+    fetchData();
   }, [session?.user?.tenantId, session?.user?.id]);
 
   const set = (field: string, value: unknown) =>
@@ -94,6 +107,7 @@ export default function NewFireDrillPage() {
           plannedDate: new Date(form.plannedDate).toISOString(),
           scenario: form.scenario || undefined,
           riskAssessment: form.riskAssessment || undefined,
+          routineId: form.routineId === "__none__" ? undefined : form.routineId,
           buildingOwnerName: form.buildingOwnerName || undefined,
           totalBuildingOccupants: form.totalBuildingOccupants
             ? parseInt(form.totalBuildingOccupants, 10)
@@ -258,6 +272,35 @@ export default function NewFireDrillPage() {
                 onCheckedChange={(v) => set("isAnnounced", v)}
               />
             </div>
+
+            {routines.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="routineId" className="flex items-center gap-1.5">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  Koble til rutine
+                </Label>
+                <Select
+                  value={form.routineId}
+                  onValueChange={(v) => set("routineId", v)}
+                  disabled={loadingRoutines}
+                >
+                  <SelectTrigger id="routineId">
+                    <SelectValue placeholder="Velg rutine (valgfritt)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Ingen kobling</SelectItem>
+                    {routines.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>
+                        {r.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Koble øvelsen til en eksisterende rutine for sporbarhet
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 

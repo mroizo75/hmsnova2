@@ -27,13 +27,30 @@ export type SetupGuideStep = {
   href: string;
   completed: boolean;
   icon: string;
+  mandatory: boolean;
+};
+
+export type SetupGuideGroup = {
+  key: string;
+  title: string;
+  legalRef: string;
+  steps: SetupGuideStep[];
+  completedCount: number;
+  totalCount: number;
+  percentage: number;
 };
 
 export type SetupGuideProgress = {
   steps: SetupGuideStep[];
+  groups: SetupGuideGroup[];
   totalCompleted: number;
   totalSteps: number;
   hidden: boolean;
+  completedCount: number;
+  totalCount: number;
+  compliancePercentage: number;
+  nextRecommendedAction: SetupGuideStep | null;
+  serviceOfferDismissed: boolean;
 };
 
 // ── Schemas ──────────────────────────────────────────────────────────────────
@@ -157,43 +174,138 @@ export async function skipStartpakke(tenantId: string): Promise<{ success: boole
 
 // ── Tilsynsklar-veiviser ────────────────────────────────────────────────────
 
-const SETUP_STEPS: Omit<SetupGuideStep, "completed">[] = [
+type StepDef = Omit<SetupGuideStep, "completed">;
+
+type StepGroupDef = {
+  key: string;
+  title: string;
+  legalRef: string;
+  steps: StepDef[];
+};
+
+const SETUP_STEP_GROUPS: StepGroupDef[] = [
   {
-    key: "add_employees",
-    title: "Legg til ansatte",
-    description: "Inviter ansatte slik at de kan delta i HMS-arbeidet",
-    href: "/dashboard/settings/users",
-    icon: "Users",
+    key: "grunnleggende",
+    title: "Grunnleggende",
+    legalRef: "IK-HMS § 5",
+    steps: [
+      {
+        key: "employees",
+        title: "Ansatte lagt til",
+        description: "Legg til minst én ansatt slik at de kan delta i HMS-arbeidet",
+        href: "/dashboard/settings/users",
+        icon: "Users",
+        mandatory: true,
+      },
+      {
+        key: "orgChart",
+        title: "Organisasjonskart",
+        description: "Definer roller, ansvar og myndighet for HMS (IK-HMS § 5 nr. 5)",
+        href: "/dashboard/organisasjonskart",
+        icon: "Network",
+        mandatory: true,
+      },
+      {
+        key: "handbook",
+        title: "HMS-håndbok",
+        description: "Fyll inn minst 3 seksjoner i HMS-håndboken",
+        href: "/dashboard/hms-handbok",
+        icon: "BookOpen",
+        mandatory: true,
+      },
+      {
+        key: "signatures",
+        title: "Håndbok signert",
+        description: "Dokumenter at ansatte har lest og forstått håndboken",
+        href: "/dashboard/hms-handbok",
+        icon: "PenLine",
+        mandatory: true,
+      },
+    ],
   },
   {
-    key: "org_chart",
-    title: "Fyll ut organisasjonskart",
-    description: "Definer roller, ansvar og myndighet for HMS (IK-HMS § 5 nr. 5)",
-    href: "/dashboard/organisasjonskart",
-    icon: "Network",
+    key: "risikovurdering",
+    title: "Risikovurdering",
+    legalRef: "IK-HMS § 5 nr. 6",
+    steps: [
+      {
+        key: "riskAssessment",
+        title: "Risikovurdering gjennomført",
+        description: "Kartlegg farer og vurder risiko (IK-HMS § 5 nr. 6)",
+        href: "/dashboard/risks",
+        icon: "ShieldAlert",
+        mandatory: true,
+      },
+      {
+        key: "riskMeasures",
+        title: "Tiltak definert på risikoer",
+        description: "Definer minst ett tiltak på en identifisert risiko",
+        href: "/dashboard/risks",
+        icon: "ClipboardCheck",
+        mandatory: true,
+      },
+    ],
   },
   {
-    key: "handbook",
-    title: "Sett opp HMS-håndboken",
-    description: "Fyll inn HMS-policy, mål og roller i håndboken",
-    href: "/dashboard/hms-handbok",
-    icon: "BookOpen",
+    key: "rutiner",
+    title: "Rutiner",
+    legalRef: "IK-HMS § 5 nr. 7",
+    steps: [
+      {
+        key: "routinesActive",
+        title: "Minst 3 aktive rutiner",
+        description: "Opprett og aktiver rutiner for virksomheten",
+        href: "/dashboard/rutiner",
+        icon: "FileCheck",
+        mandatory: true,
+      },
+      {
+        key: "routineAvvik",
+        title: "Avviksrutine finnes",
+        description: "Opprett en aktiv rutine med kategori AVVIK",
+        href: "/dashboard/rutiner",
+        icon: "AlertTriangle",
+        mandatory: true,
+      },
+      {
+        key: "routineVarsling",
+        title: "Varslingsrutine finnes",
+        description: "Opprett en aktiv rutine med kategori VARSLING (Varslerloven § 2–4)",
+        href: "/dashboard/rutiner",
+        icon: "Bell",
+        mandatory: true,
+      },
+    ],
   },
   {
-    key: "risk_assessment",
-    title: "Gjennomfør første risikovurdering",
-    description: "Kartlegg farer og vurder risiko (IK-HMS § 5 nr. 6)",
-    href: "/dashboard/risks",
-    icon: "ShieldAlert",
-  },
-  {
-    key: "handbook_signatures",
-    title: "Få ansatte til å signere HMS-håndboken",
-    description: "Dokumenter at ansatte har lest og forstått håndboken",
-    href: "/dashboard/hms-handbok",
-    icon: "PenLine",
+    key: "dokumenter",
+    title: "Dokumenter",
+    legalRef: "Brann- og eksplosjonsvernloven",
+    steps: [
+      {
+        key: "fireRoutine",
+        title: "Brannrutine / rømningsplan",
+        description: "Opprett en aktiv rutine med kategori BRANN",
+        href: "/dashboard/rutiner",
+        icon: "Flame",
+        mandatory: false,
+      },
+    ],
   },
 ];
+
+const ALL_STEP_DEFS: StepDef[] = SETUP_STEP_GROUPS.flatMap((g) => g.steps);
+
+function computeWeightedCompliance(steps: SetupGuideStep[]): number {
+  let totalWeight = 0;
+  let completedWeight = 0;
+  for (const step of steps) {
+    const w = step.mandatory ? 2 : 1;
+    totalWeight += w;
+    if (step.completed) completedWeight += w;
+  }
+  return totalWeight > 0 ? Math.round((completedWeight / totalWeight) * 100) : 0;
+}
 
 export async function getSetupGuideProgress(
   tenantId: string,
@@ -205,78 +317,121 @@ export async function getSetupGuideProgress(
         startpakkeCompleted: true,
         setupGuideHidden: true,
         onboardingStatus: true,
+        serviceOfferDismissed: true,
       },
     });
 
-    if (!tenant || !tenant.startpakkeCompleted) return null;
+    if (!tenant) return null;
     if (tenant.setupGuideHidden) return null;
-    if (tenant.onboardingStatus === "COMPLETED") return null;
 
-    const [employeeCount, orgNodeCount, riskCount, handbook] =
-      await Promise.all([
-        prisma.userTenant.count({
-          where: { tenantId, role: { not: "ADMIN" } },
-        }),
-        prisma.orgChartNode.count({ where: { tenantId } }),
-        prisma.riskAssessment.count({ where: { tenantId } }),
-        prisma.hmsHandbook.findUnique({
-          where: { tenantId },
-          select: {
-            id: true,
-            currentVersionId: true,
-          },
-        }),
-      ]);
+    const [
+      employeeCount,
+      orgNodeCount,
+      riskCount,
+      riskMeasureCount,
+      activeRoutineCount,
+      avvikRoutineCount,
+      varslingRoutineCount,
+      brannRoutineCount,
+      handbook,
+    ] = await Promise.all([
+      prisma.userTenant.count({
+        where: { tenantId, role: { not: "ADMIN" } },
+      }),
+      prisma.orgChartNode.count({ where: { tenantId } }),
+      prisma.riskAssessment.count({ where: { tenantId } }),
+      prisma.measure.count({
+        where: { tenantId, riskId: { not: null } },
+      }),
+      prisma.routine.count({
+        where: { tenantId, status: "ACTIVE" },
+      }),
+      prisma.routine.count({
+        where: { tenantId, category: "AVVIK", status: "ACTIVE" },
+      }),
+      prisma.routine.count({
+        where: { tenantId, category: "VARSLING", status: "ACTIVE" },
+      }),
+      prisma.routine.count({
+        where: { tenantId, category: "BRANN", status: "ACTIVE" },
+      }),
+      prisma.hmsHandbook.findUnique({
+        where: { tenantId },
+        select: { id: true, currentVersionId: true },
+      }),
+    ]);
 
     let handbookEdited = false;
     let signatureCount = 0;
 
-    if (handbook) {
-      const versionId = handbook.currentVersionId;
-
-      if (versionId) {
-        const [editedSections, sigCount] = await Promise.all([
-          prisma.handbookSection.count({
-            where: {
-              versionId,
-              content: { not: { startsWith: "<p>Beskriv" } },
-              NOT: {
-                content: {
-                  startsWith: "<p>Kartlegging",
-                },
-              },
-            },
-          }),
-          prisma.handbookSignature.count({
-            where: { handbookId: handbook.id },
-          }),
-        ]);
-
-        handbookEdited = editedSections >= 3;
-        signatureCount = sigCount;
-      }
+    if (handbook?.currentVersionId) {
+      const [editedSections, sigCount] = await Promise.all([
+        prisma.handbookSection.count({
+          where: {
+            versionId: handbook.currentVersionId,
+            content: { not: { startsWith: "<p>Beskriv" } },
+            NOT: { content: { startsWith: "<p>Kartlegging" } },
+          },
+        }),
+        prisma.handbookSignature.count({
+          where: { handbookId: handbook.id },
+        }),
+      ]);
+      handbookEdited = editedSections >= 3;
+      signatureCount = sigCount;
     }
 
     const completionMap: Record<string, boolean> = {
-      add_employees: employeeCount >= 1,
-      org_chart: orgNodeCount >= 2,
+      employees: employeeCount >= 1,
+      orgChart: orgNodeCount >= 2,
       handbook: handbookEdited,
-      risk_assessment: riskCount >= 1,
-      handbook_signatures: signatureCount >= 1,
+      signatures: signatureCount >= 1,
+      riskAssessment: riskCount >= 1,
+      riskMeasures: riskMeasureCount >= 1,
+      routinesActive: activeRoutineCount >= 3,
+      routineAvvik: avvikRoutineCount >= 1,
+      routineVarsling: varslingRoutineCount >= 1,
+      fireRoutine: brannRoutineCount >= 1,
     };
 
-    const steps: SetupGuideStep[] = SETUP_STEPS.map((step) => ({
+    const steps: SetupGuideStep[] = ALL_STEP_DEFS.map((step) => ({
       ...step,
       completed: completionMap[step.key] ?? false,
     }));
 
+    const groups: SetupGuideGroup[] = SETUP_STEP_GROUPS.map((groupDef) => {
+      const groupSteps = steps.filter((s) =>
+        groupDef.steps.some((gs) => gs.key === s.key),
+      );
+      const done = groupSteps.filter((s) => s.completed).length;
+      return {
+        key: groupDef.key,
+        title: groupDef.title,
+        legalRef: groupDef.legalRef,
+        steps: groupSteps,
+        completedCount: done,
+        totalCount: groupSteps.length,
+        percentage: groupSteps.length > 0 ? Math.round((done / groupSteps.length) * 100) : 0,
+      };
+    });
+
     const totalCompleted = steps.filter((s) => s.completed).length;
+    const nextRecommendedAction =
+      steps.filter((s) => !s.completed && s.mandatory)[0] ??
+      steps.filter((s) => !s.completed)[0] ??
+      null;
 
     return {
       steps,
+      groups,
       totalCompleted,
       totalSteps: steps.length,
+      completedCount: totalCompleted,
+      totalCount: steps.length,
+      compliancePercentage: computeWeightedCompliance(steps),
       hidden: tenant.setupGuideHidden,
+      nextRecommendedAction,
+      serviceOfferDismissed: tenant.serviceOfferDismissed,
     };
   } catch {
     return null;
@@ -306,7 +461,10 @@ export async function toggleSetupGuideVisibility(
 
     await prisma.tenant.update({
       where: { id: tenantId },
-      data: { setupGuideHidden: hidden },
+      data: {
+        setupGuideHidden: hidden,
+        ...(!hidden ? { startpakkeCompleted: true } : {}),
+      },
     });
 
     revalidatePath("/dashboard");
