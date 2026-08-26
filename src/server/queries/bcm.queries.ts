@@ -22,7 +22,7 @@ export async function fetchBcmData() {
 
   const tenantId = selectedMembership.tenantId;
 
-  const [bcmDocuments, auditsRaw, bcmForms] = await Promise.all([
+  const [bcmDocuments, auditsRaw, bcmForms, availableTemplates, wizardSubmissions] = await Promise.all([
     prisma.document.findMany({
       where: {
         tenantId,
@@ -35,7 +35,7 @@ export async function fetchBcmData() {
         status: true,
         updatedAt: true,
         nextReviewDate: true,
-        template: { select: { name: true } },
+        template: { select: { id: true, name: true } },
       },
       orderBy: { updatedAt: "desc" },
     }),
@@ -71,7 +71,34 @@ export async function fetchBcmData() {
       },
       orderBy: { createdAt: "desc" },
     }),
+    prisma.documentTemplate.findMany({
+      where: { isGlobal: true, category: "BCM" },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        defaultReviewIntervalMonths: true,
+      },
+      orderBy: { name: "asc" },
+    }),
+    prisma.formSubmission.count({
+      where: {
+        tenantId,
+        formTemplate: { title: "Beredskapsplan — veiviser", isGlobal: true, category: "BCM" },
+      },
+    }),
   ]);
 
-  return JSON.parse(JSON.stringify({ bcmDocuments, auditsRaw, bcmForms }));
+  const activatedTemplateIds = bcmDocuments
+    .filter((d: any) => d.template?.id)
+    .map((d: any) => d.template!.id);
+
+  return JSON.parse(JSON.stringify({
+    bcmDocuments,
+    auditsRaw,
+    bcmForms,
+    availableTemplates,
+    activatedTemplateIds,
+    hasWizardPlan: wizardSubmissions > 0,
+  }));
 }
