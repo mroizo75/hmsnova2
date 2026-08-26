@@ -139,7 +139,7 @@ export default function NewFireDrillPage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/dashboard/fire-drills">
@@ -182,7 +182,7 @@ export default function NewFireDrillPage() {
               />
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="drillType">
                   Type øvelse <span className="text-destructive">*</span>
@@ -218,9 +218,7 @@ export default function NewFireDrillPage() {
                   required
                 />
               </div>
-            </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="location">
                   Lokasjon / bygg <span className="text-destructive">*</span>
@@ -233,7 +231,9 @@ export default function NewFireDrillPage() {
                   required
                 />
               </div>
+            </div>
 
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="responsibleId">
                   Øvingsleder <span className="text-destructive">*</span>
@@ -330,29 +330,31 @@ export default function NewFireDrillPage() {
               </p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="scenario">Scenario-beskrivelse</Label>
-              <Textarea
-                id="scenario"
-                value={form.scenario}
-                onChange={(e) => set("scenario", e.target.value)}
-                placeholder="Beskriv øvelsesstillingen. F.eks.: Antatt brannstart i 2. etasje, røykutvikling fra korridor."
-                rows={3}
-              />
-            </div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="scenario">Scenario-beskrivelse</Label>
+                <Textarea
+                  id="scenario"
+                  value={form.scenario}
+                  onChange={(e) => set("scenario", e.target.value)}
+                  placeholder="Beskriv øvelsesstillingen. F.eks.: Antatt brannstart i 2. etasje, røykutvikling fra korridor."
+                  rows={4}
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="riskAssessment">Risikovurdering</Label>
-              <Textarea
-                id="riskAssessment"
-                value={form.riskAssessment}
-                onChange={(e) => set("riskAssessment", e.target.value)}
-                placeholder="Anbefalt hvis det brukes reelle virkemidler (røyk, alarm). Beskriv mulige risikomomenter og forebyggende tiltak."
-                rows={3}
-              />
-              <p className="text-xs text-muted-foreground">
-                Anbefalt av Brannportal — spesielt ved bruk av røyk/alarm under øvelsen
-              </p>
+              <div className="space-y-2">
+                <Label htmlFor="riskAssessment">Risikovurdering</Label>
+                <Textarea
+                  id="riskAssessment"
+                  value={form.riskAssessment}
+                  onChange={(e) => set("riskAssessment", e.target.value)}
+                  placeholder="Anbefalt hvis det brukes reelle virkemidler (røyk, alarm). Beskriv mulige risikomomenter og forebyggende tiltak."
+                  rows={4}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Anbefalt av Brannportal — spesielt ved bruk av røyk/alarm under øvelsen
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -392,33 +394,35 @@ export default function NewFireDrillPage() {
                   Delt bygg krever samordning — dokumenter dette her (§ 4)
                 </p>
 
-                <div className="space-y-2">
-                  <Label htmlFor="buildingOwnerName">
-                    Byggeier / samordningsansvarlig
-                  </Label>
-                  <Input
-                    id="buildingOwnerName"
-                    value={form.buildingOwnerName}
-                    onChange={(e) => set("buildingOwnerName", e.target.value)}
-                    placeholder="Navn på gårdeier, driftsselskap eller fellesansvarlig"
-                  />
-                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="buildingOwnerName">
+                      Byggeier / samordningsansvarlig
+                    </Label>
+                    <Input
+                      id="buildingOwnerName"
+                      value={form.buildingOwnerName}
+                      onChange={(e) => set("buildingOwnerName", e.target.value)}
+                      placeholder="Navn på gårdeier, driftsselskap eller fellesansvarlig"
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="totalBuildingOccupants">
-                    Totalt antall personer i bygget under øvelsen
-                  </Label>
-                  <Input
-                    id="totalBuildingOccupants"
-                    type="number"
-                    min={1}
-                    value={form.totalBuildingOccupants}
-                    onChange={(e) => set("totalBuildingOccupants", e.target.value)}
-                    placeholder="Inkluderer ansatte hos alle virksomheter og besøkende"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Påkrevd for korrekt § 13-dokumentasjon i delt bygg
-                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="totalBuildingOccupants">
+                      Totalt antall personer i bygget
+                    </Label>
+                    <Input
+                      id="totalBuildingOccupants"
+                      type="number"
+                      min={1}
+                      value={form.totalBuildingOccupants}
+                      onChange={(e) => set("totalBuildingOccupants", e.target.value)}
+                      placeholder="Alle virksomheter + besøkende"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Påkrevd for korrekt § 13-dokumentasjon i delt bygg
+                    </p>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between rounded-lg border bg-white p-3">

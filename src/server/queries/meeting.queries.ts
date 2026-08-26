@@ -5,6 +5,7 @@ import { getAuthContext } from "@/lib/server-authorization";
 
 export async function fetchMeetings() {
   const auth = await getAuthContext();
+  if (!auth) return [];
   const { tenantId } = auth;
 
   const meetings = await db.meeting.findMany({

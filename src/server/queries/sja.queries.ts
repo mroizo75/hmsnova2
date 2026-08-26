@@ -5,6 +5,7 @@ import { getAuthContext } from "@/lib/server-authorization";
 
 export async function fetchSjaList() {
   const auth = await getAuthContext();
+  if (!auth) return { analyses: [], templates: [] };
   const { permissions, tenantId, userId } = auth;
 
   const canReadAll = permissions.canReadSja;
@@ -38,6 +39,7 @@ export async function fetchSjaList() {
 
 export async function fetchSjaDetail(id: string) {
   const auth = await getAuthContext();
+  if (!auth) return null;
   const { tenantId } = auth;
 
   const analysis = await prisma.sjaAnalysis.findUnique({

@@ -5,6 +5,7 @@ import { getAuthContext } from "@/lib/server-authorization";
 
 export async function fetchFireDrills() {
   const auth = await getAuthContext();
+  if (!auth) return { drills: [], users: [] };
   const { tenantId } = auth;
 
   const [drills, users] = await Promise.all([

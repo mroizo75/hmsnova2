@@ -5,6 +5,7 @@ import { getAuthContext } from "@/lib/server-authorization";
 
 export async function fetchInspections() {
   const auth = await getAuthContext();
+  if (!auth) return [];
   const { tenantId } = auth;
 
   const inspections = await db.inspection.findMany({
@@ -30,6 +31,7 @@ export async function fetchInspections() {
 
 export async function fetchInspectionDetail(id: string) {
   const auth = await getAuthContext();
+  if (!auth) return null;
   const { tenantId } = auth;
 
   const inspection = await db.inspection.findUnique({
@@ -80,6 +82,7 @@ export async function fetchInspectionDetail(id: string) {
 
 export async function fetchInspectionMobile(id: string) {
   const auth = await getAuthContext();
+  if (!auth) return null;
   const { tenantId } = auth;
 
   const inspection = await db.inspection.findFirst({

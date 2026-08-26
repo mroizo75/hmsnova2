@@ -5,6 +5,7 @@ import { getAuthContext } from "@/lib/server-authorization";
 
 export async function fetchAktivitetssikkerhet() {
   const auth = await getAuthContext();
+  if (!auth) return [];
   const { tenantId } = auth;
 
   const sjekker = await prisma.aktivitetsUtstyrssjekk.findMany({

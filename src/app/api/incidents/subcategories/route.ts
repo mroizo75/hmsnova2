@@ -61,8 +61,9 @@ function mergeFallbackSubcategories(
   return Array.from(optionMap.values());
 }
 
-// GET /api/incidents/subcategories?type=ULYKKE
+// GET /api/incidents/subcategories?type=ULYKKE&context=ruh
 // Henter systemstandard + tenant-egne underkategorier for en gitt hendelsestype
+// context=ruh: returnerer RUH-spesifikke underkategorier i stedet for bransjekategorier
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -72,6 +73,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type") as IncidentType | null;
+    const context = searchParams.get("context");
 
     if (!type) {
       return NextResponse.json({ error: "type er påkrevd" }, { status: 400 });
@@ -84,11 +86,14 @@ export async function GET(request: NextRequest) {
           select: { industry: true },
         })
       : null;
-    const industryScopes = getIncidentIndustryScopes(tenant?.industry);
+
+    const isRuh = context === "ruh";
+    const industryScopes = isRuh
+      ? ["RUH"]
+      : getIncidentIndustryScopes(tenant?.industry);
 
     const tenantSpecificFilter = tenantId ? [{ tenantId }] : [];
 
-    // Hent systemstandard (tenantId = null) + tenant-egne for denne typen
     const options = await prisma.incidentSubcategoryOption.findMany({
       where: {
         incidentType: type,
@@ -113,9 +118,11 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({
-      options: mergeFallbackSubcategories(type, options, industryScopes),
-    });
+    const finalOptions = isRuh
+      ? options
+      : mergeFallbackSubcategories(type, options, industryScopes);
+
+    return NextResponse.json({ options: finalOptions });
   } catch (error: any) {
     return NextResponse.json(
       { error: error.message || "Intern feil" },

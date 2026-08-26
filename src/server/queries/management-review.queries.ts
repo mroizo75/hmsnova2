@@ -5,6 +5,7 @@ import { getAuthContext } from "@/lib/server-authorization";
 
 export async function fetchManagementReviews() {
   const auth = await getAuthContext();
+  if (!auth) return [];
   const { tenantId } = auth;
 
   const reviews = await db.managementReview.findMany({
@@ -17,6 +18,7 @@ export async function fetchManagementReviews() {
 
 export async function fetchManagementReviewDetail(id: string) {
   const auth = await getAuthContext();
+  if (!auth) return null;
   const { tenantId } = auth;
 
   const review = await db.managementReview.findFirst({

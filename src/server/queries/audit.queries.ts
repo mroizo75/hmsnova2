@@ -5,6 +5,7 @@ import { getAuthContext } from "@/lib/server-authorization";
 
 export async function fetchAudits() {
   const auth = await getAuthContext();
+  if (!auth) return [];
   const { tenantId } = auth;
 
   const audits = await prisma.audit.findMany({
@@ -21,6 +22,7 @@ export async function fetchAudits() {
 
 export async function fetchAuditDetail(id: string) {
   const auth = await getAuthContext();
+  if (!auth) return null;
   const { tenantId } = auth;
 
   const audit = await prisma.audit.findUnique({
