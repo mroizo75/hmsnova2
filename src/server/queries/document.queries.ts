@@ -9,7 +9,7 @@ export async function fetchDocuments() {
   const user = await getCurrentUser();
 
   if (!user) {
-    throw new Error("Unauthorized");
+    return null;
   }
 
   const userTenant = user.tenants.at(0);
@@ -41,7 +41,7 @@ export async function fetchDocumentDetail(id: string) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.email) {
-    throw new Error("Unauthorized");
+    return null;
   }
 
   const user = await prisma.user.findUnique({
