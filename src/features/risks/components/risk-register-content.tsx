@@ -13,7 +13,7 @@ interface RiskRegisterContentProps {
 
 export function RiskRegisterContent({ initialData }: RiskRegisterContentProps) {
   const { data: rows } = useQuery({
-    queryKey: ["risks"],
+    queryKey: ["risks", "register"],
     queryFn: () => fetchRiskRegisterData(),
     initialData,
   });
