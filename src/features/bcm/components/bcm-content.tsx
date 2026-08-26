@@ -23,7 +23,7 @@ function formatDate(date?: string | null) {
 
 export function BcmContent({ initialData }: BcmContentProps) {
   const { data } = useQuery({
-    queryKey: ["documents"],
+    queryKey: ["bcm"],
     queryFn: () => fetchBcmData(),
     initialData,
   });

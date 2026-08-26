@@ -25,7 +25,7 @@ interface ComplaintsContentProps {
 
 export function ComplaintsContent({ initialData }: ComplaintsContentProps) {
   const { data: complaints } = useQuery({
-    queryKey: ["incidents"],
+    queryKey: ["complaints"],
     queryFn: () => fetchComplaints(),
     initialData,
   });

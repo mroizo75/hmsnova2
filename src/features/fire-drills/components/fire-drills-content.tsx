@@ -58,7 +58,7 @@ function getTypeBadge(type: FireDrillType) {
 
 export function FireDrillsContent({ initialData }: FireDrillsContentProps) {
   const { data } = useQuery({
-    queryKey: ["training"],
+    queryKey: ["fire-drills"],
     queryFn: () => fetchFireDrills(),
     initialData,
   });

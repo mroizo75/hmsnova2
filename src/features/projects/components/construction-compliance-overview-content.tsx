@@ -20,7 +20,7 @@ interface ConstructionComplianceOverviewContentProps {
 
 export function ConstructionComplianceOverviewContent({ initialData }: ConstructionComplianceOverviewContentProps) {
   const { data: projects } = useQuery({
-    queryKey: ["projects"],
+    queryKey: ["projects", "construction-compliance"],
     queryFn: () => fetchConstructionComplianceOverview(),
     initialData,
   });

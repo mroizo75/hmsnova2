@@ -21,7 +21,7 @@ function effectiveStatus(e: { status: string; exposureEndDate: string | null }) 
 
 export function ExposureRegisterContent({ initialData }: ExposureRegisterContentProps) {
   const { data: entries } = useQuery({
-    queryKey: ["chemicals"],
+    queryKey: ["chemicals", "exposure-register"],
     queryFn: () => fetchExposureRegister(),
     initialData,
   });

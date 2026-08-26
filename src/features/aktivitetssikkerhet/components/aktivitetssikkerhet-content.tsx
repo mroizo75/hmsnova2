@@ -13,7 +13,7 @@ interface AktivitetssikkerhetContentProps {
 
 export function AktivitetssikkerhetContent({ initialData, canEdit }: AktivitetssikkerhetContentProps) {
   const { data: sjekker } = useQuery({
-    queryKey: ["inspections"],
+    queryKey: ["aktivitetssikkerhet"],
     queryFn: () => fetchAktivitetssikkerhet(),
     initialData,
   });
