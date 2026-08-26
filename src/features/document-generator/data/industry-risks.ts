@@ -460,5 +460,189 @@ export const INDUSTRY_RISKS: IndustryRisks = {
     createRisk("Brann", 3, 2, ["Røykvarsler", "Slokkeutstyr", "Rømningsveier"]),
     // ... flere risikoer
   ],
+
+  // ═══════════════════════════════════════════════════════════════
+  // KONTOR (8 risikoer)
+  // ═══════════════════════════════════════════════════════════════
+  OFFICE: [
+    createRisk("Ergonomi – skjermarbeid", 2, 5, ["Ergonomisk arbeidsstasjon", "Hev/senk-pult", "Pauser fra skjerm hvert 45. minutt", "Synsundersøkelse annethvert år"]),
+    createRisk("Inneklima – dårlig ventilasjon", 2, 4, ["Jevnlig kontroll av ventilasjonsanlegg", "Temperaturmåling", "Tilgang til frisk luft"]),
+    createRisk("Psykososialt – stress og tidspress", 2, 4, ["Realistiske tidsfrister", "Medarbeidersamtaler", "Tilgang til støtteapparat"]),
+    createRisk("Brann – kontorlokaler", 4, 2, ["Røykvarsler og slokkeutstyr", "Merket rømningsveier", "Brannøvelse årlig"]),
+    createRisk("Fall – glatt gulv, kabler", 2, 3, ["Kabelkanaler og ryddige gangveier", "Sklisikring ved inngangspartier"]),
+    createRisk("Støy – kontorlandskap", 2, 4, ["Stillerom tilgjengelig", "Støyskjerming", "Retningslinjer for støy"]),
+    createRisk("Informasjonssikkerhet – datalekkasje", 3, 3, ["Tilgangsstyring og passordpolicy", "Opplæring i personvern", "Kryptering av sensitiv data"]),
+    createRisk("Ensomhet og isolasjon – hjemmekontor", 2, 3, ["Jevnlig sosialt samvær", "Hybridkontor-retningslinjer", "Leder følger opp"]),
+  ],
+
+  // ═══════════════════════════════════════════════════════════════
+  // RÅDGIVNING (6 risikoer)
+  // ═══════════════════════════════════════════════════════════════
+  CONSULTING: [
+    createRisk("Ergonomi – skjermarbeid", 2, 5, ["Ergonomisk arbeidsplass", "Varierte oppgaver", "Pauser"]),
+    createRisk("Psykososialt – høy arbeidsbelastning", 2, 4, ["Realistisk prosjektplanlegging", "Lederoppfølging", "Fleksibel arbeidstid"]),
+    createRisk("Reiserelatert risiko", 2, 3, ["Reisepolicy", "Forsikring", "Hvile etter lange reiser"]),
+    createRisk("Informasjonssikkerhet – klientdata", 3, 3, ["Tilgangsstyring", "Kryptering", "Opplæring"]),
+    createRisk("Brann – kontorbygg", 4, 2, ["Røykvarsler", "Slokkeutstyr", "Rømningsveier"]),
+    createRisk("Inneklima", 2, 3, ["Ventilasjonskontroll", "Temperaturmåling"]),
+  ],
+
+  // ═══════════════════════════════════════════════════════════════
+  // JURIDISK (7 risikoer)
+  // ═══════════════════════════════════════════════════════════════
+  LEGAL: [
+    createRisk("Psykososialt – krevende saker og tidspress", 3, 4, ["Sakshåndteringssystem med kapasitetsplanlegging", "Kollegastøtte", "Tilgang til bedriftshelsetjeneste"]),
+    createRisk("Konfidensialitet – brudd på taushetsplikt", 4, 2, ["Sikker dokumenthåndtering", "Tilgangsstyring", "Opplæring i taushetspliktsregler"]),
+    createRisk("Ergonomi – langvarig skjermarbeid", 2, 5, ["Hev/senk-pult", "Skjermpauser", "Synsundersøkelse"]),
+    createRisk("Klientkonflikter og trusler", 3, 2, ["Rutiner for håndtering av truende klienter", "Alarmsystem", "Opplæring"]),
+    createRisk("Informasjonssikkerhet – sensitiv data", 4, 3, ["Kryptering", "Sikker e-post", "Clean desk-policy"]),
+    createRisk("Brann – kontorlokaler", 4, 2, ["Røykvarsler", "Slokkeutstyr", "Rømningsveier"]),
+    createRisk("Inneklima og belysning", 2, 3, ["Ventilasjonskontroll", "Tilstrekkelig belysning"]),
+  ],
+
+  // ═══════════════════════════════════════════════════════════════
+  // REGNSKAP (6 risikoer)
+  // ═══════════════════════════════════════════════════════════════
+  ACCOUNTING: [
+    createRisk("Psykososialt – sesongstress (årsoppgjør)", 2, 5, ["Bemanningsplanlegging i høysesong", "Overtidsbegrensning", "Lederoppfølging"]),
+    createRisk("Ergonomi – intensivt skjermarbeid", 2, 5, ["Ergonomisk arbeidsplass", "Regelmessige pauser", "Synsundersøkelse"]),
+    createRisk("Informasjonssikkerhet – regnskapsdata", 3, 3, ["Tilgangsstyring", "Sikker lagring", "Revisjonsspor"]),
+    createRisk("Brann – kontorlokaler", 4, 2, ["Røykvarsler", "Slokkeutstyr", "Rømningsveier"]),
+    createRisk("Inneklima", 2, 3, ["Ventilasjonskontroll", "Temperaturregulering"]),
+    createRisk("Fall – kontor", 2, 2, ["Ryddig arbeidsplass", "Kabelkanaler"]),
+  ],
+
+  // ═══════════════════════════════════════════════════════════════
+  // FINANS (8 risikoer)
+  // ═══════════════════════════════════════════════════════════════
+  FINANCE: [
+    createRisk("Ran og ransforsøk", 5, 2, ["Tidsforsinket safe", "Alarmknapp", "Ransinstruks og opplæring", "Ettervern"]),
+    createRisk("Psykososialt – stressende kundesituasjoner", 2, 4, ["Konflikthåndteringsopplæring", "Debriefing", "Lederoppfølging"]),
+    createRisk("Ergonomi – skjermarbeid", 2, 5, ["Ergonomisk arbeidsstasjon", "Pauser", "Varierte oppgaver"]),
+    createRisk("Informasjonssikkerhet – finansdata", 4, 3, ["Sterk tilgangskontroll", "Kryptering", "Tofaktorautentisering"]),
+    createRisk("Brann – forretningslokaler", 4, 2, ["Røykvarsler", "Slokkeutstyr", "Rømningsveier"]),
+    createRisk("Vold og trusler fra kunder", 3, 2, ["Alarmordning", "Opplæring", "Fysisk sikring av kundemottak"]),
+    createRisk("Inneklima", 2, 3, ["Ventilasjonskontroll", "Temperaturregulering"]),
+    createRisk("Hvitvasking og compliance-stress", 2, 3, ["Tydelige rutiner", "Opplæring", "Verktøystøtte"]),
+  ],
+
+  // ═══════════════════════════════════════════════════════════════
+  // AV-INSTALLASJON (8 risikoer)
+  // ═══════════════════════════════════════════════════════════════
+  AV_INSTALLATION: [
+    createRisk("Fall fra høyde – stige og lift", 5, 3, ["Fallsikring", "Opplæring i bruk av stige/lift", "SJA før arbeid i høyden", "Aldri arbeid alene i høyden"]),
+    createRisk("Elektrisk støt – kabling og tilkobling", 4, 3, ["Spenningsfri verifisering", "Isolert verktøy", "FSE-opplæring"]),
+    createRisk("Tunge løft – AV-utstyr og rack", 3, 4, ["Hjelpemidler ved tunge løft", "To-manns løft", "Ergonomisk opplæring"]),
+    createRisk("Klemskader – montering i trange rom", 3, 3, ["Planlegging av arbeidsområde", "Kommunikasjon mellom montører", "Vernehansker"]),
+    createRisk("Støy – testing av lydutstyr", 2, 4, ["Hørselsvern ved testing", "Begrens eksponeringstid"]),
+    createRisk("Arbeid alene – kundeinstallasjoner", 3, 3, ["Sjekk inn/ut-rutine", "Mobiltelefon", "Nødprosedyre"]),
+    createRisk("Trafikk – kjøring til oppdrag", 3, 3, ["Sikker kjøring", "Vedlikehold av firmabil", "Pauser ved lang kjøring"]),
+    createRisk("Støv og partikler – boring og kabling", 2, 3, ["Åndedrettsvern ved boring", "Støvavsug", "Opprydding"]),
+  ],
+
+  // ═══════════════════════════════════════════════════════════════
+  // TELEKOMMUNIKASJON (8 risikoer)
+  // ═══════════════════════════════════════════════════════════════
+  TELECOM: [
+    createRisk("Fall fra høyde – master og stolper", 5, 3, ["Fallsikring og klatresele", "Sertifisert opplæring", "SJA obligatorisk", "To-manns arbeid"]),
+    createRisk("Elektrisk fare – kabler og utstyr", 4, 3, ["Spenningskontroll", "Isolert verktøy", "FSE-prosedyrer"]),
+    createRisk("Graving – kabelgrøfter", 4, 2, ["Påvisning av eksisterende kabler", "Graveregler", "Sikring av grøft"]),
+    createRisk("Tunge løft – utstyr og kabler", 3, 4, ["Hjelpemidler", "To-manns løft", "Ergonomi"]),
+    createRisk("Alenearbeid – feltoppdrag", 3, 3, ["Sjekk inn/ut", "GPS-sporing", "Nødprosedyre"]),
+    createRisk("Trafikk – arbeid langs vei", 4, 3, ["Skilting og varsling", "Refleksvest", "Trafikksikringsplan"]),
+    createRisk("Vær og vind – utendørs arbeid", 3, 3, ["Værsjekk før oppdrag", "Avbryt ved sterk vind", "Riktig arbeidsklær"]),
+    createRisk("Ergonomi – repetitivt arbeid", 2, 4, ["Varierte oppgaver", "Pauser", "Riktig arbeidshøyde"]),
+  ],
+
+  // ═══════════════════════════════════════════════════════════════
+  // RENHOLD (8 risikoer)
+  // ═══════════════════════════════════════════════════════════════
+  CLEANING: [
+    createRisk("Kjemikalieeksponering – rengjøringsmidler", 3, 4, ["Les sikkerhetsdatablad", "Bruk vernehansker og -briller", "Aldri bland produkter", "God ventilasjon"]),
+    createRisk("Biologisk risiko – blod og kroppsvæsker", 4, 3, ["Smittevernutstyr", "Vaksinering", "Rutine ved eksponering"]),
+    createRisk("Ergonomi – tunge løft og repetitivt arbeid", 3, 4, ["Hjelpemidler (mopp, tralle)", "Variasjon i oppgaver", "Opplæring i løfteteknikk"]),
+    createRisk("Fall – glatte gulv og trapper", 3, 3, ["Sklisikkert fottøy", "Varsling ved vått gulv", "Forsiktighet i trapper"]),
+    createRisk("Alenearbeid – kveld/natt", 3, 3, ["Sjekk inn/ut-rutine", "Kommunikasjonsmiddel", "Nødprosedyre"]),
+    createRisk("Allergi og hudreaksjoner", 2, 3, ["Lateksfrie hansker", "Milde produkter", "Kartlegging av allergi"]),
+    createRisk("Psykososialt – isolasjon", 2, 3, ["Jevnlig kontakt med arbeidsgiver", "Teammøter", "Sosiale samlinger"]),
+    createRisk("Arbeid i kalde/varme omgivelser", 2, 3, ["Riktig arbeidsklær", "Pauser", "Væskeinntak"]),
+  ],
+
+  // ═══════════════════════════════════════════════════════════════
+  // SIKKERHET/VAKTHOLD (7 risikoer)
+  // ═══════════════════════════════════════════════════════════════
+  SECURITY: [
+    createRisk("Vold og trusler", 4, 4, ["Opplæring i konflikthåndtering", "Alarmordning", "To-manns patrulje ved høyrisiko", "Ettervern"]),
+    createRisk("Nattarbeid – utmattelse", 3, 4, ["Begrenset antall nattevakter på rad", "Hvilepauser", "Helsesjekk ved nattarbeid"]),
+    createRisk("Alenearbeid", 3, 4, ["Sjekk inn/ut", "GPS-sporing", "Nødknapp", "Kommunikasjonsrutine"]),
+    createRisk("Kjøring – patruljebil", 3, 3, ["Sikker kjøring", "Vedlikehold", "Hvile mellom skift"]),
+    createRisk("Psykososialt – belastende situasjoner", 3, 3, ["Debriefing", "Kollegastøtte", "Bedriftshelsetjeneste"]),
+    createRisk("Brann – vaktlokaler", 4, 2, ["Røykvarsler", "Slokkeutstyr", "Rømningsveier"]),
+    createRisk("Ergonomi – statisk arbeid", 2, 4, ["Varierte oppgaver", "Pauser", "Tilpasset arbeidsstasjon"]),
+  ],
+
+  // ═══════════════════════════════════════════════════════════════
+  // BEMANNING (6 risikoer)
+  // ═══════════════════════════════════════════════════════════════
+  STAFFING: [
+    createRisk("Mangelfull HMS-opplæring hos innleid", 4, 3, ["HMS-opplæring før oppdragsstart", "Dokumentert gjennomgang", "Ansvar utleier + innleier"]),
+    createRisk("Ukjent arbeidsmiljø – varierende oppdrag", 3, 3, ["Risikovurdering per oppdrag", "Informasjon om arbeidssted", "Kontaktperson hos innleier"]),
+    createRisk("Psykososialt – tilhørighet og isolasjon", 2, 3, ["Jevnlig oppfølging fra arbeidsgiver", "Inkludering hos innleier"]),
+    createRisk("Ergonomi – varierende arbeidsplasser", 2, 3, ["Sjekk av arbeidsplass", "Tilpasning", "Opplæring"]),
+    createRisk("Uklart ansvarsforhold", 3, 3, ["Tydelig avtale mellom utleier og innleier", "Dokumentert ansvarsfordeling"]),
+    createRisk("Språkbarrierer – utenlandske vikarer", 3, 3, ["HMS-informasjon på relevant språk", "Visuell merking", "Tolk ved behov"]),
+  ],
+
+  // ═══════════════════════════════════════════════════════════════
+  // ARKITEKTUR (6 risikoer)
+  // ═══════════════════════════════════════════════════════════════
+  ARCHITECTURE: [
+    createRisk("Ergonomi – langvarig skjermarbeid", 2, 5, ["Hev/senk-pult", "Pauser", "Ergonomisk mus/tastatur"]),
+    createRisk("Byggeplassbesøk – fall og fallende gjenstander", 4, 2, ["Hjelm, vernesko, refleksvest", "Følge SHA-plan", "Opplæring"]),
+    createRisk("Psykososialt – prosjektpress og tidsfrister", 2, 4, ["Realistisk planlegging", "Lederoppfølging"]),
+    createRisk("Brann – kontor/atelier", 4, 2, ["Røykvarsler", "Slokkeutstyr", "Rømningsveier"]),
+    createRisk("Inneklima – modelleringsrom", 2, 3, ["Ventilasjon", "Støvkontroll"]),
+    createRisk("Reiserelatert risiko", 2, 2, ["Reisepolicy", "Forsikring"]),
+  ],
+
+  // ═══════════════════════════════════════════════════════════════
+  // MEDIA OG KOMMUNIKASJON (7 risikoer)
+  // ═══════════════════════════════════════════════════════════════
+  MEDIA: [
+    createRisk("Ergonomi – langvarig skjermarbeid", 2, 5, ["Ergonomisk arbeidsplass", "Pauser", "Varierte oppgaver"]),
+    createRisk("Psykososialt – deadlines og tidspress", 2, 4, ["Realistisk planlegging", "Fleksibilitet", "Lederoppfølging"]),
+    createRisk("Feltarbeid – ulykker og uforutsette situasjoner", 3, 2, ["Risikovurdering før oppdrag", "Verneutstyr", "Nødprosedyre"]),
+    createRisk("Tungt utstyr – kamera, lyd, belysning", 3, 3, ["Hjelpemidler", "To-manns løft", "Ergonomi"]),
+    createRisk("Støy – lydproduksjon", 2, 3, ["Hørselsvern", "Begrens eksponering"]),
+    createRisk("Brann – studio/kontor", 4, 2, ["Røykvarsler", "Slokkeutstyr", "Rømningsveier"]),
+    createRisk("Informasjonssikkerhet – kildebeskyttelse", 3, 2, ["Sikker lagring", "Tilgangsstyring"]),
+  ],
+
+  // ═══════════════════════════════════════════════════════════════
+  // KULTUR OG SPORT (8 risikoer)
+  // ═══════════════════════════════════════════════════════════════
+  CULTURE_SPORT: [
+    createRisk("Fall fra høyde – rigging og scenearbeid", 5, 3, ["Fallsikring", "Sertifisert rigger", "SJA før rigging"]),
+    createRisk("Tunge løft – utstyr og sceneelementer", 3, 4, ["Hjelpemidler (kran, tralle)", "To-manns løft", "Ergonomi"]),
+    createRisk("Støy – konserter og arrangementer", 3, 4, ["Hørselsvern obligatorisk", "Støymåling", "Begrens eksponering"]),
+    createRisk("Publikumssikkerhet – trengsel og panikk", 5, 2, ["Evakueringsplan", "Opplært vaktstyrke", "Kapasitetsstyring"]),
+    createRisk("Brann – arrangement og lokaler", 5, 2, ["Røykvarsler", "Slokkeutstyr", "Merket rømningsveier", "Brannvakt"]),
+    createRisk("Arbeidstid – lange arbeidsdager ved arrangement", 2, 4, ["Skiftplanlegging", "Pauser", "Hvilebestemmelser"]),
+    createRisk("Elektrisk fare – midlertidige installasjoner", 4, 2, ["Kvalifisert elektriker", "Inspeksjon", "Jordfeilbryter"]),
+    createRisk("Psykososialt – uregelmessig arbeid", 2, 3, ["Forutsigbar turnus", "Lederoppfølging", "Sosiale tiltak"]),
+  ],
+
+  // ═══════════════════════════════════════════════════════════════
+  // PERSONLIGE TJENESTER (7 risikoer)
+  // ═══════════════════════════════════════════════════════════════
+  PERSONAL_SERVICES: [
+    createRisk("Kjemisk eksponering – hårfarge og produkter", 3, 4, ["Bruk hansker ved fargelegging", "God ventilasjon", "Les sikkerhetsdatablad", "Allergitest ved nye produkter"]),
+    createRisk("Allergiske reaksjoner – hud og luftveier", 3, 3, ["Bruk hypoallergene produkter", "Ventilasjon", "Kartlegging av allergi hos ansatte"]),
+    createRisk("Ergonomi – stående arbeid og repetitive bevegelser", 2, 5, ["Regulerbar arbeidshøyde", "Ergonomisk stol", "Pauser", "Tøyeøvelser"]),
+    createRisk("Hudkontakt – vann, såpe, desinfeksjon", 2, 4, ["Bruk fuktighetskrem", "Hansker ved behov", "Hudpleierutine"]),
+    createRisk("Fall – vått gulv i salongen", 2, 3, ["Sklisikkert fottøy", "Umiddelbar opprydding ved søl"]),
+    createRisk("Smitterisiko – kundekontakt", 3, 2, ["Hygieneregler", "Desinfeksjon av utstyr mellom kunder"]),
+    createRisk("Brann – elektrisk utstyr", 4, 2, ["Kontroll av utstyr", "Røykvarsler", "Slokkeutstyr"]),
+  ],
 };
 

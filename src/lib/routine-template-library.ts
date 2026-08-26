@@ -1304,6 +1304,632 @@ const hotelRestaurantTemplates: RoutineTemplateLibraryEntry[] = [
       ],
     }),
   },
+
+  // ── Kontor / rådgivning / advokatfirma / regnskap ──────────────────────
+  {
+    title: "Ergonomi og skjermarbeid",
+    description: "Rutine for ergonomisk tilpasning av kontorarbeidsplass, skjermpauser og synsundersøkelse for skjermbrukere.",
+    category: "ERGONOMI",
+    legalReference: "Forskrift om utforming og innretning av arbeidsplasser § 2-3, AML § 4-4",
+    industryScope: ["office", "consulting", "legal", "accounting", "technology", "finance", "architecture", "media"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal: "Forebygge muskel- og skjelettplager, synsproblemer og belastningsskader hos ansatte med skjermarbeid.",
+      omfang: "Gjelder alle ansatte som bruker dataskjerm som en vesentlig del av arbeidsdagen.",
+      ansvar: [
+        "Arbeidsgiver: tilby ergonomisk utstyr og synsundersøkelse.",
+        "HMS-ansvarlig: gjennomføre arbeidsplassvurderinger.",
+        "Ansatte: melde behov for tilpasning og ta regelmessige pauser.",
+      ],
+      gjennomforing: [
+        "Gjennomfør individuell arbeidsplassvurdering ved nyansettelse og ved endret arbeidsoppgave.",
+        "Tilby hev/senk-pult, justerbar stol, ekstern skjerm og tastatur/mus.",
+        "Gi opplæring i riktig arbeidsstilling: skjermavstand, stolhøyde, underarmsvinkel.",
+        "Sørg for pauser fra skjermarbeid – minimum 5–10 minutter per arbeidstime med skjerm.",
+        "Tilby synsundersøkelse hvert annet år for ansatte med skjermarbeid over halv dag.",
+        "Varier arbeidsoppgaver slik at langvarig statisk arbeid unngås.",
+      ],
+      dokumentasjon: [
+        "Arbeidsplassvurdering – signert av ansatt og HMS-ansvarlig.",
+        "Oversikt over utlevert utstyr.",
+        "Logg over gjennomførte synsundersøkelser.",
+      ],
+      avvikOppfolging: [
+        "Ansatte melder plager eller behov via avvikssystemet.",
+        "Tiltak iverksettes innen 14 dager og dokumenteres.",
+      ],
+      revisjon: "Revideres årlig eller ved endring av arbeidsplass/utstyr.",
+      kilder: [
+        "Forskrift om utforming og innretning av arbeidsplasser § 2-3",
+        "AML § 4-4 – fysisk arbeidsmiljø",
+        "Arbeidstilsynet: skjermarbeid og ergonomi",
+      ],
+    }),
+  },
+  {
+    title: "Inneklima og kontormiljø",
+    description: "Rutine for overvåkning og forbedring av inneklima, temperatur, ventilasjon og støy i kontormiljø.",
+    category: "INNEKLIMA",
+    legalReference: "AML § 4-4, Forskrift om utforming og innretning av arbeidsplasser",
+    industryScope: ["office", "consulting", "legal", "accounting", "finance", "architecture", "media"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal: "Sikre godt inneklima og kontormiljø som forebygger helseplager og fremmer produktivitet.",
+      omfang: "Gjelder alle kontorarealer, møterom og fellesområder.",
+      ansvar: [
+        "Arbeidsgiver: sørge for tilfredsstillende inneklima og vedlikehold av ventilasjon.",
+        "HMS-ansvarlig: gjennomføre inneklimamålinger og følge opp avvik.",
+        "Verneombud: fange opp klager og melde videre.",
+      ],
+      gjennomforing: [
+        "Mål temperatur, luftfuktighet og CO₂-nivå minst halvårlig.",
+        "Sørg for at romtemperatur holdes mellom 20–24 °C og luftfuktighet 30–60 %.",
+        "Kontroller at ventilasjonssystem har riktig kapasitet og er rengjort/vedlikeholdt.",
+        "Kartlegg og reduser støykilder i kontorlandskap: romavdelere, stillesoner, headset.",
+        "Sikre tilstrekkelig belysning ved arbeidsplasser (500 lux anbefalt).",
+      ],
+      dokumentasjon: [
+        "Inneklimamålinger – loggført med dato og verdier.",
+        "Vedlikeholdslogg for ventilasjonsanlegg.",
+        "Eventuelle klager og iverksatte tiltak.",
+      ],
+      avvikOppfolging: [
+        "Klager på inneklima registreres i avvikssystemet.",
+        "Tiltak iverksettes og effekt evalueres innen 30 dager.",
+      ],
+      revisjon: "Revideres årlig eller ved ombygging/endring av lokaler.",
+      kilder: [
+        "AML § 4-4 – fysisk arbeidsmiljø",
+        "Forskrift om utforming og innretning av arbeidsplasser",
+        "Arbeidstilsynet: inneklima og ventilasjon",
+      ],
+    }),
+  },
+  {
+    title: "Informasjonssikkerhet og personvern (GDPR)",
+    description: "Rutine for ivaretakelse av informasjonssikkerhet, tilgangsstyring og etterlevelse av GDPR i kontorvirksomhet.",
+    category: "PERSONVERN",
+    legalReference: "GDPR art. 5, 6, 32, Personopplysningsloven, AML § 3-1",
+    industryScope: ["office", "consulting", "legal", "accounting", "finance", "technology"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal: "Sikre at personopplysninger behandles i samsvar med GDPR, og at informasjonssikkerheten er ivaretatt.",
+      omfang: "Gjelder all behandling av personopplysninger i virksomheten, digitalt og fysisk.",
+      ansvar: [
+        "Daglig leder: behandlingsansvarlig etter GDPR.",
+        "Personvernombud/IT-ansvarlig: oppdatere behandlingsprotokoll og følge opp avvik.",
+        "Alle ansatte: følge retningslinjer for passord, tilgang og varsle ved mulig brudd.",
+      ],
+      gjennomforing: [
+        "Før behandlingsprotokoll (art. 30) med oversikt over alle behandlingsaktiviteter.",
+        "Implementer tilgangsstyring: minst nødvendig tilgang (need-to-know).",
+        "Krev sterke passord og tofaktorautentisering på alle systemer med persondata.",
+        "Gjennomfør opplæring i personvern og informasjonssikkerhet for alle ansatte årlig.",
+        "Sørg for databehandleravtaler med alle leverandører som behandler persondata.",
+        "Etabler prosedyre for håndtering av personvernbrudd: varsle Datatilsynet innen 72 timer.",
+      ],
+      dokumentasjon: [
+        "Behandlingsprotokoll (art. 30).",
+        "Databehandleravtaler.",
+        "Logg over opplæring og gjennomførte risikovurderinger.",
+        "Avvikshåndteringslogg for personvernbrudd.",
+      ],
+      avvikOppfolging: [
+        "Mulige personvernbrudd meldes umiddelbart til personvernombud.",
+        "Alvorlige brudd varsles Datatilsynet innen 72 timer (GDPR art. 33).",
+      ],
+      revisjon: "Revideres årlig og ved endring i systemer eller behandlingsaktiviteter.",
+      kilder: [
+        "GDPR art. 5, 6, 32, 33",
+        "Personopplysningsloven",
+        "Datatilsynet: veiledning om internkontroll og informasjonssikkerhet",
+      ],
+    }),
+  },
+  {
+    title: "Psykososialt arbeidsmiljø og stressmestring",
+    description: "Rutine for forebygging og håndtering av psykososiale belastninger, arbeidsrelatert stress og utbrenning.",
+    category: "PSYKOSOSIALT",
+    legalReference: "AML § 4-3, IK-HMS § 5",
+    industryScope: ["office", "consulting", "legal", "accounting", "finance", "technology", "media"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal: "Forebygge arbeidsrelatert stress, utbrenning og psykososiale belastninger blant ansatte.",
+      omfang: "Gjelder alle ansatte og ledere i virksomheten.",
+      ansvar: [
+        "Arbeidsgiver: sørge for forsvarlig psykososialt arbeidsmiljø (AML § 4-3).",
+        "Ledere: fange opp tidlige tegn på stress og tilby tilpasning.",
+        "Verneombud: ivareta ansattes rettigheter og melde bekymringer.",
+      ],
+      gjennomforing: [
+        "Gjennomfør arbeidsmiljøkartlegging med fokus på psykososiale forhold minst årlig.",
+        "Sørg for at arbeidsbelastning og tidspress er håndterbare – vurder bemanning.",
+        "Tilby støtte og veiledning ved høy arbeidsbelastning: prioriteringshjelp, avlastning.",
+        "Gi opplæring til ledere i å gjenkjenne og håndtere stressrelaterte plager.",
+        "Etabler lavterskeltilbud: bedriftshelsetjeneste, samtalepartner, kollegastøtteordning.",
+        "Gjennomfør medarbeidersamtaler med fokus på arbeidsmiljø og trivsel minst årlig.",
+      ],
+      dokumentasjon: [
+        "Resultater fra arbeidsmiljøkartlegging – anonymisert.",
+        "Handlingsplan med tiltak og ansvarlig.",
+        "Logg over gjennomførte medarbeidersamtaler.",
+      ],
+      avvikOppfolging: [
+        "Bekymringer meldes via verneombud eller direkte til HMS-ansvarlig.",
+        "Tiltak evalueres kvartalsvis.",
+      ],
+      revisjon: "Revideres årlig eller ved vesentlige organisasjonsendringer.",
+      kilder: [
+        "AML § 4-3 – psykososialt arbeidsmiljø",
+        "IK-HMS § 5",
+        "Arbeidstilsynet: psykososialt arbeidsmiljø",
+      ],
+    }),
+  },
+
+  // ── Finans ─────────────────────────────────────────────────────────────
+  {
+    title: "Ransforebygging og sikkerhet i finansvirksomhet",
+    description: "Rutine for forebygging av ran og sikkerhetshåndtering i finansvirksomhet med kontanthåndtering.",
+    category: "SIKKERHET",
+    legalReference: "AML § 4-3 (3), AML § 3-1, IK-HMS § 5",
+    industryScope: ["finance"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal: "Forebygge ran og sikre trygg håndtering av verdier, samt ivareta ansattes sikkerhet og psykisk helse.",
+      omfang: "Gjelder alle ansatte i avdelinger med kontanthåndtering og kundemottak.",
+      ansvar: [
+        "Daglig leder: ansvarlig for sikkerhetsrutiner og beredskapsplan.",
+        "Sikkerhetsansvarlig: vedlikeholde teknisk utstyr og gjennomføre øvelser.",
+        "Alle ansatte: kjenne alarmrutiner og følge prosedyrer.",
+      ],
+      gjennomforing: [
+        "Installer og vedlikehold tidsforsinket safe, alarmknapper og overvåkningskamera.",
+        "Minimer kontantbeholdning i kasser – regelmessig tømming.",
+        "Gjennomfør ransinstruks-opplæring for alle ansatte ved ansettelse og årlig.",
+        "Øv på ransscenarier minst årlig – inkluder kommunikasjon med politi.",
+        "Etabler ettervern: debriefing, psykologbistand og oppfølgingssamtale etter hendelse.",
+        "Gjennomfør risikovurdering av lokaler: belysning, siktlinjer, adgangskontroll.",
+      ],
+      dokumentasjon: [
+        "Sikkerhetsplan med alarmrutiner og ansvarsoversikt.",
+        "Logg over gjennomførte øvelser og opplæring.",
+        "Vedlikeholdslogg for sikkerhetsutstyr.",
+      ],
+      avvikOppfolging: [
+        "Alle sikkerhetshendelser meldes umiddelbart til politi og registreres i avvikssystemet.",
+        "Ettervern iverksettes samme dag for berørte ansatte.",
+      ],
+      revisjon: "Revideres årlig og etter sikkerhetshendelser.",
+      kilder: [
+        "AML § 4-3 (3) – vold og trusler",
+        "AML § 3-1 – systematisk HMS-arbeid",
+        "IK-HMS § 5",
+        "Finansnæringens Fellesorganisasjon – sikkerhetsveiledning",
+      ],
+    }),
+  },
+
+  // ── AV-installasjon og telekom ─────────────────────────────────────────
+  {
+    title: "Sikker installasjon og montasje – arbeid i høyden",
+    description: "Rutine for sikker utførelse av montasje- og installasjonsarbeid i høyden, inkludert fallsikring og SJA.",
+    category: "MONTASJE",
+    legalReference: "Forskrift om utførelse av arbeid kap. 17, AML § 3-2",
+    industryScope: ["av_installation", "telecom"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal: "Forhindre fallulykker og sikre trygg gjennomføring av montasje- og installasjonsarbeid i høyden.",
+      omfang: "Gjelder alt arbeid over 2 meter hvor det er fare for fall.",
+      ansvar: [
+        "Arbeidsgiver: sørge for godkjent utstyr og opplæring i arbeid i høyden.",
+        "Prosjektleder/bas: gjennomføre SJA (Sikker Jobb Analyse) før oppstart.",
+        "Montør: bruke pålagt fallsikringsutstyr og melde usikre forhold.",
+      ],
+      gjennomforing: [
+        "Gjennomfør SJA før alt arbeid i høyden – dokumenteres skriftlig.",
+        "Bruk kollektive sikringstiltak først: rekkverk, stillas, lift.",
+        "Når kollektive tiltak ikke er mulig: bruk personlig fallsikringsutstyr (sele, line, falldempere).",
+        "Kontroller stige, lift og stillas før bruk – sjekk godkjenning og tilstand.",
+        "Sørg for at alle montører har dokumentert opplæring i bruk av fallsikring.",
+        "Sperre av område under arbeid i høyden for å beskytte forbipasserende.",
+      ],
+      dokumentasjon: [
+        "SJA-skjema – signert av alle involverte.",
+        "Sertifikater og opplæringsbevis for arbeid i høyden.",
+        "Inspeksjonslogg for fallsikringsutstyr.",
+      ],
+      avvikOppfolging: [
+        "Nestenulykker og farlige forhold meldes i avvikssystemet.",
+        "Gjentatte avvik fører til stans og gjennomgang av rutiner.",
+      ],
+      revisjon: "Revideres årlig og etter alvorlige hendelser.",
+      kilder: [
+        "Forskrift om utførelse av arbeid kap. 17 – arbeid i høyden",
+        "AML § 3-2 – opplæring",
+        "Arbeidstilsynet: arbeid i høyden",
+      ],
+    }),
+  },
+  {
+    title: "Elektrosikkerhet ved AV- og telekominstallasjon",
+    description: "Rutine for sikker håndtering av elektrisk utstyr og kabling ved AV- og telekominstallasjoner.",
+    category: "ELEKTRO",
+    legalReference: "FSE § 5, NEK 400, AML § 3-2",
+    industryScope: ["av_installation", "telecom"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal: "Forebygge elektriske ulykker ved installasjon, vedlikehold og feilsøking av AV- og telekomutstyr.",
+      omfang: "Gjelder alt arbeid på eller nær elektriske installasjoner, kabling og utstyr.",
+      ansvar: [
+        "Arbeidsgiver: sikre at kun kvalifisert personell utfører elektrisk arbeid.",
+        "Installatør/montør: følge FSE og bruke pålagt verneutstyr.",
+        "Prosjektleder: verifisere at nødvendige tillatelser og kvalifikasjoner er på plass.",
+      ],
+      gjennomforing: [
+        "Kun kvalifisert personell (jf. FSE § 5) utfører arbeid på spenningssatte anlegg.",
+        "Gjennomfør risikovurdering før arbeid nær eksisterende elektriske installasjoner.",
+        "Bruk spenningsprøver og jording ved arbeid på frakoblede anlegg.",
+        "Merk kabler og koblinger tydelig etter NEK 400 og gjeldende standarder.",
+        "Bruk isolert verktøy og personlig verneutstyr (isolerende hansker, vernebriller).",
+        "Sørg for tilgjengelig førstehjelpsutstyr tilpasset elektriske skader.",
+      ],
+      dokumentasjon: [
+        "FSE-sertifikater og fagbrev for alt personell.",
+        "Samsvarserklæring for utførte installasjoner.",
+        "Inspeksjons- og vedlikeholdslogg.",
+      ],
+      avvikOppfolging: [
+        "Elektriske hendelser og nestenulykker meldes umiddelbart.",
+        "DSB varsles ved alvorlige elektriske ulykker.",
+      ],
+      revisjon: "Revideres årlig og ved endring i forskrifter eller utstyrspark.",
+      kilder: [
+        "FSE – Forskrift om sikkerhet ved arbeid i og drift av elektriske anlegg",
+        "NEK 400 – Elektroteknisk norm",
+        "AML § 3-2 – opplæring",
+      ],
+    }),
+  },
+
+  // ── Renhold ────────────────────────────────────────────────────────────
+  {
+    title: "Kjemikaliehåndtering og HMS-datablad i renhold",
+    description: "Rutine for sikker håndtering, oppbevaring og merking av kjemikalier brukt i renholdsarbeid.",
+    category: "KJEMIKALIER",
+    legalReference: "Forskrift om utførelse av arbeid kap. 3, AML § 3-2, IK-HMS § 5",
+    industryScope: ["cleaning"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal: "Sikre trygg bruk av rengjøringsmidler og kjemikalier, og forebygge helseskader ved eksponering.",
+      omfang: "Gjelder alle renholdsarbeidere og alt kjemikalierelatert arbeid.",
+      ansvar: [
+        "Arbeidsgiver: holde oppdatert stoffkartotek og sørge for opplæring.",
+        "HMS-ansvarlig: gjennomgå sikkerhetsdatablad og risikovurderinger.",
+        "Renholdsarbeider: følge bruksanvisninger og bruke pålagt verneutstyr.",
+      ],
+      gjennomforing: [
+        "Før stoffkartotek med sikkerhetsdatablad for alle kjemikalier i bruk.",
+        "Gi opplæring i lesing og bruk av sikkerhetsdatablad ved ansettelse.",
+        "Bruk verneutstyr som angitt i datablad: hansker, vernebriller, åndedrettsvern.",
+        "Oppbevar kjemikalier i originalemballasje med tydelig merking – aldri i matbeholdere.",
+        "Forbud mot blanding av kjemikalier uten skriftlig godkjenning.",
+        "Sørg for god ventilasjon ved bruk av sterke rengjøringsmidler.",
+      ],
+      dokumentasjon: [
+        "Stoffkartotek – oppdatert og tilgjengelig for alle ansatte.",
+        "Opplæringslogg for kjemikaliehåndtering.",
+        "Risikovurdering ved innføring av nye produkter.",
+      ],
+      avvikOppfolging: [
+        "Uhell med kjemikalier meldes umiddelbart og registreres i avvikssystemet.",
+        "Førstehjelp iverksettes iht. sikkerhetsdatablad.",
+      ],
+      revisjon: "Revideres årlig og ved innføring av nye kjemikalier.",
+      kilder: [
+        "Forskrift om utførelse av arbeid kap. 3 – kjemisk og biologisk helsefare",
+        "AML § 3-2 – opplæring",
+        "IK-HMS § 5 – krav til internkontroll",
+      ],
+    }),
+  },
+  {
+    title: "Alenearbeid og biologisk risiko i renhold",
+    description: "Rutine for håndtering av alenearbeid, smittevern og nødprosedyrer for renholdsarbeidere.",
+    category: "ALENEARBEID",
+    legalReference: "AML § 4-1, AML § 4-3, IK-HMS § 5",
+    industryScope: ["cleaning"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal: "Ivareta sikkerheten til renholdsarbeidere som jobber alene, og forebygge biologisk smitterisiko.",
+      omfang: "Gjelder alle renholdsoppdrag hvor ansatte arbeider alene eller utenfor ordinær arbeidstid.",
+      ansvar: [
+        "Arbeidsgiver: risikovurdere alenearbeid og etablere innsjekksrutiner.",
+        "Driftsleder: følge opp at innsjekk gjennomføres.",
+        "Ansatt: følge inn-/utsjekksrutiner og melde avvik.",
+      ],
+      gjennomforing: [
+        "Gjennomfør risikovurdering av alle arbeidsplasser med alenearbeid.",
+        "Etabler inn- og utsjekkssystem: SMS, app eller telefonsamtale ved start og slutt.",
+        "Sørg for at ansatte har mobiltelefon og kjenner nødnumre.",
+        "Gi opplæring i smittevern: bruk av hansker, munnbind ved behov, håndvask.",
+        "Sørg for tilgang til førstehjelpsutstyr på alle arbeidsplasser.",
+        "Etabler rutine for varsling ved manglende innsjekk – eskaleringsprosedyre.",
+      ],
+      dokumentasjon: [
+        "Risikovurdering for alenearbeid – per arbeidsplass.",
+        "Logg over inn- og utsjekkinger.",
+        "Opplæringsdokumentasjon for smittevern.",
+      ],
+      avvikOppfolging: [
+        "Manglende innsjekk følges opp umiddelbart.",
+        "Hendelser ved alenearbeid registreres i avvikssystemet.",
+      ],
+      revisjon: "Revideres årlig eller ved endring av oppdrag/arbeidssted.",
+      kilder: [
+        "AML § 4-1 – krav til arbeidsmiljøet",
+        "AML § 4-3 – psykososialt arbeidsmiljø",
+        "IK-HMS § 5",
+        "Arbeidstilsynet: alenearbeid",
+      ],
+    }),
+  },
+
+  // ── Vakt og sikkerhet ──────────────────────────────────────────────────
+  {
+    title: "Vold, trusler og nattarbeid i vaktvirksomhet",
+    description: "Rutine for håndtering av vold og trusler, konfliktsituasjoner og nattarbeid for vektere og sikkerhetspersonell.",
+    category: "VAKT_SIKKERHET",
+    legalReference: "AML § 4-3 (3), AML § 10-11, Vaktvirksomhetsloven",
+    industryScope: ["security"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal: "Forebygge vold og trusler mot vektere, og sikre forsvarlige arbeidsforhold ved nattarbeid.",
+      omfang: "Gjelder alle ansatte som utfører vakt- og sikkerhetsoppdrag.",
+      ansvar: [
+        "Arbeidsgiver: risikovurdere oppdrag og sørge for opplæring i konflikthåndtering.",
+        "Oppdragsleder: fordele oppdrag etter risikonivå og kompetanse.",
+        "Vekter: følge konflikthåndteringsprosedyrer og rapportere hendelser.",
+      ],
+      gjennomforing: [
+        "Gjennomfør risikovurdering for hvert oppdrag – kategoriser etter trusselnivå.",
+        "Gi alle vektere opplæring i konflikthåndtering og deeskaleringsteknikker.",
+        "Alenearbeid på natt: sørg for kommunikasjonsutstyr og innsjekksrutine.",
+        "Overhold arbeidstidsregler for nattarbeid (AML § 10-11): maks 8 timer per 24 timer.",
+        "Etabler prosedyre ved voldshendelse: trekk deg unna, varsle, dokumenter.",
+        "Tilby ettervern etter alvorlige hendelser: debriefing, psykologbistand, fri.",
+      ],
+      dokumentasjon: [
+        "Risikovurdering per oppdrag.",
+        "Opplæringsbevis i konflikthåndtering (Vaktvirksomhetsloven krav).",
+        "Hendelsesrapporter for vold og trusler.",
+        "Arbeidstidsregistrering med nattarbeidsoversikt.",
+      ],
+      avvikOppfolging: [
+        "Alle volds- og trusselhendelser meldes umiddelbart og registreres.",
+        "Ettervern iverksettes innen 24 timer for berørte.",
+      ],
+      revisjon: "Revideres årlig og etter alvorlige hendelser.",
+      kilder: [
+        "AML § 4-3 (3) – vold og trusler",
+        "AML § 10-11 – nattarbeid",
+        "Vaktvirksomhetsloven",
+        "Arbeidstilsynet: vold og trusler i arbeidslivet",
+      ],
+    }),
+  },
+
+  // ── Bemanning og vikarbyrå ─────────────────────────────────────────────
+  {
+    title: "HMS-opplæring og ansvarsfordeling for innleid personell",
+    description: "Rutine for HMS-opplæring, ansvarsfordeling og dokumentasjon ved utleie av arbeidskraft.",
+    category: "INNLEIE",
+    legalReference: "AML § 2-2, AML § 3-2, Forskrift om systematisk HMS § 5",
+    industryScope: ["staffing"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal: "Sikre at innleid personell får nødvendig HMS-opplæring og at ansvaret mellom utleier og innleier er tydelig.",
+      omfang: "Gjelder alle ansatte som leies ut til oppdrag hos innleiebedrifter.",
+      ansvar: [
+        "Bemanningsbyrå (utleier): gi generell HMS-opplæring og sikre at ansatte er kvalifisert.",
+        "Innleiebedrift: gi arbeidsplassspesifikk HMS-opplæring og inkludere innleid i vernerunder.",
+        "Den ansatte: delta i opplæring og følge gjeldende HMS-rutiner på arbeidsplassen.",
+      ],
+      gjennomforing: [
+        "Gi grunnleggende HMS-opplæring til alle ansatte før første oppdrag.",
+        "Avklar ansvarsfordeling skriftlig med innleiebedrift: hvem dekker hva.",
+        "Sørg for at innleid personell får stedspesifikk opplæring: rømningsveier, verneombud, førstehjelp.",
+        "Følg opp at innleiebedriften ivaretar innleids arbeidsmiljø (AML § 2-2).",
+        "Dokumenter all opplæring og sertifikater som kreves for oppdraget.",
+        "Gjennomfør oppfølgingssamtaler med utleid personell om arbeidsmiljøet.",
+      ],
+      dokumentasjon: [
+        "Opplæringslogg – generell og oppdragsspesifikk.",
+        "Skriftlig avtale om ansvarsfordeling mellom utleier og innleier.",
+        "Kopi av nødvendige sertifikater og kvalifikasjonsbevis.",
+      ],
+      avvikOppfolging: [
+        "Avvik og HMS-hendelser hos innleiebedriften varsles umiddelbart til utleier.",
+        "Begge parter behandler avviket i sine respektive systemer.",
+      ],
+      revisjon: "Revideres årlig og ved endring av oppdragstyper.",
+      kilder: [
+        "AML § 2-2 – arbeidsgivers plikter overfor innleid",
+        "AML § 3-2 – opplæring",
+        "Forskrift om systematisk HMS § 5",
+      ],
+    }),
+  },
+
+  // ── Arkitektur / design ────────────────────────────────────────────────
+  {
+    title: "HMS ved befaring og byggeplassbesøk",
+    description: "Rutine for sikker gjennomføring av befaringer og byggeplassbesøk for arkitekter og rådgivere.",
+    category: "BEFARING",
+    legalReference: "Byggherreforskriften § 13, AML § 3-2",
+    industryScope: ["architecture"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal: "Sikre at ansatte i arkitekt- og rådgivningsfirma er trygge ved befaring og besøk på byggeplasser.",
+      omfang: "Gjelder alle ansatte som besøker byggeplasser, anleggsområder eller prosjektlokaliteter.",
+      ansvar: [
+        "Arbeidsgiver: sørge for verneutstyr og opplæring i HMS ved befaring.",
+        "Prosjektleder: innhente informasjon om SHA-plan og stedlige regler før besøk.",
+        "Den ansatte: bruke pålagt verneutstyr og følge byggeplassens regler.",
+      ],
+      gjennomforing: [
+        "Innhent gjeldende SHA-plan og stedlige HMS-regler før befaring.",
+        "Sørg for at alle som besøker bygge-/anleggsplass har godkjent verneutstyr: hjelm, vernesko, synlighetsvest.",
+        "Gjennomfør kort risikovurdering før befaring – identifiser farer på stedet.",
+        "Gi nyansatte opplæring i HMS ved befaring som del av onboarding.",
+        "Meld fra til prosjektleder eller byggeleder om observerte farlige forhold.",
+        "Dokumenter befaring med dato, deltakere og eventuelle observasjoner.",
+      ],
+      dokumentasjon: [
+        "Befaringslogg med dato, sted og deltakere.",
+        "Oversikt over utlevert verneutstyr.",
+        "Opplæringsdokumentasjon for HMS ved befaring.",
+      ],
+      avvikOppfolging: [
+        "Farlige forhold observert under befaring meldes til byggeleder og registreres i avvikssystemet.",
+        "Manglende verneutstyr – befaring utsettes.",
+      ],
+      revisjon: "Revideres årlig eller ved endring av forskrifter.",
+      kilder: [
+        "Byggherreforskriften § 13 – koordinators plikter",
+        "AML § 3-2 – opplæring",
+        "Arbeidstilsynet: byggherreforskriften",
+      ],
+    }),
+  },
+
+  // ── Kultur, idrett og underholdning ────────────────────────────────────
+  {
+    title: "Rigging, scenearbeid og publikumssikkerhet",
+    description: "Rutine for sikker rigging, scenearbeid og ivaretakelse av publikumssikkerhet ved arrangementer.",
+    category: "ARRANGEMENT",
+    legalReference: "AML § 3-1, Forskrift om utførelse av arbeid, Brann- og eksplosjonsvernloven",
+    industryScope: ["culture_sport"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal: "Sikre trygg gjennomføring av rigging og scenearbeid, og ivareta publikums sikkerhet ved arrangementer.",
+      omfang: "Gjelder alt arbeid knyttet til opprigging, gjennomføring og nedrigging av arrangementer.",
+      ansvar: [
+        "Arrangør/produsent: overordnet ansvar for HMS og publikumssikkerhet.",
+        "Riggansvarlig: lede rigging, gjennomføre SJA og sikre at utstyr er kontrollert.",
+        "Alle riggearbeidere: følge sikkerhetsregler og bruke verneutstyr.",
+      ],
+      gjennomforing: [
+        "Gjennomfør SJA (Sikker Jobb Analyse) før all rigging og nedrigging.",
+        "Bruk fallsikring ved alt arbeid i høyden – truss, rigg, lysbroer.",
+        "Kontroller tunge løft: bruk løfteutstyr, maks løftevekt, riktig løfteteknikk.",
+        "Gjennomfør støyvurdering for personell nær scene – bruk hørselsvern over 85 dB.",
+        "Etabler publikumsbarrierer, nødutganger og skilting i samarbeid med brannvesen.",
+        "Utarbeid og øv på evakueringsplan – alle ansatte skal kjenne sin rolle.",
+        "Sørg for at brannslokningsutstyr og førstehjelpsutstyr er tilgjengelig og bemannet.",
+      ],
+      dokumentasjon: [
+        "SJA-skjema for rigging og nedrigging.",
+        "Evakueringsplan godkjent av brannmyndighet.",
+        "Sertifikater for løfteutstyr og riggpersonell.",
+        "Støymålinger ved relevante arrangementer.",
+      ],
+      avvikOppfolging: [
+        "Hendelser under arrangementet meldes umiddelbart til arrangøransvarlig.",
+        "Alvorlige hendelser meldes til Arbeidstilsynet og politiet.",
+      ],
+      revisjon: "Revideres etter hvert større arrangement og ellers årlig.",
+      kilder: [
+        "AML § 3-1 – systematisk HMS-arbeid",
+        "Forskrift om utførelse av arbeid – arbeid i høyden, tunge løft",
+        "Brann- og eksplosjonsvernloven",
+        "Arbeidstilsynet: arrangement og festivaler",
+      ],
+    }),
+  },
+
+  // ── Frisør, velvære og personlig tjenesteyting ─────────────────────────
+  {
+    title: "Kjemisk eksponering og allergihåndtering i frisør/velvære",
+    description: "Rutine for sikker håndtering av kjemikalier, forebygging av allergi og ivaretakelse av ventilasjon i frisør- og velværevirksomhet.",
+    category: "KJEMIKALIER",
+    legalReference: "Forskrift om utførelse av arbeid kap. 3, AML § 4-5, REACH",
+    industryScope: ["personal_services"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal: "Forebygge kjemisk eksponering, allergier og hudskader hos ansatte i frisør- og velværebransjen.",
+      omfang: "Gjelder all håndtering av hårfarger, permanentvæske, desinfeksjonsmidler og andre kjemiske produkter.",
+      ansvar: [
+        "Arbeidsgiver: opprettholde stoffkartotek, sørge for ventilasjon og verneutstyr.",
+        "HMS-ansvarlig: gjennomføre risikovurdering ved nye produkter.",
+        "Ansatte: bruke verneutstyr og melde allergiske reaksjoner.",
+      ],
+      gjennomforing: [
+        "Før stoffkartotek med oppdaterte sikkerhetsdatablad for alle kjemiske produkter.",
+        "Gjennomfør risikovurdering før innføring av nye produkter (REACH-vurdering).",
+        "Bruk vernehansker (nitril) ved all kjemisk behandling – bytt hansker mellom kunder.",
+        "Sørg for punktavsug/avtrekk ved blandestasjoner for hårfarge og permanentvæske.",
+        "Gi opplæring i allergisymptomer og førstehjelp ved kjemisk eksponering.",
+        "Tilby helseundersøkelse for ansatte med hyppig kjemikaliekontakt.",
+      ],
+      dokumentasjon: [
+        "Stoffkartotek – tilgjengelig digitalt og fysisk.",
+        "Risikovurdering for kjemiske produkter.",
+        "Logg over helseundersøkelser og eventuelle allergidiagnoser.",
+      ],
+      avvikOppfolging: [
+        "Allergiske reaksjoner og kjemikaliehendelser meldes og registreres.",
+        "Produkt erstattes med mindre skadelig alternativ der mulig (substitusjonsplikten).",
+      ],
+      revisjon: "Revideres årlig og ved innføring av nye produkter.",
+      kilder: [
+        "Forskrift om utførelse av arbeid kap. 3 – kjemisk helsefare",
+        "AML § 4-5 – kjemisk og biologisk helsefare",
+        "REACH-forordningen – kjemikalieregulering",
+        "Arbeidstilsynet: frisørarbeid og kjemikalier",
+      ],
+    }),
+  },
+  {
+    title: "Ergonomi og belastningsforebygging i frisør/velvære",
+    description: "Rutine for forebygging av belastningsskader ved stående arbeid og repetitive bevegelser i frisør- og velværebransjen.",
+    category: "ERGONOMI",
+    legalReference: "AML § 4-4, Forskrift om utforming og innretning av arbeidsplasser",
+    industryScope: ["personal_services"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal: "Forebygge muskel- og skjelettplager hos frisører og velværearbeidere gjennom ergonomisk tilpasning.",
+      omfang: "Gjelder alle ansatte som utfører stående arbeid, klipping, behandlinger og massasje.",
+      ansvar: [
+        "Arbeidsgiver: tilby ergonomisk utstyr og tilrettelegge for variasjon.",
+        "HMS-ansvarlig: gjennomføre arbeidsplassvurdering.",
+        "Ansatte: melde plager tidlig og følge ergonomiske anbefalinger.",
+      ],
+      gjennomforing: [
+        "Tilby justerbare stoler for kunder og arbeidsstoler/sadelseter for ansatte.",
+        "Sørg for riktig arbeidshøyde – juster kundestoler fremfor å bøye seg.",
+        "Varier arbeidsoppgaver gjennom dagen – unngå langvarig repetitivt arbeid.",
+        "Gjennomfør ergonomisk opplæring ved ansettelse og årlig oppfriskning.",
+        "Legg inn pauser og tøyeøvelser – minimum 10 min per 2 timers arbeid.",
+        "Tilby bedriftshelsetjeneste for ansatte med muskel-/skjelettplager.",
+      ],
+      dokumentasjon: [
+        "Arbeidsplassvurdering – signert.",
+        "Opplæringslogg for ergonomi.",
+        "Eventuell tilretteleggingsdokumentasjon.",
+      ],
+      avvikOppfolging: [
+        "Plager meldes tidlig via avvikssystemet eller til leder.",
+        "Tilpasning iverksettes innen 14 dager.",
+      ],
+      revisjon: "Revideres årlig eller ved endring av arbeidsoppgaver/utstyr.",
+      kilder: [
+        "AML § 4-4 – fysisk arbeidsmiljø",
+        "Forskrift om utforming og innretning av arbeidsplasser",
+        "Arbeidstilsynet: ergonomi i frisørbransjen",
+      ],
+    }),
+  },
 ];
 
 export const GLOBAL_ROUTINE_TEMPLATE_LIBRARY: ReadonlyArray<RoutineTemplateLibraryEntry> = [
