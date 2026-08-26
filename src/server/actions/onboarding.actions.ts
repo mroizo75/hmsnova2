@@ -193,7 +193,7 @@ const SETUP_STEP_GROUPS: StepGroupDef[] = [
         key: "employees",
         title: "Ansatte lagt til",
         description: "Legg til minst én ansatt slik at de kan delta i HMS-arbeidet",
-        href: "/dashboard/settings/users",
+        href: "/dashboard/brukere",
         icon: "Users",
         mandatory: true,
       },
