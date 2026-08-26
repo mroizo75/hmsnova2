@@ -485,6 +485,7 @@ export async function updateDocument(input: any) {
 
     if (validated.title) updateData.title = validated.title;
     if (validated.kind) updateData.kind = validated.kind;
+    if (validated.status) updateData.status = validated.status;
     if (validated.version) updateData.version = validated.version;
     if (hasField("visibleToRoles")) {
       updateData.visibleToRoles =

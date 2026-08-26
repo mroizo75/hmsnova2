@@ -2,10 +2,10 @@ import { z } from "zod";
 import { DocumentKind, DocStatus } from "@prisma/client";
 
 const pdcaFields = {
-  planSummary: z.string().max(2000).optional().nullable(),
-  doSummary: z.string().max(2000).optional().nullable(),
-  checkSummary: z.string().max(2000).optional().nullable(),
-  actSummary: z.string().max(2000).optional().nullable(),
+  planSummary: z.string().max(10000).optional().nullable(),
+  doSummary: z.string().max(10000).optional().nullable(),
+  checkSummary: z.string().max(10000).optional().nullable(),
+  actSummary: z.string().max(10000).optional().nullable(),
 };
 
 export const createDocumentSchema = z.object({

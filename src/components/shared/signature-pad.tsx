@@ -1,9 +1,8 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import SignatureCanvas from "react-signature-canvas";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Trash2, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -14,15 +13,35 @@ interface SignaturePadProps {
 
 export function SignaturePad({ onSave, initialValue }: SignaturePadProps) {
   const signatureRef = useRef<SignatureCanvas>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isEmpty, setIsEmpty] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (initialValue && signatureRef.current) {
-      signatureRef.current.fromDataURL(initialValue);
+  const resizeCanvas = useCallback(() => {
+    if (!containerRef.current || !signatureRef.current) return;
+    const canvas = signatureRef.current.getCanvas();
+    const container = containerRef.current;
+    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+    const width = container.offsetWidth;
+    const height = 200;
+
+    canvas.width = width * ratio;
+    canvas.height = height * ratio;
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+    canvas.getContext("2d")?.scale(ratio, ratio);
+
+    if (initialValue) {
+      signatureRef.current.fromDataURL(initialValue, { width, height });
       setIsEmpty(false);
     }
   }, [initialValue]);
+
+  useEffect(() => {
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+    return () => window.removeEventListener("resize", resizeCanvas);
+  }, [resizeCanvas]);
 
   function handleClear() {
     signatureRef.current?.clear();
@@ -31,16 +50,14 @@ export function SignaturePad({ onSave, initialValue }: SignaturePadProps) {
 
   function handleSave() {
     if (signatureRef.current) {
-      // Sjekk om canvas er tom
       if (signatureRef.current.isEmpty()) {
         toast({
-          title: "❌ Tom signatur",
+          title: "Tom signatur",
           description: "Du må signere før du kan bekrefte",
           variant: "destructive",
         });
         return;
       }
-
       const dataUrl = signatureRef.current.toDataURL();
       onSave(dataUrl);
       setIsEmpty(false);
@@ -53,15 +70,16 @@ export function SignaturePad({ onSave, initialValue }: SignaturePadProps) {
 
   return (
     <div className="space-y-4">
-      <div className="border-2 border-dashed rounded-lg bg-white overflow-hidden">
+      <div
+        ref={containerRef}
+        className="border-2 border-dashed rounded-lg bg-white overflow-hidden"
+      >
         <SignatureCanvas
           ref={signatureRef}
           onBegin={handleBegin}
           canvasProps={{
-            width: 600,
-            height: 200,
-            className: "w-full cursor-crosshair touch-none",
-            style: { touchAction: 'none', maxWidth: '100%', height: 'auto' },
+            className: "cursor-crosshair touch-none",
+            style: { touchAction: "none", width: "100%", height: "200px" },
           }}
           backgroundColor="rgb(255, 255, 255)"
         />
@@ -87,9 +105,8 @@ export function SignaturePad({ onSave, initialValue }: SignaturePadProps) {
         </Button>
       </div>
       <p className="text-xs text-muted-foreground text-center">
-        ✍️ Signer med mus, touchpad eller finger. Trykk "Bekreft signatur" når du er ferdig.
+        Signer med mus, touchpad eller finger. Trykk &quot;Bekreft signatur&quot; når du er ferdig.
       </p>
     </div>
   );
 }
-
