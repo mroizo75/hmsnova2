@@ -154,18 +154,20 @@ export function getStatusColor(status: string): string {
  * Calculate progress percentage
  */
 export function calculateProgress(current: number | null, target: number | null, baseline: number | null = null): number {
-  if (target === null || target === 0) return 0;
+  if (target === null) return 0;
   if (current === null) return 0;
 
-  // If we have a baseline, calculate progress from baseline to target
   if (baseline !== null) {
     const totalDistance = target - baseline;
+    if (totalDistance === 0) return current === target ? 100 : 0;
     const currentDistance = current - baseline;
-    return Math.round((currentDistance / totalDistance) * 100);
+    const raw = (currentDistance / totalDistance) * 100;
+    return Math.round(Math.max(0, Math.min(raw, 999)));
   }
 
-  // Otherwise, simple percentage
-  return Math.round((current / target) * 100);
+  if (target === 0) return 0;
+  const raw = (current / target) * 100;
+  return Math.round(Math.max(0, Math.min(raw, 999)));
 }
 
 /**
