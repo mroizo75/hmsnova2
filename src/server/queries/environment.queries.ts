@@ -1,10 +1,12 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { getRequiredTenantContext } from "@/lib/tenant-context";
+import { getTenantContextSafe } from "@/lib/tenant-context";
 
 export async function fetchEnvironmentList() {
-  const { tenantId } = await getRequiredTenantContext();
+  const ctx = await getTenantContextSafe();
+  if (!ctx) return { aspects: [], nonCompliantCount: 0, allMeasurements: [], tenant: null };
+  const { tenantId } = ctx;
 
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
@@ -50,7 +52,9 @@ export async function fetchEnvironmentList() {
 }
 
 export async function fetchEnvironmentDetail(id: string) {
-  const { tenantId } = await getRequiredTenantContext();
+  const ctx = await getTenantContextSafe();
+  if (!ctx) return null;
+  const { tenantId } = ctx;
 
   const aspect = await prisma.environmentalAspect.findUnique({
     where: { id, tenantId },

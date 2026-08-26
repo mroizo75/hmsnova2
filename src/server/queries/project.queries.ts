@@ -1,10 +1,12 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { getRequiredTenantContext } from "@/lib/tenant-context";
+import { getTenantContextSafe } from "@/lib/tenant-context";
 
 export async function fetchProjects() {
-  const { tenantId } = await getRequiredTenantContext();
+  const ctx = await getTenantContextSafe();
+  if (!ctx) return [];
+  const { tenantId } = ctx;
 
   const projects = await prisma.project.findMany({
     where: { tenantId },
@@ -21,7 +23,9 @@ export async function fetchProjects() {
 }
 
 export async function fetchProjectDetail(id: string) {
-  const { tenantId } = await getRequiredTenantContext();
+  const ctx = await getTenantContextSafe();
+  if (!ctx) return null;
+  const { tenantId } = ctx;
 
   const project = await prisma.project.findUnique({
     where: { id, tenantId },
@@ -114,7 +118,9 @@ export async function fetchProjectDetail(id: string) {
 }
 
 export async function fetchConstructionComplianceOverview() {
-  const { tenantId } = await getRequiredTenantContext();
+  const ctx = await getTenantContextSafe();
+  if (!ctx) return [];
+  const { tenantId } = ctx;
 
   const projects = await prisma.project.findMany({
     where: { tenantId },

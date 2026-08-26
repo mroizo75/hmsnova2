@@ -1,10 +1,19 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { getRequiredTenantContext } from "@/lib/tenant-context";
+import { getTenantContextSafe } from "@/lib/tenant-context";
 
 export async function fetchFeedbackData() {
-  const { tenantId } = await getRequiredTenantContext();
+  const ctx = await getTenantContextSafe();
+  if (!ctx) return {
+    feedbacks: [],
+    users: [],
+    positiveCount: 0,
+    followUpCount: 0,
+    sharedCount: 0,
+    averageRating: null,
+  };
+  const { tenantId } = ctx;
 
   const [feedbacks, users] = await Promise.all([
     prisma.customerFeedback.findMany({

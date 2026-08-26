@@ -1,10 +1,20 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { getRequiredTenantContext } from "@/lib/tenant-context";
+import { getTenantContextSafe } from "@/lib/tenant-context";
 
 export async function fetchWellbeingData() {
-  const { tenantId } = await getRequiredTenantContext();
+  const ctx = await getTenantContextSafe();
+  if (!ctx) return {
+    wellbeingForms: [],
+    allSubmissions: [],
+    wellbeingRisks: [],
+    totalSubmissions: 0,
+    submissionsThisMonth: 0,
+    averageScore: null,
+    criticalIncidents: 0,
+  };
+  const { tenantId } = ctx;
 
   const wellbeingForms = await prisma.formTemplate.findMany({
     where: {

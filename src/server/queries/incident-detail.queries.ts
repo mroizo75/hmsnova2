@@ -1,10 +1,12 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { getRequiredTenantContext } from "@/lib/tenant-context";
+import { getTenantContextSafe } from "@/lib/tenant-context";
 
 export async function fetchIncidentDetail(id: string) {
-  const { tenantId } = await getRequiredTenantContext();
+  const ctx = await getTenantContextSafe();
+  if (!ctx) return null;
+  const { tenantId } = ctx;
 
   const rawIncident = await prisma.incident.findUnique({
     where: { id, tenantId },

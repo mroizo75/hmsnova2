@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { getRequiredTenantContext } from "@/lib/tenant-context";
+import { getTenantContextSafe } from "@/lib/tenant-context";
 import { listTenantRoutines, getRoutineById, listAllRoutineTemplates, listRecommendedRoutineTemplates } from "@/server/actions/routine.actions";
 
 export async function fetchRoutines(query?: string) {
@@ -24,7 +24,9 @@ export async function fetchRoutineDetail(id: string) {
   if (!result.success) return null;
 
   const routine = result.data;
-  const { tenantId } = await getRequiredTenantContext();
+  const ctx = await getTenantContextSafe();
+  if (!ctx) return null;
+  const { tenantId } = ctx;
 
   const [linkedIncidents, linkedRisks, versions] = await Promise.all([
     prisma.incident.findMany({

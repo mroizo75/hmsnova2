@@ -1,10 +1,12 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { getRequiredTenantContext } from "@/lib/tenant-context";
+import { getTenantContextSafe } from "@/lib/tenant-context";
 
 export async function fetchGoals() {
-  const { tenantId } = await getRequiredTenantContext();
+  const ctx = await getTenantContextSafe();
+  if (!ctx) return [];
+  const { tenantId } = ctx;
 
   const goals = await prisma.goal.findMany({
     where: { tenantId },
@@ -21,7 +23,9 @@ export async function fetchGoals() {
 }
 
 export async function fetchGoalDetail(id: string) {
-  const { tenantId } = await getRequiredTenantContext();
+  const ctx = await getTenantContextSafe();
+  if (!ctx) return null;
+  const { tenantId } = ctx;
 
   const goal = await prisma.goal.findUnique({
     where: { id, tenantId },

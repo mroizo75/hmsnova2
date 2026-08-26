@@ -1,10 +1,12 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { getRequiredTenantContext } from "@/lib/tenant-context";
+import { getTenantContextSafe } from "@/lib/tenant-context";
 
 export async function fetchTrainingList() {
-  const { tenantId } = await getRequiredTenantContext();
+  const ctx = await getTenantContextSafe();
+  if (!ctx) return { trainingsRaw: [], tenantUsers: [], courseTemplates: [] };
+  const { tenantId } = ctx;
 
   const [trainingsRaw, tenantUsers, courseTemplates] = await Promise.all([
     prisma.training.findMany({
@@ -30,7 +32,9 @@ export async function fetchTrainingList() {
 }
 
 export async function fetchTrainingDetail(id: string) {
-  const { tenantId } = await getRequiredTenantContext();
+  const ctx = await getTenantContextSafe();
+  if (!ctx) return null;
+  const { tenantId } = ctx;
 
   const training = await prisma.training.findUnique({
     where: { id, tenantId },
@@ -47,7 +51,9 @@ export async function fetchTrainingDetail(id: string) {
 }
 
 export async function fetchTrainingCourses() {
-  const { tenantId } = await getRequiredTenantContext();
+  const ctx = await getTenantContextSafe();
+  if (!ctx) return { globalCourses: [], tenantCourses: [] };
+  const { tenantId } = ctx;
 
   const [globalCourses, tenantCourses] = await Promise.all([
     prisma.courseTemplate.findMany({
@@ -64,7 +70,9 @@ export async function fetchTrainingCourses() {
 }
 
 export async function fetchTrainingMatrix() {
-  const { tenantId } = await getRequiredTenantContext();
+  const ctx = await getTenantContextSafe();
+  if (!ctx) return { matrix: [], courseTemplates: [] };
+  const { tenantId } = ctx;
 
   const [users, trainings, courseTemplates] = await Promise.all([
     prisma.user.findMany({

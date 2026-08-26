@@ -1,10 +1,12 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { getRequiredTenantContext } from "@/lib/tenant-context";
+import { getTenantContextSafe } from "@/lib/tenant-context";
 
 export async function fetchRiskRegisterData() {
-  const { tenantId } = await getRequiredTenantContext();
+  const ctx = await getTenantContextSafe();
+  if (!ctx) return [];
+  const { tenantId } = ctx;
 
   const risks = await prisma.risk.findMany({
     where: { tenantId },
@@ -42,7 +44,9 @@ export async function fetchRiskRegisterData() {
 }
 
 export async function fetchRiskDetail(id: string) {
-  const { tenantId } = await getRequiredTenantContext();
+  const ctx = await getTenantContextSafe();
+  if (!ctx) return null;
+  const { tenantId } = ctx;
 
   const risk = await prisma.risk.findUnique({
     where: { id, tenantId },
@@ -141,7 +145,9 @@ export async function fetchRiskDetail(id: string) {
 }
 
 export async function fetchRiskAssessmentDetail(id: string) {
-  const { tenantId } = await getRequiredTenantContext();
+  const ctx = await getTenantContextSafe();
+  if (!ctx) return null;
+  const { tenantId } = ctx;
 
   const [assessment, userTenants] = await Promise.all([
     prisma.riskAssessment.findFirst({

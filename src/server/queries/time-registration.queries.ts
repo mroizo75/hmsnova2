@@ -1,6 +1,6 @@
 "use server";
 
-import { getRequiredTenantContext } from "@/lib/tenant-context";
+import { getTenantContextSafe } from "@/lib/tenant-context";
 import {
   getProjects,
   getTimeRegistrationOverview,
@@ -8,7 +8,9 @@ import {
 } from "@/server/actions/time-registration.actions";
 
 export async function fetchTimeRegistrationData() {
-  const { tenantId } = await getRequiredTenantContext();
+  const ctx = await getTenantContextSafe();
+  if (!ctx) return { config: null, projects: [], enabled: false, overviewData: null, tenantId: "" };
+  const { tenantId } = ctx;
 
   const [configRes, projectsRes] = await Promise.all([
     getTimeRegistrationConfig(tenantId),

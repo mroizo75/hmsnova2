@@ -1,10 +1,12 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { getRequiredTenantContext } from "@/lib/tenant-context";
+import { getTenantContextSafe } from "@/lib/tenant-context";
 
 export async function fetchRisks() {
-  const { tenantId } = await getRequiredTenantContext();
+  const ctx = await getTenantContextSafe();
+  if (!ctx) return [];
+  const { tenantId } = ctx;
 
   const risks = await prisma.risk.findMany({
     where: { tenantId },
@@ -30,7 +32,9 @@ export async function fetchRisks() {
 }
 
 export async function fetchRiskAssessments() {
-  const { tenantId } = await getRequiredTenantContext();
+  const ctx = await getTenantContextSafe();
+  if (!ctx) return [];
+  const { tenantId } = ctx;
 
   const assessments = await prisma.riskAssessment.findMany({
     where: { tenantId },

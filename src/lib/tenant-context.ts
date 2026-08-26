@@ -10,13 +10,19 @@ export type TenantContext = {
 };
 
 export const getRequiredTenantContext = async (): Promise<TenantContext> => {
+  const ctx = await getTenantContextSafe();
+  if (!ctx) throw new Error("Unauthorized");
+  return ctx;
+};
+
+export const getTenantContextSafe = async (): Promise<TenantContext | null> => {
   const session = await getServerSession(authOptions);
   const sessionUserId = session?.user?.id?.trim() ?? "";
   const sessionEmail = session?.user?.email?.trim() ?? "";
   const sessionTenantId = session?.user?.tenantId?.trim() ?? "";
 
   if (!sessionUserId || !sessionEmail || !sessionTenantId) {
-    throw new Error("Unauthorized");
+    return null;
   }
 
   const membership = await prisma.userTenant.findUnique({
@@ -33,7 +39,7 @@ export const getRequiredTenantContext = async (): Promise<TenantContext> => {
   });
 
   if (!membership) {
-    throw new Error("User not associated with selected tenant");
+    return null;
   }
 
   return {
