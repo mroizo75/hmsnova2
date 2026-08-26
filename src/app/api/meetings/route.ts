@@ -12,7 +12,7 @@ const createMeetingSchema = z.object({
   scheduledDate: z.string().datetime(),
   location: z.string().optional(),
   meetingLink: z.string().url().optional().or(z.literal("")),
-  agenda: z.array(z.any()).optional(),
+  agenda: z.union([z.string(), z.array(z.any())]).optional(),
   organizer: z.string().min(1),
   minuteTaker: z.string().optional(),
 });
@@ -69,7 +69,9 @@ export async function POST(req: NextRequest) {
         tenantId: session.user.tenantId,
         meetingLink: validatedData.meetingLink || null,
         agenda: validatedData.agenda
-          ? JSON.stringify(validatedData.agenda)
+          ? typeof validatedData.agenda === "string"
+            ? validatedData.agenda
+            : JSON.stringify(validatedData.agenda)
           : null,
       },
       include: {

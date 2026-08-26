@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -93,6 +94,8 @@ function parseDetails(metadata: string | null): string {
   }
 }
 
+const PAGE_SIZE = 25;
+
 export function AktivitetsloggClient({
   logs,
   actions,
@@ -102,6 +105,7 @@ export function AktivitetsloggClient({
 }) {
   const [actionFilter, setActionFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
 
   const filtered = useMemo(() => {
     let result = logs;
@@ -123,6 +127,20 @@ export function AktivitetsloggClient({
     return result;
   }, [logs, actionFilter, search]);
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paged = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  const handleFilterChange = (value: string) => {
+    setActionFilter(value);
+    setPage(1);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -131,11 +149,11 @@ export function AktivitetsloggClient({
           <Input
             placeholder="Søk etter ressurs, bruker eller handling…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-9"
           />
         </div>
-        <Select value={actionFilter} onValueChange={setActionFilter}>
+        <Select value={actionFilter} onValueChange={handleFilterChange}>
           <SelectTrigger className="w-full sm:w-[240px]">
             <SelectValue placeholder="Filtrer på handling" />
           </SelectTrigger>
@@ -163,14 +181,14 @@ export function AktivitetsloggClient({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 ? (
+              {paged.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
                     Ingen oppføringer funnet
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((log) => (
+                paged.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                       {format(new Date(log.createdAt), "d. MMM yyyy, HH:mm", {
@@ -197,9 +215,34 @@ export function AktivitetsloggClient({
         </CardContent>
       </Card>
 
-      <p className="text-xs text-muted-foreground text-right">
-        Viser {filtered.length} av {logs.length} oppføringer
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">
+          Viser {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filtered.length)} av {filtered.length} oppføringer
+        </p>
+        {totalPages > 1 && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage <= 1}
+            >
+              Forrige
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Side {currentPage} av {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage >= totalPages}
+            >
+              Neste
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
