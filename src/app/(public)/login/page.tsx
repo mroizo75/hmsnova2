@@ -15,11 +15,11 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   AccessDenied:
     "Microsoft-kontoen din er ikke koblet til en bedrift med aktiv SSO i HMS Nova. Kontakt administratoren din.",
   OAuthAccountNotLinked:
-    "Det finnes allerede en HMS Nova-bruker med denne e-postadressen. Logg inn med e-post og passord, eller kontakt support@hmsnova.no.",
-  OAuthSignin: "Kunne ikke starte innlogging med Microsoft. Kontakt support@hmsnova.no.",
+    "Det finnes allerede en HMS Nova-bruker med denne e-postadressen. Logg inn med e-post og passord, eller kontakt post@hmsnova.no.",
+  OAuthSignin: "Kunne ikke starte innlogging med Microsoft. Kontakt post@hmsnova.no.",
   OAuthCallback:
     "Microsoft avviste innloggingen. Som regel betyr det at IT-ansvarlig hos dere ikke har godkjent HMS Nova ennå — be dem godkjenne appen under Innstillinger → Office 365.",
-  Configuration: "Microsoft-innlogging er ikke ferdig konfigurert. Kontakt support@hmsnova.no.",
+  Configuration: "Microsoft-innlogging er ikke ferdig konfigurert. Kontakt post@hmsnova.no.",
 };
 
 export default function LoginPage() {
@@ -44,7 +44,7 @@ export default function LoginPage() {
     if (errorCode) {
       setError(
         AUTH_ERROR_MESSAGES[errorCode] ??
-          "Innloggingen feilet. Prøv igjen, eller kontakt support@hmsnova.no."
+          "Innloggingen feilet. Prøv igjen, eller kontakt post@hmsnova.no."
       );
     }
 
