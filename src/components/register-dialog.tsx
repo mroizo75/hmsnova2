@@ -48,6 +48,8 @@ export function RegisterDialog({ trigger, children, onOpenChange }: RegisterDial
   const [error, setError] = useState<string | null>(null);
   const [useEHF, setUseEHF] = useState(true);
   const [industry, setIndustry] = useState<string>("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedAngrerrett, setAcceptedAngrerrett] = useState(false);
   const [formData, setFormData] = useState({
     companyName: "",
     orgNumber: "",
@@ -101,7 +103,12 @@ export function RegisterDialog({ trigger, children, onOpenChange }: RegisterDial
     e.preventDefault();
 
     if (!orgValidated) {
-      setError("❌ Du må oppgi et gyldig organisasjonsnummer før du kan registrere");
+      setError("Du må oppgi et gyldig organisasjonsnummer før du kan registrere.");
+      return;
+    }
+
+    if (!acceptedTerms || !acceptedAngrerrett) {
+      setError("Du må lese og godta begge avtale-dokumentene for å fortsette.");
       return;
     }
 
@@ -109,6 +116,8 @@ export function RegisterDialog({ trigger, children, onOpenChange }: RegisterDial
     setError(null);
 
     const submitData = new FormData(e.currentTarget);
+    submitData.set("acceptedTerms", "true");
+    submitData.set("acceptedAngrerrett", "true");
 
     try {
       const result = await submitRegistrationRequest(submitData);
@@ -458,6 +467,60 @@ export function RegisterDialog({ trigger, children, onOpenChange }: RegisterDial
               </div>
             )}
 
+            {/* Avtaleaksept */}
+            <div className="space-y-3 mx-1">
+              <div className="p-3 border rounded-lg bg-muted/30 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-medium text-sm">Angrerettserklæring</p>
+                  <a
+                    href="/api/documents/angrerett"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-primary hover:underline whitespace-nowrap"
+                  >
+                    Åpne PDF
+                  </a>
+                </div>
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="dialog-acceptAngrerrett"
+                    checked={acceptedAngrerrett}
+                    onCheckedChange={(checked) => setAcceptedAngrerrett(checked === true)}
+                  />
+                  <Label htmlFor="dialog-acceptAngrerrett" className="text-xs cursor-pointer leading-snug">
+                    Jeg har lest og forstått angrerettserklæringen, inkludert at den frivillige
+                    14-dagers betenkningstiden gjelder fra bestillingsdatoen.
+                  </Label>
+                </div>
+              </div>
+
+              <div className="p-3 border rounded-lg bg-muted/30 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-medium text-sm">Abonnementsavtale</p>
+                  <a
+                    href="/api/documents/abonnementsavtale"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-primary hover:underline whitespace-nowrap"
+                  >
+                    Åpne PDF
+                  </a>
+                </div>
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="dialog-acceptTerms"
+                    checked={acceptedTerms}
+                    onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+                  />
+                  <Label htmlFor="dialog-acceptTerms" className="text-xs cursor-pointer leading-snug">
+                    Jeg godtar abonnementsavtalen, herunder{" "}
+                    <strong>12 måneders binding</strong> og{" "}
+                    <strong>3 måneders oppsigelsestid</strong> etter bindingsperioden.
+                  </Label>
+                </div>
+              </div>
+            </div>
+
             {/* Benefits */}
             <div className="grid grid-cols-3 gap-2 sm:gap-3 bg-muted/50 p-3 sm:p-4 rounded-lg mx-1">
               <div className="text-center">
@@ -480,7 +543,7 @@ export function RegisterDialog({ trigger, children, onOpenChange }: RegisterDial
                 type="submit"
                 size="lg"
                 className="w-full h-11"
-                disabled={isSubmitting || !orgValidated || isValidatingOrg}
+                disabled={isSubmitting || !orgValidated || isValidatingOrg || !acceptedTerms || !acceptedAngrerrett}
               >
                 {isSubmitting ? (
                   <>
@@ -489,6 +552,8 @@ export function RegisterDialog({ trigger, children, onOpenChange }: RegisterDial
                   </>
                 ) : !orgValidated ? (
                   "Valider org.nr først"
+                ) : !acceptedTerms || !acceptedAngrerrett ? (
+                  "Godta avtalene for å fortsette"
                 ) : (
                   "Registrer bedrift"
                 )}
