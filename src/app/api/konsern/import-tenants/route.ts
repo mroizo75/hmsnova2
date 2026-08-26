@@ -240,6 +240,18 @@ export async function POST(request: NextRequest) {
             },
           });
 
+          await prisma.subscription.create({
+            data: {
+              tenantId: tenant.id,
+              plan: "ENTERPRISE",
+              price: 0,
+              billingInterval: "YEARLY",
+              status: "ACTIVE",
+              currentPeriodStart: new Date(),
+              currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+            },
+          });
+
           await prisma.corporateGroupTenant.create({
             data: { groupId: targetGroupId, tenantId: tenant.id },
           });

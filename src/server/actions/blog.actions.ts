@@ -161,6 +161,52 @@ export async function getAllPostsAdmin() {
   }
 }
 
+export async function getPaginatedPostsAdmin(page: number, search: string) {
+  const ITEMS_PER_PAGE = 25;
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return { success: false, error: "Ikke autentisert", data: [], total: 0 };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    });
+
+    if (!user?.isSuperAdmin) {
+      return { success: false, error: "Ingen tilgang", data: [], total: 0 };
+    }
+
+    const where = search
+      ? {
+          OR: [
+            { title: { contains: search, mode: "insensitive" as const } },
+            { slug: { contains: search, mode: "insensitive" as const } },
+          ],
+        }
+      : {};
+
+    const [total, posts] = await Promise.all([
+      prisma.blogPost.count({ where }),
+      prisma.blogPost.findMany({
+        where,
+        include: {
+          category: { select: { name: true, slug: true } },
+          author: { select: { name: true, email: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * ITEMS_PER_PAGE,
+        take: ITEMS_PER_PAGE,
+      }),
+    ]);
+
+    return { success: true, data: posts, total };
+  } catch (error) {
+    console.error("Error fetching paginated admin posts:", error);
+    return { success: false, error: "Kunne ikke hente artikler", data: [], total: 0 };
+  }
+}
+
 // SUPERADMIN: Opprett/oppdater bloggpost
 export async function upsertBlogPost(data: any) {
   try {

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/server-authorization";
-import { prisma } from "@/lib/db";
-import { TemperaturClient } from "@/features/ik-mat/components/temperatur-client";
+import { fetchTemperaturData } from "@/server/queries/settings.queries";
+import { TemperaturContent } from "@/features/ik-mat/components/temperatur-content";
 
 export const metadata = { title: "Temperaturlogg | HMS Nova" };
 
@@ -9,18 +9,11 @@ export default async function TemperaturPage() {
   const auth = await getAuthContext();
   if (!auth.permissions.canReadInspections) redirect("/dashboard");
 
-  const logs = await prisma.temperaturLog.findMany({
-    where: { tenantId: auth.tenantId },
-    orderBy: { measuredAt: "desc" },
-    take: 200,
-  });
-
-  const units = [...new Set(logs.map((l) => l.unitName))];
+  const initialData = await fetchTemperaturData();
 
   return (
-    <TemperaturClient
-      logs={JSON.parse(JSON.stringify(logs))}
-      units={units}
+    <TemperaturContent
+      initialData={initialData}
       canEdit={auth.permissions.canCreateInspections}
     />
   );

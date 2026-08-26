@@ -23,6 +23,7 @@ import {
   type EmployeeReviewGoalInput,
   type EmployeeReviewActionInput,
 } from "@/features/employee-reviews/schemas/employee-review.schema";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
 // ─── Kontekst-hjelper ────────────────────────────────────────────────────────
 
@@ -128,6 +129,7 @@ export async function createEmployeeReview(input: CreateEmployeeReviewInput) {
     });
 
     revalidatePath("/dashboard/medarbeidersamtale");
+    triggerRealtimeEvent(auth.tenantId, "employee-review-updated");
     return { success: true as const, data: review };
   } catch (error: any) {
     return { success: false as const, error: error.message || "Kunne ikke opprette medarbeidersamtalen" };
@@ -170,6 +172,7 @@ export async function updateEmployeeReview(id: string, input: UpdateEmployeeRevi
 
     revalidatePath("/dashboard/medarbeidersamtale");
     revalidatePath(`/dashboard/medarbeidersamtale/${id}`);
+    triggerRealtimeEvent(tenantId, "employee-review-updated");
     return { success: true as const, data: updated };
   } catch (error: any) {
     return { success: false as const, error: error.message || "Kunne ikke oppdatere medarbeidersamtalen" };
@@ -220,6 +223,7 @@ export async function signEmployeeReview(id: string, rolle: "LEDER" | "ANSATT") 
 
     revalidatePath("/dashboard/medarbeidersamtale");
     revalidatePath(`/dashboard/medarbeidersamtale/${id}`);
+    triggerRealtimeEvent(tenantId, "employee-review-updated");
     return { success: true as const, data: updated };
   } catch (error: any) {
     return { success: false as const, error: error.message || "Kunne ikke signere samtalen" };
@@ -247,6 +251,7 @@ export async function markEmployeeReviewCompleted(id: string) {
 
     revalidatePath("/dashboard/medarbeidersamtale");
     revalidatePath(`/dashboard/medarbeidersamtale/${id}`);
+    triggerRealtimeEvent(auth.tenantId, "employee-review-updated");
     return { success: true as const, data: updated };
   } catch (error: any) {
     return { success: false as const, error: error.message || "Kunne ikke oppdatere status" };
@@ -270,6 +275,7 @@ export async function deleteEmployeeReview(id: string) {
     await prisma.employeeReview.delete({ where: { id } });
 
     revalidatePath("/dashboard/medarbeidersamtale");
+    triggerRealtimeEvent(auth.tenantId, "employee-review-updated");
     return { success: true as const };
   } catch (error: any) {
     return { success: false as const, error: error.message || "Kunne ikke slette medarbeidersamtalen" };
@@ -314,6 +320,7 @@ export async function upsertEmployeeReviewGoals(
     });
 
     revalidatePath(`/dashboard/medarbeidersamtale/${reviewId}`);
+    triggerRealtimeEvent(tenantId, "employee-review-updated");
     return { success: true as const, count: created.count };
   } catch (error: any) {
     return { success: false as const, error: error.message || "Kunne ikke lagre mål" };
@@ -355,6 +362,7 @@ export async function upsertEmployeeReviewActions(
     });
 
     revalidatePath(`/dashboard/medarbeidersamtale/${reviewId}`);
+    triggerRealtimeEvent(tenantId, "employee-review-updated");
     return { success: true as const, count: created.count };
   } catch (error: any) {
     return { success: false as const, error: error.message || "Kunne ikke lagre tiltak" };

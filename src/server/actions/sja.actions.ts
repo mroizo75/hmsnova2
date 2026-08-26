@@ -12,6 +12,7 @@ import {
 } from "@/features/sja/schemas/sja.schema";
 import { SjaStatus, SjaConclusion } from "@prisma/client";
 import { AuditLog } from "@/lib/audit-log";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
 async function getSessionContext() {
   const context = await getRequiredTenantContext();
@@ -168,6 +169,7 @@ export async function createSjaAnalysis(input: any) {
       revalidatePath(`/dashboard/projects/${validated.projectId}`);
     }
     revalidatePath("/ansatt/sja");
+    triggerRealtimeEvent(tenantId, "sja-updated");
     return { success: true, data: analysis };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke opprette SJA" };
@@ -255,6 +257,7 @@ export async function updateSjaAnalysis(input: any) {
     revalidatePath("/dashboard/sja");
     revalidatePath(`/dashboard/sja/${analysis.id}`);
     revalidatePath("/ansatt/sja");
+    triggerRealtimeEvent(tenantId, "sja-updated");
     return { success: true, data: analysis };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke oppdatere SJA" };
@@ -279,6 +282,7 @@ export async function deleteSjaAnalysis(id: string) {
 
     revalidatePath("/dashboard/sja");
     revalidatePath("/ansatt/sja");
+    triggerRealtimeEvent(tenantId, "sja-updated");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke slette SJA" };
@@ -341,6 +345,7 @@ export async function createSjaTemplate(input: any) {
 
     revalidatePath("/dashboard/sja");
     revalidatePath("/ansatt/sja");
+    triggerRealtimeEvent(tenantId, "sja-updated");
     return { success: true, data: template };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke opprette SJA-mal" };
@@ -368,6 +373,7 @@ export async function deleteSjaTemplate(id: string) {
 
     revalidatePath("/dashboard/sja");
     revalidatePath("/ansatt/sja");
+    triggerRealtimeEvent(tenantId, "sja-updated");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke slette SJA-mal" };

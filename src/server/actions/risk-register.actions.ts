@@ -12,6 +12,7 @@ import {
   RiskDocumentRelation,
 } from "@prisma/client";
 import { getActionContext } from "./action-context";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
 const sanitizeText = (value?: string | null) => {
   if (!value) return null;
@@ -114,6 +115,7 @@ export async function createRiskControl(input: z.infer<typeof controlSchema>) {
     });
 
     baseRevalidate(validated.riskId);
+    triggerRealtimeEvent(tenantId, "risk-updated");
     return { success: true, data: control };
   } catch (error: any) {
     console.error("Create risk control error:", error);
@@ -175,6 +177,7 @@ export async function updateRiskControl(input: z.infer<typeof updateControlSchem
     });
 
     baseRevalidate(control.riskId);
+    triggerRealtimeEvent(tenantId, "risk-updated");
     return { success: true, data: control };
   } catch (error: any) {
     console.error("Update risk control error:", error);
@@ -208,6 +211,7 @@ export async function deleteRiskControl(controlId: string) {
     });
 
     baseRevalidate(control.riskId);
+    triggerRealtimeEvent(tenantId, "risk-updated");
     return { success: true };
   } catch (error: any) {
     console.error("Delete risk control error:", error);
@@ -262,6 +266,7 @@ export async function linkDocumentToRisk(input: z.infer<typeof documentLinkSchem
     });
 
     baseRevalidate(validated.riskId);
+    triggerRealtimeEvent(tenantId, "risk-updated");
     return { success: true, data: link };
   } catch (error: any) {
     console.error("Link document error:", error);
@@ -281,6 +286,7 @@ export async function unlinkDocumentFromRisk(linkId: string) {
 
     await prisma.riskDocumentLink.delete({ where: { id: linkId } });
     baseRevalidate(link.riskId);
+    triggerRealtimeEvent(tenantId, "risk-updated");
     return { success: true };
   } catch (error: any) {
     console.error("Unlink document error:", error);
@@ -335,6 +341,7 @@ export async function linkAuditToRisk(input: z.infer<typeof auditLinkSchema>) {
     });
 
     baseRevalidate(validated.riskId);
+    triggerRealtimeEvent(tenantId, "risk-updated");
     return { success: true, data: link };
   } catch (error: any) {
     console.error("Link audit error:", error);
@@ -355,6 +362,7 @@ export async function unlinkAuditFromRisk(linkId: string) {
 
     await prisma.riskAuditLink.delete({ where: { id: linkId } });
     baseRevalidate(link.riskId);
+    triggerRealtimeEvent(tenantId, "risk-updated");
     return { success: true };
   } catch (error: any) {
     console.error("Unlink audit error:", error);

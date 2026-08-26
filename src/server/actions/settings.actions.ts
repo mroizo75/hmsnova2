@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs";
 import ExcelJS from "exceljs";
 import { AuditLog } from "@/lib/audit-log";
 import { assertNoManagerCycle } from "@/lib/incident-notification-routing";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 import { Role } from "@prisma/client";
 
 async function getSessionContext() {
@@ -179,6 +180,7 @@ export async function updateTenantSettings(data: {
 
     revalidatePath("/dashboard/settings");
     revalidatePath("/dashboard");
+    triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true, data: tenant };
   } catch (error: any) {
     console.error("Update tenant settings error:", error);
@@ -234,6 +236,7 @@ export async function updateDashboardLocked(locked: boolean) {
 
     revalidatePath("/dashboard/settings");
     revalidatePath("/dashboard");
+    triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke oppdatere dashboard-lås" };
@@ -260,6 +263,7 @@ export async function updateTenantSimpleMenuItems(hrefs: string[]) {
 
     revalidatePath("/dashboard/settings");
     revalidatePath("/dashboard");
+    triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true };
   } catch (error: any) {
     console.error("Update simple menu error:", error);
@@ -273,7 +277,7 @@ export async function updateTenantSimpleMenuItems(hrefs: string[]) {
 
 export async function updateUserProfile(data: { name?: string; email?: string; preferredLocale?: string }) {
   try {
-    const { user } = await getSessionContext();
+    const { user, tenantId } = await getSessionContext();
     const allowedLocales = new Set(["nb", "en"]);
     const preferredLocale = data.preferredLocale && allowedLocales.has(data.preferredLocale)
       ? data.preferredLocale
@@ -300,6 +304,7 @@ export async function updateUserProfile(data: { name?: string; email?: string; p
     });
 
     revalidatePath("/dashboard/settings");
+    triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true, data: updatedUser };
   } catch (error: any) {
     console.error("Update user profile error:", error);
@@ -312,7 +317,7 @@ export async function updateUserPassword(data: {
   newPassword: string;
 }) {
   try {
-    const { user } = await getSessionContext();
+    const { user, tenantId } = await getSessionContext();
 
     // Verifiser nåværende passord
     if (!user.password) {
@@ -333,6 +338,7 @@ export async function updateUserPassword(data: {
     });
 
     revalidatePath("/dashboard/settings");
+    triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true };
   } catch (error: any) {
     console.error("Update password error:", error);
@@ -508,6 +514,7 @@ export async function inviteUser(data: { email: string; name: string; role: stri
     }
 
     revalidatePath("/dashboard/settings");
+    triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true, data: {} };
   } catch (error: any) {
     console.error("Invite user error:", error);
@@ -693,6 +700,7 @@ export async function importUsersFromFile(formData: FormData): Promise<ImportUse
     });
 
     revalidatePath("/dashboard/settings");
+    triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true, imported, skipped, errors };
   } catch (error: any) {
     console.error("Import users error:", error);
@@ -774,6 +782,7 @@ export async function activateUserInTenant(userId: string): Promise<{ success: t
     });
 
     revalidatePath("/dashboard/settings");
+    triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true };
   } catch (error: any) {
     console.error("Activate user error:", error);
@@ -864,6 +873,7 @@ export async function activateAllPendingUsers(): Promise<ActivateAllResult> {
     }
 
     revalidatePath("/dashboard/settings");
+    triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true, activated, failed, errors };
   } catch (error: any) {
     console.error("Activate all users error:", error);
@@ -901,6 +911,7 @@ export async function updateUserRole(userId: string, role: string) {
     });
 
     revalidatePath("/dashboard/settings");
+    triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true, data: updatedUserTenant };
   } catch (error: any) {
     console.error("Update user role error:", error);
@@ -935,6 +946,7 @@ export async function removeUserFromTenant(userId: string) {
     await AuditLog.log(tenantId, user.id, "USER_REMOVED", "User", userId, {});
 
     revalidatePath("/dashboard/settings");
+    triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true };
   } catch (error: any) {
     console.error("Remove user error:", error);
@@ -963,6 +975,7 @@ export async function updateEmployeeNumber(userId: string, employeeNumber: strin
     });
 
     revalidatePath("/dashboard/settings");
+    triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke oppdatere ansattnummer" };
@@ -1022,6 +1035,7 @@ export async function updateUserManager(userId: string, managerId: string | null
     });
 
     revalidatePath("/dashboard/settings");
+    triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke oppdatere nærmeste leder" };
@@ -1045,6 +1059,7 @@ export async function updateUserPosition(userId: string, position: string) {
     });
 
     revalidatePath("/dashboard/settings");
+    triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke oppdatere stilling" };
@@ -1090,6 +1105,7 @@ export async function assignManagerToUsers(userIds: string[], managerId: string 
     });
 
     revalidatePath("/dashboard/settings");
+    triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true, updated: result.count };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke tildele nærmeste leder" };
@@ -1166,6 +1182,7 @@ export async function updateModuleVisibility(config: Record<string, string[]>) {
 
     revalidatePath("/dashboard/settings");
     revalidatePath("/dashboard");
+    triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke oppdatere modul-synlighet" };
@@ -1226,6 +1243,7 @@ export async function updateRuhModuleEnabled(enabled: boolean) {
     revalidatePath("/dashboard/settings");
     revalidatePath("/dashboard/incidents");
     revalidatePath("/ansatt");
+    triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke oppdatere RUH-modulen" };

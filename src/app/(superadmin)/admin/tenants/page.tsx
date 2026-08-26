@@ -20,6 +20,10 @@ import {
 } from "@/components/ui/tooltip";
 import Link from "next/link";
 import { Plus, CheckCircle2, Circle, AlertTriangle } from "lucide-react";
+import { AdminPagination, AdminPaginationSearch } from "@/components/admin-pagination";
+import type { Prisma } from "@prisma/client";
+
+const ITEMS_PER_PAGE = 25;
 
 function getActivityLevel(
   lastLogin: Date | null,
@@ -45,7 +49,15 @@ function getActivityLevel(
   return { level: "inactive", label: "Inaktiv", color: "text-destructive", bg: "bg-destructive" };
 }
 
-export default async function TenantsPage() {
+export default async function TenantsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; search?: string }>;
+}) {
+  const params = await searchParams;
+  const currentPage = Math.max(1, parseInt(params.page || "1", 10));
+  const searchTerm = params.search?.trim() || "";
+
   const session = await getServerSession(authOptions);
   const currentUser = session?.user?.email
     ? await prisma.user.findUnique({
@@ -58,12 +70,25 @@ export default async function TenantsPage() {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
+  const searchFilter: Prisma.TenantWhereInput = {
+    users: { some: {} },
+    ...(searchTerm
+      ? {
+          OR: [
+            { name: { contains: searchTerm } },
+            { orgNumber: { contains: searchTerm } },
+            { contactEmail: { contains: searchTerm } },
+            { contactPerson: { contains: searchTerm } },
+          ],
+        }
+      : {}),
+  };
+
+  const totalItems = await prisma.tenant.count({ where: searchFilter });
+  const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
+
   const tenants = await prisma.tenant.findMany({
-    where: {
-      users: {
-        some: {},
-      },
-    },
+    where: searchFilter,
     include: {
       subscription: true,
       offers: {
@@ -96,6 +121,8 @@ export default async function TenantsPage() {
     orderBy: {
       createdAt: "desc",
     },
+    skip: (currentPage - 1) * ITEMS_PER_PAGE,
+    take: ITEMS_PER_PAGE,
   });
 
   const [recentIncidentRows, recentDocumentRows] = await Promise.all([
@@ -150,7 +177,7 @@ export default async function TenantsPage() {
         <div>
           <h1 className="text-3xl font-bold">Bedrifter</h1>
           <p className="text-muted-foreground">
-            {enrichedTenants.length} bedrifter • {activeCount} aktive • {trialCount} prøve
+            {totalItems} bedrifter • {activeCount} aktive • {trialCount} prøve
             {inactiveCount > 0 && (
               <span className="text-destructive font-medium">
                 {" "}• {inactiveCount} inaktive
@@ -168,10 +195,19 @@ export default async function TenantsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Alle bedrifter ({enrichedTenants.length})</CardTitle>
-          <CardDescription>
-            Klikk på en bedrift for å se detaljer. Aktivitet er basert på siste 30 dager.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Alle bedrifter ({totalItems})</CardTitle>
+              <CardDescription>
+                Klikk på en bedrift for å se detaljer. Aktivitet er basert på siste 30 dager.
+              </CardDescription>
+            </div>
+            <AdminPaginationSearch
+              basePath="/admin/tenants"
+              searchTerm={searchTerm}
+              placeholder="Søk bedrift, org.nr, e-post..."
+            />
+          </div>
         </CardHeader>
         <CardContent>
           <TooltipProvider>
@@ -322,6 +358,14 @@ export default async function TenantsPage() {
               </TableBody>
             </Table>
           </TooltipProvider>
+
+          <AdminPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            basePath="/admin/tenants"
+            searchTerm={searchTerm}
+          />
         </CardContent>
       </Card>
     </div>

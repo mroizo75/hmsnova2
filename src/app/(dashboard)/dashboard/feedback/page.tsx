@@ -1,14 +1,12 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { FeedbackSummary } from "@/features/feedback/components/feedback-summary";
-import { FeedbackList } from "@/features/feedback/components/feedback-list";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { CustomerFeedback } from "@prisma/client";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
 import { helpContent } from "@/lib/help-content";
+import { fetchFeedbackData } from "@/server/queries/feedback.queries";
+import { FeedbackContent } from "@/features/feedback/components/feedback-content";
 
 export const dynamic = "force-dynamic";
 
@@ -18,43 +16,7 @@ export default async function FeedbackPage() {
     redirect("/login");
   }
 
-  const tenantId = session.user.tenantId;
-
-  const [feedbacks, users, goals] = await Promise.all([
-    prisma.customerFeedback.findMany({
-      where: { tenantId },
-      include: {
-        recordedBy: { select: { name: true, email: true } },
-        followUpOwner: { select: { name: true, email: true } },
-      },
-      orderBy: { recordedAt: "desc" },
-    }),
-    prisma.user.findMany({
-      where: {
-        tenants: {
-          some: {
-            tenantId,
-          },
-        },
-      },
-      select: { id: true, name: true, email: true },
-      orderBy: { name: "asc" },
-    }),
-    prisma.goal.findMany({
-      where: { tenantId },
-      select: { id: true, title: true },
-      orderBy: { title: "asc" },
-    }),
-  ]);
-
-  const positiveCount = feedbacks.filter((f) => f.sentiment === "POSITIVE").length;
-  const followUpCount = feedbacks.filter((f) => f.followUpStatus === "FOLLOW_UP").length;
-  const sharedCount = feedbacks.filter((f) => f.followUpStatus === "ACKNOWLEDGED" || f.followUpStatus === "SHARED").length;
-  const ratings = feedbacks
-    .map((f) => f.rating)
-    .filter((value): value is number => typeof value === "number");
-  const averageRating =
-    ratings.length > 0 ? ratings.reduce((sum, current) => sum + current, 0) / ratings.length : null;
+  const initialData = await fetchFeedbackData();
 
   return (
     <div className="space-y-6">
@@ -73,16 +35,7 @@ export default async function FeedbackPage() {
         </Button>
       </div>
 
-      <FeedbackSummary
-        total={feedbacks.length}
-        positiveCount={positiveCount}
-        averageRating={averageRating}
-        followUpCount={followUpCount}
-        sharedCount={sharedCount}
-      />
-
-      <FeedbackList feedbacks={feedbacks} users={users} />
+      <FeedbackContent initialData={initialData} />
     </div>
   );
 }
-

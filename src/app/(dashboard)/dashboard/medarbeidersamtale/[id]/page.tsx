@@ -1,10 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/server-authorization";
-import { prisma } from "@/lib/db";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { EmployeeReviewDetail } from "@/features/employee-reviews/components/employee-review-detail";
+import { fetchEmployeeReviewDetail } from "@/server/queries/employee-review.queries";
+import { EmployeeReviewDetailContent } from "@/features/employee-reviews/components/employee-review-detail-content";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -20,28 +20,9 @@ export default async function MedarbeidersamtaleDetaljPage({ params }: Props) {
 
   if (!canRead) redirect("/dashboard");
 
-  const review = await prisma.employeeReview.findFirst({
-    where: {
-      id,
-      tenantId: auth.tenantId,
-      ...(auth.permissions.canReadAllEmployeeReviews
-        ? {}
-        : {
-            OR: [
-              { employeeId: auth.userId },
-              { reviewerId: auth.userId },
-            ],
-          }),
-    },
-    include: {
-      employee: { select: { id: true, name: true, email: true, image: true } },
-      reviewer: { select: { id: true, name: true, email: true, image: true } },
-      goals: { orderBy: { createdAt: "asc" } },
-      actions: { orderBy: { createdAt: "asc" } },
-    },
-  });
+  const initialData = await fetchEmployeeReviewDetail(id);
 
-  if (!review) notFound();
+  if (!initialData) notFound();
 
   return (
     <div className="space-y-4 p-6">
@@ -54,8 +35,8 @@ export default async function MedarbeidersamtaleDetaljPage({ params }: Props) {
         </Button>
       </div>
 
-      <EmployeeReviewDetail
-        review={JSON.parse(JSON.stringify(review))}
+      <EmployeeReviewDetailContent
+        initialData={initialData}
         currentUserId={auth.userId}
         canConduct={auth.permissions.canConductEmployeeReviews}
         canDelete={auth.permissions.canDeleteEmployeeReviews}

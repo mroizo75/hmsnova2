@@ -17,6 +17,7 @@ import { generateRiskAnalysis, generateRiskAssessmentItemDraft } from "@/lib/ai"
 import { getIndustryLabel, isSupportedIndustry } from "@/lib/industry-packages";
 import { z } from "zod";
 import { getPermissions } from "@/lib/permissions";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
 const sanitizeString = (value?: string | null) => {
   if (!value) return null;
@@ -255,6 +256,7 @@ export async function createRisk(input: any) {
     AuditLog.log(tenantId, user.id, "RISK_CREATED", "Risk", risk.id, { title: risk.title, score }).catch(() => {});
     
     revalidatePath("/dashboard/risks");
+    triggerRealtimeEvent(tenantId, "risk-updated");
     return { success: true, data: risk };
   } catch (error: any) {
     console.error("Create risk error:", error);
@@ -360,6 +362,7 @@ export async function updateRisk(input: any) {
     
     revalidatePath("/dashboard/risks");
     revalidatePath(`/dashboard/risks/${risk.id}`);
+    triggerRealtimeEvent(tenantId, "risk-updated");
     return { success: true, data: risk };
   } catch (error: any) {
     console.error("Update risk error:", error);
@@ -387,6 +390,7 @@ export async function deleteRisk(id: string) {
     AuditLog.log(tenantId, user.id, "RISK_DELETED", "Risk", id, { title: risk.title }).catch(() => {});
     
     revalidatePath("/dashboard/risks");
+    triggerRealtimeEvent(tenantId, "risk-updated");
     return { success: true };
   } catch (error: any) {
     console.error("Delete risk error:", error);
@@ -461,6 +465,7 @@ export async function createRiskAssessment(input: {
 
     revalidatePath("/dashboard/risks");
     revalidatePath(`/dashboard/risks/assessment/${assessment.id}`);
+    triggerRealtimeEvent(tenantId, "risk-updated");
     return { success: true, data: assessment };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Kunne ikke opprette risikovurdering";
@@ -515,6 +520,7 @@ export async function updateRiskAssessment(input: {
 
     revalidatePath(`/dashboard/risks/assessment/${assessment.id}`);
     revalidatePath("/dashboard/risks");
+    triggerRealtimeEvent(tenantId, "risk-updated");
     return { success: true, data: assessment };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Kunne ikke oppdatere risikovurdering";
@@ -575,6 +581,7 @@ export async function deleteRiskAssessment(assessmentId: string) {
     AuditLog.log(tenantId, user.id, "RISK_ASSESSMENT_DELETED", "RiskAssessment", assessmentId, { title: assessment.title, risksCount: assessment._count.risks }).catch(() => {});
 
     revalidatePath("/dashboard/risks");
+    triggerRealtimeEvent(tenantId, "risk-updated");
     return { success: true };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Kunne ikke slette risikovurdering";
@@ -670,6 +677,7 @@ export async function addRiskAssessmentItem(input: {
 
     revalidatePath("/dashboard/risks");
     revalidatePath(`/dashboard/risks/assessment/${input.riskAssessmentId}`);
+    triggerRealtimeEvent(ctxTenantId, "risk-updated");
     return { success: true, data: risk };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Kunne ikke legge til risikopunkt";
@@ -940,6 +948,7 @@ export async function applyAiRiskSuggestions(input: {
     }).catch(() => {});
 
     revalidatePath("/dashboard/risks");
+    triggerRealtimeEvent(tenantId, "risk-updated");
     return { success: true, data: { created, skipped } };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke lagre AI-risikoforslag" };

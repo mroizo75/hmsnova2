@@ -9,6 +9,7 @@ import { getPermissions } from "@/lib/permissions";
 import { AuditLog } from "@/lib/audit-log";
 import { notifyUsersByRoles } from "@/server/actions/notification.actions";
 import type { HandbookVersionStatus } from "@prisma/client";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
 // ── Standard seksjoner (IK-HMS § 5, AML kap. 3) ─────────────────────────────
 
@@ -639,6 +640,7 @@ export async function createNewDraft(
     AuditLog.log(tenantId, session.user.id, "HANDBOOK_DRAFT_CREATED", "HandbookVersion", newVersion.id, { version: nextVersion }).catch(() => {});
 
     revalidatePath("/dashboard/hms-handbok");
+    triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true, versionId: newVersion.id };
   } catch {
     return { success: false, error: "Kunne ikke opprette utkast" };
@@ -689,6 +691,7 @@ export async function updateDraftSection(
     });
 
     revalidatePath("/dashboard/hms-handbok");
+    triggerRealtimeEvent(section.version.handbook.tenantId, "settings-updated");
     return { success: true };
   } catch {
     return { success: false, error: "Kunne ikke oppdatere seksjon" };
@@ -732,6 +735,7 @@ export async function submitForApproval(
     }).catch(() => {});
 
     revalidatePath("/dashboard/hms-handbok");
+    triggerRealtimeEvent(version.handbook.tenantId, "settings-updated");
     return { success: true };
   } catch {
     return { success: false, error: "Kunne ikke sende til godkjenning" };
@@ -803,6 +807,7 @@ export async function approveVersion(
     }).catch(() => {});
 
     revalidatePath("/dashboard/hms-handbok");
+    triggerRealtimeEvent(version.handbook.tenantId, "settings-updated");
     return { success: true };
   } catch {
     return { success: false, error: "Kunne ikke godkjenne versjonen" };
@@ -845,6 +850,7 @@ export async function rejectDraft(
     });
 
     revalidatePath("/dashboard/hms-handbok");
+    triggerRealtimeEvent(version.handbook.tenantId, "settings-updated");
     return { success: true };
   } catch {
     return { success: false, error: "Kunne ikke avvise utkastet" };
@@ -883,6 +889,7 @@ export async function signHandbook(
     });
 
     revalidatePath("/dashboard/hms-handbok");
+    triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true };
   } catch {
     return { success: false, error: "Kunne ikke lagre signatur" };
@@ -912,6 +919,7 @@ export async function markHandbookReviewed(
     });
 
     revalidatePath("/dashboard/hms-handbok");
+    triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true };
   } catch {
     return { success: false, error: "Kunne ikke lagre gjennomgang" };

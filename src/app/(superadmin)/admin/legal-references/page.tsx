@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,13 +18,14 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, Edit, ExternalLink } from "lucide-react";
 import {
-  getAllLegalReferencesAdmin,
+  getPaginatedLegalReferencesAdmin,
   createLegalReference,
   updateLegalReference,
   deleteLegalReference,
 } from "@/server/actions/legal-reference.actions";
 import { useToast } from "@/hooks/use-toast";
 import { SUPPORTED_INDUSTRIES } from "@/lib/pricing";
+import { AdminPagination, AdminPaginationSearch } from "@/components/admin-pagination";
 
 const INDUSTRY_OPTIONS = [
   { value: "all", label: "Alle bransjer" },
@@ -41,23 +43,33 @@ function industriesToLabel(industries: unknown): string {
     .join(", ");
 }
 
+const ITEMS_PER_PAGE = 25;
+
 export default function AdminLegalReferencesPage() {
   const { toast } = useToast();
+  const searchParamsObj = useSearchParams();
   const [refs, setRefs] = useState<Array<{ id: string; title: string; paragraphRef: string | null; description: string; sourceUrl: string; industries: unknown; sortOrder: number; lastVerifiedAt: Date | null }>>([]);
+  const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [selectedIndustries, setSelectedIndustries] = useState<string[]>(["all"]);
 
+  const currentPage = Math.max(1, parseInt(searchParamsObj.get("page") || "1", 10));
+  const searchTerm = searchParamsObj.get("search")?.trim() || "";
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+
   useEffect(() => {
     loadRefs();
-  }, []);
+  }, [currentPage, searchTerm]);
 
   async function loadRefs() {
-    const result = await getAllLegalReferencesAdmin();
+    setLoading(true);
+    const result = await getPaginatedLegalReferencesAdmin(currentPage, searchTerm);
     if (result.success && result.data) {
       setRefs(result.data);
+      setTotalItems(result.total);
     } else {
       toast({ variant: "destructive", title: "Feil", description: result.error });
     }
@@ -240,10 +252,19 @@ export default function AdminLegalReferencesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Referanser ({refs.length})</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Kunder ser bare referanser som gjelder for deres bransje.
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Referanser ({totalItems})</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Kunder ser bare referanser som gjelder for deres bransje.
+              </p>
+            </div>
+            <AdminPaginationSearch
+              basePath="/admin/legal-references"
+              searchTerm={searchTerm}
+              placeholder="Søk på tittel, beskrivelse, paragraf..."
+            />
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -297,6 +318,14 @@ export default function AdminLegalReferencesPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <AdminPagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        basePath="/admin/legal-references"
+        searchTerm={searchTerm}
+      />
     </div>
   );
 }

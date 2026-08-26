@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { ANNUAL_HMS_PLAN_STEPS, type AnnualHmsPlanStep } from "@/lib/annual-hms-plan-steps";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
 const setCompletedSchema = z.object({
   tenantId: z.string(),
@@ -153,6 +154,7 @@ export async function setAnnualPlanStepCompleted(
     }
 
     revalidatePath("/dashboard/annual-hms-plan");
+    triggerRealtimeEvent(parsed.tenantId, "goal-updated");
     return { success: true };
   } catch (err) {
     if (err instanceof z.ZodError) {

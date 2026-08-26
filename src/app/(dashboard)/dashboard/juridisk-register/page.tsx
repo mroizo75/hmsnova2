@@ -1,13 +1,9 @@
 import { getCurrentUser } from "@/lib/server-action";
 import { redirect } from "next/navigation";
-import { getLegalReferencesForIndustry } from "@/server/actions/legal-reference.actions";
-import {
-  getRegulatoryStatus,
-  ensureRegulatoryRequirementsSeeded,
-} from "@/server/actions/regulatory.actions";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
 import { helpContent } from "@/lib/help-content";
-import { JuridiskRegisterClient } from "./client";
+import { fetchJuridiskRegisterData } from "@/server/queries/juridisk-register.queries";
+import { JuridiskRegisterContent } from "@/features/juridisk-register/components/juridisk-register-content";
 
 export default async function JuridiskRegisterPage() {
   const user = await getCurrentUser();
@@ -21,15 +17,10 @@ export default async function JuridiskRegisterPage() {
     return <div>Ingen tilgang til virksomhet</div>;
   }
 
-  const tenant = userTenant.tenant;
-  const industry = tenant.industry ?? null;
-
-  const [references, _seeded] = await Promise.all([
-    getLegalReferencesForIndustry(industry),
-    ensureRegulatoryRequirementsSeeded(),
-  ]);
-
-  const regulatoryStatus = await getRegulatoryStatus();
+  const initialData = await fetchJuridiskRegisterData();
+  if (!initialData) {
+    return <div>Ingen tilgang til virksomhet</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -43,18 +34,7 @@ export default async function JuridiskRegisterPage() {
         <PageHelpDialog content={helpContent.legalRegister} />
       </div>
 
-      <JuridiskRegisterClient
-        regulatoryStatus={regulatoryStatus}
-        userRole={userTenant.role}
-        manualReferences={references.map((ref) => ({
-          id: ref.id,
-          title: ref.title,
-          description: ref.description,
-          paragraphRef: ref.paragraphRef,
-          sourceUrl: ref.sourceUrl,
-          lastVerifiedAt: ref.lastVerifiedAt?.toISOString() ?? null,
-        }))}
-      />
+      <JuridiskRegisterContent initialData={initialData} />
     </div>
   );
 }

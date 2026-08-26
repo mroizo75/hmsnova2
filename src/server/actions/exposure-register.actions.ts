@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { getRequiredTenantContext } from "@/lib/tenant-context";
 import { ExposureRegisterStatus, ExposureType } from "@prisma/client";
 import { encryptField, decryptField } from "@/lib/field-encryption";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
 async function getSessionContext() {
   const tenantContext = await getRequiredTenantContext();
@@ -244,6 +245,7 @@ export async function createExposureRegister(input: CreateExposureRegisterInput)
     });
 
     revalidatePath("/dashboard/exposure-register");
+    triggerRealtimeEvent(tenantId, "chemical-updated");
     return { success: true, data: entry };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke opprette oppføring" };
@@ -317,6 +319,7 @@ export async function updateExposureRegister(id: string, input: UpdateExposureRe
     });
 
     revalidatePath("/dashboard/exposure-register");
+    triggerRealtimeEvent(tenantId, "chemical-updated");
     return { success: true, data: updated };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke oppdatere oppføring" };
@@ -348,6 +351,7 @@ export async function archiveExposureRegister(id: string) {
     });
 
     revalidatePath("/dashboard/exposure-register");
+    triggerRealtimeEvent(tenantId, "chemical-updated");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke arkivere oppføring" };
@@ -374,6 +378,7 @@ export async function markExposureInactive(id: string, endDate: Date) {
     });
 
     revalidatePath("/dashboard/exposure-register");
+    triggerRealtimeEvent(tenantId, "chemical-updated");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke oppdatere oppføring" };

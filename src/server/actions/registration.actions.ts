@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { Resend } from "resend";
 import { PricingTier, OnboardingStatus } from "@prisma/client";
@@ -130,42 +131,89 @@ export async function submitRegistrationRequest(formData: FormData) {
     // Calculate pricing
     const pricingTier = calculatePricingTier(validated.employeeCount);
     const employeeCount = calculateEmployeeCount(validated.employeeCount);
+    const yearlyPrice = getBindingPrice("1year").yearlyPrice;
 
-    // VIKTIG: Opprett KUN en "pending" tenant - INGEN subscription eller brukere før godkjenning!
-    const tenant = await prisma.tenant.create({
-      data: {
-        name: validated.companyName,
-        slug,
-        orgNumber: validated.orgNumber,
-        status: "TRIAL", // Status, men ingen aktiv tilgang ennå
-        trialEndsAt: null, // Settes først når aktivert
-        contactEmail: validated.contactEmail,
-        contactPhone: validated.contactPhone,
-        contactPerson: validated.contactPerson,
-        address: validated.address || undefined,
-        postalCode: validated.postalCode || undefined,
-        city: validated.city || undefined,
-        // Fakturainformasjon
-        invoiceEmail: validated.invoiceEmail || validated.contactEmail,
-        useEHF: validated.useEHF === "true",
-        invoiceAddress: validated.useEHF === "true" ? undefined : validated.address,
-        invoicePostalCode: validated.useEHF === "true" ? undefined : validated.postalCode,
-        invoiceCity: validated.useEHF === "true" ? undefined : validated.city,
-        // Bedriftsinformasjon
-        employeeCount,
-        pricingTier,
-        industry: normalizedIndustry,
-        notes: mergedNotes || undefined,
-        onboardingStatus: "NOT_STARTED", // Venter på godkjenning
-        // Avtaleaksept — tidsstempler for juridisk dokumentasjon
-        termsAcceptedAt: new Date(),
-        angrerrettInfoAt: new Date(),
-        // VIKTIG: subscription opprettes FØRST når superadmin aktiverer
-        // VIKTIG: users opprettes FØRST når superadmin aktiverer
-      },
+    // Generer midlertidig passord for admin-bruker
+    const tempPassword = crypto.randomUUID().slice(0, 12);
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+    const normalizedEmail = validated.contactEmail.toLowerCase().trim();
+
+    // Auto-aktivering: opprett tenant + admin-bruker + subscription i én transaksjon
+    const result = await prisma.$transaction(async (tx) => {
+      const tenant = await tx.tenant.create({
+        data: {
+          name: validated.companyName,
+          slug,
+          orgNumber: validated.orgNumber,
+          status: "ACTIVE",
+          trialEndsAt: null,
+          contactEmail: validated.contactEmail,
+          contactPhone: validated.contactPhone,
+          contactPerson: validated.contactPerson,
+          address: validated.address || undefined,
+          postalCode: validated.postalCode || undefined,
+          city: validated.city || undefined,
+          invoiceEmail: validated.invoiceEmail || validated.contactEmail,
+          useEHF: validated.useEHF === "true",
+          invoiceAddress: validated.useEHF === "true" ? undefined : validated.address,
+          invoicePostalCode: validated.useEHF === "true" ? undefined : validated.postalCode,
+          invoiceCity: validated.useEHF === "true" ? undefined : validated.city,
+          employeeCount,
+          pricingTier,
+          industry: normalizedIndustry,
+          notes: mergedNotes || undefined,
+          onboardingStatus: "ADMIN_CREATED",
+          onboardingCompletedAt: new Date(),
+          registrationType: "STANDARD",
+          termsAcceptedAt: new Date(),
+          angrerrettInfoAt: new Date(),
+        },
+      });
+
+      await tx.subscription.create({
+        data: {
+          tenantId: tenant.id,
+          plan: "PROFESSIONAL",
+          price: yearlyPrice,
+          billingInterval: "YEARLY",
+          status: "ACTIVE",
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        },
+      });
+
+      const existingUser = await tx.user.findUnique({
+        where: { email: normalizedEmail },
+      });
+
+      if (existingUser) {
+        await tx.userTenant.create({
+          data: {
+            userId: existingUser.id,
+            tenantId: tenant.id,
+            role: "ADMIN",
+          },
+        });
+      } else {
+        await tx.user.create({
+          data: {
+            email: normalizedEmail,
+            name: validated.contactPerson,
+            password: hashedPassword,
+            emailVerified: new Date(),
+            tenants: {
+              create: { tenantId: tenant.id, role: "ADMIN" },
+            },
+          },
+        });
+      }
+
+      return { tenant, isExistingUser: !!existingUser };
     });
 
-    // Hent NACE-kode fra Brreg og persist på tenant
+    const { tenant, isExistingUser } = result;
+
+    // NACE-kode fra Brreg (best-effort)
     try {
       const enhet = await brregClient.getEnhet(validated.orgNumber);
       if (enhet?.naeringskode1) {
@@ -182,22 +230,18 @@ export async function submitRegistrationRequest(formData: FormData) {
         });
       }
     } catch {
-      // NACE-oppslag er ikke kritisk — fortsett uten
+      // NACE-oppslag er ikke kritisk
     }
 
-    // Opprett bransjepakke idempotent (på registreringstidspunktet)
     await provisionIndustryPackage(tenant.id);
 
-    // Get pricing info for email (ny prismodell: 1 år binding som standard)
-    const yearlyPrice = getBindingPrice("1year").yearlyPrice;
-
-    // Send confirmation email to customer
+    // Send velkomst-epost med innloggingsinfo
     if (process.env.RESEND_API_KEY) {
       try {
         await resend.emails.send({
           from: process.env.RESEND_FROM_EMAIL ?? "HMS Nova <noreply@hmsnova.no>",
           to: validated.contactEmail,
-          subject: "Velkommen til HMS Nova - Din søknad er mottatt 🎉",
+          subject: "Velkommen til HMS Nova - Kontoen din er klar! 🎉",
           html: getCustomerWelcomeEmail({
             contactPerson: validated.contactPerson,
             companyName: validated.companyName,
@@ -209,17 +253,16 @@ export async function submitRegistrationRequest(formData: FormData) {
         });
       } catch (emailError) {
         console.error("Failed to send confirmation email:", emailError);
-        // Don't fail the registration if email fails
       }
     }
 
-    // Send notification to admin/support
+    // Varsle admin
     if (process.env.RESEND_API_KEY) {
       try {
         await resend.emails.send({
           from: process.env.RESEND_FROM_EMAIL ?? "HMS Nova <noreply@hmsnova.no>",
           to: "kenneth@kksas.no",
-          subject: `🎯 Ny registrering: ${validated.companyName}`,
+          subject: `🎯 Ny kunde aktivert: ${validated.companyName}`,
           html: getAdminNotificationEmail({
             companyName: validated.companyName,
             orgNumber: validated.orgNumber,

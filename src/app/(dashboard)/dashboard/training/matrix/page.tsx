@@ -3,9 +3,10 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Button } from "@/components/ui/button";
-import { CompetenceMatrix } from "@/features/training/components/competence-matrix";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { fetchTrainingMatrix } from "@/server/queries/training.queries";
+import { MatrixContent } from "@/features/training/components/matrix-content";
 
 export default async function CompetenceMatrixPage() {
   const session = await getServerSession(authOptions);
@@ -31,43 +32,7 @@ export default async function CompetenceMatrixPage() {
   }
 
   const tenantId = selectedMembership.tenantId;
-
-  // Hent alle brukere for tenant
-  const users = await prisma.user.findMany({
-    where: {
-      tenants: {
-        some: { tenantId },
-      },
-    },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-    },
-  });
-
-  // Hent all opplæring for tenanten
-  const trainings = await prisma.training.findMany({
-    where: { tenantId },
-    orderBy: { courseKey: "asc" },
-  });
-
-  // Hent kursmaler (globale + tenant-spesifikke)
-  const courseTemplates = await prisma.courseTemplate.findMany({
-    where: {
-      OR: [
-        { tenantId, isActive: true },
-        { isGlobal: true, isActive: true },
-      ],
-    },
-    orderBy: { title: "asc" },
-  });
-
-  // Bygg matrise: Grupperopplæring per bruker
-  const matrix = users.map((u) => ({
-    user: u,
-    trainings: trainings.filter((t) => t.userId === u.id),
-  }));
+  const initialData = await fetchTrainingMatrix();
 
   return (
     <div className="space-y-6 print:space-y-2">
@@ -83,10 +48,7 @@ export default async function CompetenceMatrixPage() {
         </p>
       </div>
 
-      <div className="print:pt-0">
-        <CompetenceMatrix matrix={matrix} courseTemplates={courseTemplates} tenantId={tenantId} />
-      </div>
+      <MatrixContent initialData={initialData} tenantId={tenantId} />
     </div>
   );
 }
-

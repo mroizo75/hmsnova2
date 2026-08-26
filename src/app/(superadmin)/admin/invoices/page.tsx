@@ -7,10 +7,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreateInvoiceDialog } from "@/features/admin/components/create-invoice-dialog";
 import { InvoiceTable } from "@/features/admin/components/invoice-table";
 import { InvoiceExportPanel } from "@/features/admin/components/invoice-export-panel";
+import { AdminPagination, AdminPaginationSearch } from "@/components/admin-pagination";
+import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
-export default async function InvoicesPage() {
+const ITEMS_PER_PAGE = 25;
+
+export default async function InvoicesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; search?: string }>;
+}) {
+  const params = await searchParams;
+  const currentPage = Math.max(1, parseInt(params.page || "1", 10));
+  const searchTerm = params.search?.trim() || "";
+
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) redirect("/login");
   const currentUser = await prisma.user.findUnique({
@@ -18,8 +30,25 @@ export default async function InvoicesPage() {
     select: { isSuperAdmin: true },
   });
   if (!currentUser?.isSuperAdmin) redirect("/admin");
+
+  const searchFilter: Prisma.InvoiceWhereInput = searchTerm
+    ? {
+        OR: [
+          { invoiceNumber: { contains: searchTerm } },
+          { description: { contains: searchTerm } },
+          { period: { contains: searchTerm } },
+          { tenant: { name: { contains: searchTerm } } },
+          { tenant: { contactEmail: { contains: searchTerm } } },
+        ],
+      }
+    : {};
+
+  const totalItems = await prisma.invoice.count({ where: searchFilter });
+  const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
+
   const [invoices, tenants, exportHistory] = await Promise.all([
     prisma.invoice.findMany({
+      where: searchFilter,
       include: {
         tenant: {
           select: {
@@ -30,7 +59,8 @@ export default async function InvoicesPage() {
         },
       },
       orderBy: { dueDate: "desc" },
-      take: 200,
+      skip: (currentPage - 1) * ITEMS_PER_PAGE,
+      take: ITEMS_PER_PAGE,
     }),
     prisma.tenant.findMany({
       where: { status: { in: ["ACTIVE", "TRIAL"] } },
@@ -75,10 +105,17 @@ export default async function InvoicesPage() {
         <div>
           <h1 className="text-3xl font-bold">Fakturaer</h1>
           <p className="text-muted-foreground">
-            Fakturahåndtering og Excel-eksport for Fiken
+            Fakturahåndtering og Excel-eksport for Fiken ({totalItems} totalt)
           </p>
         </div>
-        <CreateInvoiceDialog tenants={tenants} />
+        <div className="flex items-center gap-3">
+          <AdminPaginationSearch
+            basePath="/admin/invoices"
+            searchTerm={searchTerm}
+            placeholder="Søk faktura, bedrift..."
+          />
+          <CreateInvoiceDialog tenants={tenants} />
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-5">
@@ -142,6 +179,14 @@ export default async function InvoicesPage() {
       <InvoiceExportPanel history={exportHistory} exportedInvoiceIds={exportedInvoiceIds} />
 
       <InvoiceTable invoices={invoices} exportedInvoiceIds={exportedInvoiceIds} />
+
+      <AdminPagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        basePath="/admin/invoices"
+        searchTerm={searchTerm}
+      />
     </div>
   );
 }

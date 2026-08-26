@@ -3,7 +3,9 @@ import { format } from "date-fns";
 import { nb } from "date-fns/locale";
 import { Headphones, MessageSquare } from "lucide-react";
 
-import { listAdminSupportTickets } from "@/server/actions/support.actions";
+import { prisma } from "@/lib/db";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -16,6 +18,7 @@ import {
   SUPPORT_CATEGORY_LABELS,
   SUPPORT_STATUS_LABELS,
 } from "@/features/support/lib/labels";
+import { AdminPagination, AdminPaginationSearch } from "@/components/admin-pagination";
 
 export const dynamic = "force-dynamic";
 
@@ -23,23 +26,56 @@ export const metadata = {
   title: "Support-inbox | HMS Nova Admin",
 };
 
-type AdminTicket = {
-  id: string;
-  ticketNumber: string;
-  subject: string;
-  category: keyof typeof SUPPORT_CATEGORY_LABELS;
-  status: keyof typeof SUPPORT_STATUS_LABELS;
-  lastMessageAt: Date;
-  tenant: { name: string; orgNumber: string | null };
-  createdBy: { name: string | null; email: string };
-  assignedTo: { name: string | null } | null;
-  _count: { messages: number };
-  messages: Array<{ body: string; senderType: string }>;
-};
+const ITEMS_PER_PAGE = 25;
 
-export default async function AdminSupportPage() {
-  const result = await listAdminSupportTickets();
-  const tickets = (result.success ? result.data : []) as AdminTicket[];
+export default async function AdminSupportPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; search?: string }>;
+}) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return <div className="p-8">Ingen tilgang</div>;
+  }
+
+  const params = await searchParams;
+  const currentPage = Math.max(1, parseInt(params.page || "1", 10));
+  const searchTerm = params.search?.trim() || "";
+
+  const where = searchTerm
+    ? {
+        OR: [
+          { subject: { contains: searchTerm, mode: "insensitive" as const } },
+          { ticketNumber: { contains: searchTerm, mode: "insensitive" as const } },
+          { createdBy: { email: { contains: searchTerm, mode: "insensitive" as const } } },
+          { createdBy: { name: { contains: searchTerm, mode: "insensitive" as const } } },
+          { tenant: { name: { contains: searchTerm, mode: "insensitive" as const } } },
+        ],
+      }
+    : {};
+
+  const [totalItems, tickets] = await Promise.all([
+    prisma.supportTicket.count({ where }),
+    prisma.supportTicket.findMany({
+      where,
+      orderBy: [{ status: "asc" }, { lastMessageAt: "desc" }],
+      skip: (currentPage - 1) * ITEMS_PER_PAGE,
+      take: ITEMS_PER_PAGE,
+      include: {
+        tenant: { select: { id: true, name: true, orgNumber: true } },
+        createdBy: { select: { id: true, name: true, email: true } },
+        assignedTo: { select: { id: true, name: true, email: true } },
+        _count: { select: { messages: true } },
+        messages: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { body: true, createdAt: true, senderType: true },
+        },
+      },
+    }),
+  ]);
+
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
 
   const openCount = tickets.filter(
     (t) => t.status === "OPEN" || t.status === "IN_PROGRESS" || t.status === "WAITING_CUSTOMER"
@@ -57,17 +93,26 @@ export default async function AdminSupportPage() {
         </p>
       </div>
 
-      {!result.success ? (
-        <Card>
-          <CardContent className="p-8 text-center text-muted-foreground">
-            Kunne ikke laste inbox.
-          </CardContent>
-        </Card>
-      ) : tickets.length === 0 ? (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Saker ({totalItems})</CardTitle>
+            <AdminPaginationSearch
+              basePath="/admin/support"
+              searchTerm={searchTerm}
+              placeholder="Søk på emne, ticketnr, e-post..."
+            />
+          </div>
+        </CardHeader>
+      </Card>
+
+      {tickets.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
             <MessageSquare className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-            <p className="text-lg font-medium">Ingen saker ennå</p>
+            <p className="text-lg font-medium">
+              {searchTerm ? "Ingen saker matcher søket" : "Ingen saker ennå"}
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -84,7 +129,9 @@ export default async function AdminSupportPage() {
                       </CardDescription>
                       <CardTitle className="text-base mt-1">{ticket.subject}</CardTitle>
                     </div>
-                    <Badge>{SUPPORT_STATUS_LABELS[ticket.status]}</Badge>
+                    <Badge>
+                      {SUPPORT_STATUS_LABELS[ticket.status as keyof typeof SUPPORT_STATUS_LABELS]}
+                    </Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground space-y-1">
@@ -92,7 +139,9 @@ export default async function AdminSupportPage() {
                     {ticket.messages[0]?.body ?? "Ingen meldinger"}
                   </p>
                   <div className="flex flex-wrap gap-x-4 gap-y-1">
-                    <span>{SUPPORT_CATEGORY_LABELS[ticket.category]}</span>
+                    <span>
+                      {SUPPORT_CATEGORY_LABELS[ticket.category as keyof typeof SUPPORT_CATEGORY_LABELS]}
+                    </span>
                     <span>
                       Fra {ticket.createdBy.name || ticket.createdBy.email}
                     </span>
@@ -113,6 +162,14 @@ export default async function AdminSupportPage() {
           ))}
         </div>
       )}
+
+      <AdminPagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        basePath="/admin/support"
+        searchTerm={searchTerm}
+      />
     </div>
   );
 }

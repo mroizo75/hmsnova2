@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getRequiredTenantContext } from "@/lib/tenant-context";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 import { generateFileKey, getStorage } from "@/lib/storage";
 import { AuditLog } from "@/lib/audit-log";
 import { 
@@ -157,6 +158,7 @@ export async function createChemical(input: any) {
     }
 
     revalidatePath("/dashboard/chemicals");
+    triggerRealtimeEvent(tenantId, "chemical-updated", { id: chemical.id });
     return { success: true, data: chemical };
   } catch (error: any) {
     console.error("Create chemical error:", error);
@@ -225,6 +227,7 @@ export async function updateChemical(chemicalId: string, input: any) {
 
     revalidatePath("/dashboard/chemicals");
     revalidatePath(`/dashboard/chemicals/${chemical.id}`);
+    triggerRealtimeEvent(tenantId, "chemical-updated", { id: chemical.id });
     return { success: true, data: chemical };
   } catch (error: any) {
     console.error("Update chemical error:", error);
@@ -263,6 +266,7 @@ export async function deleteChemical(chemicalId: string) {
     });
 
     revalidatePath("/dashboard/chemicals");
+    triggerRealtimeEvent(tenantId, "chemical-updated", { id: chemicalId });
     return { success: true };
   } catch (error: any) {
     console.error("Delete chemical error:", error);
@@ -320,6 +324,7 @@ export async function verifyChemical(chemicalId: string) {
 
     revalidatePath("/dashboard/chemicals");
     revalidatePath(`/dashboard/chemicals/${chemical.id}`);
+    triggerRealtimeEvent(tenantId, "chemical-updated", { id: chemicalId });
     return { success: true };
   } catch (error: any) {
     console.error("Verify chemical error:", error);
@@ -430,6 +435,7 @@ export async function parseSDSFromFile(sdsKey: string, chemicalId?: string) {
       });
 
       revalidatePath(`/dashboard/chemicals/${chemicalId}`);
+      triggerRealtimeEvent(tenantId, "chemical-updated", { id: chemicalId });
     }
 
     return { success: true, data: extractedData };
@@ -499,6 +505,7 @@ export async function syncWithECHA(chemicalId: string) {
 
     revalidatePath(`/dashboard/chemicals/${chemicalId}`);
     revalidatePath("/dashboard/chemicals");
+    triggerRealtimeEvent(tenantId, "chemical-updated", { id: chemicalId });
 
     return { success: true, data: updatedChemical };
   } catch (error: any) {
@@ -541,6 +548,7 @@ export async function findSubstitutionAlternatives(chemicalId: string) {
       });
 
       revalidatePath(`/dashboard/chemicals/${chemicalId}`);
+      triggerRealtimeEvent(tenantId, "chemical-updated", { id: chemicalId });
     }
 
     return { success: true, data: alternatives };

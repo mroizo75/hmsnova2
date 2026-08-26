@@ -10,6 +10,7 @@ import {
   updateFindingSchema,
 } from "@/features/audits/schemas/audit.schema";
 import { AuditLog } from "@/lib/audit-log";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
 async function getSessionContext() {
   const tenantContext = await getRequiredTenantContext();
@@ -118,6 +119,7 @@ export async function createAudit(input: any) {
     );
 
     revalidatePath("/dashboard/audits");
+    triggerRealtimeEvent(tenantId, "audit-updated");
     return { success: true, data: audit };
   } catch (error: any) {
     console.error("Create audit error:", error);
@@ -166,6 +168,7 @@ export async function updateAudit(input: any) {
 
     revalidatePath("/dashboard/audits");
     revalidatePath(`/dashboard/audits/${audit.id}`);
+    triggerRealtimeEvent(tenantId, "audit-updated");
     return { success: true, data: audit };
   } catch (error: any) {
     console.error("Update audit error:", error);
@@ -206,6 +209,7 @@ export async function deleteAudit(auditId: string) {
     );
 
     revalidatePath("/dashboard/audits");
+    triggerRealtimeEvent(tenantId, "audit-updated");
     return { success: true };
   } catch (error: any) {
     console.error("Delete audit error:", error);
@@ -300,6 +304,7 @@ export async function createFinding(input: any) {
 
     revalidatePath("/dashboard/audits");
     revalidatePath(`/dashboard/audits/${audit.id}`);
+    triggerRealtimeEvent(tenantId, "audit-updated");
     return { success: true, data: finding };
   } catch (error: any) {
     console.error("Create finding error:", error);
@@ -344,6 +349,7 @@ export async function updateFinding(input: any) {
 
     revalidatePath("/dashboard/audits");
     revalidatePath(`/dashboard/audits/${existingFinding.auditId}`);
+    triggerRealtimeEvent(tenantId, "audit-updated");
     return { success: true, data: finding };
   } catch (error: any) {
     console.error("Update finding error:", error);
@@ -393,6 +399,7 @@ export async function verifyFinding(findingId: string) {
 
     revalidatePath("/dashboard/audits");
     revalidatePath(`/dashboard/audits/${finding.auditId}`);
+    triggerRealtimeEvent(tenantId, "audit-updated");
     return { success: true, data: updatedFinding };
   } catch (error: any) {
     console.error("Verify finding error:", error);
@@ -429,6 +436,7 @@ export async function deleteFinding(findingId: string) {
 
     revalidatePath("/dashboard/audits");
     revalidatePath(`/dashboard/audits/${finding.auditId}`);
+    triggerRealtimeEvent(tenantId, "audit-updated");
     return { success: true };
   } catch (error: any) {
     console.error("Delete finding error:", error);

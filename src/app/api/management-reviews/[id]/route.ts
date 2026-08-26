@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getRequiredTenantContext } from "@/lib/tenant-context";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { revalidatePath } from "next/cache";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
 export const dynamic = "force-dynamic";
 
@@ -95,6 +97,13 @@ export async function PATCH(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
+    if (validatedData.status === "APPROVED") {
+      return NextResponse.json(
+        { error: "Godkjenning må gjøres via «Godkjenn gjennomgang»-knappen" },
+        { status: 400 }
+      );
+    }
+
     const updateData: any = { ...validatedData };
 
     if (validatedData.participants) {
@@ -109,15 +118,15 @@ export async function PATCH(
     if (validatedData.nextReviewDate) {
       updateData.nextReviewDate = new Date(validatedData.nextReviewDate);
     }
-    if (validatedData.status === "APPROVED" && !existing.approvedAt) {
-      updateData.approvedAt = new Date();
-      updateData.approvedBy = userId;
-    }
 
     const review = await db.managementReview.update({
       where: { id },
       data: updateData,
     });
+
+    revalidatePath("/dashboard/management-reviews");
+    revalidatePath(`/dashboard/management-reviews/${id}`);
+    await triggerRealtimeEvent(tenantId, "management-review-updated", { id });
 
     return NextResponse.json({ data: review });
   } catch (error: any) {
@@ -161,6 +170,9 @@ export async function DELETE(
     await db.managementReview.delete({
       where: { id },
     });
+
+    revalidatePath("/dashboard/management-reviews");
+    await triggerRealtimeEvent(tenantId, "management-review-updated");
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

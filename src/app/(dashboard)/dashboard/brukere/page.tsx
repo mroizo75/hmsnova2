@@ -1,20 +1,18 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
-import { UserManagement } from "@/features/settings/components/user-management";
 import { Users } from "lucide-react";
 import { getPermissions } from "@/lib/permissions";
 import type { Role } from "@prisma/client";
+import { fetchUsers } from "@/server/queries/users.queries";
+import { UsersContent } from "@/features/settings/components/users-content";
 
 export const dynamic = "force-dynamic";
 
 export default async function BrukerePage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
-
-  const t = await getTranslations("settingsPage");
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -30,39 +28,17 @@ export default async function BrukerePage() {
   if (!user || user.tenants.length === 0) redirect("/login");
 
   const selectedMembership = user.tenants[0];
-  const tenantId = selectedMembership.tenantId;
-  const tenant = selectedMembership.tenant;
   const permissions = getPermissions(selectedMembership.role as Role);
-  const isAdmin = selectedMembership.role === "ADMIN";
 
   if (!permissions.canManageUsers) {
     redirect("/dashboard");
   }
 
-  const tenantUsers = await prisma.userTenant.findMany({
-    where: { tenantId },
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          createdAt: true,
-        },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const initialData = await fetchUsers();
 
-  const usersWithEmployeeNumber = tenantUsers.map((ut) => ({
-    ...ut,
-    employeeNumber: ut.employeeNumber ?? null,
-    position: ut.position ?? null,
-    managerId: ut.managerId ?? null,
-  }));
-
-  const { getSubscriptionLimits } = await import("@/lib/subscription");
-  const limits = getSubscriptionLimits(tenant.pricingTier as any);
+  if (!initialData) {
+    redirect("/login");
+  }
 
   return (
     <div className="space-y-6">
@@ -78,13 +54,7 @@ export default async function BrukerePage() {
         </div>
       </div>
 
-      <UserManagement
-        users={usersWithEmployeeNumber}
-        currentUserId={user.id}
-        isAdmin={isAdmin}
-        pricingTier={tenant.pricingTier}
-        maxUsers={limits.maxUsers}
-      />
+      <UsersContent initialData={initialData} />
     </div>
   );
 }

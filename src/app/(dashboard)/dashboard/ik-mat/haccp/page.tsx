@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/server-authorization";
-import { prisma } from "@/lib/db";
-import { HaccpBuilderClient } from "@/features/ik-mat/components/haccp-builder-client";
+import { fetchHaccpData } from "@/server/queries/settings.queries";
+import { HaccpContent } from "@/features/ik-mat/components/haccp-content";
 
 export const metadata = { title: "HACCP Fareanalyse | HMS Nova" };
 
@@ -9,15 +9,11 @@ export default async function HaccpPage() {
   const auth = await getAuthContext();
   if (!auth.permissions.canReadInspections) redirect("/dashboard");
 
-  const planer = await prisma.haccpPlan.findMany({
-    where: { tenantId: auth.tenantId },
-    include: { ccp: { orderBy: { order: "asc" } } },
-    orderBy: { updatedAt: "desc" },
-  });
+  const initialData = await fetchHaccpData();
 
   return (
-    <HaccpBuilderClient
-      planer={JSON.parse(JSON.stringify(planer))}
+    <HaccpContent
+      initialData={initialData}
       canEdit={auth.permissions.canCreateInspections}
     />
   );

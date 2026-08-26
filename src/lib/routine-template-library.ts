@@ -284,6 +284,141 @@ const commonTemplates: RoutineTemplateLibraryEntry[] = [
     }),
   },
   {
+    title: "Brannvernrutine",
+    description:
+      "Rutine for forebyggende brannvern, ansvar, varsling og slokking – gjelder alle virksomheter.",
+    category: "BRANN",
+    legalReference:
+      "Brann- og eksplosjonsvernloven § 6, § 13, Forskrift om brannforebygging kap. 2-3",
+    industryScope: ["all"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal:
+        "Forebygge brann, sikre rask varsling og trygg evakuering, og overholde virksomhetens plikter etter brann- og eksplosjonsvernloven.",
+      omfang:
+        "Gjelder alle ansatte, innleide, besøkende og leietakere i virksomhetens lokaler.",
+      ansvar: [
+        "Daglig leder: overordnet ansvarlig for brannvern og at rutinen etterleves.",
+        "Brannvernansvarlig: gjennomføre kontroller, øvelser og oppdatere rømningsplaner.",
+        "Alle ansatte: kjenne rømningsveier, møteplass og bruk av slokkemidler.",
+      ],
+      gjennomforing: [
+        "Gjennomfør brannøvelse minst én gang per år – to ganger for virksomheter med overnatting.",
+        "Kontroller rømningsveier, nødlys og slokkemidler månedlig.",
+        "Sørg for at alle nyansatte får brannvernopplæring første arbeidsdag.",
+        "Hold rømningsveier fri for hindringer til enhver tid.",
+        "Oppdater rømningsplan ved endring av lokaler eller organisasjon.",
+        "Etabler varslingskjede: intern alarm → 110 → evakuering → opptelling på møteplass.",
+      ],
+      dokumentasjon: [
+        "Rømningsplan oppslått synlig i alle etasjer.",
+        "Brannøvelsesprotokoll med dato, deltakere og evaluering.",
+        "Kontrollskjema for slokkemidler og rømningsveier.",
+        "Opplæringslogg for brannvern.",
+      ],
+      avvikOppfolging: [
+        "Blokkerte rømningsveier eller defekt slokkeutstyr utbedres umiddelbart.",
+        "Manglende brannøvelse registreres som avvik og gjennomføres snarest.",
+      ],
+      revisjon:
+        "Revideres årlig og etter brannhendelse, bygningsendringer eller tilsyn fra brannvesenet.",
+      kilder: [
+        "https://lovdata.no/dokument/NL/lov/2002-06-14-20",
+        "https://lovdata.no/dokument/SF/forskrift/2015-12-17-1710",
+        "https://www.dsb.no/lover/brannvern-brannvesen-nodnett/",
+      ],
+    }),
+  },
+  {
+    title: "Rømningsplan og evakueringsprosedyre",
+    description:
+      "Rutine for evakuering, rømningsveier, møteplass og opptelling ved brannalarm eller annen nødsituasjon.",
+    category: "BRANN",
+    legalReference:
+      "Forskrift om brannforebygging § 12, Brann- og eksplosjonsvernloven § 6",
+    industryScope: ["all"],
+    reviewIntervalMonths: 12,
+    content: createContent({
+      formaal:
+        "Sikre rask, kontrollert og trygg evakuering ved brann eller annen nødsituasjon.",
+      omfang:
+        "Gjelder alle personer som oppholder seg i virksomhetens lokaler – ansatte, besøkende, kunder og leietakere.",
+      ansvar: [
+        "Daglig leder: godkjenne og oppdatere rømningsplan.",
+        "Brannvernansvarlig: koordinere evakuering og opptelling.",
+        "Etasjeansvarlig: sikre at alle forlater etasjen og melde status.",
+        "Alle ansatte: kjenne nærmeste rømningsvei og møteplass.",
+      ],
+      gjennomforing: [
+        "Ved alarm: avbryt arbeid, lukk dører og vinduer, gå til nærmeste rømningsvei.",
+        "Bruk aldri heis ved brann.",
+        "Gå rolig til angitt møteplass utenfor bygget.",
+        "Etasjeansvarlig/brannvernansvarlig foretar opptelling og melder til brannvesenet.",
+        "Ingen returnerer til bygget før brannvesenet gir klarsignal.",
+        "Evaluer evakueringen etter øvelser og reelle hendelser.",
+      ],
+      dokumentasjon: [
+        "Rømningsplan med markerte rømningsveier, slokkemidler og møteplass.",
+        "Opptellingsliste per etasje/avdeling.",
+        "Evalueringsnotat etter øvelse.",
+      ],
+      avvikOppfolging: [
+        "For lang evakueringstid (> 3 min) registreres som avvik med tiltak.",
+        "Manglende opptelling følges opp med ansvarlig.",
+      ],
+      revisjon:
+        "Revideres ved endring i lokaler, bemanning eller etter brannøvelse.",
+      kilder: [
+        "https://lovdata.no/dokument/SF/forskrift/2015-12-17-1710",
+        "https://lovdata.no/dokument/NL/lov/2002-06-14-20",
+      ],
+    }),
+  },
+  {
+    title: "Brannøvelsesplan og dokumentasjon",
+    description:
+      "Rutine for planlegging, gjennomføring og evaluering av brannøvelser i virksomheten.",
+    category: "BRANN",
+    legalReference:
+      "Forskrift om brannforebygging § 13, Brann- og eksplosjonsvernloven § 6",
+    industryScope: ["all"],
+    reviewIntervalMonths: 6,
+    content: createContent({
+      formaal:
+        "Sikre at alle ansatte er forberedt på brannhendelser gjennom regelmessige og dokumenterte brannøvelser.",
+      omfang:
+        "Gjelder hele virksomheten. Alle ansatte, inkludert deltidsansatte og innleide, skal delta.",
+      ansvar: [
+        "Brannvernansvarlig: planlegge, gjennomføre og evaluere brannøvelser.",
+        "Ledere: sikre at sine ansatte deltar.",
+        "HMS-ansvarlig: dokumentere og arkivere øvelsesrapporter.",
+      ],
+      gjennomforing: [
+        "Planlegg brannøvelse med fastsatt scenario: uanmeldt eller forhåndsvarslet.",
+        "Varier scenarier: kontorbrand, kjøkkenbrand, blokert rømningsvei, nattscenario (overnatting).",
+        "Mål evakueringstid og sammenlign med mål (under 3 minutter for de fleste bygg).",
+        "Evaluer øvelsen med deltakere: hva fungerte, hva kan forbedres?",
+        "Utarbeid forbedringstiltak og sett frister.",
+        "Gjennomfør minst 1 øvelse per år – 2 for virksomheter med overnatting.",
+      ],
+      dokumentasjon: [
+        "Øvelsesprotokoll: dato, scenario, evakueringstid, antall deltakere.",
+        "Evalueringsnotat med forbedringstiltak.",
+        "Oppdatert øvelsesplan for neste periode.",
+      ],
+      avvikOppfolging: [
+        "Manglende øvelse innen fristen registreres som avvik.",
+        "Forbedringstiltak fra evaluering følges opp innen 30 dager.",
+      ],
+      revisjon:
+        "Øvelsesplanen revideres halvårlig og etter reell brannhendelse.",
+      kilder: [
+        "https://lovdata.no/dokument/SF/forskrift/2015-12-17-1710",
+        "https://www.dsb.no/",
+      ],
+    }),
+  },
+  {
     title: "Elektrisk sikkerhet, anlegg og elektrisk arbeidsutstyr",
     description:
       "Internkontroll på lavspenningsanlegg, bruk av skjøteledninger og elektrisk arbeidsutstyr – ofte tema ved tilsyn i helse, handel, kontor, produksjon og andre bransjer.",

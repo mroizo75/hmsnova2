@@ -1,29 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth/next";
-import { ArrowLeft, Pencil, UserCircle2, CalendarClock, CalendarCheck, Tag, Sparkles, AlertTriangle, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Pencil, Sparkles } from "lucide-react";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/db";
 import { getRoutineCategoryPresets } from "@/lib/routine-categories";
-import { getRoutineById } from "@/server/actions/routine.actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { RoutineStructuredBlocks } from "@/features/routines/components/routine-structured-blocks";
-import { RoutineChangelog } from "@/features/routines/components/routine-changelog";
 import { DeleteRoutineButton } from "@/features/routines/components/delete-routine-button";
-import { ROUTINE_DASHBOARD_CONTENT_LABELS } from "@/lib/routine-content-labels-dashboard";
-
-function statusLabel(status: string): string {
-  const labels: Record<string, string> = {
-    ACTIVE: "Aktiv",
-    DRAFT: "Kladd",
-    NEEDS_REVIEW: "Krever revisjon",
-    ARCHIVED: "Arkivert",
-  };
-
-  return labels[status] || status;
-}
+import { fetchRoutineDetail } from "@/server/queries/routine.queries";
+import { RoutineDetailContent } from "@/features/routines/components/routine-detail-content";
 
 export default async function RoutineDetailPage({
   params,
@@ -36,54 +21,16 @@ export default async function RoutineDetailPage({
   }
 
   const { id } = await params;
-  const result = await getRoutineById(id);
-  if (!result.success) {
+  const initialData = await fetchRoutineDetail(id);
+  if (!initialData) {
     redirect("/dashboard/rutiner");
   }
 
-  const routine = result.data;
+  const { routine } = initialData;
   const categoryPresets = getRoutineCategoryPresets();
   const categoryDisplay = routine.category
     ? categoryPresets.find((p) => p.value === routine.category)?.label ?? routine.category
     : "Ikke satt";
-
-  const linkedIncidents = await prisma.incident.findMany({
-    where: { relatedRoutineId: routine.id },
-    select: {
-      id: true,
-      title: true,
-      type: true,
-      status: true,
-      severity: true,
-      occurredAt: true,
-    },
-    orderBy: { occurredAt: "desc" },
-    take: 10,
-  });
-
-  const linkedRisks = await prisma.riskRoutineLink.findMany({
-    where: { routineId: routine.id },
-    include: {
-      risk: {
-        select: {
-          id: true,
-          title: true,
-          score: true,
-          status: true,
-          category: true,
-        },
-      },
-    },
-  });
-
-  const versions = await prisma.routineVersion.findMany({
-    where: { routineId: routine.id },
-    include: {
-      changedBy: { select: { name: true, email: true } },
-    },
-    orderBy: { versionNumber: "desc" },
-    take: 20,
-  });
 
   return (
     <div className="space-y-6">
@@ -124,185 +71,7 @@ export default async function RoutineDetailPage({
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Status</CardDescription>
-            <CardTitle className="text-lg">
-              <Badge variant={routine.status === "ACTIVE" ? "default" : "outline"}>
-                {statusLabel(routine.status)}
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Kategori</CardDescription>
-            <CardTitle className="text-base inline-flex items-center gap-1.5">
-              <Tag className="h-4 w-4 shrink-0 text-muted-foreground" />
-              <span className="leading-snug">{categoryDisplay}</span>
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Ansvarlig</CardDescription>
-            <CardTitle className="text-base inline-flex items-center gap-1.5">
-              <UserCircle2 className="h-4 w-4 text-muted-foreground" />
-              {routine.responsibleUser?.name || routine.responsibleUser?.email || "Ikke satt"}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Sist revidert</CardDescription>
-            <CardTitle className="text-base inline-flex items-center gap-1.5">
-              <CalendarCheck className="h-4 w-4 shrink-0 text-muted-foreground" />
-              {routine.lastReviewedAt
-                ? new Date(routine.lastReviewedAt).toLocaleDateString("nb-NO")
-                : "Ikke registrert"}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Neste revisjon</CardDescription>
-            <CardTitle className="text-base inline-flex items-center gap-1.5">
-              <CalendarClock className="h-4 w-4 text-muted-foreground" />
-              {routine.nextReviewAt
-                ? new Date(routine.nextReviewAt).toLocaleDateString("nb-NO")
-                : "Ikke satt"}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Beskrivelse</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm whitespace-pre-wrap">
-          {routine.description || "Ingen beskrivelse"}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Innhold</CardTitle>
-          <CardDescription>
-            Lovforankring: {routine.legalReference || "Ikke satt"}.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <RoutineStructuredBlocks
-            content={routine.content}
-            labels={ROUTINE_DASHBOARD_CONTENT_LABELS}
-            density="compact"
-          />
-        </CardContent>
-      </Card>
-
-      {/* Koblede avvik */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5" />
-            Koblede avvik ({linkedIncidents.length})
-          </CardTitle>
-          <CardDescription>
-            Avvik som er knyttet til denne rutinen under behandling
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {linkedIncidents.length > 0 ? (
-            <div className="space-y-2">
-              {linkedIncidents.map((incident) => (
-                <Link
-                  key={incident.id}
-                  href={`/dashboard/incidents/${incident.id}`}
-                  className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors"
-                >
-                  <div>
-                    <p className="text-sm font-medium">{incident.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(incident.occurredAt).toLocaleDateString("nb-NO")}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">{incident.type}</Badge>
-                    <Badge variant={incident.status === "CLOSED" ? "default" : "secondary"}>
-                      {incident.status === "CLOSED" ? "Lukket" : incident.status === "INVESTIGATING" ? "Under utredning" : "Åpen"}
-                    </Badge>
-                  </div>
-                </Link>
-              ))}
-              {linkedIncidents.length >= 5 && (
-                <p className="text-xs text-muted-foreground text-center pt-2">
-                  {linkedIncidents.length >= 5 ? "Denne rutinen har mange koblede avvik — vurder revisjon" : ""}
-                </p>
-              )}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Ingen avvik er koblet til denne rutinen.</p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Koblede risikoer */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ShieldAlert className="h-5 w-5" />
-            Koblede risikoer ({linkedRisks.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {linkedRisks.length > 0 ? (
-            <div className="space-y-2">
-              {linkedRisks.map(({ risk }) => (
-                <Link
-                  key={risk.id}
-                  href={`/dashboard/risks/${risk.id}`}
-                  className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors"
-                >
-                  <div>
-                    <p className="text-sm font-medium">{risk.title}</p>
-                    <p className="text-xs text-muted-foreground">{risk.category}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant="outline"
-                      className={
-                        risk.score >= 15
-                          ? "border-red-300 text-red-700"
-                          : risk.score >= 8
-                            ? "border-yellow-300 text-yellow-700"
-                            : "border-green-300 text-green-700"
-                      }
-                    >
-                      Score: {risk.score}
-                    </Badge>
-                    <Badge variant="outline">{risk.status}</Badge>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Ingen risikoer er koblet til denne rutinen.</p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Endringshistorikk med diff-visning og PDF-eksport */}
-      <RoutineChangelog
-        routineId={routine.id}
-        routineTitle={routine.title}
-        versions={versions.map((v) => ({
-          ...v,
-          content: v.content as Record<string, unknown>,
-          createdAt: v.createdAt.toISOString(),
-        }))}
-      />
+      <RoutineDetailContent initialData={initialData} categoryDisplay={categoryDisplay} />
     </div>
   );
 }

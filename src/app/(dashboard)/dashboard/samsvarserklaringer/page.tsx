@@ -3,10 +3,9 @@ import { FileCheck2 } from "lucide-react";
 import { getCurrentUser } from "@/lib/server-action";
 import { getPermissions } from "@/lib/permissions";
 import { helpContent } from "@/lib/help-content";
-import { getElectroForDashboard } from "@/server/actions/electro.actions";
-import { ElectroAdminPanel } from "@/features/elektro/components/electro-admin-panel";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { fetchSamsvarserklaringer } from "@/server/queries/samsvarserklaringer.queries";
+import { SamsvarserklaringerContent } from "@/features/samsvarserklaringer/components/samsvarserklaringer-content";
 
 export default async function ComplianceDashboardPage() {
   const user = await getCurrentUser();
@@ -24,28 +23,14 @@ export default async function ComplianceDashboardPage() {
     redirect("/dashboard");
   }
 
-  const result = await getElectroForDashboard();
-  if (result.success === false) {
+  const initialData = await fetchSamsvarserklaringer();
+  if (!initialData) {
     return (
       <div className="p-6">
-        <p className="text-destructive">{result.error}</p>
+        <p className="text-destructive">Kunne ikke hente samsvarserklæringer.</p>
       </div>
     );
   }
-
-  const compliance = result.data.compliance.map((c) => ({
-    id: c.id,
-    title: c.title,
-    category: c.category,
-    originalFileName: c.originalFileName,
-    fileKey: c.fileKey,
-    mime: c.mime,
-    contractorName: c.contractorName,
-    workCompletedAt: c.workCompletedAt ? c.workCompletedAt.toISOString() : null,
-    notes: c.notes,
-    createdAt: c.createdAt.toISOString(),
-    createdById: c.createdById,
-  }));
 
   return (
     <div className="space-y-6">
@@ -62,43 +47,7 @@ export default async function ComplianceDashboardPage() {
         {helpContent.electrical && <PageHelpDialog content={helpContent.electrical} />}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Registrerte erklæringer</CardDescription>
-            <CardTitle className="text-2xl">{compliance.length}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">samsvarserklæringer i systemet</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Siste opplasting</CardDescription>
-            <CardTitle className="text-base">
-              {compliance.length > 0
-                ? new Date(compliance[0].createdAt).toLocaleDateString("nb-NO", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })
-                : "Ingen ennå"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">
-              {compliance.length > 0 ? compliance[0].title : "Last opp din første erklæring"}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <ElectroAdminPanel
-        compliance={compliance}
-        currentUserId={user.id}
-        canCreate={permissions.canCreateDocuments}
-        canDeleteAny={permissions.canDeleteDocuments}
-      />
+      <SamsvarserklaringerContent initialData={initialData} />
     </div>
   );
 }

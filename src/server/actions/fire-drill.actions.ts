@@ -13,6 +13,7 @@ import {
   type EvaluateFireDrillInput,
   type UpdateFireDrillInput,
 } from "@/features/fire-drills/schemas/fire-drill.schema";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
 const REVALIDATE_PATH = "/dashboard/fire-drills";
 
@@ -42,6 +43,7 @@ export async function createFireDrill(input: CreateFireDrillInput) {
   });
 
   revalidatePath(REVALIDATE_PATH);
+  triggerRealtimeEvent(tenantId, "training-updated");
   return drill;
 }
 
@@ -74,6 +76,7 @@ export async function updateFireDrill(id: string, input: UpdateFireDrillInput) {
 
   revalidatePath(REVALIDATE_PATH);
   revalidatePath(`${REVALIDATE_PATH}/${id}`);
+  triggerRealtimeEvent(tenantId, "training-updated");
   return drill;
 }
 
@@ -98,6 +101,7 @@ export async function completeFireDrill(id: string, input: CompleteFireDrillInpu
 
   revalidatePath(REVALIDATE_PATH);
   revalidatePath(`${REVALIDATE_PATH}/${id}`);
+  triggerRealtimeEvent(tenantId, "training-updated");
   return drill;
 }
 
@@ -125,6 +129,7 @@ export async function evaluateFireDrill(id: string, input: EvaluateFireDrillInpu
 
   revalidatePath(REVALIDATE_PATH);
   revalidatePath(`${REVALIDATE_PATH}/${id}`);
+  triggerRealtimeEvent(tenantId, "training-updated");
   return drill;
 }
 
@@ -136,6 +141,7 @@ export async function deleteFireDrill(id: string) {
   await prisma.fireDrill.delete({ where: { id } });
 
   revalidatePath(REVALIDATE_PATH);
+  triggerRealtimeEvent(tenantId, "training-updated");
 }
 
 export async function getFireDrills() {

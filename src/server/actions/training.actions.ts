@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getRequiredTenantContext } from "@/lib/tenant-context";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 import {
   createTrainingSchema,
   updateTrainingSchema,
@@ -119,6 +120,7 @@ export async function createTraining(input: any) {
     });
     
     revalidatePath("/dashboard/training");
+    triggerRealtimeEvent(tenantId, "training-updated", { id: training.id });
     return { success: true, data: training };
   } catch (error: any) {
     console.error("Create training error:", error);
@@ -163,6 +165,7 @@ export async function updateTraining(input: any) {
     });
     
     revalidatePath("/dashboard/training");
+    triggerRealtimeEvent(tenantId, "training-updated", { id: training.id });
     return { success: true, data: training };
   } catch (error: any) {
     console.error("Update training error:", error);
@@ -200,6 +203,7 @@ export async function evaluateTraining(input: any) {
     });
     
     revalidatePath("/dashboard/training");
+    triggerRealtimeEvent(tenantId, "training-updated", { id: training.id });
     return { success: true, data: training };
   } catch (error: any) {
     console.error("Evaluate training error:", error);
@@ -241,6 +245,7 @@ export async function deleteTraining(id: string) {
     });
     
     revalidatePath("/dashboard/training");
+    triggerRealtimeEvent(tenantId, "training-updated", { id });
     return { success: true };
   } catch (error: any) {
     console.error("Delete training error:", error);
@@ -339,6 +344,7 @@ export async function createEmployeeTrainings(input: {
     });
 
     revalidatePath("/dashboard/training");
+    triggerRealtimeEvent(tenantId, "training-updated");
     return { success: true, data: created };
   } catch (error: any) {
     console.error("Create employee trainings error:", error);
@@ -401,6 +407,7 @@ export async function createBulkTrainings(input: {
     });
 
     revalidatePath("/dashboard/training");
+    triggerRealtimeEvent(tenantId, "training-updated");
     return { success: true, data: created };
   } catch (error: any) {
     console.error("Create bulk trainings error:", error);

@@ -242,7 +242,15 @@ async function checkFeatureCompliance(
       const [drillCount, routineCount] = await Promise.all([
         prisma.fireDrill.count({ where: { tenantId } }),
         prisma.routine.count({
-          where: { tenantId, status: "ACTIVE", title: { contains: "brann" } },
+          where: {
+            tenantId,
+            status: "ACTIVE",
+            OR: [
+              { category: "BRANN" },
+              { title: { contains: "brann" } },
+              { title: { contains: "Brann" } },
+            ],
+          },
         }),
       ]);
       if (routineCount > 0 && drillCount > 0) return "COMPLIANT";

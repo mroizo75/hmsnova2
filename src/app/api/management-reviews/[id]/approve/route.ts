@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getPermissions } from "@/lib/permissions";
 import { addMonths } from "date-fns";
+import { revalidatePath } from "next/cache";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
 /**
  * POST /api/management-reviews/[id]/approve
@@ -46,7 +48,14 @@ export async function POST(
 
     if (review.status === "APPROVED") {
       return NextResponse.json(
-        { error: "Already approved" },
+        { error: "Gjennomgangen er allerede godkjent" },
+        { status: 400 }
+      );
+    }
+
+    if (review.status !== "COMPLETED") {
+      return NextResponse.json(
+        { error: "Gjennomgangen må ha status «Fullført» før den kan godkjennes" },
         { status: 400 }
       );
     }
@@ -54,7 +63,6 @@ export async function POST(
     const now = new Date();
     const reviewDate = new Date(review.reviewDate);
 
-    // Finn alle dokumenter som skulle vært gjennomgått innen denne datoen
     const documentsToReview = await prisma.document.findMany({
       where: {
         tenantId: session.user.tenantId,
@@ -64,9 +72,9 @@ export async function POST(
       },
     });
 
-    // Oppdater hvert dokument
     const documentUpdates = documentsToReview.map((doc) => {
-      const nextReviewDate = addMonths(now, doc.reviewIntervalMonths);
+      const intervalMonths = doc.reviewIntervalMonths > 0 ? doc.reviewIntervalMonths : 12;
+      const nextReviewDate = addMonths(now, intervalMonths);
       
       return prisma.document.update({
         where: { id: doc.id },
@@ -89,8 +97,13 @@ export async function POST(
       },
     });
 
-    // Kjør alle oppdateringer i en transaksjon
     await prisma.$transaction([reviewUpdate, ...documentUpdates]);
+
+    revalidatePath("/dashboard/management-reviews");
+    revalidatePath(`/dashboard/management-reviews/${id}`);
+    revalidatePath("/dashboard/documents");
+    await triggerRealtimeEvent(session.user.tenantId, "management-review-updated", { id });
+    await triggerRealtimeEvent(session.user.tenantId, "document-updated");
 
     return NextResponse.json({
       success: true,

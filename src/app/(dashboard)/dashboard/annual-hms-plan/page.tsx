@@ -4,8 +4,8 @@ import { redirect } from "next/navigation";
 import { getPermissions } from "@/lib/permissions";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
 import { helpContent } from "@/lib/help-content";
-import { getAnnualPlanChecklist, serializeAnnualPlanData } from "@/server/actions/annual-hms-plan.actions";
-import { AnnualPlanChecklist } from "@/features/annual-hms-plan/components/annual-plan-checklist";
+import { fetchAnnualHmsPlan } from "@/server/queries/annual-hms-plan.queries";
+import { AnnualHmsPlanContent } from "@/features/annual-hms-plan/components/annual-hms-plan-content";
 
 export default async function AnnualHmsPlanPage() {
   const session = await getServerSession(authOptions);
@@ -20,14 +20,10 @@ export default async function AnnualHmsPlanPage() {
     redirect("/dashboard");
   }
 
-  const year = new Date().getFullYear();
-  const result = await getAnnualPlanChecklist(session.user.tenantId, year);
-
-  if (!result.success) {
+  const initialData = await fetchAnnualHmsPlan();
+  if (!initialData) {
     redirect("/dashboard");
   }
-
-  const serialized = await serializeAnnualPlanData(result.data);
 
   const canEdit =
     permissions.canCreateManagementReviews ||
@@ -49,8 +45,8 @@ export default async function AnnualHmsPlanPage() {
         </div>
       </div>
 
-      <AnnualPlanChecklist
-        initialData={serialized}
+      <AnnualHmsPlanContent
+        initialData={initialData}
         tenantId={session.user.tenantId}
         userId={session.user.id ?? null}
         canEdit={canEdit}

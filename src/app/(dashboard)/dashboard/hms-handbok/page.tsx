@@ -1,49 +1,22 @@
 import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/server-authorization";
-import { prisma } from "@/lib/db";
-import { getHandbookData, getHandbookSuggestions, getVersionHistory } from "@/server/actions/hms-handbok.actions";
-import { HandbokViewer } from "@/features/hms-handbok/components/handbok-viewer";
-import { HandbokVersionHistory } from "@/features/hms-handbok/components/handbok-version-history";
 import { BookOpen } from "lucide-react";
+import { fetchHmsHandbok } from "@/server/queries/hms-handbok.queries";
+import { HmsHandbokContent } from "@/features/hms-handbok/components/hms-handbok-content";
 
 export const metadata = { title: "HMS Håndbok" };
 
 export default async function HmsHandbokPage() {
   const auth = await getAuthContext();
-  const { permissions, tenantId, userId } = auth;
 
-  if (!permissions.canReadDocuments && !permissions.canReadRoutines) {
+  if (!auth || (!auth.permissions.canReadDocuments && !auth.permissions.canReadRoutines)) {
     redirect("/dashboard");
   }
 
-  const [tenant, handbookResult, suggestions, versionHistory] = await Promise.all([
-    prisma.tenant.findUniqueOrThrow({
-      where: { id: tenantId },
-      select: {
-        name: true,
-        orgNumber: true,
-        industry: true,
-        hmsContactName: true,
-        hmsContactPhone: true,
-      },
-    }),
-    getHandbookData(tenantId),
-    getHandbookSuggestions(tenantId),
-    getVersionHistory(tenantId),
-  ]);
-
-  if (!handbookResult.success) {
+  const initialData = await fetchHmsHandbok();
+  if (!initialData) {
     redirect("/dashboard");
   }
-
-  const canManage =
-    permissions.canUpdateSettings ||
-    permissions.canApproveDocuments ||
-    permissions.canApproveManagementReviews;
-
-  const canApprove =
-    permissions.canUpdateSettings ||
-    permissions.canApproveDocuments;
 
   return (
     <div className="space-y-6">
@@ -60,38 +33,7 @@ export default async function HmsHandbokPage() {
         </div>
       </div>
 
-      <HandbokViewer
-        tenantId={tenantId}
-        tenantName={tenant.name}
-        orgNumber={tenant.orgNumber}
-        industry={tenant.industry}
-        hmsContactName={tenant.hmsContactName}
-        hmsContactPhone={tenant.hmsContactPhone}
-        handbook={handbookResult.handbook}
-        stats={handbookResult.stats}
-        currentUserId={userId}
-        canManage={canManage}
-        canApprove={canApprove}
-        isEmployee={auth.role === "ANSATT"}
-        suggestions={suggestions}
-      />
-
-      {canManage && versionHistory.length > 0 && (
-        <HandbokVersionHistory
-          versions={versionHistory.map((v) => ({
-            id: v.id,
-            version: v.version,
-            status: v.status,
-            changeNote: v.changeNote,
-            rejectedNote: v.rejectedNote,
-            approvedAt: v.approvedAt?.toISOString() ?? null,
-            publishedAt: v.publishedAt?.toISOString() ?? null,
-            createdAt: v.createdAt.toISOString(),
-            approvedBy: v.approvedBy,
-            _count: v._count,
-          }))}
-        />
-      )}
+      <HmsHandbokContent initialData={initialData} />
     </div>
   );
 }

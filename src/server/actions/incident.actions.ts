@@ -21,6 +21,7 @@ import {
 import { dispatchNewIncidentNotifications } from "@/lib/incident-notification-routing.server";
 import { normalizeProjectReference } from "@/lib/incident-project-reference";
 import { resolveIncidentProjectId } from "@/lib/incident-project-reference.server";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
 async function getSessionContext() {
   const context = await getRequiredTenantContext();
@@ -419,6 +420,8 @@ export async function createIncident(input: any) {
     // HMS Intelligens-motor: analyser mønstre og oppdater score
     onIncidentCreated(tenantId, incident.id).catch(() => {});
 
+    triggerRealtimeEvent(tenantId, "incident-updated", { id: incident.id });
+
     return { success: true, data: incident };
   } catch (error: any) {
     console.error("Create incident error:", error);
@@ -585,6 +588,7 @@ export async function updateIncident(input: any) {
 
     revalidatePath("/dashboard/incidents");
     revalidatePath(`/dashboard/incidents/${incident.id}`);
+    triggerRealtimeEvent(tenantId, "incident-updated", { id: incident.id });
     return { success: true, data: incident };
   } catch (error: any) {
     console.error("Update incident error:", error);
@@ -642,6 +646,7 @@ export async function investigateIncident(input: any) {
 
     revalidatePath("/dashboard/incidents");
     revalidatePath(`/dashboard/incidents/${incident.id}`);
+    triggerRealtimeEvent(tenantId, "incident-updated", { id: incident.id });
     return { success: true, data: incident };
   } catch (error: any) {
     console.error("Investigate incident error:", error);
@@ -716,6 +721,8 @@ export async function closeIncident(input: any) {
 
     // HMS Intelligens-motor: oppdater score etter lukking
     onIncidentClosed(tenantId, incident.id).catch(() => {});
+
+    triggerRealtimeEvent(tenantId, "incident-updated", { id: incident.id });
 
     return { success: true, data: incident };
   } catch (error: any) {
@@ -811,6 +818,7 @@ export async function createUploadedIncident(formData: FormData) {
     })();
 
     revalidatePath("/dashboard/incidents");
+    triggerRealtimeEvent(tenantId, "incident-updated", { id: incident.id });
     return { success: true, data: incident };
   } catch (error: any) {
     console.error("Create uploaded incident error:", error);
@@ -856,6 +864,7 @@ export async function deleteIncident(id: string) {
     });
     
     revalidatePath("/dashboard/incidents");
+    triggerRealtimeEvent(tenantId, "incident-updated");
     return { success: true };
   } catch (error: any) {
     console.error("Delete incident error:", error);

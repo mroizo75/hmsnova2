@@ -10,6 +10,7 @@ import {
   calculateStatus,
 } from "@/features/goals/schemas/goal.schema";
 import { AuditLog } from "@/lib/audit-log";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
 async function getSessionContext() {
   const tenantContext = await getRequiredTenantContext();
@@ -121,6 +122,7 @@ export async function createGoal(input: any) {
     });
 
     revalidatePath("/dashboard/goals");
+    triggerRealtimeEvent(tenantId, "goal-updated");
     return { success: true, data: goal };
   } catch (error: any) {
     console.error("Create goal error:", error);
@@ -160,6 +162,7 @@ export async function updateGoal(input: any) {
 
     revalidatePath("/dashboard/goals");
     revalidatePath(`/dashboard/goals/${goal.id}`);
+    triggerRealtimeEvent(tenantId, "goal-updated");
     return { success: true, data: goal };
   } catch (error: any) {
     console.error("Update goal error:", error);
@@ -189,6 +192,7 @@ export async function deleteGoal(goalId: string) {
     });
 
     revalidatePath("/dashboard/goals");
+    triggerRealtimeEvent(tenantId, "goal-updated");
     return { success: true };
   } catch (error: any) {
     console.error("Delete goal error:", error);
@@ -294,6 +298,7 @@ export async function createMeasurement(input: any) {
 
     revalidatePath("/dashboard/goals");
     revalidatePath(`/dashboard/goals/${goal.id}`);
+    triggerRealtimeEvent(tenantId, "goal-updated");
     return { success: true, data: measurement };
   } catch (error: any) {
     console.error("Create measurement error:", error);
@@ -343,6 +348,7 @@ export async function deleteMeasurement(measurementId: string) {
 
     revalidatePath("/dashboard/goals");
     revalidatePath(`/dashboard/goals/${measurement.goalId}`);
+    triggerRealtimeEvent(tenantId, "goal-updated");
     return { success: true };
   } catch (error: any) {
     console.error("Delete measurement error:", error);

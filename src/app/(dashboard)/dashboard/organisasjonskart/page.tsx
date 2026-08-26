@@ -1,9 +1,9 @@
 import { getCurrentUser } from "@/lib/server-action";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/db";
 import { getPermissions } from "@/lib/permissions";
-import { OrgChartTree } from "@/features/organization/components/org-chart-tree";
 import { Building2 } from "lucide-react";
+import { fetchOrgChartNodes } from "@/server/queries/org-chart.queries";
+import { OrgChartContent } from "@/features/organization/components/org-chart-content";
 
 export default async function OrgChartPage() {
   const user = await getCurrentUser();
@@ -17,13 +17,8 @@ export default async function OrgChartPage() {
     return <div>Ingen tilgang til bedrift</div>;
   }
 
-  const tenantId = userTenant.tenantId;
   const permissions = getPermissions(userTenant.role);
-
-  const nodes = await prisma.orgChartNode.findMany({
-    where: { tenantId },
-    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-  });
+  const initialData = await fetchOrgChartNodes();
 
   return (
     <div className="space-y-6">
@@ -39,17 +34,7 @@ export default async function OrgChartPage() {
         </div>
       </div>
 
-      <OrgChartTree
-        nodes={nodes.map((n) => ({
-          id: n.id,
-          parentId: n.parentId,
-          title: n.title,
-          name: n.name,
-          department: n.department,
-          sortOrder: n.sortOrder,
-        }))}
-        canManage={permissions.canManageUsers}
-      />
+      <OrgChartContent initialData={initialData} canManage={permissions.canManageUsers} />
     </div>
   );
 }

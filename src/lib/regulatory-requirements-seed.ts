@@ -49,7 +49,7 @@ export const REGULATORY_REQUIREMENTS: RegulatoryRequirementSeed[] = [
   {
     title: "Verneombud",
     description:
-      "Virksomheter med minst 10 arbeidstakere skal ha verneombud. Virksomheter med færre enn 10 kan avtale annen ordning skriftlig.",
+      "Virksomheter med minst 5 arbeidstakere skal ha verneombud. Virksomheter med færre enn 5 kan avtale annen ordning skriftlig.",
     legalBasis: "AML § 6-1",
     sourceUrl: "https://lovdata.no/lov/2005-06-17-62/§6-1",
     triggerActivities: ["employees"],
@@ -180,8 +180,8 @@ export const REGULATORY_REQUIREMENTS: RegulatoryRequirementSeed[] = [
   {
     title: "Brannvernrutine, rømningsplan og brannøvelser",
     description:
-      "Virksomheten skal ha brannvernrutine og rømningsplan, samt gjennomføre regelmessige brannøvelser.",
-    legalBasis: "Forskrift om brannforebygging kap. 2-3",
+      "Virksomheter som bruker et byggverk skal ha rutiner for varsling, evakuering og slokking. Omfang og hyppighet av øvelser baseres på risikovurdering av byggets kompleksitet og bruk.",
+    legalBasis: "Forskrift om brannforebygging § 11-12",
     sourceUrl: "https://lovdata.no/forskrift/2015-12-17-1710",
     triggerActivities: ["fire_hazard", "flammable_goods"],
     hmsNovaFeature: "fire_drill",
@@ -297,8 +297,8 @@ export const REGULATORY_REQUIREMENTS: RegulatoryRequirementSeed[] = [
     legalBasis: "AML § 2A-6",
     sourceUrl: "https://lovdata.no/lov/2005-06-17-62/§2a-6",
     triggerActivities: ["employees"],
-    hmsNovaFeature: "whistleblowing",
-    hmsNovaRoute: "/dashboard/whistleblowing",
+    hmsNovaFeature: "routines",
+    hmsNovaRoute: "/dashboard/rutiner",
     routineCategory: "VARSLING",
     severity: "MANDATORY",
   },

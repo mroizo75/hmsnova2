@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,15 +12,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, Edit, Eye, X } from "lucide-react";
-import { getAllPostsAdmin, upsertBlogPost, deleteBlogPost } from "@/server/actions/blog.actions";
+import { getPaginatedPostsAdmin, upsertBlogPost, deleteBlogPost } from "@/server/actions/blog.actions";
 import { useToast } from "@/hooks/use-toast";
 import { TipTapEditor } from "@/components/admin/tiptap-editor";
 import { ImageUploader } from "@/components/admin/image-uploader";
+import { AdminPagination, AdminPaginationSearch } from "@/components/admin-pagination";
+
+const ITEMS_PER_PAGE = 25;
 
 export default function AdminBlogPage() {
   const router = useRouter();
+  const searchParamsObj = useSearchParams();
   const { toast } = useToast();
   const [posts, setPosts] = useState<any[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<any>(null);
@@ -31,14 +36,20 @@ export default function AdminBlogPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
 
+  const currentPage = Math.max(1, parseInt(searchParamsObj.get("page") || "1", 10));
+  const searchTerm = searchParamsObj.get("search")?.trim() || "";
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+
   useEffect(() => {
     loadPosts();
-  }, []);
+  }, [currentPage, searchTerm]);
 
   async function loadPosts() {
-    const result = await getAllPostsAdmin();
+    setLoading(true);
+    const result = await getPaginatedPostsAdmin(currentPage, searchTerm);
     if (result.success) {
       setPosts(result.data);
+      setTotalItems(result.total);
     } else {
       toast({ variant: "destructive", title: "Feil", description: result.error });
     }
@@ -267,7 +278,14 @@ export default function AdminBlogPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Alle artikler ({posts.length})</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Alle artikler ({totalItems})</CardTitle>
+            <AdminPaginationSearch
+              basePath="/admin/blog"
+              searchTerm={searchTerm}
+              placeholder="Søk på tittel eller slug..."
+            />
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -324,6 +342,14 @@ export default function AdminBlogPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <AdminPagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        basePath="/admin/blog"
+        searchTerm={searchTerm}
+      />
     </div>
   );
 }

@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/db";
 import { getPermissions } from "@/lib/permissions";
-import { StartpakkeWizard } from "@/features/onboarding/components/startpakke-wizard";
 import type { Role } from "@prisma/client";
+import { fetchWelcomeData } from "@/server/queries/welcome.queries";
+import { WelcomeContent } from "@/features/welcome/components/welcome-content";
 
 export const metadata = { title: "Kom i gang med HMS Nova" };
 
@@ -17,27 +17,15 @@ export default async function WelcomePage() {
 
   const permissions = getPermissions(session.user.role as Role);
 
-  // Kun admin kan se wizard
   if (!permissions.canUpdateSettings) {
     redirect("/dashboard");
   }
 
-  const tenantId = session.user.tenantId;
+  const initialData = await fetchWelcomeData();
 
-  const tenant = await prisma.tenant.findUnique({
-    where: { id: tenantId },
-    select: { name: true, startpakkeCompleted: true },
-  });
-
-  // Allerede fullført – send videre til dashboard
-  if (tenant?.startpakkeCompleted) {
+  if (!initialData || initialData.startpakkeCompleted) {
     redirect("/dashboard");
   }
 
-  return (
-    <StartpakkeWizard
-      tenantId={tenantId}
-      tenantName={tenant?.name ?? "Din bedrift"}
-    />
-  );
+  return <WelcomeContent initialData={initialData} />;
 }

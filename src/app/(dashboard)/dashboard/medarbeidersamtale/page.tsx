@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/server-authorization";
-import { prisma } from "@/lib/db";
 import { MessageSquare } from "lucide-react";
-import { EmployeeReviewList } from "@/features/employee-reviews/components/employee-review-list";
+import { fetchEmployeeReviews } from "@/server/queries/employee-review.queries";
+import { EmployeeReviewsContent } from "@/features/employee-reviews/components/employee-reviews-content";
 
 export default async function MedarbeidersamtalePage() {
   const auth = await getAuthContext();
@@ -13,21 +13,7 @@ export default async function MedarbeidersamtalePage() {
 
   if (!canRead) redirect("/dashboard");
 
-  const { tenantId, userId } = auth;
-
-  const where = auth.permissions.canReadAllEmployeeReviews
-    ? { tenantId }
-    : { tenantId, OR: [{ employeeId: userId }, { reviewerId: userId }] };
-
-  const reviews = await prisma.employeeReview.findMany({
-    where,
-    include: {
-      employee: { select: { id: true, name: true, email: true, image: true } },
-      reviewer: { select: { id: true, name: true, email: true, image: true } },
-      _count: { select: { goals: true, actions: true } },
-    },
-    orderBy: { scheduledDate: "desc" },
-  });
+  const initialData = await fetchEmployeeReviews();
 
   return (
     <div className="space-y-6 p-6">
@@ -41,8 +27,8 @@ export default async function MedarbeidersamtalePage() {
         </p>
       </div>
 
-      <EmployeeReviewList
-        reviews={JSON.parse(JSON.stringify(reviews))}
+      <EmployeeReviewsContent
+        initialData={initialData}
         canCreate={auth.permissions.canCreateEmployeeReviews}
       />
     </div>

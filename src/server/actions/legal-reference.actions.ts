@@ -46,6 +46,37 @@ export async function getAllLegalReferencesAdmin() {
   }
 }
 
+export async function getPaginatedLegalReferencesAdmin(page: number, search: string) {
+  const ITEMS_PER_PAGE = 25;
+  try {
+    await requireSuperAdmin();
+
+    const where = search
+      ? {
+          OR: [
+            { title: { contains: search, mode: "insensitive" as const } },
+            { description: { contains: search, mode: "insensitive" as const } },
+            { paragraphRef: { contains: search, mode: "insensitive" as const } },
+          ],
+        }
+      : {};
+
+    const [total, refs] = await Promise.all([
+      prisma.legalReference.count({ where }),
+      prisma.legalReference.findMany({
+        where,
+        orderBy: { sortOrder: "asc" },
+        skip: (page - 1) * ITEMS_PER_PAGE,
+        take: ITEMS_PER_PAGE,
+      }),
+    ]);
+
+    return { success: true, data: refs, total };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Ukjent feil", data: [], total: 0 };
+  }
+}
+
 export async function createLegalReference(formData: FormData) {
   try {
     await requireSuperAdmin();

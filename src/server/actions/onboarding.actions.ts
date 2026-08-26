@@ -30,10 +30,13 @@ export type SetupGuideStep = {
   mandatory: boolean;
 };
 
+export type SetupGuidePhase = "quick" | "full";
+
 export type SetupGuideGroup = {
   key: string;
   title: string;
   legalRef: string;
+  phase: SetupGuidePhase;
   steps: SetupGuideStep[];
   completedCount: number;
   totalCount: number;
@@ -49,6 +52,12 @@ export type SetupGuideProgress = {
   completedCount: number;
   totalCount: number;
   compliancePercentage: number;
+  quickCompletedCount: number;
+  quickTotalCount: number;
+  quickPercentage: number;
+  fullCompletedCount: number;
+  fullTotalCount: number;
+  fullPercentage: number;
   nextRecommendedAction: SetupGuideStep | null;
   serviceOfferDismissed: boolean;
 };
@@ -180,6 +189,7 @@ type StepGroupDef = {
   key: string;
   title: string;
   legalRef: string;
+  phase: SetupGuidePhase;
   steps: StepDef[];
 };
 
@@ -188,6 +198,7 @@ const SETUP_STEP_GROUPS: StepGroupDef[] = [
     key: "grunnleggende",
     title: "Grunnleggende",
     legalRef: "IK-HMS § 5",
+    phase: "quick",
     steps: [
       {
         key: "employees",
@@ -227,6 +238,7 @@ const SETUP_STEP_GROUPS: StepGroupDef[] = [
     key: "risikovurdering",
     title: "Risikovurdering",
     legalRef: "IK-HMS § 5 nr. 6",
+    phase: "quick",
     steps: [
       {
         key: "riskAssessment",
@@ -250,6 +262,7 @@ const SETUP_STEP_GROUPS: StepGroupDef[] = [
     key: "rutiner",
     title: "Rutiner",
     legalRef: "IK-HMS § 5 nr. 7",
+    phase: "quick",
     steps: [
       {
         key: "routinesActive",
@@ -278,16 +291,25 @@ const SETUP_STEP_GROUPS: StepGroupDef[] = [
     ],
   },
   {
-    key: "dokumenter",
-    title: "Dokumenter",
-    legalRef: "Brann- og eksplosjonsvernloven",
+    key: "brannvern",
+    title: "Brannvern",
+    legalRef: "Brann- og eksplosjonsvernloven § 6, § 13",
+    phase: "full",
     steps: [
       {
         key: "fireRoutine",
-        title: "Brannrutine / rømningsplan",
-        description: "Opprett en aktiv rutine med kategori BRANN",
+        title: "Brannvernrutine / rømningsplan",
+        description: "Opprett rutine for varsling, evakuering og slokking (Forskrift om brannforebygging § 11-12)",
         href: "/dashboard/rutiner",
         icon: "Flame",
+        mandatory: true,
+      },
+      {
+        key: "fireDrill",
+        title: "Brannøvelse gjennomført",
+        description: "Vurder behov via risikovurdering — anbefalt for virksomheter med overnatting/mange besøkende",
+        href: "/dashboard/fire-drills",
+        icon: "Siren",
         mandatory: false,
       },
     ],
@@ -333,6 +355,7 @@ export async function getSetupGuideProgress(
       avvikRoutineCount,
       varslingRoutineCount,
       brannRoutineCount,
+      fireDrillCount,
       handbook,
     ] = await Promise.all([
       prisma.userTenant.count({
@@ -353,8 +376,17 @@ export async function getSetupGuideProgress(
         where: { tenantId, category: "VARSLING", status: "ACTIVE" },
       }),
       prisma.routine.count({
-        where: { tenantId, category: "BRANN", status: "ACTIVE" },
+        where: {
+          tenantId,
+          status: "ACTIVE",
+          OR: [
+            { category: "BRANN" },
+            { title: { contains: "brann" } },
+            { title: { contains: "Brann" } },
+          ],
+        },
       }),
+      prisma.fireDrill.count({ where: { tenantId } }),
       prisma.hmsHandbook.findUnique({
         where: { tenantId },
         select: { id: true, currentVersionId: true },
@@ -392,6 +424,7 @@ export async function getSetupGuideProgress(
       routineAvvik: avvikRoutineCount >= 1,
       routineVarsling: varslingRoutineCount >= 1,
       fireRoutine: brannRoutineCount >= 1,
+      fireDrill: fireDrillCount >= 1,
     };
 
     const steps: SetupGuideStep[] = ALL_STEP_DEFS.map((step) => ({
@@ -408,6 +441,7 @@ export async function getSetupGuideProgress(
         key: groupDef.key,
         title: groupDef.title,
         legalRef: groupDef.legalRef,
+        phase: groupDef.phase,
         steps: groupSteps,
         completedCount: done,
         totalCount: groupSteps.length,
@@ -416,6 +450,14 @@ export async function getSetupGuideProgress(
     });
 
     const totalCompleted = steps.filter((s) => s.completed).length;
+
+    const quickGroups = groups.filter((g) => g.phase === "quick");
+    const fullGroups = groups.filter((g) => g.phase === "full");
+    const quickCompleted = quickGroups.reduce((sum, g) => sum + g.completedCount, 0);
+    const quickTotal = quickGroups.reduce((sum, g) => sum + g.totalCount, 0);
+    const fullCompleted = fullGroups.reduce((sum, g) => sum + g.completedCount, 0);
+    const fullTotal = fullGroups.reduce((sum, g) => sum + g.totalCount, 0);
+
     const nextRecommendedAction =
       steps.filter((s) => !s.completed && s.mandatory)[0] ??
       steps.filter((s) => !s.completed)[0] ??
@@ -429,6 +471,12 @@ export async function getSetupGuideProgress(
       completedCount: totalCompleted,
       totalCount: steps.length,
       compliancePercentage: computeWeightedCompliance(steps),
+      quickCompletedCount: quickCompleted,
+      quickTotalCount: quickTotal,
+      quickPercentage: quickTotal > 0 ? Math.round((quickCompleted / quickTotal) * 100) : 0,
+      fullCompletedCount: fullCompleted,
+      fullTotalCount: fullTotal,
+      fullPercentage: fullTotal > 0 ? Math.round((fullCompleted / fullTotal) * 100) : 0,
       hidden: tenant.setupGuideHidden,
       nextRecommendedAction,
       serviceOfferDismissed: tenant.serviceOfferDismissed,

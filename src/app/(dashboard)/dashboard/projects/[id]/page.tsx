@@ -4,16 +4,15 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ArrowLeft, Building2, MapPin, User, CalendarDays,
-  Edit, AlertCircle, HardHat, ClipboardCheck, ListTodo,
-  Clock, FileText, BarChart3, Plus,
+  Edit, FileText,
 } from "lucide-react";
 import Link from "next/link";
 import type { ProjectStatus } from "@prisma/client";
-import { ProjectTabs } from "@/features/projects/components/project-tabs";
 import { getLocale, getTranslations } from "next-intl/server";
+import { fetchProjectDetail } from "@/server/queries/project.queries";
+import { ProjectDetailContent } from "@/features/projects/components/project-detail-content";
 
 function getStatusConfig(
   t: Awaited<ReturnType<typeof getTranslations>>
@@ -48,125 +47,16 @@ export default async function ProjectDetailPage({
   );
   if (!selectedMembership) return <div>{t("noAccess")}</div>;
 
-  const tenantId = selectedMembership.tenantId;
   const { id } = await params;
 
-  const project = await prisma.project.findUnique({
-    where: { id, tenantId },
-    include: {
-      createdBy: { select: { name: true, email: true } },
-      projectManager: { select: { name: true, email: true } },
-      incidents: {
-        orderBy: { occurredAt: "desc" },
-        select: {
-          id: true, avviksnummer: true, title: true, type: true,
-          severity: true, status: true, occurredAt: true,
-          isFatal: true, isLostTimeIncident: true, lostWorkdays: true,
-          isRestrictedWork: true, medicalAttentionRequired: true,
-        },
-      },
-      sjaAnalyses: {
-        orderBy: { plannedDate: "desc" },
-        select: {
-          id: true, sjaNummer: true, title: true, status: true,
-          plannedDate: true, workLocation: true,
-        },
-      },
-      inspections: {
-        orderBy: { scheduledDate: "desc" },
-        select: {
-          id: true, title: true, type: true, status: true,
-          scheduledDate: true, location: true,
-        },
-      },
-      measures: {
-        orderBy: { dueAt: "asc" },
-        select: {
-          id: true, title: true, status: true, dueAt: true, category: true,
-          riskId: true, incidentId: true, projectId: true,
-        },
-      },
-      timeEntries: {
-        orderBy: { date: "desc" },
-        select: {
-          id: true,
-          date: true,
-          hours: true,
-          timeType: true,
-          comment: true,
-          user: { select: { name: true, email: true } },
-        },
-        take: 20,
-      },
-      formSubmissions: {
-        where: { tenantId },
-        orderBy: { createdAt: "desc" },
-        select: {
-          id: true,
-          submissionNumber: true,
-          status: true,
-          createdAt: true,
-          formTemplateId: true,
-          formTemplate: {
-            select: {
-              title: true,
-            },
-          },
-          submittedBy: {
-            select: {
-              name: true,
-              email: true,
-            },
-          },
-        },
-        take: 20,
-      },
-    },
-  });
+  const initialData = await fetchProjectDetail(id);
+  if (!initialData) notFound();
 
-  if (!project) notFound();
-
-  const attachments = await prisma.attachment.findMany({
-    where: {
-      tenantId,
-      objectType: "PROJECT",
-      objectId: project.id,
-    },
-    select: {
-      id: true,
-      fileKey: true,
-      name: true,
-      mime: true,
-      size: true,
-      createdAt: true,
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  const sc = getStatusConfig(t)[project.status];
-  const manHours = project.timeEntries.reduce((s, e) => s + e.hours, 0);
-
-  // HSE-statistikk for prosjektet
-  const hseIncidents = project.incidents.filter((i) =>
-    ["ULYKKE", "NESTEN", "YRKESSYKDOM"].includes(i.type)
-  );
-  const fatalities = hseIncidents.filter((i) => i.isFatal).length;
-  const lti = hseIncidents.filter((i) => i.isLostTimeIncident).length;
-  const restricted = hseIncidents.filter((i) => i.isRestrictedWork).length;
-  const medical = hseIncidents.filter((i) => i.medicalAttentionRequired).length;
-  const totalRecordable = fatalities + lti + restricted + medical;
-  const trir =
-    manHours > 0
-      ? Math.round(((totalRecordable * 200000) / manHours) * 100) / 100
-      : null;
-
-  const openMeasures = project.measures.filter(
-    (m) => !["DONE", "CANCELLED"].includes(m.status)
-  ).length;
+  const { project } = initialData;
+  const sc = getStatusConfig(t)[project.status as ProjectStatus];
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <Button variant="ghost" size="icon" asChild className="mt-1">
@@ -235,76 +125,7 @@ export default async function ProjectDetailPage({
         </div>
       </div>
 
-      {/* KPI-kort */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
-        <Card className="lg:col-span-1">
-          <CardContent className="pt-4 pb-3">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">{t("cards.incidents.title")}</p>
-            <p className="text-2xl font-bold text-red-600 mt-0.5">{project.incidents.length}</p>
-            <p className="text-xs text-muted-foreground">{t("cards.incidents.description")}</p>
-          </CardContent>
-        </Card>
-        <Card className="lg:col-span-1">
-          <CardContent className="pt-4 pb-3">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">SJA</p>
-            <p className="text-2xl font-bold text-amber-600 mt-0.5">{project.sjaAnalyses.length}</p>
-            <p className="text-xs text-muted-foreground">analyser</p>
-          </CardContent>
-        </Card>
-        <Card className="lg:col-span-1">
-          <CardContent className="pt-4 pb-3">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">{t("cards.inspections.title")}</p>
-            <p className="text-2xl font-bold text-blue-600 mt-0.5">{project.inspections.length}</p>
-            <p className="text-xs text-muted-foreground">{t("cards.inspections.description")}</p>
-          </CardContent>
-        </Card>
-        <Card className="lg:col-span-1">
-          <CardContent className="pt-4 pb-3">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">{t("cards.openMeasures.title")}</p>
-            <p className={`text-2xl font-bold mt-0.5 ${openMeasures > 0 ? "text-orange-600" : "text-green-600"}`}>
-              {openMeasures}
-            </p>
-            <p className="text-xs text-muted-foreground">{t("cards.openMeasures.description", { total: project.measures.length })}</p>
-          </CardContent>
-        </Card>
-        <Card className="lg:col-span-1">
-          <CardContent className="pt-4 pb-3">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">{t("cards.hours.title")}</p>
-            <p className="text-2xl font-bold mt-0.5">
-              {manHours > 0 ? Math.round(manHours).toLocaleString(locale === "en" ? "en-US" : "nb-NO") : "—"}
-            </p>
-            <p className="text-xs text-muted-foreground">{t("cards.hours.description")}</p>
-          </CardContent>
-        </Card>
-        <Card className={`lg:col-span-1 ${trir !== null && trir > 5 ? "border-red-200 bg-red-50/30" : ""}`}>
-          <CardContent className="pt-4 pb-3">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">{t("cards.trir.title")}</p>
-            <p className={`text-2xl font-bold mt-0.5 ${
-              trir === null ? "text-muted-foreground" :
-              trir === 0 ? "text-green-600" :
-              trir < 3 ? "text-blue-600" :
-              trir < 5 ? "text-amber-600" : "text-red-600"
-            }`}>
-              {trir !== null ? trir.toFixed(2) : "—"}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {trir === null ? t("cards.trir.requiresHours") : t("cards.trir.perHours")}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Faner med innhold */}
-      <ProjectTabs
-        projectId={project.id}
-        incidents={project.incidents as any}
-        sjaAnalyses={project.sjaAnalyses as any}
-        inspections={project.inspections as any}
-        measures={project.measures as any}
-        timeEntries={project.timeEntries as any}
-        attachments={attachments}
-        formSubmissions={project.formSubmissions as any}
-      />
+      <ProjectDetailContent initialData={initialData} />
     </div>
   );
 }

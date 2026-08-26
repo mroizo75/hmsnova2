@@ -124,6 +124,18 @@ export async function createCorporateGroup(data: {
       },
     });
 
+    await prisma.subscription.create({
+      data: {
+        tenantId: parentTenant.id,
+        plan: "ENTERPRISE",
+        price: 0,
+        billingInterval: "YEARLY",
+        status: "ACTIVE",
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      },
+    });
+
     await prisma.corporateGroupTenant.create({
       data: { groupId: group.id, tenantId: parentTenant.id },
     });
@@ -253,6 +265,24 @@ export async function adminAddTenantToGroup(groupId: string, tenantId: string) {
   } else {
     await prisma.corporateGroupTenant.create({
       data: { groupId, tenantId },
+    });
+  }
+
+  // Sørg for at tenant har subscription
+  const existingSub = await prisma.subscription.findUnique({
+    where: { tenantId },
+  });
+  if (!existingSub) {
+    await prisma.subscription.create({
+      data: {
+        tenantId,
+        plan: "ENTERPRISE",
+        price: 0,
+        billingInterval: "YEARLY",
+        status: "ACTIVE",
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      },
     });
   }
 

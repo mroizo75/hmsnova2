@@ -22,6 +22,7 @@ import {
   AlertTriangle,
   Bell,
   Flame,
+  Siren,
   ChevronDown,
   ChevronRight,
   X,
@@ -42,6 +43,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   AlertTriangle,
   Bell,
   Flame,
+  Siren,
 };
 
 interface SetupGuideProps {
@@ -68,6 +70,10 @@ export function SetupGuide({ tenantId, progress }: SetupGuideProps) {
   if (hidden) return null;
 
   const allDone = progress.completedCount === progress.totalCount;
+  const quickDone = progress.quickCompletedCount === progress.quickTotalCount;
+
+  const quickGroups = progress.groups.filter((g) => g.phase === "quick");
+  const fullGroups = progress.groups.filter((g) => g.phase === "full");
 
   function handleHide() {
     startTransition(async () => {
@@ -108,7 +114,7 @@ export function SetupGuide({ tenantId, progress }: SetupGuideProps) {
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
                   {allDone
-                    ? "Alle grunnleggende HMS-steg er fullført. Godt jobbet!"
+                    ? "Alle HMS-steg er fullført – du er klar for fullstendig tilsyn!"
                     : `${progress.compliancePercentage}% compliance – ${progress.completedCount} av ${progress.totalCount} steg fullført`}
                 </p>
               </div>
@@ -129,19 +135,56 @@ export function SetupGuide({ tenantId, progress }: SetupGuideProps) {
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-5">
           <Progress value={progress.compliancePercentage} className="h-2" />
 
-          <div className="space-y-3">
-            {progress.groups.map((group) => (
-              <StepGroup
-                key={group.key}
-                group={group}
-                expanded={expandedGroups[group.key] ?? false}
-                onToggle={() => toggleGroup(group.key)}
-              />
-            ))}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-foreground">Grunnoppsett</h3>
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                {quickDone ? "Ferdig" : `${progress.quickPercentage}%`}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {quickDone
+                ? "Grunnleggende HMS-krav er oppfylt."
+                : "Fullfør disse stegene for å komme i gang med HMS-systemet."}
+            </p>
+            <div className="space-y-3">
+              {quickGroups.map((group) => (
+                <StepGroup
+                  key={group.key}
+                  group={group}
+                  expanded={expandedGroups[group.key] ?? false}
+                  onToggle={() => toggleGroup(group.key)}
+                />
+              ))}
+            </div>
           </div>
+
+          {fullGroups.length > 0 && (
+            <div className="space-y-2 border-t pt-4">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground">Fullstendig tilsynsklar</h3>
+                <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-medium text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+                  {progress.fullPercentage === 100 ? "Ferdig" : `${progress.fullPercentage}%`}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                For full compliance ved tilsyn fra Arbeidstilsynet, brannvesen o.l.
+              </p>
+              <div className="space-y-3">
+                {fullGroups.map((group) => (
+                  <StepGroup
+                    key={group.key}
+                    group={group}
+                    expanded={expandedGroups[group.key] ?? false}
+                    onToggle={() => toggleGroup(group.key)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           {!offerDismissed && !allDone && (
             <div className="flex items-center justify-between border-t pt-3">

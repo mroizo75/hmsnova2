@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { NextIntlClientProvider, type AbstractIntlMessages } from "next-intl";
 import { useState } from "react";
+import { PusherSync } from "@/components/pusher-sync";
 
 type ProvidersProps = {
   children: React.ReactNode;
@@ -23,7 +24,7 @@ export function Providers({ children, locale, messages, session, nowISO }: Provi
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 60 * 1000,
+            staleTime: 30 * 1000,
             refetchOnWindowFocus: false,
           },
         },
@@ -39,6 +40,7 @@ export function Providers({ children, locale, messages, session, nowISO }: Provi
         now={new Date(nowISO)}
       >
         <QueryClientProvider client={queryClient}>
+          <PusherSync />
           {children}
           <ReactQueryDevtools initialIsOpen={false} />
         </QueryClientProvider>

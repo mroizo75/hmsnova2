@@ -3,9 +3,10 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Button } from "@/components/ui/button";
-import { CourseTemplatesManager } from "@/features/training/components/course-templates-manager";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { fetchTrainingCourses } from "@/server/queries/training.queries";
+import { CoursesContent } from "@/features/training/components/courses-content";
 
 export default async function CourseTemplatesPage() {
   const session = await getServerSession(authOptions);
@@ -31,18 +32,7 @@ export default async function CourseTemplatesPage() {
   }
 
   const tenantId = selectedMembership.tenantId;
-
-  // Hent globale kurs og tenant-spesifikke kurs
-  const [globalCourses, tenantCourses] = await Promise.all([
-    prisma.courseTemplate.findMany({
-      where: { isGlobal: true, isActive: true },
-      orderBy: { title: "asc" },
-    }),
-    prisma.courseTemplate.findMany({
-      where: { tenantId, isActive: true },
-      orderBy: { title: "asc" },
-    }),
-  ]);
+  const initialData = await fetchTrainingCourses();
 
   return (
     <div className="space-y-6">
@@ -63,11 +53,7 @@ export default async function CourseTemplatesPage() {
         </div>
       </div>
 
-      <CourseTemplatesManager
-        tenantId={tenantId}
-        globalCourses={globalCourses}
-        tenantCourses={tenantCourses}
-      />
+      <CoursesContent initialData={initialData} tenantId={tenantId} />
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getRequiredTenantContext } from "@/lib/tenant-context";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 import { createMeasureSchema, updateMeasureSchema, completeMeasureSchema } from "@/features/measures/schemas/measure.schema";
 import { IncidentStage } from "@prisma/client";
 
@@ -192,6 +193,7 @@ export async function createMeasure(input: any) {
     if (validated.riskId) {
       revalidatePath(`/dashboard/risks/${validated.riskId}`);
     }
+    triggerRealtimeEvent(tenantId, "measure-updated", { id: measure.id });
     
     return { success: true, data: measure };
   } catch (error: any) {
@@ -261,6 +263,7 @@ export async function updateMeasure(input: any) {
     if (measure.riskId) {
       revalidatePath(`/dashboard/risks/${measure.riskId}`);
     }
+    triggerRealtimeEvent(tenantId, "measure-updated", { id: measure.id });
 
     return { success: true, data: measure };
   } catch (error: any) {
@@ -339,6 +342,7 @@ export async function completeMeasure(input: any) {
     if (measure.riskId) {
       revalidatePath(`/dashboard/risks/${measure.riskId}`);
     }
+    triggerRealtimeEvent(tenantId, "measure-updated", { id: measure.id });
     
     return { success: true, data: measure };
   } catch (error: any) {
@@ -379,6 +383,7 @@ export async function deleteMeasure(id: string) {
     if (measure.riskId) {
       revalidatePath(`/dashboard/risks/${measure.riskId}`);
     }
+    triggerRealtimeEvent(tenantId, "measure-updated", { id });
     
     return { success: true };
   } catch (error: any) {

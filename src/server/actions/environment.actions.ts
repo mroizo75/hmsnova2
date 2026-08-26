@@ -12,6 +12,7 @@ import {
   EnvironmentalAspectStatus,
   EnvironmentalMeasurementStatus,
 } from "@prisma/client";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
 async function getSessionContext() {
   const tenantContext = await getRequiredTenantContext();
@@ -117,6 +118,7 @@ export async function createEnvironmentalAspect(input: any) {
     });
 
     revalidatePath("/dashboard/environment");
+    triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true, data: aspect };
   } catch (error: any) {
     console.error("Create environmental aspect error:", error);
@@ -213,6 +215,7 @@ export async function updateEnvironmentalAspect(input: any) {
 
     revalidatePath("/dashboard/environment");
     revalidatePath(`/dashboard/environment/${aspect.id}`);
+    triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true, data: aspect };
   } catch (error: any) {
     console.error("Update environmental aspect error:", error);
@@ -249,6 +252,7 @@ export async function deleteEnvironmentalAspect(id: string) {
     });
 
     revalidatePath("/dashboard/environment");
+    triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true };
   } catch (error: any) {
     console.error("Delete environmental aspect error:", error);
@@ -324,6 +328,7 @@ export async function createEnvironmentalMeasurement(input: any) {
 
     revalidatePath("/dashboard/environment");
     revalidatePath(`/dashboard/environment/${validated.aspectId}`);
+    triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true, data: measurement };
   } catch (error: any) {
     console.error("Create environmental measurement error:", error);

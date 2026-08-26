@@ -3,13 +3,14 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Target, Plus, TrendingUp, TrendingDown, AlertTriangle, CheckCircle } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Target, Plus } from "lucide-react";
 import Link from "next/link";
-import { GoalList } from "@/features/goals/components/goal-list";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
 import { helpContent } from "@/lib/help-content";
 import { getTranslations } from "next-intl/server";
+import { fetchGoals } from "@/server/queries/goal.queries";
+import { GoalsContent } from "@/features/goals/components/goals-content";
 
 export default async function GoalsPage() {
   const t = await getTranslations("dashboardGoalsPage");
@@ -41,28 +42,7 @@ export default async function GoalsPage() {
     return <div>{t("notLinkedTenant")}</div>;
   }
 
-  const tenantId = selectedMembership.tenantId;
-
-  // Hent alle mål
-  const goals = await prisma.goal.findMany({
-    where: { tenantId },
-    include: {
-      measurements: {
-        orderBy: { measurementDate: "desc" },
-        take: 1,
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  // Statistikk
-  const stats = {
-    total: goals.length,
-    active: goals.filter((g) => g.status === "ACTIVE").length,
-    achieved: goals.filter((g) => g.status === "ACHIEVED").length,
-    atRisk: goals.filter((g) => g.status === "AT_RISK").length,
-    failed: goals.filter((g) => g.status === "FAILED").length,
-  };
+  const initialData = await fetchGoals();
 
   return (
     <div className="space-y-6">
@@ -105,74 +85,7 @@ export default async function GoalsPage() {
         </CardContent>
       </Card>
 
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-5">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t("stats.total.title")}</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">{t("stats.total.description")}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t("stats.active.title")}</CardTitle>
-            <TrendingUp className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{stats.active}</div>
-            <p className="text-xs text-muted-foreground">{t("stats.active.description")}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t("stats.achieved.title")}</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.achieved}</div>
-            <p className="text-xs text-muted-foreground">{t("stats.achieved.description")}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t("stats.atRisk.title")}</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{stats.atRisk}</div>
-            <p className="text-xs text-muted-foreground">{t("stats.atRisk.description")}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t("stats.failed.title")}</CardTitle>
-            <TrendingDown className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{stats.failed}</div>
-            <p className="text-xs text-muted-foreground">{t("stats.failed.description")}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Goals List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("list.title")}</CardTitle>
-          <CardDescription>{t("list.description")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <GoalList goals={goals} />
-        </CardContent>
-      </Card>
+      <GoalsContent initialData={initialData} />
     </div>
   );
 }

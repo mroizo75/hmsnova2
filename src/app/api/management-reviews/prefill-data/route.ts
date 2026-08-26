@@ -197,25 +197,34 @@ function generateIncidentStatistics(incidents: any[]): string {
   let text = `## Hendelser og avvik\n\n`;
   text += `Totalt antall hendelser: ${incidents.length}\n\n`;
 
-  // Gruppér etter type
-  const types = {
-    ACCIDENT: 0,
-    NEAR_MISS: 0,
-    OBSERVATION: 0,
-    ILLNESS: 0,
+  const types: Record<string, number> = {
+    ULYKKE: 0,
+    NESTEN: 0,
+    FARLIG_SITUASJON: 0,
+    YRKESSYKDOM: 0,
+    AVVIK: 0,
+    MILJO: 0,
+    KVALITET: 0,
+    CUSTOMER: 0,
+    HMS: 0,
   };
 
   incidents.forEach((incident) => {
-    if (incident.type in types) {
-      types[incident.type as keyof typeof types]++;
+    const t = incident.type as string;
+    if (t in types) {
+      types[t]++;
     }
   });
 
   text += `### Hendelser per type\n`;
-  text += `- 🚨 Ulykker: ${types.ACCIDENT}\n`;
-  text += `- ⚠️ Nestenulykker: ${types.NEAR_MISS}\n`;
-  text += `- 👁️ Observasjoner: ${types.OBSERVATION}\n`;
-  text += `- 🏥 Sykdom/helseplager: ${types.ILLNESS}\n\n`;
+  text += `- 🚨 Ulykker: ${types.ULYKKE}\n`;
+  text += `- ⚠️ Nestenulykker: ${types.NESTEN}\n`;
+  text += `- 👁️ Farlige situasjoner: ${types.FARLIG_SITUASJON}\n`;
+  text += `- 🏥 Yrkessykdom: ${types.YRKESSYKDOM}\n`;
+  text += `- 📋 Avvik: ${types.AVVIK}\n`;
+  text += `- 🌿 Miljøavvik: ${types.MILJO}\n`;
+  text += `- 📐 Kvalitetsavvik: ${types.KVALITET}\n`;
+  text += `- 💬 Kundeklager: ${types.CUSTOMER}\n\n`;
 
   // Gruppér etter alvorlighetsgrad (1-5, null = ikke vurdert av leder ennå)
   const severities = {
@@ -247,22 +256,24 @@ function generateIncidentStatistics(incidents: any[]): string {
   text += `- 🔴 Kritisk: ${severities.CRITICAL}\n`;
   text += `- ⚪ Ikke vurdert: ${severities.NOT_ASSESSED}\n\n`;
 
-  // Status på hendelser
-  const statuses = {
+  const statuses: Record<string, number> = {
     OPEN: 0,
-    UNDER_INVESTIGATION: 0,
+    INVESTIGATING: 0,
+    ACTION_TAKEN: 0,
     CLOSED: 0,
   };
 
   incidents.forEach((incident) => {
-    if (incident.status in statuses) {
-      statuses[incident.status as keyof typeof statuses]++;
+    const s = incident.status as string;
+    if (s in statuses) {
+      statuses[s]++;
     }
   });
 
   text += `### Status\n`;
   text += `- 📂 Åpne: ${statuses.OPEN}\n`;
-  text += `- 🔍 Under etterforskning: ${statuses.UNDER_INVESTIGATION}\n`;
+  text += `- 🔍 Under etterforskning: ${statuses.INVESTIGATING}\n`;
+  text += `- 🔧 Tiltak iverksatt: ${statuses.ACTION_TAKEN}\n`;
   text += `- ✅ Lukket: ${statuses.CLOSED}\n\n`;
 
   // Hendelser med etterforskning
@@ -270,13 +281,17 @@ function generateIncidentStatistics(incidents: any[]): string {
   text += `### Etterforskning\n`;
   text += `- ${investigated} av ${incidents.length} hendelser har gjennomført etterforskning (${((investigated / incidents.length) * 100).toFixed(0)}%)\n\n`;
 
-  // Anbefaling
-  if (statuses.OPEN > 0 || statuses.UNDER_INVESTIGATION > 0) {
-    text += `⚠️ PÅKREVD OPPFØLGING: ${statuses.OPEN + statuses.UNDER_INVESTIGATION} hendelser mangler lukking.\n`;
+  const openCount = statuses.OPEN + statuses.INVESTIGATING + statuses.ACTION_TAKEN;
+  if (openCount > 0) {
+    text += `⚠️ PÅKREVD OPPFØLGING: ${openCount} hendelser er ikke lukket.\n`;
   }
 
-  if (types.ACCIDENT > 0) {
-    text += `⚠️ VIKTIG: ${types.ACCIDENT} ulykker er registrert. Sørg for grundig rotårsaksanalyse og korrigerende tiltak.\n`;
+  if (types.ULYKKE > 0) {
+    text += `⚠️ VIKTIG: ${types.ULYKKE} ulykker er registrert (AML § 5-2). Sørg for grundig rotårsaksanalyse og korrigerende tiltak.\n`;
+  }
+
+  if (types.YRKESSYKDOM > 0) {
+    text += `⚠️ VIKTIG: ${types.YRKESSYKDOM} yrkessykdommer er registrert (AML § 5-1, § 5-3). Disse skal meldes til Arbeidstilsynet.\n`;
   }
 
   return text;

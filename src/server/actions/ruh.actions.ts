@@ -16,6 +16,7 @@ import {
   parseModuleVisibilityConfig,
   getNotifyRolesForModule,
 } from "@/lib/module-visibility";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
 async function getSessionContext() {
   const tenantContext = await getRequiredTenantContext();
@@ -189,6 +190,7 @@ export async function createRuhReport(input: any) {
     }
 
     revalidatePath("/dashboard/ruh");
+    triggerRealtimeEvent(tenantId, "incident-updated");
 
     // HMS Intelligens-motor: analyser mønstre og oppdater score
     onRuhCreated(tenantId, report.id).catch(() => {});
@@ -312,6 +314,7 @@ export async function updateRuhReport(input: any) {
 
     revalidatePath("/dashboard/ruh");
     revalidatePath(`/dashboard/ruh/${report.id}`);
+    triggerRealtimeEvent(tenantId, "incident-updated");
     return { success: true, data: report };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke oppdatere RUH-rapport" };
@@ -354,6 +357,7 @@ export async function deleteRuhReport(id: string) {
     });
 
     revalidatePath("/dashboard/ruh");
+    triggerRealtimeEvent(tenantId, "incident-updated");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke slette RUH-rapport" };

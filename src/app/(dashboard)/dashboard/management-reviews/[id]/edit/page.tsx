@@ -362,7 +362,6 @@ export default function EditManagementReviewPage() {
                     <SelectItem value="PLANNED">Planlagt</SelectItem>
                     <SelectItem value="IN_PROGRESS">Pågår</SelectItem>
                     <SelectItem value="COMPLETED">Fullført</SelectItem>
-                    <SelectItem value="APPROVED">Godkjent</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

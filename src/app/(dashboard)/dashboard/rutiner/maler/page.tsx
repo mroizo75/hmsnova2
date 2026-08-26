@@ -3,20 +3,11 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth/next";
 import { ArrowLeft, Filter } from "lucide-react";
 import { authOptions } from "@/lib/auth";
-import { listAllRoutineTemplates, listRecommendedRoutineTemplates } from "@/server/actions/routine.actions";
-import { CopyRoutineTemplateButton } from "@/components/routines/copy-routine-template-button";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTranslations } from "next-intl/server";
+import { fetchRoutineTemplates } from "@/server/queries/routine.queries";
+import { RoutineTemplatesContent } from "@/features/routines/components/routine-templates-content";
 
 export default async function RoutineTemplatesPage({
   searchParams,
@@ -32,11 +23,10 @@ export default async function RoutineTemplatesPage({
   const params = await searchParams;
   const query = params.q?.trim() || undefined;
   const showAll = params.view === "all";
-  const templatesResult = showAll
-    ? await listAllRoutineTemplates({ query })
-    : await listRecommendedRoutineTemplates({ query });
 
-  if (!templatesResult.success) {
+  const initialData = await fetchRoutineTemplates({ showAll, query });
+
+  if (!initialData) {
     return (
       <Card>
         <CardHeader>
@@ -46,8 +36,6 @@ export default async function RoutineTemplatesPage({
       </Card>
     );
   }
-
-  const templates = templatesResult.data;
 
   return (
     <div className="space-y-6">
@@ -61,9 +49,7 @@ export default async function RoutineTemplatesPage({
           <div>
             <h1 className="text-3xl font-bold">{t("title")}</h1>
             <p className="text-muted-foreground mt-1">
-              {showAll
-                ? t("descriptionAll")
-                : t("descriptionRecommended")}
+              {showAll ? t("descriptionAll") : t("descriptionRecommended")}
             </p>
           </div>
         </div>
@@ -75,61 +61,7 @@ export default async function RoutineTemplatesPage({
         </Link>
       </div>
 
-      <Card className="border-l-4 border-l-blue-500 bg-blue-50">
-        <CardContent className="p-4 text-sm text-blue-900">
-          {t("info")}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("list.title")}</CardTitle>
-          <CardDescription>{t("list.description")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {templates.length === 0 ? (
-            <div className="text-center py-10 text-muted-foreground">{t("list.empty")}</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t("table.template")}</TableHead>
-                  <TableHead>{t("table.category")}</TableHead>
-                  <TableHead>{t("table.legalReference")}</TableHead>
-                  <TableHead className="text-right">{t("table.action")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {templates.map((template) => (
-                  <TableRow key={template.id}>
-                    <TableCell>
-                      <div className="font-medium">{template.title}</div>
-                      {template.description && (
-                        <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                          {template.description}
-                        </div>
-                      )}
-                      <div className="mt-1.5">
-                        <Badge variant={template.isGlobal ? "secondary" : "outline"}>
-                          {template.isGlobal ? t("badges.global") : t("badges.tenant")}
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>{template.category || "-"}</TableCell>
-                    <TableCell>{template.legalReference || "-"}</TableCell>
-                    <TableCell className="text-right">
-                      <CopyRoutineTemplateButton
-                        templateId={template.id}
-                        templateTitle={template.title}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      <RoutineTemplatesContent initialData={initialData} showAll={showAll} query={query} />
     </div>
   );
 }

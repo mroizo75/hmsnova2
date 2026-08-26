@@ -12,6 +12,7 @@ import { DocStatus } from "@prisma/client";
 import { requirePermission, requireResourceAccess } from "@/lib/server-authorization";
 import { calculateNextReviewDate, parseDateInput } from "@/lib/document-utils";
 import { convertDocumentToPDF } from "@/lib/adobe-pdf";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
 // Helper: Logg til audit log
 async function logAudit(
@@ -288,6 +289,7 @@ export async function createDocument(formData: FormData) {
     );
 
     revalidatePath(`/dashboard/documents`);
+    triggerRealtimeEvent(validated.tenantId, "document-updated");
     return { success: true, data: document };
   } catch (error: any) {
     console.error("Create document error:", error);
@@ -401,6 +403,7 @@ export async function uploadNewVersion(formData: FormData) {
 
     revalidatePath(`/dashboard/documents`);
     revalidatePath(`/dashboard/documents/${documentId}`);
+    triggerRealtimeEvent(document.tenantId, "document-updated");
     return { success: true, data: updatedDocument };
   } catch (error: any) {
     console.error("Upload new version error:", error);
@@ -523,6 +526,7 @@ export async function updateDocument(input: any) {
 
     revalidatePath(`/dashboard/documents`);
     revalidatePath(`/dashboard/documents/${validated.id}`);
+    triggerRealtimeEvent(updated.tenantId, "document-updated");
     return { success: true, data: updated };
   } catch (error: any) {
     console.error("Update document error:", error);
@@ -585,6 +589,7 @@ export async function approveDocument(input: any) {
 
     revalidatePath(`/dashboard/documents`);
     revalidatePath(`/dashboard/documents/${validated.id}`);
+    triggerRealtimeEvent(document.tenantId, "document-updated");
     return { success: true, data: approved };
   } catch (error: any) {
     console.error("Approve document error:", error);
@@ -654,6 +659,7 @@ export async function deleteDocument(id: string) {
     });
 
     revalidatePath(`/dashboard/documents`);
+    triggerRealtimeEvent(document.tenantId, "document-updated");
     return { success: true, data: null };
   } catch (error: any) {
     console.error("Delete document error:", error);

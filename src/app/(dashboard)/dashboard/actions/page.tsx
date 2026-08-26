@@ -3,14 +3,13 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MeasureForm } from "@/features/measures/components/measure-form";
-import { MeasureList } from "@/features/measures/components/measure-list";
-import { ListTodo, Clock, CheckCircle, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
 import { helpContent } from "@/lib/help-content";
 import { getTranslations } from "next-intl/server";
+import { MeasuresContent } from "@/features/measures/components/measures-content";
+import { fetchMeasures } from "@/server/queries/measure.queries";
 
 interface ActionsPageProps {
   searchParams: Promise<{ projectId?: string; source?: string }>;
@@ -55,46 +54,6 @@ export default async function ActionsPage({ searchParams }: ActionsPageProps) {
       })
     : null;
 
-  const sourceFilter: Record<string, object> = {
-    risk: { riskId: { not: null } },
-    incident: { incidentId: { not: null } },
-    audit: { auditId: { not: null } },
-    goal: { goalId: { not: null } },
-    inspection: { inspectionFindings: { some: {} } },
-    meeting: { decisionMeasures: { some: {} } },
-  };
-
-  const measures = await prisma.measure.findMany({
-    where: {
-      tenantId,
-      ...(source && sourceFilter[source] ? sourceFilter[source] : {}),
-    },
-    include: {
-      risk: { select: { id: true, title: true } },
-      incident: { select: { id: true, title: true, avviksnummer: true } },
-      audit: { select: { id: true, title: true } },
-      goal: { select: { id: true, title: true } },
-      inspectionFindings: {
-        select: {
-          id: true,
-          title: true,
-          inspection: { select: { id: true, title: true } },
-        },
-      },
-      decisionMeasures: {
-        select: {
-          id: true,
-          title: true,
-          meeting: { select: { id: true, title: true } },
-        },
-      },
-    },
-    orderBy: [
-      { status: "asc" },
-      { dueAt: "asc" },
-    ],
-  });
-
   const tenantUsers = await prisma.user.findMany({
     where: {
       tenants: {
@@ -108,14 +67,11 @@ export default async function ActionsPage({ searchParams }: ActionsPageProps) {
     },
   });
 
-  const now = new Date();
-  const stats = {
-    total: measures.length,
-    pending: measures.filter((m: any) => m.status === "PENDING").length,
-    inProgress: measures.filter((m: any) => m.status === "IN_PROGRESS").length,
-    done: measures.filter((m: any) => m.status === "DONE").length,
-    overdue: measures.filter((m: any) => m.status !== "DONE" && new Date(m.dueAt) < now).length,
-  };
+  const initialData = await fetchMeasures(source);
+
+  if (!initialData) {
+    return <div>{t("noTenantAccess")}</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -136,59 +92,6 @@ export default async function ActionsPage({ searchParams }: ActionsPageProps) {
           {t("projectInfo")} <strong>{selectedProject.name}</strong>
         </div>
       ) : null}
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t("stats.total.title")}</CardTitle>
-            <ListTodo className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">{t("stats.total.description")}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t("stats.inProgress.title")}</CardTitle>
-            <Clock className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {stats.pending + stats.inProgress}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {t("stats.inProgress.description", {
-                pending: stats.pending,
-                inProgress: stats.inProgress,
-              })}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t("stats.done.title")}</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.done}</div>
-            <p className="text-xs text-muted-foreground">{t("stats.done.description")}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t("stats.overdue.title")}</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{stats.overdue}</div>
-            <p className="text-xs text-muted-foreground">{t("stats.overdue.description")}</p>
-          </CardContent>
-        </Card>
-      </div>
 
       <div className="flex flex-wrap gap-2">
         {[
@@ -215,14 +118,7 @@ export default async function ActionsPage({ searchParams }: ActionsPageProps) {
         })}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("list.title")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <MeasureList measures={measures} showSourceBadges />
-        </CardContent>
-      </Card>
+      <MeasuresContent initialData={initialData} source={source} />
 
       <div className="rounded-lg bg-blue-50 border border-blue-200 p-6">
         <h3 className="font-semibold text-blue-900 mb-3">{t("iso.title")}</h3>

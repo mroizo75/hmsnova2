@@ -10,6 +10,7 @@ import { createNotification } from "@/server/actions/notification.actions";
 import { ensureGlobalRoutineTemplateLibrarySeeded } from "@/server/actions/routine-library.actions";
 import { AuditLog } from "@/lib/audit-log";
 import { onRoutineUpdated } from "@/features/hms-ai/lib/event-handler";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
 type RoutineTemplateListInput = {
   query?: string;
@@ -264,6 +265,7 @@ export async function createRoutineFromTemplate(templateId: string) {
 
     revalidatePath("/dashboard/rutiner");
     revalidatePath("/dashboard/rutiner/maler");
+    triggerRealtimeEvent(context.tenantId, "routine-updated");
     return { success: true, data: routine };
   } catch (error: any) {
     console.error("createRoutineFromTemplate error:", error);
@@ -345,6 +347,7 @@ export async function updateRoutine(input: RoutineUpdateInput) {
 
     revalidatePath("/dashboard/rutiner");
     revalidatePath(`/dashboard/rutiner/${routine.id}`);
+    triggerRealtimeEvent(context.tenantId, "routine-updated");
 
     onRoutineUpdated(context.tenantId, routine.id).catch(() => {});
 
@@ -401,6 +404,7 @@ export async function assignRoutineResponsible(routineId: string, responsibleUse
     });
 
     revalidatePath(`/dashboard/rutiner/${updated.id}`);
+    triggerRealtimeEvent(context.tenantId, "routine-updated");
     return { success: true, data: updated };
   } catch (error: any) {
     console.error("assignRoutineResponsible error:", error);
@@ -446,6 +450,7 @@ export async function scheduleRoutineFollowUp(
 
     revalidatePath("/dashboard/rutiner");
     revalidatePath(`/dashboard/rutiner/${updated.id}`);
+    triggerRealtimeEvent(context.tenantId, "routine-updated");
     return { success: true, data: updated };
   } catch (error: any) {
     console.error("scheduleRoutineFollowUp error:", error);
@@ -480,6 +485,7 @@ export async function createRoutineTemplate(input: {
     });
 
     revalidatePath("/dashboard/rutiner/maler");
+    triggerRealtimeEvent(context.tenantId, "routine-updated");
     return { success: true, data: template };
   } catch (error: any) {
     console.error("createRoutineTemplate error:", error);
@@ -582,5 +588,6 @@ export async function deleteRoutine(routineId: string) {
   AuditLog.log(tenantId, context.userId, "ROUTINE_DELETED", "Routine", routineId, { title: routine.title }).catch(() => {});
 
   revalidatePath("/dashboard/rutiner");
+  triggerRealtimeEvent(tenantId, "routine-updated");
   return { success: true };
 }

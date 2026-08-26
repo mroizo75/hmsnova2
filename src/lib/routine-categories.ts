@@ -3,6 +3,7 @@ import { GLOBAL_ROUTINE_TEMPLATE_LIBRARY } from "@/lib/routine-template-library"
 const CATEGORY_LABELS_NB: Record<string, string> = {
   AVVIK: "Avvik og korrigerende tiltak",
   VARSLING: "Varsling",
+  BRANN: "Brannvern",
   HMS_STYRING: "HMS-styring og system",
   EL_SIKKERHET: "Elektrisk sikkerhet",
   BYGG_ANLEGG: "Bygg og anlegg",

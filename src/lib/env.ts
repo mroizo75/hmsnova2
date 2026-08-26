@@ -66,6 +66,12 @@ interface EnvConfig {
   OPENAI_API_KEY?: string;
   ANTHROPIC_API_KEY?: string;
 
+  // Pusher Channels (realtime)
+  PUSHER_APP_ID?: string;
+  PUSHER_SECRET?: string;
+  NEXT_PUBLIC_PUSHER_KEY?: string;
+  NEXT_PUBLIC_PUSHER_CLUSTER?: string;
+
   // App URL
   NEXT_PUBLIC_APP_URL?: string;
 }
@@ -138,6 +144,10 @@ export function validateEnv(): void {
 
   if (!process.env.NEXT_PUBLIC_APP_URL) {
     warnings.push("NEXT_PUBLIC_APP_URL ikke satt - noen lenker i e-poster kan være feil");
+  }
+
+  if (!process.env.PUSHER_APP_ID || !process.env.PUSHER_SECRET || !process.env.NEXT_PUBLIC_PUSHER_KEY) {
+    warnings.push("Pusher ikke konfigurert (PUSHER_APP_ID/PUSHER_SECRET/NEXT_PUBLIC_PUSHER_KEY) - realtime-oppdateringer deaktivert");
   }
 
   if (
