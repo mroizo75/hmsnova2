@@ -13,7 +13,7 @@ interface SamsvarserklaringerContentProps {
 
 export function SamsvarserklaringerContent({ initialData }: SamsvarserklaringerContentProps) {
   const { data } = useQuery({
-    queryKey: ["settings"],
+    queryKey: ["samsvarserklaringer"],
     queryFn: () => fetchSamsvarserklaringer(),
     initialData,
   });
