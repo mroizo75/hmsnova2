@@ -51,22 +51,21 @@ export function SjaListContent({ initialData, tenantId }: SjaListContentProps) {
 
   const statusLabel = (status: string): string => {
     const labels: Record<string, string> = {
-      DRAFT: t("status.DRAFT"),
-      PENDING_APPROVAL: t("status.PENDING_APPROVAL"),
-      APPROVED: t("status.APPROVED"),
-      ACTIVE: t("status.ACTIVE"),
-      COMPLETED: t("status.COMPLETED"),
-      CANCELLED: t("status.CANCELLED"),
+      DRAFT: "Utkast",
+      ACTIVE: "Aktiv",
+      COMPLETED: "Fullført",
+      CANCELLED: "Kansellert",
     };
     return labels[status] ?? status;
   };
 
   const conclusionLabel = (conclusion: string | null): string => {
-    if (!conclusion) return "-";
+    if (!conclusion) return "–";
     const labels: Record<string, string> = {
-      GO: t("conclusion.GO"),
-      GO_WITH_MEASURES: t("conclusion.GO_WITH_MEASURES"),
-      NO_GO: t("conclusion.NO_GO"),
+      NOT_DECIDED: "Ikke avgjort",
+      APPROVED: "Godkjent",
+      CONDITIONAL: "Betinget godkjent",
+      REJECTED: "Avvist",
     };
     return labels[conclusion] ?? conclusion;
   };
