@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { resolveEffectivePermissions } from "@/lib/server-authorization";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
 /**
  * Kopierer et globalt skjema til tenant som en egendefinert kopi
@@ -99,6 +100,7 @@ export async function copyGlobalFormTemplate(formId: string) {
       },
     });
 
+    triggerRealtimeEvent(session.user.tenantId, "form-updated");
     return { success: true, data: copiedForm };
   } catch (error: any) {
     console.error("Feil ved kopiering av skjema:", error);
@@ -171,6 +173,7 @@ export async function deleteFormTemplate(formId: string, force = false) {
       where: { id: formId },
     });
 
+    triggerRealtimeEvent(session.user.tenantId, "form-updated");
     return { success: true };
   } catch (error: any) {
     console.error("Feil ved sletting av skjema:", error);
@@ -226,6 +229,7 @@ export async function toggleFormTemplateActive(formId: string, isActive: boolean
       data: { isActive },
     });
 
+    triggerRealtimeEvent(session.user.tenantId, "form-updated");
     return { success: true };
   } catch (error: any) {
     console.error("Feil ved endring av skjema-status:", error);

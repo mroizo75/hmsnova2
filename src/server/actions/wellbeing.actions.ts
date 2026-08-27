@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/db";
 import { getAuthContext } from "@/lib/server-authorization";
 import { createNotification, notifyUsersByRole } from "./notification.actions";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
 /**
  * FASE 3: Psykososialt Arbeidsmiljø - Automatisk Vurdering
@@ -366,6 +367,8 @@ async function createWellbeingRisk(
 
   console.log(`✅ [Wellbeing] Risikovurdering opprettet: ${risk.id}`);
   console.log(`✅ [Wellbeing] ${suggestedMeasures.length} tiltak foreslått`);
+
+  triggerRealtimeEvent(tenantId, "wellbeing-updated");
 
   return {
     riskId: risk.id,

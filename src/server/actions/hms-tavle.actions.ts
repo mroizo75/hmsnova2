@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getAuthContext } from "@/lib/server-authorization";
 import { getPlanLimits } from "@/features/hms-tavle/lib/tavle-plan-limits";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 import {
   HmsTavleSectionType,
   ExternalLinkType,
@@ -131,6 +132,7 @@ export async function createHmsTavle(input: {
     });
 
     revalidatePath("/dashboard/hms-tavle");
+    triggerRealtimeEvent(auth.tenantId, "settings-updated");
     return { success: true, data: tavle };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke opprette HMS Tavle" };
@@ -173,6 +175,7 @@ export async function updateHmsTavle(
     });
 
     revalidatePath(`/dashboard/hms-tavle/${id}`);
+    triggerRealtimeEvent(auth.tenantId, "settings-updated");
     return { success: true, data: tavle };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke oppdatere HMS Tavle" };
@@ -192,6 +195,7 @@ export async function deleteHmsTavle(id: string) {
     await prisma.hmsTavle.delete({ where: { id } });
 
     revalidatePath("/dashboard/hms-tavle");
+    triggerRealtimeEvent(auth.tenantId, "settings-updated");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke slette HMS Tavle" };
@@ -246,6 +250,7 @@ export async function updateTavleSections(
     ]);
 
     revalidatePath(`/dashboard/hms-tavle/${tavleId}`);
+    triggerRealtimeEvent(auth.tenantId, "settings-updated");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke oppdatere seksjoner" };
@@ -281,6 +286,7 @@ export async function addExternalLink(
     });
 
     revalidatePath(`/dashboard/hms-tavle/${tavleId}`);
+    triggerRealtimeEvent(auth.tenantId, "settings-updated");
     return { success: true, data: link };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke legge til lenke" };
@@ -300,6 +306,7 @@ export async function deleteExternalLink(linkId: string) {
 
     await prisma.hmsTavleExternalLink.delete({ where: { id: linkId } });
     revalidatePath(`/dashboard/hms-tavle/${link.tavle.id}`);
+    triggerRealtimeEvent(auth.tenantId, "settings-updated");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke slette lenke" };
@@ -341,6 +348,7 @@ export async function enableSubcontractorPortal(
     });
 
     revalidatePath(`/dashboard/hms-tavle/${tavleId}`);
+    triggerRealtimeEvent(auth.tenantId, "settings-updated");
     return { success: true, data: portal };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke aktivere UE-portal" };
@@ -398,6 +406,7 @@ export async function reviewSubmission(
       },
     });
 
+    triggerRealtimeEvent(auth.tenantId, "settings-updated");
     return { success: true, data: updated };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke behandle innsending" };
@@ -428,6 +437,7 @@ export async function activateTavleAddon() {
     });
 
     revalidatePath("/dashboard/hms-tavle");
+    triggerRealtimeEvent(auth.tenantId, "settings-updated");
     return { success: true, data: subscription };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke aktivere HMS Tavle add-on" };

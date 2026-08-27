@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requirePermission, getAuthContext } from "@/lib/server-authorization";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
 export async function getOrgChart() {
   try {
@@ -58,6 +59,7 @@ export async function createOrgChartNode(input: {
 
     revalidatePath("/dashboard/organisasjonskart");
     revalidatePath("/dashboard");
+    triggerRealtimeEvent(context.tenantId, "settings-updated");
     return { success: true, data: node };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke opprette node" };
@@ -103,6 +105,7 @@ export async function updateOrgChartNode(input: {
 
     revalidatePath("/dashboard/organisasjonskart");
     revalidatePath("/dashboard");
+    triggerRealtimeEvent(context.tenantId, "settings-updated");
     return { success: true, data: node };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke oppdatere node" };
@@ -136,6 +139,7 @@ export async function deleteOrgChartNode(id: string) {
 
     revalidatePath("/dashboard/organisasjonskart");
     revalidatePath("/dashboard");
+    triggerRealtimeEvent(context.tenantId, "settings-updated");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke slette node" };

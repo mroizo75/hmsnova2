@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
 export const dynamic = "force-dynamic";
 
@@ -80,6 +81,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    triggerRealtimeEvent(session.user.tenantId, "meeting-updated");
     return NextResponse.json({ data: meeting }, { status: 201 });
   } catch (error: any) {
     console.error("[MEETINGS_POST]", error);

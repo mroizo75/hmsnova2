@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { getStorage, generateFileKey } from "@/lib/storage";
 import { requirePermission, getAuthContext } from "@/lib/server-authorization";
 import { validateElectroUploadFile } from "@/lib/electro-upload";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
 export async function getElectroForDashboard() {
   try {
@@ -122,6 +123,7 @@ export async function createElectroComplianceDeclaration(formData: FormData) {
     revalidatePath("/dashboard/samsvarserklaringer");
     revalidatePath("/ansatt/samsvarserklaringer");
     revalidatePath("/ansatt");
+    triggerRealtimeEvent(context.tenantId, "settings-updated");
     return { success: true as const };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Kunne ikke lagre samsvarserklæring";
@@ -157,6 +159,7 @@ export async function deleteElectroComplianceDeclaration(id: string) {
     revalidatePath("/dashboard/samsvarserklaringer");
     revalidatePath("/ansatt/samsvarserklaringer");
     revalidatePath("/ansatt");
+    triggerRealtimeEvent(context.tenantId, "settings-updated");
     return { success: true as const };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Kunne ikke slette";

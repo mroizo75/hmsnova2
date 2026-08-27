@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { FeedbackSource, FeedbackSentiment, FeedbackStatus } from "@prisma/client";
 import { getRequiredTenantContext } from "@/lib/tenant-context";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
 const createFeedbackSchema = z.object({
   customerName: z.string().max(140).optional(),
@@ -104,6 +105,7 @@ export async function createCustomerFeedback(formData: FormData | Record<string,
     });
 
     revalidatePath("/dashboard/feedback");
+    triggerRealtimeEvent(tenantId, "feedback-updated");
 
     return { success: true, data: feedback };
   } catch (error: any) {
@@ -137,6 +139,7 @@ export async function updateCustomerFeedbackStatus(input: any) {
 
     revalidatePath("/dashboard/feedback");
     revalidatePath("/dashboard");
+    triggerRealtimeEvent(tenantId, "feedback-updated");
 
     return { success: true, data: feedback };
   } catch (error: any) {

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
 async function getSessionContext() {
   const session = await getServerSession(authOptions);
@@ -47,6 +48,7 @@ export async function activateBcmTemplate(templateId: string) {
 
   revalidatePath("/dashboard/bcm");
   revalidatePath("/dashboard/documents");
+  triggerRealtimeEvent(ctx.tenantId, "document-updated");
 
   return { success: true, documentId: doc.id };
 }
@@ -118,6 +120,7 @@ export async function submitBcmWizard(data: {
 
   revalidatePath("/dashboard/bcm");
   revalidatePath("/dashboard/documents");
+  triggerRealtimeEvent(ctx.tenantId, "document-updated");
 
   return { success: true, submissionId: submission.id };
 }

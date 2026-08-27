@@ -35,6 +35,14 @@ const EVENT_TO_QUERY_KEYS: Record<string, string[][]> = {
   "notification-updated": [["notifications"]],
   "meeting-updated": [["meetings"]],
   "management-review-updated": [["management-reviews"]],
+  "wellbeing-updated": [["wellbeing"], ["dashboard"]],
+  "feedback-updated": [["feedback"]],
+  "form-updated": [["forms"]],
+  "time-registration-updated": [["time-registration"]],
+  "support-updated": [["support"]],
+  "whistleblowing-updated": [["whistleblowing"]],
+  "project-updated": [["projects"]],
+  "benchmark-updated": [["benchmark"]],
 };
 
 export function usePusherChannel() {

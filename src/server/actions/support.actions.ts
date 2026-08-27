@@ -16,6 +16,7 @@ import { sendEmail } from "@/lib/email";
 import { getRequiredTenantContext } from "@/lib/tenant-context";
 import { createNotification } from "@/server/actions/notification.actions";
 import { formatSupportTicketNumber } from "@/features/support/lib/labels";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
 type ActionError = { code: string; message: string };
 type ActionResult<T> =
@@ -242,6 +243,7 @@ export async function createSupportTicket(
 
     revalidatePath("/dashboard/support");
     revalidatePath("/admin/support");
+    triggerRealtimeEvent(ctx.tenantId, "support-updated");
     return { success: true, data: ticket };
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -390,6 +392,7 @@ export async function replyToSupportTicketAsCustomer(
     revalidatePath("/dashboard/support");
     revalidatePath(`/admin/support/${ticket.id}`);
     revalidatePath("/admin/support");
+    triggerRealtimeEvent(ctx.tenantId, "support-updated");
     return { success: true, data: message };
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -555,6 +558,7 @@ export async function replyToSupportTicketAsStaff(
     revalidatePath("/admin/support");
     revalidatePath(`/dashboard/support/${ticket.id}`);
     revalidatePath("/dashboard/support");
+    triggerRealtimeEvent(ticket.tenantId, "support-updated");
     return { success: true, data: message };
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -630,6 +634,7 @@ export async function updateSupportTicketStatus(
     revalidatePath(`/admin/support/${ticket.id}`);
     revalidatePath("/admin/support");
     revalidatePath(`/dashboard/support/${ticket.id}`);
+    triggerRealtimeEvent(ticket.tenantId, "support-updated");
     return { success: true, data: { id: ticket.id } };
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -668,11 +673,12 @@ export async function assignSupportTicket(
             ? SupportTicketStatus.IN_PROGRESS
             : undefined,
       },
-      select: { id: true },
+      select: { id: true, tenantId: true },
     });
 
     revalidatePath(`/admin/support/${ticket.id}`);
     revalidatePath("/admin/support");
+    triggerRealtimeEvent(ticket.tenantId, "support-updated");
     return { success: true, data: ticket };
   } catch (error) {
     if (error instanceof z.ZodError) {

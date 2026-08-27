@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 import {
   startOfWeek,
   endOfWeek,
@@ -133,6 +134,7 @@ export async function updateTimeRegistrationConfig(
     });
     revalidatePath("/dashboard/time-registration");
     revalidatePath("/dashboard/settings");
+    triggerRealtimeEvent(tenantId, "time-registration-updated");
     return { success: true };
   } catch (e) {
     const err = e as Error;
@@ -195,6 +197,7 @@ export async function createProject(input: {
       },
     });
     revalidatePath("/dashboard/time-registration");
+    triggerRealtimeEvent(tenantId, "time-registration-updated");
     return { success: true, data: project };
   } catch (e) {
     const err = e as Error;
@@ -223,6 +226,7 @@ export async function updateProject(
       },
     });
     revalidatePath("/dashboard/time-registration");
+    triggerRealtimeEvent(tenantId, "time-registration-updated");
     return { success: true };
   } catch (e) {
     const err = e as Error;
@@ -240,6 +244,7 @@ export async function deleteProject(id: string) {
 
     await prisma.project.delete({ where: { id, tenantId } });
     revalidatePath("/dashboard/time-registration");
+    triggerRealtimeEvent(tenantId, "time-registration-updated");
     return { success: true };
   } catch (e) {
     const err = e as Error;
@@ -383,6 +388,7 @@ export async function createTimeEntry(input: {
       });
       revalidatePath("/dashboard/time-registration");
       revalidatePath("/ansatt/timeregistrering");
+      triggerRealtimeEvent(tenantId, "time-registration-updated");
       return { success: true, data: entry };
     }
 
@@ -404,6 +410,7 @@ export async function createTimeEntry(input: {
       });
       revalidatePath("/dashboard/time-registration");
       revalidatePath("/ansatt/timeregistrering");
+      triggerRealtimeEvent(tenantId, "time-registration-updated");
       return { success: true, data: entry };
     }
 
@@ -438,6 +445,7 @@ export async function createTimeEntry(input: {
       });
       revalidatePath("/dashboard/time-registration");
       revalidatePath("/ansatt/timeregistrering");
+      triggerRealtimeEvent(tenantId, "time-registration-updated");
       return { success: true, data: entry };
     }
 
@@ -524,6 +532,7 @@ export async function createTimeEntry(input: {
     }
     revalidatePath("/dashboard/time-registration");
     revalidatePath("/ansatt/timeregistrering");
+    triggerRealtimeEvent(tenantId, "time-registration-updated");
     return { success: true, data: null };
   } catch (e) {
     const err = e as Error;
@@ -567,6 +576,7 @@ export async function updateTimeEntry(
     });
     revalidatePath("/dashboard/time-registration");
     revalidatePath("/ansatt/timeregistrering");
+    triggerRealtimeEvent(tenantId, "time-registration-updated");
     return { success: true };
   } catch (e) {
     const err = e as Error;
@@ -590,6 +600,7 @@ export async function deleteTimeEntry(id: string) {
     await prisma.timeEntry.delete({ where: { id, tenantId } });
     revalidatePath("/dashboard/time-registration");
     revalidatePath("/ansatt/timeregistrering");
+    triggerRealtimeEvent(tenantId, "time-registration-updated");
     return { success: true };
   } catch (e) {
     const err = e as Error;
@@ -651,6 +662,7 @@ export async function createMileageEntry(input: {
     });
     revalidatePath("/dashboard/time-registration");
     revalidatePath("/ansatt/timeregistrering");
+    triggerRealtimeEvent(tenantId, "time-registration-updated");
     return { success: true, data: entry };
   } catch (e) {
     const err = e as Error;
@@ -699,6 +711,7 @@ export async function updateMileageEntry(
     });
     revalidatePath("/dashboard/time-registration");
     revalidatePath("/ansatt/timeregistrering");
+    triggerRealtimeEvent(tenantId, "time-registration-updated");
     return { success: true };
   } catch (e) {
     const err = e as Error;
@@ -722,6 +735,7 @@ export async function deleteMileageEntry(id: string) {
     await prisma.mileageEntry.delete({ where: { id, tenantId } });
     revalidatePath("/dashboard/time-registration");
     revalidatePath("/ansatt/timeregistrering");
+    triggerRealtimeEvent(tenantId, "time-registration-updated");
     return { success: true };
   } catch (e) {
     const err = e as Error;
