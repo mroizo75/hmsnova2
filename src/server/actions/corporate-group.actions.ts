@@ -118,6 +118,57 @@ export async function addTenantToGroup(tenantId: string) {
   revalidatePath("/konsern");
 }
 
+export async function createTenantForGroup(data: {
+  name: string;
+  orgNumber?: string;
+  contactPerson?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  address?: string;
+  city?: string;
+  postalCode?: string;
+  industry?: string;
+  employeeCount?: number;
+}) {
+  const context = await requireGroupPermission("canManageTenants");
+
+  if (!data.name.trim()) {
+    throw new Error("Bedriftsnavn er påkrevd");
+  }
+
+  const slug = data.name
+    .toLowerCase()
+    .replace(/[^a-z0-9æøå]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    + `-${Date.now().toString(36)}`;
+
+  const tenant = await prisma.tenant.create({
+    data: {
+      name: data.name.trim(),
+      slug,
+      orgNumber: data.orgNumber || undefined,
+      contactPerson: data.contactPerson || undefined,
+      contactEmail: data.contactEmail || undefined,
+      contactPhone: data.contactPhone || undefined,
+      address: data.address || undefined,
+      city: data.city || undefined,
+      postalCode: data.postalCode || undefined,
+      industry: data.industry || undefined,
+      employeeCount: data.employeeCount || undefined,
+      status: "ACTIVE",
+      onboardingStatus: "NOT_STARTED",
+    },
+  });
+
+  await prisma.corporateGroupTenant.create({
+    data: { groupId: context.groupId, tenantId: tenant.id },
+  });
+
+  await logGroupAction(context.groupId, context.userId, "ADD_TENANT", "tenant", tenant.id);
+  revalidatePath("/konsern");
+  return tenant;
+}
+
 export async function removeTenantFromGroup(tenantId: string) {
   const context = await requireGroupPermission("canManageTenants");
 

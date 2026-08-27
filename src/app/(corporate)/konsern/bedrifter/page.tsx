@@ -18,6 +18,7 @@ import {
 import { requireCorporateGroupContext } from "@/lib/corporate-group-context";
 import { ScoreRing } from "../components/score-ring";
 import { ExcelImportTenants } from "../components/excel-import-tenants";
+import { AddTenantManual } from "../components/add-tenant-manual";
 
 function scoreBadge(score: number) {
   if (score >= 80) return "bg-emerald-50 text-emerald-700";
@@ -269,7 +270,10 @@ export default async function CorporateGroupTenantsPage() {
       )}
 
       {context.groupRole === "GROUP_ADMIN" && (
-        <ExcelImportTenants groupId={context.groupId} />
+        <div className="space-y-4">
+          <AddTenantManual />
+          <ExcelImportTenants groupId={context.groupId} />
+        </div>
       )}
     </div>
   );

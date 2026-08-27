@@ -55,10 +55,13 @@ interface HmsStatsTableProps {
   rows: TenantHmsRow[];
 }
 
+const PAGE_SIZE = 25;
+
 export function HmsStatsTable({ rows }: HmsStatsTableProps) {
   const [industry, setIndustry] = useState<string>("all");
   const [sortKey, setSortKey] = useState<SortKey>("complianceScore");
   const [sortAsc, setSortAsc] = useState(false);
+  const [page, setPage] = useState(0);
 
   const filtered = useMemo(() => {
     let result = rows;
@@ -74,6 +77,11 @@ export function HmsStatsTable({ rows }: HmsStatsTableProps) {
     });
   }, [rows, industry, sortKey, sortAsc]);
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  const safeSetPage = (p: number) => setPage(Math.max(0, Math.min(totalPages - 1, p)));
+
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
       setSortAsc(!sortAsc);
@@ -81,6 +89,7 @@ export function HmsStatsTable({ rows }: HmsStatsTableProps) {
       setSortKey(key);
       setSortAsc(false);
     }
+    setPage(0);
   };
 
   const uniqueIndustries = useMemo(() => {
@@ -93,7 +102,7 @@ export function HmsStatsTable({ rows }: HmsStatsTableProps) {
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <CardTitle>HMS-oversikt per bedrift ({filtered.length})</CardTitle>
-          <Select value={industry} onValueChange={setIndustry}>
+          <Select value={industry} onValueChange={(v) => { setIndustry(v); setPage(0); }}>
             <SelectTrigger className="w-[220px]">
               <SelectValue placeholder="Alle bransjer" />
             </SelectTrigger>
@@ -152,14 +161,14 @@ export function HmsStatsTable({ rows }: HmsStatsTableProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 ? (
+              {paginated.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     Ingen bedrifter funnet
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((row) => (
+                paginated.map((row) => (
                   <TableRow key={row.id}>
                     <TableCell>
                       <Link href={`/admin/tenants/${row.id}`} className="font-medium hover:underline">
@@ -198,6 +207,21 @@ export function HmsStatsTable({ rows }: HmsStatsTableProps) {
             </TableBody>
           </Table>
         </div>
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between pt-4">
+            <span className="text-sm text-muted-foreground">
+              Side {page + 1} av {totalPages} ({filtered.length} bedrifter)
+            </span>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => safeSetPage(page - 1)} disabled={page === 0}>
+                Forrige
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => safeSetPage(page + 1)} disabled={page >= totalPages - 1}>
+                Neste
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

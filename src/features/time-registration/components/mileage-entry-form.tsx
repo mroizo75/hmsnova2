@@ -47,7 +47,7 @@ export function MileageEntryForm({
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [date, setDate] = useState(format(defaultDate, "yyyy-MM-dd"));
-  const [projectId, setProjectId] = useState(initialProjectId ?? "");
+  const [projectId, setProjectId] = useState(initialProjectId ?? (projects.length === 1 ? projects[0].id : ""));
   const [kilometers, setKilometers] = useState("");
   const [ratePerKm, setRatePerKm] = useState(String(defaultKmRate));
   const [comment, setComment] = useState("");

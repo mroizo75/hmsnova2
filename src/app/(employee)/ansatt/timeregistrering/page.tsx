@@ -3,15 +3,13 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Clock, Car, ArrowLeft } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Clock, ArrowLeft } from "lucide-react";
 import {
-  getProjects,
-  getTimeRegistrationOverview,
   getTimeRegistrationConfig,
 } from "@/server/actions/time-registration.actions";
-import { TimeRegistrationOverview } from "@/features/time-registration/components/time-registration-overview";
-import { RegistrationFormUnified } from "@/features/time-registration/components/registration-form-unified";
+import { fetchTimeRegistrationData } from "@/server/queries/time-registration.queries";
+import { TimeRegistrationContent } from "@/features/time-registration/components/time-registration-content";
 
 export default async function AnsattTimeregistreringPage() {
   const session = await getServerSession(authOptions);
@@ -22,17 +20,9 @@ export default async function AnsattTimeregistreringPage() {
   }
 
   const tenantId = session.user.tenantId;
-  const userId = session.user.id;
 
-  const [configRes, projectsRes] = await Promise.all([
-    getTimeRegistrationConfig(tenantId),
-    getProjects(tenantId, true),
-  ]);
-
+  const configRes = await getTimeRegistrationConfig(tenantId);
   const config = configRes.success ? configRes.data : null;
-  const projects = projectsRes.success ? projectsRes.data : [];
-  const activeProjects = projects.filter((p) => p.status === "ACTIVE");
-
   const enabled = config?.timeRegistrationEnabled ?? false;
 
   if (!enabled) {
@@ -58,35 +48,7 @@ export default async function AnsattTimeregistreringPage() {
     );
   }
 
-  const overviewRes = await getTimeRegistrationOverview(tenantId, {
-    period: "month",
-    year: new Date().getFullYear(),
-    month: new Date().getMonth() + 1,
-    userId,
-  });
-
-  const overviewData = overviewRes.success ? overviewRes.data : null;
-
-  if (!overviewData) {
-    return (
-      <div className="space-y-6">
-        <Link
-          href="/ansatt"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {t("back")}
-        </Link>
-        <Card>
-          <CardContent className="py-8">
-            <p className="text-muted-foreground text-center">
-              {t("loadError")}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const initialData = await fetchTimeRegistrationData();
 
   return (
     <div className="space-y-6">
@@ -98,52 +60,11 @@ export default async function AnsattTimeregistreringPage() {
         {t("backToOverview")}
       </Link>
 
-      <div>
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
-        <p className="text-muted-foreground">
-          {t("description")}
-        </p>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            {t("form.title")}
-          </CardTitle>
-          <CardDescription>
-            {t("form.description")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <RegistrationFormUnified
-            tenantId={tenantId}
-            projects={activeProjects}
-            lunchBreakMinutes={config?.lunchBreakMinutes ?? 30}
-            eveningOvertimeFromHour={config?.eveningOvertimeFromHour ?? undefined}
-            defaultKmRate={config?.defaultKmRate ?? 4.5}
-            rateEditable={false}
-            showDisclaimer={true}
-          />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("overview.title")}</CardTitle>
-          <CardDescription>
-            {t("overview.description")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <TimeRegistrationOverview
-            initialData={overviewData}
-            tenantId={tenantId}
-            isAdmin={false}
-            restrictToUserId={userId}
-          />
-        </CardContent>
-      </Card>
+      <TimeRegistrationContent
+        initialData={initialData}
+        isAdmin={false}
+        role="ANSATT"
+      />
     </div>
   );
 }

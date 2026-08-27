@@ -55,7 +55,7 @@ export function TimeEntryForm({
   }, [forceMode]);
   const [inputStyle, setInputStyle] = useState<"clock" | "fromTo">("clock");
   const [date, setDate] = useState(format(defaultDate, "yyyy-MM-dd"));
-  const [projectId, setProjectId] = useState(initialProjectId ?? "");
+  const [projectId, setProjectId] = useState(initialProjectId ?? (projects.length === 1 ? projects[0].id : ""));
   const [hours, setHours] = useState("7.5");
   const [fromTime, setFromTime] = useState("07:00");
   const [toTime, setToTime] = useState("15:00");

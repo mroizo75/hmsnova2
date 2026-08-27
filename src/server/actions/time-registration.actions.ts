@@ -109,7 +109,7 @@ export async function updateTimeRegistrationConfig(
   }
 ) {
   try {
-    const { role } = await getSessionContext();
+    const { user, role } = await getSessionContext();
     if (role !== "ADMIN") {
       return { success: false, error: "Kun administrator kan endre innstillinger" };
     }
@@ -132,6 +132,11 @@ export async function updateTimeRegistrationConfig(
         approximateTaxPercent: data.approximateTaxPercent,
       },
     });
+
+    if (data.timeRegistrationEnabled) {
+      await ensureDefaultProject(tenantId, user.id);
+    }
+
     revalidatePath("/dashboard/time-registration");
     revalidatePath("/dashboard/settings");
     triggerRealtimeEvent(tenantId, "time-registration-updated");
@@ -249,6 +254,31 @@ export async function deleteProject(id: string) {
   } catch (e) {
     const err = e as Error;
     return { success: false, error: err.message };
+  }
+}
+
+// ============================================================================
+// DEFAULT PROJECT
+// ============================================================================
+
+async function ensureDefaultProject(tenantId: string, createdById?: string): Promise<void> {
+  const existing = await prisma.project.findFirst({
+    where: { tenantId, status: "ACTIVE" },
+  });
+  if (!existing) {
+    const adminUser = createdById
+      ? createdById
+      : (await prisma.userTenant.findFirst({ where: { tenantId, role: "ADMIN" } }))?.userId;
+    if (!adminUser) return;
+    await prisma.project.create({
+      data: {
+        tenantId,
+        name: "Generelt",
+        code: "GEN",
+        description: "Standard prosjekt for timeregistrering",
+        createdById: adminUser,
+      },
+    });
   }
 }
 
@@ -846,5 +876,258 @@ export async function getTimeRegistrationOverview(
   } catch (e) {
     const err = e as Error;
     return { success: false, error: err.message };
+  }
+}
+
+// ============================================================================
+// WEEK GRID
+// ============================================================================
+
+export async function getWeekEntries(weekStartDate: string, userId?: string) {
+  try {
+    const { user, tenantId, role } = await getSessionContext();
+    const isAdmin = ["ADMIN", "HMS", "LEDER"].includes(role);
+    const targetUserId = userId && isAdmin ? userId : user.id;
+
+    const weekStart = startOfWeek(new Date(weekStartDate), { weekStartsOn: 1, locale: nb });
+    const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1, locale: nb });
+
+    const [timeEntries, mileageEntries, projects, tenant] = await Promise.all([
+      prisma.timeEntry.findMany({
+        where: {
+          tenantId,
+          userId: targetUserId,
+          date: { gte: weekStart, lte: weekEnd },
+        },
+        include: {
+          project: { select: { id: true, name: true, code: true } },
+        },
+        orderBy: [{ date: "asc" }, { createdAt: "asc" }],
+      }),
+      prisma.mileageEntry.findMany({
+        where: {
+          tenantId,
+          userId: targetUserId,
+          date: { gte: weekStart, lte: weekEnd },
+        },
+        include: {
+          project: { select: { id: true, name: true, code: true } },
+        },
+        orderBy: [{ date: "asc" }],
+      }),
+      prisma.project.findMany({
+        where: { tenantId, status: "ACTIVE" },
+        select: { id: true, name: true, code: true },
+        orderBy: { name: "asc" },
+      }),
+      prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: {
+          weeklyHoursNorm: true,
+          lunchBreakMinutes: true,
+          eveningOvertimeFromHour: true,
+          useOvertime40Percent: true,
+          saturdayOvertime40LimitHours: true,
+          defaultKmRate: true,
+        },
+      }),
+    ]);
+
+    return {
+      success: true,
+      data: {
+        timeEntries: JSON.parse(JSON.stringify(timeEntries)),
+        mileageEntries: JSON.parse(JSON.stringify(mileageEntries)),
+        projects,
+        weekStart: weekStart.toISOString(),
+        weekEnd: weekEnd.toISOString(),
+        config: tenant,
+        userId: targetUserId,
+      },
+    };
+  } catch (e) {
+    const err = e as Error;
+    return { success: false, error: err.message };
+  }
+}
+
+export async function upsertWeekEntry(input: {
+  projectId: string;
+  date: string;
+  hours: number;
+  userId?: string;
+}) {
+  try {
+    const { user, tenantId, role } = await getSessionContext();
+    const isAdmin = role === "ADMIN";
+    const targetUserId = input.userId && isAdmin ? input.userId : user.id;
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: {
+        timeRegistrationEnabled: true,
+        weeklyHoursNorm: true,
+        lunchBreakMinutes: true,
+        eveningOvertimeFromHour: true,
+        useOvertime40Percent: true,
+        saturdayOvertime40LimitHours: true,
+      },
+    });
+    if (!tenant?.timeRegistrationEnabled) {
+      return { success: false, error: "Timeregistrering er ikke aktivert" };
+    }
+
+    const project = await prisma.project.findFirst({
+      where: { id: input.projectId, tenantId, status: "ACTIVE" },
+    });
+    if (!project) {
+      return { success: false, error: "Prosjekt ikke funnet" };
+    }
+
+    const date = new Date(input.date);
+    const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const endOfDay = new Date(startOfDay);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Slett eksisterende NORMAL/OVERTIME entries for denne dagen+prosjektet
+    await prisma.timeEntry.deleteMany({
+      where: {
+        tenantId,
+        userId: targetUserId,
+        projectId: input.projectId,
+        date: { gte: startOfDay, lte: endOfDay },
+        timeType: { in: ["NORMAL", "OVERTIME_50", "OVERTIME_40", "OVERTIME_100", "WEEKEND"] },
+      },
+    });
+
+    // Hvis 0 timer, bare slett (allerede gjort)
+    if (input.hours <= 0) {
+      revalidatePath("/dashboard/time-registration");
+      revalidatePath("/ansatt/timeregistrering");
+      triggerRealtimeEvent(tenantId, "time-registration-updated");
+      return { success: true };
+    }
+
+    if (input.hours > 24) {
+      return { success: false, error: "Timer må være mellom 0 og 24" };
+    }
+
+    const dailyNorm = getDailyNorm(tenant.weeklyHoursNorm ?? 37.5);
+    const overtimeType = resolveOvertimeType(
+      date,
+      null,
+      tenant.eveningOvertimeFromHour,
+      tenant.useOvertime40Percent ?? false
+    );
+
+    if (input.hours <= dailyNorm) {
+      await prisma.timeEntry.create({
+        data: {
+          tenantId,
+          projectId: input.projectId,
+          userId: targetUserId,
+          date: startOfDay,
+          hours: input.hours,
+          timeType: "NORMAL",
+        },
+      });
+    } else {
+      const normalHours = dailyNorm;
+      const overtimeHours = input.hours - dailyNorm;
+      const isSaturday = date.getDay() === 6;
+      const satLimit = tenant.saturdayOvertime40LimitHours;
+
+      const creates: Parameters<typeof prisma.timeEntry.create>[0][] = [
+        {
+          data: {
+            tenantId,
+            projectId: input.projectId,
+            userId: targetUserId,
+            date: startOfDay,
+            hours: normalHours,
+            timeType: "NORMAL",
+          },
+        },
+      ];
+
+      if (isSaturday && satLimit != null && satLimit > 0) {
+        const ot40 = Math.min(overtimeHours, satLimit);
+        const ot100 = Math.max(0, overtimeHours - satLimit);
+        if (ot40 > 0) creates.push({ data: { tenantId, projectId: input.projectId, userId: targetUserId, date: startOfDay, hours: ot40, timeType: "OVERTIME_40" } });
+        if (ot100 > 0) creates.push({ data: { tenantId, projectId: input.projectId, userId: targetUserId, date: startOfDay, hours: ot100, timeType: "OVERTIME_100" } });
+      } else {
+        creates.push({
+          data: { tenantId, projectId: input.projectId, userId: targetUserId, date: startOfDay, hours: overtimeHours, timeType: overtimeType },
+        });
+      }
+
+      await prisma.$transaction(creates.map((c) => prisma.timeEntry.create(c)));
+    }
+
+    revalidatePath("/dashboard/time-registration");
+    revalidatePath("/ansatt/timeregistrering");
+    triggerRealtimeEvent(tenantId, "time-registration-updated");
+    return { success: true };
+  } catch (e) {
+    const err = e as Error;
+    return { success: false, error: err.message };
+  }
+}
+
+// ============================================================================
+// ADMIN: TEAM WEEK SUMMARY
+// ============================================================================
+
+export async function getAllUsersWeekSummary(weekStartDate: string) {
+  try {
+    const { tenantId, role } = await getSessionContext();
+    if (!["ADMIN", "HMS", "LEDER"].includes(role)) {
+      return { success: false, error: "Ingen tilgang" };
+    }
+
+    const ws = startOfWeek(new Date(weekStartDate), { weekStartsOn: 1, locale: nb });
+    const we = endOfWeek(ws, { weekStartsOn: 1, locale: nb });
+
+    const [timeEntries, users] = await Promise.all([
+      prisma.timeEntry.findMany({
+        where: { tenantId, date: { gte: ws, lte: we } },
+        select: { userId: true, date: true, hours: true, timeType: true },
+      }),
+      prisma.userTenant.findMany({
+        where: { tenantId },
+        include: { user: { select: { id: true, name: true, email: true } } },
+      }),
+    ]);
+
+    const userMap = new Map(
+      users.map((ut) => [
+        ut.user.id,
+        { id: ut.user.id, name: ut.displayName || ut.user.name || ut.user.email || "Ukjent" },
+      ])
+    );
+
+    const summary: Record<string, { name: string; days: number[] }> = {};
+
+    for (const entry of timeEntries) {
+      if (!summary[entry.userId]) {
+        const info = userMap.get(entry.userId);
+        summary[entry.userId] = { name: info?.name || "Ukjent", days: [0, 0, 0, 0, 0, 0, 0] };
+      }
+      const entryDate = new Date(entry.date);
+      const idx = Math.round((entryDate.getTime() - ws.getTime()) / (1000 * 60 * 60 * 24));
+      if (idx >= 0 && idx <= 6) summary[entry.userId].days[idx] += entry.hours;
+    }
+
+    for (const [userId, info] of userMap) {
+      if (!summary[userId]) summary[userId] = { name: info.name, days: [0, 0, 0, 0, 0, 0, 0] };
+    }
+
+    const sorted = Object.entries(summary)
+      .map(([userId, v]) => ({ userId, ...v }))
+      .sort((a, b) => a.name.localeCompare(b.name, "nb"));
+
+    return { success: true, data: { users: sorted, weekStart: ws.toISOString(), weekEnd: we.toISOString() } };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
   }
 }

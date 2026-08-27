@@ -69,6 +69,14 @@ export async function getAggregatedHmsStats(): Promise<{
 
   const tenantIds = tenants.map((t) => t.id);
 
+  const latestScores = await prisma.tenantHmsScore.findMany({
+    where: { tenantId: { in: tenantIds } },
+    orderBy: { createdAt: "desc" },
+    distinct: ["tenantId"],
+    select: { tenantId: true, overallScore: true },
+  });
+  const scoreMap = new Map(latestScores.map((s) => [s.tenantId, s.overallScore]));
+
   type GroupRow = { tenantId: string; cnt: bigint };
   type MaxRow = { tenantId: string; maxDate: Date | null };
 
@@ -165,7 +173,8 @@ export async function getAggregatedHmsStats(): Promise<{
     const measPend = measPendMap.get(t.id) || 0;
     const measDone = measDoneMap.get(t.id) || 0;
 
-    const score = computeComplianceScore({ risks, insp, train, measDone, measPend, open, closed });
+    const realScore = scoreMap.get(t.id);
+    const score = realScore ?? computeComplianceScore({ risks, insp, train, measDone, measPend, open, closed });
 
     return {
       id: t.id,
