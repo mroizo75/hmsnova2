@@ -37,11 +37,16 @@ export async function triggerRealtimeEvent(
   data?: { id?: string; [key: string]: unknown }
 ): Promise<void> {
   const pusher = getPusherServer();
-  if (!pusher) return;
+  if (!pusher) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[Pusher] Not configured — skipping event:", event);
+    }
+    return;
+  }
 
   try {
     await pusher.trigger(`private-tenant-${tenantId}`, event, data ?? {});
-  } catch {
-    // Graceful degradation — realtime is best-effort
+  } catch (err) {
+    console.error("[Pusher] Failed to trigger event:", event, err instanceof Error ? err.message : err);
   }
 }
