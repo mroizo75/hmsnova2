@@ -82,12 +82,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generate unique case number
-    const count = await db.whistleblowing.count({
-      where: { tenantId: tenant.id },
-    });
+    // Generate unique case number based on highest existing number
     const year = new Date().getFullYear();
-    const caseNumber = `VAR-${year}-${String(count + 1).padStart(3, "0")}`;
+    const prefix = `VAR-${year}-`;
+    const latest = await db.whistleblowing.findFirst({
+      where: {
+        tenantId: tenant.id,
+        caseNumber: { startsWith: prefix },
+      },
+      orderBy: { caseNumber: "desc" },
+      select: { caseNumber: true },
+    });
+    const lastNum = latest
+      ? parseInt(latest.caseNumber.replace(prefix, ""), 10) || 0
+      : 0;
+    const caseNumber = `${prefix}${String(lastNum + 1).padStart(3, "0")}`;
 
     // Generate secure access code (for anonymous follow-up)
     const accessCode = nanoid(16).toUpperCase();
