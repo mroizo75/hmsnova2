@@ -28,6 +28,7 @@ import {
   Users,
   ShieldAlert,
   Sparkles,
+  Save,
 } from "lucide-react";
 import { getRiskColor } from "@/features/sja/schemas/sja.schema";
 import Image from "next/image";
@@ -98,6 +99,8 @@ export function SjaForm({
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [draftId, setDraftId] = useState<string | null>(null);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState(projectId ?? "__none__");
   const [hazards, setHazards] = useState<HazardRow[]>(
@@ -295,6 +298,69 @@ export function SjaForm({
       setAiSummary(result.data.summary);
     } finally {
       setIsGeneratingSummary(false);
+    }
+  }
+
+  async function handleSaveDraft() {
+    setIsSavingDraft(true);
+    try {
+      const titleEl = document.getElementById("title") as HTMLInputElement | null;
+      const workLocationEl = document.getElementById("workLocation") as HTMLInputElement | null;
+      const plannedDateEl = document.getElementById("plannedDate") as HTMLInputElement | null;
+      const participantsEl = document.getElementById("participants") as HTMLTextAreaElement | null;
+      const descriptionEl = document.getElementById("description") as HTMLTextAreaElement | null;
+      const additionalEl = document.getElementById("additionalConditions") as HTMLTextAreaElement | null;
+      const weatherEl = document.getElementById("weatherConditions") as HTMLInputElement | null;
+
+      const payload = {
+        id: draftId || undefined,
+        tenantId,
+        projectId: selectedProjectId === "__none__" ? undefined : selectedProjectId,
+        title: titleEl?.value || "",
+        description: descriptionEl?.value || "",
+        workLocation: workLocationEl?.value || "",
+        plannedDate: plannedDateEl?.value ? new Date(plannedDateEl.value).toISOString() : new Date().toISOString(),
+        responsibleName: userName,
+        participants: participantsEl?.value || "",
+        additionalConditions: additionalEl?.value || "",
+        weatherConditions: weatherEl?.value || "",
+        templateId: initialData?.templateId,
+        templateName: initialData?.templateName,
+        hazards: hazards.map((h, i) => ({
+          ...h,
+          sortOrder: i,
+          linkedRiskId: h.linkedRiskId || null,
+        })),
+      };
+
+      const { saveSjaDraft } = await import("@/server/actions/sja.actions");
+      const result = await saveSjaDraft(payload);
+
+      if (!result.success) {
+        toast({
+          title: "Kunne ikke lagre utkast",
+          description: result.error || "Ukjent feil",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (result.data?.id) {
+        setDraftId(result.data.id);
+      }
+
+      toast({
+        title: "Utkast lagret",
+        description: "SJA-en er lagret som utkast. Du kan fortsette å fylle inn og sende inn når du er klar.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Feil",
+        description: error.message || "Kunne ikke lagre utkast",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingDraft(false);
     }
   }
 
@@ -739,7 +805,7 @@ export function SjaForm({
       <div className="flex flex-col gap-3 pt-2">
         <Button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || isSavingDraft}
           size="lg"
           className="w-full h-14 text-lg"
         >
@@ -755,9 +821,30 @@ export function SjaForm({
 
         <Button
           type="button"
+          variant="secondary"
+          onClick={handleSaveDraft}
+          disabled={isSubmitting || isSavingDraft}
+          size="lg"
+          className="w-full h-12"
+        >
+          {isSavingDraft ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Lagrer...
+            </>
+          ) : (
+            <>
+              <Save className="mr-2 h-4 w-4" />
+              Lagre som utkast
+            </>
+          )}
+        </Button>
+
+        <Button
+          type="button"
           variant="outline"
           onClick={() => router.back()}
-          disabled={isSubmitting}
+          disabled={isSubmitting || isSavingDraft}
           size="lg"
           className="w-full h-12"
         >

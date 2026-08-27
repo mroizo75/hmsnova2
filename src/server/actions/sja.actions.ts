@@ -203,6 +203,97 @@ export async function createSjaAnalysis(input: any) {
   }
 }
 
+export async function saveSjaDraft(input: any) {
+  try {
+    const { user, tenantId } = await getSessionContext();
+
+    const title = String(input.title ?? "").trim() || `Utkast — ${new Date().toLocaleDateString("nb-NO")}`;
+    const workLocation = String(input.workLocation ?? "").trim() || "Ikke angitt";
+    const plannedDate = input.plannedDate ? new Date(input.plannedDate) : new Date();
+
+    const hazards = (input.hazards ?? [])
+      .filter((h: any) => h.activity?.trim() || h.hazard?.trim() || h.measures?.trim())
+      .map((h: any, i: number) => ({
+        sortOrder: i,
+        activity: String(h.activity ?? "").trim() || "—",
+        hazard: String(h.hazard ?? "").trim() || "—",
+        consequence: h.consequence ? String(h.consequence).trim() : null,
+        probability: Number(h.probability) || 1,
+        severity: Number(h.severity) || 1,
+        riskLevel: (Number(h.probability) || 1) * (Number(h.severity) || 1),
+        measures: String(h.measures ?? "").trim() || "—",
+        responsibleName: h.responsibleName ? String(h.responsibleName).trim() : null,
+        linkedRiskId: (h.linkedRiskId && typeof h.linkedRiskId === "string" && h.linkedRiskId.length > 5)
+          ? h.linkedRiskId : null,
+      }));
+
+    if (input.id) {
+      if (hazards.length > 0) {
+        await prisma.sjaHazard.deleteMany({ where: { sjaAnalysisId: input.id } });
+        await prisma.sjaHazard.createMany({
+          data: hazards.map((h: any) => ({ ...h, sjaAnalysisId: input.id })),
+        });
+      }
+
+      const analysis = await prisma.sjaAnalysis.update({
+        where: { id: input.id, tenantId },
+        data: {
+          title,
+          description: input.description ? String(input.description).trim() : null,
+          workLocation,
+          plannedDate,
+          responsibleName: input.responsibleName || user.name || user.email,
+          participants: input.participants ? String(input.participants).trim() : null,
+          additionalConditions: input.additionalConditions ? String(input.additionalConditions).trim() : null,
+          weatherConditions: input.weatherConditions ? String(input.weatherConditions).trim() : null,
+          projectId: input.projectId || null,
+          updatedAt: new Date(),
+        },
+        include: { hazards: true },
+      });
+
+      revalidatePath("/dashboard/sja");
+      revalidatePath(`/dashboard/sja/${analysis.id}`);
+      revalidatePath("/ansatt/sja");
+      triggerRealtimeEvent(tenantId, "sja-updated");
+      return { success: true, data: analysis };
+    }
+
+    const sjaNummer = await generateSequenceNumber(tenantId, "SJA", plannedDate.getFullYear());
+
+    const analysis = await prisma.sjaAnalysis.create({
+      data: {
+        tenantId,
+        sjaNummer,
+        title,
+        description: input.description ? String(input.description).trim() : null,
+        workLocation,
+        plannedDate,
+        responsibleName: input.responsibleName || user.name || user.email,
+        participants: input.participants ? String(input.participants).trim() : null,
+        additionalConditions: input.additionalConditions ? String(input.additionalConditions).trim() : null,
+        weatherConditions: input.weatherConditions ? String(input.weatherConditions).trim() : null,
+        createdById: user.id,
+        createdByName: user.name || user.email,
+        templateId: input.templateId ?? null,
+        templateName: input.templateName ?? null,
+        projectId: input.projectId || null,
+        status: SjaStatus.DRAFT,
+        conclusion: SjaConclusion.NOT_DECIDED,
+        hazards: hazards.length > 0 ? { create: hazards } : undefined,
+      },
+      include: { hazards: true },
+    });
+
+    revalidatePath("/dashboard/sja");
+    revalidatePath("/ansatt/sja");
+    triggerRealtimeEvent(tenantId, "sja-updated");
+    return { success: true, data: analysis };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Kunne ikke lagre utkast" };
+  }
+}
+
 export async function updateSjaAnalysis(input: any) {
   try {
     const { user, tenantId } = await getSessionContext();
