@@ -95,6 +95,8 @@ export function WhistleblowingContent({ initialData }: WhistleblowingContentProp
     queryKey: ["whistleblowing"],
     queryFn: () => fetchWhistleblowings(),
     initialData,
+    refetchOnWindowFocus: true,
+    refetchInterval: 60_000,
   });
 
   if (!data) return null;

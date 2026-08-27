@@ -18,7 +18,7 @@ export async function GET(
     const tenant = await prisma.tenant.findUnique({
       where: {
         slug,
-        status: "ACTIVE",
+        status: { in: ["ACTIVE", "TRIAL"] },
       },
       select: {
         id: true,

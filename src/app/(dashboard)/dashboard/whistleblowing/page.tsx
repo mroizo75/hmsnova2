@@ -11,6 +11,8 @@ import { getTranslations } from "next-intl/server";
 import { fetchWhistleblowings } from "@/server/queries/whistleblowing.queries";
 import { WhistleblowingContent } from "@/features/whistleblowing/components/whistleblowing-content";
 
+export const dynamic = "force-dynamic";
+
 export default async function WhistleblowingListPage() {
   const t = await getTranslations("dashboardWhistleblowingPage");
   const session = await getServerSession(authOptions);

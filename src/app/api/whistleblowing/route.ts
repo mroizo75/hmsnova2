@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { nanoid } from "nanoid";
@@ -67,7 +68,7 @@ export async function POST(req: NextRequest) {
       where: {
         id: validatedData.tenantId,
         slug: validatedData.tenantSlug,
-        status: "ACTIVE",
+        status: { in: ["ACTIVE", "TRIAL"] },
       },
       select: {
         id: true,
@@ -135,6 +136,8 @@ export async function POST(req: NextRequest) {
       message: `${report.category}: ${report.title} - Saksnummer: ${caseNumber}`,
       link: `/dashboard/whistleblowing/${report.id}`,
     });
+
+    revalidatePath("/dashboard/whistleblowing");
 
     return NextResponse.json(
       {
