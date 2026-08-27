@@ -38,13 +38,16 @@ export async function POST(req: NextRequest) {
   try {
     // Rate limiting: 3 varslinger per time per IP
     const ip = getClientIp(req);
-    const rateLimitResult = await strictRateLimiter.limit(`whistleblow:${ip}`);
-    
-    if (!rateLimitResult.success) {
-      return NextResponse.json(
-        { error: "For mange forsøk. Vennligst vent før du sender en ny varsling." },
-        { status: 429 }
-      );
+    try {
+      const rateLimitResult = await strictRateLimiter.limit(`whistleblow:${ip}`);
+      if (!rateLimitResult.success) {
+        return NextResponse.json(
+          { error: "For mange forsøk. Vennligst vent før du sender en ny varsling." },
+          { status: 429 }
+        );
+      }
+    } catch (rateLimitError) {
+      console.error("[WHISTLEBLOWING] Rate limit check failed, allowing request:", rateLimitError);
     }
 
     const body = await req.json();
@@ -148,10 +151,17 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error("[WHISTLEBLOWING_POST]", error);
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues }, { status: 400 });
+      const messages = error.issues.map((issue) => {
+        const field = issue.path.join(".");
+        return `${field}: ${issue.message}`;
+      });
+      return NextResponse.json(
+        { error: messages.join(". ") || "Ugyldig data i skjemaet" },
+        { status: 400 }
+      );
     }
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Intern feil – vennligst prøv igjen" },
       { status: 500 }
     );
   }

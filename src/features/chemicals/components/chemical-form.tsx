@@ -474,14 +474,10 @@ export function ChemicalForm({ chemical, mode = "create" }: ChemicalFormProps) {
             title="Personlig verneutstyr (PPE)"
             description="Påkrevd verneutstyr ved håndtering – ISO 7010-symboler"
           />
-          {aiData?.requiredPPE && (
-            <Badge variant="secondary" className="text-xs">
-              <Sparkles className="h-2.5 w-2.5 mr-0.5" />AI-foreslått
-            </Badge>
-          )}
           <PPESelector
             key={aiData?.requiredPPE || "ppe"}
             defaultValue={aiData?.requiredPPE || chemical?.requiredPPE || ""}
+            suggestedFiles={aiData?.requiredPPE ? (() => { try { return JSON.parse(aiData.requiredPPE); } catch { return []; } })() : []}
           />
         </div>
 

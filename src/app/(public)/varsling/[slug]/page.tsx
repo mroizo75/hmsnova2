@@ -72,12 +72,6 @@ export default function TenantWhistleblowingPage() {
         if (response.ok) {
           const data = await response.json();
           setTenant(data.tenant);
-        } else {
-          toast({
-            title: "Feil",
-            description: "Kunne ikke finne varslingskanal for denne bedriften",
-            variant: "destructive",
-          });
         }
       } catch (error) {
         console.error("Failed to fetch tenant:", error);
@@ -87,7 +81,7 @@ export default function TenantWhistleblowingPage() {
     };
 
     fetchTenant();
-  }, [slug, toast]);
+  }, [slug]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,8 +120,11 @@ export default function TenantWhistleblowingPage() {
     setLoading(true);
 
     try {
-      if (!formData.title || !formData.description) {
-        throw new Error("Tittel og beskrivelse er påkrevd");
+      if (!formData.title.trim()) {
+        throw new Error("Tittel er påkrevd");
+      }
+      if (!formData.description.trim() || formData.description.trim().length < 10) {
+        throw new Error("Beskrivelse må være minst 10 tegn");
       }
 
       const payload: any = {
@@ -163,7 +160,12 @@ export default function TenantWhistleblowingPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Kunne ikke sende varsling");
+        const errorMsg = typeof data.error === "string"
+          ? data.error
+          : Array.isArray(data.error)
+            ? data.error.map((e: any) => e.message || e).join(". ")
+            : "Kunne ikke sende varsling. Prøv igjen.";
+        throw new Error(errorMsg);
       }
 
       setCaseInfo({
