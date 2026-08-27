@@ -206,7 +206,13 @@ export function SjaForm({
       const result = await createSjaAnalysis(payload);
 
       if (!result.success) {
-        throw new Error(result.error);
+        toast({
+          title: "Kunne ikke opprette SJA",
+          description: result.error || "Ukjent feil ved innsending",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
       }
 
       if (imageFiles.length > 0 && result.data?.id) {

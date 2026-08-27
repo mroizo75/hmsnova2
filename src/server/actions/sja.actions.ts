@@ -98,12 +98,39 @@ export async function getSjaAnalysis(id: string) {
 export async function createSjaAnalysis(input: any) {
   try {
     const { user, tenantId } = await getSessionContext();
+
+    const sanitizedHazards = (input.hazards ?? []).map((h: any, i: number) => ({
+      activity: String(h.activity ?? "").trim(),
+      hazard: String(h.hazard ?? "").trim(),
+      consequence: h.consequence ? String(h.consequence).trim() : undefined,
+      probability: Number(h.probability) || 1,
+      severity: Number(h.severity) || 1,
+      measures: String(h.measures ?? "").trim(),
+      responsibleName: h.responsibleName ? String(h.responsibleName).trim() : undefined,
+      sortOrder: i,
+      linkedRiskId: (h.linkedRiskId && typeof h.linkedRiskId === "string" && h.linkedRiskId.length > 5)
+        ? h.linkedRiskId
+        : undefined,
+    }));
+
     const normalizedInput = {
       ...input,
       tenantId,
       plannedDate: new Date(input.plannedDate),
+      hazards: sanitizedHazards,
     };
-    const validated = createSjaSchema.parse(normalizedInput);
+
+    const parseResult = createSjaSchema.safeParse(normalizedInput);
+    if (!parseResult.success) {
+      const firstIssue = parseResult.error.issues[0];
+      const fieldPath = firstIssue?.path?.join(" → ") || "ukjent felt";
+      return {
+        success: false,
+        error: `Valideringsfeil i "${fieldPath}": ${firstIssue?.message || "Ugyldig verdi"}`,
+      };
+    }
+    const validated = parseResult.data;
+
     if (validated.projectId) {
       const project = await prisma.project.findFirst({
         where: {
@@ -179,11 +206,40 @@ export async function createSjaAnalysis(input: any) {
 export async function updateSjaAnalysis(input: any) {
   try {
     const { user, tenantId } = await getSessionContext();
+
+    let sanitizedHazards = input.hazards;
+    if (Array.isArray(input.hazards)) {
+      sanitizedHazards = input.hazards.map((h: any, i: number) => ({
+        activity: String(h.activity ?? "").trim(),
+        hazard: String(h.hazard ?? "").trim(),
+        consequence: h.consequence ? String(h.consequence).trim() : undefined,
+        probability: Number(h.probability) || 1,
+        severity: Number(h.severity) || 1,
+        measures: String(h.measures ?? "").trim(),
+        responsibleName: h.responsibleName ? String(h.responsibleName).trim() : undefined,
+        sortOrder: i,
+        linkedRiskId: (h.linkedRiskId && typeof h.linkedRiskId === "string" && h.linkedRiskId.length > 5)
+          ? h.linkedRiskId
+          : undefined,
+      }));
+    }
+
     const normalizedInput = {
       ...input,
       plannedDate: input.plannedDate ? new Date(input.plannedDate) : undefined,
+      hazards: sanitizedHazards,
     };
-    const validated = updateSjaSchema.parse(normalizedInput);
+
+    const parseResult = updateSjaSchema.safeParse(normalizedInput);
+    if (!parseResult.success) {
+      const firstIssue = parseResult.error.issues[0];
+      const fieldPath = firstIssue?.path?.join(" → ") || "ukjent felt";
+      return {
+        success: false,
+        error: `Valideringsfeil i "${fieldPath}": ${firstIssue?.message || "Ugyldig verdi"}`,
+      };
+    }
+    const validated = parseResult.data;
 
     const existing = await prisma.sjaAnalysis.findUnique({
       where: { id: validated.id, tenantId },
