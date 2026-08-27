@@ -13,7 +13,7 @@ interface HaccpContentProps {
 
 export function HaccpContent({ initialData, canEdit }: HaccpContentProps) {
   const { data } = useQuery({
-    queryKey: ["settings"],
+    queryKey: ["ik-mat", "haccp"],
     queryFn: () => fetchHaccpData(),
     initialData,
   });

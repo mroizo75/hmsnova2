@@ -41,7 +41,7 @@ function statusBadge(status: HmsTavleSubscriptionStatus) {
 
 export function HmsTavleListContent({ initialData, canManage }: HmsTavleListContentProps) {
   const { data } = useQuery({
-    queryKey: ["settings"],
+    queryKey: ["hms-tavle"],
     queryFn: () => fetchHmsTavleList(),
     initialData,
   });

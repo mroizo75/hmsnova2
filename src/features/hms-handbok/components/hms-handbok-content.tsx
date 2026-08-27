@@ -13,7 +13,7 @@ interface HmsHandbokContentProps {
 
 export function HmsHandbokContent({ initialData }: HmsHandbokContentProps) {
   const { data } = useQuery({
-    queryKey: ["settings"],
+    queryKey: ["hms-handbok"],
     queryFn: () => fetchHmsHandbok(),
     initialData,
   });

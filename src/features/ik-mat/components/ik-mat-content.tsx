@@ -13,7 +13,7 @@ interface IkMatContentProps {
 
 export function IkMatContent({ initialData, canEdit }: IkMatContentProps) {
   const { data } = useQuery({
-    queryKey: ["settings"],
+    queryKey: ["ik-mat"],
     queryFn: () => fetchIkMatData(),
     initialData,
   });

@@ -13,7 +13,7 @@ interface TemperaturContentProps {
 
 export function TemperaturContent({ initialData, canEdit }: TemperaturContentProps) {
   const { data } = useQuery({
-    queryKey: ["settings"],
+    queryKey: ["ik-mat", "temperatur"],
     queryFn: () => fetchTemperaturData(),
     initialData,
   });

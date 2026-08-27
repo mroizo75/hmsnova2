@@ -13,7 +13,7 @@ interface AllergenContentProps {
 
 export function AllergenContent({ initialData, canEdit }: AllergenContentProps) {
   const { data } = useQuery({
-    queryKey: ["settings"],
+    queryKey: ["ik-mat", "allergen"],
     queryFn: () => fetchAllergenData(),
     initialData,
   });

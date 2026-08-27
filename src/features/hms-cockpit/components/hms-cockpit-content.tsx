@@ -32,7 +32,7 @@ interface HmsCockpitContentProps {
 
 export function HmsCockpitContent({ initialData }: HmsCockpitContentProps) {
   const { data } = useQuery({
-    queryKey: ["dashboard"],
+    queryKey: ["hms-cockpit"],
     queryFn: () => fetchHmsCockpitData(),
     initialData,
   });

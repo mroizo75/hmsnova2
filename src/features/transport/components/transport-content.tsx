@@ -13,7 +13,7 @@ interface TransportContentProps {
 
 export function TransportContent({ initialData, canEdit }: TransportContentProps) {
   const { data } = useQuery({
-    queryKey: ["settings"],
+    queryKey: ["transport"],
     queryFn: () => fetchTransportData(),
     initialData,
   });

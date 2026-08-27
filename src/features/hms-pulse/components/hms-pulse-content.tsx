@@ -83,7 +83,7 @@ function StatusRow({
 
 export function HmsPulseContent({ initialData }: HmsPulseContentProps) {
   const { data } = useQuery({
-    queryKey: ["dashboard"],
+    queryKey: ["hms-pulse"],
     queryFn: () => fetchHmsPulseData(),
     initialData,
   });

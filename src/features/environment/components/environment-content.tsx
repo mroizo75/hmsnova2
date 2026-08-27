@@ -15,7 +15,7 @@ interface EnvironmentContentProps {
 
 export function EnvironmentContent({ initialData }: EnvironmentContentProps) {
   const { data } = useQuery({
-    queryKey: ["settings"],
+    queryKey: ["environment"],
     queryFn: () => fetchEnvironmentList(),
     initialData,
   });

@@ -12,7 +12,7 @@ interface JuridiskRegisterContentProps {
 
 export function JuridiskRegisterContent({ initialData }: JuridiskRegisterContentProps) {
   const { data } = useQuery({
-    queryKey: ["settings"],
+    queryKey: ["juridisk-register"],
     queryFn: () => fetchJuridiskRegisterData(),
     initialData,
   });

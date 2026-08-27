@@ -13,7 +13,7 @@ interface BeredskapReiselivContentProps {
 
 export function BeredskapReiselivContent({ initialData, canEdit }: BeredskapReiselivContentProps) {
   const { data } = useQuery({
-    queryKey: ["settings"],
+    queryKey: ["beredskap-reiseliv"],
     queryFn: () => fetchBeredskapReiselivData(),
     initialData,
   });

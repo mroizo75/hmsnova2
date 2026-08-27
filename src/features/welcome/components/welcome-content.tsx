@@ -12,7 +12,7 @@ interface WelcomeContentProps {
 
 export function WelcomeContent({ initialData }: WelcomeContentProps) {
   const { data } = useQuery({
-    queryKey: ["settings"],
+    queryKey: ["welcome"],
     queryFn: () => fetchWelcomeData(),
     initialData,
   });

@@ -13,7 +13,7 @@ interface BhtNattarbeidContentProps {
 
 export function BhtNattarbeidContent({ initialData, canEdit }: BhtNattarbeidContentProps) {
   const { data } = useQuery({
-    queryKey: ["settings"],
+    queryKey: ["bht-nattarbeid"],
     queryFn: () => fetchBhtNattarbeidData(),
     initialData,
   });

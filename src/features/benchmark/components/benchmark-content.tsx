@@ -16,7 +16,7 @@ interface BenchmarkContentProps {
 
 export function BenchmarkContent({ initialData }: BenchmarkContentProps) {
   const { data } = useQuery({
-    queryKey: ["dashboard"],
+    queryKey: ["benchmark"],
     queryFn: () => fetchBenchmarkData(),
     initialData,
   });
