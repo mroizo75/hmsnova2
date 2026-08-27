@@ -82,45 +82,58 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generate unique case number based on highest existing number
+    // Generate unique case number globally (constraint is @unique across all tenants)
     const year = new Date().getFullYear();
     const prefix = `VAR-${year}-`;
-    const latest = await db.whistleblowing.findFirst({
-      where: {
-        tenantId: tenant.id,
-        caseNumber: { startsWith: prefix },
-      },
-      orderBy: { caseNumber: "desc" },
-      select: { caseNumber: true },
-    });
-    const lastNum = latest
-      ? parseInt(latest.caseNumber.replace(prefix, ""), 10) || 0
-      : 0;
-    const caseNumber = `${prefix}${String(lastNum + 1).padStart(3, "0")}`;
 
-    // Generate secure access code (for anonymous follow-up)
-    const accessCode = nanoid(16).toUpperCase();
+    const MAX_RETRIES = 3;
+    let report;
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      const latest = await db.whistleblowing.findFirst({
+        where: { caseNumber: { startsWith: prefix } },
+        orderBy: { caseNumber: "desc" },
+        select: { caseNumber: true },
+      });
+      const lastNum = latest
+        ? parseInt(latest.caseNumber.replace(prefix, ""), 10) || 0
+        : 0;
+      const caseNumber = `${prefix}${String(lastNum + 1).padStart(3, "0")}`;
+      const accessCode = nanoid(16).toUpperCase();
 
-    const report = await db.whistleblowing.create({
-      data: {
-        tenantId: tenant.id,
-        caseNumber,
-        accessCode,
-        category: validatedData.category,
-        title: validatedData.title,
-        description: validatedData.description,
-        occurredAt: validatedData.occurredAt
-          ? new Date(validatedData.occurredAt)
-          : null,
-        location: validatedData.location || null,
-        involvedPersons: validatedData.involvedPersons || null,
-        witnesses: validatedData.witnesses || null,
-        reporterName: validatedData.reporterName || null,
-        reporterEmail: validatedData.reporterEmail || null,
-        reporterPhone: validatedData.reporterPhone || null,
-        isAnonymous: validatedData.isAnonymous,
-      },
-    });
+      try {
+        report = await db.whistleblowing.create({
+          data: {
+            tenantId: tenant.id,
+            caseNumber,
+            accessCode,
+            category: validatedData.category,
+            title: validatedData.title,
+            description: validatedData.description,
+            occurredAt: validatedData.occurredAt
+              ? new Date(validatedData.occurredAt)
+              : null,
+            location: validatedData.location || null,
+            involvedPersons: validatedData.involvedPersons || null,
+            witnesses: validatedData.witnesses || null,
+            reporterName: validatedData.reporterName || null,
+            reporterEmail: validatedData.reporterEmail || null,
+            reporterPhone: validatedData.reporterPhone || null,
+            isAnonymous: validatedData.isAnonymous,
+          },
+        });
+        break;
+      } catch (createError: any) {
+        if (createError.code === "P2002" && attempt < MAX_RETRIES - 1) continue;
+        throw createError;
+      }
+    }
+
+    if (!report) {
+      return NextResponse.json(
+        { error: "Kunne ikke opprette varsling – prøv igjen" },
+        { status: 500 }
+      );
+    }
 
     // Create initial system message
     await db.whistleblowMessage.create({
