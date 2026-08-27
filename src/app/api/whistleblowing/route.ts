@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
       data: {
         whistleblowingId: report.id,
         sender: "SYSTEM",
-        message: `Varsling mottatt med saksnummer ${caseNumber}. Bruk tilgangskoden din for å følge opp saken.`,
+        message: `Varsling mottatt med saksnummer ${report.caseNumber}. Bruk tilgangskoden din for å følge opp saken.`,
       },
     });
 
@@ -148,14 +148,14 @@ export async function POST(req: NextRequest) {
     await notifyUsersByRole(tenant.id, "HMS", {
       type: "WHISTLEBLOWING",
       title: "Ny varsling mottatt",
-      message: `${report.category}: ${report.title} - Saksnummer: ${caseNumber}`,
+      message: `${report.category}: ${report.title} - Saksnummer: ${report.caseNumber}`,
       link: `/dashboard/whistleblowing/${report.id}`,
     });
     
     await notifyUsersByRole(tenant.id, "LEDER", {
       type: "WHISTLEBLOWING",
       title: "Ny varsling mottatt",
-      message: `${report.category}: ${report.title} - Saksnummer: ${caseNumber}`,
+      message: `${report.category}: ${report.title} - Saksnummer: ${report.caseNumber}`,
       link: `/dashboard/whistleblowing/${report.id}`,
     });
 
