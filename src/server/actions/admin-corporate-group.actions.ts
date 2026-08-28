@@ -8,6 +8,7 @@ import { Resend } from "resend";
 
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { createTenantAdminAndSendEmail } from "@/lib/konsern-tenant-email";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "HMS Nova <noreply@hmsnova.no>";
@@ -244,6 +245,70 @@ export async function createCorporateGroup(data: {
 
   revalidatePath("/admin/konsern");
   return group;
+}
+
+export async function adminCreateTenantForGroup(groupId: string, data: {
+  name: string;
+  orgNumber?: string;
+  contactPerson?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  address?: string;
+  city?: string;
+  postalCode?: string;
+  industry?: string;
+}) {
+  await requireSuperAdmin();
+
+  if (!data.name.trim()) throw new Error("Bedriftsnavn er påkrevd");
+
+  const group = await prisma.corporateGroup.findUnique({
+    where: { id: groupId },
+    select: { name: true },
+  });
+  if (!group) throw new Error("Konsernet finnes ikke");
+
+  const slug = data.name
+    .toLowerCase()
+    .replace(/[^a-z0-9æøå]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    + `-${Date.now().toString(36)}`;
+
+  const tenant = await prisma.tenant.create({
+    data: {
+      name: data.name.trim(),
+      slug,
+      orgNumber: data.orgNumber || undefined,
+      contactPerson: data.contactPerson || undefined,
+      contactEmail: data.contactEmail || undefined,
+      contactPhone: data.contactPhone || undefined,
+      address: data.address || undefined,
+      city: data.city || undefined,
+      postalCode: data.postalCode || undefined,
+      industry: data.industry || undefined,
+      status: "ACTIVE",
+      onboardingStatus: "NOT_STARTED",
+    },
+  });
+
+  await prisma.corporateGroupTenant.create({
+    data: { groupId, tenantId: tenant.id },
+  });
+
+  let emailSent = false;
+  if (data.contactEmail) {
+    const result = await createTenantAdminAndSendEmail({
+      tenantId: tenant.id,
+      tenantName: data.name.trim(),
+      contactEmail: data.contactEmail,
+      contactPerson: data.contactPerson,
+      groupName: group.name,
+    });
+    emailSent = result.emailSent;
+  }
+
+  revalidatePath("/admin/konsern");
+  return { tenant, emailSent };
 }
 
 export async function adminAddTenantToGroup(groupId: string, tenantId: string) {

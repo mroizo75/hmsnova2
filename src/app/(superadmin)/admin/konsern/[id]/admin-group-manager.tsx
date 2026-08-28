@@ -29,6 +29,7 @@ import {
   adminRemoveUserFromGroup,
   adminAddTenantToGroup,
   adminRemoveTenantFromGroup,
+  adminCreateTenantForGroup,
 } from "@/server/actions/admin-corporate-group.actions";
 
 interface GroupUser {
@@ -90,6 +91,11 @@ export function AdminGroupManager({
 
   const [selectedTenantId, setSelectedTenantId] = useState("");
   const [tenantSearch, setTenantSearch] = useState("");
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newTenant, setNewTenant] = useState({
+    name: "", orgNumber: "", contactPerson: "", contactEmail: "",
+    contactPhone: "", address: "", city: "", postalCode: "", industry: "",
+  });
 
   const existingUserIds = new Set(users.map((u) => u.userId));
   const existingTenantIds = new Set(tenants.filter((t) => t.status === "ACTIVE").map((t) => t.tenantId));
@@ -154,6 +160,34 @@ export function AdminGroupManager({
     });
   }
 
+  function handleCreateTenant() {
+    if (!newTenant.name.trim()) return;
+    startTransition(async () => {
+      try {
+        const result = await adminCreateTenantForGroup(groupId, {
+          name: newTenant.name,
+          orgNumber: newTenant.orgNumber || undefined,
+          contactPerson: newTenant.contactPerson || undefined,
+          contactEmail: newTenant.contactEmail || undefined,
+          contactPhone: newTenant.contactPhone || undefined,
+          address: newTenant.address || undefined,
+          city: newTenant.city || undefined,
+          postalCode: newTenant.postalCode || undefined,
+          industry: newTenant.industry || undefined,
+        });
+        const msg = result.emailSent
+          ? `${newTenant.name} opprettet — velkomst-e-post sendt til ${newTenant.contactEmail}`
+          : `${newTenant.name} opprettet og tilknyttet konsernet`;
+        toast({ title: msg });
+        setNewTenant({ name: "", orgNumber: "", contactPerson: "", contactEmail: "", contactPhone: "", address: "", city: "", postalCode: "", industry: "" });
+        setShowCreateForm(false);
+        router.refresh();
+      } catch (err) {
+        toast({ title: "Feil", description: String(err), variant: "destructive" });
+      }
+    });
+  }
+
   function handleRemoveTenant(tenantId: string, name: string) {
     if (!confirm(`Fjerne ${name} fra konsernet?`)) return;
     startTransition(async () => {
@@ -202,6 +236,78 @@ export function AdminGroupManager({
               {pending ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Building2 className="mr-2 h-3.5 w-3.5" />}
               Legg til
             </Button>
+
+            <div className="border-t pt-3 mt-3">
+              <button
+                type="button"
+                onClick={() => setShowCreateForm(!showCreateForm)}
+                className="text-xs text-blue-600 hover:underline font-medium"
+              >
+                {showCreateForm ? "— Skjul opprettelseskjema" : "+ Opprett ny bedrift"}
+              </button>
+            </div>
+
+            {showCreateForm && (
+              <div className="space-y-2 rounded-md border bg-gray-50 p-3">
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Input
+                    placeholder="Bedriftsnavn *"
+                    value={newTenant.name}
+                    onChange={(e) => setNewTenant({ ...newTenant, name: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Org.nr"
+                    value={newTenant.orgNumber}
+                    onChange={(e) => setNewTenant({ ...newTenant, orgNumber: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Kontaktperson"
+                    value={newTenant.contactPerson}
+                    onChange={(e) => setNewTenant({ ...newTenant, contactPerson: e.target.value })}
+                  />
+                  <Input
+                    placeholder="E-post (får innlogging)"
+                    type="email"
+                    value={newTenant.contactEmail}
+                    onChange={(e) => setNewTenant({ ...newTenant, contactEmail: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Telefon"
+                    value={newTenant.contactPhone}
+                    onChange={(e) => setNewTenant({ ...newTenant, contactPhone: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Bransje"
+                    value={newTenant.industry}
+                    onChange={(e) => setNewTenant({ ...newTenant, industry: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Adresse"
+                    value={newTenant.address}
+                    onChange={(e) => setNewTenant({ ...newTenant, address: e.target.value })}
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      placeholder="Postnr"
+                      value={newTenant.postalCode}
+                      onChange={(e) => setNewTenant({ ...newTenant, postalCode: e.target.value })}
+                    />
+                    <Input
+                      placeholder="Poststed"
+                      value={newTenant.city}
+                      onChange={(e) => setNewTenant({ ...newTenant, city: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <p className="text-[10px] text-gray-500">
+                  Hvis e-post er oppgitt, opprettes admin-bruker og velkomst-e-post sendes automatisk.
+                </p>
+                <Button size="sm" onClick={handleCreateTenant} disabled={pending || !newTenant.name.trim()}>
+                  {pending ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Building2 className="mr-2 h-3.5 w-3.5" />}
+                  Opprett og tilknytt
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Liste */}

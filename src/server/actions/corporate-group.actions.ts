@@ -9,6 +9,7 @@ import {
   requireGroupPermission,
   getAccessibleTenantIds,
 } from "@/lib/corporate-group-context";
+import { createTenantAdminAndSendEmail } from "@/lib/konsern-tenant-email";
 
 export async function getCorporateGroupDetails() {
   const context = await requireCorporateGroupContext();
@@ -164,9 +165,26 @@ export async function createTenantForGroup(data: {
     data: { groupId: context.groupId, tenantId: tenant.id },
   });
 
+  // Opprett admin-bruker og send velkomst-e-post
+  let emailSent = false;
+  if (data.contactEmail) {
+    const group = await prisma.corporateGroup.findUnique({
+      where: { id: context.groupId },
+      select: { name: true },
+    });
+    const result = await createTenantAdminAndSendEmail({
+      tenantId: tenant.id,
+      tenantName: data.name.trim(),
+      contactEmail: data.contactEmail,
+      contactPerson: data.contactPerson,
+      groupName: group?.name ?? "Konsern",
+    });
+    emailSent = result.emailSent;
+  }
+
   await logGroupAction(context.groupId, context.userId, "ADD_TENANT", "tenant", tenant.id);
   revalidatePath("/konsern");
-  return tenant;
+  return { ...tenant, emailSent };
 }
 
 export async function removeTenantFromGroup(tenantId: string) {

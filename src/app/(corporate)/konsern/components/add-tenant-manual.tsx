@@ -37,7 +37,7 @@ export function AddTenantManual() {
 
     startTransition(async () => {
       try {
-        await createTenantForGroup({
+        const result = await createTenantForGroup({
           name: form.name,
           orgNumber: form.orgNumber || undefined,
           contactPerson: form.contactPerson || undefined,
@@ -48,7 +48,10 @@ export function AddTenantManual() {
           postalCode: form.postalCode || undefined,
           industry: form.industry || undefined,
         });
-        toast({ title: "Bedrift opprettet og tilknyttet konsernet" });
+        const msg = result.emailSent
+          ? `${form.name} opprettet — velkomst-e-post sendt til ${form.contactEmail}`
+          : "Bedrift opprettet og tilknyttet konsernet";
+        toast({ title: msg });
         setForm({ name: "", orgNumber: "", contactPerson: "", contactEmail: "", contactPhone: "", address: "", city: "", postalCode: "", industry: "" });
         setExpanded(false);
         setShowExtended(false);
