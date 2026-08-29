@@ -1,16 +1,18 @@
 /**
  * Sentralt PDF-brandings-bibliotek for HMS Nova.
  *
- * Bygger HTML-maler med full profesjonell branding og kaller Adobe PDF Services
- * for å konvertere til pixel-perfekt PDF.
+ * Bygger rapport-data for Adobe Document Generation (Word-mal) med HTML-til-PDF
+ * og jsPDF som fallback.
  *
  * Alle rapportgeneratorer i systemet bør bruke dette biblioteket.
  */
 
 import fs from "fs";
 import path from "path";
-import { htmlToPdf } from "@/lib/adobe-pdf";
+import { generatePdfFromTemplate, htmlToPdf } from "@/lib/adobe-pdf";
 import { getStorage } from "@/lib/storage";
+import { buildReportMergeData, HMS_NOVA_REPORT_TEMPLATE } from "@/lib/report-merge-data";
+import { fitLogoToSlot, HMS_LOGO_SLOT, TENANT_LOGO_SLOT } from "@/lib/report-logo";
 
 // ── Logo-caching ─────────────────────────────────────────────────────────────
 
@@ -134,18 +136,23 @@ const CSS = `
     padding: 24px 30px 18px;
     vertical-align: middle;
   }
-  .header-logo-cell { width: 60%; }
-  .header-company-cell { width: 40%; text-align: right; }
+  .header-logo-cell { width: 72%; }
+  .header-company-cell { width: 28%; text-align: right; }
   .header-logo-tenant {
-    height: 57px;
-    max-height: 57px;
+    height: 52px;
+    max-height: 52px;
     width: auto;
-    max-width: 260px;
+    max-width: 240px;
+    object-fit: contain;
+    object-position: left center;
   }
   .header-logo-hms {
-    height: 36px;
+    height: 20px;
+    max-height: 20px;
     width: auto;
-    opacity: 0.7;
+    max-width: 88px;
+    object-fit: contain;
+    object-position: right center;
   }
   .header-company-name {
     font-size: 14px;
@@ -509,8 +516,8 @@ export async function buildReportHtml(config: PdfReportConfig): Promise<string> 
     <table class="report-header-table" cellpadding="0" cellspacing="0">
       <tr>
         <td class="header-logo-cell">
-          ${tenantLogoImg || `<div class="header-company-name">${escHtml(config.tenant.name)}</div>`}
-          ${tenantLogoImg ? `<div style="margin-top:4px;"><div class="header-company-name">${escHtml(config.tenant.name)}</div></div>` : ""}
+          ${tenantLogoImg}
+          <div class="header-company-name">${escHtml(config.tenant.name)}</div>
           ${config.tenant.orgNumber ? `<div class="header-company-sub">Org.nr. ${escHtml(config.tenant.orgNumber)}</div>` : ""}
           ${config.tenant.address ? `<div class="header-company-sub">${escHtml(config.tenant.address)}</div>` : ""}
         </td>
@@ -556,16 +563,31 @@ export async function buildReportHtml(config: PdfReportConfig): Promise<string> 
 }
 
 /**
- * Generer en branded PDF. Prøver Adobe PDF Services først,
- * faller tilbake til jsPDF-basert generering ved feil.
+ * Generer en branded PDF.
+ * 1. Adobe Document Generation (Word-mal)
+ * 2. Adobe HTML-til-PDF
+ * 3. jsPDF
  */
 export async function generateBrandedPdf(config: PdfReportConfig): Promise<Buffer> {
   try {
-    const html = await buildReportHtml(config);
-    return await htmlToPdf(html);
+    const mergeData = await toReportMergeData(config);
+    return await generatePdfFromTemplate(HMS_NOVA_REPORT_TEMPLATE, mergeData);
   } catch {
-    return generateFallbackPdf(config);
+    try {
+      const html = await buildReportHtml(config);
+      return await htmlToPdf(html);
+    } catch {
+      return generateFallbackPdf(config);
+    }
   }
+}
+
+async function toReportMergeData(config: PdfReportConfig) {
+  const tenantRaw = await resolveImageToBase64(config.tenant.logoUrl);
+  return buildReportMergeData(config, {
+    tenantLogo: fitLogoToSlot(tenantRaw, TENANT_LOGO_SLOT),
+    hmsLogo: fitLogoToSlot(getLogoBase64(), HMS_LOGO_SLOT),
+  });
 }
 
 async function generateFallbackPdf(config: PdfReportConfig): Promise<Buffer> {

@@ -1,9 +1,13 @@
 import { Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { getGroupTenantEmployees } from "@/server/actions/corporate-group-read.actions";
+import { KonsernPagination } from "@/components/konsern-pagination";
+
+const PAGE_SIZE = 25;
 
 interface PageProps {
   params: Promise<{ tenantId: string }>;
+  searchParams: Promise<{ page?: string }>;
 }
 
 function roleLabel(role: string): string {
@@ -27,9 +31,13 @@ function roleColor(role: string): string {
   return "bg-gray-100 text-gray-600";
 }
 
-export default async function TenantEmployeesPage({ params }: PageProps) {
+export default async function TenantEmployeesPage({ params, searchParams }: PageProps) {
   const { tenantId } = await params;
-  const employees = await getGroupTenantEmployees(tenantId);
+  const sp = await searchParams;
+  const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
+  const offset = (page - 1) * PAGE_SIZE;
+
+  const { employees, total } = await getGroupTenantEmployees(tenantId, { limit: PAGE_SIZE, offset });
 
   return (
     <div className="space-y-4">
@@ -40,7 +48,7 @@ export default async function TenantEmployeesPage({ params }: PageProps) {
             GDPR: Kun navn, stilling, avdeling og rolle vises til konsern-nivå
           </p>
         </div>
-        <span className="text-sm text-gray-500">{employees.length} registrert</span>
+        <span className="text-sm text-gray-500">{total} registrert</span>
       </div>
 
       {employees.length === 0 ? (
@@ -92,6 +100,13 @@ export default async function TenantEmployeesPage({ params }: PageProps) {
           </table>
         </div>
       )}
+
+      <KonsernPagination
+        currentPage={page}
+        totalItems={total}
+        pageSize={PAGE_SIZE}
+        basePath={`/konsern/bedrifter/${tenantId}/ansatte`}
+      />
     </div>
   );
 }

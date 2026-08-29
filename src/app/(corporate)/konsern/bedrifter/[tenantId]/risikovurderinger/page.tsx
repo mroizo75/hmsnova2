@@ -1,20 +1,28 @@
 import { Shield, Lock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { getGroupTenantRiskAssessments } from "@/server/actions/corporate-group-read.actions";
+import { KonsernPagination } from "@/components/konsern-pagination";
+
+const PAGE_SIZE = 25;
 
 interface PageProps {
   params: Promise<{ tenantId: string }>;
+  searchParams: Promise<{ page?: string }>;
 }
 
-export default async function TenantRiskAssessmentsPage({ params }: PageProps) {
+export default async function TenantRiskAssessmentsPage({ params, searchParams }: PageProps) {
   const { tenantId } = await params;
-  const assessments = await getGroupTenantRiskAssessments(tenantId);
+  const sp = await searchParams;
+  const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
+  const offset = (page - 1) * PAGE_SIZE;
+
+  const { assessments, total } = await getGroupTenantRiskAssessments(tenantId, { limit: PAGE_SIZE, offset });
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-900">Risikovurderinger</h2>
-        <span className="text-sm text-gray-500">{assessments.length} totalt</span>
+        <span className="text-sm text-gray-500">{total} totalt</span>
       </div>
 
       {assessments.length === 0 ? (
@@ -59,6 +67,13 @@ export default async function TenantRiskAssessmentsPage({ params }: PageProps) {
           ))}
         </div>
       )}
+
+      <KonsernPagination
+        currentPage={page}
+        totalItems={total}
+        pageSize={PAGE_SIZE}
+        basePath={`/konsern/bedrifter/${tenantId}/risikovurderinger`}
+      />
     </div>
   );
 }

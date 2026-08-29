@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { getWellbeingReport } from "@/server/actions/wellbeing.actions";
-import { generateWellbeingReportPDF } from "@/lib/adobe-pdf";
+import { generateWellbeingReportPDF } from "@/lib/wellbeing-report-pdf";
 import { prisma } from "@/lib/db";
 
 /**
  * GET /api/wellbeing/report/[year]/pdf
- * Generer og last ned PDF-rapport for psykososialt arbeidsmiljø
+ * Generer og last ned PDF-rapport for psykososialt arbeidsmiljø (AML § 4-3).
  */
 export async function GET(
   request: NextRequest,
@@ -27,17 +27,15 @@ export async function GET(
       return NextResponse.json({ error: "Ugyldig år" }, { status: 400 });
     }
 
-    // Hent tenant-navn
     const tenant = await prisma.tenant.findUnique({
       where: { id: session.user.tenantId },
-      select: { name: true },
+      select: { name: true, orgNumber: true, address: true, logoUrl: true },
     });
 
     if (!tenant) {
       return NextResponse.json({ error: "Tenant ikke funnet" }, { status: 404 });
     }
 
-    // Hent rapport-data
     const reportData = await getWellbeingReport(session.user.tenantId, yearNum);
 
     if (reportData.totalResponses === 0) {
@@ -47,10 +45,13 @@ export async function GET(
       );
     }
 
-    // Generer PDF
-    const pdfBuffer = await generateWellbeingReportPDF(reportData, tenant.name);
+    const pdfBuffer = await generateWellbeingReportPDF(reportData, {
+      name: tenant.name,
+      orgNumber: tenant.orgNumber,
+      address: tenant.address,
+      logoUrl: tenant.logoUrl,
+    });
 
-    // Returner PDF
     return new NextResponse(pdfBuffer as any, {
       status: 200,
       headers: {
@@ -58,11 +59,8 @@ export async function GET(
         "Content-Disposition": `attachment; filename="Psykososial-Rapport-${tenant.name}-${yearNum}.pdf"`,
       },
     });
-  } catch (error: any) {
-    console.error("PDF generation error:", error);
-    return NextResponse.json(
-      { error: error.message || "Kunne ikke generere PDF" },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Kunne ikke generere PDF";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

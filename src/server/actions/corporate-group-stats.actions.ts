@@ -444,3 +444,255 @@ export async function getGroupOverviewStats() {
     completedInspections,
   };
 }
+
+// ── Psykososialt arbeidsmiljø (GDPR Art. 9 — helseopplysninger) ──────────────
+
+const WELLBEING_MIN_RESPONSES = 5;
+
+export interface TenantWellbeingOverview {
+  tenantId: string;
+  tenantName: string;
+  totalResponses: number;
+  averageScore: number | null;
+  sectionScores: Array<{ section: string; average: number }>;
+  criticalCount: number;
+  lastSurveyDate: Date | null;
+}
+
+const SECTION_KEYWORDS: Record<string, string[]> = {
+  "Arbeidsbelastning": ["arbeidsmengde", "tid", "stress", "krav"],
+  "Rolle og forutsigbarhet": ["forvent", "ansvar", "endring", "forutsigbar"],
+  "Sosialt arbeidsmiljø": ["stemning", "respekt", "inkludert", "samarbeid"],
+  "Ledelse og støtte": ["støtte", "leder", "tilbakemelding", "konflikt", "rettferdig"],
+};
+
+export async function getGroupWellbeingOverview(): Promise<TenantWellbeingOverview[]> {
+  const context = await requireCorporateGroupContext();
+  const tenantIds = await getAccessibleTenantIds(context.groupId);
+
+  if (tenantIds.length === 0) return [];
+
+  await prisma.corporateGroupAuditLog.create({
+    data: {
+      groupId: context.groupId,
+      userId: context.userId,
+      action: "VIEW_TENANT_WELLBEING",
+      targetType: "group",
+      targetId: context.groupId,
+    },
+  });
+
+  const tenants = await prisma.corporateGroupTenant.findMany({
+    where: { groupId: context.groupId, status: "ACTIVE" },
+    include: { tenant: { select: { id: true, name: true } } },
+  });
+
+  const submissions = await prisma.formSubmission.findMany({
+    where: {
+      tenantId: { in: tenantIds },
+      status: { in: ["SUBMITTED", "APPROVED"] },
+      formTemplate: { category: "WELLBEING" },
+    },
+    select: {
+      tenantId: true,
+      createdAt: true,
+      fieldValues: {
+        select: {
+          value: true,
+          field: { select: { fieldType: true, label: true } },
+        },
+      },
+    },
+  });
+
+  const byTenant = new Map<string, typeof submissions>();
+  for (const sub of submissions) {
+    const arr = byTenant.get(sub.tenantId) ?? [];
+    arr.push(sub);
+    byTenant.set(sub.tenantId, arr);
+  }
+
+  return tenants.map((gt) => {
+    const tid = gt.tenant.id;
+    const tenantSubs = byTenant.get(tid) ?? [];
+    const totalResponses = tenantSubs.length;
+
+    if (totalResponses < WELLBEING_MIN_RESPONSES) {
+      return {
+        tenantId: tid,
+        tenantName: gt.tenant.name,
+        totalResponses,
+        averageScore: null,
+        sectionScores: [],
+        criticalCount: 0,
+        lastSurveyDate: tenantSubs.length > 0
+          ? tenantSubs.reduce((latest, s) => (s.createdAt > latest ? s.createdAt : latest), tenantSubs[0].createdAt)
+          : null,
+      };
+    }
+
+    const allLikert: number[] = [];
+    const sectionValues: Record<string, number[]> = {};
+    let criticalCount = 0;
+
+    for (const sub of tenantSubs) {
+      let hasCritical = false;
+      for (const fv of sub.fieldValues) {
+        if (fv.field.fieldType === "LIKERT_SCALE" && fv.value) {
+          const num = parseInt(fv.value, 10);
+          if (num > 0 && num <= 5) {
+            allLikert.push(num);
+            const label = fv.field.label.toLowerCase();
+            for (const [section, keywords] of Object.entries(SECTION_KEYWORDS)) {
+              if (keywords.some((kw) => label.includes(kw))) {
+                (sectionValues[section] ??= []).push(num);
+                break;
+              }
+            }
+          }
+        }
+        if (fv.field.fieldType === "RADIO" && fv.value && fv.value !== "Aldri") {
+          hasCritical = true;
+        }
+      }
+      if (hasCritical) criticalCount++;
+    }
+
+    const averageScore = allLikert.length > 0
+      ? parseFloat((allLikert.reduce((a, b) => a + b, 0) / allLikert.length).toFixed(1))
+      : null;
+
+    const sectionScores = Object.entries(sectionValues).map(([section, vals]) => ({
+      section,
+      average: parseFloat((vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1)),
+    }));
+
+    const lastSurveyDate = tenantSubs.reduce(
+      (latest, s) => (s.createdAt > latest ? s.createdAt : latest),
+      tenantSubs[0].createdAt,
+    );
+
+    return {
+      tenantId: tid,
+      tenantName: gt.tenant.name,
+      totalResponses,
+      averageScore,
+      sectionScores,
+      criticalCount,
+      lastSurveyDate,
+    };
+  });
+}
+
+// ── Konsern HMS-årsrapport ───────────────────────────────────────────────────
+
+export interface GroupAnnualReportData {
+  year: number;
+  groupName: string;
+  groupOrgNumber: string | null;
+  groupLogo: string | null;
+  generatedAt: Date;
+  summary: {
+    totalTenants: number;
+    totalEmployees: number;
+    averageHmsScore: number;
+    totalIncidents: number;
+    openIncidents: number;
+  };
+  tenantScores: TenantComplianceScore[];
+  incidentStats: {
+    byType: Array<{ type: string; _count: number }>;
+    trend: IncidentTrendPoint[];
+    totals: { open: number; closed: number; total: number };
+  };
+  trainingStatus: Array<{
+    tenantName: string;
+    employees: number;
+    validCourses: number;
+    expiredCourses: number;
+  }>;
+  inspectionStatus: Array<{
+    tenantName: string;
+    completedCount: number;
+    plannedCount: number;
+    lastCompletedDate: Date | null;
+  }>;
+  wellbeing: TenantWellbeingOverview[];
+  alerts: GroupAlert[];
+}
+
+export async function generateGroupAnnualReport(year: number): Promise<GroupAnnualReportData> {
+  const context = await requireCorporateGroupContext();
+
+  const group = await prisma.corporateGroup.findUniqueOrThrow({
+    where: { id: context.groupId },
+    select: { name: true, orgNumber: true, logo: true },
+  });
+
+  const [
+    scores,
+    incidentStats,
+    trainingStatus,
+    inspectionStatus,
+    wellbeing,
+    overview,
+    alerts,
+  ] = await Promise.all([
+    getGroupComplianceScores(),
+    getGroupIncidentStats(),
+    getGroupTrainingStatus(),
+    getGroupInspectionStatus(),
+    getGroupWellbeingOverview(),
+    getGroupOverviewStats(),
+    getGroupAlerts(),
+  ]);
+
+  const averageHmsScore = scores.length > 0
+    ? Math.round(scores.reduce((s, t) => s + t.overallScore, 0) / scores.length)
+    : 0;
+
+  await prisma.corporateGroupAuditLog.create({
+    data: {
+      groupId: context.groupId,
+      userId: context.userId,
+      action: "GENERATE_REPORT",
+      targetType: "report",
+      targetId: String(year),
+    },
+  });
+
+  return {
+    year,
+    groupName: group.name,
+    groupOrgNumber: group.orgNumber,
+    groupLogo: group.logo,
+    generatedAt: new Date(),
+    summary: {
+      totalTenants: overview.totalTenants,
+      totalEmployees: overview.totalEmployees,
+      averageHmsScore,
+      totalIncidents: overview.totalIncidents,
+      openIncidents: overview.openIncidents,
+    },
+    tenantScores: scores,
+    incidentStats: {
+      byType: incidentStats.byType,
+      trend: incidentStats.trend,
+      totals: incidentStats.totals,
+    },
+    trainingStatus: trainingStatus.map((t) => ({
+      tenantName: t.tenantName,
+      employees: t.employees,
+      validCourses: t.validCourses,
+      expiredCourses: t.expiredCourses,
+    })),
+    inspectionStatus: inspectionStatus.map((i) => ({
+      tenantName: i.tenantName,
+      completedCount: i.completedCount,
+      plannedCount: i.plannedCount,
+      lastCompletedDate: i.lastCompletedDate,
+    })),
+    wellbeing,
+    alerts,
+  };
+}

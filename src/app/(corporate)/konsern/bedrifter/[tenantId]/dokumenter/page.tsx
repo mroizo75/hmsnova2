@@ -1,9 +1,13 @@
 import { BookOpen, Lock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { getGroupTenantDocuments } from "@/server/actions/corporate-group-read.actions";
+import { KonsernPagination } from "@/components/konsern-pagination";
+
+const PAGE_SIZE = 25;
 
 interface PageProps {
   params: Promise<{ tenantId: string }>;
+  searchParams: Promise<{ page?: string }>;
 }
 
 function kindLabel(kind: string): string {
@@ -34,15 +38,19 @@ function statusColor(status: string): string {
   return "bg-gray-50 text-gray-500";
 }
 
-export default async function TenantDocumentsPage({ params }: PageProps) {
+export default async function TenantDocumentsPage({ params, searchParams }: PageProps) {
   const { tenantId } = await params;
-  const documents = await getGroupTenantDocuments(tenantId);
+  const sp = await searchParams;
+  const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
+  const offset = (page - 1) * PAGE_SIZE;
+
+  const { documents, total } = await getGroupTenantDocuments(tenantId, { limit: PAGE_SIZE, offset });
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-900">Dokumenter</h2>
-        <span className="text-sm text-gray-500">{documents.length} totalt</span>
+        <span className="text-sm text-gray-500">{total} totalt</span>
       </div>
 
       {documents.length === 0 ? (
@@ -92,6 +100,13 @@ export default async function TenantDocumentsPage({ params }: PageProps) {
           ))}
         </div>
       )}
+
+      <KonsernPagination
+        currentPage={page}
+        totalItems={total}
+        pageSize={PAGE_SIZE}
+        basePath={`/konsern/bedrifter/${tenantId}/dokumenter`}
+      />
     </div>
   );
 }

@@ -134,6 +134,8 @@ model User {
   handbookVersionsCreated         HandbookVersion[]              @relation("HandbookVersionCreator")
   documentVersionsUploaded        DocumentVersion[]              @relation("DocumentVersionUploader")
   corporateGroupMemberships       CorporateGroupUser[]
+  corporateGroupMessagesAuthored  CorporateGroupMessage[]         @relation("CorporateGroupMessageAuthor")
+  corporateGroupMessageReceipts   CorporateGroupMessageReceipt[]  @relation("CorporateGroupMessageReceipts")
   routineVersions                 RoutineVersion[]
   requirementOverridesVerified    TenantRequirementOverride[]     @relation("RequirementOverrideVerifier")
   createdAt                       DateTime                       @default(now())
@@ -365,6 +367,8 @@ model Tenant {
   anonymizedStats                     AnonymizedTenantStats[]
   corporateGroupMemberships           CorporateGroupTenant[]
   corporateGroupDistributions         CorporateGroupDistribution[]
+  corporateGroupMessageTargets        CorporateGroupMessageTarget[]
+  corporateGroupMessageReceipts       CorporateGroupMessageReceipt[]
   activityProfile                     TenantActivityProfile?
   regulatoryProfile                   TenantRegulatoryProfile?
   serviceRequests                     ServiceRequest[]
@@ -5522,6 +5526,7 @@ model CorporateGroup {
   content       CorporateGroupContent[]
   distributions CorporateGroupDistribution[]
   auditLogs     CorporateGroupAuditLog[]
+  messages      CorporateGroupMessage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -5671,6 +5676,70 @@ model CorporateGroupAuditLog {
   @@index([groupId])
   @@index([userId])
   @@index([createdAt])
+}
+
+// ============================================
+// Konsern-meldinger med lesebekreftelse
+// AML § 3-1: Arbeidsgiver plikter å sørge for
+// systematisk informasjonsformidling om HMS
+// ============================================
+
+enum MessagePriority {
+  NORMAL
+  IMPORTANT
+  CRITICAL
+}
+
+model CorporateGroupMessage {
+  id          String          @id @default(cuid())
+  groupId     String
+  authorId    String
+  title       String
+  body        String          @db.Text
+  priority    MessagePriority @default(NORMAL)
+  requiresAck Boolean         @default(true) // Krever lesebekreftelse
+  deadline    DateTime?       // Frist for lesebekreftelse
+  targetAll   Boolean         @default(true)
+
+  group    CorporateGroup               @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  author   User                         @relation("CorporateGroupMessageAuthor", fields: [authorId], references: [id])
+  targets  CorporateGroupMessageTarget[]
+  receipts CorporateGroupMessageReceipt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([groupId])
+  @@index([groupId, createdAt])
+}
+
+model CorporateGroupMessageTarget {
+  id        String @id @default(cuid())
+  messageId String
+  tenantId  String
+
+  message CorporateGroupMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  tenant  Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, tenantId])
+  @@index([tenantId])
+}
+
+model CorporateGroupMessageReceipt {
+  id        String @id @default(cuid())
+  messageId String
+  userId    String
+  tenantId  String
+
+  message CorporateGroupMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User                  @relation("CorporateGroupMessageReceipts", fields: [userId], references: [id])
+  tenant  Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  readAt  DateTime @default(now())
+
+  @@unique([messageId, userId])
+  @@index([tenantId])
+  @@index([messageId])
 }
 
 // ============================================

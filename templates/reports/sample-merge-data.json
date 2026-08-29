@@ -1,0 +1,55 @@
+{
+  "tenantName": "Eksempel AS",
+  "orgNumber": "123 456 789",
+  "address": "Storgata 1, 0155 Oslo",
+  "tenantLogo": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=",
+  "hmsLogo": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=",
+  "hasTenantLogo": "true",
+  "hasOrgNumber": "true",
+  "hasAddress": "true",
+  "reportLabel": "Avviksrapport",
+  "REPORTLABEL": "AVVIKSRAPPORT",
+  "title": "Fall fra stillas",
+  "subtitle": "Åpen · 1. mars 2026",
+  "generatedDate": "29. august 2026 kl. 09.00",
+  "generatedBy": "Kari Nordmann",
+  "legalReference": "AML § 5-2, IK-HMS § 5",
+  "hasSubtitle": "true",
+  "hasGeneratedBy": "true",
+  "hasLegalReference": "true",
+  "coverPage": "true",
+  "sections": [
+    {
+      "title": "Avviksdetaljer",
+      "legalRef": "IK-HMS § 5 nr. 7",
+      "hasTitle": "true",
+      "hasLegalRef": "true",
+      "blocks": [
+        {
+          "kind": "keyvalue",
+          "text": "",
+          "html": "<table></table>",
+          "alertSeverity": ""
+        },
+        {
+          "kind": "paragraph",
+          "text": "Beskrivelse av hendelsen fra systemet.",
+          "html": "",
+          "alertSeverity": ""
+        },
+        {
+          "kind": "table",
+          "text": "",
+          "html": "<table></table>",
+          "alertSeverity": ""
+        },
+        {
+          "kind": "alert",
+          "text": "Meldepliktig hendelse.",
+          "html": "",
+          "alertSeverity": "info"
+        }
+      ]
+    }
+  ]
+}

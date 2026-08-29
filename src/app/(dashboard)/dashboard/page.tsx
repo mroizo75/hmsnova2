@@ -5,6 +5,8 @@ import { prisma } from "@/lib/db";
 import { getPermissions } from "@/lib/permissions";
 import { DashboardContent } from "@/features/dashboard/components/dashboard-content";
 import { fetchDashboardData } from "@/server/queries/dashboard.queries";
+import { getMessagesForTenant } from "@/server/actions/corporate-group-messages.actions";
+import { KonsernMessagesBanner } from "@/features/konsern/components/konsern-messages-banner";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -83,8 +85,21 @@ export default async function DashboardPage() {
     return <div>Kunne ikke laste dashboard-data.</div>;
   }
 
+  // Hent konsern-meldinger for denne bedriften
+  const konsernMessages = await getMessagesForTenant(
+    selectedMembership.tenantId,
+    user.id
+  );
+
   return (
     <div className="space-y-4">
+      {konsernMessages.length > 0 && (
+        <KonsernMessagesBanner
+          messages={konsernMessages}
+          tenantId={selectedMembership.tenantId}
+          userId={user.id}
+        />
+      )}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">
           Velkommen, {initialData.userName}

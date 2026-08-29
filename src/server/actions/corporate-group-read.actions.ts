@@ -6,6 +6,13 @@ import {
   requireTenantInGroup,
 } from "@/lib/corporate-group-context";
 
+interface PaginationOptions {
+  limit?: number;
+  offset?: number;
+}
+
+const DEFAULT_LIMIT = 25;
+
 async function verifyTenantAccess(tenantId: string) {
   const context = await requireCorporateGroupContext();
   await requireTenantInGroup(context.groupId, tenantId);
@@ -100,10 +107,10 @@ export async function getGroupTenantOverview(tenantId: string) {
   };
 }
 
-export async function getGroupTenantIncidents(tenantId: string, options?: { limit?: number; offset?: number }) {
+export async function getGroupTenantIncidents(tenantId: string, options?: PaginationOptions) {
   await verifyTenantAccess(tenantId);
 
-  const limit = options?.limit ?? 50;
+  const limit = options?.limit ?? DEFAULT_LIMIT;
   const offset = options?.offset ?? 0;
 
   const [incidents, total] = await Promise.all([
@@ -130,126 +137,219 @@ export async function getGroupTenantIncidents(tenantId: string, options?: { limi
   return { incidents, total };
 }
 
-export async function getGroupTenantRoutines(tenantId: string) {
+export async function getGroupTenantRoutines(tenantId: string, options?: PaginationOptions) {
   await verifyTenantAccess(tenantId);
 
-  return prisma.routine.findMany({
-    where: { tenantId },
-    select: {
-      id: true,
-      title: true,
-      category: true,
-      status: true,
-      legalReference: true,
-      nextReviewAt: true,
-      lastReviewedAt: true,
-      isLockedByGroup: true,
-      corporateGroupContentId: true,
-      updatedAt: true,
-    },
-    orderBy: { title: "asc" },
-  });
+  const limit = options?.limit ?? DEFAULT_LIMIT;
+  const offset = options?.offset ?? 0;
+
+  const [routines, total] = await Promise.all([
+    prisma.routine.findMany({
+      where: { tenantId },
+      select: {
+        id: true,
+        title: true,
+        category: true,
+        status: true,
+        legalReference: true,
+        nextReviewAt: true,
+        lastReviewedAt: true,
+        isLockedByGroup: true,
+        corporateGroupContentId: true,
+        updatedAt: true,
+      },
+      orderBy: { title: "asc" },
+      take: limit,
+      skip: offset,
+    }),
+    prisma.routine.count({ where: { tenantId } }),
+  ]);
+
+  return { routines, total };
 }
 
-export async function getGroupTenantDocuments(tenantId: string) {
+export async function getGroupTenantDocuments(tenantId: string, options?: PaginationOptions) {
   await verifyTenantAccess(tenantId);
 
-  return prisma.document.findMany({
-    where: { tenantId },
-    select: {
-      id: true,
-      title: true,
-      kind: true,
-      status: true,
-      version: true,
-      approvedAt: true,
-      nextReviewDate: true,
-      isLockedByGroup: true,
-      corporateGroupContentId: true,
-      updatedAt: true,
-    },
-    orderBy: { title: "asc" },
-  });
+  const limit = options?.limit ?? DEFAULT_LIMIT;
+  const offset = options?.offset ?? 0;
+
+  const [documents, total] = await Promise.all([
+    prisma.document.findMany({
+      where: { tenantId },
+      select: {
+        id: true,
+        title: true,
+        kind: true,
+        status: true,
+        version: true,
+        approvedAt: true,
+        nextReviewDate: true,
+        isLockedByGroup: true,
+        corporateGroupContentId: true,
+        updatedAt: true,
+      },
+      orderBy: { title: "asc" },
+      take: limit,
+      skip: offset,
+    }),
+    prisma.document.count({ where: { tenantId } }),
+  ]);
+
+  return { documents, total };
 }
 
-export async function getGroupTenantRiskAssessments(tenantId: string) {
+export async function getGroupTenantRiskAssessments(tenantId: string, options?: PaginationOptions) {
   await verifyTenantAccess(tenantId);
 
-  return prisma.riskAssessment.findMany({
-    where: { tenantId },
-    select: {
-      id: true,
-      title: true,
-      assessmentYear: true,
-      approvedAt: true,
-      reviewedAt: true,
-      isLockedByGroup: true,
-      corporateGroupContentId: true,
-      updatedAt: true,
-      _count: { select: { risks: true } },
-    },
-    orderBy: { updatedAt: "desc" },
-  });
+  const limit = options?.limit ?? DEFAULT_LIMIT;
+  const offset = options?.offset ?? 0;
+
+  const [assessments, total] = await Promise.all([
+    prisma.riskAssessment.findMany({
+      where: { tenantId },
+      select: {
+        id: true,
+        title: true,
+        assessmentYear: true,
+        approvedAt: true,
+        reviewedAt: true,
+        isLockedByGroup: true,
+        corporateGroupContentId: true,
+        updatedAt: true,
+        _count: { select: { risks: true } },
+      },
+      orderBy: { updatedAt: "desc" },
+      take: limit,
+      skip: offset,
+    }),
+    prisma.riskAssessment.count({ where: { tenantId } }),
+  ]);
+
+  return { assessments, total };
 }
 
-export async function getGroupTenantSjaAnalyses(tenantId: string) {
+export async function getGroupTenantSjaAnalyses(tenantId: string, options?: PaginationOptions) {
   await verifyTenantAccess(tenantId);
 
-  return prisma.sjaAnalysis.findMany({
-    where: { tenantId },
-    select: {
-      id: true,
-      sjaNummer: true,
-      title: true,
-      status: true,
-      conclusion: true,
-      workLocation: true,
-      plannedDate: true,
-      createdByName: true,
-      updatedAt: true,
-    },
-    orderBy: { plannedDate: "desc" },
-  });
+  const limit = options?.limit ?? DEFAULT_LIMIT;
+  const offset = options?.offset ?? 0;
+
+  const [analyses, total] = await Promise.all([
+    prisma.sjaAnalysis.findMany({
+      where: { tenantId },
+      select: {
+        id: true,
+        sjaNummer: true,
+        title: true,
+        status: true,
+        conclusion: true,
+        workLocation: true,
+        plannedDate: true,
+        createdByName: true,
+        updatedAt: true,
+      },
+      orderBy: { plannedDate: "desc" },
+      take: limit,
+      skip: offset,
+    }),
+    prisma.sjaAnalysis.count({ where: { tenantId } }),
+  ]);
+
+  return { analyses, total };
 }
 
-export async function getGroupTenantEmployees(tenantId: string) {
+export async function getGroupTenantEmployees(tenantId: string, options?: PaginationOptions) {
   await verifyTenantAccess(tenantId);
 
-  // GDPR: Kun vis nødvendig informasjon -- ikke personnummer, adresse, helseopplysninger
-  return prisma.userTenant.findMany({
-    where: { tenantId },
-    select: {
-      id: true,
-      role: true,
-      department: true,
-      position: true,
-      user: {
-        select: {
-          id: true,
-          name: true,
+  const limit = options?.limit ?? DEFAULT_LIMIT;
+  const offset = options?.offset ?? 0;
+
+  const [employees, total] = await Promise.all([
+    prisma.userTenant.findMany({
+      where: { tenantId },
+      select: {
+        id: true,
+        role: true,
+        department: true,
+        position: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+          },
         },
       },
-    },
-    orderBy: { user: { name: "asc" } },
-  });
+      orderBy: { user: { name: "asc" } },
+      take: limit,
+      skip: offset,
+    }),
+    prisma.userTenant.count({ where: { tenantId } }),
+  ]);
+
+  return { employees, total };
 }
 
-export async function getGroupTenantInspections(tenantId: string) {
+export async function getGroupTenantInspections(tenantId: string, options?: PaginationOptions) {
   await verifyTenantAccess(tenantId);
 
-  return prisma.inspection.findMany({
-    where: { tenantId },
-    select: {
-      id: true,
-      title: true,
-      type: true,
-      status: true,
-      scheduledDate: true,
-      completedDate: true,
-      location: true,
-      area: true,
-      updatedAt: true,
-    },
-    orderBy: { scheduledDate: "desc" },
+  const limit = options?.limit ?? DEFAULT_LIMIT;
+  const offset = options?.offset ?? 0;
+
+  const [inspections, total] = await Promise.all([
+    prisma.inspection.findMany({
+      where: { tenantId },
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        status: true,
+        scheduledDate: true,
+        completedDate: true,
+        location: true,
+        area: true,
+        updatedAt: true,
+      },
+      orderBy: { scheduledDate: "desc" },
+      take: limit,
+      skip: offset,
+    }),
+    prisma.inspection.count({ where: { tenantId } }),
+  ]);
+
+  return { inspections, total };
+}
+
+export async function getGroupAuditLog(options?: PaginationOptions) {
+  const context = await requireCorporateGroupContext();
+
+  const limit = options?.limit ?? DEFAULT_LIMIT;
+  const offset = options?.offset ?? 0;
+
+  const [logs, total] = await Promise.all([
+    prisma.corporateGroupAuditLog.findMany({
+      where: { groupId: context.groupId },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      skip: offset,
+    }),
+    prisma.corporateGroupAuditLog.count({
+      where: { groupId: context.groupId },
+    }),
+  ]);
+
+  const userIds = [...new Set(logs.map((l) => l.userId))];
+  const users = await prisma.user.findMany({
+    where: { id: { in: userIds } },
+    select: { id: true, name: true, email: true },
   });
+  const userMap = new Map(users.map((u) => [u.id, u]));
+
+  return {
+    logs: logs.map((log) => ({
+      ...log,
+      user: userMap.get(log.userId) ?? null,
+    })),
+    total,
+  };
 }

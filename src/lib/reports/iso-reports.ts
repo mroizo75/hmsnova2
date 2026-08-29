@@ -1,15 +1,14 @@
 import { prisma } from "@/lib/db";
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
 import ExcelJS from "exceljs";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
+import { generateBrandedPdf } from "@/lib/pdf-brand";
 
 type ReportFormat = "pdf" | "excel";
 type IsoReportType = "environment" | "risk";
 
 interface ReportResult {
-  buffer: ArrayBuffer;
+  buffer: Buffer;
   filename: string;
   contentType: string;
 }
@@ -44,7 +43,7 @@ export async function generateIsoReport(
 async function generateEnvironmentPdf(tenantId: string): Promise<ReportResult> {
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
-    select: { name: true },
+    select: { name: true, orgNumber: true, address: true, logoUrl: true },
   });
 
   const aspects = await prisma.environmentalAspect.findMany({
@@ -61,76 +60,68 @@ async function generateEnvironmentPdf(tenantId: string): Promise<ReportResult> {
     },
   });
 
-  const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(18);
-  pdf.text(`Miljørapport - ${tenant?.name || "HMS Nova"}`, 40, 40);
-  pdf.setFontSize(12);
-  pdf.setFont("helvetica", "normal");
-  pdf.text(`Generert: ${formatDate(new Date())}`, 40, 60);
-  pdf.text(`Antall miljøaspekter: ${aspects.length}`, 40, 80);
-
-  const tableRows = aspects.map((aspect) => [
-    aspect.title,
-    aspect.category,
-    aspect.impactType,
-    aspect.significanceScore,
-    aspect.status,
-    aspect.owner?.name || "Ikke satt",
-    formatDate(aspect.nextReviewDate),
-  ]);
-
-  autoTable(pdf, {
-    startY: 100,
-    head: [
-      [
-        "Miljøaspekt",
-        "Kategori",
-        "Påvirkning",
-        "Signifikans",
-        "Status",
-        "Ansvarlig",
-        "Neste gjennomgang",
-      ],
+  const pdfBuffer = await generateBrandedPdf({
+    type: "formal",
+    reportLabel: "ISO 14001",
+    title: `Miljørapport – ${tenant?.name || "HMS Nova"}`,
+    subtitle: `${aspects.length} miljøaspekter`,
+    tenant: {
+      name: tenant?.name || "HMS Nova",
+      orgNumber: tenant?.orgNumber,
+      address: tenant?.address,
+      logoUrl: tenant?.logoUrl,
+    },
+    generatedAt: new Date(),
+    legalReference: "ISO 14001:2015 kap. 6.1.2 og 9.1",
+    sections: [
+      {
+        title: "Miljøaspekter",
+        content: [
+          {
+            type: "table",
+            headers: [
+              "Miljøaspekt",
+              "Kategori",
+              "Påvirkning",
+              "Signifikans",
+              "Status",
+              "Ansvarlig",
+              "Neste gjennomgang",
+            ],
+            rows: aspects.map((aspect) => [
+              aspect.title,
+              aspect.category,
+              aspect.impactType,
+              aspect.significanceScore,
+              aspect.status,
+              aspect.owner?.name || "Ikke satt",
+              formatDate(aspect.nextReviewDate),
+            ]),
+          },
+        ],
+      },
+      ...aspects
+        .filter((a) => a.measurements.length > 0)
+        .map((aspect) => ({
+          title: `Målinger: ${aspect.title}`,
+          content: [
+            {
+              type: "table" as const,
+              headers: ["Parameter", "Verdi", "Enhet", "Dato"],
+              rows: aspect.measurements.map((m) => [
+                m.parameter,
+                m.measuredValue,
+                m.unit ?? "–",
+                formatDate(m.measurementDate),
+              ]),
+            },
+          ],
+        })),
     ],
-    body: tableRows,
-    styles: { fontSize: 9 },
-    headStyles: { fillColor: [5, 150, 105] },
   });
-
-  let currentY = (pdf as any).lastAutoTable.finalY + 20;
-  pdf.setFont("helvetica", "bold");
-  pdf.text("Siste målinger", 40, currentY);
-  currentY += 15;
-  pdf.setFont("helvetica", "normal");
-
-  aspects.forEach((aspect) => {
-    if (aspect.measurements.length === 0) return;
-    if (currentY > 720) {
-      pdf.addPage();
-      currentY = 40;
-    }
-    pdf.setFont("helvetica", "bold");
-    pdf.text(aspect.title, 40, currentY);
-    pdf.setFont("helvetica", "normal");
-    currentY += 12;
-    aspect.measurements.forEach((measurement) => {
-      pdf.text(
-        `• ${measurement.parameter}: ${measurement.measuredValue}${
-          measurement.unit ? ` ${measurement.unit}` : ""
-        } (${formatDate(measurement.measurementDate)})`,
-        50,
-        currentY
-      );
-      currentY += 12;
-    });
-    currentY += 6;
-  });
-
-  const buffer = pdf.output("arraybuffer") as ArrayBuffer;
 
   return {
-    buffer,
+    buffer: pdfBuffer,
     filename: pdfFilename("miljo-rapport"),
     contentType: "application/pdf",
   };
@@ -170,7 +161,7 @@ async function generateEnvironmentExcel(tenantId: string): Promise<ReportResult>
 
   sheet.getRow(1).font = { bold: true };
 
-  const buffer = (await workbook.xlsx.writeBuffer()) as ArrayBuffer;
+  const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
 
   return {
     buffer,
@@ -181,6 +172,11 @@ async function generateEnvironmentExcel(tenantId: string): Promise<ReportResult>
 }
 
 async function generateRiskPdf(tenantId: string): Promise<ReportResult> {
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { name: true, orgNumber: true, address: true, logoUrl: true },
+  });
+
   const risks = await prisma.risk.findMany({
     where: { tenantId },
     include: {
@@ -192,35 +188,43 @@ async function generateRiskPdf(tenantId: string): Promise<ReportResult> {
     },
   });
 
-  const pdf = new jsPDF();
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(18);
-  pdf.text("Risikoregister (ISO 31000)", 20, 25);
-  pdf.setFontSize(12);
-  pdf.setFont("helvetica", "normal");
-  pdf.text(`Risikoer totalt: ${risks.length}`, 20, 45);
-
-  autoTable(pdf, {
-    startY: 60,
-    head: [
-      ["Tittel", "Kategori", "Score", "Residual", "Status", "Eier", "Tiltak"],
+  const pdfBuffer = await generateBrandedPdf({
+    type: "formal",
+    reportLabel: "ISO 31000",
+    title: "Risikoregister",
+    subtitle: `${tenant?.name || "HMS Nova"} · ${risks.length} risikoer`,
+    tenant: {
+      name: tenant?.name || "HMS Nova",
+      orgNumber: tenant?.orgNumber,
+      address: tenant?.address,
+      logoUrl: tenant?.logoUrl,
+    },
+    generatedAt: new Date(),
+    legalReference: "ISO 31000, ISO 45001:2018 kap. 6.1",
+    sections: [
+      {
+        title: "Risikoer",
+        content: [
+          {
+            type: "table",
+            headers: ["Tittel", "Kategori", "Score", "Residual", "Status", "Eier", "Tiltak"],
+            rows: risks.map((risk) => [
+              risk.title,
+              risk.category,
+              risk.score,
+              risk.residualScore ?? "—",
+              risk.status,
+              risk.owner?.name || "Ikke satt",
+              risk.measures.length,
+            ]),
+          },
+        ],
+      },
     ],
-    body: risks.map((risk) => [
-      risk.title,
-      risk.category,
-      risk.score,
-      risk.residualScore ?? "—",
-      risk.status,
-      risk.owner?.name || "Ikke satt",
-      risk.measures.length,
-    ]),
-    styles: { fontSize: 9 },
-    headStyles: { fillColor: [15, 118, 110] },
   });
 
-  const buffer = pdf.output("arraybuffer") as ArrayBuffer;
   return {
-    buffer,
+    buffer: pdfBuffer,
     filename: pdfFilename("risikoregister"),
     contentType: "application/pdf",
   };
@@ -261,7 +265,7 @@ async function generateRiskExcel(tenantId: string): Promise<ReportResult> {
   );
   sheet.getRow(1).font = { bold: true };
 
-  const buffer = (await workbook.xlsx.writeBuffer()) as ArrayBuffer;
+  const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
   return {
     buffer,
     filename: excelFilename("risikoregister"),

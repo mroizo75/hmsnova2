@@ -1,9 +1,13 @@
 import { AlertTriangle } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { getGroupTenantIncidents } from "@/server/actions/corporate-group-read.actions";
+import { KonsernPagination } from "@/components/konsern-pagination";
+
+const PAGE_SIZE = 25;
 
 interface PageProps {
   params: Promise<{ tenantId: string }>;
+  searchParams: Promise<{ page?: string }>;
 }
 
 function formatType(type: string): string {
@@ -44,9 +48,13 @@ function typeColor(type: string): string {
   return "bg-blue-50 text-blue-700";
 }
 
-export default async function TenantIncidentsPage({ params }: PageProps) {
+export default async function TenantIncidentsPage({ params, searchParams }: PageProps) {
   const { tenantId } = await params;
-  const { incidents, total } = await getGroupTenantIncidents(tenantId);
+  const sp = await searchParams;
+  const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
+  const offset = (page - 1) * PAGE_SIZE;
+
+  const { incidents, total } = await getGroupTenantIncidents(tenantId, { limit: PAGE_SIZE, offset });
 
   return (
     <div className="space-y-4">
@@ -90,6 +98,13 @@ export default async function TenantIncidentsPage({ params }: PageProps) {
           ))}
         </div>
       )}
+
+      <KonsernPagination
+        currentPage={page}
+        totalItems={total}
+        pageSize={PAGE_SIZE}
+        basePath={`/konsern/bedrifter/${tenantId}/avvik`}
+      />
     </div>
   );
 }

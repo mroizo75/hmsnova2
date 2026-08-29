@@ -15,11 +15,17 @@ import {
   Send,
   ScrollText,
   Settings,
+  Mail,
+  HeartPulse,
+  FileBarChart,
 } from "lucide-react";
 
 const navItems = [
   { href: "/konsern", label: "Dashboard", icon: LayoutDashboard },
   { href: "/konsern/bedrifter", label: "Bedrifter", icon: Building2 },
+  { href: "/konsern/meldinger", label: "Meldinger", icon: Mail },
+  { href: "/konsern/psykososialt", label: "Psykososialt", icon: HeartPulse },
+  { href: "/konsern/rapporter", label: "Rapporter", icon: FileBarChart },
   { href: "/konsern/brukere", label: "Brukere", icon: Users },
   { href: "/konsern/innhold", label: "Innhold", icon: FileText },
   { href: "/konsern/distribusjon", label: "Distribusjon", icon: Send },
@@ -49,6 +55,7 @@ export default async function CorporateLayout({
 
   let groupName = "Konsern";
   let groupLogoUrl: string | null = null;
+  let pendingAckCount = 0;
 
   if (user.corporateGroupId) {
     const group = await prisma.corporateGroup.findUnique({
@@ -60,6 +67,21 @@ export default async function CorporateLayout({
       if (group.logo) {
         groupLogoUrl = group.logo;
       }
+    }
+
+    // Tell meldinger som venter på lesebekreftelse
+    const totalAckMessages = await prisma.corporateGroupMessage.count({
+      where: { groupId: user.corporateGroupId, requiresAck: true },
+    });
+    if (totalAckMessages > 0) {
+      const fullyAcked = await prisma.corporateGroupMessage.count({
+        where: {
+          groupId: user.corporateGroupId,
+          requiresAck: true,
+          receipts: { some: {} },
+        },
+      });
+      pendingAckCount = totalAckMessages - fullyAcked;
     }
   }
 
@@ -96,6 +118,11 @@ export default async function CorporateLayout({
             >
               <item.icon className="h-4 w-4" />
               {item.label}
+              {item.href === "/konsern/meldinger" && pendingAckCount > 0 && (
+                <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1.5 text-[10px] font-bold text-white">
+                  {pendingAckCount}
+                </span>
+              )}
             </Link>
           ))}
         </nav>

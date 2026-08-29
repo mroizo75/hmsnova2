@@ -44,7 +44,7 @@ export async function GET(
       formatParam
     );
 
-    return new NextResponse(report.buffer, {
+    return new NextResponse(new Uint8Array(report.buffer), {
       headers: {
         "Content-Type": report.contentType,
         "Content-Disposition": `attachment; filename="${report.filename}"`,
