@@ -53,6 +53,7 @@ import {
 import { usePermissions } from "@/hooks/use-permissions";
 import { getRoleDisplayName } from "@/lib/permissions";
 import Image from "next/image";
+import { PwaInstallButton } from "@/components/pwa-install-button";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { useSimpleMode } from "@/hooks/use-simple-mode";
 import { useSimpleMenuConfig } from "@/hooks/use-simple-menu-config";
@@ -280,6 +281,9 @@ export function DashboardNav() {
         <div className="border-t p-4">
           <div className="mb-2 px-3 text-xs text-muted-foreground truncate">
             {session?.user?.name || session?.user?.email}
+          </div>
+          <div className="mb-1">
+            <PwaInstallButton />
           </div>
           {session?.user?.corporateGroupId && (
             <Link href="/konsern">

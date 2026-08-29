@@ -1,13 +1,4 @@
 {
-  "name": "HMS Nova",
-  "short_name": "HMS Nova",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0f172a",
-  "icons": []
-}
-{
   "name": "HMS Nova - Norges beste HMS-system",
   "short_name": "HMS Nova",
   "description": "HMS Nova bygger trygghet gjennom moderne HMS-styring. Digital signatur, 7 roller, ISO 9001 compliant.",
@@ -21,12 +12,18 @@
       "src": "/android-chrome-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "theme_color": "#16a34a",
   "background_color": "#ffffff",
   "display": "standalone",
-  "start_url": "/",
+  "start_url": "/dashboard",
   "scope": "/",
   "lang": "nb-NO",
   "orientation": "portrait-primary",

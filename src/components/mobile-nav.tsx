@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { signOut, useSession } from "next-auth/react";
+import { PwaInstallButton } from "@/components/pwa-install-button";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -257,6 +258,9 @@ export function MobileNav() {
                 <div className="border-t p-4">
                   <div className="mb-3 px-3 text-xs text-muted-foreground truncate">
                     {session?.user?.name || session?.user?.email}
+                  </div>
+                  <div className="mb-1">
+                    <PwaInstallButton />
                   </div>
                   <Button
                     variant="ghost"

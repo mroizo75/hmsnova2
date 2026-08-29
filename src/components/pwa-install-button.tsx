@@ -107,9 +107,15 @@ export function PwaInstallButton() {
 
   return (
     <>
-      <Button size="lg" variant="outline" className="text-lg px-8" onClick={handleInstall} disabled={isInstalling}>
-        <Download className="mr-2 h-5 w-5" aria-hidden="true" />
-        {deferredPrompt ? "Installer app" : "Hvordan installere appen"}
+      <Button
+        size="sm"
+        variant="outline"
+        className="w-full justify-start text-xs"
+        onClick={handleInstall}
+        disabled={isInstalling}
+      >
+        <Download className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
+        {deferredPrompt ? "Installer app" : "Last ned app"}
       </Button>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
