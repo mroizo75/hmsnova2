@@ -48,6 +48,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { RegulatoryWizard } from "@/features/regulatory/components/regulatory-wizard";
+import { RegulatoryRoutinePicker } from "@/features/regulatory/components/regulatory-routine-picker";
+import type { RegulatoryRoutineSuggestion } from "@/server/actions/regulatory.actions";
 import {
   confirmRequirement,
   markRequirementNotApplicable,
@@ -106,12 +108,14 @@ type Props = {
   regulatoryStatus: RegulatoryStatus;
   userRole: string;
   manualReferences: ManualReference[];
+  routineSuggestions: RegulatoryRoutineSuggestion[];
 };
 
 export function JuridiskRegisterClient({
   regulatoryStatus,
   userRole,
   manualReferences,
+  routineSuggestions,
 }: Props) {
   const [showWizard, setShowWizard] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<RequirementStatus | null>(null);
@@ -141,7 +145,7 @@ export function JuridiskRegisterClient({
             </div>
           </CardContent>
         </Card>
-        <RegulatoryWizard tenant={regulatoryStatus.tenant} />
+        <RegulatoryWizard tenant={regulatoryStatus.tenant} onComplete={() => setShowWizard(false)} />
         {regulatoryStatus.hasProfile && (
           <div className="flex justify-center">
             <Button variant="ghost" onClick={() => setShowWizard(false)}>
@@ -257,6 +261,10 @@ export function JuridiskRegisterClient({
             Legg til eget krav
           </Button>
         </div>
+      )}
+
+      {canManage && routineSuggestions.length > 0 && (
+        <RegulatoryRoutinePicker suggestions={routineSuggestions} />
       )}
 
       {/* Tabs */}

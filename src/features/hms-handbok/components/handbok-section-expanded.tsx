@@ -53,6 +53,7 @@ export function HandbokSectionExpanded({
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState(section.content);
+  const [displayContent, setDisplayContent] = useState(section.content);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
@@ -70,6 +71,7 @@ export function HandbokSectionExpanded({
     setSaving(false);
     if (result.success) {
       toast({ title: "Seksjon oppdatert" });
+      setDisplayContent(editContent);
       setEditing(false);
     } else {
       toast({ title: "Feil", description: result.error, variant: "destructive" });
@@ -145,7 +147,7 @@ export function HandbokSectionExpanded({
                   size="sm"
                   onClick={() => {
                     setEditing(false);
-                    setEditContent(section.content);
+                    setEditContent(displayContent);
                   }}
                   className="gap-1.5"
                 >
@@ -158,14 +160,17 @@ export function HandbokSectionExpanded({
             <div className="relative">
               <div
                 className="prose prose-sm max-w-none dark:prose-invert"
-                dangerouslySetInnerHTML={{ __html: section.content }}
+                dangerouslySetInnerHTML={{ __html: displayContent }}
               />
               {isDraft && canEdit && (
                 <Button
                   variant="outline"
                   size="sm"
                   className="mt-3 gap-1.5"
-                  onClick={() => setEditing(true)}
+                  onClick={() => {
+                    setEditContent(displayContent);
+                    setEditing(true);
+                  }}
                 >
                   <Pencil className="h-3.5 w-3.5" />
                   Rediger

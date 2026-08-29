@@ -90,6 +90,12 @@ export const helpContent: Record<string, HelpContent> = {
           "Listen viser lover og forskrifter som er relevante for din bransje. Lenkene åpner Lovdata.no eller Arbeidstilsynet der du kan lese fullstendig lovtekst.",
       },
       {
+        heading: "Rutiner fra regelverket",
+        emoji: "📋",
+        content:
+          "Etter at profilen er opprettet kan du velge hvilke rutiner som skal publiseres. Bruk «Velg alle», huk av enkeltvis, eller ta vekk rutiner som ikke gjelder. Endringen vises med en gang.",
+      },
+      {
         heading: "Viktig om juridisk ansvar",
         emoji: "⚠️",
         content:

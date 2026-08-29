@@ -24,6 +24,7 @@ export function JuridiskRegisterContent({ initialData }: JuridiskRegisterContent
       regulatoryStatus={data.regulatoryStatus}
       userRole={data.userRole}
       manualReferences={data.manualReferences}
+      routineSuggestions={data.routineSuggestions ?? []}
     />
   );
 }

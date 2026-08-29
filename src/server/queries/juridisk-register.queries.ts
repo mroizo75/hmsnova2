@@ -5,6 +5,7 @@ import { getLegalReferencesForIndustry } from "@/server/actions/legal-reference.
 import {
   getRegulatoryStatus,
   ensureRegulatoryRequirementsSeeded,
+  getRegulatoryRoutineSuggestions,
 } from "@/server/actions/regulatory.actions";
 
 export async function fetchJuridiskRegisterData() {
@@ -22,11 +23,15 @@ export async function fetchJuridiskRegisterData() {
     ensureRegulatoryRequirementsSeeded(),
   ]);
 
-  const regulatoryStatus = await getRegulatoryStatus();
+  const [regulatoryStatus, routineSuggestions] = await Promise.all([
+    getRegulatoryStatus(),
+    getRegulatoryRoutineSuggestions().catch(() => []),
+  ]);
 
   return JSON.parse(JSON.stringify({
     regulatoryStatus,
     userRole: userTenant.role,
+    routineSuggestions,
     manualReferences: references.map((ref: any) => ({
       id: ref.id,
       title: ref.title,

@@ -1,9 +1,21 @@
 "use server";
 
 import { prisma } from "@/lib/db";
+import { RoutineStatus } from "@prisma/client";
 import { getActionContext } from "@/server/actions/action-context";
 import { revalidatePath } from "next/cache";
 import { deriveActiveActivities } from "@/lib/activity-questions";
+import { matchesIndustryScope } from "@/lib/industry-scope";
+import {
+  isRoutineRecommendedForRequirements,
+  partitionRoutineTemplateIds,
+  templateIdsToArchive,
+} from "@/lib/regulatory-routine-match";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
+import { requirePermission } from "@/lib/server-authorization";
+import { generateChangeNumber } from "@/lib/change-number";
+import { AuditLog } from "@/lib/audit-log";
+import { ensureGlobalRoutineTemplateLibrarySeeded } from "@/server/actions/routine-library.actions";
 
 export async function saveActivityProfile(input: {
   answers: Record<string, boolean>;
@@ -35,6 +47,8 @@ export async function saveActivityProfile(input: {
   await generateRegulatoryProfile(tenantId, activeActivities);
 
   revalidatePath("/dashboard/juridisk-register");
+  revalidatePath("/dashboard/hms-handbok");
+  triggerRealtimeEvent(tenantId, "settings-updated");
   return { success: true, data: profile };
 }
 
@@ -328,4 +342,194 @@ export async function ensureRegulatoryRequirementsSeeded() {
   }
 
   return { seeded: true, count: REGULATORY_REQUIREMENTS.length };
+}
+
+export type RegulatoryRoutineSuggestion = {
+  templateId: string;
+  title: string;
+  description: string | null;
+  category: string | null;
+  legalReference: string | null;
+  recommended: boolean;
+  publishedRoutineId: string | null;
+};
+
+export async function getRegulatoryRoutineSuggestions(): Promise<RegulatoryRoutineSuggestion[]> {
+  const { tenantId } = await getActionContext();
+  await ensureGlobalRoutineTemplateLibrarySeeded();
+
+  const [status, tenant, templates, existingRoutines] = await Promise.all([
+    getRegulatoryStatusInternal(tenantId),
+    prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { industry: true },
+    }),
+    prisma.routineTemplate.findMany({
+      where: {
+        isActive: true,
+        OR: [{ tenantId }, { isGlobal: true }],
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        category: true,
+        legalReference: true,
+        industryScope: true,
+      },
+    }),
+    prisma.routine.findMany({
+      where: {
+        tenantId,
+        templateId: { not: null },
+        status: { not: RoutineStatus.ARCHIVED },
+      },
+      select: { id: true, templateId: true },
+    }),
+  ]);
+
+  const requirementCategories = status.requirements
+    .filter((r) => r.status !== "NOT_APPLICABLE")
+    .map((r) => {
+      const category = (r as { routineCategory?: string | null }).routineCategory;
+      return typeof category === "string" && category.length > 0 ? category : null;
+    })
+    .filter((c): c is string => c !== null);
+  const requirementLegalBases = status.requirements
+    .filter((r) => r.status !== "NOT_APPLICABLE")
+    .map((r) => r.legalBasis);
+
+  const publishedByTemplate = new Map(
+    existingRoutines
+      .filter((r) => r.templateId)
+      .map((r) => [r.templateId as string, r.id]),
+  );
+
+  return templates
+    .filter((tpl) => matchesIndustryScope(tpl.industryScope, tenant?.industry))
+    .map((tpl) => ({
+      templateId: tpl.id,
+      title: tpl.title,
+      description: tpl.description,
+      category: tpl.category,
+      legalReference: tpl.legalReference,
+      recommended: isRoutineRecommendedForRequirements(
+        { category: tpl.category, legalReference: tpl.legalReference },
+        requirementCategories,
+        requirementLegalBases,
+      ),
+      publishedRoutineId: publishedByTemplate.get(tpl.id) ?? null,
+    }))
+    .sort((a, b) => {
+      if (a.recommended !== b.recommended) return a.recommended ? -1 : 1;
+      return a.title.localeCompare(b.title, "nb");
+    });
+}
+
+export async function publishRegulatoryRoutines(selectedTemplateIds: string[]) {
+  const context = await requirePermission("canCreateDocuments");
+  const { tenantId, userId } = context;
+
+  const uniqueIds = [...new Set(selectedTemplateIds.filter((id) => id.length > 0))];
+  const suggestions = await getRegulatoryRoutineSuggestions();
+  const allowedIds = new Set(suggestions.map((s) => s.templateId));
+  const selected = uniqueIds.filter((id) => allowedIds.has(id));
+
+  const publishedTemplateIds = suggestions
+    .filter((s) => s.publishedRoutineId)
+    .map((s) => s.templateId);
+
+  const { toPublish } = partitionRoutineTemplateIds(selected, publishedTemplateIds);
+  const archiveIds = templateIdsToArchive(publishedTemplateIds, selected);
+
+  let published = 0;
+  let archived = 0;
+
+  for (const templateId of toPublish) {
+    const template = await prisma.routineTemplate.findFirst({
+      where: {
+        id: templateId,
+        isActive: true,
+        OR: [{ tenantId }, { isGlobal: true }],
+      },
+    });
+    if (!template) continue;
+
+    const existing = await prisma.routine.findFirst({
+      where: { tenantId, templateId },
+      select: { id: true, status: true, title: true },
+    });
+
+    if (existing) {
+      if (existing.status === RoutineStatus.ARCHIVED) {
+        await prisma.routine.update({
+          where: { id: existing.id },
+          data: { status: RoutineStatus.ACTIVE, updatedBy: userId },
+        });
+        published += 1;
+      }
+      continue;
+    }
+
+    const routine = await prisma.routine.create({
+      data: {
+        tenantId,
+        templateId: template.id,
+        title: template.title,
+        description: template.description,
+        category: template.category,
+        content: template.content,
+        legalReference: template.legalReference,
+        createdBy: userId,
+        status: RoutineStatus.ACTIVE,
+        reviewIntervalMonths: 12,
+      },
+    });
+
+    const changeNumber = await generateChangeNumber(tenantId);
+    await prisma.routineVersion.create({
+      data: {
+        routineId: routine.id,
+        versionNumber: 1,
+        changeNumber,
+        changeSummary: `Rutine publisert fra regelverksprofil: ${template.title}`,
+        content: template.content ?? {},
+        legalReference: template.legalReference,
+        changedById: userId,
+      },
+    });
+
+    AuditLog.log(tenantId, userId, "ROUTINE_PUBLISHED", "Routine", routine.id, {
+      title: routine.title,
+      templateId: template.id,
+    }).catch(() => {});
+
+    published += 1;
+  }
+
+  if (archiveIds.length > 0) {
+    const toArchive = suggestions.filter(
+      (s) => s.publishedRoutineId && archiveIds.includes(s.templateId),
+    );
+    for (const item of toArchive) {
+      if (!item.publishedRoutineId) continue;
+      await prisma.routine.update({
+        where: { id: item.publishedRoutineId },
+        data: { status: RoutineStatus.ARCHIVED, updatedBy: userId },
+      });
+      AuditLog.log(tenantId, userId, "ROUTINE_UPDATED", "Routine", item.publishedRoutineId, {
+        title: item.title,
+        status: "ARCHIVED",
+      }).catch(() => {});
+      archived += 1;
+    }
+  }
+
+  revalidatePath("/dashboard/juridisk-register");
+  revalidatePath("/dashboard/rutiner");
+  revalidatePath("/dashboard/hms-handbok");
+  triggerRealtimeEvent(tenantId, "routine-updated");
+  triggerRealtimeEvent(tenantId, "settings-updated");
+
+  return { success: true as const, published, archived };
 }

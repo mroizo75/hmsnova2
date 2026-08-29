@@ -24,6 +24,8 @@ import {
   FileCheck,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import {
   createNewDraft,
   submitForApproval,
@@ -58,6 +60,13 @@ export function HandbokVersionBar({
   const [changeNote, setChangeNote] = useState("");
   const [rejectNote, setRejectNote] = useState("");
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
+  async function refreshHandbook() {
+    await queryClient.invalidateQueries({ queryKey: ["hms-handbok"] });
+    router.refresh();
+  }
 
   const config = STATUS_CONFIG[version.status];
   const StatusIcon = config.icon;
@@ -70,6 +79,7 @@ export function HandbokVersionBar({
       toast({ title: "Nytt utkast opprettet" });
       setDraftOpen(false);
       setChangeNote("");
+      await refreshHandbook();
     } else {
       toast({ title: "Feil", description: result.error, variant: "destructive" });
     }
@@ -81,6 +91,7 @@ export function HandbokVersionBar({
     setLoading(null);
     if (result.success) {
       toast({ title: "Sendt til godkjenning" });
+      await refreshHandbook();
     } else {
       toast({ title: "Feil", description: result.error, variant: "destructive" });
     }
@@ -92,6 +103,7 @@ export function HandbokVersionBar({
     setLoading(null);
     if (result.success) {
       toast({ title: "Versjon godkjent og publisert" });
+      await refreshHandbook();
     } else {
       toast({ title: "Feil", description: result.error, variant: "destructive" });
     }
@@ -106,6 +118,7 @@ export function HandbokVersionBar({
       toast({ title: "Utkast avvist" });
       setRejectOpen(false);
       setRejectNote("");
+      await refreshHandbook();
     } else {
       toast({ title: "Feil", description: result.error, variant: "destructive" });
     }

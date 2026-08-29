@@ -16,7 +16,19 @@ const CATEGORY_LABELS_NB: Record<string, string> = {
   TEKNOLOGI_IT: "Teknologi og IT",
   LANDBRUK: "Landbruk",
   GENERELL: "Generell HMS",
+  KJEMIKALIER: "Kjemikalier",
+  ARBEIDSTID: "Arbeidstid",
+  MAT_SERVERING: "Mat og servering",
+  VOLD_TRUSLER: "Vold og trusler",
+  ALENEARBEID: "Alenearbeid",
+  PERSONVERN: "Personvern",
+  MILJO: "Ytre miljø",
 };
+
+export function getRoutineCategoryLabel(category: string | null | undefined): string {
+  if (!category?.trim()) return "Uten kategori";
+  return CATEGORY_LABELS_NB[category] ?? category;
+}
 
 const CUSTOM_SENTINEL = "__ANNET__";
 

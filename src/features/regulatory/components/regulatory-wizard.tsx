@@ -14,6 +14,8 @@ import {
 import { saveActivityProfile } from "@/server/actions/regulatory.actions";
 import { REGULATORY_REQUIREMENTS } from "@/lib/regulatory-requirements-seed";
 import { Building2, ClipboardCheck, CheckCircle2, ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 
 type WizardProps = {
   tenant: {
@@ -23,17 +25,24 @@ type WizardProps = {
     naceDescription: string | null;
     industry: string | null;
   } | null;
+  onComplete?: () => void;
 };
 
-export function RegulatoryWizard({ tenant }: WizardProps) {
+export function RegulatoryWizard({ tenant, onComplete }: WizardProps) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, boolean>>(
     getDefaultAnswers(tenant?.naceCode ?? null)
   );
   const [isPending, startTransition] = useTransition();
+  const queryClient = useQueryClient();
+  const router = useRouter();
 
-  const toggleAnswer = (key: string) => {
-    setAnswers((prev) => ({ ...prev, [key]: !prev[key] }));
+  const markAllActivities = (value: boolean) => {
+    const next: Record<string, boolean> = {};
+    for (const q of ACTIVITY_QUESTIONS) {
+      next[q.key] = value;
+    }
+    setAnswers(next);
   };
 
   const activeActivities = deriveActiveActivities(answers, tenant?.naceCode);
@@ -44,7 +53,12 @@ export function RegulatoryWizard({ tenant }: WizardProps) {
 
   const handleSubmit = () => {
     startTransition(async () => {
-      await saveActivityProfile({ answers });
+      const result = await saveActivityProfile({ answers });
+      if (result.success) {
+        await queryClient.invalidateQueries({ queryKey: ["juridisk-register"] });
+        router.refresh();
+        onComplete?.();
+      }
     });
   };
 
@@ -112,10 +126,22 @@ export function RegulatoryWizard({ tenant }: WizardProps) {
       {step === 1 && (
         <Card>
           <CardHeader>
-            <CardTitle>Kontrollspørsmål</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Kryss av for aktiviteter som gjelder din virksomhet. Basert på NACE-kode er noen allerede foreslått.
-            </p>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle>Kontrollspørsmål</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Kryss av for aktiviteter som gjelder din virksomhet. Basert på NACE-kode er noen allerede foreslått.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => markAllActivities(true)}>
+                  Merk alle
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => markAllActivities(false)}>
+                  Fjern alle
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             {questionsByCategory.map((cat) => (
@@ -125,17 +151,22 @@ export function RegulatoryWizard({ tenant }: WizardProps) {
                 </h3>
                 <div className="space-y-2">
                   {cat.questions.map((q) => (
-                    <label
+                    <div
                       key={q.key}
-                      className="flex cursor-pointer items-start gap-3 rounded-md border p-3 hover:bg-muted/50"
+                      className="flex items-start gap-3 rounded-md border p-3 hover:bg-muted/50"
                     >
                       <Checkbox
+                        id={`activity-${q.key}`}
                         checked={answers[q.key] ?? false}
-                        onCheckedChange={() => toggleAnswer(q.key)}
+                        onCheckedChange={(checked) =>
+                          setAnswers((prev) => ({ ...prev, [q.key]: checked === true }))
+                        }
                         className="mt-0.5"
                       />
-                      <span className="text-sm">{q.text}</span>
-                    </label>
+                      <label htmlFor={`activity-${q.key}`} className="cursor-pointer text-sm">
+                        {q.text}
+                      </label>
+                    </div>
                   ))}
                 </div>
               </div>
