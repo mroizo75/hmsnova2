@@ -55,3 +55,8 @@ next-env.d.ts
 
 # documentation (should not be committed)
 /docs/
+
+# seed credentials (inneholder passord)
+prisma/nho-reiseliv-credentials.*
+prisma/*-credentials.*
+prisma/seed-nho-reiseliv.ts
