@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getPermissions, getRoleDisplayName } from "../src/lib/permissions";
+import { getPermissions, getRoleDisplayName, getVisibleNavItems } from "../src/lib/permissions";
 import {
   canHandleWhistleblowingCases,
   canViewWhistleblowingContent,
@@ -29,9 +29,21 @@ test("varslingsansvarlig har begrenset HMS-meny utenom varsling", () => {
   assert.equal(perms.canAccessDashboard, true);
   assert.equal(perms.canViewWhistleblowingContent, true);
   assert.equal(perms.canReadIncidents, false);
+  assert.equal(perms.canReadOwnIncidents, false);
+  assert.equal(perms.canCreateIncidents, false);
+  assert.equal(perms.canCreateRuh, false);
   assert.equal(perms.canReadDocuments, false);
   assert.equal(perms.canUpdateSettings, false);
   assert.equal(getRoleDisplayName("VARSLINGSANSVARLIG"), "Varslingsansvarlig");
+
+  const nav = getVisibleNavItems("VARSLINGSANSVARLIG");
+  assert.equal(nav.whistleblowing, true);
+  assert.equal(nav.incidents, false);
+  assert.equal(nav.hseStatistics, false);
+  assert.equal(nav.ruh, false);
+  assert.equal(nav.complaints, false);
+  assert.equal(nav.training, false);
+  assert.equal(nav.support, true);
 });
 
 test("innboks-visning fjerner innhold, identitet og vedlegg", () => {
