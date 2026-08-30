@@ -27,6 +27,7 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
         statusItems: data.statusItems,
         weeklyTrendData: data.weeklyTrendData,
         recentIncidents: data.recentIncidents,
+        visibleNavItems: data.visibleNavItems,
       }}
       dashboardLocked={data.dashboardLocked}
       setupGuideProgress={data.setupGuideProgress}

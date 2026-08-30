@@ -47,6 +47,7 @@ import {
   UserPlus,
   FolderArchive,
   Wine,
+  Headphones,
 } from "lucide-react";
 import { BRANSJE_MODULES } from "@/lib/bransje-modules";
 import { menuPathsToWidgetIds } from "@/lib/menu-widget-sync";
@@ -518,6 +519,18 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
     borderColor: "border-red-200",
     permission: "whistleblowing",
     isAdvanced: true,
+  },
+  {
+    id: "support",
+    label: "Hjelp og support",
+    description: "Kontakt support om systemet",
+    icon: Headphones,
+    href: "/dashboard/support",
+    category: "personal",
+    color: "text-slate-700",
+    bgColor: "bg-slate-50",
+    borderColor: "border-slate-200",
+    permission: "support",
   },
   {
     id: "employee-reviews",

@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { getPermissions } from "@/lib/permissions";
+import { getPermissions, getVisibleNavItems } from "@/lib/permissions";
 import { getSetupGuideProgress } from "@/server/actions/onboarding.actions";
 
 export async function fetchDashboardData() {
@@ -264,5 +264,6 @@ export async function fetchDashboardData() {
     setupGuideProgress,
     tenantId,
     showTavleBanner: permissions.canUpdateSettings && !hasTavleSubscription && !selectedMembership.tenant.tavleBannerDismissed,
+    visibleNavItems: getVisibleNavItems(userRole),
   }));
 }

@@ -36,6 +36,7 @@ import {
   WIDGET_REGISTRY,
   type WidgetDefinition,
 } from "../lib/widget-registry";
+import { filterDashboardWidgets, isDashboardWidgetAllowed } from "@/lib/dashboard-widget-access";
 import {
   getDashboardConfig,
   saveDashboardConfig,
@@ -67,6 +68,7 @@ interface DashboardData {
     occurredAt: string;
     status: string;
   }>;
+  visibleNavItems?: Record<string, boolean | undefined>;
 }
 
 interface CustomizableDashboardProps {
@@ -228,11 +230,15 @@ export function CustomizableDashboard({ data, dashboardLocked = false, setupGuid
     rose:    { color: "text-rose-700",    bgColor: "bg-rose-50",    borderColor: "border-rose-200" },
   };
 
+  const visibleNavItems = data.visibleNavItems ?? {};
+  const allowedCatalogWidgets = filterDashboardWidgets(WIDGET_REGISTRY, visibleNavItems);
+
   const resolvedWidgets: Array<{ config: WidgetConfig; def: WidgetDefinition }> = [...widgets]
     .sort((a, b) => a.order - b.order)
     .map((config) => {
       if (config.type === "custom") {
         if (!config.customLabel || !config.customHref || !config.customIconName) return null;
+        if (!isDashboardWidgetAllowed({ href: config.customHref }, visibleNavItems)) return null;
         const iconComponent =
           customIconMap[config.customIconName as keyof typeof customIconMap] ?? Star;
         const colors = customColorPresets[config.customColorKey ?? ""] ?? customColorPresets.slate;
@@ -250,14 +256,27 @@ export function CustomizableDashboard({ data, dashboardLocked = false, setupGuid
         };
       }
       const def = getWidgetById(config.id);
-      return def ? { config, def } : null;
+      if (!def || !isDashboardWidgetAllowed(def, visibleNavItems)) return null;
+      return { config, def };
     })
     .filter(Boolean) as Array<{ config: WidgetConfig; def: WidgetDefinition }>;
 
+  const displayWidgets =
+    resolvedWidgets.length > 0
+      ? resolvedWidgets
+      : allowedCatalogWidgets.map((def, order) => ({
+          config: { id: def.id, order },
+          def,
+        }));
+
+  const canCustomizeDashboard = !dashboardLocked && allowedCatalogWidgets.length > 3;
+  const showFollowUp = Boolean(visibleNavItems.incidents || visibleNavItems.actions);
+  const showIncidentInsights = Boolean(visibleNavItems.incidents);
+
   const actionableStatusItems = data.statusItems.filter((item) => item.count > 0);
-  const functionLinkOptions = WIDGET_REGISTRY.filter((widget) => widget.href.trim().length > 0).map(
-    (widget) => ({ label: widget.label, href: widget.href })
-  );
+  const functionLinkOptions = allowedCatalogWidgets
+    .filter((widget) => widget.href.trim().length > 0)
+    .map((widget) => ({ label: widget.label, href: widget.href }));
   const safeFunctionLinkOptions =
     functionLinkOptions.length > 0
       ? functionLinkOptions
@@ -334,7 +353,7 @@ export function CustomizableDashboard({ data, dashboardLocked = false, setupGuid
                 {saving ? "Lagrer..." : "Lagre"}
               </Button>
             </>
-          ) : !dashboardLocked ? (
+          ) : canCustomizeDashboard ? (
             <Button
               variant="outline"
               size="sm"
@@ -344,12 +363,12 @@ export function CustomizableDashboard({ data, dashboardLocked = false, setupGuid
               <Pencil className="h-4 w-4" />
               Tilpass dashboard
             </Button>
-          ) : (
+          ) : dashboardLocked ? (
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <Lock className="h-4 w-4" />
               Dashboard er låst av administrator
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -371,11 +390,11 @@ export function CustomizableDashboard({ data, dashboardLocked = false, setupGuid
         onDragEnd={handleDragEnd}
       >
         <SortableContext
-          items={resolvedWidgets.map((w) => w.config.id)}
+          items={displayWidgets.map((w) => w.config.id)}
           strategy={rectSortingStrategy}
         >
           <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {resolvedWidgets.map(({ config, def }) => (
+            {displayWidgets.map(({ config, def }) => (
               <DashboardTile
                 key={config.id}
                 widget={def}
@@ -398,6 +417,7 @@ export function CustomizableDashboard({ data, dashboardLocked = false, setupGuid
         </SortableContext>
       </DndContext>
 
+      {showFollowUp && (
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
@@ -439,9 +459,10 @@ export function CustomizableDashboard({ data, dashboardLocked = false, setupGuid
           )}
         </CardContent>
       </Card>
+      )}
 
       {/* HMS-trender og Siste avvik */}
-      {(data.weeklyTrendData?.length || data.recentIncidents?.length) ? (
+      {showIncidentInsights && (data.weeklyTrendData?.length || data.recentIncidents?.length) ? (
         <div className="grid gap-6 lg:grid-cols-2">
           {data.weeklyTrendData && data.weeklyTrendData.length > 0 && (
             <HmsTrendChart data={data.weeklyTrendData} />
@@ -459,7 +480,7 @@ export function CustomizableDashboard({ data, dashboardLocked = false, setupGuid
         activeWidgetIds={widgets.map((w) => w.id)}
         onAddWidget={handleAddWidget}
         onAddCustomWidget={handleAddCustomWidget}
-        availableWidgets={WIDGET_REGISTRY}
+        availableWidgets={allowedCatalogWidgets}
         functionLinkOptions={safeFunctionLinkOptions}
         formLinkOptions={safeFormLinkOptions}
       />
