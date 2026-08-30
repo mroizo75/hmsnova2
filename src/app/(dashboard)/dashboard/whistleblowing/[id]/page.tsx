@@ -70,6 +70,7 @@ type WhistleblowCategory =
 type MessageSender = "REPORTER" | "HANDLER" | "SYSTEM";
 
 interface TenantUser {
+  role: string;
   user: {
     id: string;
     name: string | null;
@@ -1120,11 +1121,17 @@ export default function WhistleblowingDetailPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="NONE">Ingen tildelt</SelectItem>
-                    {users.map((u) => (
-                      <SelectItem key={u.user.id} value={u.user.id}>
-                        {u.user.name || u.user.email}
-                      </SelectItem>
-                    ))}
+                    {users
+                      .filter(
+                        (u) =>
+                          u.role === "VARSLINGSANSVARLIG" ||
+                          u.user.id === caseData.assignedTo
+                      )
+                      .map((u) => (
+                        <SelectItem key={u.user.id} value={u.user.id}>
+                          {u.user.name || u.user.email}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
                 {assignedUser && (

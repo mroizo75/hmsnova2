@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { CorporateGroupRole } from "@prisma/client";
 
 import { authOptions } from "@/lib/auth";
+import { canEnterKonsernFromHms } from "@/lib/konsern-access";
 import { prisma } from "@/lib/db";
 
 export interface CorporateGroupContext {
@@ -85,6 +86,15 @@ export async function getCorporateGroupContext(): Promise<CorporateGroupContext 
     return null;
   }
 
+  if (
+    !session.user.isSuperAdmin &&
+    !session.user.isSupport &&
+    session.user.tenantId &&
+    !canEnterKonsernFromHms(session.user.role)
+  ) {
+    return null;
+  }
+
   const membership = await prisma.corporateGroupUser.findUnique({
     where: {
       groupId_userId: {
@@ -150,4 +160,72 @@ export async function requireTenantInGroup(
   if (!membership || membership.status !== "ACTIVE") {
     throw new Error("Bedriften tilhører ikke dette konsernet");
   }
+}
+
+export async function assertTenantsInGroup(
+  groupId: string,
+  tenantIds: string[]
+): Promise<void> {
+  if (tenantIds.length === 0) {
+    return;
+  }
+
+  const accessible = new Set(await getAccessibleTenantIds(groupId));
+  const invalid = tenantIds.filter((id) => !accessible.has(id));
+
+  if (invalid.length > 0) {
+    throw new Error("En eller flere bedrifter tilhører ikke dette konsernet");
+  }
+}
+
+/**
+ * Konsern-admin kan kun gjenopprette en bedrift som tidligere var
+ * tilknyttet *dette* konsernet. Tilknytning av en vilkårlig eksisterende
+ * tenant er superadmin-only — ellers kan et konsern lese et annet selskaps data.
+ */
+export async function assertKonsernCanAttachTenant(
+  groupId: string,
+  tenantId: string
+): Promise<"reactivate" | "already-active"> {
+  const membership = await prisma.corporateGroupTenant.findUnique({
+    where: {
+      groupId_tenantId: { groupId, tenantId },
+    },
+  });
+
+  if (membership?.status === "ACTIVE") {
+    return "already-active";
+  }
+
+  if (membership?.status === "REMOVED") {
+    return "reactivate";
+  }
+
+  throw new Error(
+    "Eksisterende bedrifter kan kun knyttes til konsernet av HMS Nova-administrator"
+  );
+}
+
+export function resolveWritableGroupId(input: {
+  sessionGroupId: string | null | undefined;
+  requestedGroupId: string | null | undefined;
+  isSuperAdmin: boolean;
+}): string {
+  if (input.isSuperAdmin) {
+    const groupId = input.requestedGroupId || input.sessionGroupId;
+    if (!groupId) {
+      throw new Error("Mangler konsern-ID");
+    }
+    return groupId;
+  }
+
+  if (!input.sessionGroupId) {
+    throw new Error("Ikke autorisert for konsern-tilgang");
+  }
+
+  if (input.requestedGroupId && input.requestedGroupId !== input.sessionGroupId) {
+    throw new Error("Ikke autorisert til å endre et annet konsern");
+  }
+
+  return input.sessionGroupId;
 }

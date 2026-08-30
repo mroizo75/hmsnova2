@@ -13,6 +13,7 @@ import {
   Upload,
   Settings,
   ArrowRight,
+  ShieldAlert,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCorporateGroupDetails } from "@/server/actions/corporate-group.actions";
@@ -77,6 +78,13 @@ export default async function CorporateGroupDashboardPage() {
       value: overview.completedInspections,
       icon: ClipboardCheck,
       color: "text-teal-600 bg-teal-50",
+    },
+    {
+      title: "Varslingssaker",
+      value: overview.totalWhistleblowing,
+      icon: ShieldAlert,
+      color: overview.openWhistleblowing > 0 ? "text-red-600 bg-red-50" : "text-gray-600 bg-gray-50",
+      subtitle: overview.openWhistleblowing > 0 ? `${overview.openWhistleblowing} åpne` : undefined,
     },
   ];
 
@@ -172,7 +180,7 @@ export default async function CorporateGroupDashboardPage() {
       )}
 
       {/* KPI-kort */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
         {statCards.map((stat) => (
           <Card key={stat.title}>
             <CardContent className="flex items-center gap-3 p-4">
@@ -182,6 +190,9 @@ export default async function CorporateGroupDashboardPage() {
               <div className="min-w-0">
                 <p className="text-xs text-gray-500 truncate">{stat.title}</p>
                 <p className="text-xl font-bold text-gray-900">{stat.value}</p>
+                {"subtitle" in stat && stat.subtitle && (
+                  <p className="text-[10px] text-amber-600">{stat.subtitle}</p>
+                )}
               </div>
             </CardContent>
           </Card>

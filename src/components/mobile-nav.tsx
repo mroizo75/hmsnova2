@@ -25,6 +25,7 @@ import {
   LogOut,
   Beaker,
   ShieldCheck,
+  Shield,
   Menu,
   ThumbsUp,
   Zap,
@@ -58,6 +59,7 @@ import {
   type ModuleVisibilityConfig,
 } from "@/lib/module-visibility";
 import { Role } from "@prisma/client";
+import { KonsernHmsMessagesNavLink } from "@/features/konsern/components/konsern-hms-nav-link";
 
 interface TenantApiResponseItem {
   id: string;
@@ -98,6 +100,7 @@ const navItems: Array<{
   { href: "/dashboard/audits", label: "nav.audits", icon: ClipboardCheck, permission: "audits" as const, simple: false },
   { href: "/dashboard/annual-hms-plan", label: "nav.annualHmsPlan", icon: ListChecks, permission: "annualHmsPlan" as const, simple: true },
   { href: "/dashboard/time-registration", label: "nav.timeRegistration", icon: Clock, permission: "timeRegistration" as const, simple: true },
+  { href: "/dashboard/whistleblowing", label: "nav.whistleblowing", icon: Shield, permission: "whistleblowing" as const, simple: true, alwaysShow: true },
   { href: "/dashboard/feedback", label: "nav.feedback", icon: ThumbsUp, permission: "feedback" as const, simple: false },
   { href: "/dashboard/goals", label: "nav.goals", icon: Target, permission: "goals" as const, simple: false },
   // ORGANISASJON & INNSTILLINGER (vises alltid)
@@ -234,6 +237,11 @@ export function MobileNav() {
                 </div>
 
                 <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
+                  <KonsernHmsMessagesNavLink
+                    className="min-h-11 py-3"
+                    iconClassName="h-5 w-5"
+                    onClick={() => setOpen(false)}
+                  />
                   {allowedNavItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = pathname === item.href;

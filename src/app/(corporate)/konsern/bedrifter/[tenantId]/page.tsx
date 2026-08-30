@@ -8,6 +8,8 @@ import {
   GraduationCap,
   BookOpen,
   ChevronRight,
+  ShieldAlert,
+  CalendarCheck,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getGroupTenantOverview } from "@/server/actions/corporate-group-read.actions";
@@ -103,7 +105,26 @@ export default async function TenantOverviewPage({ params }: PageProps) {
       value: overview.validTraining,
       icon: GraduationCap,
       color: "text-green-600 bg-green-50",
+      href: `${basePath}/kompetanse`,
       subtitle: overview.expiredTraining > 0 ? `${overview.expiredTraining} utgått` : undefined,
+    },
+    {
+      title: "Varslingssaker",
+      value: overview.totalWhistleblowing,
+      icon: ShieldAlert,
+      color: overview.openWhistleblowing > 0 ? "text-red-600 bg-red-50" : "text-gray-600 bg-gray-50",
+      href: `${basePath}/varsling`,
+      subtitle: overview.openWhistleblowing > 0 ? `${overview.openWhistleblowing} åpne` : undefined,
+    },
+    {
+      title: "HMS Årshjul",
+      value: `${overview.annualPlanCompletions}/${overview.annualPlanTotal}`,
+      icon: CalendarCheck,
+      color: overview.annualPlanCompletions >= overview.annualPlanTotal
+        ? "text-emerald-600 bg-emerald-50"
+        : "text-amber-600 bg-amber-50",
+      href: `${basePath}/arshjul`,
+      subtitle: overview.annualPlanCompletions >= overview.annualPlanTotal ? "Komplett" : "Under arbeid",
     },
   ];
 

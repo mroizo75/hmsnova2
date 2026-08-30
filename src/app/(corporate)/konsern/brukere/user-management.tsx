@@ -22,6 +22,7 @@ import {
   Loader2,
   Trash2,
   MoreHorizontal,
+  Info,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -108,6 +109,28 @@ export function KonsernUserManagement({ initialUsers }: KonsernUserManagementPro
 
   return (
     <div className="space-y-6">
+      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+        <div className="flex gap-3">
+          <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+          <div className="space-y-2 text-sm text-blue-900">
+            <p className="font-semibold">Slik fungerer konsern-tilgang</p>
+            <ul className="list-disc space-y-1 pl-4 text-blue-800">
+              <li>
+                Alle som legges til her får tilgang til konsernoversikten og kan se bedriftene i konsernet.
+              </li>
+              <li>
+                Brukere som bare skal inn i én bedrift, skal inviteres i bedriftens eget HMS-system.
+                De kommer da bare dit — ikke hit.
+              </li>
+              <li>
+                Fra HMS-systemet er det kun Administrator og HMS-ansvarlig som kan åpne konsernet.
+                Andre roller ser kun bedriftens HMS-system.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
       {/* Inviter ny bruker */}
       <Card>
         <CardHeader>
@@ -156,9 +179,9 @@ export function KonsernUserManagement({ initialUsers }: KonsernUserManagementPro
               Legg til
             </Button>
           </div>
-          <p className="mt-3 text-xs text-gray-400">
-            Brukeren får tilgang til konsernoversikten med valgt rolle. Hvis brukeren ikke eksisterer,
-            opprettes en konto automatisk.
+          <p className="mt-3 text-xs text-gray-500">
+            Personen får konsern-tilgang med valgt rolle. Hvis kontoen ikke finnes, opprettes den automatisk.
+            Skal personen bare inn i én bedrift, inviteres hen i HMS-systemet der.
           </p>
         </CardContent>
       </Card>

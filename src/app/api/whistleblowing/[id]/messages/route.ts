@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { z } from "zod";
-import { createNotification } from "@/server/actions/notification.actions";
+import { createNotification, notifyUsersByRole } from "@/server/actions/notification.actions";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +43,13 @@ export async function POST(
       createNotification({
         tenantId: report.tenantId,
         userId: notifyUserId,
+        type: "WHISTLEBLOWING_MSG",
+        title: "Ny melding fra varsler",
+        message: `Varsler har sendt en ny melding i sak ${report.caseNumber}.`,
+        link: `/dashboard/whistleblowing/${id}`,
+      }).catch(() => {});
+    } else {
+      notifyUsersByRole(report.tenantId, "VARSLINGSANSVARLIG", {
         type: "WHISTLEBLOWING_MSG",
         title: "Ny melding fra varsler",
         message: `Varsler har sendt en ny melding i sak ${report.caseNumber}.`,

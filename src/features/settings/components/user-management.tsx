@@ -425,6 +425,8 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
         return <Badge className="bg-blue-100 text-blue-800 border-blue-200">👔 Leder</Badge>;
       case "HMS":
         return <Badge className="bg-orange-100 text-orange-800 border-orange-200">🦺 HMS-ansvarlig</Badge>;
+      case "VARSLINGSANSVARLIG":
+        return <Badge className="bg-amber-100 text-amber-800 border-amber-200">🔔 Varslingsansvarlig</Badge>;
       case "VERNEOMBUD":
         return <Badge className="bg-green-100 text-green-800 border-green-200">🛡️ Verneombud</Badge>;
       case "BHT":
@@ -517,7 +519,7 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
                   </summary>
                   <div className="mt-3 space-y-2 border-t pt-3 text-muted-foreground">
                     <p><strong>1. Last ned eksempelfil</strong> – Klikk «Last ned Excel-eksempel» for å få en ferdig mal.</p>
-                    <p><strong>2. Fyll ut Excel-filen</strong> – Bruk kolonnene <code className="rounded bg-muted px-1">email</code>, <code className="rounded bg-muted px-1">navn</code> og <code className="rounded bg-muted px-1">rolle</code>. Gyldige roller: ANSATT, LEDER, HMS, VERNEOMBUD, BHT, REVISOR, ADMIN.</p>
+                    <p><strong>2. Fyll ut Excel-filen</strong> – Bruk kolonnene <code className="rounded bg-muted px-1">email</code>, <code className="rounded bg-muted px-1">navn</code> og <code className="rounded bg-muted px-1">rolle</code>. Gyldige roller: ANSATT, LEDER, HMS, VARSLINGSANSVARLIG, VERNEOMBUD, BHT, REVISOR, ADMIN.</p>
                     <p><strong>2b. Valgfritt: stilling og leder</strong> – Kolonnen <code className="rounded bg-muted px-1">stilling</code> tar en fritekst som «Tømrer», og <code className="rounded bg-muted px-1">leder</code> tar e-postadressen til nærmeste leder. Lederen kan stå hvor som helst i filen; koblingen gjøres etter at alle radene er lest. Ukjent leder-e-post gir en advarsel, men stopper ikke importen.</p>
                     <p><strong>3. Importer filen</strong> – Velg din fil og klikk «Importer». Brukere legges til uten invitasjon.</p>
                     <p><strong>4. Aktiver brukere</strong> – Klikk «Aktiver alle» for å sende invitasjon med passord til alle importerte brukere, eller aktiver en og en under Handlinger.</p>
@@ -573,6 +575,7 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
                         <SelectItem value="ANSATT">👤 Ansatt</SelectItem>
                         <SelectItem value="LEDER">👔 Leder</SelectItem>
                         <SelectItem value="HMS">🦺 HMS-ansvarlig</SelectItem>
+                        <SelectItem value="VARSLINGSANSVARLIG">🔔 Varslingsansvarlig</SelectItem>
                         <SelectItem value="VERNEOMBUD">🛡️ Verneombud</SelectItem>
                         <SelectItem value="BHT">🩺 Bedriftshelsetjeneste</SelectItem>
                         <SelectItem value="REVISOR">📋 Revisor</SelectItem>
@@ -868,6 +871,7 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
                               <SelectItem value="ANSATT">👤 Ansatt</SelectItem>
                               <SelectItem value="LEDER">👔 Leder</SelectItem>
                               <SelectItem value="HMS">🦺 HMS-ansvarlig</SelectItem>
+                              <SelectItem value="VARSLINGSANSVARLIG">🔔 Varslingsansvarlig</SelectItem>
                               <SelectItem value="VERNEOMBUD">🛡️ Verneombud</SelectItem>
                               <SelectItem value="BHT">🩺 Bedriftshelsetjeneste</SelectItem>
                               <SelectItem value="REVISOR">📋 Revisor</SelectItem>

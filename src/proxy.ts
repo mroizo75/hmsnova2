@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
+import { canAccessKonsernPortal } from "@/lib/konsern-access";
 
 const applySecurityHeaders = (response: NextResponse): NextResponse => {
   // Strict-Transport-Security (HSTS)
@@ -129,11 +130,15 @@ export async function proxy(request: NextRequest) {
 
     // Konsern access control
     if (pathname.startsWith("/konsern")) {
-      const hasCorporateGroup = Boolean(token.corporateGroupId);
-      const isSuperAdmin = token.isSuperAdmin === true;
-      const isSupport = token.isSupport === true;
+      const allowed = canAccessKonsernPortal({
+        hasCorporateGroup: Boolean(token.corporateGroupId),
+        isSuperAdmin: token.isSuperAdmin === true,
+        isSupport: token.isSupport === true,
+        tenantId: (token.tenantId as string | null) ?? null,
+        tenantRole: (token.role as string | null) ?? null,
+      });
 
-      if (!hasCorporateGroup && !isSuperAdmin && !isSupport) {
+      if (!allowed) {
         return applySecurityHeaders(NextResponse.redirect(new URL("/dashboard", request.url)));
       }
     }

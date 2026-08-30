@@ -85,20 +85,13 @@ export default async function DashboardPage() {
     return <div>Kunne ikke laste dashboard-data.</div>;
   }
 
-  // Hent konsern-meldinger for denne bedriften
-  const konsernMessages = await getMessagesForTenant(
-    selectedMembership.tenantId,
-    user.id
-  );
+  const konsernMessages = await getMessagesForTenant();
+  const unreadKonsernMessages = konsernMessages.filter((m) => !m.isRead);
 
   return (
     <div className="space-y-4">
-      {konsernMessages.length > 0 && (
-        <KonsernMessagesBanner
-          messages={konsernMessages}
-          tenantId={selectedMembership.tenantId}
-          userId={user.id}
-        />
+      {unreadKonsernMessages.length > 0 && (
+        <KonsernMessagesBanner messages={unreadKonsernMessages} />
       )}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">

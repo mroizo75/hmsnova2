@@ -44,7 +44,16 @@ interface ModuleVisibilitySettingsProps {
 
 const ALL_MODULES = Object.keys(MODULE_DEFAULTS) as ModuleKey[];
 
-const ROLES_IN_ORDER: Role[] = ["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "ANSATT", "BHT", "REVISOR"];
+const ROLES_IN_ORDER: Role[] = [
+  "ADMIN",
+  "HMS",
+  "LEDER",
+  "VERNEOMBUD",
+  "ANSATT",
+  "BHT",
+  "REVISOR",
+  "VARSLINGSANSVARLIG",
+];
 
 // Moduler der ansatte alltid kan sende inn, selv om de ikke ser andres data
 const SUBMIT_ONLY_MODULES = new Set<ModuleKey>(["incidents", "ruh", "sja", "feedback"]);
@@ -186,6 +195,11 @@ export function ModuleVisibilitySettings({
                             Alltid
                           </Badge>
                         )}
+                        {role === "VARSLINGSANSVARLIG" && (
+                          <Badge variant="secondary" className="text-[10px] px-1 py-0">
+                            Varsling
+                          </Badge>
+                        )}
                       </div>
                     </th>
                   ))}
@@ -217,7 +231,9 @@ export function ModuleVisibilitySettings({
                       </td>
                       {ROLES_IN_ORDER.map((role) => {
                         const isChecked = config[mod].has(role);
-                        const isLocked = role === "ADMIN";
+                        const isLocked =
+                          role === "ADMIN" ||
+                          (mod === "whistleblowing" && role === "VARSLINGSANSVARLIG");
                         return (
                           <td key={role} className="text-center py-3 px-2">
                             <Checkbox

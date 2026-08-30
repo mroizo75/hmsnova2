@@ -27,7 +27,7 @@ const DEFAULT_NAVIGATION_ITEMS = [
   { key: "managementReviews", label: "nav.managementReviews", icon: "Users", href: "/dashboard/management-reviews", permission: "managementReviews", isSimpleMode: false, order: 18 },
   { key: "annualHmsPlan", label: "nav.annualHmsPlan", icon: "ClipboardCheck", href: "/dashboard/annual-hms-plan", permission: "annualHmsPlan", isSimpleMode: true, order: 19 },
   { key: "meetings", label: "nav.meetings", icon: "CalendarDays", href: "/dashboard/meetings", permission: "meetings", isSimpleMode: false, order: 20 },
-  { key: "whistleblowing", label: "nav.whistleblowing", icon: "MessageCircle", href: "/dashboard/whistleblowing", permission: "whistleblowing", isSimpleMode: false, order: 21 },
+  { key: "whistleblowing", label: "nav.whistleblowing", icon: "MessageCircle", href: "/dashboard/whistleblowing", permission: "whistleblowing", isSimpleMode: true, order: 21 },
   { key: "goals", label: "nav.goals", icon: "Target", href: "/dashboard/goals", permission: "goals", isSimpleMode: false, order: 22 },
   { key: "aktivitetslogg", label: "nav.aktivitetslogg", icon: "Activity", href: "/dashboard/aktivitetslogg", permission: "settings", isSimpleMode: false, order: 98 },
   { key: "settings", label: "nav.settings", icon: "Settings", href: "/dashboard/settings", permission: "settings", isSimpleMode: true, order: 99 },

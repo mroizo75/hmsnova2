@@ -25,7 +25,16 @@ async function getSessionContext() {
   return { user, tenantId: tenantContext.tenantId };
 }
 
-const VALID_ROLES: Role[] = ["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "ANSATT", "BHT", "REVISOR"];
+const VALID_ROLES: Role[] = [
+  "ADMIN",
+  "HMS",
+  "LEDER",
+  "VERNEOMBUD",
+  "ANSATT",
+  "BHT",
+  "REVISOR",
+  "VARSLINGSANSVARLIG",
+];
 const ROLE_ALIASES: Record<string, Role> = {
   administrator: "ADMIN",
   admin: "ADMIN",
@@ -37,6 +46,8 @@ const ROLE_ALIASES: Record<string, Role> = {
   bht: "BHT",
   "bedriftshelsetjeneste": "BHT",
   revisor: "REVISOR",
+  varslingsansvarlig: "VARSLINGSANSVARLIG",
+  "varslings-ansvarlig": "VARSLINGSANSVARLIG",
 };
 
 function normalizeRole(value: string): Role | null {

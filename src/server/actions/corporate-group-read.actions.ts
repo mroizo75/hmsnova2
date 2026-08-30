@@ -1,5 +1,7 @@
 "use server";
 
+import { notFound } from "next/navigation";
+
 import { prisma } from "@/lib/db";
 import {
   requireCorporateGroupContext,
@@ -15,7 +17,11 @@ const DEFAULT_LIMIT = 25;
 
 async function verifyTenantAccess(tenantId: string) {
   const context = await requireCorporateGroupContext();
-  await requireTenantInGroup(context.groupId, tenantId);
+  try {
+    await requireTenantInGroup(context.groupId, tenantId);
+  } catch {
+    notFound();
+  }
 
   await prisma.corporateGroupAuditLog.create({
     data: {
@@ -55,6 +61,7 @@ export async function getGroupTenantOverview(tenantId: string) {
 
   const now = new Date();
   const twelveMonthsAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+  const currentYear = now.getFullYear();
 
   const [
     employeeCount,
@@ -69,6 +76,9 @@ export async function getGroupTenantOverview(tenantId: string) {
     validTraining,
     expiredTraining,
     recentIncidents,
+    openWhistleblowing,
+    totalWhistleblowing,
+    annualPlanCompletions,
   ] = await Promise.all([
     prisma.userTenant.count({ where: { tenantId } }),
     prisma.incident.count({ where: { tenantId, status: { in: ["OPEN", "INVESTIGATING"] } } }),
@@ -89,6 +99,11 @@ export async function getGroupTenantOverview(tenantId: string) {
       orderBy: { occurredAt: "desc" },
       take: 5,
     }),
+    prisma.whistleblowing.count({
+      where: { tenantId, status: { in: ["RECEIVED", "ACKNOWLEDGED", "UNDER_INVESTIGATION"] } },
+    }),
+    prisma.whistleblowing.count({ where: { tenantId } }),
+    prisma.hmsAnnualPlanCompletion.count({ where: { tenantId, year: currentYear } }),
   ]);
 
   return {
@@ -104,6 +119,10 @@ export async function getGroupTenantOverview(tenantId: string) {
     validTraining,
     expiredTraining,
     recentIncidents,
+    openWhistleblowing,
+    totalWhistleblowing,
+    annualPlanCompletions,
+    annualPlanTotal: 12,
   };
 }
 
@@ -349,6 +368,117 @@ export async function getGroupAuditLog(options?: PaginationOptions) {
     logs: logs.map((log) => ({
       ...log,
       user: userMap.get(log.userId) ?? null,
+    })),
+    total,
+  };
+}
+
+// ── Varsling (Whistleblowing) — AML § 2A-1, Varslerloven ────────────────────
+// GDPR: Viser kun aggregert status, ikke innhold i varslingssaker
+
+export async function getGroupTenantWhistleblowing(tenantId: string, options?: PaginationOptions) {
+  await verifyTenantAccess(tenantId);
+
+  const limit = options?.limit ?? DEFAULT_LIMIT;
+  const offset = options?.offset ?? 0;
+
+  const [cases, total] = await Promise.all([
+    prisma.whistleblowing.findMany({
+      where: { tenantId },
+      select: {
+        id: true,
+        caseNumber: true,
+        category: true,
+        status: true,
+        severity: true,
+        isAnonymous: true,
+        receivedAt: true,
+        closedAt: true,
+      },
+      orderBy: { receivedAt: "desc" },
+      take: limit,
+      skip: offset,
+    }),
+    prisma.whistleblowing.count({ where: { tenantId } }),
+  ]);
+
+  return { cases, total };
+}
+
+// ── HMS Årshjul ──────────────────────────────────────────────────────────────
+
+export async function getGroupTenantAnnualPlan(tenantId: string) {
+  await verifyTenantAccess(tenantId);
+
+  const currentYear = new Date().getFullYear();
+
+  const [tenant, completions] = await Promise.all([
+    prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: {
+        hmsAnnualPlanEnabled: true,
+        hmsAnnualPlanConfig: true,
+      },
+    }),
+    prisma.hmsAnnualPlanCompletion.findMany({
+      where: { tenantId, year: currentYear },
+      select: {
+        stepKey: true,
+        completedAt: true,
+        note: true,
+        completedBy: { select: { name: true } },
+      },
+      orderBy: { completedAt: "desc" },
+    }),
+  ]);
+
+  return {
+    enabled: tenant?.hmsAnnualPlanEnabled ?? false,
+    config: tenant?.hmsAnnualPlanConfig as Record<string, unknown> | null,
+    completions,
+    year: currentYear,
+  };
+}
+
+// ── Kompetanse / Opplæring ───────────────────────────────────────────────────
+
+export async function getGroupTenantTraining(tenantId: string, options?: PaginationOptions) {
+  await verifyTenantAccess(tenantId);
+
+  const limit = options?.limit ?? DEFAULT_LIMIT;
+  const offset = options?.offset ?? 0;
+
+  const [training, total] = await Promise.all([
+    prisma.training.findMany({
+      where: { tenantId },
+      select: {
+        id: true,
+        title: true,
+        courseKey: true,
+        provider: true,
+        completedAt: true,
+        validUntil: true,
+        isRequired: true,
+        userId: true,
+      },
+      orderBy: { completedAt: "desc" },
+      take: limit,
+      skip: offset,
+    }),
+    prisma.training.count({ where: { tenantId } }),
+  ]);
+
+  const userIds = [...new Set(training.map((t) => t.userId))];
+  const users = await prisma.user.findMany({
+    where: { id: { in: userIds } },
+    select: { id: true, name: true },
+  });
+  const userMap = new Map(users.map((u) => [u.id, u.name]));
+
+  return {
+    training: training.map((t) => ({
+      ...t,
+      userName: userMap.get(t.userId) ?? "Ukjent",
     })),
     total,
   };

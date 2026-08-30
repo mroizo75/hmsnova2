@@ -3,10 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { MessagePriority } from "@prisma/client";
 
+import { getServerSession } from "next-auth/next";
+
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import {
   requireCorporateGroupContext,
   requireGroupPermission,
+  assertTenantsInGroup,
 } from "@/lib/corporate-group-context";
 
 // ── Konsern-side: opprett melding ──
@@ -39,8 +43,8 @@ export async function createGroupMessage(data: {
     },
   });
 
-  // Opprett targets hvis ikke alle
   if (!data.targetAll && data.targetTenantIds?.length) {
+    await assertTenantsInGroup(context.groupId, data.targetTenantIds);
     await prisma.corporateGroupMessageTarget.createMany({
       data: data.targetTenantIds.map((tenantId) => ({
         messageId: message.id,
@@ -183,10 +187,37 @@ export async function deleteGroupMessage(messageId: string) {
   revalidatePath("/konsern/meldinger");
 }
 
+async function requireSessionTenantMembership() {
+  const session = await getServerSession(authOptions);
+  const userId = session?.user?.id;
+  const tenantId = session?.user?.tenantId;
+
+  if (!userId || !tenantId) {
+    return null;
+  }
+
+  const userTenant = await prisma.userTenant.findUnique({
+    where: {
+      userId_tenantId: { userId, tenantId },
+    },
+    select: { userId: true, tenantId: true },
+  });
+
+  if (!userTenant) {
+    return null;
+  }
+
+  return userTenant;
+}
+
 // ── Bedrift-side: hent meldinger til min tenant ──
 
-export async function getMessagesForTenant(tenantId: string, userId: string) {
-  // Finn gruppen tenanten tilhører
+export async function getMessagesForTenant() {
+  const sessionTenant = await requireSessionTenantMembership();
+  if (!sessionTenant) return [];
+
+  const { userId, tenantId } = sessionTenant;
+
   const membership = await prisma.corporateGroupTenant.findFirst({
     where: { tenantId, status: "ACTIVE" },
     select: { groupId: true },
@@ -228,7 +259,39 @@ export async function getMessagesForTenant(tenantId: string, userId: string) {
 
 // ── Bedrift-side: bekreft lesing ──
 
-export async function acknowledgeMessage(messageId: string, tenantId: string, userId: string) {
+export async function acknowledgeMessage(messageId: string) {
+  const sessionTenant = await requireSessionTenantMembership();
+  if (!sessionTenant) {
+    throw new Error("Ikke autorisert");
+  }
+
+  const { userId, tenantId } = sessionTenant;
+
+  const membership = await prisma.corporateGroupTenant.findFirst({
+    where: { tenantId, status: "ACTIVE" },
+    select: { groupId: true },
+  });
+
+  if (!membership) {
+    throw new Error("Bedriften tilhører ikke et konsern");
+  }
+
+  const message = await prisma.corporateGroupMessage.findFirst({
+    where: {
+      id: messageId,
+      groupId: membership.groupId,
+      OR: [
+        { targetAll: true },
+        { targets: { some: { tenantId } } },
+      ],
+    },
+    select: { id: true },
+  });
+
+  if (!message) {
+    throw new Error("Melding ikke funnet");
+  }
+
   const existing = await prisma.corporateGroupMessageReceipt.findUnique({
     where: { messageId_userId: { messageId, userId } },
   });
@@ -240,12 +303,18 @@ export async function acknowledgeMessage(messageId: string, tenantId: string, us
   });
 
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/meldinger");
   return receipt;
 }
 
 // ── Bedrift-side: antall uleste meldinger ──
 
-export async function getUnreadMessageCount(tenantId: string, userId: string): Promise<number> {
+export async function getUnreadMessageCount(): Promise<number> {
+  const sessionTenant = await requireSessionTenantMembership();
+  if (!sessionTenant) return 0;
+
+  const { userId, tenantId } = sessionTenant;
+
   const membership = await prisma.corporateGroupTenant.findFirst({
     where: { tenantId, status: "ACTIVE" },
     select: { groupId: true },

@@ -26,6 +26,7 @@ function roleLabel(role: string): string {
 function roleColor(role: string): string {
   if (role === "ADMIN") return "bg-purple-50 text-purple-700";
   if (role === "HMS") return "bg-blue-50 text-blue-700";
+  if (role === "VARSLINGSANSVARLIG") return "bg-amber-50 text-amber-800";
   if (role === "LEDER") return "bg-indigo-50 text-indigo-700";
   if (role === "VERNEOMBUD") return "bg-teal-50 text-teal-700";
   return "bg-gray-100 text-gray-600";

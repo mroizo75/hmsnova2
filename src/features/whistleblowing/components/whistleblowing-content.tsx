@@ -101,10 +101,19 @@ export function WhistleblowingContent({ initialData }: WhistleblowingContentProp
 
   if (!data) return null;
 
-  const { cases } = data;
+  const { cases, canViewContent = false } = data;
 
   return (
     <>
+      {!canViewContent && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p className="font-medium">Kun varslingsansvarlig kan åpne innholdet</p>
+          <p className="mt-1 text-amber-800">
+            Du ser at saker er kommet inn (saksnummer, status og dato). Tekst, identitet og
+            vedlegg er skjult i tråd med arbeidsmiljøloven kapittel 2 A og GDPR artikkel 5.
+          </p>
+        </div>
+      )}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -175,35 +184,43 @@ export function WhistleblowingContent({ initialData }: WhistleblowingContentProp
             <TableHeader>
               <TableRow>
                 <TableHead>{t("table.caseNumber")}</TableHead>
-                <TableHead>{t("table.title")}</TableHead>
-                <TableHead>{t("table.category")}</TableHead>
-                <TableHead>{t("table.severity")}</TableHead>
+                {canViewContent && <TableHead>{t("table.title")}</TableHead>}
+                {canViewContent && <TableHead>{t("table.category")}</TableHead>}
+                {canViewContent && <TableHead>{t("table.severity")}</TableHead>}
                 <TableHead>{t("table.status")}</TableHead>
                 <TableHead>{t("table.received")}</TableHead>
-                <TableHead className="text-right">{t("table.actions")}</TableHead>
+                {canViewContent && (
+                  <TableHead className="text-right">{t("table.actions")}</TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
               {cases.map((c: any) => (
                 <TableRow key={c.id}>
                   <TableCell className="font-mono text-sm">{c.caseNumber}</TableCell>
-                  <TableCell className="max-w-xs truncate font-medium">{c.title}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{getCategoryLabel(c.category, t)}</Badge>
-                  </TableCell>
-                  <TableCell>{getSeverityBadge(c.severity, t)}</TableCell>
+                  {canViewContent && (
+                    <TableCell className="max-w-xs truncate font-medium">{c.title}</TableCell>
+                  )}
+                  {canViewContent && (
+                    <TableCell>
+                      <Badge variant="outline">{getCategoryLabel(c.category, t)}</Badge>
+                    </TableCell>
+                  )}
+                  {canViewContent && <TableCell>{getSeverityBadge(c.severity, t)}</TableCell>}
                   <TableCell>{getStatusBadge(c.status, t)}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {format(new Date(c.receivedAt), "dd. MMM yyyy", { locale: dateLocale })}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <Link href={`/dashboard/whistleblowing/${c.id}`}>
-                      <Button variant="ghost" size="sm">
-                        <Eye className="mr-2 h-4 w-4" />
-                        {t("actions.process")}
-                      </Button>
-                    </Link>
-                  </TableCell>
+                  {canViewContent && (
+                    <TableCell className="text-right">
+                      <Link href={`/dashboard/whistleblowing/${c.id}`}>
+                        <Button variant="ghost" size="sm">
+                          <Eye className="mr-2 h-4 w-4" />
+                          {t("actions.process")}
+                        </Button>
+                      </Link>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
@@ -215,23 +232,27 @@ export function WhistleblowingContent({ initialData }: WhistleblowingContentProp
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="font-mono text-xs text-muted-foreground">{c.caseNumber}</p>
-                  <h3 className="font-medium">{c.title}</h3>
+                  {canViewContent && <h3 className="font-medium">{c.title}</h3>}
                 </div>
                 {getStatusBadge(c.status, t)}
               </div>
               <div className="flex flex-wrap gap-2">
-                <Badge variant="outline">{getCategoryLabel(c.category, t)}</Badge>
-                {getSeverityBadge(c.severity, t)}
+                {canViewContent && (
+                  <Badge variant="outline">{getCategoryLabel(c.category, t)}</Badge>
+                )}
+                {canViewContent && getSeverityBadge(c.severity, t)}
                 <span className="text-sm text-muted-foreground">
                   {format(new Date(c.receivedAt), "dd. MMM yyyy", { locale: dateLocale })}
                 </span>
               </div>
-              <Button variant="outline" size="sm" className="w-full" asChild>
-                <Link href={`/dashboard/whistleblowing/${c.id}`}>
-                  <Eye className="mr-2 h-4 w-4" />
-                  {t("actions.process")}
-                </Link>
-              </Button>
+              {canViewContent && (
+                <Button variant="outline" size="sm" className="w-full bg-transparent" asChild>
+                  <Link href={`/dashboard/whistleblowing/${c.id}`}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    {t("actions.process")}
+                  </Link>
+                </Button>
+              )}
             </div>
           ))}
         </div>

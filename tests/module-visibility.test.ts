@@ -63,6 +63,23 @@ test("parseModuleVisibilityConfig filtrerer ugyldige nøkler og roller", () => {
   assert.equal((parsed as any).unknownModule, undefined);
 });
 
+test("varslingsansvarlig har alltid varslingsmodul uten at ADMIN får innhold", () => {
+  assert.equal(canRoleAccessModule(null, "whistleblowing", "VARSLINGSANSVARLIG"), true);
+  assert.equal(
+    canRoleAccessModule({ whistleblowing: [Role.ADMIN] }, "whistleblowing", "VARSLINGSANSVARLIG"),
+    true
+  );
+
+  const admin = getEffectivePermissions("ADMIN", null);
+  assert.equal(admin.canViewWhistleblowing, true);
+  assert.equal(admin.canViewWhistleblowingContent, false);
+  assert.equal(admin.canHandleWhistleblowing, false);
+
+  const handler = getEffectivePermissions("VARSLINGSANSVARLIG", null);
+  assert.equal(handler.canViewWhistleblowingContent, true);
+  assert.equal(handler.canHandleWhistleblowing, true);
+});
+
 test("nav tillater innsendingsmodul selv uten lesetilgang", () => {
   const config: ModuleVisibilityConfig = {
     incidents: [Role.ADMIN, Role.HMS],

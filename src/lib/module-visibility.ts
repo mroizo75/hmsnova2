@@ -41,6 +41,7 @@ export const ALL_ROLES: Role[] = [
   "ANSATT",
   "BHT",
   "REVISOR",
+  "VARSLINGSANSVARLIG",
 ];
 
 /** Standard synlighet – speiler rolePermissions-matrisen for lesing av andres data */
@@ -60,7 +61,7 @@ export const MODULE_DEFAULTS: Record<ModuleKey, Role[]> = {
   environment:  ["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "BHT"],
   meetings:     ["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "BHT", "REVISOR"],
   routines:     ["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "ANSATT", "BHT", "REVISOR"],
-  whistleblowing: ["ADMIN", "HMS"],
+  whistleblowing: ["ADMIN", "HMS", "VARSLINGSANSVARLIG"],
   feedback:     ["ADMIN", "HMS", "LEDER", "BHT", "REVISOR"],
   // Standard: kun ADMIN ser ALLE andres samtaler.
   // Alle brukere ser alltid egne samtaler uavhengig av dette.
@@ -123,7 +124,7 @@ export const MODULE_PERMISSION_KEYS: Record<ModuleKey, Array<keyof RolePermissio
   environment:  ["canReadEnvironment"],
   meetings:     ["canReadMeetings", "canViewAllMeetings"],
   routines:     ["canReadRoutines"],
-  whistleblowing: ["canViewWhistleblowing", "canHandleWhistleblowing"],
+  whistleblowing: ["canViewWhistleblowing", "canViewWhistleblowingContent", "canHandleWhistleblowing"],
   feedback:     ["canReadAllFeedback"],
   employeeReviews: ["canReadAllEmployeeReviews"],
 };
@@ -174,8 +175,11 @@ export function getVisibleRolesForModule(
   module: ModuleKey
 ): Role[] {
   const base = config?.[module] ?? MODULE_DEFAULTS[module];
-  if (!base.includes("ADMIN")) return ["ADMIN", ...base];
-  return base;
+  const withAdmin: Role[] = base.includes("ADMIN") ? [...base] : ["ADMIN" as Role, ...base];
+  if (module === "whistleblowing" && !withAdmin.includes("VARSLINGSANSVARLIG")) {
+    withAdmin.push("VARSLINGSANSVARLIG" as Role);
+  }
+  return withAdmin;
 }
 
 /**
@@ -188,6 +192,7 @@ export function canRoleAccessModule(
   role: Role
 ): boolean {
   if (role === "ADMIN") return true;
+  if (module === "whistleblowing" && role === "VARSLINGSANSVARLIG") return true;
   return getVisibleRolesForModule(config, module).includes(role);
 }
 

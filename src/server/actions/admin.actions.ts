@@ -27,7 +27,7 @@ const createAdminUserSchema = z.object({
   password: z.string().min(8),
   isSuperAdmin: z.boolean().default(false),
   tenantId: z.string().optional(),
-  role: z.enum(["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "ANSATT", "BHT", "REVISOR"]).optional(),
+  role: z.enum(["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "ANSATT", "BHT", "REVISOR", "VARSLINGSANSVARLIG"]).optional(),
 });
 
 // Schema for å oppdatere bruker
@@ -36,7 +36,7 @@ const updateAdminUserSchema = z.object({
   name: z.string().min(2).optional(),
   isSuperAdmin: z.boolean().optional(),
   tenantId: z.string().optional(),
-  role: z.enum(["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "ANSATT", "BHT", "REVISOR"]).optional(),
+  role: z.enum(["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "ANSATT", "BHT", "REVISOR", "VARSLINGSANSVARLIG"]).optional(),
 });
 
 export async function createAdminUser(input: z.infer<typeof createAdminUserSchema>) {

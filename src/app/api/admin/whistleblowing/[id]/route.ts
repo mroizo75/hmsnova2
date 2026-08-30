@@ -4,6 +4,10 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { createNotification } from "@/server/actions/notification.actions";
+import {
+  canHandleWhistleblowingCases,
+  canViewWhistleblowingContent,
+} from "@/lib/whistleblowing-access";
 
 export const dynamic = "force-dynamic";
 
@@ -38,8 +42,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const allowedRoles = ["ADMIN", "HMS"];
-    if (!session.user.role || !allowedRoles.includes(session.user.role)) {
+    if (!canViewWhistleblowingContent(session.user.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -81,8 +84,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const allowedRoles = ["ADMIN", "HMS"];
-    if (!session.user.role || !allowedRoles.includes(session.user.role)) {
+    if (!canHandleWhistleblowingCases(session.user.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -98,6 +100,23 @@ export async function PATCH(
 
     if (!existing) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    if (validatedData.assignedTo) {
+      const assignee = await db.userTenant.findFirst({
+        where: {
+          userId: validatedData.assignedTo,
+          tenantId: session.user.tenantId,
+          role: "VARSLINGSANSVARLIG",
+        },
+        select: { userId: true },
+      });
+      if (!assignee) {
+        return NextResponse.json(
+          { error: "Saken kan bare tildeles en varslingsansvarlig" },
+          { status: 400 }
+        );
+      }
     }
 
     const updateData: any = { ...validatedData };
@@ -145,7 +164,7 @@ export async function PATCH(
         userId: newAssignee,
         type: "WHISTLEBLOWING",
         title: "Varslingssak tildelt deg",
-        message: `Sak ${existing.caseNumber}: ${existing.title} er tildelt deg for behandling.`,
+        message: `Sak ${existing.caseNumber} er tildelt deg for behandling.`,
         link: `/dashboard/whistleblowing/${id}`,
       }).catch(() => {});
     }

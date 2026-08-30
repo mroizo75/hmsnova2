@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { resolveWritableGroupId } from "@/lib/corporate-group-context";
 import ExcelJS from "exceljs";
 import bcrypt from "bcryptjs";
 import { Resend } from "resend";
@@ -58,16 +59,15 @@ export async function POST(request: NextRequest) {
   }
 
   const isSuperAdmin = session.user.isSuperAdmin === true;
-  const groupId = session.user.corporateGroupId as string | null;
+  const sessionGroupId = (session.user.corporateGroupId as string | null) ?? null;
 
-  // Sjekk tilgang: superadmin eller konsern-admin
-  if (!isSuperAdmin && !groupId) {
+  if (!isSuperAdmin && !sessionGroupId) {
     return NextResponse.json({ error: "Ingen tilgang" }, { status: 403 });
   }
 
-  if (groupId && !isSuperAdmin) {
+  if (sessionGroupId && !isSuperAdmin) {
     const membership = await prisma.corporateGroupUser.findUnique({
-      where: { groupId_userId: { groupId, userId: session.user.id } },
+      where: { groupId_userId: { groupId: sessionGroupId, userId: session.user.id } },
     });
     if (!membership || membership.role !== "GROUP_ADMIN") {
       return NextResponse.json({ error: "Kun konsern-admin kan importere" }, { status: 403 });
@@ -76,14 +76,24 @@ export async function POST(request: NextRequest) {
 
   const formData = await request.formData();
   const file = formData.get("file") as File | null;
-  const targetGroupId = (formData.get("groupId") as string) || groupId;
+  const requestedGroupId = (formData.get("groupId") as string) || null;
+
+  let targetGroupId: string;
+  try {
+    targetGroupId = resolveWritableGroupId({
+      sessionGroupId,
+      requestedGroupId,
+      isSuperAdmin,
+    });
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Ingen tilgang" },
+      { status: 403 }
+    );
+  }
 
   if (!file) {
     return NextResponse.json({ error: "Ingen fil mottatt" }, { status: 400 });
-  }
-
-  if (!targetGroupId) {
-    return NextResponse.json({ error: "Mangler konsern-ID" }, { status: 400 });
   }
 
   // Verifiser at konsernet eksisterer
@@ -208,11 +218,18 @@ export async function POST(request: NextRequest) {
               data: { status: "ACTIVE", joinedAt: new Date() },
             });
             results.push({ row: i + 2, name: row.name, status: "linked", message: "Re-aktivert i konsernet" });
-          } else {
+          } else if (isSuperAdmin) {
             await prisma.corporateGroupTenant.create({
               data: { groupId: targetGroupId, tenantId: existingTenant.id },
             });
             results.push({ row: i + 2, name: row.name, status: "linked", message: "Eksisterende bedrift tilknyttet konsernet" });
+          } else {
+            results.push({
+              row: i + 2,
+              name: row.name,
+              status: "skipped",
+              message: "Bedriften finnes allerede i HMS Nova. Kontakt support for å knytte den til konsernet.",
+            });
           }
         } else {
           // Opprett ny tenant

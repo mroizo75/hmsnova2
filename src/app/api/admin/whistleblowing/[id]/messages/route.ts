@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { createNotification } from "@/server/actions/notification.actions";
+import { canHandleWhistleblowingCases } from "@/lib/whistleblowing-access";
 
 export const dynamic = "force-dynamic";
 
@@ -24,8 +25,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const allowedRoles = ["ADMIN", "HMS"];
-    if (!session.user.role || !allowedRoles.includes(session.user.role)) {
+    if (!canHandleWhistleblowingCases(session.user.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

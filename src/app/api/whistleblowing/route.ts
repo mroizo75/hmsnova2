@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import { strictRateLimiter, getClientIp } from "@/lib/rate-limit";
-import { notifyUsersByRole } from "@/server/actions/notification.actions";
+import { notifyUsersByRole, notifyUsersByRoles } from "@/server/actions/notification.actions";
 
 export const dynamic = "force-dynamic";
 
@@ -144,19 +144,18 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Send varsling til HMS-ansvarlige og ledelse
-    await notifyUsersByRole(tenant.id, "HMS", {
+    await notifyUsersByRole(tenant.id, "VARSLINGSANSVARLIG", {
       type: "WHISTLEBLOWING",
       title: "Ny varsling mottatt",
-      message: `${report.category}: ${report.title} - Saksnummer: ${report.caseNumber}`,
+      message: `Saksnummer ${report.caseNumber} krever behandling.`,
       link: `/dashboard/whistleblowing/${report.id}`,
     });
-    
-    await notifyUsersByRole(tenant.id, "LEDER", {
+
+    await notifyUsersByRoles(tenant.id, ["ADMIN", "HMS"], {
       type: "WHISTLEBLOWING",
       title: "Ny varsling mottatt",
-      message: `${report.category}: ${report.title} - Saksnummer: ${report.caseNumber}`,
-      link: `/dashboard/whistleblowing/${report.id}`,
+      message: `Det er kommet inn en ny varsling (${report.caseNumber}). Innholdet er kun synlig for varslingsansvarlig.`,
+      link: "/dashboard/whistleblowing",
     });
 
     revalidatePath("/dashboard/whistleblowing");

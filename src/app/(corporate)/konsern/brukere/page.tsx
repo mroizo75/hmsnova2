@@ -11,7 +11,7 @@ export default async function CorporateGroupUsersPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Konsern-brukere</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Administrer tilgang til konsernoversikten. {users.length} bruker{users.length !== 1 ? "e" : ""} registrert.
+          Personer som legges til her får konsern-tilgang. {users.length} bruker{users.length !== 1 ? "e" : ""} registrert.
         </p>
       </div>
 

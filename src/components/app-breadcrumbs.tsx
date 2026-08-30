@@ -60,6 +60,9 @@ const segmentLabels: Record<string, string> = {
   risikovurderinger: "Risikovurderinger",
   vernerunder: "Vernerunder",
   ansatte: "Ansatte",
+  varsling: "Varsling",
+  arshjul: "HMS Årshjul",
+  kompetanse: "Kompetanse",
 };
 
 function isLikelyEntityId(segment: string): boolean {

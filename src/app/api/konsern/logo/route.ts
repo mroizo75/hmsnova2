@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { canAccessKonsernPortal } from "@/lib/konsern-access";
 import { prisma } from "@/lib/db";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
@@ -18,9 +19,20 @@ const BUCKET = process.env.R2_BUCKET_NAME ?? process.env.R2_BUCKET ?? process.en
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/svg+xml"];
 const MAX_BYTES = 2 * 1024 * 1024;
 
+function hasKonsernPortalAccess(session: { user?: { corporateGroupId?: string | null; isSuperAdmin?: boolean; isSupport?: boolean; tenantId?: string | null; role?: string | null } } | null): boolean {
+  if (!session?.user) return false;
+  return canAccessKonsernPortal({
+    hasCorporateGroup: Boolean(session.user.corporateGroupId),
+    isSuperAdmin: session.user.isSuperAdmin === true,
+    isSupport: session.user.isSupport === true,
+    tenantId: session.user.tenantId,
+    tenantRole: session.user.role,
+  });
+}
+
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.corporateGroupId) {
+  if (!hasKonsernPortalAccess(session)) {
     return NextResponse.json({ error: "Ikke autorisert" }, { status: 401 });
   }
 
@@ -75,7 +87,7 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.corporateGroupId) {
+  if (!hasKonsernPortalAccess(session)) {
     return NextResponse.json({ error: "Ikke autorisert" }, { status: 401 });
   }
 

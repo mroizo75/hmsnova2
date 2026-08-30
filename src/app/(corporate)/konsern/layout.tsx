@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import Image from "next/image";
 import Link from "next/link";
 import { authOptions } from "@/lib/auth";
+import { canAccessKonsernPortal } from "@/lib/konsern-access";
 import { Toaster } from "@/components/ui/toaster";
 import { AppBreadcrumbs } from "@/components/app-breadcrumbs";
 import { KonsernSidebarFooter } from "./components/konsern-sidebar-footer";
@@ -45,11 +46,15 @@ export default async function CorporateLayout({
   }
 
   const user = session.user;
-  const hasCorporateGroup = Boolean(user.corporateGroupId);
-  const isSuperAdmin = user.isSuperAdmin === true;
-  const isSupport = user.isSupport === true;
+  const allowed = canAccessKonsernPortal({
+    hasCorporateGroup: Boolean(user.corporateGroupId),
+    isSuperAdmin: user.isSuperAdmin === true,
+    isSupport: user.isSupport === true,
+    tenantId: user.tenantId,
+    tenantRole: user.role,
+  });
 
-  if (!hasCorporateGroup && !isSuperAdmin && !isSupport) {
+  if (!allowed) {
     redirect("/dashboard");
   }
 

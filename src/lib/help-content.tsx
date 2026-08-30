@@ -1293,7 +1293,7 @@ export const helpContent: Record<string, HelpContent> = {
 
   whistleblowing: {
     title: "Varsling",
-    description: "Håndter varslingssaker i henhold til varslerloven",
+    description: "Håndter varslingssaker i henhold til arbeidsmiljøloven kapittel 2 A",
     sections: [
       {
         heading: "Hva er varsling?",
@@ -1308,7 +1308,7 @@ export const helpContent: Record<string, HelpContent> = {
           {
             title: "Lovpålagt",
             description:
-              "Arbeidsmiljøloven § 2A og varslerloven krever varslingssystem og vern mot gjengjeldelse.",
+              "Arbeidsmiljøloven kapittel 2 A krever varslingskanal og vern mot gjengjeldelse.",
           },
           {
             title: "Avdekke alvorlige forhold",
@@ -1324,6 +1324,27 @@ export const helpContent: Record<string, HelpContent> = {
             title: "Bygge tillit",
             description:
               "Viser at organisasjonen tar ansvar og vil rette opp feil.",
+          },
+        ],
+      },
+      {
+        heading: "Hvem kan se hva?",
+        emoji: "🔐",
+        items: [
+          {
+            title: "Varslingsansvarlig",
+            description:
+              "Eneste rolle som kan åpne saksinnhold, identitet og vedlegg, og behandle saken (AML kap. 2 A, GDPR art. 5).",
+          },
+          {
+            title: "Administrator og HMS-ansvarlig",
+            description:
+              "Ser at en sak finnes (saksnummer, status og dato), men ikke tekst, identitet eller vedlegg.",
+          },
+          {
+            title: "Øvrige roller",
+            description:
+              "Kan sende inn varsel, men har ikke innsyn i saker.",
           },
         ],
       },

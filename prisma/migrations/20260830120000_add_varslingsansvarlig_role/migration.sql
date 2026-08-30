@@ -1,0 +1,9 @@
+-- AML kap. 2 A / GDPR art. 5: egen rolle for full tilgang til varslingsinnhold
+ALTER TABLE `UserTenant`
+  MODIFY `role` ENUM('ADMIN', 'HMS', 'LEDER', 'VERNEOMBUD', 'ANSATT', 'BHT', 'REVISOR', 'VARSLINGSANSVARLIG') NOT NULL;
+
+ALTER TABLE `Tenant`
+  MODIFY `azureAdAutoRole` ENUM('ADMIN', 'HMS', 'LEDER', 'VERNEOMBUD', 'ANSATT', 'BHT', 'REVISOR', 'VARSLINGSANSVARLIG') NULL;
+
+ALTER TABLE `Tenant`
+  MODIFY `constructionDailyCheckAlertRole` ENUM('ADMIN', 'HMS', 'LEDER', 'VERNEOMBUD', 'ANSATT', 'BHT', 'REVISOR', 'VARSLINGSANSVARLIG') NOT NULL DEFAULT 'HMS';

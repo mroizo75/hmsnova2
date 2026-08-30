@@ -338,7 +338,7 @@ export async function getGroupAlerts(): Promise<GroupAlert[]> {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const [openIncidents, overdueRoutines, oldRiskAssessments] = await Promise.all([
+  const [openIncidents, overdueRoutines, oldRiskAssessments, openWhistleblowing] = await Promise.all([
     prisma.incident.groupBy({
       by: ["tenantId"],
       where: {
@@ -363,6 +363,14 @@ export async function getGroupAlerts(): Promise<GroupAlert[]> {
         updatedAt: {
           lt: new Date(new Date().getFullYear() - 1, new Date().getMonth(), new Date().getDate()),
         },
+      },
+      _count: true,
+    }),
+    prisma.whistleblowing.groupBy({
+      by: ["tenantId"],
+      where: {
+        tenantId: { in: tenantIds },
+        status: { in: ["RECEIVED", "ACKNOWLEDGED"] },
       },
       _count: true,
     }),
@@ -405,6 +413,19 @@ export async function getGroupAlerts(): Promise<GroupAlert[]> {
     }
   }
 
+  for (const item of openWhistleblowing) {
+    if (item._count > 0) {
+      const name = tenantMap.get(item.tenantId) ?? "Ukjent";
+      alerts.push({
+        tenantId: item.tenantId,
+        tenantName: name,
+        type: item._count >= 3 ? "critical" : "warning",
+        message: `${item._count} varslingssak${item._count !== 1 ? "er" : ""} venter behandling`,
+        category: "whistleblowing",
+      });
+    }
+  }
+
   return alerts.sort((a, b) => {
     const priority = { critical: 0, warning: 1, info: 2 };
     return priority[a.type] - priority[b.type];
@@ -425,6 +446,8 @@ export async function getGroupOverviewStats() {
     totalRoutines,
     totalRiskAssessments,
     completedInspections,
+    openWhistleblowing,
+    totalWhistleblowing,
   ] = await Promise.all([
     prisma.userTenant.count({ where: { tenantId: { in: tenantIds } } }),
     prisma.incident.count({ where: { tenantId: { in: tenantIds }, occurredAt: { gte: twelveMonthsAgo } } }),
@@ -432,6 +455,10 @@ export async function getGroupOverviewStats() {
     prisma.routine.count({ where: { tenantId: { in: tenantIds }, status: "ACTIVE" } }),
     prisma.riskAssessment.count({ where: { tenantId: { in: tenantIds }, updatedAt: { gte: twelveMonthsAgo } } }),
     prisma.inspection.count({ where: { tenantId: { in: tenantIds }, status: "COMPLETED", scheduledDate: { gte: twelveMonthsAgo } } }),
+    prisma.whistleblowing.count({
+      where: { tenantId: { in: tenantIds }, status: { in: ["RECEIVED", "ACKNOWLEDGED", "UNDER_INVESTIGATION"] } },
+    }),
+    prisma.whistleblowing.count({ where: { tenantId: { in: tenantIds } } }),
   ]);
 
   return {
@@ -442,12 +469,103 @@ export async function getGroupOverviewStats() {
     totalRoutines,
     totalRiskAssessments,
     completedInspections,
+    openWhistleblowing,
+    totalWhistleblowing,
   };
 }
 
 // ── Psykososialt arbeidsmiljø (GDPR Art. 9 — helseopplysninger) ──────────────
 
 const WELLBEING_MIN_RESPONSES = 5;
+
+// ── Varsling-status per bedrift (aggregert, ingen innholdsdetaljer — GDPR) ──
+
+export async function getGroupWhistleblowingStatus() {
+  const context = await requireCorporateGroupContext();
+  const tenantIds = await getAccessibleTenantIds(context.groupId);
+
+  if (tenantIds.length === 0) return [];
+
+  const tenants = await prisma.corporateGroupTenant.findMany({
+    where: { groupId: context.groupId, status: "ACTIVE" },
+    include: { tenant: { select: { id: true, name: true } } },
+  });
+
+  const byStatus = await prisma.whistleblowing.groupBy({
+    by: ["tenantId", "status"],
+    where: { tenantId: { in: tenantIds } },
+    _count: true,
+  });
+
+  return tenants.map((gt) => {
+    const tid = gt.tenant.id;
+    const entries = byStatus.filter((e) => e.tenantId === tid);
+    const total = entries.reduce((s, e) => s + e._count, 0);
+    const open = entries
+      .filter((e) => ["RECEIVED", "ACKNOWLEDGED", "UNDER_INVESTIGATION"].includes(e.status))
+      .reduce((s, e) => s + e._count, 0);
+    const resolved = entries
+      .filter((e) => ["RESOLVED", "CLOSED", "DISMISSED"].includes(e.status))
+      .reduce((s, e) => s + e._count, 0);
+
+    return {
+      tenantId: tid,
+      tenantName: gt.tenant.name,
+      total,
+      open,
+      resolved,
+    };
+  });
+}
+
+// ── HMS Årshjul-status per bedrift ──────────────────────────────────────────
+
+export async function getGroupAnnualPlanStatus() {
+  const context = await requireCorporateGroupContext();
+  const tenantIds = await getAccessibleTenantIds(context.groupId);
+
+  if (tenantIds.length === 0) return [];
+
+  const currentYear = new Date().getFullYear();
+
+  const tenants = await prisma.corporateGroupTenant.findMany({
+    where: { groupId: context.groupId, status: "ACTIVE" },
+    include: {
+      tenant: {
+        select: {
+          id: true,
+          name: true,
+          hmsAnnualPlanEnabled: true,
+          hmsAnnualPlanConfig: true,
+        },
+      },
+    },
+  });
+
+  const completions = await prisma.hmsAnnualPlanCompletion.groupBy({
+    by: ["tenantId"],
+    where: { tenantId: { in: tenantIds }, year: currentYear },
+    _count: true,
+  });
+
+  return tenants.map((gt) => {
+    const tid = gt.tenant.id;
+    const config = gt.tenant.hmsAnnualPlanConfig as Record<string, unknown> | null;
+    const totalSteps = config && typeof config === "object"
+      ? Object.keys(config).length
+      : 12;
+    const completedSteps = completions.find((c) => c.tenantId === tid)?._count ?? 0;
+
+    return {
+      tenantId: tid,
+      tenantName: gt.tenant.name,
+      enabled: gt.tenant.hmsAnnualPlanEnabled,
+      totalSteps,
+      completedSteps,
+      progress: totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0,
+    };
+  });
+}
 
 export interface TenantWellbeingOverview {
   tenantId: string;

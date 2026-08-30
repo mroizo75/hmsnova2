@@ -8,6 +8,7 @@ import {
   requireCorporateGroupContext,
   requireGroupPermission,
   getAccessibleTenantIds,
+  assertKonsernCanAttachTenant,
 } from "@/lib/corporate-group-context";
 import { createTenantAdminAndSendEmail } from "@/lib/konsern-tenant-email";
 
@@ -90,30 +91,18 @@ export async function listGroupTenants() {
 
 export async function addTenantToGroup(tenantId: string) {
   const context = await requireGroupPermission("canManageTenants");
+  const decision = await assertKonsernCanAttachTenant(context.groupId, tenantId);
 
-  const existing = await prisma.corporateGroupTenant.findUnique({
+  if (decision === "already-active") {
+    throw new Error("Bedriften er allerede tilknyttet konsernet");
+  }
+
+  await prisma.corporateGroupTenant.update({
     where: {
       groupId_tenantId: { groupId: context.groupId, tenantId },
     },
+    data: { status: "ACTIVE", joinedAt: new Date() },
   });
-
-  if (existing) {
-    if (existing.status === "REMOVED") {
-      await prisma.corporateGroupTenant.update({
-        where: { id: existing.id },
-        data: { status: "ACTIVE", joinedAt: new Date() },
-      });
-    } else {
-      throw new Error("Bedriften er allerede tilknyttet konsernet");
-    }
-  } else {
-    await prisma.corporateGroupTenant.create({
-      data: {
-        groupId: context.groupId,
-        tenantId,
-      },
-    });
-  }
 
   await logGroupAction(context.groupId, context.userId, "ADD_TENANT", "tenant", tenantId);
   revalidatePath("/konsern");

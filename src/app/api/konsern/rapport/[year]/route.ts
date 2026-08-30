@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { canAccessKonsernPortal } from "@/lib/konsern-access";
 import { generateBrandedPdf, type PdfSection, type PdfContent } from "@/lib/pdf-brand";
 import { generateGroupAnnualReport, type GroupAnnualReportData } from "@/server/actions/corporate-group-stats.actions";
 
@@ -193,7 +194,15 @@ function buildSections(data: GroupAnnualReportData): PdfSection[] {
 export async function GET(_: Request, { params }: RouteParams) {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user?.corporateGroupId) {
+  if (
+    !canAccessKonsernPortal({
+      hasCorporateGroup: Boolean(session?.user?.corporateGroupId),
+      isSuperAdmin: session?.user?.isSuperAdmin === true,
+      isSupport: session?.user?.isSupport === true,
+      tenantId: session?.user?.tenantId,
+      tenantRole: session?.user?.role,
+    })
+  ) {
     return NextResponse.json({ error: "Ikke tilgang" }, { status: 403 });
   }
 

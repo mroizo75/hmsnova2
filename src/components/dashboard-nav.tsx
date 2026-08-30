@@ -64,6 +64,8 @@ import {
   type ModuleVisibilityConfig,
 } from "@/lib/module-visibility";
 import { Role } from "@prisma/client";
+import { canEnterKonsernFromHms } from "@/lib/konsern-access";
+import { KonsernHmsMessagesNavLink } from "@/features/konsern/components/konsern-hms-nav-link";
 
 interface TenantApiResponseItem {
   id: string;
@@ -114,7 +116,7 @@ const navItems: Array<{
   { href: "/dashboard/meetings", label: "nav.meetings", icon: Calendar, permission: "meetings" as const, simple: false },
   { href: "/dashboard/time-registration", label: "nav.timeRegistration", icon: Clock, permission: "timeRegistration" as const, simple: true },
   { href: "/dashboard/medarbeidersamtale", label: "nav.employeeReviews", icon: MessageSquare, permission: "employeeReviews" as const, simple: false },
-  { href: "/dashboard/whistleblowing", label: "nav.whistleblowing", icon: Shield, permission: "whistleblowing" as const, simple: false },
+  { href: "/dashboard/whistleblowing", label: "nav.whistleblowing", icon: Shield, permission: "whistleblowing" as const, simple: true, alwaysShow: true },
   { href: "/dashboard/goals", label: "nav.goals", icon: Target, permission: "goals" as const, simple: false },
   
   // === ORGANISASJON & INNSTILLINGER (vises alltid, uavhengig av simpleMenuItems) ===
@@ -258,6 +260,7 @@ export function DashboardNav() {
         </div>
 
         <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
+          <KonsernHmsMessagesNavLink />
           {allowedNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -285,7 +288,8 @@ export function DashboardNav() {
           <div className="mb-1">
             <PwaInstallButton />
           </div>
-          {session?.user?.corporateGroupId && (
+          {session?.user?.corporateGroupId &&
+            canEnterKonsernFromHms(session.user.role) && (
             <Link href="/konsern">
               <Button
                 variant="ghost"

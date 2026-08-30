@@ -750,6 +750,7 @@ enum Role {
   ANSATT
   BHT
   REVISOR
+  VARSLINGSANSVARLIG
 }
 
 // ============================================
