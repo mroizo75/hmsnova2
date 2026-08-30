@@ -11,8 +11,14 @@ import { helpContent } from "@/lib/help-content";
 import { getTranslations } from "next-intl/server";
 import { fetchIncidents } from "@/server/queries/incident.queries";
 
-export default async function IncidentsPage() {
+export default async function IncidentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ kilde?: string }>;
+}) {
   const t = await getTranslations("dashboardIncidentsPage");
+  const { kilde } = await searchParams;
+  const isIkMat = kilde === "ik-mat";
 
   const auth = await getAuthContext();
   const { permissions } = auth;
@@ -28,17 +34,26 @@ export default async function IncidentsPage() {
   const showOwnOnlyNotice = !canReadAll && canReadOwn;
   const showCreateOnlyNotice = !canReadAll && !canReadOwn && canCreate;
 
-  const initialIncidents = await fetchIncidents();
+  const initialIncidents = await fetchIncidents({ kilde });
 
   return (
     <div className="space-y-6">
       <div className="page-header">
         <div className="flex min-w-0 items-start gap-3">
           <div>
-            <h1 className="text-3xl font-bold">{t("title")}</h1>
+            <h1 className="text-3xl font-bold">{isIkMat ? "IK-mat-avvik" : t("title")}</h1>
             <p className="text-muted-foreground">
-              {t("description")}
+              {isIkMat
+                ? "Avvik fra temperatur, renhold, varemottak, HACCP og allergener. IK-mat § 5 nr. 4–5."
+                : t("description")}
             </p>
+            {isIkMat && (
+              <p className="text-xs text-muted-foreground mt-1">
+                <Link href="/dashboard/ik-mat" className="hover:underline">Tilbake til IK-mat</Link>
+                {" · "}
+                <Link href="/dashboard/incidents" className="hover:underline">Alle avvik</Link>
+              </p>
+            )}
           </div>
           <PageHelpDialog content={helpContent.incidents} />
         </div>
@@ -70,7 +85,7 @@ export default async function IncidentsPage() {
         </Alert>
       )}
 
-      <IncidentsContent initialData={initialIncidents} />
+      <IncidentsContent initialData={initialIncidents} kilde={kilde} />
 
       <div className="rounded-lg bg-blue-50 border border-blue-200 p-6">
         <h3 className="font-semibold text-blue-900 mb-3">{t("iso.title")}</h3>

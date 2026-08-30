@@ -44,6 +44,8 @@ export function AllergenClient({ items: initial, categories, canEdit }: Props) {
   const [form, setForm] = useState(initForm());
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState<string>("alle");
+  const [avvik, setAvvik] = useState({ dishName: "", note: "" });
+  const [savingAvvik, setSavingAvvik] = useState(false);
 
   const displayItems = filter === "alle" ? items : items.filter((i) => i.category === filter);
   const allCategories = [...new Set(items.map((i) => i.category).filter(Boolean))] as string[];
@@ -75,6 +77,34 @@ export function AllergenClient({ items: initial, categories, canEdit }: Props) {
     return EU_ALLERGENER.filter((a) => (item as any)[a.key]).length;
   }
 
+  async function reportAllergenAvvik() {
+    if (avvik.dishName.trim().length < 2 || avvik.note.trim().length < 5) {
+      toast.error("Fyll inn rett og beskrivelse av avviket");
+      return;
+    }
+    setSavingAvvik(true);
+    try {
+      const res = await fetch("/api/ik-mat/avvik", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          module: "allergen",
+          title: `[Allergen] ${avvik.dishName}`,
+          description: `Allergenavvik for ${avvik.dishName}. ${avvik.note}`,
+          location: avvik.dishName,
+        }),
+      });
+      if (!res.ok) throw new Error();
+      const { data } = await res.json();
+      toast.warning(`Allergenavvik opprettet (${data.incident?.avviksnummer ?? "AVVIK"}).`);
+      setAvvik({ dishName: "", note: "" });
+    } catch {
+      toast.error("Kunne ikke opprette avvik");
+    } finally {
+      setSavingAvvik(false);
+    }
+  }
+
   return (
     <div className="p-6 space-y-6 max-w-5xl">
       <div className="flex items-start justify-between">
@@ -92,6 +122,25 @@ export function AllergenClient({ items: initial, categories, canEdit }: Props) {
         <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Med allergener</p><p className="font-bold text-xl text-orange-600">{items.filter((i) => allergenCount(i) > 0).length}</p></CardContent></Card>
         <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Kategorier</p><p className="font-bold text-xl">{allCategories.length}</p></CardContent></Card>
       </div>
+
+      {canEdit && (
+        <div className="border rounded-lg p-4 space-y-3">
+          <p className="text-sm font-semibold">Meld allergenavvik (EU 1169/2011)</p>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Rett / produkt</Label>
+              <Input value={avvik.dishName} onChange={(e) => setAvvik((p) => ({ ...p, dishName: e.target.value }))} />
+            </div>
+            <div>
+              <Label className="text-xs">Beskrivelse</Label>
+              <Input value={avvik.note} onChange={(e) => setAvvik((p) => ({ ...p, note: e.target.value }))} placeholder="Feil merking, krysskontaminering…" />
+            </div>
+          </div>
+          <Button size="sm" variant="outline" disabled={savingAvvik} onClick={reportAllergenAvvik}>
+            {savingAvvik ? "Lagrer…" : "Opprett avvik"}
+          </Button>
+        </div>
+      )}
 
       {showForm && (
         <Card className="border-blue-200 bg-blue-50/30">

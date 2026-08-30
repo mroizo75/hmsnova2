@@ -7,9 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Plus, X, ChevronDown, ChevronUp, CheckCircle2, Trash2, Edit2 } from "lucide-react";
+import { Plus, X, ChevronDown, ChevronUp, CheckCircle2, Trash2 } from "lucide-react";
 import type { HaccpPlan, HaccpCcp } from "@prisma/client";
 
 const HAZARD_TYPES: Record<string, string> = {
@@ -136,11 +135,44 @@ interface PlanCardProps {
 }
 
 function PlanCard({ plan, expanded, onToggle, onDelete, onSaveCcp, canEdit, saving }: PlanCardProps) {
-  const [editingCcp, setEditingCcp] = useState<number | null>(null);
   const [ccpList, setCcpList] = useState<HaccpCcp[]>(plan.ccp);
   const emptyRow = { stepName: "", hazardDesc: "", hazardType: "BIOLOGISK" as const, criticalLimit: "", monitorMethod: "", monitorFreq: "", corrAction: "", verifyMethod: "", recordRequired: "", order: 0 };
   const [newRow, setNewRow] = useState({ ...emptyRow });
   const [showAdd, setShowAdd] = useState(false);
+  const [avvik, setAvvik] = useState({ stepName: "", measured: "", note: "" });
+  const [savingAvvik, setSavingAvvik] = useState(false);
+
+  async function reportCcpAvvik() {
+    if (avvik.stepName.trim().length < 2 || avvik.note.trim().length < 5) {
+      toast.error("Fyll inn prosessteg og beskrivelse av avviket");
+      return;
+    }
+    setSavingAvvik(true);
+    try {
+      const res = await fetch("/api/ik-mat/avvik", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          module: "haccp",
+          title: `[HACCP] ${plan.title}: ${avvik.stepName}`,
+          description: [
+            `Brudd på kritisk grense i planen «${plan.title}», prosessteg ${avvik.stepName}.`,
+            avvik.measured ? `Målt verdi: ${avvik.measured}.` : "",
+            avvik.note,
+          ].filter(Boolean).join(" "),
+          location: plan.title,
+        }),
+      });
+      if (!res.ok) throw new Error();
+      const { data } = await res.json();
+      toast.warning(`HACCP-avvik opprettet (${data.incident?.avviksnummer ?? "AVVIK"}).`);
+      setAvvik({ stepName: "", measured: "", note: "" });
+    } catch {
+      toast.error("Kunne ikke opprette avvik");
+    } finally {
+      setSavingAvvik(false);
+    }
+  }
 
   function addRow() {
     const added = { ...newRow, order: ccpList.length, id: `tmp-${Date.now()}`, planId: plan.id } as HaccpCcp;
@@ -250,6 +282,35 @@ function PlanCard({ plan, expanded, onToggle, onDelete, onSaveCcp, canEdit, savi
             <Button size="sm" variant="outline" onClick={() => setShowAdd(true)}>
               <Plus className="h-3.5 w-3.5 mr-1.5" /> Legg til CCP-punkt
             </Button>
+          )}
+
+          {canEdit && (
+            <div className="border rounded-lg p-3 space-y-2 bg-amber-50/50">
+              <p className="text-xs font-semibold">Registrer CCP-avvik (852/2004 art. 5)</p>
+              <div className="grid sm:grid-cols-2 gap-2">
+                <Input
+                  className="h-8 text-xs"
+                  placeholder="Prosessteg"
+                  value={avvik.stepName}
+                  onChange={(e) => setAvvik((p) => ({ ...p, stepName: e.target.value }))}
+                />
+                <Input
+                  className="h-8 text-xs"
+                  placeholder="Målt verdi"
+                  value={avvik.measured}
+                  onChange={(e) => setAvvik((p) => ({ ...p, measured: e.target.value }))}
+                />
+              </div>
+              <Input
+                className="h-8 text-xs"
+                placeholder="Beskriv avviket og tiltak"
+                value={avvik.note}
+                onChange={(e) => setAvvik((p) => ({ ...p, note: e.target.value }))}
+              />
+              <Button size="sm" variant="outline" disabled={savingAvvik} onClick={reportCcpAvvik}>
+                {savingAvvik ? "Lagrer…" : "Opprett avvik"}
+              </Button>
+            </div>
           )}
         </CardContent>
       )}

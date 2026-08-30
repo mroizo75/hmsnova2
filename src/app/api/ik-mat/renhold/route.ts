@@ -5,6 +5,8 @@ import { prisma } from "@/lib/db";
 import { getPermissions } from "@/lib/permissions";
 import { createErrorResponse, createSuccessResponse, handleApiError, ErrorCodes } from "@/lib/validations/api";
 import { z } from "zod";
+import { IK_MAT_SUBCATEGORY } from "@/lib/ik-mat-avvik";
+import { createIkMatDeviation } from "@/server/ik-mat-incident";
 
 const schema = z.object({
   cleanedAt: z.string().datetime(),
@@ -53,7 +55,25 @@ export async function POST(req: NextRequest) {
         note: parsed.data.note ?? null,
       },
     });
-    return createSuccessResponse({ item }, undefined, 201);
+
+    let incident = null;
+    if (!parsed.data.approved && session.user.id) {
+      incident = await createIkMatDeviation({
+        tenantId: session.user.tenantId,
+        reportedBy: session.user.id,
+        title: `[IK-mat] Renholdsavvik ${parsed.data.area}`,
+        description: [
+          `Avvik ved renhold av ${parsed.data.area}: ${parsed.data.task}.`,
+          parsed.data.note ? `Merknad: ${parsed.data.note}` : "Ikke godkjent ved kontroll.",
+          `Utført av: ${parsed.data.cleanedBy ?? "ikke oppgitt"}.`,
+        ].join(" "),
+        location: parsed.data.area,
+        subcategoryKey: IK_MAT_SUBCATEGORY.renhold,
+        occurredAt: new Date(parsed.data.cleanedAt),
+      });
+    }
+
+    return createSuccessResponse({ item, incident }, undefined, 201);
   } catch (error) {
     return handleApiError(error);
   }

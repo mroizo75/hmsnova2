@@ -9,13 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertTriangle, Thermometer, Plus, X } from "lucide-react";
 import type { TemperaturLog } from "@prisma/client";
+import { TEMP_LIMITS } from "@/lib/ik-mat-avvik";
 
-const UNIT_TYPES: Record<string, { label: string; min: number; max: number; unit: string }> = {
-  KJOLEROM:     { label: "Kjølerom",     min: -2,  max: 8,   unit: "°C" },
-  FRYSER:       { label: "Fryser",       min: -40, max: -15, unit: "°C" },
-  VARMHOLDING:  { label: "Varmholding",  min: 60,  max: 100, unit: "°C" },
-  ANNET:        { label: "Annet",        min: -40, max: 100, unit: "°C" },
-};
+const UNIT_TYPES = Object.fromEntries(
+  Object.entries(TEMP_LIMITS).map(([key, value]) => [key, { ...value, unit: "°C" }]),
+) as Record<string, { label: string; min: number; max: number; unit: string }>;
 
 interface Props { logs: TemperaturLog[]; units: string[]; canEdit: boolean; }
 
@@ -53,8 +51,15 @@ export function TemperaturClient({ logs, units: initialUnits, canEdit }: Props) 
       if (!res.ok) throw new Error();
       const { data } = await res.json();
       setAllLogs((p) => [data.log, ...p]);
-      if (data.log.isDeviation) toast.warning("Avvik registrert – temperaturen er utenfor grenseverdi!");
-      else toast.success("Temperatur registrert");
+      if (data.log.isDeviation) {
+        toast.warning(
+          data.incident
+            ? `Avvik opprettet (${data.incident.avviksnummer ?? "AVVIK"}) – temperatur utenfor grenseverdi.`
+            : "Avvik registrert – temperaturen er utenfor grenseverdi!",
+        );
+      } else {
+        toast.success("Temperatur registrert");
+      }
       setShowForm(false);
       setForm({ unitName: "", unitType: "KJOLEROM", temperature: "", measuredBy: "" });
     } catch { toast.error("Feil"); }

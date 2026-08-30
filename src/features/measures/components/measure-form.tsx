@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRefreshAfterSave } from "@/hooks/use-refresh-after-save";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -63,7 +63,7 @@ export function MeasureForm({
   users,
   trigger,
 }: MeasureFormProps) {
-  const router = useRouter();
+  const refreshAfterSave = useRefreshAfterSave();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -101,7 +101,7 @@ export function MeasureForm({
           className: "bg-green-50 border-green-200",
         });
         setOpen(false);
-        router.refresh();
+        await refreshAfterSave();
       } else {
         toast({
           variant: "destructive",

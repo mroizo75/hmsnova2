@@ -24,8 +24,9 @@ export function Providers({ children, locale, messages, session, nowISO }: Provi
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 30 * 1000,
-            refetchOnWindowFocus: false,
+            staleTime: 0,
+            refetchOnMount: "always",
+            refetchOnWindowFocus: true,
           },
         },
       })

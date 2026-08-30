@@ -59,7 +59,11 @@ export function VaremottakClient({ items: initial, canEdit }: Props) {
       if (!res.ok) throw new Error();
       const { data } = await res.json();
       setItems((prev) => [data.item, ...prev]);
-      toast.success(form.accepted ? "Varemottak registrert" : "Avvist vare registrert");
+      if (data.incident) {
+        toast.warning(`Avvik opprettet (${data.incident.avviksnummer ?? "AVVIK"}).`);
+      } else {
+        toast.success(form.accepted ? "Varemottak registrert" : "Avvist vare registrert");
+      }
       setShowForm(false);
       setForm({
         supplier: "",

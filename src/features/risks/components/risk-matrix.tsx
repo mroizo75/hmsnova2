@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getMatrixCellColor } from "@/features/risks/schemas/risk.schema";
 
 interface RiskMatrixProps {
@@ -73,13 +73,8 @@ export function RiskMatrix({
     <Card>
       <CardHeader>
         <CardTitle>
-          5x5 Risikomatrise {viewMode === "residual" ? "– Etter tiltak (rest-risiko)" : "– Før tiltak"}
+          5x5 Risikomatrise {viewMode === "residual" ? "– Etter tiltak" : "– Før tiltak"}
         </CardTitle>
-        <CardDescription>
-          {viewMode === "residual"
-            ? "Viser rest-risiko. Når rest-risiko ikke er satt, vises opprinnelig vurdering."
-            : "Klikk på en celle for å velge sannsynlighet og konsekvens"}
-        </CardDescription>
       </CardHeader>
       <CardContent>
         <table className="w-full table-fixed border-collapse text-[11px] md:text-xs">

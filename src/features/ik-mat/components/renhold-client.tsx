@@ -25,6 +25,7 @@ export function RenholdClient({ items: initial, canEdit }: Props) {
     task: "",
     cleanedBy: "",
     note: "",
+    hasDeviation: false,
   });
 
   async function submit() {
@@ -42,16 +43,20 @@ export function RenholdClient({ items: initial, canEdit }: Props) {
           area: form.area,
           task: form.task,
           cleanedBy: form.cleanedBy || null,
-          approved: true,
+          approved: !form.hasDeviation,
           note: form.note || null,
         }),
       });
       if (!res.ok) throw new Error();
       const { data } = await res.json();
       setItems((prev) => [data.item, ...prev]);
-      toast.success("Renhold registrert");
+      if (data.incident) {
+        toast.warning(`Renholdsavvik opprettet (${data.incident.avviksnummer ?? "AVVIK"}).`);
+      } else {
+        toast.success("Renhold registrert");
+      }
       setShowForm(false);
-      setForm({ area: "", task: "", cleanedBy: "", note: "" });
+      setForm({ area: "", task: "", cleanedBy: "", note: "", hasDeviation: false });
       router.refresh();
     } catch {
       toast.error("Kunne ikke lagre renhold");
@@ -102,6 +107,14 @@ export function RenholdClient({ items: initial, canEdit }: Props) {
             <Input value={form.note} onChange={(e) => setForm((p) => ({ ...p, note: e.target.value }))} />
           </div>
           <div className="sm:col-span-2">
+            <label className="flex items-center gap-2 text-sm mb-3">
+              <input
+                type="checkbox"
+                checked={form.hasDeviation}
+                onChange={(e) => setForm((p) => ({ ...p, hasDeviation: e.target.checked }))}
+              />
+              Avvik funnet – oppretter automatisk avvik etter IK-mat § 5 nr. 4
+            </label>
             <Button onClick={submit} disabled={saving}>{saving ? "Lagrer…" : "Lagre"}</Button>
           </div>
         </div>
@@ -116,11 +129,12 @@ export function RenholdClient({ items: initial, canEdit }: Props) {
               <th className="p-3">Oppgave</th>
               <th className="p-3">Utført av</th>
               <th className="p-3">Merknad</th>
+              <th className="p-3">Status</th>
             </tr>
           </thead>
           <tbody>
             {items.length === 0 && (
-              <tr><td colSpan={5} className="p-6 text-muted-foreground">Ingen renhold registrert ennå.</td></tr>
+              <tr><td colSpan={6} className="p-6 text-muted-foreground">Ingen renhold registrert ennå.</td></tr>
             )}
             {items.map((item) => (
               <tr key={item.id} className="border-t">
@@ -129,6 +143,7 @@ export function RenholdClient({ items: initial, canEdit }: Props) {
                 <td className="p-3">{item.task}</td>
                 <td className="p-3">{item.cleanedBy ?? "—"}</td>
                 <td className="p-3">{item.note ?? "—"}</td>
+                <td className="p-3">{item.approved ? "Godkjent" : "Avvik"}</td>
               </tr>
             ))}
           </tbody>

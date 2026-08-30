@@ -2,6 +2,8 @@
 
 import { prisma } from "@/lib/db";
 import { getAuthContext } from "@/lib/server-authorization";
+import { HOSPITALITY_COURSE_KEYS } from "@/lib/hospitality-courses";
+import { ensureHospitalityCourses } from "@/server/hospitality-courses";
 
 export async function fetchSettingsData(email: string) {
   const user = await prisma.user.findUnique({
@@ -187,7 +189,11 @@ export async function fetchRenholdData() {
 
 export async function fetchSkjenkingData() {
   const auth = await getAuthContext();
-  const [bevilling, hendelser] = await Promise.all([
+  await ensureHospitalityCourses(auth.tenantId);
+
+  const alcoholKey = HOSPITALITY_COURSE_KEYS.alcohol;
+
+  const [bevilling, hendelser, course, trainings, users] = await Promise.all([
     prisma.skjenkeBevilling.findFirst({
       where: { tenantId: auth.tenantId },
       orderBy: { updatedAt: "desc" },
@@ -197,8 +203,39 @@ export async function fetchSkjenkingData() {
       orderBy: { occurredAt: "desc" },
       take: 200,
     }),
+    prisma.courseTemplate.findFirst({
+      where: {
+        courseKey: alcoholKey,
+        isActive: true,
+        OR: [{ tenantId: auth.tenantId }, { isGlobal: true }],
+      },
+    }),
+    prisma.training.findMany({
+      where: { tenantId: auth.tenantId, courseKey: alcoholKey },
+    }),
+    prisma.user.findMany({
+      where: { tenants: { some: { tenantId: auth.tenantId } } },
+      select: { id: true, name: true, email: true },
+    }),
   ]);
-  return JSON.parse(JSON.stringify({ bevilling, hendelser }));
+
+  const now = new Date();
+  const alcoholTraining = {
+    courseKey: alcoholKey,
+    title: course?.title ?? "Ansvarlig alkoholservering",
+    users: users.map((user) => {
+      const record = trainings.find((row) => row.userId === user.id && row.completedAt);
+      const valid = Boolean(record && (!record.validUntil || new Date(record.validUntil) >= now));
+      return {
+        id: user.id,
+        name: user.name ?? user.email ?? "Ukjent",
+        completed: valid,
+        validUntil: record?.validUntil ?? null,
+      };
+    }),
+  };
+
+  return JSON.parse(JSON.stringify({ bevilling, hendelser, alcoholTraining }));
 }
 
 export async function fetchTransportData() {

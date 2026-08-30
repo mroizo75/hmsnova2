@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRefreshAfterSave } from "@/hooks/use-refresh-after-save";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,7 +37,7 @@ interface TrainingFormProps {
 }
 
 export function TrainingForm({ tenantId, users, courseTemplates, trigger, open: controlledOpen, onOpenChange }: TrainingFormProps) {
-  const router = useRouter();
+  const refreshAfterSave = useRefreshAfterSave();
   const { toast } = useToast();
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen ?? internalOpen;
@@ -98,7 +98,7 @@ export function TrainingForm({ tenantId, users, courseTemplates, trigger, open: 
           className: "bg-green-50 border-green-200",
         });
         setOpen(false);
-        router.refresh();
+        await refreshAfterSave();
       } else {
         toast({
           variant: "destructive",

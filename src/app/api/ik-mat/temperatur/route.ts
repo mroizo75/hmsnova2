@@ -2,9 +2,10 @@ import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getPermissions } from "@/lib/permissions";
 import { createErrorResponse, createSuccessResponse, handleApiError, ErrorCodes } from "@/lib/validations/api";
 import { z } from "zod";
+import { IK_MAT_SUBCATEGORY, TEMP_LIMITS, isTemperatureDeviation } from "@/lib/ik-mat-avvik";
+import { createIkMatDeviation } from "@/server/ik-mat-incident";
 
 const logSchema = z.object({
   unitName: z.string().min(1).max(100),
@@ -14,9 +15,6 @@ const logSchema = z.object({
   measuredBy: z.string().max(100).optional().nullable(),
   deviationNote: z.string().max(1000).optional().nullable(),
 });
-
-const MIN_TEMP: Record<string, number> = { KJOLEROM: -2, FRYSER: -40, VARMHOLDING: 60, ANNET: -40 };
-const MAX_TEMP: Record<string, number> = { KJOLEROM: 8, FRYSER: -15, VARMHOLDING: 100, ANNET: 100 };
 
 export async function GET(req: NextRequest) {
   try {
@@ -52,7 +50,7 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) return createErrorResponse(ErrorCodes.VALIDATION_ERROR, parsed.error.issues[0].message, 400);
 
     const { unitType, temperature } = parsed.data;
-    const isDeviation = temperature < MIN_TEMP[unitType] || temperature > MAX_TEMP[unitType];
+    const isDeviation = isTemperatureDeviation(unitType, temperature);
 
     const log = await prisma.temperaturLog.create({
       data: {
@@ -67,7 +65,26 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return createSuccessResponse({ log }, undefined, 201);
+    let incident = null;
+    if (isDeviation && session.user.id) {
+      const limit = TEMP_LIMITS[unitType];
+      incident = await createIkMatDeviation({
+        tenantId: session.user.tenantId,
+        reportedBy: session.user.id,
+        title: `[IK-mat] Temperaturavvik ${parsed.data.unitName} (${temperature} °C)`,
+        description: [
+          `Målt temperatur ${temperature} °C på ${parsed.data.unitName} (${limit?.label ?? unitType}).`,
+          limit ? `Tillatt område: ${limit.min} til ${limit.max} °C.` : "",
+          parsed.data.deviationNote ? `Merknad: ${parsed.data.deviationNote}` : "",
+          `Målt av: ${parsed.data.measuredBy ?? "ikke oppgitt"}.`,
+        ].filter(Boolean).join(" "),
+        location: parsed.data.unitName,
+        subcategoryKey: IK_MAT_SUBCATEGORY.temperatur,
+        occurredAt: new Date(parsed.data.measuredAt),
+      });
+    }
+
+    return createSuccessResponse({ log, incident }, undefined, 201);
   } catch (error) {
     return handleApiError(error);
   }

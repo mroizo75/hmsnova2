@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRefreshAfterSave } from "@/hooks/use-refresh-after-save";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,7 +25,7 @@ import { Upload, Loader2, FileUp } from "lucide-react";
 import { createUploadedIncident } from "@/server/actions/incident.actions";
 
 export function UploadIncidentDialog() {
-  const router = useRouter();
+  const refreshAfterSave = useRefreshAfterSave();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -71,7 +71,7 @@ export function UploadIncidentDialog() {
         });
         setOpen(false);
         reset();
-        router.refresh();
+        await refreshAfterSave();
       } else {
         toast({
           variant: "destructive",

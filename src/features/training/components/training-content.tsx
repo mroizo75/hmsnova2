@@ -1,29 +1,39 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useServerQuery } from "@/hooks/use-server-query";
 import { Badge } from "@/components/ui/badge";
 import { TrainingList } from "@/features/training/components/training-list";
 import { CheckCircle2, AlertTriangle, XCircle, Users } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { fetchTrainingList } from "@/server/queries/training.queries";
+import { hospitalityCourseKeysForTheme } from "@/lib/hospitality-courses";
+import Link from "next/link";
 
 type TrainingListData = Awaited<ReturnType<typeof fetchTrainingList>>;
 
 interface TrainingContentProps {
   initialData: TrainingListData;
+  tema?: string;
 }
 
-export function TrainingContent({ initialData }: TrainingContentProps) {
+export function TrainingContent({ initialData, tema }: TrainingContentProps) {
   const t = useTranslations("dashboardTrainingPage");
 
-  const { data } = useQuery({
-    queryKey: ["training"],
+  const { data } = useServerQuery({
+    queryKey: ["training", tema ?? "alle"],
     queryFn: () => fetchTrainingList(),
     initialData,
   });
 
-  const { trainingsRaw, tenantUsers, courseTemplates } = data;
+  const themeKeys = hospitalityCourseKeysForTheme(tema);
+  const trainingsRaw = themeKeys
+    ? data.trainingsRaw.filter((row: { courseKey: string }) => themeKeys.includes(row.courseKey))
+    : data.trainingsRaw;
+  const tenantUsers = data.tenantUsers;
+  const courseTemplates = themeKeys
+    ? data.courseTemplates.filter((row: { courseKey: string }) => themeKeys.includes(row.courseKey))
+    : data.courseTemplates;
 
   const userMap = new Map(tenantUsers.map((u: any) => [u.id, u]));
   const trainingsWithUser = trainingsRaw
@@ -78,8 +88,18 @@ export function TrainingContent({ initialData }: TrainingContentProps) {
     })
     .slice(0, 10);
 
+  const themeLabel = tema === "skjenking" ? "skjenking" : tema === "ik-mat" ? "IK-mat" : null;
+
   return (
     <>
+      {themeLabel && (
+        <p className="text-sm text-muted-foreground">
+          Viser kurs for {themeLabel}.{" "}
+          <Link href="/dashboard/training" className="underline">
+            Vis alle kurs
+          </Link>
+        </p>
+      )}
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>

@@ -10,8 +10,14 @@ import { helpContent } from "@/lib/help-content";
 import { getTranslations } from "next-intl/server";
 import { fetchTrainingList } from "@/server/queries/training.queries";
 import { TrainingContent } from "@/features/training/components/training-content";
+import { ensureHospitalityCourses } from "@/server/hospitality-courses";
+import { hospitalityCourseKeysForTheme } from "@/lib/hospitality-courses";
 
-export default async function TrainingPage() {
+export default async function TrainingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tema?: string }>;
+}) {
   const t = await getTranslations("dashboardTrainingPage");
   const session = await getServerSession(authOptions);
 
@@ -46,11 +52,16 @@ export default async function TrainingPage() {
   }
 
   const tenantId = selectedMembership.tenantId;
+  const { tema } = await searchParams;
 
+  await ensureHospitalityCourses(tenantId);
   const initialData = await fetchTrainingList();
 
   const tenantUsers = initialData.tenantUsers;
-  const courseTemplates = initialData.courseTemplates;
+  const themeKeys = hospitalityCourseKeysForTheme(tema);
+  const courseTemplates = themeKeys
+    ? initialData.courseTemplates.filter((row: { courseKey: string }) => themeKeys.includes(row.courseKey))
+    : initialData.courseTemplates;
 
   return (
     <div className="space-y-6">
@@ -74,7 +85,7 @@ export default async function TrainingPage() {
         />
       </div>
 
-      <TrainingContent initialData={initialData} />
+      <TrainingContent initialData={initialData} tema={tema} />
 
       {/* ISO 9001 – kollapset som standard */}
       <IsoCompetenceInfo />

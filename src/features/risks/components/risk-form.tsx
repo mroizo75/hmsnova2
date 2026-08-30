@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useRefreshAfterSave } from "@/hooks/use-refresh-after-save";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -144,6 +145,7 @@ export function RiskForm({
 }: RiskFormProps) {
   const t = useTranslations("riskForm");
   const router = useRouter();
+  const refreshAfterSave = useRefreshAfterSave();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [likelihood, setLikelihood] = useState(risk?.likelihood || 3);
@@ -237,8 +239,7 @@ export function RiskForm({
           description: t("toasts.successDescription", { level, score }),
           className: "bg-green-50 border-green-200",
         });
-        router.push("/dashboard/risks");
-        router.refresh();
+        await refreshAfterSave("/dashboard/risks");
       } else {
         toast({
           variant: "destructive",

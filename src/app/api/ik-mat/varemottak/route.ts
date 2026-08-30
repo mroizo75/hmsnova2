@@ -5,6 +5,8 @@ import { prisma } from "@/lib/db";
 import { getPermissions } from "@/lib/permissions";
 import { createErrorResponse, createSuccessResponse, handleApiError, ErrorCodes } from "@/lib/validations/api";
 import { z } from "zod";
+import { IK_MAT_SUBCATEGORY, shouldCreateVaremottakAvvik, VAREMOTTAK_MAX_TEMP } from "@/lib/ik-mat-avvik";
+import { createIkMatDeviation } from "@/server/ik-mat-incident";
 
 const schema = z.object({
   receivedAt: z.string().datetime(),
@@ -63,7 +65,38 @@ export async function POST(req: NextRequest) {
         deviationNote: parsed.data.deviationNote ?? null,
       },
     });
-    return createSuccessResponse({ item }, undefined, 201);
+
+    let incident = null;
+    const shouldCreate = shouldCreateVaremottakAvvik({
+      accepted: parsed.data.accepted,
+      deviationNote: parsed.data.deviationNote,
+      temperature: parsed.data.temperature,
+    });
+    if (shouldCreate && session.user.id) {
+      const reasons = [
+        !parsed.data.accepted ? "Varen er avvist." : "",
+        parsed.data.deviationNote ? `Merknad: ${parsed.data.deviationNote}` : "",
+        parsed.data.temperature != null && parsed.data.temperature > VAREMOTTAK_MAX_TEMP
+          ? `Mottakstemperatur ${parsed.data.temperature} °C overstiger ${VAREMOTTAK_MAX_TEMP} °C for kjølevare.`
+          : "",
+      ].filter(Boolean);
+      incident = await createIkMatDeviation({
+        tenantId: session.user.tenantId,
+        reportedBy: session.user.id,
+        title: `[IK-mat] Varemottak ${parsed.data.productName} fra ${parsed.data.supplier}`,
+        description: [
+          `Avvik ved varemottak av ${parsed.data.productName} fra ${parsed.data.supplier}.`,
+          parsed.data.batchLot ? `Parti ${parsed.data.batchLot}.` : "",
+          ...reasons,
+          `Mottatt av: ${parsed.data.receivedBy ?? "ikke oppgitt"}.`,
+        ].filter(Boolean).join(" "),
+        location: parsed.data.supplier,
+        subcategoryKey: IK_MAT_SUBCATEGORY.varemottak,
+        occurredAt: new Date(parsed.data.receivedAt),
+      });
+    }
+
+    return createSuccessResponse({ item, incident }, undefined, 201);
   } catch (error) {
     return handleApiError(error);
   }

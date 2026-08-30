@@ -19,6 +19,7 @@ import {
   Sparkles,
   ClipboardList,
   UtensilsCrossed,
+  GraduationCap,
 } from "lucide-react";
 import type {
   HaccpPlan,
@@ -160,11 +161,18 @@ export function IkMatClient({
       icon: FlaskConical,
     },
     {
-      href: "/dashboard/incidents",
+      href: "/dashboard/incidents?kilde=ik-mat",
       title: "Avvik",
-      status: "Matavvik og tiltak",
+      status: "Kun IK-mat-avvik",
       warn: false,
       icon: ClipboardList,
+    },
+    {
+      href: "/dashboard/training?tema=ik-mat",
+      title: "Opplæring",
+      status: "HACCP, renhold, allergener",
+      warn: false,
+      icon: GraduationCap,
     },
   ];
 

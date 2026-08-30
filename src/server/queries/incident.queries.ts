@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/db";
 import { getAuthContext } from "@/lib/server-authorization";
 
-export async function fetchIncidents() {
+export async function fetchIncidents(options?: { kilde?: string }) {
   const auth = await getAuthContext();
   const { permissions, tenantId, userId } = auth;
 
@@ -15,9 +15,10 @@ export async function fetchIncidents() {
   }
 
   const ownerFilter = canReadAll ? {} : { reportedBy: userId };
+  const sourceFilter = options?.kilde === "ik-mat" ? { projectReference: "IK-MAT" } : {};
 
   const incidents = await prisma.incident.findMany({
-    where: { tenantId, ...ownerFilter },
+    where: { tenantId, ...ownerFilter, ...sourceFilter },
     include: {
       measures: true,
       risk: {

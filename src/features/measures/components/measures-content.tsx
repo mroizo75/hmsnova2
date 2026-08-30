@@ -1,7 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useServerQuery } from "@/hooks/use-server-query";
 import { MeasureList } from "@/features/measures/components/measure-list";
 import { ListTodo, Clock, CheckCircle, AlertTriangle } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -17,7 +17,7 @@ interface MeasuresContentProps {
 export function MeasuresContent({ initialData, source }: MeasuresContentProps) {
   const t = useTranslations("dashboardActionsPage");
 
-  const { data } = useQuery({
+  const { data } = useServerQuery({
     queryKey: ["measures", source],
     queryFn: () => fetchMeasures(source),
     initialData,

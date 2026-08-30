@@ -1,7 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useServerQuery } from "@/hooks/use-server-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
@@ -91,11 +91,10 @@ export function WhistleblowingContent({ initialData }: WhistleblowingContentProp
   const locale = useLocale();
   const dateLocale = locale === "en" ? enUS : nb;
 
-  const { data } = useQuery({
+  const { data } = useServerQuery({
     queryKey: ["whistleblowing"],
     queryFn: () => fetchWhistleblowings(),
     initialData,
-    refetchOnWindowFocus: true,
     refetchInterval: 60_000,
   });
 

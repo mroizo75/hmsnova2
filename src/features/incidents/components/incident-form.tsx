@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useRefreshAfterSave } from "@/hooks/use-refresh-after-save";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -129,6 +130,7 @@ export function IncidentForm({
 }: IncidentFormProps) {
   const t = useTranslations("incidentForm");
   const router = useRouter();
+  const refreshAfterSave = useRefreshAfterSave();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [typeGroup, setTypeGroup] = useState<IncidentTypeGroup | null>(
@@ -341,7 +343,7 @@ export function IncidentForm({
         title: t("toasts.syncCompleted.title"),
         description: t("toasts.syncCompleted.description", { count: successCount }),
       });
-      router.refresh();
+      await refreshAfterSave();
     }
 
     if (failed.length > 0) {
@@ -465,7 +467,7 @@ export function IncidentForm({
         description: t("toasts.incidentReported.description"),
         className: "bg-green-50 border-green-200",
       });
-      router.push(redirectRoute);
+      await refreshAfterSave(redirectRoute);
     } catch {
       toast({
         variant: "destructive",

@@ -36,6 +36,10 @@ const nextConfig: NextConfig = {
     ];
   },
   experimental: {
+    staleTimes: {
+      dynamic: 0,
+      static: 180,
+    },
     serverActions: {
       bodySizeLimit: "50mb",
     },

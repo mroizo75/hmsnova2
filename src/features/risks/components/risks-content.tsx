@@ -1,7 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useServerQuery } from "@/hooks/use-server-query";
 import { RiskList } from "@/features/risks/components/risk-list";
 import { RiskMatrix } from "@/features/risks/components/risk-matrix";
 import { RiskAssessmentDeleteButton } from "@/features/risks/components/risk-assessment-delete-button";
@@ -22,13 +22,13 @@ interface RisksContentProps {
 export function RisksContent({ initialRisks, initialAssessments, canDeleteRiskAssessments }: RisksContentProps) {
   const t = useTranslations("dashboardRisksPage");
 
-  const { data: risks } = useQuery({
+  const { data: risks } = useServerQuery({
     queryKey: ["risks"],
     queryFn: () => fetchRisks(),
     initialData: initialRisks,
   });
 
-  const { data: riskAssessments } = useQuery({
+  const { data: riskAssessments } = useServerQuery({
     queryKey: ["risks", "assessments"],
     queryFn: () => fetchRiskAssessments(),
     initialData: initialAssessments,

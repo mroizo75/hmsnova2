@@ -1,26 +1,27 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { IncidentTabs } from "@/features/incidents/components/incident-tabs";
 import { AlertCircle, Clock, CheckCircle, ShieldAlert, FileWarning } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { fetchIncidents } from "@/server/queries/incident.queries";
+import { useServerQuery } from "@/hooks/use-server-query";
 
 type IncidentData = Awaited<ReturnType<typeof fetchIncidents>>;
 
 interface IncidentsContentProps {
   initialData: IncidentData;
+  kilde?: string;
 }
 
 const RUH_TYPES = new Set(["ULYKKE", "NESTEN", "FARLIG_SITUASJON", "YRKESSYKDOM"]);
 
-export function IncidentsContent({ initialData }: IncidentsContentProps) {
+export function IncidentsContent({ initialData, kilde }: IncidentsContentProps) {
   const t = useTranslations("dashboardIncidentsPage");
 
-  const { data: incidents } = useQuery({
-    queryKey: ["incidents"],
-    queryFn: () => fetchIncidents(),
+  const { data: incidents } = useServerQuery({
+    queryKey: ["incidents", kilde ?? "alle"],
+    queryFn: () => fetchIncidents({ kilde }),
     initialData,
   });
 

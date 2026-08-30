@@ -35,9 +35,21 @@ const BERUSELSE_LABEL: Record<string, string> = {
   APENBART_PAVIRKET: "Åpenbart påvirket",
 };
 
+export interface AlcoholTrainingStatus {
+  courseKey: string;
+  title: string;
+  users: Array<{
+    id: string;
+    name: string;
+    completed: boolean;
+    validUntil: string | Date | null;
+  }>;
+}
+
 interface Props {
   bevilling: SkjenkeBevilling | null;
   hendelser: SkjenkeHendelse[];
+  alcoholTraining: AlcoholTrainingStatus;
   canEdit: boolean;
 }
 
@@ -46,7 +58,7 @@ function toDateInput(value: Date | string | null | undefined): string {
   return new Date(value).toISOString().slice(0, 10);
 }
 
-export function SkjenkingClient({ bevilling, hendelser: initialHendelser, canEdit }: Props) {
+export function SkjenkingClient({ bevilling, hendelser: initialHendelser, alcoholTraining, canEdit }: Props) {
   const router = useRouter();
   const [hendelser, setHendelser] = useState(initialHendelser);
   const [savingBevilling, setSavingBevilling] = useState(false);
@@ -304,10 +316,43 @@ export function SkjenkingClient({ bevilling, hendelser: initialHendelser, canEdi
             <p className="text-sm">
               Alkoholforskriften § 8-3 nr. 2 og alkoholloven § 1-7c krever at ansatte har tilstrekkelig kunnskap om aldersgrenser, beruselse og bortvisning.
             </p>
+            <p className="font-medium">{alcoholTraining.title}</p>
+            <p className="text-sm text-muted-foreground">
+              {alcoholTraining.users.filter((u) => u.completed).length} av {alcoholTraining.users.length} ansatte har gyldig kurs.
+            </p>
+            <div className="border rounded-lg overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50 text-left">
+                  <tr>
+                    <th className="p-3">Ansatt</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3">Gyldig til</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {alcoholTraining.users.length === 0 && (
+                    <tr><td colSpan={3} className="p-6 text-muted-foreground">Ingen ansatte funnet.</td></tr>
+                  )}
+                  {alcoholTraining.users.map((user) => (
+                    <tr key={user.id} className="border-t">
+                      <td className="p-3">{user.name}</td>
+                      <td className="p-3">
+                        <Badge variant={user.completed ? "secondary" : "destructive"}>
+                          {user.completed ? "Fullført" : "Mangler"}
+                        </Badge>
+                      </td>
+                      <td className="p-3">
+                        {user.validUntil ? new Date(user.validUntil).toLocaleDateString("nb-NO") : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             <Button asChild>
-              <Link href="/dashboard/training">
+              <Link href="/dashboard/training?tema=skjenking">
                 <GraduationCap className="mr-2 h-4 w-4" />
-                Åpne opplæring
+                Registrer skjenkekurs
               </Link>
             </Button>
           </div>
