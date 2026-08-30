@@ -27,7 +27,7 @@ export const ALLE_SNARVEIER: SnarveiDefinisjon[] = [
     icon: "AlertTriangle",
     color: "bg-red-500/20 hover:bg-red-500/40 border-red-500/40",
     textColor: "text-red-300",
-    hmsFunksjon: "/dashboard/avvik/ny",
+    hmsFunksjon: "/dashboard/incidents/new",
     lovRef: "AML § 5-2",
   },
   {
@@ -36,7 +36,7 @@ export const ALLE_SNARVEIER: SnarveiDefinisjon[] = [
     icon: "Shield",
     color: "bg-orange-500/20 hover:bg-orange-500/40 border-orange-500/40",
     textColor: "text-orange-300",
-    hmsFunksjon: "/dashboard/sja/ny",
+    hmsFunksjon: "/dashboard/sja/new",
     lovRef: "AML § 3-1",
   },
   {
@@ -45,7 +45,7 @@ export const ALLE_SNARVEIER: SnarveiDefinisjon[] = [
     icon: "ClipboardList",
     color: "bg-blue-500/20 hover:bg-blue-500/40 border-blue-500/40",
     textColor: "text-blue-300",
-    hmsFunksjon: "/dashboard/sha-plan",
+    hmsFunksjon: "/dashboard/construction-compliance",
     lovRef: "§ 7+8",
   },
   {
@@ -54,7 +54,7 @@ export const ALLE_SNARVEIER: SnarveiDefinisjon[] = [
     icon: "Search",
     color: "bg-green-500/20 hover:bg-green-500/40 border-green-500/40",
     textColor: "text-green-300",
-    hmsFunksjon: "/dashboard/vernerunder",
+    hmsFunksjon: "/dashboard/inspections",
     lovRef: "AML § 6-2",
   },
   {
@@ -72,7 +72,7 @@ export const ALLE_SNARVEIER: SnarveiDefinisjon[] = [
     icon: "FolderOpen",
     color: "bg-purple-500/20 hover:bg-purple-500/40 border-purple-500/40",
     textColor: "text-purple-300",
-    hmsFunksjon: "/dashboard/dokumenter",
+    hmsFunksjon: "/dashboard/documents",
   },
   {
     id: "stoffkartotek",
@@ -80,7 +80,7 @@ export const ALLE_SNARVEIER: SnarveiDefinisjon[] = [
     icon: "FlaskConical",
     color: "bg-yellow-500/20 hover:bg-yellow-500/40 border-yellow-500/40",
     textColor: "text-yellow-300",
-    hmsFunksjon: "/dashboard/stoffkartotek",
+    hmsFunksjon: "/dashboard/chemicals",
     lovRef: "Kjemforskriften",
   },
   {
@@ -89,7 +89,7 @@ export const ALLE_SNARVEIER: SnarveiDefinisjon[] = [
     icon: "GraduationCap",
     color: "bg-indigo-500/20 hover:bg-indigo-500/40 border-indigo-500/40",
     textColor: "text-indigo-300",
-    hmsFunksjon: "/dashboard/opplaering",
+    hmsFunksjon: "/dashboard/training",
     lovRef: "AML § 3-2",
   },
   {
@@ -98,7 +98,7 @@ export const ALLE_SNARVEIER: SnarveiDefinisjon[] = [
     icon: "Gauge",
     color: "bg-rose-500/20 hover:bg-rose-500/40 border-rose-500/40",
     textColor: "text-rose-300",
-    hmsFunksjon: "/dashboard/risiko",
+    hmsFunksjon: "/dashboard/risks",
     lovRef: "IK-HMS § 5",
   },
   {
@@ -107,7 +107,7 @@ export const ALLE_SNARVEIER: SnarveiDefinisjon[] = [
     icon: "Wrench",
     color: "bg-cyan-500/20 hover:bg-cyan-500/40 border-cyan-500/40",
     textColor: "text-cyan-300",
-    hmsFunksjon: "/dashboard/tiltak",
+    hmsFunksjon: "/dashboard/actions",
   },
   {
     id: "timeregistrering",
@@ -115,7 +115,7 @@ export const ALLE_SNARVEIER: SnarveiDefinisjon[] = [
     icon: "Clock",
     color: "bg-slate-500/20 hover:bg-slate-500/40 border-slate-500/40",
     textColor: "text-slate-300",
-    hmsFunksjon: "/dashboard/timer",
+    hmsFunksjon: "/dashboard/time-registration",
     lovRef: "Arbeidstidsloven",
   },
   {

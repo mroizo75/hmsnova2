@@ -11,6 +11,7 @@ export const BASE_SIMPLE_MODULES: string[] = [
   "/dashboard/inspections",
   "/dashboard/training",
   "/dashboard/fire-drills",
+  "/dashboard/beredskap",
   "/dashboard/annual-hms-plan",
   "/dashboard/settings",
 ]
@@ -54,7 +55,6 @@ export const BRANSJE_MODULES: Record<
       "/dashboard/sja",
       "/dashboard/chemicals",
       "/dashboard/exposure-register",
-      "/dashboard/beredskap-reiseliv",
     ],
   },
   marine: {
@@ -125,6 +125,7 @@ export const BRANSJE_MODULES: Record<
       ...BASE_SIMPLE_MODULES,
       "/dashboard/chemicals",
       "/dashboard/ik-mat",
+      "/dashboard/skjenking",
       "/dashboard/bht-nattarbeid",
     ],
   },
@@ -135,7 +136,6 @@ export const BRANSJE_MODULES: Record<
       ...BASE_SIMPLE_MODULES,
       "/dashboard/sja",
       "/dashboard/aktivitetssikkerhet",
-      "/dashboard/beredskap-reiseliv",
     ],
   },
 

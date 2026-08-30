@@ -72,6 +72,9 @@ export async function runScheduledAlerts(): Promise<TenantAlertSummary[]> {
       checkConstructionDailyRosterControl(tenant.id),
       checkRoutineReviews(tenant.id),
       checkEmployeeReviewsDue(tenant.id),
+      checkSickLeaveFollowUps(tenant.id),
+      checkBoardingTasks(tenant.id),
+      checkCompetenceGaps(tenant.id),
     ];
 
     const checkResults = await Promise.all(checks);
@@ -1379,3 +1382,254 @@ async function checkEmployeeReviewsDue(tenantId: string): Promise<AlertResult> {
   };
 }
 
+// ============================================
+// Sykefraværsoppfølging – AML § 4-6, ftrl. § 8-7a
+// ============================================
+
+async function checkSickLeaveFollowUps(tenantId: string): Promise<AlertResult> {
+  const now = new Date();
+  const in7Days = addDays(now, 7);
+  let notifications = 0;
+
+  // Hent alle åpne milepæler med frist <= 7 dager frem
+  const upcoming = await prisma.sickLeaveFollowUp.findMany({
+    where: {
+      tenantId,
+      status: { in: ["NOT_STARTED", "IN_PROGRESS"] },
+      dueDate: { lte: in7Days },
+    },
+    include: {
+      absence: {
+        include: {
+          user: { select: { id: true, name: true } },
+        },
+      },
+    },
+  });
+
+  for (const fu of upcoming) {
+    const isOverdue = fu.dueDate < now;
+    const isToday = differenceInDays(fu.dueDate, now) === 0;
+
+    // Velg riktig type basert på milepæl
+    const isDialog = fu.milestone.startsWith("DIALOG_MEETING");
+    let notifType: NotificationType;
+    if (isOverdue && !isToday) {
+      notifType = "SICK_LEAVE_OVERDUE";
+    } else if (isDialog) {
+      notifType = "SICK_LEAVE_DIALOG_DUE";
+    } else {
+      notifType = "SICK_LEAVE_PLAN_DUE";
+    }
+
+    // Dedup: sjekk om vi allerede varslet siste 24 timer
+    const recentAlert = await prisma.notification.findFirst({
+      where: {
+        tenantId,
+        type: notifType,
+        link: `/dashboard/fravaer/${fu.absenceId}`,
+        createdAt: { gt: subDays(now, 1) },
+      },
+      select: { id: true },
+    });
+    if (recentAlert) continue;
+
+    const employeeName = fu.absence.user.name ?? "Ukjent ansatt";
+    const milestoneLabels: Record<string, string> = {
+      FOLLOW_UP_PLAN: "Oppfølgingsplan",
+      DIALOG_MEETING_1: "Dialogmøte 1",
+      ACTIVITY_REQUIREMENT: "Aktivitetskrav",
+      DIALOG_MEETING_2: "Dialogmøte 2",
+      DIALOG_MEETING_3: "Dialogmøte 3",
+      MAX_DATE: "Maksdato sykepenger",
+    };
+    const label = milestoneLabels[fu.milestone] ?? fu.milestone;
+    const prefix = isOverdue ? "FORFALT: " : isToday ? "I DAG: " : "Snart: ";
+
+    // Varsle HMS-ansvarlig og leder
+    await notifyUsersByRole(tenantId, "HMS", {
+      type: notifType,
+      title: `${prefix}${label}`,
+      message: `${label} for ${employeeName} ${isOverdue ? "har forfalt" : "forfaller snart"}. Frist: ${fu.dueDate.toISOString().slice(0, 10)}.`,
+      link: `/dashboard/fravaer/${fu.absenceId}`,
+    });
+    notifications++;
+
+    await notifyUsersByRole(tenantId, "LEDER", {
+      type: notifType,
+      title: `${prefix}${label}`,
+      message: `${label} for ${employeeName} ${isOverdue ? "har forfalt" : "forfaller snart"}. Frist: ${fu.dueDate.toISOString().slice(0, 10)}.`,
+      link: `/dashboard/fravaer/${fu.absenceId}`,
+    });
+    notifications++;
+  }
+
+  return {
+    type: "sick_leave_follow_ups",
+    count: upcoming.length,
+    notifications,
+  };
+}
+
+// ============================================
+// Onboarding/Offboarding – oppgavepåminnelser
+// AML § 14-5 (arbeidsavtale), § 3-5 (HMS-opplæring)
+// ============================================
+
+async function checkBoardingTasks(tenantId: string): Promise<AlertResult> {
+  const now = new Date();
+  const tomorrow = addDays(now, 1);
+  let notifications = 0;
+
+  const overdueTasks = await prisma.boardingTask.findMany({
+    where: {
+      boarding: { tenantId, status: "IN_PROGRESS" },
+      status: "PENDING",
+      dueDate: { lt: now },
+    },
+    include: {
+      boarding: {
+        include: { employee: { select: { name: true } } },
+      },
+    },
+  });
+
+  for (const task of overdueTasks) {
+    const daysPastDue = Math.floor((now.getTime() - new Date(task.dueDate!).getTime()) / (1000 * 60 * 60 * 24));
+    if (daysPastDue > 3) continue;
+
+    const targetUserIds: string[] = [];
+    if (task.assigneeId) targetUserIds.push(task.assigneeId);
+
+    const managers = await prisma.userTenant.findMany({
+      where: { tenantId, role: { in: ["ADMIN", "HMS", "LEDER"] } },
+      select: { userId: true },
+    });
+    for (const m of managers) {
+      if (!targetUserIds.includes(m.userId)) targetUserIds.push(m.userId);
+    }
+
+    for (const uid of targetUserIds) {
+      await createNotification({
+        tenantId,
+        userId: uid,
+        type: "BOARDING_TASK_OVERDUE",
+        title: `Oppgave forfalt: ${task.title}`,
+        message: `Oppgave "${task.title}" for ${task.boarding.employee.name ?? "ansatt"} har passert fristen.`,
+        link: `/dashboard/onboarding/${task.boardingId}`,
+      });
+      notifications++;
+    }
+  }
+
+  const dueSoonTasks = await prisma.boardingTask.findMany({
+    where: {
+      boarding: { tenantId, status: "IN_PROGRESS" },
+      status: "PENDING",
+      dueDate: { gte: now, lte: tomorrow },
+    },
+    include: {
+      boarding: {
+        include: { employee: { select: { name: true } } },
+      },
+    },
+  });
+
+  for (const task of dueSoonTasks) {
+    if (!task.assigneeId) continue;
+    await createNotification({
+      tenantId,
+      userId: task.assigneeId,
+      type: "BOARDING_TASK_ASSIGNED",
+      title: `Oppgave forfaller snart: ${task.title}`,
+      message: `Oppgave "${task.title}" for ${task.boarding.employee.name ?? "ansatt"} forfaller i dag eller i morgen.`,
+      link: `/dashboard/onboarding/${task.boardingId}`,
+    });
+    notifications++;
+  }
+
+  return {
+    type: "boarding_tasks",
+    count: overdueTasks.length + dueSoonTasks.length,
+    notifications,
+  };
+}
+
+/**
+ * Sjekk kompetansegap: varsle ledere om ansatte med kritiske lovpålagte mangler
+ * Hjemmel: AML § 3-2, IK-HMS § 5 nr. 2/5
+ */
+async function checkCompetenceGaps(tenantId: string): Promise<AlertResult> {
+  let notifications = 0;
+
+  const assignedProfiles = await prisma.userCompetenceProfile.findMany({
+    where: { tenantId },
+    include: {
+      user: { select: { id: true, name: true } },
+      profile: {
+        include: { requirements: { where: { legalRef: { not: null } } } },
+      },
+    },
+  });
+
+  const now = new Date();
+  const criticalUsers: { userId: string; userName: string | null; missingCount: number }[] = [];
+
+  const userRequirements = new Map<string, { userName: string | null; courseKeys: Set<string> }>();
+  for (const ap of assignedProfiles) {
+    const existing = userRequirements.get(ap.userId) ?? { userName: ap.user.name, courseKeys: new Set() };
+    for (const req of ap.profile.requirements) {
+      existing.courseKeys.add(req.courseKey);
+    }
+    userRequirements.set(ap.userId, existing);
+  }
+
+  for (const [userId, { userName, courseKeys }] of userRequirements) {
+    if (courseKeys.size === 0) continue;
+
+    const trainings = await prisma.training.findMany({
+      where: {
+        tenantId,
+        userId,
+        courseKey: { in: [...courseKeys] },
+        completedAt: { not: null },
+      },
+    });
+
+    const validKeys = new Set(
+      trainings
+        .filter((t) => !t.validUntil || new Date(t.validUntil) >= now)
+        .map((t) => t.courseKey),
+    );
+
+    const missingCount = [...courseKeys].filter((k) => !validKeys.has(k)).length;
+    if (missingCount > 0) {
+      criticalUsers.push({ userId, userName, missingCount });
+    }
+  }
+
+  if (criticalUsers.length > 0) {
+    const managers = await prisma.userTenant.findMany({
+      where: { tenantId, role: { in: ["ADMIN", "HMS", "LEDER"] } },
+      select: { userId: true },
+    });
+
+    for (const mgr of managers) {
+      await createNotification({
+        tenantId,
+        userId: mgr.userId,
+        type: "TRAINING_EXPIRED",
+        title: `${criticalUsers.length} ansatte med lovpålagte kompetansemangler`,
+        message: `Det er ${criticalUsers.length} ansatte som mangler lovpålagt kompetanse. Se gap-analysen for detaljer.`,
+        link: "/dashboard/training/gap",
+      });
+      notifications++;
+    }
+  }
+
+  return {
+    type: "competence_gaps",
+    count: criticalUsers.length,
+    notifications,
+  };
+}

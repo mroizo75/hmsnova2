@@ -575,6 +575,90 @@ export const helpContent: Record<string, HelpContent> = {
       "Dokumenter all opplæring: hvem, hva, når, varighet",
       "Evaluer om opplæringen fungerer – test forståelse og se på resultater",
       "Gjennomfør introduksjonsprogram for nye ansatte",
+      "Opprett kompetanseprofiler for å definere krav per rolle/stilling",
+      "Bruk gap-analysen til å identifisere og prioritere opplæringsbehov",
+    ],
+  },
+
+  competenceProfiles: {
+    title: "Kompetanseprofiler og gap-analyse",
+    description: "Definer kompetansekrav per rolle og mål oppfyllelsesgrad",
+    sections: [
+      {
+        heading: "Kompetanseprofiler",
+        emoji: "📋",
+        content:
+          "En kompetanseprofil definerer hvilke kurs og sertifikater en rolle krever. Profiler kan tilordnes ansatte for å beregne gap-analyse.",
+      },
+      {
+        heading: "Lovkrav",
+        emoji: "⚖️",
+        items: [
+          { title: "AML § 3-2", description: "Arbeidsgiver skal sikre nødvendig opplæring for alle ansatte." },
+          { title: "AML § 3-5", description: "Arbeidsgiver (daglig leder) skal ha HMS-opplæring." },
+          { title: "IK-HMS § 5 nr. 2", description: "Arbeidstakere skal ha tilstrekkelig kunnskap og ferdigheter." },
+          { title: "IK-HMS § 5 nr. 5", description: "Dokumentert oversikt over kompetansekrav." },
+        ],
+      },
+      {
+        heading: "Gap-analyse",
+        emoji: "📊",
+        items: [
+          { title: "Prosentvis oppfyllelse", description: "Se hvor stor andel av kravene hver ansatt oppfyller." },
+          { title: "Lovpålagte mangler", description: "Kritiske mangler med lovhenvisning flagges automatisk." },
+          { title: "Avdelingsoversikt", description: "Se aggregert gap per avdeling for å prioritere opplæring." },
+        ],
+      },
+    ],
+    isoStandards: [
+      "ISO 9001 (Kvalitet): Krav 7.2 - Kompetanse",
+      "ISO 45001 (HMS): Krav 7.2 - HMS-kompetanse",
+    ],
+    tips: [
+      "Start med standardprofiler og tilpass til virksomheten",
+      "Prioriter lovpålagte kurs (rød markering i gap-analysen)",
+      "Tilordne profiler til alle ansatte for fullstendig oversikt",
+    ],
+  },
+
+  hmsHandbok: {
+    title: "HMS- og personalhåndbok",
+    description: "Én versjonskontrollert håndbok for HMS og personalrutiner",
+    sections: [
+      {
+        heading: "Hva er håndboken?",
+        emoji: "📖",
+        content:
+          "Håndboken samler HMS-krav (IK-HMS § 5) og personalrutiner (arbeidsavtale, arbeidstid, ferie, sykefravær, permisjon, personvern og opphør) i ett dokument. Ansatte leser og signerer per versjon.",
+      },
+      {
+        heading: "Personal-kapitler",
+        emoji: "👤",
+        items: [
+          { title: "Arbeidsavtale", description: "AML § 14-5 og § 14-6 – skriftlig avtale innen sju dager." },
+          { title: "Arbeidstid og ferie", description: "AML kap. 10 og ferieloven." },
+          { title: "Sykefravær og permisjon", description: "AML § 4-6, folketrygdloven § 8-7 og AML kap. 12." },
+          { title: "Personvern og opphør", description: "GDPR og AML kap. 15, inkludert sluttattest." },
+        ],
+      },
+      {
+        heading: "Slik bruker du den",
+        emoji: "🔧",
+        items: [
+          { title: "1. Legg til personal-kapitler", description: "På eksisterende håndbøker: bruk knappen «Legg til personal-kapitler»." },
+          { title: "2. Tilpass teksten", description: "Rediger utkastet og sett inn bedriftens egne regler." },
+          { title: "3. Godkjenn og be ansatte signere", description: "Ny versjon krever godkjenning. Ansatte signerer i ansattportalen." },
+        ],
+      },
+    ],
+    isoStandards: [
+      "ISO 45001: dokumentert HMS-styring",
+      "IK-HMS § 5: internkontroll og kjente rutiner",
+    ],
+    tips: [
+      "Bruk filteret Alle / HMS / Personal for å lese det som er relevant",
+      "Koble kapitlene til modulene (fravær, onboarding, kompetanse)",
+      "Be alle ansatte signere etter hver publisert versjon",
     ],
   },
 
@@ -1838,6 +1922,185 @@ export const helpContent: Record<string, HelpContent> = {
       "Bruk kategorier for å organisere skjemaene dine",
       "Globale maler kan kopieres og tilpasses din virksomhet",
       "Sjekklister kan kobles til vernerunder og inspeksjoner",
+    ],
+  },
+
+  absence: {
+    title: "Fravær & ferie",
+    description:
+      "Registrering og oppfølging av fravær, ferie og permisjon i henhold til arbeidsmiljøloven og ferieloven",
+    sections: [
+      {
+        heading: "Fraværstyper",
+        emoji: "📋",
+        items: [
+          {
+            title: "Egenmelding",
+            description:
+              "Ansatt melder eget fravær (maks 3 dager x 4 per 12 mnd, eller 8 med IA-avtale). AML / folketrygdloven § 8-23 – § 8-27.",
+          },
+          {
+            title: "Sykemelding",
+            description:
+              "Legemeldt sykefravær. Diagnosekode er kun synlig for HMS-ansvarlig og BHT (GDPR art. 9).",
+          },
+          {
+            title: "Ferie",
+            description:
+              "Ferie i henhold til ferieloven § 5. Godkjennes av leder.",
+          },
+          {
+            title: "Permisjon",
+            description:
+              "Foreldrepermisjon, omsorgsdager, velferdspermisjon, militærtjeneste m.m.",
+          },
+        ],
+      },
+      {
+        heading: "Arbeidsflyt",
+        emoji: "🔄",
+        items: [
+          {
+            title: "Registrering",
+            description:
+              "Ansatt eller leder registrerer fravær. Leder varsles automatisk.",
+          },
+          {
+            title: "Godkjenning",
+            description:
+              "Leder, HMS-ansvarlig eller administrator godkjenner eller avviser.",
+          },
+          {
+            title: "Statistikk",
+            description:
+              "AML § 5-1 (4) pålegger arbeidsgiver å føre sykefraværsstatistikk. Dashbordet beregner prosenten automatisk.",
+          },
+        ],
+      },
+      {
+        heading: "Personvern",
+        emoji: "🔐",
+        items: [
+          {
+            title: "Diagnosekode",
+            description:
+              "Kun HMS-ansvarlig og BHT kan se diagnosekoden. Leder ser kun type og varighet (GDPR art. 9).",
+          },
+          {
+            title: "Statistikk",
+            description:
+              "Fraværsstatistikk vises kun i aggregert form. Individdata er begrenset til de med tjenstlig behov.",
+          },
+        ],
+      },
+    ],
+    tips: [
+      "Egenmelding må registreres innen første fraværsdag",
+      "Leder kan se fravær for sine direkte rapporterende",
+      "Fraværsstatistikk oppdateres automatisk for AMO/verneombudsmøter",
+    ],
+  },
+  boarding: {
+    title: "Onboarding & offboarding",
+    description:
+      "Malbaserte sjekklister for mottak av nyansatte og avslutning av arbeidsforhold, i tråd med AML § 14-5/14-6 og GDPR art. 17",
+    sections: [
+      {
+        heading: "Onboarding",
+        emoji: "👋",
+        items: [
+          {
+            title: "Arbeidsavtale",
+            description:
+              "Skriftlig arbeidsavtale skal være klar innen 7 dager etter oppstart (AML § 14-5).",
+          },
+          {
+            title: "HMS-opplæring",
+            description:
+              "Alle nyansatte skal gjennomgå HMS-opplæring (AML § 3-5) og varslingsrutiner (AML § 2A-6).",
+          },
+          {
+            title: "Oppfølgingssamtaler",
+            description:
+              "Systemet setter opp automatiske påminnelser for oppfølgingssamtaler etter 2 uker, 1 måned, 2 måneder og prøvetidsevaluering.",
+          },
+        ],
+      },
+      {
+        heading: "Offboarding",
+        emoji: "🚪",
+        items: [
+          {
+            title: "Sluttsamtale",
+            description:
+              "Leder gjennomfører sluttsamtale for erfaringsoverføring.",
+          },
+          {
+            title: "Utstyr og tilganger",
+            description:
+              "Sjekkliste for innlevering av utstyr, nøkler og stenging av IT-tilganger.",
+          },
+          {
+            title: "GDPR-sletting",
+            description:
+              "Persondata skal slettes i henhold til GDPR art. 17 etter avsluttet arbeidsforhold.",
+          },
+        ],
+      },
+    ],
+    tips: [
+      "Opprett egne maler tilpasset ulike stillingstyper",
+      "Oppgaver tildeles automatisk basert på rolle (HR, IT, leder, ansatt)",
+      "Forfallte oppgaver varsles automatisk til ansvarlig person",
+    ],
+  },
+  personnelArchive: {
+    title: "Personalarkiv",
+    description:
+      "Strukturert personalmappe i Cloudflare R2. Kun saklige og relevante dokumenter, jf. GDPR art. 5 og 6. Ansatte har innsyn i egen mappe (art. 15).",
+    sections: [
+      {
+        heading: "Hva skal ligge her?",
+        emoji: "📁",
+        items: [
+          {
+            title: "Arbeidsavtale",
+            description:
+              "Skriftlig arbeidsavtale og senere endringer (AML § 14-5/14-6 og § 14-8).",
+          },
+          {
+            title: "Attester og korrespondanse",
+            description:
+              "Sluttattest, skattekort, advarsler og annen saklig personalinformasjon.",
+          },
+          {
+            title: "Ikke helseopplysninger",
+            description:
+              "Diagnose, sykmelding og dialogmøter hører hjemme i fraværsmodulen, ikke i personalmappen.",
+          },
+        ],
+      },
+      {
+        heading: "Lagring og sletting",
+        emoji: "☁️",
+        items: [
+          {
+            title: "Cloudflare R2",
+            description:
+              "Filer lagres per bedrift, ansatt og kategori: tenant/personnel/userId/category/.",
+          },
+          {
+            title: "Slettefrist",
+            description:
+              "Sett oppbevaringsdato. Personopplysninger skal ikke lagres lenger enn nødvendig (GDPR art. 5).",
+          },
+        ],
+      },
+    ],
+    tips: [
+      "Last opp PDF der det er mulig",
+      "Sett slettefrist når arbeidsforholdet avsluttes",
+      "Ansatte finner egen mappe under Min personalmappe",
     ],
   },
 };

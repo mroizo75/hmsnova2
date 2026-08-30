@@ -75,6 +75,15 @@ const INDUSTRY_SCOPE_MAP: Record<string, string[]> = {
   fiskeri: ["GENERELL", "OFFSHORE"],
 };
 
+/** Bransjekoder som brukes på hendelses-underkategorier, inkl. RUH-modus. */
+export function getKnownIncidentIndustryScopes(): string[] {
+  const scopes = new Set<string>(["GENERELL", "RUH"]);
+  for (const list of Object.values(INDUSTRY_SCOPE_MAP)) {
+    for (const scope of list) scopes.add(scope);
+  }
+  return [...scopes];
+}
+
 export function getIncidentIndustryScopes(
   industry: string | null | undefined,
 ): string[] {

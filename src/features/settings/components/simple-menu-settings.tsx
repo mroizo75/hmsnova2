@@ -14,6 +14,7 @@ import {
   DASHBOARD_NAV_CONFIG,
   DEFAULT_SIMPLE_MENU_HREFS,
 } from "@/lib/dashboard-nav-config";
+import { sortDashboardNavItems } from "@/lib/dashboard-nav-filter";
 import { PanelLeft, RotateCcw } from "lucide-react";
 
 interface SimpleMenuSettingsProps {
@@ -32,8 +33,13 @@ export function SimpleMenuSettings({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
 
-  const eligibleItems = DASHBOARD_NAV_CONFIG.filter(
-    (item) => visibleNavItems[item.permission as keyof typeof visibleNavItems]
+  const eligibleItems = sortDashboardNavItems(
+    DASHBOARD_NAV_CONFIG.filter(
+      (item) =>
+        !item.requiresKonsern &&
+        visibleNavItems[item.permission as keyof typeof visibleNavItems]
+    ),
+    (item) => t(item.label),
   );
 
   useEffect(() => {

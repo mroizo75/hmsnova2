@@ -23,6 +23,8 @@ import {
   Target,
   LayoutGrid,
   MoreHorizontal,
+  ShieldCheck,
+  BarChart3,
 } from "lucide-react";
 import type { CourseTemplate } from "@prisma/client";
 
@@ -66,6 +68,22 @@ export function TrainingHeaderActions({
             <Link href="/dashboard/training/matrix" className="flex items-center gap-2 cursor-pointer">
               <LayoutGrid className="h-4 w-4" />
               Kompetansematrise
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+            Kompetansestyring
+          </DropdownMenuLabel>
+          <DropdownMenuItem asChild>
+            <Link href="/dashboard/training/profiler" className="flex items-center gap-2 cursor-pointer">
+              <ShieldCheck className="h-4 w-4" />
+              Kompetanseprofiler
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/dashboard/training/gap" className="flex items-center gap-2 cursor-pointer">
+              <BarChart3 className="h-4 w-4" />
+              Gap-analyse
             </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />

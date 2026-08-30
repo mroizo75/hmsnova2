@@ -10,6 +10,8 @@ import { AuditLog } from "@/lib/audit-log";
 import { notifyUsersByRoles } from "@/server/actions/notification.actions";
 import type { HandbookVersionStatus } from "@prisma/client";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
+import { DEFAULT_HR_SECTIONS, replaceTemplateVariables } from "@/lib/handbook-templates";
+import { repairDashboardRoute } from "@/lib/legal-link-repair";
 
 // ── Standard seksjoner (IK-HMS § 5, AML kap. 3) ─────────────────────────────
 
@@ -196,6 +198,7 @@ export type HandbookSectionData = {
   title: string;
   content: string;
   legalRef: string | null;
+  category: string;
   sortOrder: number;
   moduleLink: string | null;
   children: HandbookSectionData[];
@@ -278,9 +281,7 @@ async function getOrCreateHandbook(tenantId: string) {
   });
 
   if (existing) {
-    if (existing.versions.length === 0) {
-      await seedDefaultVersion(existing.id, tenantId);
-    }
+    await seedDefaultVersion(existing.id, tenantId);
     // Patch: sett moduleLink for s2c-seksjoner som mangler den
     await prisma.handbookSection.updateMany({
       where: {
@@ -302,37 +303,78 @@ async function getOrCreateHandbook(tenantId: string) {
 }
 
 async function seedDefaultVersion(handbookId: string, tenantId: string) {
-  const existingVersion = await prisma.handbookVersion.findFirst({
+  let version = await prisma.handbookVersion.findFirst({
     where: { handbookId },
-  });
-  if (existingVersion) return;
-
-  const version = await prisma.handbookVersion.create({
-    data: {
-      handbookId,
-      version: "1.0",
-      status: "DRAFT",
-      changeNote: "Første versjon – standardseksjoner opprettet",
-    },
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
   });
 
-  await prisma.handbookSection.createMany({
-    data: DEFAULT_SECTIONS.map((s) => ({
-      versionId: version.id,
+  if (!version) {
+    version = await prisma.handbookVersion.create({
+      data: {
+        handbookId,
+        version: "1.0",
+        status: "DRAFT",
+        changeNote: "Første versjon – standardseksjoner opprettet",
+      },
+      select: { id: true },
+    });
+
+    await prisma.hmsHandbook.update({
+      where: { id: handbookId },
+      data: { currentVersionId: version.id },
+    });
+  }
+
+  await ensureMissingDefaultSections(version.id, tenantId);
+}
+
+/** Legger inn manglende standardkapitler uten å overskrive eksisterende innhold. */
+async function ensureMissingDefaultSections(versionId: string, tenantId: string) {
+  const existing = await prisma.handbookSection.findMany({
+    where: { versionId },
+    select: { sectionKey: true },
+  });
+  const keys = new Set(existing.map((s) => s.sectionKey));
+
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { name: true, orgNumber: true, industry: true },
+  });
+  const variables: Record<string, string> = {
+    bedriftsnavn: tenant?.name ?? "",
+    orgNummer: tenant?.orgNumber ?? "",
+    bransje: tenant?.industry ?? "",
+  };
+
+  const missing = [
+    ...DEFAULT_SECTIONS.map((s) => ({
+      versionId,
       sectionKey: s.sectionKey,
       sectionNumber: s.sectionNumber,
       title: s.title,
       content: s.content,
       legalRef: s.legalRef,
+      category: "HMS",
       sortOrder: s.sortOrder,
       moduleLink: s.moduleLink,
     })),
-  });
+    ...DEFAULT_HR_SECTIONS.map((s) => ({
+      versionId,
+      sectionKey: s.sectionKey,
+      sectionNumber: s.sectionNumber,
+      title: s.title,
+      content: replaceTemplateVariables(s.content, variables),
+      legalRef: s.legalRef,
+      category: "HR",
+      sortOrder: s.sortOrder,
+      moduleLink: s.moduleLink,
+    })),
+  ].filter((s) => !keys.has(s.sectionKey));
 
-  await prisma.hmsHandbook.update({
-    where: { id: handbookId },
-    data: { currentVersionId: version.id },
-  });
+  if (missing.length === 0) return;
+
+  await prisma.handbookSection.createMany({ data: missing });
 }
 
 function buildSectionTree(sections: Array<{
@@ -342,6 +384,7 @@ function buildSectionTree(sections: Array<{
   title: string;
   content: string;
   legalRef: string | null;
+  category?: string | null;
   sortOrder: number;
   moduleLink: string | null;
   parentId: string | null;
@@ -357,8 +400,9 @@ function buildSectionTree(sections: Array<{
       title: s.title,
       content: s.content,
       legalRef: s.legalRef,
+      category: s.category ?? (s.sectionKey.startsWith("hr-") ? "HR" : "HMS"),
       sortOrder: s.sortOrder,
-      moduleLink: s.moduleLink,
+      moduleLink: repairDashboardRoute(s.moduleLink),
       children: [],
     });
   }
@@ -382,7 +426,10 @@ function buildSectionTree(sections: Array<{
 
 // ── Actions ──────────────────────────────────────────────────────────────────
 
-export async function getHandbookData(tenantId: string): Promise<{
+export async function getHandbookData(
+  tenantId: string,
+  options?: { forEmployee?: boolean },
+): Promise<{
   success: true;
   handbook: HandbookData;
   stats: LiveHandbookStats;
@@ -410,7 +457,7 @@ export async function getHandbookData(tenantId: string): Promise<{
       },
     });
 
-    const currentVersion = fullHandbook.currentVersionId
+    let currentVersion = fullHandbook.currentVersionId
       ? await prisma.handbookVersion.findUnique({
           where: { id: fullHandbook.currentVersionId },
           include: {
@@ -420,6 +467,36 @@ export async function getHandbookData(tenantId: string): Promise<{
           },
         })
       : fullHandbook.versions[0] ?? null;
+
+    if (currentVersion && !options?.forEmployee) {
+      await ensureMissingDefaultSections(currentVersion.id, tenantId);
+      if (!fullHandbook.currentVersionId) {
+        await prisma.hmsHandbook.update({
+          where: { id: fullHandbook.id },
+          data: { currentVersionId: currentVersion.id },
+        });
+      }
+      currentVersion = await prisma.handbookVersion.findUnique({
+        where: { id: currentVersion.id },
+        include: {
+          approvedBy: { select: { name: true } },
+          sections: { orderBy: { sortOrder: "asc" } },
+          signatures: true,
+        },
+      });
+    }
+
+    if (options?.forEmployee && currentVersion && currentVersion.status !== "APPROVED") {
+      currentVersion = await prisma.handbookVersion.findFirst({
+        where: { handbookId: fullHandbook.id, status: "APPROVED" },
+        orderBy: { publishedAt: "desc" },
+        include: {
+          approvedBy: { select: { name: true } },
+          sections: { orderBy: { sortOrder: "asc" } },
+          signatures: true,
+        },
+      });
+    }
 
     const totalEmployees = await prisma.userTenant.count({
       where: { tenantId },
@@ -631,6 +708,7 @@ export async function createNewDraft(
           title: s.title,
           content: s.content,
           legalRef: s.legalRef,
+          category: s.category ?? (s.sectionKey.startsWith("hr-") ? "HR" : "HMS"),
           sortOrder: s.sortOrder,
           moduleLink: s.moduleLink,
         })),
@@ -1043,6 +1121,7 @@ export async function applyHandbookTemplate(
               title: s.title,
               content: s.content,
               legalRef: s.legalRef,
+              category: s.category ?? (s.sectionKey.startsWith("hr-") ? "HR" : "HMS"),
               sortOrder: s.sortOrder,
               moduleLink: s.moduleLink,
               parentId: null,
@@ -1086,6 +1165,7 @@ export async function applyHandbookTemplate(
               title: defaultSection.title,
               content: processedContent,
               legalRef: defaultSection.legalRef,
+              category: "HMS",
               sortOrder: defaultSection.sortOrder,
               moduleLink: defaultSection.moduleLink,
             },
@@ -1099,6 +1179,80 @@ export async function applyHandbookTemplate(
   } catch (e) {
     const message = e instanceof Error ? e.message : "Ukjent feil";
     return { success: false, error: message };
+  }
+}
+
+const ensureHrSectionsSchema = z.object({
+  versionId: z.string().min(1),
+});
+
+/**
+ * Legger manglende personal-kapitler på en eksisterende versjon.
+ * Overstyrer ikke redigert HMS-innhold.
+ */
+export async function ensureHrSections(
+  input: z.infer<typeof ensureHrSectionsSchema>,
+): Promise<{ success: boolean; added?: number; error?: string }> {
+  try {
+    const { versionId } = ensureHrSectionsSchema.parse(input);
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id || !session.user.tenantId) {
+      return { success: false, error: "Ikke autorisert" };
+    }
+
+    const permissions = getPermissions(session.user.role as import("@prisma/client").Role);
+    if (!permissions.canUpdateSettings) {
+      return { success: false, error: "Ingen tilgang" };
+    }
+
+    const version = await prisma.handbookVersion.findUnique({
+      where: { id: versionId },
+      include: {
+        handbook: true,
+        sections: { select: { sectionKey: true } },
+      },
+    });
+
+    if (!version || version.handbook.tenantId !== session.user.tenantId) {
+      return { success: false, error: "Versjon ikke funnet" };
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: session.user.tenantId },
+      select: { name: true, orgNumber: true, industry: true },
+    });
+
+    const variables: Record<string, string> = {
+      bedriftsnavn: tenant?.name ?? "",
+      orgNummer: tenant?.orgNumber ?? "",
+      bransje: tenant?.industry ?? "",
+    };
+
+    const existingKeys = new Set(version.sections.map((s) => s.sectionKey));
+    const toCreate = DEFAULT_HR_SECTIONS.filter((s) => !existingKeys.has(s.sectionKey));
+
+    if (toCreate.length > 0) {
+      await prisma.handbookSection.createMany({
+        data: toCreate.map((s) => ({
+          versionId,
+          sectionKey: s.sectionKey,
+          sectionNumber: s.sectionNumber,
+          title: s.title,
+          content: replaceTemplateVariables(s.content, variables),
+          legalRef: s.legalRef,
+          category: "HR",
+          sortOrder: s.sortOrder,
+          moduleLink: s.moduleLink,
+        })),
+      });
+    }
+
+    revalidatePath("/dashboard/hms-handbok");
+    revalidatePath("/ansatt/handbok");
+    triggerRealtimeEvent(session.user.tenantId, "settings-updated");
+    return { success: true, added: toCreate.length };
+  } catch {
+    return { success: false, error: "Kunne ikke legge til personal-kapitler" };
   }
 }
 

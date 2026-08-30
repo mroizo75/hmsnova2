@@ -22,13 +22,13 @@ import {
 } from "lucide-react";
 import type { GjesteHendelse, HotellEvakueringsplan } from "@prisma/client";
 
-const HENDELSE_TYPER: Record<string, { label: string; color: string }> = {
-  SKADE_PA_GJEST:       { label: "Skade på gjest",         color: "bg-red-100 text-red-700 border-red-200" },
-  SAVNET_GJEST:         { label: "Savnet gjest",           color: "bg-orange-100 text-orange-700 border-orange-200" },
+const HENDELSE_TYPER: Record<string, { label: string; color: string; reiselivOnly?: boolean }> = {
+  SKADE_PA_GJEST:         { label: "Skade på person",        color: "bg-red-100 text-red-700 border-red-200" },
+  SAVNET_GJEST:           { label: "Savnet person",          color: "bg-orange-100 text-orange-700 border-orange-200", reiselivOnly: true },
   MEDISINSK_NODSITUASJON: { label: "Medisinsk nødsituasjon", color: "bg-red-100 text-red-700 border-red-200" },
-  BRANN:                { label: "Brann",                  color: "bg-red-100 text-red-700 border-red-200" },
-  MATFORGIFTNING:       { label: "Matforgiftning",         color: "bg-orange-100 text-orange-700 border-orange-200" },
-  ANNET:                { label: "Annet",                  color: "bg-gray-100 text-gray-700 border-gray-200" },
+  BRANN:                  { label: "Brann",                  color: "bg-red-100 text-red-700 border-red-200" },
+  MATFORGIFTNING:         { label: "Matforgiftning",         color: "bg-orange-100 text-orange-700 border-orange-200", reiselivOnly: true },
+  ANNET:                  { label: "Annet",                  color: "bg-gray-100 text-gray-700 border-gray-200" },
 };
 
 const ALVORLIGHET: Record<string, { label: string; color: string }> = {
@@ -42,9 +42,10 @@ interface Props {
   hendelser: GjesteHendelse[];
   evakueringsplaner: HotellEvakueringsplan[];
   canEdit: boolean;
+  isReiseliv: boolean;
 }
 
-export function BeredskapReiselivClient({ hendelser, evakueringsplaner, canEdit }: Props) {
+export function BeredskapReiselivClient({ hendelser, evakueringsplaner, canEdit, isReiseliv }: Props) {
   const router = useRouter();
   const [showNyHendelse, setShowNyHendelse] = useState(false);
   const [hendelsForm, setHendelsForm] = useState({
@@ -97,10 +98,10 @@ export function BeredskapReiselivClient({ hendelser, evakueringsplaner, canEdit 
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Shield className="h-6 w-6 text-red-500" />
-          Beredskap – Reiseliv
+          Beredskap
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
-          AML § 4-2, Pakkereiseloven § 14, IK-HMS § 5 – gjestehendelser og evakuering
+          AML § 3-2 og IK-HMS § 5 – evakuering, hendelser og krisehåndtering
         </p>
       </div>
 
@@ -131,14 +132,14 @@ export function BeredskapReiselivClient({ hendelser, evakueringsplaner, canEdit 
       {openHendelser.length > 0 && (
         <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-red-700">
           <AlertTriangle className="h-5 w-5 shrink-0" />
-          <p className="text-sm font-medium">{openHendelser.length} åpne gjestehendelse(r) krever oppfølging</p>
+          <p className="text-sm font-medium">{openHendelser.length} åpne hendelser krever oppfølging</p>
         </div>
       )}
 
       <Tabs defaultValue="hendelser">
         <TabsList>
           <TabsTrigger value="hendelser" className="relative">
-            Gjestehendelser
+            Hendelser
             {openHendelser.length > 0 && (
               <span className="ml-1.5 rounded-full bg-red-500 text-white text-[10px] px-1.5">{openHendelser.length}</span>
             )}
@@ -151,8 +152,8 @@ export function BeredskapReiselivClient({ hendelser, evakueringsplaner, canEdit 
         <TabsContent value="hendelser" className="mt-4 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="font-semibold">Gjestehendelser</h2>
-              <p className="text-xs text-muted-foreground">AML § 5-2, Produktkontrolloven § 5 – registrering og oppfølging</p>
+              <h2 className="font-semibold">Hendelser</h2>
+              <p className="text-xs text-muted-foreground">AML § 3-2 og IK-HMS § 5 – registrering og oppfølging</p>
             </div>
             {canEdit && (
               <Button size="sm" onClick={() => setShowNyHendelse(true)}>
@@ -165,7 +166,7 @@ export function BeredskapReiselivClient({ hendelser, evakueringsplaner, canEdit 
             <Card className="border-red-200 bg-red-50/30">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm text-red-800">Registrer gjestehendelse</CardTitle>
+                  <CardTitle className="text-sm text-red-800">Registrer hendelse</CardTitle>
                   <Button size="icon" variant="ghost" onClick={() => setShowNyHendelse(false)}>
                     <X className="h-4 w-4" />
                   </Button>
@@ -177,7 +178,9 @@ export function BeredskapReiselivClient({ hendelser, evakueringsplaner, canEdit 
                     <Label className="text-xs">Type *</Label>
                     <select className="w-full border rounded-md px-3 py-2 text-sm bg-background"
                       value={hendelsForm.type} onChange={(e) => setHendelsForm((p) => ({ ...p, type: e.target.value }))}>
-                      {Object.entries(HENDELSE_TYPER).map(([k, v]) => (
+                      {Object.entries(HENDELSE_TYPER)
+                        .filter(([, v]) => isReiseliv || !v.reiselivOnly)
+                        .map(([k, v]) => (
                         <option key={k} value={k}>{v.label}</option>
                       ))}
                     </select>
@@ -198,11 +201,11 @@ export function BeredskapReiselivClient({ hendelser, evakueringsplaner, canEdit 
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Sted</Label>
-                    <Input placeholder="Rom 204, restaurant, lobby..." value={hendelsForm.location}
+                    <Input placeholder="Bygg, avdeling, rom…" value={hendelsForm.location}
                       onChange={(e) => setHendelsForm((p) => ({ ...p, location: e.target.value }))} />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Gjestens navn</Label>
+                    <Label className="text-xs">{isReiseliv ? "Gjestens navn" : "Involvert person"}</Label>
                     <Input placeholder="Valgfritt" value={hendelsForm.guestName}
                       onChange={(e) => setHendelsForm((p) => ({ ...p, guestName: e.target.value }))} />
                   </div>
@@ -223,7 +226,7 @@ export function BeredskapReiselivClient({ hendelser, evakueringsplaner, canEdit 
             <Card>
               <CardContent className="flex flex-col items-center gap-3 py-10 text-muted-foreground">
                 <Shield className="h-8 w-8 opacity-30" />
-                <p className="text-sm">Ingen gjestehendelser registrert</p>
+                <p className="text-sm">Ingen hendelser registrert</p>
               </CardContent>
             </Card>
           ) : (
@@ -269,8 +272,8 @@ export function BeredskapReiselivClient({ hendelser, evakueringsplaner, canEdit 
         {/* EVAKUERINGSPLAN */}
         <TabsContent value="evakuering" className="mt-4 space-y-4">
           <div>
-            <h2 className="font-semibold">Hotell-evakueringsplan</h2>
-            <p className="text-xs text-muted-foreground">AML § 4-2, DSB Brannvernforskriften – etasjeansvarlige og samlingspunkt</p>
+            <h2 className="font-semibold">Evakueringsplan</h2>
+            <p className="text-xs text-muted-foreground">AML § 3-2 og forskrift om brannforebygging – samlingspunkt og ansvar</p>
           </div>
 
           {evakueringsplaner.length === 0 ? (
@@ -305,7 +308,7 @@ export function BeredskapReiselivClient({ hendelser, evakueringsplaner, canEdit 
                     {plan.buildingName && <p className="text-xs text-muted-foreground">{plan.buildingName}</p>}
                     <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
                       {plan.totalFloors > 0 && <span>{plan.totalFloors} etasjer</span>}
-                      {plan.maxOccupancy && <span>Maks {plan.maxOccupancy} gjester</span>}
+                      {plan.maxOccupancy && <span>Maks {plan.maxOccupancy} personer</span>}
                       {plan.assemblyPoint && <span><MapPin className="inline h-3 w-3 mr-0.5" />{plan.assemblyPoint}</span>}
                       {plan.fireWarden && <span><Users className="inline h-3 w-3 mr-0.5" />Brannvernansvarlig: {plan.fireWarden}</span>}
                     </div>
@@ -320,7 +323,7 @@ export function BeredskapReiselivClient({ hendelser, evakueringsplaner, canEdit 
         <TabsContent value="maler" className="mt-4 space-y-4">
           <div>
             <h2 className="font-semibold">Krisekommunikasjonsmaler</h2>
-            <p className="text-xs text-muted-foreground">Pakkereiseloven § 14 – informasjonsplikt ved avvik/kriser</p>
+            <p className="text-xs text-muted-foreground">IK-HMS § 5 – informasjonsplikt og varsling ved kriser</p>
           </div>
           <div className="space-y-3">
             {[

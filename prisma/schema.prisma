@@ -138,6 +138,15 @@ model User {
   corporateGroupMessageReceipts   CorporateGroupMessageReceipt[]  @relation("CorporateGroupMessageReceipts")
   routineVersions                 RoutineVersion[]
   requirementOverridesVerified    TenantRequirementOverride[]     @relation("RequirementOverrideVerifier")
+  absences                        Absence[]                      @relation("UserAbsences")
+  absencesApproved                Absence[]                      @relation("AbsenceApprovedBy")
+  followUpsCompleted              SickLeaveFollowUp[]            @relation("FollowUpCompletedBy")
+  boardings                       Boarding[]                     @relation("BoardingEmployee")
+  boardingTasksAssigned           BoardingTask[]                 @relation("BoardingTaskAssignee")
+  boardingTasksCompleted          BoardingTask[]                 @relation("BoardingTaskCompletedBy")
+  competenceProfiles              UserCompetenceProfile[]
+  personnelDocuments              PersonnelDocument[]            @relation("PersonnelEmployee")
+  personnelDocumentsUploaded      PersonnelDocument[]            @relation("PersonnelUploadedBy")
   createdAt                       DateTime                       @default(now())
   updatedAt                       DateTime                       @updatedAt
 
@@ -349,6 +358,10 @@ model Tenant {
   temperaturLogs                      TemperaturLog[]
   allergenOversikter                  AllergenOversikt[]
   mattilsynetInspeksjoner             MattilsynetInspeksjon[]
+  matVaremottak                       MatVaremottak[]
+  matRenhold                          MatRenhold[]
+  skjenkeBevillinger                  SkjenkeBevilling[]
+  skjenkeHendelser                    SkjenkeHendelse[]
   gjesteHendelser                     GjesteHendelse[]
   hotellEvakueringsplaner             HotellEvakueringsplan[]
   aktivitetssjekker                   AktivitetsUtstyrssjekk[]
@@ -373,6 +386,13 @@ model Tenant {
   regulatoryProfile                   TenantRegulatoryProfile?
   serviceRequests                     ServiceRequest[]
   requirementOverrides                TenantRequirementOverride[]
+  absences                            Absence[]
+  sickLeaveFollowUps                  SickLeaveFollowUp[]
+  boardingTemplates                   BoardingTemplate[]
+  boardings                           Boarding[]
+  competenceProfiles                  CompetenceProfile[]
+  userCompetenceProfiles              UserCompetenceProfile[]
+  personnelDocuments                  PersonnelDocument[]
   createdAt                           DateTime                       @default(now())
   updatedAt                           DateTime                       @updatedAt
 
@@ -3335,6 +3355,27 @@ enum NotificationType {
   // HMS Håndbok versjonskontroll
   HANDBOOK_APPROVAL_REQUESTED // Ny versjon sendt til godkjenning
   HANDBOOK_NEW_VERSION // Ny versjon publisert – krever signering
+
+  // Fravær (AML § 5-1, Ferieloven)
+  ABSENCE_REQUESTED // Nytt fravær registrert – venter godkjenning
+  ABSENCE_APPROVED // Fravær godkjent av leder
+  ABSENCE_REJECTED // Fravær avvist av leder
+
+  // Sykefraværsoppfølging (AML § 4-6)
+  SICK_LEAVE_PLAN_DUE // Oppfølgingsplan forfaller (4 uker)
+  SICK_LEAVE_DIALOG_DUE // Dialogmøte forfaller (7/26 uker)
+  SICK_LEAVE_OVERDUE // Milepæl frist overskredet
+
+  // Onboarding/offboarding
+  BOARDING_TASK_ASSIGNED // Oppgave tildelt i onboarding/offboarding
+  BOARDING_TASK_OVERDUE // Oppgave forfalt
+  BOARDING_COMPLETED // Onboarding/offboarding ferdig
+
+  // Mål – eldre verdier som allerede finnes i databasen. Må beholdes
+  // for å unngå at migrate fjerner dem fra Notification_type.
+  GOAL_UPDATED
+  GOAL_COMPLETED
+  GOAL_OVERDUE
 }
 
 // ============================================
@@ -4942,6 +4983,92 @@ model MattilsynetInspeksjon {
   @@index([inspectedAt])
 }
 
+/// Varemottak og sporbarhet – ett ledd bakover og ett ledd fremover
+/// Hjemmel: IK-mat § 5 nr. 3 og 6, forordning (EF) 178/2002 art. 18
+model MatVaremottak {
+  id            String    @id @default(cuid())
+  tenantId      String
+  receivedAt    DateTime
+  supplier      String
+  productName   String
+  batchLot      String?
+  temperature   Float?
+  expiryDate    DateTime?
+  accepted      Boolean   @default(true)
+  usedIn        String?
+  discardedAt   DateTime?
+  receivedBy    String?
+  deviationNote String?   @db.Text
+  createdAt     DateTime  @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([receivedAt])
+  @@index([batchLot])
+}
+
+/// Renholdslogg for kjøkken og servering
+/// Hjemmel: IK-mat § 5 nr. 3 og 6, forordning (EF) 852/2004 vedlegg II
+model MatRenhold {
+  id        String   @id @default(cuid())
+  tenantId  String
+  cleanedAt DateTime
+  area      String
+  task      String
+  cleanedBy String?
+  approved  Boolean  @default(true)
+  note      String?  @db.Text
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([cleanedAt])
+}
+
+/// Skjenkebevilling og interne serveringsregler
+/// Hjemmel: Alkoholforskriften § 8-1 og § 8-3, alkoholloven § 1-7c
+model SkjenkeBevilling {
+  id               String    @id @default(cuid())
+  tenantId         String
+  bevillingsnummer String?
+  kommune          String?
+  gyldigFra        DateTime?
+  gyldigTil        DateTime?
+  styrer           String?
+  stedfortreder    String?
+  skjenketider     String?   @db.Text
+  internregler     String?   @db.Text
+  sistGjennomgatt  DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+/// Skjenkehendelser: alderskontroll, beruselse, bortvisning og avvik
+/// Hjemmel: Alkoholloven § 1-5, alkoholforskriften § 4-2 og § 8-3 nr. 5
+/// GDPR art. 5: lagre ikke gjestens navn, fødselsnummer eller legitimasjonsnummer
+model SkjenkeHendelse {
+  id             String   @id @default(cuid())
+  tenantId       String
+  occurredAt     DateTime
+  type           String
+  action         String
+  beruselsesgrad String?
+  registeredBy   String?
+  note           String?  @db.Text
+  createdAt      DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([occurredAt])
+}
+
 // ─── BHT og nattarbeid ───────────────────────────────────────────────────────
 // Hjemmel: AML § 3-3 (BHT-plikt), AML § 10-11 (nattarbeid)
 // BHT kode 55.1 (hotell), 56.1 (restaurant) er obligatoriske bransjer
@@ -5194,11 +5321,12 @@ model HandbookSection {
   parent      HandbookSection? @relation("SubSections", fields: [parentId], references: [id], onDelete: Cascade)
   children    HandbookSection[] @relation("SubSections")
 
-  sectionKey    String // "s1", "s2", "s3.1", "s6-bransjespesifikk"
+  sectionKey    String // "s1", "s2", "s3.1", "hr-ferie"
   sectionNumber String // "1", "1.1", "6.3"
   title         String // "HMS-styringssystem og omfang"
   content       String @db.LongText // Rich text HTML fra Tiptap
   legalRef      String? // "AML § 3-1, IK-HMS § 5"
+  category      String  @default("HMS") // "HMS" | "HR"
   sortOrder     Int
   moduleLink    String? // Kobling til HMS Nova-modul: "/dashboard/risks"
   updatedById   String?
@@ -5893,4 +6021,342 @@ enum ServiceRequestStatus {
   IN_PROGRESS
   COMPLETED
   CANCELLED
+}
+
+// ============================================
+// Fravær – AML § 5-1, Ferieloven, GDPR art. 9
+// Registrering og oppfølging av ferie, sykefravær,
+// permisjon og øvrig fravær.
+// ============================================
+
+enum AbsenceType {
+  SELF_CERTIFIED   // Egenmelding (AML § 8-24, folketrygdloven § 8-23..§ 8-27)
+  SICK_LEAVE       // Legemeldt sykefravær
+  PARENTAL_LEAVE   // Foreldrepermisjon (folketrygdloven kap. 14)
+  VACATION         // Ferie (ferieloven § 5)
+  LEAVE_OF_ABSENCE // Permisjon uten lønn
+  COMPENSATORY     // Avspasering
+  CARE_DAYS        // Omsorgspermisjon / syke barn (AML § 12-9)
+  MILITARY         // Militærtjeneste (AML § 12-12)
+  BEREAVEMENT      // Velferdspermisjon
+  OTHER            // Annet fravær
+}
+
+enum AbsenceStatus {
+  PENDING   // Venter på godkjenning
+  APPROVED  // Godkjent
+  REJECTED  // Avvist
+  CANCELLED // Kansellert av ansatt
+}
+
+/// Fraværsregistrering – AML § 5-1 (4) pålegger arbeidsgiver å føre
+/// statistikk over sykefravær. GDPR art. 9 krever at helseopplysninger
+/// (diagnosisCode) kun er tilgjengelig for de med tjenstlig behov.
+model Absence {
+  id         String        @id @default(cuid())
+  tenantId   String
+  userId     String
+  type       AbsenceType
+  status     AbsenceStatus @default(PENDING)
+  startDate  DateTime      @db.Date
+  endDate    DateTime      @db.Date
+  workdays   Float?
+  percentage Int           @default(100) // Graderingsgrad (100 = fullt fravær)
+  reason     String?       @db.Text
+
+  // Sykemelding-spesifikke felt (GDPR art. 9 – tilgangsbegrenset)
+  doctorName        String?
+  diagnosisCode     String? // ICPC-2/ICD-10, kun HMS/BHT
+  selfCertifiedDays Int?    // Antall dager brukt av egenmeldingskvote
+
+  // Arbeidsflyt
+  approvedById   String?
+  approvedAt     DateTime?
+  rejectedById   String?
+  rejectedAt     DateTime?
+  rejectedReason String?
+
+  // Vedlegg (sykemelding PDF etc.)
+  attachmentUrl  String?
+  attachmentName String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant     Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user       User   @relation("UserAbsences", fields: [userId], references: [id], onDelete: Cascade)
+  approvedBy User?  @relation("AbsenceApprovedBy", fields: [approvedById], references: [id])
+  followUps  SickLeaveFollowUp[]
+
+  @@index([tenantId, userId])
+  @@index([tenantId, startDate])
+  @@index([tenantId, type, status])
+}
+
+// ============================================
+// Sykefraværsoppfølging – AML § 4-6
+// Lovpålagte milepæler: oppfølgingsplan (4 uker),
+// dialogmøte 1 (7 uker), dialogmøte 2 (26 uker),
+// maksdato sykepenger (52 uker).
+// ============================================
+
+enum FollowUpMilestone {
+  FOLLOW_UP_PLAN       // AML § 4-6 (3): oppfølgingsplan innen 4 uker
+  DIALOG_MEETING_1     // AML § 4-6 (4): dialogmøte 1 innen 7 uker
+  ACTIVITY_REQUIREMENT // Ftrl. § 8-4: aktivitetskrav vurderes ved 8 uker
+  DIALOG_MEETING_2     // Ftrl. § 8-7a: dialogmøte 2 innen 26 uker (NAV)
+  DIALOG_MEETING_3     // Ftrl. § 8-7a: dialogmøte 3 ved behov (NAV)
+  MAX_DATE             // Ftrl. § 8-12: maksdato sykepenger 52 uker
+}
+
+enum FollowUpStatus {
+  NOT_STARTED  // Ikke startet
+  IN_PROGRESS  // Under arbeid
+  COMPLETED    // Fullført
+  SKIPPED      // Hoppet over – "åpenbart unødvendig" (AML § 4-6 (3)/(4))
+}
+
+/// Sykefraværsoppfølging – automatisk genererte milepæler
+/// basert på lovpålagte frister i AML § 4-6 og ftrl. § 8-7a.
+model SickLeaveFollowUp {
+  id            String            @id @default(cuid())
+  tenantId      String
+  absenceId     String
+  milestone     FollowUpMilestone
+  status        FollowUpStatus    @default(NOT_STARTED)
+  dueDate       DateTime          @db.Date
+  completedAt   DateTime?
+  completedById String?
+  skippedReason String?
+  notes         String?           @db.Text
+
+  // Oppfølgingsplan-felter (FOLLOW_UP_PLAN, AML § 4-6 (3))
+  workAssessment   String?  @db.Text // Vurdering av arbeidsoppgaver og arbeidsevne
+  accommodations   String?  @db.Text // Tilretteleggingstiltak i arbeidsgivers regi
+  externalSupport  String?  @db.Text // Bistand fra BHT/NAV
+  planSentToDoctor Boolean  @default(false)
+  planSentAt       DateTime?
+
+  // Dialogmøte-felter (DIALOG_MEETING_*, AML § 4-6 (4))
+  meetingDate    DateTime?
+  meetingNotes   String?  @db.Text // Møtereferat
+  attendees      String?  @db.Text // JSON-array: deltakerliste
+  doctorAttended Boolean  @default(false)
+  navAttended    Boolean  @default(false)
+
+  // Vedlegg
+  attachmentUrl  String?
+  attachmentName String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant      Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  absence     Absence @relation(fields: [absenceId], references: [id], onDelete: Cascade)
+  completedBy User?   @relation("FollowUpCompletedBy", fields: [completedById], references: [id])
+
+  @@unique([absenceId, milestone])
+  @@index([tenantId, status])
+  @@index([tenantId, dueDate])
+}
+
+// ============================================
+// Onboarding / Offboarding
+// AML § 14-5/14-6 (arbeidsavtale), § 3-5 (HMS-opplæring),
+// § 2A-6 (varsling), § 15-15 (attest), GDPR art. 17 (sletting).
+// ============================================
+
+enum BoardingType {
+  ONBOARDING   // Nyansatt
+  OFFBOARDING  // Avslutning av arbeidsforhold
+}
+
+enum BoardingStatus {
+  NOT_STARTED  // Ikke startet
+  IN_PROGRESS  // Under arbeid
+  COMPLETED    // Fullført
+  CANCELLED    // Kansellert
+}
+
+enum BoardingTaskStatus {
+  PENDING    // Venter
+  COMPLETED  // Fullført
+  SKIPPED    // Hoppet over
+}
+
+model BoardingTemplate {
+  id          String                @id @default(cuid())
+  tenantId    String
+  name        String
+  type        BoardingType
+  description String?               @db.Text
+  tasks       BoardingTemplateTask[]
+  boardings   Boarding[]
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, type])
+}
+
+model BoardingTemplateTask {
+  id           String  @id @default(cuid())
+  templateId   String
+  title        String
+  description  String? @db.Text
+  assigneeRole String  // EMPLOYEE, MANAGER, HR, IT
+  daysOffset   Int     // Dager relativt til startdato (negativt = før)
+  sortOrder    Int     @default(0)
+  category     String? // Dokumenter, IT/Tilgang, HMS, Utstyr, Sosialt
+  isRequired   Boolean @default(true)
+  legalRef     String? // F.eks. "AML § 14-5"
+
+  template BoardingTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([templateId, sortOrder])
+}
+
+model Boarding {
+  id          String         @id @default(cuid())
+  tenantId    String
+  employeeId  String
+  type        BoardingType
+  status      BoardingStatus @default(NOT_STARTED)
+  templateId  String?
+  startDate   DateTime       @db.Date // Tiltredelsesdato / siste arbeidsdag
+  dueDate     DateTime?      @db.Date
+  completedAt DateTime?
+  notes       String?        @db.Text
+  tasks       BoardingTask[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  tenant   Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee User              @relation("BoardingEmployee", fields: [employeeId], references: [id], onDelete: Cascade)
+  template BoardingTemplate? @relation(fields: [templateId], references: [id])
+
+  @@index([tenantId, type, status])
+  @@index([tenantId, employeeId])
+}
+
+model BoardingTask {
+  id            String             @id @default(cuid())
+  boardingId    String
+  title         String
+  description   String?            @db.Text
+  status        BoardingTaskStatus @default(PENDING)
+  assigneeRole  String
+  assigneeId    String?
+  dueDate       DateTime?          @db.Date
+  completedAt   DateTime?
+  completedById String?
+  sortOrder     Int                @default(0)
+  category      String?
+  isRequired    Boolean            @default(true)
+  legalRef      String?
+  notes         String?            @db.Text
+
+  boarding    Boarding @relation(fields: [boardingId], references: [id], onDelete: Cascade)
+  assignee    User?    @relation("BoardingTaskAssignee", fields: [assigneeId], references: [id])
+  completedBy User?    @relation("BoardingTaskCompletedBy", fields: [completedById], references: [id])
+
+  @@index([boardingId, status])
+  @@index([assigneeId, status])
+}
+
+// ============================================
+// Kompetanseprofiler og gap-analyse
+// AML § 3-2 (opplæringsplikt), § 3-5 (HMS-opplæring),
+// IK-HMS § 5 nr. 2 (kunnskap/ferdigheter), nr. 5 (kompetansekrav).
+// ============================================
+
+model CompetenceProfile {
+  id           String                  @id @default(cuid())
+  tenantId     String
+  name         String
+  description  String?                 @db.Text
+  industry     String?                 // "bygg", "helse", "transport", "generell"
+  isDefault    Boolean                 @default(false)
+  requirements CompetenceRequirement[]
+  users        UserCompetenceProfile[]
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, industry])
+}
+
+model CompetenceRequirement {
+  id            String  @id @default(cuid())
+  profileId     String
+  courseKey      String
+  requiredLevel String  @default("REQUIRED") // REQUIRED, RECOMMENDED, AWARENESS
+  priority      Int     @default(0)
+  legalRef      String?
+  notes         String? @db.Text
+
+  profile CompetenceProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, courseKey])
+  @@index([profileId])
+}
+
+model UserCompetenceProfile {
+  id         String   @id @default(cuid())
+  tenantId   String
+  userId     String
+  profileId  String
+  assignedAt DateTime @default(now())
+  assignedBy String?
+
+  user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profile CompetenceProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  tenant  Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, profileId, tenantId])
+  @@index([tenantId, userId])
+}
+
+// ============================================
+// Personalarkiv (personalmappe)
+// GDPR art. 5, 6 og 15/17. AML § 14-5/14-6 (arbeidsavtale).
+// Helseopplysninger hører IKKE hjemme her (eget fraværsmodul).
+// Filer i R2: {tenantId}/personnel/{userId}/{category}/...
+// ============================================
+
+enum PersonnelDocumentCategory {
+  CONTRACT
+  AMENDMENT
+  CERTIFICATE
+  WARNING
+  TAX
+  CORRESPONDENCE
+  OTHER
+}
+
+model PersonnelDocument {
+  id          String                     @id @default(cuid())
+  tenantId    String
+  userId      String
+  category    PersonnelDocumentCategory
+  title       String
+  fileKey     String                     @db.VarChar(512)
+  fileName    String
+  mime        String                     @default("application/pdf")
+  fileSize    Int
+  legalRef    String?
+  retainUntil DateTime?
+  notes       String?                    @db.Text
+  uploadedById String
+  createdAt   DateTime                   @default(now())
+  updatedAt   DateTime                   @updatedAt
+
+  tenant     Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user       User   @relation("PersonnelEmployee", fields: [userId], references: [id], onDelete: Cascade)
+  uploadedBy User   @relation("PersonnelUploadedBy", fields: [uploadedById], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, userId])
+  @@index([tenantId, category])
 }

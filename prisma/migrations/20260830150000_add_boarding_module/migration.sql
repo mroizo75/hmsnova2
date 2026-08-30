@@ -1,0 +1,110 @@
+-- Onboarding/Offboarding: AML § 14-5/14-6, § 3-5, § 2A-6, § 15-15, GDPR art. 17
+
+-- NotificationType: legge til boarding-verdier
+ALTER TABLE `Notification`
+  MODIFY `type` ENUM(
+    'NEW_INCIDENT','INCIDENT_UPDATED','INCIDENT_CLOSED','INCIDENT_OVERDUE',
+    'FORM_SUBMITTED','FORM_APPROVED','FORM_REJECTED',
+    'WHISTLEBLOWING','WHISTLEBLOWING_MSG',
+    'MEASURE_OVERDUE','MEASURE_ASSIGNED','MEASURE_DUE_SOON','MEASURE_REMINDER',
+    'AUDIT_SCHEDULED','AUDIT_REMINDER','AUDIT_FINDING_OPEN',
+    'TRAINING_DUE','TRAINING_EXPIRED','TRAINING_ASSIGNED',
+    'MEETING_REMINDER','MEETING_SCHEDULED',
+    'INSPECTION_REMINDER','INSPECTION_SCHEDULED','INSPECTION_OVERDUE','INSPECTION_FINDING',
+    'RISK_REVIEW_DUE','RISK_HIGH_SCORE','RISK_CONTROL_DUE',
+    'DOCUMENT_REVIEW_DUE','DOCUMENT_EXPIRED','DOCUMENT_APPROVED',
+    'ROUTINE_ASSIGNED','ROUTINE_REVIEW_DUE',
+    'CHEMICAL_SDS_REVIEW','CHEMICAL_EXPIRED',
+    'GOAL_UPDATED','GOAL_COMPLETED','GOAL_OVERDUE',
+    'EMPLOYEE_REVIEW_DUE','EMPLOYEE_REVIEW_UPCOMING','EMPLOYEE_REVIEW_SIGN',
+    'DAILY_DIGEST','WEEKLY_DIGEST','SYSTEM_ALERT',
+    'GUEST_SUBMISSION','SUPPORT_TICKET','SUPPORT_MSG',
+    'IMPROVEMENT_SUGGESTION','IMPROVEMENT_REMINDER','HMS_SCORE_DROP','HMS_SCORE_MILESTONE',
+    'ROUTINE_COMPLIANCE_ALERT','LAW_CHANGE_ALERT',
+    'HANDBOOK_APPROVAL_REQUESTED','HANDBOOK_NEW_VERSION',
+    'ABSENCE_REQUESTED','ABSENCE_APPROVED','ABSENCE_REJECTED',
+    'SICK_LEAVE_PLAN_DUE','SICK_LEAVE_DIALOG_DUE','SICK_LEAVE_OVERDUE',
+    'BOARDING_TASK_ASSIGNED','BOARDING_TASK_OVERDUE','BOARDING_COMPLETED'
+  ) NOT NULL;
+
+-- BoardingTemplate
+CREATE TABLE `BoardingTemplate` (
+  `id` VARCHAR(191) NOT NULL,
+  `tenantId` VARCHAR(191) NOT NULL,
+  `name` VARCHAR(191) NOT NULL,
+  `type` ENUM('ONBOARDING','OFFBOARDING') NOT NULL,
+  `description` TEXT NULL,
+  `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updatedAt` DATETIME(3) NOT NULL,
+  PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE INDEX `BoardingTemplate_tenantId_type_idx` ON `BoardingTemplate`(`tenantId`, `type`);
+ALTER TABLE `BoardingTemplate` ADD CONSTRAINT `BoardingTemplate_tenantId_fkey` FOREIGN KEY (`tenantId`) REFERENCES `Tenant`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- BoardingTemplateTask
+CREATE TABLE `BoardingTemplateTask` (
+  `id` VARCHAR(191) NOT NULL,
+  `templateId` VARCHAR(191) NOT NULL,
+  `title` VARCHAR(191) NOT NULL,
+  `description` TEXT NULL,
+  `assigneeRole` VARCHAR(191) NOT NULL,
+  `daysOffset` INTEGER NOT NULL,
+  `sortOrder` INTEGER NOT NULL DEFAULT 0,
+  `category` VARCHAR(191) NULL,
+  `isRequired` BOOLEAN NOT NULL DEFAULT true,
+  `legalRef` VARCHAR(191) NULL,
+  PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE INDEX `BoardingTemplateTask_templateId_sortOrder_idx` ON `BoardingTemplateTask`(`templateId`, `sortOrder`);
+ALTER TABLE `BoardingTemplateTask` ADD CONSTRAINT `BoardingTemplateTask_templateId_fkey` FOREIGN KEY (`templateId`) REFERENCES `BoardingTemplate`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- Boarding
+CREATE TABLE `Boarding` (
+  `id` VARCHAR(191) NOT NULL,
+  `tenantId` VARCHAR(191) NOT NULL,
+  `employeeId` VARCHAR(191) NOT NULL,
+  `type` ENUM('ONBOARDING','OFFBOARDING') NOT NULL,
+  `status` ENUM('NOT_STARTED','IN_PROGRESS','COMPLETED','CANCELLED') NOT NULL DEFAULT 'NOT_STARTED',
+  `templateId` VARCHAR(191) NULL,
+  `startDate` DATE NOT NULL,
+  `dueDate` DATE NULL,
+  `completedAt` DATETIME(3) NULL,
+  `notes` TEXT NULL,
+  `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updatedAt` DATETIME(3) NOT NULL,
+  PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE INDEX `Boarding_tenantId_type_status_idx` ON `Boarding`(`tenantId`, `type`, `status`);
+CREATE INDEX `Boarding_tenantId_employeeId_idx` ON `Boarding`(`tenantId`, `employeeId`);
+ALTER TABLE `Boarding` ADD CONSTRAINT `Boarding_tenantId_fkey` FOREIGN KEY (`tenantId`) REFERENCES `Tenant`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `Boarding` ADD CONSTRAINT `Boarding_employeeId_fkey` FOREIGN KEY (`employeeId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `Boarding` ADD CONSTRAINT `Boarding_templateId_fkey` FOREIGN KEY (`templateId`) REFERENCES `BoardingTemplate`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- BoardingTask
+CREATE TABLE `BoardingTask` (
+  `id` VARCHAR(191) NOT NULL,
+  `boardingId` VARCHAR(191) NOT NULL,
+  `title` VARCHAR(191) NOT NULL,
+  `description` TEXT NULL,
+  `status` ENUM('PENDING','COMPLETED','SKIPPED') NOT NULL DEFAULT 'PENDING',
+  `assigneeRole` VARCHAR(191) NOT NULL,
+  `assigneeId` VARCHAR(191) NULL,
+  `dueDate` DATE NULL,
+  `completedAt` DATETIME(3) NULL,
+  `completedById` VARCHAR(191) NULL,
+  `sortOrder` INTEGER NOT NULL DEFAULT 0,
+  `category` VARCHAR(191) NULL,
+  `isRequired` BOOLEAN NOT NULL DEFAULT true,
+  `legalRef` VARCHAR(191) NULL,
+  `notes` TEXT NULL,
+  PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE INDEX `BoardingTask_boardingId_status_idx` ON `BoardingTask`(`boardingId`, `status`);
+CREATE INDEX `BoardingTask_assigneeId_status_idx` ON `BoardingTask`(`assigneeId`, `status`);
+ALTER TABLE `BoardingTask` ADD CONSTRAINT `BoardingTask_boardingId_fkey` FOREIGN KEY (`boardingId`) REFERENCES `Boarding`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `BoardingTask` ADD CONSTRAINT `BoardingTask_assigneeId_fkey` FOREIGN KEY (`assigneeId`) REFERENCES `User`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `BoardingTask` ADD CONSTRAINT `BoardingTask_completedById_fkey` FOREIGN KEY (`completedById`) REFERENCES `User`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;

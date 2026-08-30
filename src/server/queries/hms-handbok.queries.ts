@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { getAuthContext } from "@/lib/server-authorization";
 import { getHandbookData, getHandbookSuggestions, getVersionHistory } from "@/server/actions/hms-handbok.actions";
 
-export async function fetchHmsHandbok() {
+export async function fetchHmsHandbok(options?: { forEmployee?: boolean }) {
   const auth = await getAuthContext();
   if (!auth) return null;
 
@@ -25,7 +25,7 @@ export async function fetchHmsHandbok() {
         hmsContactPhone: true,
       },
     }),
-    getHandbookData(tenantId),
+    getHandbookData(tenantId, options),
     getHandbookSuggestions(tenantId),
     getVersionHistory(tenantId),
   ]);

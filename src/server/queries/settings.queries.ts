@@ -88,7 +88,7 @@ export async function fetchBhtNattarbeidData() {
 export async function fetchIkMatData() {
   const auth = await getAuthContext();
 
-  const [haccpPlans, latestLogs, allergenItems, inspeksjoner] = await Promise.all([
+  const [haccpPlans, latestLogs, allergenItems, inspeksjoner, varemottakCount, renholdCount] = await Promise.all([
     prisma.haccpPlan.findMany({
       where: { tenantId: auth.tenantId, isActive: true },
       include: { ccp: { orderBy: { order: "asc" } } },
@@ -109,11 +109,21 @@ export async function fetchIkMatData() {
       orderBy: { inspectedAt: "desc" },
       take: 5,
     }),
+    prisma.matVaremottak.count({ where: { tenantId: auth.tenantId } }),
+    prisma.matRenhold.count({ where: { tenantId: auth.tenantId } }),
   ]);
 
   const deviationCount = latestLogs.filter((l) => l.isDeviation).length;
 
-  return JSON.parse(JSON.stringify({ haccpPlans, latestLogs, allergenItems, inspeksjoner, deviationCount }));
+  return JSON.parse(JSON.stringify({
+    haccpPlans,
+    latestLogs,
+    allergenItems,
+    inspeksjoner,
+    deviationCount,
+    varemottakCount,
+    renholdCount,
+  }));
 }
 
 export async function fetchHaccpData() {
@@ -153,6 +163,42 @@ export async function fetchAllergenData() {
   const categories = [...new Set(items.map((i) => i.category).filter(Boolean))] as string[];
 
   return JSON.parse(JSON.stringify({ items, categories }));
+}
+
+export async function fetchVaremottakData() {
+  const auth = await getAuthContext();
+  const items = await prisma.matVaremottak.findMany({
+    where: { tenantId: auth.tenantId },
+    orderBy: { receivedAt: "desc" },
+    take: 200,
+  });
+  return JSON.parse(JSON.stringify({ items }));
+}
+
+export async function fetchRenholdData() {
+  const auth = await getAuthContext();
+  const items = await prisma.matRenhold.findMany({
+    where: { tenantId: auth.tenantId },
+    orderBy: { cleanedAt: "desc" },
+    take: 200,
+  });
+  return JSON.parse(JSON.stringify({ items }));
+}
+
+export async function fetchSkjenkingData() {
+  const auth = await getAuthContext();
+  const [bevilling, hendelser] = await Promise.all([
+    prisma.skjenkeBevilling.findFirst({
+      where: { tenantId: auth.tenantId },
+      orderBy: { updatedAt: "desc" },
+    }),
+    prisma.skjenkeHendelse.findMany({
+      where: { tenantId: auth.tenantId },
+      orderBy: { occurredAt: "desc" },
+      take: 200,
+    }),
+  ]);
+  return JSON.parse(JSON.stringify({ bevilling, hendelser }));
 }
 
 export async function fetchTransportData() {

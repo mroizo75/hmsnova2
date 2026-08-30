@@ -6,8 +6,10 @@ import { prisma } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { GraduationCap, Clock, CheckCircle, AlertCircle, BarChart3 } from "lucide-react";
 import Link from "next/link";
+import { Progress } from "@/components/ui/progress";
+import { fetchUserGapAnalysis } from "@/server/queries/competence.queries";
 
 export default async function AnsattOpplaering() {
   const session = await getServerSession(authOptions);
@@ -47,6 +49,8 @@ export default async function AnsattOpplaering() {
       completedAt: "desc",
     },
   });
+
+  const gapAnalysis = await fetchUserGapAnalysis(session.user.id).catch(() => null);
 
   return (
     <div className="space-y-6">
@@ -194,6 +198,53 @@ export default async function AnsattOpplaering() {
           )}
         </CardContent>
       </Card>
+
+      {/* Gap-analyse */}
+      {gapAnalysis && gapAnalysis.totalRequirements > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Min kompetanseoversikt
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-4">
+              <Progress value={gapAnalysis.gapPercent} className="h-3 flex-1" />
+              <span className="text-lg font-bold">{gapAnalysis.gapPercent}%</span>
+            </div>
+            <div className="grid grid-cols-3 gap-4 text-center text-sm">
+              <div>
+                <p className="text-2xl font-bold text-green-600">{gapAnalysis.fulfilled}</p>
+                <p className="text-muted-foreground">Oppfylt</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-amber-600">{gapAnalysis.expired}</p>
+                <p className="text-muted-foreground">Utløpt</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-red-600">{gapAnalysis.missing}</p>
+                <p className="text-muted-foreground">Mangler</p>
+              </div>
+            </div>
+            {gapAnalysis.criticalMissing.length > 0 && (
+              <div className="rounded-md border border-red-200 bg-red-50 p-3">
+                <p className="text-sm font-medium text-red-900 mb-2">
+                  Lovpålagte mangler ({gapAnalysis.criticalMissing.length})
+                </p>
+                <ul className="space-y-1">
+                  {gapAnalysis.criticalMissing.map((item) => (
+                    <li key={item.courseKey} className="text-sm text-red-800 flex justify-between">
+                      <span>{item.courseTitle}</span>
+                      <Badge variant="destructive" className="text-xs">{item.legalRef}</Badge>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Hjelp */}
       <Card className="border-l-4 border-l-blue-500 bg-blue-50">

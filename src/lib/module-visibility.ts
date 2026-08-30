@@ -29,7 +29,10 @@ export type ModuleKey =
   | "routines"
   | "whistleblowing"
   | "feedback"
-  | "employeeReviews";
+  | "employeeReviews"
+  | "absence"
+  | "boarding"
+  | "personnelArchive";
 
 export type ModuleVisibilityConfig = Partial<Record<ModuleKey, Role[]>>;
 
@@ -66,6 +69,9 @@ export const MODULE_DEFAULTS: Record<ModuleKey, Role[]> = {
   // Standard: kun ADMIN ser ALLE andres samtaler.
   // Alle brukere ser alltid egne samtaler uavhengig av dette.
   employeeReviews: ["ADMIN"],
+  absence: ["ADMIN", "HMS", "LEDER", "BHT", "REVISOR"],
+  boarding: ["ADMIN", "HMS", "LEDER"],
+  personnelArchive: ["ADMIN", "HMS", "LEDER"],
 };
 
 /** Norske visningsnavn for hvert modul */
@@ -88,6 +94,9 @@ export const MODULE_LABELS: Record<ModuleKey, string> = {
   whistleblowing: "Varsling",
   feedback:     "Kundetilbakemelding",
   employeeReviews: "Medarbeidersamtaler (full oversikt)",
+  absence: "Fravær & ferie",
+  boarding: "Onboarding & offboarding",
+  personnelArchive: "Personalarkiv",
 };
 
 /**
@@ -127,6 +136,9 @@ export const MODULE_PERMISSION_KEYS: Record<ModuleKey, Array<keyof RolePermissio
   whistleblowing: ["canViewWhistleblowing", "canViewWhistleblowingContent", "canHandleWhistleblowing"],
   feedback:     ["canReadAllFeedback"],
   employeeReviews: ["canReadAllEmployeeReviews"],
+  absence: ["canReadAllAbsence", "canApproveAbsence", "canExportAbsenceStats"],
+  boarding: ["canReadAllBoarding", "canCreateBoarding", "canManageBoardingTemplates"],
+  personnelArchive: ["canReadAllPersonnelFiles", "canUploadPersonnelFile", "canDeletePersonnelFile"],
 };
 
 /** Mapping fra nav-permission til modul-nøkkel */
@@ -149,6 +161,9 @@ export const NAV_PERMISSION_TO_MODULE: Partial<Record<string, ModuleKey>> = {
   risks: "risks",
   riskRegister: "risks",
   employeeReviews: "employeeReviews",
+  absence: "absence",
+  boarding: "boarding",
+  personnelArchive: "personnelArchive",
 };
 
 /**
@@ -164,6 +179,9 @@ export const MODULE_CREATE_PERMISSION: Partial<Record<ModuleKey, keyof RolePermi
   training: "canCreateTraining",
   actions: "canCreateActions",
   whistleblowing: "canSubmitWhistleblowing",
+  absence: "canCreateAbsence",
+  boarding: "canCreateBoarding",
+  personnelArchive: "canUploadPersonnelFile",
 };
 
 /**

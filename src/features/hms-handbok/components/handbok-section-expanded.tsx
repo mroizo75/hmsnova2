@@ -92,6 +92,9 @@ export function HandbokSectionExpanded({
             <div className="flex-1">
               <CardTitle className="flex items-center gap-2 text-base">
                 {section.title}
+                {section.category === "HR" && (
+                  <Badge variant="outline" className="text-xs font-normal">Personal</Badge>
+                )}
                 {sectionSuggestions.length > 0 && (
                   <Badge variant="secondary" className="gap-1 text-xs">
                     <Lightbulb className="h-3 w-3" />

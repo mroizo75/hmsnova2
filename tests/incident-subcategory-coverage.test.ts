@@ -5,6 +5,7 @@ import {
   AVVIK_ONLY_GROUPS,
   RUH_MODE_GROUPS,
 } from "../src/features/incidents/schemas/incident.schema";
+import { getKnownIncidentIndustryScopes } from "../src/lib/tenant-features";
 
 const selectableTypes = new Set(
   [...RUH_MODE_GROUPS, ...AVVIK_ONLY_GROUPS].flatMap((definition) => definition.types)
@@ -32,7 +33,7 @@ test("underkategorinøkler er unike per hendelsestype", () => {
 });
 
 test("bransjespesifikke underkategorier bruker kjente bransjekoder", () => {
-  const knownScopes = new Set(["GENERELL", "BYGG", "HELSE", "TRANSPORT", "OFFSHORE", "ATEX"]);
+  const knownScopes = new Set(getKnownIncidentIndustryScopes());
   for (const option of INCIDENT_SUBCATEGORY_DEFAULTS) {
     assert.ok(
       knownScopes.has(option.industry),

@@ -34,6 +34,7 @@ import {
   Beaker,
   FlaskConical,
   Scale,
+  Wine,
 } from "lucide-react";
 
 // ── Modulbeskrivelser ────────────────────────────────────────────────────────
@@ -142,8 +143,15 @@ export const MODULE_DESCRIPTIONS: Record<string, ModuleDescription> = {
     path: "/dashboard/ik-mat",
     name: "IK-mat og HACCP",
     shortName: "IK-mat",
-    description: "Temperaturlogg, HACCP-planer, allergenoversikt og Mattilsynet-tilsyn",
+    description: "Temperatur, varemottak, renhold, allergener, sporbarhet og HACCP",
     icon: UtensilsCrossed,
+  },
+  "/dashboard/skjenking": {
+    path: "/dashboard/skjenking",
+    name: "Internkontroll skjenking",
+    shortName: "Skjenking",
+    description: "Skjenkeregler, alderskontroll, beruselse, bortvisning og dokumentasjon",
+    icon: Wine,
   },
   "/dashboard/bht-nattarbeid": {
     path: "/dashboard/bht-nattarbeid",
@@ -166,11 +174,11 @@ export const MODULE_DESCRIPTIONS: Record<string, ModuleDescription> = {
     description: "Sikkerhetsvurdering av opplevelsesaktiviteter og guidede turer",
     icon: TreePine,
   },
-  "/dashboard/beredskap-reiseliv": {
-    path: "/dashboard/beredskap-reiseliv",
-    name: "Beredskapsplan",
+  "/dashboard/beredskap": {
+    path: "/dashboard/beredskap",
+    name: "Beredskap",
     shortName: "Beredskap",
-    description: "Beredskapsplaner, varslingslister og øvelsesdokumentasjon",
+    description: "Beredskapsplaner, evakuering, hendelser og krisekommunikasjon",
     icon: ShieldCheck,
   },
 };
@@ -283,7 +291,7 @@ export const BRANSJE_PUBLIC_DATA: BransjePublicData[] = [
       { title: "Beredskapsovelse", description: "Beredskapsleder planlegger og dokumenterer mønstring og evakueringsovelse med full sporbarhet." },
       { title: "Eksponeringsregistrering", description: "Arbeidstaker logger eksponering for boreslamkjemikalier. Systemet varsler dersom grenseverdier naermer seg." },
     ],
-    extraModulePaths: ["/dashboard/sja", "/dashboard/chemicals", "/dashboard/exposure-register", "/dashboard/beredskap-reiseliv"],
+    extraModulePaths: ["/dashboard/sja", "/dashboard/chemicals", "/dashboard/exposure-register"],
   },
   {
     key: "marine",
@@ -493,6 +501,8 @@ export const BRANSJE_PUBLIC_DATA: BransjePublicData[] = [
       { law: "IK-mat-forskriften § 4 og § 5", description: "Internkontroll for næringsmiddelvirksomhet" },
       { law: "Forordning (EF) 852/2004 art. 5", description: "HACCP-krav for næringsmiddelbedrifter" },
       { law: "EU-forordning 1169/2011", description: "Obligatorisk allergeninformasjon til forbrukere" },
+      { law: "Forordning (EF) 178/2002 art. 18", description: "Sporbarhet ett ledd frem og tilbake" },
+      { law: "Alkoholforskriften § 8-1 og § 8-3", description: "Internkontroll for skjenkebevilling" },
       { law: "IK-HMS § 5", description: "Systematisk HMS-arbeid og internkontroll" },
     ],
     scenarios: [
@@ -500,7 +510,7 @@ export const BRANSJE_PUBLIC_DATA: BransjePublicData[] = [
       { title: "Mattilsynet-besok", description: "Etter tilsynsbesok registreres smilefjeskarakter, funn og oppfølgingsfrister. Systemet minner om frister." },
       { title: "Ny meny -- allergenoversikt", description: "Ny rett legges inn med alle 14 allergener markert. Oversikten er tilgjengelig for servitorer på mobil." },
     ],
-    extraModulePaths: ["/dashboard/chemicals", "/dashboard/ik-mat", "/dashboard/bht-nattarbeid"],
+    extraModulePaths: ["/dashboard/chemicals", "/dashboard/ik-mat", "/dashboard/skjenking", "/dashboard/bht-nattarbeid"],
   },
   {
     key: "aktivitet",
@@ -531,7 +541,7 @@ export const BRANSJE_PUBLIC_DATA: BransjePublicData[] = [
       { title: "Beredskapsplan for tur", description: "Turguide har beredskapsplan tilgjengelig pa mobil med nodnumre, forstehjelpsprosedyrer og evakueringsruter." },
       { title: "Aktivitetssikkerhetsvurdering", description: "Ny zipline-aktivitet far full sikkerhetsvurdering for den kan tilbys gjester. Dokumentert for DSB." },
     ],
-    extraModulePaths: ["/dashboard/sja", "/dashboard/aktivitetssikkerhet", "/dashboard/beredskap-reiseliv"],
+    extraModulePaths: ["/dashboard/sja", "/dashboard/aktivitetssikkerhet"],
   },
   {
     key: "transport",

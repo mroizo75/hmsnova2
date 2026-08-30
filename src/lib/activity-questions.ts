@@ -78,6 +78,13 @@ export const ACTIVITY_QUESTIONS: readonly ActivityQuestion[] = [
     drivesActivities: ["food_handling", "haccp"],
   },
   {
+    key: "has_alcohol_serving",
+    text: "Har virksomheten skjenkebevilling?",
+    category: "mat_servering",
+    defaultForNace: ["56", "55.1", "56.3"],
+    drivesActivities: ["alcohol_serving"],
+  },
+  {
     key: "has_transport",
     text: "Har dere kjøretøy eller transportvirksomhet?",
     category: "transport",

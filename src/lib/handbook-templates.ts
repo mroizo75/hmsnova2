@@ -594,6 +594,129 @@ const INDUSTRY_OVERRIDES: Record<string, Partial<Record<string, string>>> = {
   },
 };
 
+// ── Personalhåndbok-kapitler (AML, ferieloven, GDPR) ──────────────────────
+
+export type HandbookHrSectionDef = {
+  sectionKey: string;
+  sectionNumber: string;
+  title: string;
+  legalRef: string;
+  sortOrder: number;
+  moduleLink: string | null;
+  content: string;
+};
+
+export const DEFAULT_HR_SECTIONS: HandbookHrSectionDef[] = [
+  {
+    sectionKey: "hr-arbeidsforhold",
+    sectionNumber: "19",
+    title: "Ansettelse og arbeidsavtale",
+    legalRef: "AML § 14-5, § 14-6",
+    sortOrder: 19,
+    moduleLink: "/dashboard/onboarding",
+    content: `<h3>Skriftlig arbeidsavtale</h3>
+<p>Alle som arbeider i {{bedriftsnavn}} skal ha skriftlig arbeidsavtale. Avtalen skal foreligge senest sju dager etter at arbeidsforholdet starter, jf. AML § 14-5.</p>
+<p>Arbeidsavtalen skal minst inneholde opplysningene i AML § 14-6, blant annet partenes identitet, arbeidssted, stillingsbeskrivelse, tiltredelsesdato, forventet varighet ved midlertidig ansettelse, prøvetid, ferie, oppsigelsesfrister, lønn og andre godtgjørelser, arbeidstid og eventuelle tariffavtaler.</p>
+<h3>Onboarding</h3>
+<p>Nyansatte gjennomgår et strukturert onboarding-løp med HMS-opplæring (AML § 3-5), gjennomgang av denne håndboken og øvrige lovpålagte oppgaver. Fremdrift følges i onboarding-modulen.</p>
+<p>Lønn og godtgjørelser fremgår av arbeidsavtalen og lønnsslippen. Nærmere vilkår avtales individuelt eller i tariffavtale.</p>`,
+  },
+  {
+    sectionKey: "hr-arbeidstid",
+    sectionNumber: "20",
+    title: "Arbeidstid og overtid",
+    legalRef: "AML kap. 10",
+    sortOrder: 20,
+    moduleLink: "/dashboard/time-registration",
+    content: `<h3>Alminnelig arbeidstid</h3>
+<p>Arbeidstiden i {{bedriftsnavn}} følger arbeidsavtalen og AML kapittel 10. Alminnelig arbeidstid skal som hovedregel ikke overstige ni timer i løpet av 24 timer og 40 timer i løpet av sju dager, jf. AML § 10-4, med mindre annet er lovlig avtalt.</p>
+<h3>Pauser og hvile</h3>
+<p>Arbeidstaker har rett til pause når arbeidstiden er mer enn fem og en halv time, jf. AML § 10-9. Daglig og ukentlig arbeidsfri skal overholdes etter AML § 10-8.</p>
+<h3>Overtid</h3>
+<p>Arbeid utover alminnelig arbeidstid er overtid og skal være pålagt når det er et særlig og tidsavgrenset behov, jf. AML § 10-6. Overtid registreres i timeregistreringen.</p>`,
+  },
+  {
+    sectionKey: "hr-ferie",
+    sectionNumber: "21",
+    title: "Ferie og feriepenger",
+    legalRef: "Ferieloven",
+    sortOrder: 21,
+    moduleLink: "/dashboard/fravaer",
+    content: `<h3>Ferierett</h3>
+<p>Alle ansatte i {{bedriftsnavn}} har rett til ferie etter ferieloven. Hovedferieperioden er 1. juni–30. september. Arbeidstaker har rett til tre uker sammenhengende ferie i denne perioden, så langt det er mulig.</p>
+<h3>Feriepenger</h3>
+<p>Feriepenger opptjenes i opptjeningsåret og utbetales i ferieåret i tråd med ferieloven. Sats og beregningsgrunnlag fremgår av lønnsslipp og eventuelt tariffavtale.</p>
+<h3>Søknad og godkjenning</h3>
+<p>Ferie søkes i fraværsmodulen og godkjennes av nærmeste leder. Tidspunktet fastsettes etter drøfting, jf. ferieloven § 6.</p>`,
+  },
+  {
+    sectionKey: "hr-sykefravaer",
+    sectionNumber: "22",
+    title: "Sykefravær og egenmelding",
+    legalRef: "AML § 4-6, Folketrygdloven § 8-7",
+    sortOrder: 22,
+    moduleLink: "/dashboard/fravaer",
+    content: `<h3>Melding om sykdom</h3>
+<p>Ved sykdom skal den ansatte varsle leder så tidlig som mulig første fraværsdag. Fravær registreres i fraværsmodulen.</p>
+<h3>Egenmelding</h3>
+<p>Egenmelding kan brukes innenfor rammene i folketrygdloven § 8-7 og bedriftens interne regler. Sykmelding fra lege kreves når egenmeldingsretten er brukt opp, eller når arbeidsgiver ber om det.</p>
+<h3>Oppfølgingsplikt</h3>
+<p>Arbeidsgiver skal følge opp sykmeldte og tilrettelegge arbeidet så langt det er mulig, jf. AML § 4-6. Oppfølgingsplan skal som hovedregel utarbeides senest når arbeidstaker har vært helt eller delvis borte fra arbeidet i fire uker. Dialogmøter gjennomføres etter lovens frister.</p>
+<p>Diagnose og andre helseopplysninger behandles med særlig konfidensialitet (GDPR art. 9).</p>`,
+  },
+  {
+    sectionKey: "hr-permisjon",
+    sectionNumber: "23",
+    title: "Permisjon",
+    legalRef: "AML kap. 12",
+    sortOrder: 23,
+    moduleLink: "/dashboard/fravaer",
+    content: `<h3>Rett til permisjon</h3>
+<p>{{bedriftsnavn}} følger arbeidsmiljølovens kapittel 12 om permisjon, blant annet svangerskap, fødsel, omsorg for barn, amming, pleie av nærstående og utdanningspermisjon der vilkårene er oppfylt.</p>
+<h3>Søknad</h3>
+<p>Permisjon søkes i fraværsmodulen med type, periode og nødvendig dokumentasjon. Leder behandler søknaden. Rettigheter etter folketrygden (foreldrepenger m.m.) avklares med NAV.</p>`,
+  },
+  {
+    sectionKey: "hr-kompetanse",
+    sectionNumber: "24",
+    title: "Kompetansekrav i stillingen",
+    legalRef: "AML § 3-2, IK-HMS § 5 nr. 2 og nr. 5",
+    sortOrder: 24,
+    moduleLink: "/dashboard/training/profiler",
+    content: `<h3>Nødvendig opplæring</h3>
+<p>Arbeidsgiver skal sørge for at alle ansatte i {{bedriftsnavn}} får nødvendig opplæring til å utføre arbeidet trygt, jf. AML § 3-2. Kompetansekrav per rolle dokumenteres i kompetanseprofiler.</p>
+<h3>Gap og fornyelse</h3>
+<p>Ansatte og ledere kan se hvilke kurs som er oppfylt, utløpt eller mangler. Lovpålagte kurs prioriteres. HMS-opplæring for arbeidsgiver følger AML § 3-5.</p>`,
+  },
+  {
+    sectionKey: "hr-personvern",
+    sectionNumber: "25",
+    title: "Personopplysninger i ansettelsesforholdet",
+    legalRef: "GDPR art. 5, 6 og 13, personopplysningsloven",
+    sortOrder: 25,
+    moduleLink: null,
+    content: `<h3>Behandlingsansvar</h3>
+<p>{{bedriftsnavn}} er behandlingsansvarlig for personopplysninger om ansatte. Opplysninger samles inn og brukes bare til legitimt personal- og HMS-arbeid, med hjemmel i avtale, rettslig plikt eller berettiget interesse, jf. GDPR art. 6.</p>
+<h3>Dine rettigheter</h3>
+<p>Du har rett til innsyn, retting og i visse tilfeller sletting (GDPR art. 15–17). Særlige kategorier (helse, varsling) behandles med streng tilgangsstyring. Spørsmål rettes til leder eller personvernkontakt.</p>
+<p>Lagringstiden følger lovpålagte oppbevaringskrav. Når arbeidsforholdet opphører, slettes eller anonymiseres data som ikke lenger er nødvendige.</p>`,
+  },
+  {
+    sectionKey: "hr-opphor",
+    sectionNumber: "26",
+    title: "Opphør av arbeidsforhold",
+    legalRef: "AML kap. 15, AML § 15-15, GDPR art. 17",
+    sortOrder: 26,
+    moduleLink: "/dashboard/onboarding",
+    content: `<h3>Oppsigelse</h3>
+<p>Oppsigelse skal skje skriftlig og oppfylle formkravene i AML § 15-4. Oppsigelsesfrister følger AML § 15-3 og arbeidsavtalen. Oppsigelse fra arbeidsgiver skal være saklig begrunnet, jf. AML § 15-7.</p>
+<h3>Sluttattest</h3>
+<p>Arbeidstaker som fratrer har krav på sluttattest, jf. AML § 15-15.</p>
+<h3>Offboarding</h3>
+<p>Ved avslutning gjennomføres offboarding: innlevering av utstyr, stenging av tilganger og vurdering av personopplysninger som skal slettes, jf. GDPR art. 17. Oppgavene følges i offboarding-modulen.</p>`,
+  },
+];
+
 // ── Bygg komplett mal for en bransje ─────────────────────────────────────
 
 export function buildIndustryTemplate(

@@ -25,6 +25,8 @@ export function IkMatContent({ initialData, canEdit }: IkMatContentProps) {
       allergenItems={data.allergenItems}
       inspeksjoner={data.inspeksjoner}
       deviationCount={data.deviationCount}
+      varemottakCount={data.varemottakCount}
+      renholdCount={data.renholdCount}
       canEdit={canEdit}
     />
   );

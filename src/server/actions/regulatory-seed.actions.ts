@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { REGULATORY_REQUIREMENTS } from "@/lib/regulatory-requirements-seed";
+import { repairDashboardRoute, repairLovdataUrl } from "@/lib/legal-link-repair";
 
 export async function seedRegulatoryRequirements(): Promise<{
   created: number;
@@ -25,10 +26,10 @@ export async function seedRegulatoryRequirements(): Promise<{
         title: req.title,
         description: req.description,
         legalBasis: req.legalBasis,
-        sourceUrl: req.sourceUrl ?? null,
+        sourceUrl: repairLovdataUrl(req.sourceUrl ?? null),
         triggerActivities: req.triggerActivities,
         hmsNovaFeature: req.hmsNovaFeature ?? null,
-        hmsNovaRoute: req.hmsNovaRoute ?? null,
+        hmsNovaRoute: repairDashboardRoute(req.hmsNovaRoute ?? null),
         routineCategory: req.routineCategory ?? null,
         severity: req.severity,
         sortOrder: REGULATORY_REQUIREMENTS.indexOf(req),

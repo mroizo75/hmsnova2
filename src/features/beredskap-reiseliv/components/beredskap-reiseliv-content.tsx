@@ -9,11 +9,12 @@ type BeredskapData = Awaited<ReturnType<typeof fetchBeredskapReiselivData>>;
 interface BeredskapReiselivContentProps {
   initialData: BeredskapData;
   canEdit: boolean;
+  isReiseliv: boolean;
 }
 
-export function BeredskapReiselivContent({ initialData, canEdit }: BeredskapReiselivContentProps) {
+export function BeredskapReiselivContent({ initialData, canEdit, isReiseliv }: BeredskapReiselivContentProps) {
   const { data } = useQuery({
-    queryKey: ["beredskap-reiseliv"],
+    queryKey: ["beredskap"],
     queryFn: () => fetchBeredskapReiselivData(),
     initialData,
   });
@@ -23,6 +24,7 @@ export function BeredskapReiselivContent({ initialData, canEdit }: BeredskapReis
       hendelser={data.hendelser}
       evakueringsplaner={data.evakueringsplaner}
       canEdit={canEdit}
+      isReiseliv={isReiseliv}
     />
   );
 }

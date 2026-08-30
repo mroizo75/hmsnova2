@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +13,9 @@ import { HandbokSectionExpanded } from "./handbok-section-expanded";
 import { HandbokVersionBar } from "./handbok-version-bar";
 import { HandbokSignButton } from "./handbok-sign-button";
 import { HandbokReviewButton } from "./handbok-review-button";
+import { ensureHrSections } from "@/server/actions/hms-handbok.actions";
+import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import type {
   HandbookData,
   LiveHandbookStats,
@@ -71,9 +77,33 @@ export function HandbokViewer({
   isEmployee = false,
   suggestions = [],
 }: HandbokViewerProps) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [filter, setFilter] = useState<"ALL" | "HMS" | "HR">("ALL");
+  const [addingHr, setAddingHr] = useState(false);
   const currentVersion = handbook.currentVersion;
   const alreadySigned = handbook.signatures.some((s) => s.userId === currentUserId);
   const isDraft = currentVersion?.status === "DRAFT";
+  const hasHrSections = currentVersion?.sections.some(
+    (s) => s.category === "HR" || s.sectionKey.startsWith("hr-"),
+  ) ?? false;
+
+  const visibleSections = (currentVersion?.sections ?? [])
+    .filter((section) => !isEmployee || !ADMIN_ONLY_SECTIONS.has(section.sectionKey))
+    .filter((section) => {
+      if (filter === "ALL") return true;
+      const category = section.category ?? (section.sectionKey.startsWith("hr-") ? "HR" : "HMS");
+      return category === filter;
+    });
+
+  async function handleAddHrSections() {
+    if (!currentVersion) return;
+    setAddingHr(true);
+    await ensureHrSections({ versionId: currentVersion.id });
+    setAddingHr(false);
+    await queryClient.invalidateQueries({ queryKey: ["hms-handbok"] });
+    router.refresh();
+  }
 
   return (
     <div className="space-y-6">
@@ -110,12 +140,22 @@ export function HandbokViewer({
             </div>
             <div className="flex flex-wrap gap-2">
               {canManage && <HandbokReviewButton tenantId={tenantId} />}
+              {canManage && currentVersion && !hasHrSections && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddHrSections}
+                  disabled={addingHr}
+                >
+                  {addingHr ? "Legger til..." : "Legg til personal-kapitler"}
+                </Button>
+              )}
               <HandbokSignButton
                 tenantId={tenantId}
                 alreadySigned={alreadySigned}
                 versionId={currentVersion?.id}
               />
-              <TilsynsrapportDialog />
+              {!isEmployee && <TilsynsrapportDialog />}
               <Button asChild variant="outline" size="sm" className="gap-2">
                 <a href="/api/hms-handbok/pdf" download>
                   <Download className="h-4 w-4" />
@@ -171,12 +211,30 @@ export function HandbokViewer({
       {/* Dynamiske seksjoner */}
       {currentVersion && currentVersion.sections.length > 0 ? (
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Innhold i HMS Håndbok – v{currentVersion.version}
-          </h2>
-          {currentVersion.sections
-            .filter((section) => !isEmployee || !ADMIN_ONLY_SECTIONS.has(section.sectionKey))
-            .map((section) => (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Innhold i HMS- og personalhåndbok – v{currentVersion.version}
+            </h2>
+            <div className="flex gap-1">
+              {([
+                { id: "ALL", label: "Alle" },
+                { id: "HMS", label: "HMS" },
+                { id: "HR", label: "Personal" },
+              ] as const).map((tab) => (
+                <Button
+                  key={tab.id}
+                  type="button"
+                  size="sm"
+                  variant={filter === tab.id ? "default" : "outline"}
+                  className={filter !== tab.id ? "bg-transparent" : undefined}
+                  onClick={() => setFilter(tab.id)}
+                >
+                  {tab.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+          {visibleSections.map((section) => (
             <HandbokSectionExpanded
               key={section.id}
               section={section}
@@ -211,7 +269,7 @@ export function HandbokViewer({
               Signaturer ({handbook.signatures.length})
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              Ansatte som har bekreftet at de har lest og forstått HMS-håndboken.
+              Ansatte som har bekreftet at de har lest og forstått håndboken.
             </p>
           </CardHeader>
           <CardContent>
@@ -252,7 +310,7 @@ export function HandbokViewer({
             <PenLine className="mx-auto h-8 w-8 text-muted-foreground/40" />
             <p className="mt-3 text-sm font-medium">Ingen signaturer ennå</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Ansatte kan signere for å bekrefte at de har lest HMS-håndboken.
+              Ansatte kan signere for å bekrefte at de har lest håndboken.
             </p>
           </CardContent>
         </Card>

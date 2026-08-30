@@ -161,6 +161,25 @@ export interface RolePermissions {
   canCreateEmployeeReviews: boolean;   // Opprette nye samtaler (leder/admin/HMS)
   canConductEmployeeReviews: boolean;  // Fylle ut referat og gjennomføre (leder/admin/HMS)
   canDeleteEmployeeReviews: boolean;   // Slette samtaler (kun admin)
+
+  // Fravær (AML § 5-1, Ferieloven, GDPR art. 9)
+  canReadOwnAbsence: boolean;          // Se eget fravær (alle ansatte)
+  canReadAllAbsence: boolean;          // Se alt fravær i tenant (admin/HMS/leder/BHT)
+  canCreateAbsence: boolean;           // Registrere fravær (alle for eget, leder for andre)
+  canApproveAbsence: boolean;          // Godkjenne/avvise fravær (admin/HMS/leder)
+  canExportAbsenceStats: boolean;      // Eksportere fraværsstatistikk (AML § 5-1 (4))
+
+  // Onboarding/Offboarding (AML § 14-5/14-6, § 3-5, GDPR art. 17)
+  canReadOwnBoarding: boolean;           // Se egne onboarding-oppgaver (alle ansatte)
+  canReadAllBoarding: boolean;           // Se alle onboarding/offboarding-prosesser
+  canCreateBoarding: boolean;            // Opprette onboarding/offboarding
+  canManageBoardingTemplates: boolean;   // Administrere maler
+
+  // Personalarkiv (GDPR art. 5/6/15/17, AML § 14-5)
+  canReadOwnPersonnelFile: boolean;
+  canReadAllPersonnelFiles: boolean;
+  canUploadPersonnelFile: boolean;
+  canDeletePersonnelFile: boolean;
 }
 
 /**
@@ -269,6 +288,19 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateEmployeeReviews: true,
     canConductEmployeeReviews: true,
     canDeleteEmployeeReviews: true,
+    canReadOwnAbsence: true,
+    canReadAllAbsence: true,
+    canCreateAbsence: true,
+    canApproveAbsence: true,
+    canExportAbsenceStats: true,
+    canReadOwnBoarding: true,
+    canReadAllBoarding: true,
+    canCreateBoarding: true,
+    canManageBoardingTemplates: true,
+    canReadOwnPersonnelFile: true,
+    canReadAllPersonnelFiles: true,
+    canUploadPersonnelFile: true,
+    canDeletePersonnelFile: true,
   },
 
   // HMS - HMS-ansvarlig, nesten full tilgang
@@ -374,6 +406,19 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateEmployeeReviews: true,
     canConductEmployeeReviews: true,
     canDeleteEmployeeReviews: false,
+    canReadOwnAbsence: true,
+    canReadAllAbsence: true,
+    canCreateAbsence: true,
+    canApproveAbsence: true,
+    canExportAbsenceStats: true,
+    canReadOwnBoarding: true,
+    canReadAllBoarding: true,
+    canCreateBoarding: true,
+    canManageBoardingTemplates: true,
+    canReadOwnPersonnelFile: true,
+    canReadAllPersonnelFiles: true,
+    canUploadPersonnelFile: true,
+    canDeletePersonnelFile: true,
   },
 
   // LEDER - Leder, kan administrere i sin avdeling
@@ -477,6 +522,19 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateEmployeeReviews: true,   // Leder kan opprette
     canConductEmployeeReviews: true,  // Leder gjennomfører
     canDeleteEmployeeReviews: false,
+    canReadOwnAbsence: true,
+    canReadAllAbsence: true,     // Ser sine ansatte (filtreres via managerId)
+    canCreateAbsence: true,
+    canApproveAbsence: true,
+    canExportAbsenceStats: false,
+    canReadOwnBoarding: true,
+    canReadAllBoarding: true,
+    canCreateBoarding: true,
+    canManageBoardingTemplates: false,
+    canReadOwnPersonnelFile: true,
+    canReadAllPersonnelFiles: true,
+    canUploadPersonnelFile: true,
+    canDeletePersonnelFile: false,
   },
 
   // VERNEOMBUD - Verneombud, fokus på HMS (AML § 6-2: rett til informasjon om arbeidsmiljøet)
@@ -580,6 +638,19 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateEmployeeReviews: false,
     canConductEmployeeReviews: false,
     canDeleteEmployeeReviews: false,
+    canReadOwnAbsence: true,
+    canReadAllAbsence: false,
+    canCreateAbsence: true,      // Registrere eget fravær
+    canApproveAbsence: false,
+    canExportAbsenceStats: false,
+    canReadOwnBoarding: true,
+    canReadAllBoarding: false,
+    canCreateBoarding: false,
+    canManageBoardingTemplates: false,
+    canReadOwnPersonnelFile: true,
+    canReadAllPersonnelFiles: false,
+    canUploadPersonnelFile: false,
+    canDeletePersonnelFile: false,
   },
 
   // ANSATT - Ansatt, begrenset tilgang
@@ -683,6 +754,19 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateEmployeeReviews: false,
     canConductEmployeeReviews: false,
     canDeleteEmployeeReviews: false,
+    canReadOwnAbsence: true,
+    canReadAllAbsence: false,
+    canCreateAbsence: true,      // Registrere eget fravær
+    canApproveAbsence: false,
+    canExportAbsenceStats: false,
+    canReadOwnBoarding: true,
+    canReadAllBoarding: false,
+    canCreateBoarding: false,
+    canManageBoardingTemplates: false,
+    canReadOwnPersonnelFile: true,
+    canReadAllPersonnelFiles: false,
+    canUploadPersonnelFile: false,
+    canDeletePersonnelFile: false,
   },
 
   // BHT - Bedriftshelsetjeneste, lesetilgang + rapportering
@@ -786,6 +870,19 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateEmployeeReviews: false,
     canConductEmployeeReviews: false,
     canDeleteEmployeeReviews: false,
+    canReadOwnAbsence: true,
+    canReadAllAbsence: true,     // BHT har innsyn i fraværsstatistikk
+    canCreateAbsence: false,
+    canApproveAbsence: false,
+    canExportAbsenceStats: true, // BHT trenger statistikk for AMO-møter
+    canReadOwnBoarding: false,
+    canReadAllBoarding: false,
+    canCreateBoarding: false,
+    canManageBoardingTemplates: false,
+    canReadOwnPersonnelFile: true,
+    canReadAllPersonnelFiles: false,
+    canUploadPersonnelFile: false,
+    canDeletePersonnelFile: false,
   },
 
   // REVISOR - Revisor, kun lesetilgang
@@ -889,6 +986,19 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateEmployeeReviews: false,
     canConductEmployeeReviews: false,
     canDeleteEmployeeReviews: false,
+    canReadOwnAbsence: false,
+    canReadAllAbsence: true,     // Revisor har lesetilgang
+    canCreateAbsence: false,
+    canApproveAbsence: false,
+    canExportAbsenceStats: true,
+    canReadOwnBoarding: false,
+    canReadAllBoarding: false,
+    canCreateBoarding: false,
+    canManageBoardingTemplates: false,
+    canReadOwnPersonnelFile: true,
+    canReadAllPersonnelFiles: false,
+    canUploadPersonnelFile: false,
+    canDeletePersonnelFile: false,
   },
 
   // VARSLINGSANSVARLIG — AML kap. 2 A, GDPR art. 5/9: eneste rolle med fullt saksinnhold
@@ -992,6 +1102,19 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateEmployeeReviews: false,
     canConductEmployeeReviews: false,
     canDeleteEmployeeReviews: false,
+    canReadOwnAbsence: true,
+    canReadAllAbsence: false,
+    canCreateAbsence: false,
+    canApproveAbsence: false,
+    canExportAbsenceStats: false,
+    canReadOwnBoarding: true,
+    canReadAllBoarding: false,
+    canCreateBoarding: false,
+    canManageBoardingTemplates: false,
+    canReadOwnPersonnelFile: true,
+    canReadAllPersonnelFiles: false,
+    canUploadPersonnelFile: false,
+    canDeletePersonnelFile: false,
   },
 };
 
@@ -1048,11 +1171,27 @@ export function getVisibleNavItems(role: Role) {
     constructionCompliance: perms.canReadConstructionCompliance,
     hmsTavle: perms.canViewHmsTavle || perms.canManageHmsTavle,
     employeeReviews: perms.canReadOwnEmployeeReviews || perms.canReadAllEmployeeReviews,
+    absence: perms.canReadOwnAbsence || perms.canReadAllAbsence,
+    boarding: perms.canReadOwnBoarding || perms.canReadAllBoarding,
+    personnelArchive: perms.canReadAllPersonnelFiles,
+    ikMat: perms.canReadInspections,
+    skjenking: perms.canReadInspections,
+    aktivitetssikkerhet: perms.canReadInspections,
+    transport: perms.canReadInspections,
+    bhtNattarbeid: perms.canReadDocuments,
+    beredskap: perms.canReadIncidents,
     support: true, // Alle innloggede brukere kan kontakte HMS-representanter
     benchmark: true, // Alle kan se benchmark (krever opt-in for data)
     hmsHandbok: perms.canReadDocuments || perms.canReadRoutines, // Alle som kan lese dokumenter/rutiner ser håndboken
     hmsCockpit: perms.canReadDocuments, // HMS Cockpit krever lesetilgang til dokumenter
   };
+}
+
+export type VisibleNavItems = ReturnType<typeof getVisibleNavItems>;
+
+export function emptyVisibleNavItems(): VisibleNavItems {
+  const keys = Object.keys(getVisibleNavItems("ANSATT")) as Array<keyof VisibleNavItems>;
+  return Object.fromEntries(keys.map((key) => [key, false])) as VisibleNavItems;
 }
 
 /**

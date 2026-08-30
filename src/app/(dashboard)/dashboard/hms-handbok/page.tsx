@@ -3,8 +3,10 @@ import { getAuthContext } from "@/lib/server-authorization";
 import { BookOpen } from "lucide-react";
 import { fetchHmsHandbok } from "@/server/queries/hms-handbok.queries";
 import { HmsHandbokContent } from "@/features/hms-handbok/components/hms-handbok-content";
+import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
+import { helpContent } from "@/lib/help-content";
 
-export const metadata = { title: "HMS Håndbok" };
+export const metadata = { title: "HMS- og personalhåndbok" };
 
 export default async function HmsHandbokPage() {
   const auth = await getAuthContext();
@@ -24,13 +26,14 @@ export default async function HmsHandbokPage() {
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <BookOpen className="h-7 w-7 text-primary" />
-            HMS Håndbok
+            HMS- og personalhåndbok
           </h1>
           <p className="text-muted-foreground mt-1">
-            Versjonskontrollert HMS-håndbok med dynamisk innhold fra alle HMS-moduler.
-            Endringer krever godkjenning og alle ansatte signerer per versjon.
+            Versjonskontrollert håndbok med HMS- og personal-kapitler.
+            Endringer krever godkjenning, og alle ansatte signerer per versjon.
           </p>
         </div>
+        <PageHelpDialog content={helpContent.hmsHandbok} />
       </div>
 
       <HmsHandbokContent initialData={initialData} />

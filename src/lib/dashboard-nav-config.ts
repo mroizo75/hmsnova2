@@ -3,6 +3,8 @@
  * Brukes av sidebar, mobil-meny og innstillinger for enkel meny.
  */
 
+import type { TenantFeature } from "@/lib/tenant-features";
+
 export type NavPermission =
   | "dashboard"
   | "documents"
@@ -32,9 +34,14 @@ export type NavPermission =
   | "employeeReviews"
   | "settings"
   | "ikMat"
+  | "skjenking"
   | "aktivitetssikkerhet"
   | "transport"
   | "bhtNattarbeid"
+  | "beredskap"
+  | "absence"
+  | "boarding"
+  | "personnelArchive"
   | "support"
   | "benchmark"
   | "hmsCockpit";
@@ -44,10 +51,17 @@ export interface DashboardNavItemConfig {
   label: string;
   permission: NavPermission;
   defaultSimple: boolean;
+  alwaysShow?: boolean;
+  feature?: TenantFeature;
+  /** Vises bare for disse bransjene (små bokstaver, f.eks. hospitality). */
+  industries?: string[];
+  /** Vises bare for HMS-brukere i et konsern (f.eks. konsernmeldinger). */
+  requiresKonsern?: boolean;
 }
 
 export const DASHBOARD_NAV_CONFIG: DashboardNavItemConfig[] = [
   { href: "/dashboard", label: "nav.dashboard", permission: "dashboard", defaultSimple: true },
+  { href: "/dashboard/meldinger", label: "nav.meldinger", permission: "dashboard", defaultSimple: false, alwaysShow: true, requiresKonsern: true },
   { href: "/dashboard/hms-handbok", label: "nav.hmsHandbok", permission: "hmsHandbok", defaultSimple: true },
   { href: "/dashboard/documents", label: "nav.documents", permission: "documents", defaultSimple: true },
   { href: "/dashboard/rutiner", label: "nav.routines", permission: "routines", defaultSimple: true },
@@ -55,7 +69,9 @@ export const DASHBOARD_NAV_CONFIG: DashboardNavItemConfig[] = [
   { href: "/dashboard/juridisk-register", label: "nav.legalRegister", permission: "legalRegister", defaultSimple: true },
   { href: "/dashboard/incidents", label: "nav.incidents", permission: "incidents", defaultSimple: true },
   { href: "/dashboard/projects", label: "nav.projects", permission: "incidents", defaultSimple: true },
-  { href: "/dashboard/incidents/statistics", label: "nav.hseStatistics", permission: "hseStatistics", defaultSimple: false },
+  { href: "/dashboard/construction-compliance", label: "nav.constructionCompliance", permission: "constructionCompliance", defaultSimple: true },
+  { href: "/dashboard/hms-tavle", label: "nav.hmsTavle", permission: "hmsTavle", defaultSimple: true },
+  { href: "/dashboard/incidents/statistics", label: "nav.hseStatistics", permission: "hseStatistics", defaultSimple: false, feature: "trir" },
   { href: "/dashboard/sja", label: "nav.sja", permission: "sja", defaultSimple: true },
   { href: "/dashboard/inspections", label: "nav.inspections", permission: "inspections", defaultSimple: true },
   { href: "/dashboard/fire-drills", label: "nav.fireDrills", permission: "inspections", defaultSimple: true },
@@ -63,6 +79,12 @@ export const DASHBOARD_NAV_CONFIG: DashboardNavItemConfig[] = [
   { href: "/dashboard/actions", label: "nav.actions", permission: "actions", defaultSimple: true },
   { href: "/dashboard/chemicals", label: "nav.chemicals", permission: "chemicals", defaultSimple: true },
   { href: "/dashboard/exposure-register", label: "nav.exposureRegister", permission: "exposureRegister", defaultSimple: true },
+  { href: "/dashboard/ik-mat", label: "nav.ikMat", permission: "ikMat", defaultSimple: false },
+  { href: "/dashboard/skjenking", label: "nav.skjenking", permission: "skjenking", defaultSimple: false },
+  { href: "/dashboard/beredskap", label: "nav.beredskap", permission: "beredskap", defaultSimple: true },
+  { href: "/dashboard/aktivitetssikkerhet", label: "nav.aktivitetssikkerhet", permission: "aktivitetssikkerhet", defaultSimple: false },
+  { href: "/dashboard/transport", label: "nav.transport", permission: "transport", defaultSimple: false },
+  { href: "/dashboard/bht-nattarbeid", label: "nav.bhtNattarbeid", permission: "bhtNattarbeid", defaultSimple: false },
   { href: "/dashboard/risks", label: "nav.risks", permission: "risks", defaultSimple: false },
   { href: "/dashboard/risk-register", label: "nav.riskRegister", permission: "risks", defaultSimple: false },
   { href: "/dashboard/wellbeing", label: "nav.wellbeing", permission: "inspections", defaultSimple: true },
@@ -75,22 +97,19 @@ export const DASHBOARD_NAV_CONFIG: DashboardNavItemConfig[] = [
   { href: "/dashboard/annual-hms-plan", label: "nav.annualHmsPlan", permission: "annualHmsPlan", defaultSimple: true },
   { href: "/dashboard/meetings", label: "nav.meetings", permission: "meetings", defaultSimple: false },
   { href: "/dashboard/time-registration", label: "nav.timeRegistration", permission: "timeRegistration", defaultSimple: true },
-  { href: "/dashboard/construction-compliance", label: "nav.constructionCompliance", permission: "constructionCompliance", defaultSimple: true },
-  { href: "/dashboard/hms-tavle", label: "nav.hmsTavle", permission: "hmsTavle", defaultSimple: true },
-  { href: "/dashboard/ik-mat", label: "nav.ikMat", permission: "ikMat", defaultSimple: false },
-  { href: "/dashboard/beredskap-reiseliv", label: "nav.beredskapReiseliv", permission: "inspections", defaultSimple: false },
-  { href: "/dashboard/aktivitetssikkerhet", label: "nav.aktivitetssikkerhet", permission: "aktivitetssikkerhet", defaultSimple: false },
-  { href: "/dashboard/transport", label: "nav.transport", permission: "transport", defaultSimple: false },
-  { href: "/dashboard/bht-nattarbeid", label: "nav.bhtNattarbeid", permission: "bhtNattarbeid", defaultSimple: false },
+  { href: "/dashboard/fravaer", label: "nav.absence", permission: "absence", defaultSimple: true },
+  { href: "/dashboard/onboarding", label: "nav.boarding", permission: "boarding", defaultSimple: false },
+  { href: "/dashboard/personalarkiv", label: "nav.personnelArchive", permission: "personnelArchive", defaultSimple: true },
   { href: "/dashboard/medarbeidersamtale", label: "nav.employeeReviews", permission: "employeeReviews", defaultSimple: false },
-  { href: "/dashboard/whistleblowing", label: "nav.whistleblowing", permission: "whistleblowing", defaultSimple: true },
+  { href: "/dashboard/whistleblowing", label: "nav.whistleblowing", permission: "whistleblowing", defaultSimple: true, alwaysShow: true },
   { href: "/dashboard/goals", label: "nav.goals", permission: "goals", defaultSimple: false },
-  { href: "/dashboard/organisasjonskart", label: "nav.orgChart", permission: "settings", defaultSimple: true },
   { href: "/dashboard/hms-cockpit", label: "nav.hmsCockpit", permission: "hmsCockpit", defaultSimple: true },
   { href: "/dashboard/benchmark", label: "nav.benchmark", permission: "benchmark", defaultSimple: false },
-  { href: "/dashboard/support", label: "nav.support", permission: "support", defaultSimple: true },
-  { href: "/dashboard/aktivitetslogg", label: "nav.aktivitetslogg", permission: "settings", defaultSimple: false },
-  { href: "/dashboard/settings", label: "nav.settings", permission: "settings", defaultSimple: true },
+  { href: "/dashboard/brukere", label: "nav.users", permission: "settings", defaultSimple: true, alwaysShow: true },
+  { href: "/dashboard/organisasjonskart", label: "nav.orgChart", permission: "settings", defaultSimple: true, alwaysShow: true },
+  { href: "/dashboard/aktivitetslogg", label: "nav.aktivitetslogg", permission: "settings", defaultSimple: false, alwaysShow: true },
+  { href: "/dashboard/support", label: "nav.support", permission: "support", defaultSimple: true, alwaysShow: true },
+  { href: "/dashboard/settings", label: "nav.settings", permission: "settings", defaultSimple: true, alwaysShow: true },
 ];
 
 export const DEFAULT_SIMPLE_MENU_HREFS = DASHBOARD_NAV_CONFIG.filter((i) => i.defaultSimple).map(

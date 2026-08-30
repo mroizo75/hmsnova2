@@ -16,6 +16,12 @@ import { requirePermission } from "@/lib/server-authorization";
 import { generateChangeNumber } from "@/lib/change-number";
 import { AuditLog } from "@/lib/audit-log";
 import { ensureGlobalRoutineTemplateLibrarySeeded } from "@/server/actions/routine-library.actions";
+import {
+  canonicalRequirementTitle,
+  repairDashboardRoute,
+  repairLovdataUrl,
+  REQUIREMENT_TITLE_ALIASES,
+} from "@/lib/legal-link-repair";
 
 export async function saveActivityProfile(input: {
   answers: Record<string, boolean>;
@@ -161,6 +167,8 @@ async function getRegulatoryStatusInternal(tenantId: string) {
 
       return {
         ...req,
+        hmsNovaRoute: repairDashboardRoute(req.hmsNovaRoute),
+        sourceUrl: repairLovdataUrl(req.sourceUrl),
         status,
         statusNote,
         documentUrl,
@@ -291,6 +299,29 @@ async function checkFeatureCompliance(
       const count = await prisma.haccpPlan.count({ where: { tenantId } });
       return count > 0 ? "COMPLIANT" : "MISSING";
     }
+    case "temperatur": {
+      const count = await prisma.temperaturLog.count({ where: { tenantId } });
+      return count > 0 ? "COMPLIANT" : "MISSING";
+    }
+    case "varemottak": {
+      const count = await prisma.matVaremottak.count({ where: { tenantId } });
+      return count > 0 ? "COMPLIANT" : "MISSING";
+    }
+    case "renhold": {
+      const count = await prisma.matRenhold.count({ where: { tenantId } });
+      return count > 0 ? "COMPLIANT" : "MISSING";
+    }
+    case "skjenking": {
+      const [bevilling, hendelser] = await Promise.all([
+        prisma.skjenkeBevilling.findFirst({ where: { tenantId } }),
+        prisma.skjenkeHendelse.count({ where: { tenantId } }),
+      ]);
+      if (bevilling && (bevilling.internregler || bevilling.skjenketider) && hendelser > 0) {
+        return "COMPLIANT";
+      }
+      if (bevilling || hendelser > 0) return "PARTIAL";
+      return "MISSING";
+    }
     case "allergen": {
       const [oversiktCount, routineCount] = await Promise.all([
         prisma.allergenOversikt.count({ where: { tenantId } }),
@@ -318,30 +349,92 @@ async function checkFeatureCompliance(
 }
 
 export async function ensureRegulatoryRequirementsSeeded() {
-  const count = await prisma.regulatoryRequirement.count();
-  if (count > 0) return { seeded: false, count };
-
   const { REGULATORY_REQUIREMENTS } = await import("@/lib/regulatory-requirements-seed");
+
+  let created = 0;
+  let updated = 0;
 
   for (let i = 0; i < REGULATORY_REQUIREMENTS.length; i++) {
     const req = REGULATORY_REQUIREMENTS[i];
-    await prisma.regulatoryRequirement.create({
-      data: {
-        title: req.title,
-        description: req.description,
-        legalBasis: req.legalBasis,
-        sourceUrl: req.sourceUrl ?? null,
-        triggerActivities: req.triggerActivities,
-        hmsNovaFeature: req.hmsNovaFeature ?? null,
-        hmsNovaRoute: req.hmsNovaRoute ?? null,
-        routineCategory: req.routineCategory ?? null,
-        severity: req.severity,
-        sortOrder: i,
+    const sourceUrl = repairLovdataUrl(req.sourceUrl ?? null);
+    const hmsNovaRoute = repairDashboardRoute(req.hmsNovaRoute ?? null);
+
+    const aliasTitles = Object.entries(REQUIREMENT_TITLE_ALIASES)
+      .filter(([, canonical]) => canonical === req.title)
+      .map(([oldTitle]) => oldTitle);
+
+    const existing = await prisma.regulatoryRequirement.findFirst({
+      where: {
+        OR: [
+          { title: req.title, legalBasis: req.legalBasis },
+          ...(aliasTitles.length > 0 ? [{ title: { in: aliasTitles } }] : []),
+        ],
       },
     });
+
+    if (!existing) {
+      await prisma.regulatoryRequirement.create({
+        data: {
+          title: req.title,
+          description: req.description,
+          legalBasis: req.legalBasis,
+          sourceUrl,
+          triggerActivities: req.triggerActivities,
+          hmsNovaFeature: req.hmsNovaFeature ?? null,
+          hmsNovaRoute,
+          routineCategory: req.routineCategory ?? null,
+          severity: req.severity,
+          sortOrder: i,
+        },
+      });
+      created++;
+      continue;
+    }
+
+    if (
+      existing.title !== req.title ||
+      existing.sourceUrl !== sourceUrl ||
+      existing.hmsNovaRoute !== hmsNovaRoute ||
+      existing.description !== req.description
+    ) {
+      await prisma.regulatoryRequirement.update({
+        where: { id: existing.id },
+        data: {
+          title: req.title,
+          sourceUrl,
+          hmsNovaRoute,
+          description: req.description,
+          legalBasis: req.legalBasis,
+          hmsNovaFeature: req.hmsNovaFeature ?? existing.hmsNovaFeature,
+          routineCategory: req.routineCategory ?? existing.routineCategory,
+        },
+      });
+      updated++;
+    }
   }
 
-  return { seeded: true, count: REGULATORY_REQUIREMENTS.length };
+  const leftover = await prisma.regulatoryRequirement.findMany({
+    select: { id: true, title: true, hmsNovaRoute: true, sourceUrl: true },
+  });
+  for (const row of leftover) {
+    const nextTitle = canonicalRequirementTitle(row.title);
+    const nextRoute = repairDashboardRoute(row.hmsNovaRoute);
+    const nextUrl = repairLovdataUrl(row.sourceUrl);
+    if (
+      nextTitle === row.title &&
+      nextRoute === row.hmsNovaRoute &&
+      nextUrl === row.sourceUrl
+    ) {
+      continue;
+    }
+    await prisma.regulatoryRequirement.update({
+      where: { id: row.id },
+      data: { title: nextTitle, hmsNovaRoute: nextRoute, sourceUrl: nextUrl },
+    });
+    updated++;
+  }
+
+  return { seeded: created > 0, created, updated, count: REGULATORY_REQUIREMENTS.length };
 }
 
 export type RegulatoryRoutineSuggestion = {

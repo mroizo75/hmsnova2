@@ -107,6 +107,17 @@ export function generateFileKey(tenantId: string, folder: string, filename: stri
   return `${tenantId}/${folder}/${timestamp}-${random}-${base}${ext}`;
 }
 
+/** Personalmappe i R2: tenant/personnel/userId/category/fil */
+export function generatePersonnelFileKey(
+  tenantId: string,
+  userId: string,
+  category: string,
+  filename: string,
+): string {
+  const folder = `personnel/${userId}/${category.toLowerCase()}`;
+  return generateFileKey(tenantId, folder, filename);
+}
+
 export async function deleteTenantFiles(tenantId: string): Promise<{ deleted: number; errors: number }> {
   if ((process.env.STORAGE_TYPE || "r2") === "local") {
     const { deleteLocalTenantFiles } = await import(/* turbopackIgnore: true */ "./storage-local");
