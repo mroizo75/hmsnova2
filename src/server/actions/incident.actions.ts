@@ -22,6 +22,7 @@ import { dispatchNewIncidentNotifications } from "@/lib/incident-notification-ro
 import { normalizeProjectReference } from "@/lib/incident-project-reference";
 import { resolveIncidentProjectId } from "@/lib/incident-project-reference.server";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
+import { getIncidentCloseBlockers } from "@/lib/incident-close-rules";
 
 async function getSessionContext() {
   const context = await getRequiredTenantContext();
@@ -659,19 +660,29 @@ export async function closeIncident(input: any) {
   try {
     const { user, tenantId } = await getSessionContext();
     const validated = closeIncidentSchema.parse(input);
-    
-    // Sjekk at alle tiltak er fullført
+
+    const existing = await prisma.incident.findFirst({
+      where: { id: validated.id, tenantId },
+      select: { id: true, status: true, rootCause: true },
+    });
+
+    if (!existing) {
+      return { success: false, error: "Avviket ble ikke funnet" };
+    }
+
     const measures = await prisma.measure.findMany({
       where: { incidentId: validated.id, tenantId },
+      select: { status: true },
     });
-    
-    const allMeasuresCompleted = measures.every(m => m.status === "DONE");
-    
-    if (measures.length > 0 && !allMeasuresCompleted) {
-      return {
-        success: false,
-        error: "Alle tiltak må være fullført før avviket kan lukkes",
-      };
+
+    const blockers = getIncidentCloseBlockers({
+      status: existing.status,
+      rootCause: existing.rootCause,
+      measures,
+    });
+
+    if (blockers.length > 0) {
+      return { success: false, error: blockers[0] };
     }
     
     const incident = await prisma.incident.update({

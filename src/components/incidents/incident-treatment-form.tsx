@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { PROJECT_REFERENCE_MAX_LENGTH } from "@/lib/incident-project-reference";
+import { INCIDENT_TREATMENT_STATUSES } from "@/lib/incident-close-rules";
 
 interface SubcategoryOption {
   id: string;
@@ -99,7 +100,9 @@ export function IncidentTreatmentForm({
     currentSubcategoryKeys
   );
   const [loadingSubcategories, setLoadingSubcategories] = useState(false);
-  const [status, setStatus] = useState(currentStatus);
+  const [status, setStatus] = useState(
+    currentStatus === "OPEN" ? "INVESTIGATING" : currentStatus
+  );
   const [severity, setSeverity] = useState(severityToSelectValue(currentSeverity));
   const [projectId, setProjectId] = useState(currentProjectId ?? NO_PROJECT_VALUE);
   const [projectReference, setProjectReference] = useState(currentProjectReference ?? "");
@@ -194,6 +197,16 @@ export function IncidentTreatmentForm({
       toast({
         title: "Manglende HSE-data",
         description: "Fyll ut fravaersdager naar fravaersskade er valgt.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!INCIDENT_TREATMENT_STATUSES.includes(status as (typeof INCIDENT_TREATMENT_STATUSES)[number])) {
+      toast({
+        title: "Kan ikke lukke her",
+        description:
+          "Avviket lukkes nederst på siden etter årsaksanalyse, tiltak og effektvurdering (IK-HMS § 5 nr. 7).",
         variant: "destructive",
       });
       return;
@@ -318,10 +331,18 @@ export function IncidentTreatmentForm({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="OPEN">Åpen</SelectItem>
-              <SelectItem value="INVESTIGATING">Under utredning</SelectItem>
-              <SelectItem value="ACTION_TAKEN">Tiltak igangsatt</SelectItem>
+              <SelectItem value="INVESTIGATING">Under behandling</SelectItem>
+              <SelectItem value="ACTION_TAKEN">Tiltak iverksatt</SelectItem>
+              <SelectItem value="CLOSED" disabled>
+                Lukket (krever årsak, tiltak og effektvurdering)
+              </SelectItem>
             </SelectContent>
           </Select>
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            Avviket er ferdig når det er <strong>lukket</strong> — ikke bare behandlet.
+            Lukking skjer nederst på siden etter årsaksanalyse, gjennomførte tiltak og
+            effektvurdering (IK-HMS § 5 nr. 7, ISO 9001 kap. 10.2).
+          </p>
         </div>
 
         <div>

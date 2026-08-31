@@ -327,11 +327,11 @@ export function getSeverityInfo(severity: number | null | undefined): { label: s
 /**
  * Get status label
  */
-// ISO 9001/45001 kap. 10.2 – avvik skal følges opp til lukket
+// IK-HMS § 5 nr. 7 + ISO 9001/45001 kap. 10.2 – avvik skal følges opp til lukket
 export function getIncidentStatusLabel(status: string): string {
   const labels: Record<string, string> = {
-    OPEN: "Registrert",
-    INVESTIGATING: "Under utredning",
+    OPEN: "Åpen",
+    INVESTIGATING: "Under behandling",
     ACTION_TAKEN: "Tiltak iverksatt",
     CLOSED: "Lukket",
   };

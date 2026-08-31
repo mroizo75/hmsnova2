@@ -98,6 +98,15 @@ export async function PUT(
 
     const body = await request.json();
     const { status } = body;
+    if (status === "CLOSED") {
+      return NextResponse.json(
+        {
+          error:
+            "Avviket kan ikke settes til lukket her. Bruk lukkingsskjemaet med effektvurdering (IK-HMS § 5 nr. 7, ISO 9001 kap. 10.2).",
+        },
+        { status: 400 }
+      );
+    }
     const responsibleId =
       typeof body.responsibleId === "string" && body.responsibleId.trim().length > 0
         ? body.responsibleId.trim()

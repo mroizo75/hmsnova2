@@ -1834,10 +1834,10 @@ enum IncidentType {
 }
 
 enum IncidentStatus {
-  OPEN
-  INVESTIGATING
-  ACTION_TAKEN
-  CLOSED
+  OPEN // Åpen – registrert, IK-HMS § 5 nr. 7 «avdekke»
+  INVESTIGATING // Under behandling
+  ACTION_TAKEN // Tiltak iverksatt – «rette opp»
+  CLOSED // Lukket – «forebygge» verifisert, ISO 9001 kap. 10.2
 }
 
 enum IncidentStage {

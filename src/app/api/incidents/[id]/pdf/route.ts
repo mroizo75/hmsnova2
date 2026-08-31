@@ -26,7 +26,7 @@ const TYPE_LABELS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, string> = {
   OPEN: "Åpen",
-  INVESTIGATING: "Under etterforskning",
+  INVESTIGATING: "Under behandling",
   ACTION_TAKEN: "Tiltak iverksatt",
   CLOSED: "Lukket",
   ARCHIVED: "Arkivert",

@@ -18,7 +18,8 @@ import {
   getSeverityInfo,
   getIncidentStatusColor,
 } from "@/features/incidents/schemas/incident.schema";
-import { ArrowLeft, AlertTriangle, User, MapPin, Eye, Clock, FileText, CheckCircle } from "lucide-react";
+import { canCloseIncident, getIncidentCloseBlockers } from "@/lib/incident-close-rules";
+import { ArrowLeft, AlertTriangle, User, MapPin, Eye, Clock, FileText, CheckCircle, Circle } from "lucide-react";
 import { fetchIncidentDetail } from "@/server/queries/incident-detail.queries";
 
 type IncidentDetailData = NonNullable<Awaited<ReturnType<typeof fetchIncidentDetail>>>;
@@ -82,8 +83,18 @@ export function IncidentDetailContent({
     });
   };
 
-  const allMeasuresCompleted = incident.measures.length > 0 && incident.measures.every((m: any) => m.status === "DONE");
-  const canClose = incident.rootCause && allMeasuresCompleted && incident.status !== "CLOSED";
+  const canClose = canCloseIncident({
+    status: incident.status,
+    rootCause: incident.rootCause,
+    measures: incident.measures,
+  });
+  const closeBlockers = canClose
+    ? []
+    : getIncidentCloseBlockers({
+        status: incident.status,
+        rootCause: incident.rootCause,
+        measures: incident.measures,
+      });
 
   return (
     <>
@@ -453,6 +464,48 @@ export function IncidentDetailContent({
           routines={tenantRoutines}
           currentRoutineId={incident.relatedRoutineId}
         />
+      ) : incident.status !== "CLOSED" ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("sections.closeChecklist.title")}</CardTitle>
+            <CardDescription>{t("sections.closeChecklist.description")}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <p className="text-muted-foreground">{t("sections.closeChecklist.legal")}</p>
+            <ul className="space-y-1.5">
+              <li className="flex items-center gap-2">
+                {incident.rootCause ? (
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                ) : (
+                  <Circle className="h-4 w-4 text-muted-foreground" />
+                )}
+                {t("sections.closeChecklist.rootCause")}
+              </li>
+              <li className="flex items-center gap-2">
+                {incident.measures.length > 0 ? (
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                ) : (
+                  <Circle className="h-4 w-4 text-muted-foreground" />
+                )}
+                {t("sections.closeChecklist.measures")}
+              </li>
+              <li className="flex items-center gap-2">
+                {incident.measures.length > 0 &&
+                incident.measures.every((m: { status: string }) => m.status === "DONE") ? (
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                ) : (
+                  <Circle className="h-4 w-4 text-muted-foreground" />
+                )}
+                {t("sections.closeChecklist.measuresDone")}
+              </li>
+            </ul>
+            {closeBlockers.length > 0 && (
+              <p className="text-xs text-muted-foreground pt-1">
+                {t("sections.closeChecklist.next", { next: closeBlockers[0] })}
+              </p>
+            )}
+          </CardContent>
+        </Card>
       ) : incident.status === "CLOSED" ? (
         <Card>
           <CardHeader>

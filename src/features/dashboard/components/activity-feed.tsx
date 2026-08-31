@@ -97,7 +97,7 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
       
       // Incident statuses
       REPORTED: "Rapportert",
-      INVESTIGATING: "Under utredning",
+      INVESTIGATING: "Under behandling",
       RESOLVED: "Løst",
       
       // Action/Measure statuses

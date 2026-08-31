@@ -144,7 +144,7 @@ export function RoutineDetailContent({ initialData, categoryDisplay }: RoutineDe
                   <div className="flex items-center gap-2">
                     <Badge variant="outline">{incident.type}</Badge>
                     <Badge variant={incident.status === "CLOSED" ? "default" : "secondary"}>
-                      {incident.status === "CLOSED" ? "Lukket" : incident.status === "INVESTIGATING" ? "Under utredning" : "Åpen"}
+                      {incident.status === "CLOSED" ? "Lukket" : incident.status === "INVESTIGATING" ? "Under behandling" : incident.status === "ACTION_TAKEN" ? "Tiltak iverksatt" : "Åpen"}
                     </Badge>
                   </div>
                 </Link>

@@ -315,7 +315,7 @@ export const helpContent: Record<string, HelpContent> = {
           {
             title: "For revisjonssterkt system i HMS Nova",
             description:
-              "Status: Åpen → Under utredning → Tiltak iverksatt → Lukket. Sjekk: Årsak vurdert? Tiltak opprettet? Effekt verifisert? Lukk med dato og hvem godkjente. Dette er det Arbeidstilsynet og ISO-revisor ser etter.",
+              "Status: Åpen → Under behandling → Tiltak iverksatt → Lukket. Sjekk: Årsak vurdert? Tiltak opprettet? Effekt verifisert? Lukk med dato og hvem godkjente. Dette er det Arbeidstilsynet og ISO-revisor ser etter.",
           },
         ],
       },

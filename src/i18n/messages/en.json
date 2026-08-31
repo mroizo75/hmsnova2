@@ -2547,8 +2547,8 @@
       "CUSTOMER": "Customer complaint"
     },
     "status": {
-      "OPEN": "Registered",
-      "INVESTIGATING": "Under investigation",
+      "OPEN": "Open",
+      "INVESTIGATING": "In progress",
       "ACTION_TAKEN": "Action taken",
       "CLOSED": "Closed"
     },
@@ -2624,8 +2624,8 @@
         "CUSTOMER": "Customer complaint"
       },
       "status": {
-        "OPEN": "Registered",
-        "INVESTIGATING": "Under investigation",
+        "OPEN": "Open",
+        "INVESTIGATING": "In progress",
         "ACTION_TAKEN": "Action taken",
         "CLOSED": "Closed"
       },
@@ -2663,7 +2663,7 @@
       },
       "treatment": {
         "title": "Process incident",
-        "description": "Update type, project, status, severity and responsible person"
+        "description": "Update type, project, status, severity and responsible person. The case is finished when it is closed."
       },
       "rootCause": {
         "title": "Root Cause Analysis",
@@ -2677,6 +2677,15 @@
         "description": "ISO 9001: Planned actions to eliminate the cause",
         "empty": "No actions planned yet",
         "emptyHint": "Click \"Add action\" above"
+      },
+      "closeChecklist": {
+        "title": "Close the incident",
+        "description": "The finished status is Closed — not treated or done without an effectiveness review",
+        "legal": "The Internal Control Regulations section 5 no. 7 and ISO 9001 clause 10.2 require correction, prevention and an effectiveness review before closing.",
+        "rootCause": "Root cause analysis completed",
+        "measures": "Corrective actions registered",
+        "measuresDone": "All actions marked as done",
+        "next": "Next step: {next}"
       },
       "closed": {
         "title": "Incident closed",

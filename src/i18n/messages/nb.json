@@ -2547,8 +2547,8 @@
       "CUSTOMER": "Kundeklage"
     },
     "status": {
-      "OPEN": "Registrert",
-      "INVESTIGATING": "Under utredning",
+      "OPEN": "Åpen",
+      "INVESTIGATING": "Under behandling",
       "ACTION_TAKEN": "Tiltak iverksatt",
       "CLOSED": "Lukket"
     },
@@ -2624,8 +2624,8 @@
         "CUSTOMER": "Kundeklage"
       },
       "status": {
-        "OPEN": "Registrert",
-        "INVESTIGATING": "Under utredning",
+        "OPEN": "Åpen",
+        "INVESTIGATING": "Under behandling",
         "ACTION_TAKEN": "Tiltak iverksatt",
         "CLOSED": "Lukket"
       },
@@ -2663,7 +2663,7 @@
       },
       "treatment": {
         "title": "Behandle avvik",
-        "description": "Oppdater type, prosjekt, status, alvorlighet og ansvarlig"
+        "description": "Oppdater type, prosjekt, status, alvorlighet og ansvarlig. Avviket er ferdig når det er lukket."
       },
       "rootCause": {
         "title": "Årsaksanalyse (Root Cause Analysis)",
@@ -2677,6 +2677,15 @@
         "description": "ISO 9001: Planlagte tiltak for å eliminere årsaken",
         "empty": "Ingen tiltak planlagt ennå",
         "emptyHint": "Klikk \"Legg til tiltak\" ovenfor"
+      },
+      "closeChecklist": {
+        "title": "Lukk avviket",
+        "description": "Ferdigstatus er Lukket – ikke behandlet eller ferdig uten effektvurdering",
+        "legal": "IK-HMS § 5 nr. 7 og ISO 9001 kap. 10.2 krever at avviket rettes, forebygges og at effekten vurderes før lukking.",
+        "rootCause": "Årsaksanalyse gjennomført",
+        "measures": "Korrigerende tiltak registrert",
+        "measuresDone": "Alle tiltak merket som utført",
+        "next": "Neste steg: {next}"
       },
       "closed": {
         "title": "Avvik lukket",
