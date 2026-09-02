@@ -17,8 +17,6 @@ import {
 } from "@/server/actions/corporate-group-stats.actions";
 import { requireCorporateGroupContext } from "@/lib/corporate-group-context";
 import { ScoreRing } from "../components/score-ring";
-import { ExcelImportTenants } from "../components/excel-import-tenants";
-import { AddTenantManual } from "../components/add-tenant-manual";
 
 function scoreBadge(score: number) {
   if (score >= 80) return "bg-emerald-50 text-emerald-700";
@@ -27,7 +25,7 @@ function scoreBadge(score: number) {
 }
 
 export default async function CorporateGroupTenantsPage() {
-  const [context, tenants, scores, incidentStats] = await Promise.all([
+  const [, tenants, scores, incidentStats] = await Promise.all([
     requireCorporateGroupContext(),
     listGroupTenants(),
     getGroupComplianceScores(),
@@ -269,12 +267,6 @@ export default async function CorporateGroupTenantsPage() {
         </div>
       )}
 
-      {context.groupRole === "GROUP_ADMIN" && (
-        <div className="space-y-4">
-          <AddTenantManual />
-          <ExcelImportTenants groupId={context.groupId} />
-        </div>
-      )}
     </div>
   );
 }
