@@ -431,11 +431,9 @@ export const authOptions: NextAuthOptions = {
         }
       }
       
-      // Håndter session update (når tenant byttes)
       if (trigger === "update" && session?.tenantId) {
         token.tenantId = session.tenantId;
         
-        // Hent oppdatert tenant info
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
           include: {
@@ -445,6 +443,8 @@ export const authOptions: NextAuthOptions = {
                 tenant: {
                   select: {
                     name: true,
+                    status: true,
+                    isTavleOnly: true,
                   },
                 },
               },
@@ -456,7 +456,22 @@ export const authOptions: NextAuthOptions = {
         if (selectedMembership) {
           token.role = selectedMembership.role;
           token.tenantName = selectedMembership.tenant.name;
+          token.isTavleOnly = selectedMembership.tenant.isTavleOnly ?? false;
           token.roleUpdatedAt = selectedMembership.updatedAt.getTime();
+        }
+
+        try {
+          const confidentialCount = await prisma.whistleblowAccessGrant.count({
+            where: {
+              tenantId: session.tenantId as string,
+              granteeId: token.id as string,
+              revokedAt: null,
+              expiresAt: { gt: new Date() },
+            },
+          });
+          token.hasConfidentialInbox = confidentialCount > 0;
+        } catch {
+          token.hasConfidentialInbox = false;
         }
       }
       

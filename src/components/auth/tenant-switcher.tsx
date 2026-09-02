@@ -66,7 +66,6 @@ export function TenantSwitcher() {
         throw new Error("Kunne ikke bytte bedrift");
       }
 
-      // Oppdater session
       await update({ tenantId });
 
       toast({
@@ -74,8 +73,6 @@ export function TenantSwitcher() {
         description: `Du er nå koblet til ${tenants.find(t => t.id === tenantId)?.name}`,
       });
 
-      // Refresh siden
-      router.refresh();
       window.location.href = "/dashboard";
     } catch (error) {
       toast({
