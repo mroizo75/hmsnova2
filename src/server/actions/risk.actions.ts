@@ -7,14 +7,17 @@ import {
   updateRiskSchema,
   createRiskAssessmentSchema,
   updateRiskAssessmentSchema,
+  addRiskAssessmentItemSchema,
   riskLevelToMatrix,
 } from "@/features/risks/schemas/risk.schema";
-import { ControlFrequency, RiskCategory } from "@prisma/client";
+import { ControlFrequency } from "@prisma/client";
 import { calculateNextReviewDate } from "@/lib/document-utils";
 import { getActionContext } from "./action-context";
 import { AuditLog } from "@/lib/audit-log";
 import { generateRiskAnalysis, generateRiskAssessmentItemDraft } from "@/lib/ai";
+import { logAiFeedback } from "@/lib/ai-feedback";
 import { getIndustryLabel, isSupportedIndustry } from "@/lib/industry-packages";
+import { mapAiSeverityToValues, mapAiCategoryToRiskCategory, normalizeAiMeasures } from "@/lib/risk-ai-mapping";
 import { z } from "zod";
 import { getPermissions } from "@/lib/permissions";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
@@ -64,54 +67,22 @@ const applyAiRiskSuggestionsSchema = z.object({
         title: z.string().min(2),
         severity: z.string().min(1),
         category: z.string().min(1),
+        description: z.string().max(2000).optional(),
+        riskStatement: z.string().max(500).optional(),
+        existingControls: z.string().max(2000).optional(),
+        suggestedMeasures: z.array(z.string().min(1).max(500)).max(5).optional(),
+        /** Opprinnelig AI-forslått tittel før evt. brukerredigering - kun for bakgrunnslogging av AI-feedback. */
+        originalTitle: z.string().optional(),
       })
     )
     .min(1),
 });
-
-const mapAiSeverityToValues = (severity: string): { likelihood: number; consequence: number } => {
-  const normalizedSeverity = severity.trim().toUpperCase();
-  if (normalizedSeverity === "HIGH") return { likelihood: 3, consequence: 4 };
-  if (normalizedSeverity === "MEDIUM") return { likelihood: 2, consequence: 3 };
-  return { likelihood: 1, consequence: 2 };
-};
-
-const mapAiCategoryToRiskCategory = (category: string): RiskCategory => {
-  const normalizedCategory = category.trim().toLowerCase();
-  if (normalizedCategory.includes("ergonomi")) return "ERGONOMIC";
-  if (normalizedCategory.includes("sikker")) return "SAFETY";
-  if (normalizedCategory.includes("psyk")) return "PSYCHOSOCIAL";
-  if (normalizedCategory.includes("kjem")) return "HEALTH";
-  if (normalizedCategory.includes("fysisk")) return "PHYSICAL";
-  if (normalizedCategory.includes("milj")) return "ENVIRONMENTAL";
-  if (normalizedCategory.includes("jurid")) return "LEGAL";
-  return "OPERATIONAL";
-};
-
-const assessmentItemCategoryOptions: RiskCategory[] = [
-  "PSYCHOSOCIAL",
-  "ERGONOMIC",
-  "ORGANISATIONAL",
-  "PHYSICAL",
-  "SAFETY",
-  "HEALTH",
-  "OPERATIONAL",
-  "ENVIRONMENTAL",
-];
 
 const generateAiRiskAssessmentItemDraftSchema = z.object({
   riskType: z.string().min(2).max(120),
   category: z.string().min(2).max(50),
   industryContext: z.string().max(120).optional(),
 });
-
-const mapAiAssessmentCategoryToRiskCategory = (value: string, fallback: RiskCategory): RiskCategory => {
-  const normalizedValue = value.trim().toUpperCase();
-  if (assessmentItemCategoryOptions.includes(normalizedValue as RiskCategory)) {
-    return normalizedValue as RiskCategory;
-  }
-  return fallback;
-};
 
 const resolveIndustryPromptLabel = (
   industry: string | null | undefined,
@@ -590,61 +561,49 @@ export async function deleteRiskAssessment(assessmentId: string) {
 }
 
 /** Legg til risikopunkt i en risikovurdering (tittel, beskrivelse, konsekvens, nivå, kategori, dato) */
-export async function addRiskAssessmentItem(input: {
-  riskAssessmentId: string;
-  tenantId: string;
-  ownerId: string;
-  title: string;
-  level: keyof typeof riskLevelToMatrix;
-  category: string;
-  assessmentDate?: string | null;
-  nextReviewDate?: string | null;
-  beskrivelse?: string | null;
-  konsekvens?: string | null;
-  suggestedMeasures?: string[];
-}) {
+export async function addRiskAssessmentItem(input: z.input<typeof addRiskAssessmentItemSchema>) {
   try {
     const { user, tenantId: ctxTenantId } = await getActionContext();
-    if (input.tenantId !== ctxTenantId) return { success: false, error: "Ugyldig tenant" };
+    const validatedInput = addRiskAssessmentItemSchema.parse(input);
+    if (validatedInput.tenantId !== ctxTenantId) return { success: false, error: "Ugyldig tenant" };
 
     const assessment = await prisma.riskAssessment.findFirst({
-      where: { id: input.riskAssessmentId, tenantId: input.tenantId },
+      where: { id: validatedInput.riskAssessmentId, tenantId: validatedInput.tenantId },
     });
     if (!assessment) return { success: false, error: "Risikovurdering ikke funnet" };
 
-    const { likelihood, consequence } = riskLevelToMatrix[input.level];
+    const { likelihood, consequence } = riskLevelToMatrix[validatedInput.level];
     const score = likelihood * consequence;
-    const beskrivelseTrimmed = (input.beskrivelse ?? "").trim();
+    const beskrivelseTrimmed = (validatedInput.beskrivelse ?? "").trim();
     const context =
       beskrivelseTrimmed.length >= 10
         ? beskrivelseTrimmed
-        : input.title.length >= 10
-          ? input.title
-          : `${input.title} (risikopunkt)`;
-    const riskStatement = (input.konsekvens ?? "").trim() || null;
+        : validatedInput.title.length >= 10
+          ? validatedInput.title
+          : `${validatedInput.title} (risikopunkt)`;
+    const riskStatement = (validatedInput.konsekvens ?? "").trim() || null;
+    const existingControls = (validatedInput.eksisterendeKontroller ?? "").trim() || null;
 
-    const normalizedMeasures = (input.suggestedMeasures ?? [])
-      .map((item) => item.trim())
-      .filter((item, index, array) => item.length > 0 && array.indexOf(item) === index)
-      .slice(0, 5);
+    const normalizedMeasures = normalizeAiMeasures(validatedInput.suggestedMeasures);
 
     const risk = await prisma.$transaction(async (tx) => {
       const createdRisk = await tx.risk.create({
         data: {
-          tenantId: input.tenantId,
-          riskAssessmentId: input.riskAssessmentId,
-          title: input.title,
+          tenantId: validatedInput.tenantId,
+          riskAssessmentId: validatedInput.riskAssessmentId,
+          title: validatedInput.title,
           context,
           riskStatement,
+          existingControls,
           likelihood,
           consequence,
           score,
-          ownerId: input.ownerId,
+          ownerId: validatedInput.ownerId,
           status: "OPEN",
-          category: input.category as RiskCategory,
-          assessmentDate: input.assessmentDate ? new Date(input.assessmentDate) : null,
-          nextReviewDate: input.nextReviewDate ? new Date(input.nextReviewDate) : null,
-          controlFrequency: input.nextReviewDate ? "ANNUAL" : undefined,
+          category: validatedInput.category,
+          assessmentDate: validatedInput.assessmentDate ? new Date(validatedInput.assessmentDate) : null,
+          nextReviewDate: validatedInput.nextReviewDate ? new Date(validatedInput.nextReviewDate) : null,
+          controlFrequency: validatedInput.nextReviewDate ? "ANNUAL" : undefined,
         },
       });
 
@@ -658,7 +617,7 @@ export async function addRiskAssessmentItem(input: {
             title: measureTitle,
             description: "AI-foreslått tiltak. Bekreft ansvarlig, frist og effekt ved oppfølging.",
             dueAt,
-            responsibleId: input.ownerId,
+            responsibleId: validatedInput.ownerId,
             category: "MITIGATION",
             followUpFrequency: "ANNUAL",
           })),
@@ -671,12 +630,21 @@ export async function addRiskAssessmentItem(input: {
     AuditLog.log(ctxTenantId, user.id, "RISK_CREATED", "Risk", risk.id, {
       title: risk.title,
       score: risk.score,
-      riskAssessmentId: input.riskAssessmentId,
+      riskAssessmentId: validatedInput.riskAssessmentId,
       measuresCount: normalizedMeasures.length,
     }).catch(() => {});
 
+    if (validatedInput.aiSuggestedTitle) {
+      void logAiFeedback({
+        tenantId: ctxTenantId,
+        feature: "risk_suggestion",
+        aiSuggestion: validatedInput.aiSuggestedTitle,
+        userFinalValue: risk.title,
+      });
+    }
+
     revalidatePath("/dashboard/risks");
-    revalidatePath(`/dashboard/risks/assessment/${input.riskAssessmentId}`);
+    revalidatePath(`/dashboard/risks/assessment/${validatedInput.riskAssessmentId}`);
     triggerRealtimeEvent(ctxTenantId, "risk-updated");
     return { success: true, data: risk };
   } catch (error: unknown) {
@@ -723,6 +691,7 @@ export async function generateAiRiskAssessmentItem(input: {
         cacheScope: `tenant:${tenantId}:riskAssessmentItem`,
         rateLimitScope: `tenant:${tenantId}`,
         budgetScope: `tenant:${tenantId}`,
+        tenantId,
       }
     );
 
@@ -737,12 +706,9 @@ export async function generateAiRiskAssessmentItem(input: {
         ? level
         : "MEDIUM";
 
-    const fallbackCategory = mapAiAssessmentCategoryToRiskCategory(validated.category, "OPERATIONAL");
-    const normalizedCategory = mapAiAssessmentCategoryToRiskCategory(draft.category || "", fallbackCategory);
-    const suggestedMeasures = (draft.suggestedMeasures ?? [])
-      .map((item) => item.trim())
-      .filter((item, index, array) => item.length > 0 && array.indexOf(item) === index)
-      .slice(0, 5);
+    const fallbackCategory = mapAiCategoryToRiskCategory(validated.category, "OPERATIONAL");
+    const normalizedCategory = mapAiCategoryToRiskCategory(draft.category || "", fallbackCategory);
+    const suggestedMeasures = normalizeAiMeasures(draft.suggestedMeasures);
 
     return {
       success: true,
@@ -750,6 +716,7 @@ export async function generateAiRiskAssessmentItem(input: {
         title: normalizedTitle,
         beskrivelse: draft.beskrivelse?.trim() || "",
         konsekvens: draft.konsekvens?.trim() || "",
+        eksisterendeKontroller: draft.eksisterendeKontroller?.trim() || "",
         level: normalizedLevel,
         category: normalizedCategory,
         suggestedMeasures,
@@ -826,6 +793,7 @@ export async function previewAiRiskSuggestions() {
         cacheScope: `tenant:${tenantId}:riskSuggestions`,
         rateLimitScope: `tenant:${tenantId}`,
         budgetScope: `tenant:${tenantId}`,
+        tenantId,
       }
     );
 
@@ -838,6 +806,10 @@ export async function previewAiRiskSuggestions() {
           severity: suggestion.severity.trim().toUpperCase(),
           category: suggestion.category.trim(),
           rationale: (suggestion.rationale || "").trim(),
+          description: (suggestion.description || "").trim(),
+          riskStatement: (suggestion.riskStatement || "").trim(),
+          existingControls: (suggestion.existingControls || "").trim(),
+          suggestedMeasures: normalizeAiMeasures(suggestion.suggestedMeasures),
           isDuplicate: existingRiskTitles.has(title.toLowerCase()),
         };
       })
@@ -856,7 +828,16 @@ export async function previewAiRiskSuggestions() {
 
 export async function applyAiRiskSuggestions(input: {
   assessmentTitle: string;
-  suggestions: Array<{ title: string; severity: string; category: string }>;
+  suggestions: Array<{
+    title: string;
+    severity: string;
+    category: string;
+    description?: string;
+    riskStatement?: string;
+    existingControls?: string;
+    suggestedMeasures?: string[];
+    originalTitle?: string;
+  }>;
 }) {
   try {
     const { user, tenantId, role } = await getActionContext();
@@ -921,25 +902,59 @@ export async function applyAiRiskSuggestions(input: {
         }
 
         const severity = mapAiSeverityToValues(suggestion.severity);
-        await tx.risk.create({
+        const suggestedMeasures = normalizeAiMeasures(suggestion.suggestedMeasures);
+        const createdRisk = await tx.risk.create({
           data: {
             tenantId,
             riskAssessmentId: assessment.id,
             title,
-            context: `AI-forslag for ${industryLabel}: ${title}`,
+            context:
+              suggestion.description?.trim() ||
+              `AI-forslag for ${industryLabel}: ${title}`,
             likelihood: severity.likelihood,
             consequence: severity.consequence,
             score: severity.likelihood * severity.consequence,
             ownerId: ownerCandidate.userId,
             category: mapAiCategoryToRiskCategory(suggestion.category),
-            description: "Manuelt godkjent AI-forslag basert på bransje og historikk.",
-            existingControls: "Vurder tiltak via SJA, vernerunde og opplæringsplan.",
-            riskStatement: title,
+            description: suggestion.description?.trim() || null,
+            existingControls:
+              suggestion.existingControls?.trim() ||
+              "Vurder tiltak via SJA, vernerunde og opplæringsplan.",
+            riskStatement: suggestion.riskStatement?.trim() || title,
           },
         });
+
+        if (suggestedMeasures.length > 0) {
+          const dueAt = new Date();
+          dueAt.setDate(dueAt.getDate() + 30);
+          await tx.measure.createMany({
+            data: suggestedMeasures.map((measureTitle) => ({
+              tenantId,
+              riskId: createdRisk.id,
+              title: measureTitle,
+              description: "AI-foreslått tiltak. Bekreft ansvarlig, frist og effekt ved oppfølging.",
+              dueAt,
+              responsibleId: ownerCandidate.userId,
+              category: "MITIGATION",
+              followUpFrequency: "ANNUAL",
+            })),
+          });
+        }
+
         created += 1;
       }
     });
+
+    // AI-feedback-logging: sammenlign AI-forslått tittel med det brukeren faktisk lagret. Ren bakgrunnslogging.
+    for (const suggestion of validated.suggestions) {
+      if (!suggestion.originalTitle) continue;
+      void logAiFeedback({
+        tenantId,
+        feature: "risk_suggestion",
+        aiSuggestion: suggestion.originalTitle,
+        userFinalValue: suggestion.title.trim(),
+      });
+    }
 
     AuditLog.log(tenantId, user.id, "RISK_AI_SUGGESTIONS_APPLIED", "RiskAssessment", tenantId, {
       assessmentTitle: validated.assessmentTitle,

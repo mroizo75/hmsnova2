@@ -22,6 +22,7 @@ import { canEnterKonsernFromHms, hasKonsernMenuInHms } from "@/lib/konsern-acces
 import { filterDashboardNavItems, sortDashboardNavItems } from "@/lib/dashboard-nav-filter";
 import { DASHBOARD_NAV_ICONS } from "@/lib/dashboard-nav-icons";
 import { useTenantNavContext } from "@/hooks/use-tenant-nav-context";
+import { groupNavItemsByHub } from "@/lib/dashboard-nav-hub-groups";
 
 export function DashboardNav() {
   const pathname = usePathname();
@@ -49,6 +50,7 @@ export function DashboardNav() {
     }),
     (item) => t(item.label),
   );
+  const navHubGroups = groupNavItemsByHub(allowedNavItems);
 
   const tenantName = session?.user?.tenantName;
 
@@ -101,26 +103,33 @@ export function DashboardNav() {
           </p>
         </div>
 
-        <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
-          {allowedNavItems.map((item) => {
-            const Icon = DASHBOARD_NAV_ICONS[item.href] ?? FileText;
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-accent"
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {t(item.label)}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 space-y-4 p-4 overflow-y-auto">
+          {navHubGroups.map((group) => (
+            <div key={group.hub} className="space-y-1">
+              <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {t(group.labelKey)}
+              </p>
+              {group.items.map((item) => {
+                const Icon = DASHBOARD_NAV_ICONS[item.href] ?? FileText;
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                      isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "hover:bg-accent"
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {t(item.label)}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
         <div className="border-t p-4">
           <div className="mb-2 px-3 text-xs text-muted-foreground truncate">

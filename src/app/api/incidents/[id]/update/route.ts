@@ -3,9 +3,10 @@ import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { IncidentStage, IncidentStatus, IncidentType } from "@prisma/client";
+import { IncidentStatus, IncidentType } from "@prisma/client";
 import { createNotification, notifyUsersByRoles } from "@/server/actions/notification.actions";
 import { normalizeProjectReference } from "@/lib/incident-project-reference";
+import { resolveIncidentStage } from "@/lib/incident-stage";
 
 function parseBoolean(value: unknown): boolean | undefined {
   if (typeof value === "boolean") {
@@ -198,13 +199,6 @@ export async function PUT(
       }
     }
 
-    const stageMap: Record<IncidentStatus, IncidentStage> = {
-      OPEN: "REPORTED",
-      INVESTIGATING: "UNDER_REVIEW",
-      ACTION_TAKEN: "ACTIONS_DEFINED",
-      CLOSED: "VERIFIED",
-    };
-
     const existingIncident = await prisma.incident.findUnique({
       where: { id, tenantId },
       select: {
@@ -215,12 +209,21 @@ export async function PUT(
         isRestrictedWork: true,
         responsibleId: true,
         avviksnummer: true,
+        stage: true,
       },
     });
 
     if (!existingIncident) {
       return NextResponse.json({ error: "Avviket ble ikke funnet." }, { status: 404 });
     }
+
+    // Fremdriften (stage) skal aldri nedgraderes bare fordi behandlingsskjemaet
+    // sender inn samme status på nytt etter at f.eks. årsaksanalyse allerede er
+    // gjennomført (IK-HMS § 5 nr. 7 / ISO 9001 kap. 10.2).
+    const nextStage = resolveIncidentStage(
+      existingIncident.stage,
+      status as IncidentStatus | undefined
+    );
 
     const incident = await prisma.incident.update({
       where: { id, tenantId },
@@ -237,7 +240,7 @@ export async function PUT(
         status,
         severity,
         responsibleId,
-        stage: stageMap[status as IncidentStatus] || "REPORTED",
+        stage: nextStage,
         medicalAttentionRequired:
           medicalAttentionRequired === undefined ? undefined : medicalAttentionRequired,
         isFatal: isFatal === undefined ? undefined : isFatal,

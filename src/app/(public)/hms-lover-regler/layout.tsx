@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Gratis oversikt over HMS-lover og regler | HMS Nova",
   description:
-    "Last ned gratis oversikt over de viktigste HMS-lovene og forskriftene. Forstå Arbeidsmiljøloven, HMS-forskriften og nye regler fra 2024. Inkluderer verneombud-plikten, BHT-krav og psykososialt arbeidsmiljø. Eller få HMS Nova som automatisk følger all lovgivning – gratis.",
+    "Last ned oversikt over de viktigste HMS-lovene og forskriftene. Forstå Arbeidsmiljøloven, HMS-forskriften og nye regler. Inkluderer verneombud-plikten, BHT-krav og psykososialt arbeidsmiljø. HMS Nova følger lovgivningen – 14 dagers angrefrist, deretter 12 måneders binding.",
   keywords: [
     "HMS-lover Norge",
     "arbeidsmiljøloven",
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Gratis oversikt over HMS-lover og regler | HMS Nova",
     description:
-      "Komplett oversikt over HMS-lover og forskrifter. Last ned gratis eller få HMS-system som følger all lovgivning automatisk.",
+      "Komplett oversikt over HMS-lover og forskrifter. HMS Nova følger lovgivningen – 14 dagers angrefrist, deretter 12 måneders binding.",
     url: "https://hmsnova.com/hms-lover-regler",
     siteName: "HMS Nova",
     locale: "nb_NO",

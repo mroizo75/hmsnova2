@@ -20,12 +20,12 @@ export const faqDatabase = {
     {
       question: 'Hvor lang tid tar det å komme i gang?',
       answer:
-        'Du kommer i gang ved å registrere bedriften og få 14 dagers gratis prøveperiode. Oppsett og import av dokumenter tar typisk 30-60 minutter. Totalt: <strong>1-2 timer</strong> til du er operasjonell. Alternativt kan vi gjøre alt for deg med implementeringspakke fra 6.900 kr.',
+        'Du kommer i gang ved å registrere bedriften. Du har 14 dagers avtalt angrefrist. Oppsett og import av dokumenter tar typisk 30-60 minutter. Totalt: <strong>1-2 timer</strong> til du er operasjonell. Alternativt kan vi gjøre alt for deg med implementeringspakke fra 6.900 kr.',
     },
     {
-      question: 'Kan jeg teste HMS Nova gratis?',
+      question: 'Har dere gratis prøveperiode?',
       answer:
-        'Ja! Vi tilbyr <strong>14 dagers gratis prøveperiode</strong> med full tilgang til alle funksjoner. Ingen kredittkort nødvendig. Du kan invitere hele teamet og teste systemet i reelle situasjoner. Hvis du ikke er fornøyd, sier du bare fra - ingen spørsmål stilt.',
+        'Nei. HMS Nova har <strong>ikke gratis prøveperiode</strong>. Du får 14 dagers avtalt angrefrist fra registrering. Sier du opp skriftlig til post@hmsnova.no innen fristen, koster det ingenting. Hvis du ikke sier opp, er abonnementet bindende i 12 måneder, med 3 måneders skriftlig oppsigelse etter det.',
     },
   ],
 
@@ -79,17 +79,17 @@ export const faqDatabase = {
     {
       question: 'Trenger vi opplæring?',
       answer:
-        'HMS Nova er designet for å være intuitivt og de fleste lærer systemet på 1-2 timer. Vi tilbyr: 1) Dokumentasjon og guider, 2) Support via e-post og telefon, 3) Valgfri implementeringshjelp (se priser under). Du kan registrere bedriften og komme i gang med 14 dagers gratis prøveperiode.',
+        'HMS Nova er designet for å være intuitivt og de fleste lærer systemet på 1-2 timer. Vi tilbyr: 1) Dokumentasjon og guider, 2) Support via e-post og telefon, 3) Valgfri implementeringshjelp (se priser under). Du kan registrere bedriften og komme i gang med en gang. 14 dagers angrefrist gjelder fra registreringsdato.',
     },
     {
       question: 'Er implementering og opplæring inkludert?',
       answer:
-        '<strong>Nei, men du har to alternativer:</strong><br><br><strong>1) Gjør det selv:</strong> Registrer bedriften og bruk 14 dagers gratis prøveperiode til å sette opp HMS Nova med egne dokumenter og maler.<br><br><strong>2) Vi gjør det for deg:</strong> Implementeringstjenester fra <strong>6.900 kr</strong> (0-20 ansatte) til 14.900 kr (51+ ansatte). 40% billigere enn tradisjonelle HMS-konsulenter. Inkluderer: komplett oppsett av systemet, import av eksisterende dokumenter, og 2 timers opplæring for teamet.',
+        '<strong>Nei, men du har to alternativer:</strong><br><br><strong>1) Gjør det selv:</strong> Registrer bedriften og sett opp HMS Nova med egne dokumenter og maler. Du har 14 dagers angrefrist.<br><br><strong>2) Vi gjør det for deg:</strong> Implementeringstjenester fra <strong>6.900 kr</strong> (0-20 ansatte) til 14.900 kr (51+ ansatte). 40% billigere enn tradisjonelle HMS-konsulenter. Inkluderer: komplett oppsett av systemet, import av eksisterende dokumenter, og 2 timers opplæring for teamet.',
     },
     {
       question: 'Hva skjer hvis vi vil slutte?',
       answer:
-        '<strong>Ingen binding!</strong> Du kan si opp når som helst med 1 måneds varsel. Vi eksporterer alle dine data (PDF og Excel) slik at du beholder alt. Ingen skjulte gebyrer eller straff for oppsigelse. Vi vil selvsagt gjerne vite hvorfor, så vi kan bli bedre.',
+        '<strong>14 dagers angrefrist, deretter 12 måneders binding.</strong> Si opp kostnadsfritt innen 14 dager ved skriftlig e-post til post@hmsnova.no. Etter angrefristen er abonnementet bindende i 12 måneder, med 3 måneders skriftlig oppsigelse etter det. Vi eksporterer alle dine data (PDF og Excel) ved opphør.',
     },
   ],
 

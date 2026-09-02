@@ -104,11 +104,21 @@ type ManualReference = {
   lastVerifiedAt: string | null;
 };
 
+type LawChangeNotice = {
+  id: string;
+  title: string;
+  sourceUrl: string;
+  customerSummary: string | null;
+  notifiedAt: string | null;
+  source: string;
+};
+
 type Props = {
   regulatoryStatus: RegulatoryStatus;
   userRole: string;
   manualReferences: ManualReference[];
   routineSuggestions: RegulatoryRoutineSuggestion[];
+  lawChanges?: LawChangeNotice[];
 };
 
 export function JuridiskRegisterClient({
@@ -116,6 +126,7 @@ export function JuridiskRegisterClient({
   userRole,
   manualReferences,
   routineSuggestions,
+  lawChanges = [],
 }: Props) {
   const [showWizard, setShowWizard] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<RequirementStatus | null>(null);
@@ -265,6 +276,45 @@ export function JuridiskRegisterClient({
 
       {canManage && routineSuggestions.length > 0 && (
         <RegulatoryRoutinePicker suggestions={routineSuggestions} />
+      )}
+
+      {lawChanges.length > 0 && (
+        <Card className="border-amber-200 bg-amber-50/40">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-700" />
+              Nye regelverksendringer
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Internkontrollforskriften § 5 krever at dere har oversikt over gjeldende krav og informerer ansatte om endringer.
+            </p>
+            {lawChanges.map((change) => (
+              <div key={change.id} className="rounded-md border bg-background p-3 space-y-1">
+                <p className="text-sm font-medium">{change.title}</p>
+                {change.customerSummary && (
+                  <p className="text-sm text-muted-foreground">{change.customerSummary}</p>
+                )}
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  {change.notifiedAt && (
+                    <span>
+                      Varslet {new Date(change.notifiedAt).toLocaleDateString("nb-NO")}
+                    </span>
+                  )}
+                  <a
+                    href={change.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-primary"
+                  >
+                    Les kilden <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       )}
 
       {/* Tabs */}

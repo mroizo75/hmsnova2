@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HardHat, BookTemplate } from "lucide-react";
 import { SjaForm } from "@/components/sja/sja-form";
+import { SjaTemplatePicker } from "@/components/sja/sja-template-picker";
 
 interface PageProps {
   searchParams: Promise<{ mal?: string; projectId?: string }>;
@@ -21,7 +22,7 @@ export default async function NySja({ searchParams }: PageProps) {
 
   const { mal: templateId, projectId } = await searchParams;
 
-  const [projects, selectedProject, risks] = await Promise.all([
+  const [projects, selectedProject, risks, allTemplates] = await Promise.all([
     prisma.project.findMany({
       where: {
         tenantId: session.user.tenantId,
@@ -50,6 +51,11 @@ export default async function NySja({ searchParams }: PageProps) {
       where: { tenantId: session.user.tenantId },
       select: { id: true, title: true, score: true },
       orderBy: { title: "asc" },
+    }),
+    prisma.sjaTemplate.findMany({
+      where: { tenantId: session.user.tenantId, isActive: true },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
     }),
   ]);
 
@@ -110,7 +116,7 @@ export default async function NySja({ searchParams }: PageProps) {
         </p>
       </div>
 
-      {templateData && (
+      {templateData ? (
         <Card className="border-l-4 border-l-purple-500 bg-purple-50">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -122,7 +128,13 @@ export default async function NySja({ searchParams }: PageProps) {
             </div>
           </CardContent>
         </Card>
-      )}
+      ) : allTemplates.length > 0 ? (
+        <Card>
+          <CardContent className="p-4">
+            <SjaTemplatePicker templates={allTemplates} selectedTemplateId={templateId} />
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card className="border-l-4 border-l-orange-500 bg-orange-50">
         <CardContent className="p-4">

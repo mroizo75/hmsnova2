@@ -16,10 +16,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CheckCircle2, ArrowLeft, Building2, Mail, Phone, User, MapPin, FileText, ExternalLink } from "lucide-react";
+import { CheckCircle2, ArrowLeft, Building2, Mail, Phone, User, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { submitRegistrationRequest } from "@/server/actions/registration.actions";
 import { AGRICULTURE_FARM_TYPES, SUPPORTED_INDUSTRIES } from "@/lib/industry-packages";
+import { ContractAcceptanceFields } from "@/features/registration/components/contract-acceptance-fields";
 
 export default function RegistrerBedriftPage() {
   const router = useRouter();
@@ -29,12 +30,13 @@ export default function RegistrerBedriftPage() {
   const [industry, setIndustry] = useState<string>("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [acceptedAngrerrett, setAcceptedAngrerrett] = useState(false);
+  const [acceptedBinding, setAcceptedBinding] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    if (!acceptedAngrerrett || !acceptedTerms) {
-      setError("Du må lese og godta begge avtale-dokumentene for å fortsette.");
+    if (!acceptedAngrerrett || !acceptedTerms || !acceptedBinding) {
+      setError("Du må lese og bekrefte angrerett, abonnementsavtale og 12 måneders binding.");
       return;
     }
 
@@ -44,6 +46,8 @@ export default function RegistrerBedriftPage() {
     const formData = new FormData(e.currentTarget);
     formData.set("acceptedTerms", "true");
     formData.set("acceptedAngrerrett", "true");
+    formData.set("acceptedBinding", "true");
+    formData.set("registrationSource", "registrer-bedrift");
 
     try {
       const result = await submitRegistrationRequest(formData);
@@ -73,7 +77,7 @@ export default function RegistrerBedriftPage() {
             <Badge variant="secondary" className="mb-4">
               Registrer bedrift
             </Badge>
-            <h1 className="text-4xl font-bold mb-4">Søk om tilgang til HMS Nova</h1>
+            <h1 className="text-4xl font-bold mb-4">Registrer bedrift</h1>
             <p className="text-lg text-muted-foreground">
               Fyll ut skjemaet under, så setter vi opp en bransjetilpasset HMS-startpakke.
               For landbruk får du ferdige forslag for gårdsdrift fra første dag.
@@ -352,80 +356,15 @@ export default function RegistrerBedriftPage() {
                 </div>
 
                 {/* Avtaledokumenter */}
-                <div className="border-t pt-6 space-y-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <FileText className="h-4 w-4 text-primary" />
-                    <h3 className="font-semibold">Avtaledokumenter</h3>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Les begge dokumentene og bekreft godkjenning for å fullføre søknaden.
-                  </p>
-
-                  {/* Angreretten */}
-                  <div className="p-4 border rounded-lg bg-muted/30 space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-medium text-sm">Angrerettserklæring</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Frivillig 14-dagers betenkningstid fra bestillingsdato
-                        </p>
-                      </div>
-                      <a
-                        href="/api/documents/angrerett"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-xs text-primary hover:underline whitespace-nowrap"
-                      >
-                        Åpne PDF
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    </div>
-                    <div className="flex items-start space-x-2">
-                      <Checkbox
-                        id="acceptAngrerrett"
-                        checked={acceptedAngrerrett}
-                        onCheckedChange={(checked) => setAcceptedAngrerrett(checked === true)}
-                      />
-                      <Label htmlFor="acceptAngrerrett" className="text-sm cursor-pointer leading-snug">
-                        Jeg har lest og forstått angrerettserklæringen, inkludert at den frivillige
-                        14-dagers betenkningstiden gjelder fra bestillingsdatoen.
-                      </Label>
-                    </div>
-                  </div>
-
-                  {/* Abonnementsavtale */}
-                  <div className="p-4 border rounded-lg bg-muted/30 space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-medium text-sm">Abonnementsavtale</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          12 måneder binding · 3 måneders oppsigelse
-                        </p>
-                      </div>
-                      <a
-                        href="/api/documents/abonnementsavtale"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-xs text-primary hover:underline whitespace-nowrap"
-                      >
-                        Åpne PDF
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    </div>
-                    <div className="flex items-start space-x-2">
-                      <Checkbox
-                        id="acceptTerms"
-                        checked={acceptedTerms}
-                        onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
-                      />
-                      <Label htmlFor="acceptTerms" className="text-sm cursor-pointer leading-snug">
-                        Jeg godtar abonnementsavtalen, herunder{" "}
-                        <strong>12 måneders binding</strong> og{" "}
-                        <strong>3 måneders oppsigelsestid</strong> etter bindingsperioden.
-                        Avtalen er juridisk bindende ved innsending.
-                      </Label>
-                    </div>
-                  </div>
+                <div className="space-y-4 border-t pt-6">
+                  <ContractAcceptanceFields
+                    acceptedWithdrawal={acceptedAngrerrett}
+                    acceptedBinding={acceptedBinding}
+                    acceptedTerms={acceptedTerms}
+                    onAcceptedWithdrawal={setAcceptedAngrerrett}
+                    onAcceptedBinding={setAcceptedBinding}
+                    onAcceptedTerms={setAcceptedTerms}
+                  />
                 </div>
 
                 {/* Error message */}
@@ -441,9 +380,9 @@ export default function RegistrerBedriftPage() {
                     type="submit"
                     size="lg"
                     className="flex-1"
-                    disabled={isSubmitting || !acceptedTerms || !acceptedAngrerrett}
+                    disabled={isSubmitting || !acceptedTerms || !acceptedAngrerrett || !acceptedBinding}
                   >
-                    {isSubmitting ? "Sender..." : "Send søknad"}
+                    {isSubmitting ? "Oppretter konto..." : "Opprett konto"}
                   </Button>
                   <Link href="/" className="flex-1">
                     <Button type="button" variant="outline" size="lg" className="w-full">
@@ -477,9 +416,9 @@ export default function RegistrerBedriftPage() {
             <Card>
               <CardContent className="pt-6 text-center">
                 <CheckCircle2 className="h-8 w-8 text-primary mx-auto mb-2" />
-                <h3 className="font-semibold text-sm mb-1">Rask aktivering</h3>
+                <h3 className="font-semibold text-sm mb-1">Aktiver via e-post</h3>
                 <p className="text-xs text-muted-foreground">
-                  Vi setter opp din konto innen 24 timer
+                  Du får en lenke for å sette passord og logge inn med en gang
                 </p>
               </CardContent>
             </Card>
@@ -487,9 +426,9 @@ export default function RegistrerBedriftPage() {
             <Card>
               <CardContent className="pt-6 text-center">
                 <CheckCircle2 className="h-8 w-8 text-primary mx-auto mb-2" />
-                <h3 className="font-semibold text-sm mb-1">14 dagers prøveperiode</h3>
+                <h3 className="font-semibold text-sm mb-1">14 dagers angrefrist</h3>
                 <p className="text-xs text-muted-foreground">
-                  Test alle funksjoner uten forpliktelser
+                  Si opp kostnadsfritt innen 14 dager. Deretter 12 måneders binding.
                 </p>
               </CardContent>
             </Card>

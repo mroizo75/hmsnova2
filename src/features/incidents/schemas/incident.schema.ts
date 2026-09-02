@@ -56,6 +56,8 @@ export const createIncidentSchema = z.object({
   isLostTimeIncident: z.boolean().optional(),
   lostWorkdays: z.number().int().min(0).optional(),
   isRestrictedWork: z.boolean().optional(),
+  // Tiltak foreslått av AI ved oppretting (f.eks. generateAiIncidentCaseDraft) - opprettes som egne Measure-rader
+  aiSuggestedMeasures: z.array(z.string().min(1).max(500)).max(5).optional(),
 });
 
 export const updateIncidentSchema = z.object({
@@ -75,6 +77,8 @@ export const updateIncidentSchema = z.object({
   medicalAttentionRequired: z.boolean().optional(),
   lostTimeMinutes: z.number().int().min(0).optional(),
   riskReferenceId: z.string().cuid().optional().nullable(),
+  // Ansvarlig for oppfølging av avviket (IK-HMS § 5 nr. 7)
+  responsibleId: z.string().cuid().optional().nullable(),
   measureEffectiveness: z.nativeEnum(ActionEffectiveness).optional(),
   stage: z.nativeEnum(IncidentStage).optional(),
   customerName: z.string().max(140).optional().or(z.literal("")),
@@ -107,6 +111,8 @@ export const investigateIncidentSchema = z.object({
   contributingFactors: z.string().optional(),
   investigatedBy: z.string().cuid(),
   relatedRoutineId: z.string().cuid().optional().nullable(),
+  /** AI-forslaget som ble satt inn i feltet (hvis brukt) - kun for bakgrunnslogging av AI-forslag vs. endelig verdi. */
+  aiSuggestedRootCause: z.string().optional(),
 });
 
 export const closeIncidentSchema = z.object({

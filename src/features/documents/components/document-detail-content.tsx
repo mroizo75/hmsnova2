@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DocumentSignatureSection } from "@/features/documents/components/document-signature-section";
-import { Clock, CheckCircle2, Calendar, User, Tag, Download } from "lucide-react";
+import { Clock, CheckCircle2, Calendar, User, Tag, Download, Users } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { fetchDocumentDetail } from "@/server/queries/document.queries";
 import { getPermissions } from "@/lib/permissions";
@@ -53,7 +53,7 @@ export function DocumentDetailContent({ initialData, locale, kindLabels }: Docum
 
   if (!data) return null;
 
-  const { document, currentUserId, userRole } = data;
+  const { document, currentUserId, userRole, confirmationStatus } = data;
   const permissions = getPermissions(userRole as any);
 
   const statusLabels: Record<string, string> = {
@@ -154,6 +154,26 @@ export function DocumentDetailContent({ initialData, locale, kindLabels }: Docum
           </div>
         </CardContent>
       </Card>
+
+      {document.status === "APPROVED" && confirmationStatus && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              {t("confirmation.title")}
+            </CardTitle>
+            <CardDescription>{t("confirmation.description")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-semibold">
+              {t("confirmation.count", {
+                confirmed: confirmationStatus.confirmedCount,
+                total: confirmationStatus.totalUsers,
+              })}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* IK-HMS § 5 */}
       <DocumentSignatureSection

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Gratis HMS-håndbok | Last ned nå | HMS Nova",
   description:
-    "Last ned gratis HMS-håndbok tilpasset din bransje. Over 50 sider med HMS-prosedyrer, maler og sjekklister. Oppfyller krav fra Arbeidsmiljøloven. Eller få hele HMS Nova-systemet gratis for bedrifter med 1-20 ansatte.",
+    "Last ned HMS-håndbok tilpasset din bransje. Over 50 sider med HMS-prosedyrer, maler og sjekklister. Oppfyller krav fra Arbeidsmiljøloven. Registrer bedrift med 14 dagers angrefrist, deretter 12 måneders binding.",
   keywords: [
     "gratis HMS-håndbok",
     "HMS-håndbok mal",
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Gratis HMS-håndbok | Last ned nå | HMS Nova",
     description:
-      "Komplett HMS-håndbok tilpasset din bransje. Over 50 sider med alt du trenger. Last ned gratis eller få hele HMS Nova-systemet.",
+      "Komplett HMS-håndbok tilpasset din bransje. Over 50 sider med alt du trenger. Registrer bedrift – 14 dagers angrefrist, deretter 12 måneders binding.",
     url: "https://hmsnova.com/hms-handbok",
     siteName: "HMS Nova",
     locale: "nb_NO",

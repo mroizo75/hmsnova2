@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { getRequiredTenantContext } from "@/lib/tenant-context";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
 import { createMeasureSchema, updateMeasureSchema, completeMeasureSchema } from "@/features/measures/schemas/measure.schema";
+import { resolveIncidentStage } from "@/lib/incident-stage";
 import { IncidentStage } from "@prisma/client";
 
 async function getSessionContext() {
@@ -161,13 +162,21 @@ export async function createMeasure(input: any) {
     }
 
     if (validated.incidentId) {
-      await prisma.incident.update({
+      const relatedIncident = await prisma.incident.findFirst({
         where: { id: validated.incidentId, tenantId },
-        data: {
-          stage: IncidentStage.ACTIONS_DEFINED,
-          status: "ACTION_TAKEN",
-        },
+        select: { status: true, stage: true },
       });
+      // Et allerede lukket avvik (ISO 9001 kap. 10.2 d: verifisert effekt) skal ikke
+      // gjenåpnes stille i bakgrunnen bare fordi det senere legges til et nytt tiltak.
+      if (relatedIncident && relatedIncident.status !== "CLOSED") {
+        await prisma.incident.update({
+          where: { id: validated.incidentId, tenantId },
+          data: {
+            stage: resolveIncidentStage(relatedIncident.stage, "ACTION_TAKEN"),
+            status: "ACTION_TAKEN",
+          },
+        });
+      }
     }
     
     // Audit log
@@ -310,18 +319,25 @@ export async function completeMeasure(input: any) {
     }
 
     if (measure.incidentId) {
-      const incidentMeasures = await prisma.measure.findMany({
-        where: { incidentId: measure.incidentId, tenantId },
-      });
-      
-      const incidentAllCompleted = incidentMeasures.every(m => m.status === "DONE");
-      
-      await prisma.incident.update({
+      const relatedIncident = await prisma.incident.findFirst({
         where: { id: measure.incidentId, tenantId },
-        data: {
-          stage: incidentAllCompleted ? IncidentStage.ACTIONS_COMPLETE : IncidentStage.ACTIONS_DEFINED,
-        },
+        select: { status: true },
       });
+      // Et allerede lukket avvik (verifisert effekt) skal ikke få stage endret i bakgrunnen.
+      if (relatedIncident && relatedIncident.status !== "CLOSED") {
+        const incidentMeasures = await prisma.measure.findMany({
+          where: { incidentId: measure.incidentId, tenantId },
+        });
+
+        const incidentAllCompleted = incidentMeasures.every(m => m.status === "DONE");
+
+        await prisma.incident.update({
+          where: { id: measure.incidentId, tenantId },
+          data: {
+            stage: incidentAllCompleted ? IncidentStage.ACTIONS_COMPLETE : IncidentStage.ACTIONS_DEFINED,
+          },
+        });
+      }
     }
     
     await prisma.auditLog.create({

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Download, Eye, Clock, Calendar, User, FileText } from "lucide-react";
 import Link from "next/link";
 import { getStorage } from "@/lib/storage";
+import { DocumentConfirmReadButton } from "@/features/documents/components/document-confirm-read-button";
 
 export default async function AnsattDocumentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const t = await getTranslations("employeeDocumentDetailPage");
@@ -74,6 +75,16 @@ export default async function AnsattDocumentDetailPage({ params }: { params: Pro
 
   const storage = getStorage();
   const downloadUrl = await storage.getUrl(document.fileKey, 3600);
+
+  const existingConfirmation = await prisma.documentConfirmation.findUnique({
+    where: {
+      documentId_userId_documentVersion: {
+        documentId: document.id,
+        userId: session.user.id,
+        documentVersion: document.version,
+      },
+    },
+  });
 
   const isWord =
     document.mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
@@ -147,6 +158,29 @@ export default async function AnsattDocumentDetailPage({ params }: { params: Pro
               {isWord ? t("documentCard.downloadOriginal") : t("documentCard.download")}
             </Button>
           </Link>
+        </CardContent>
+      </Card>
+
+      {/* Lesebekreftelse - IK-HMS § 5 */}
+      <Card className="border-2 border-green-200 bg-green-50/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-green-600" />
+            {t("confirmation.title")}
+          </CardTitle>
+          <CardDescription>{t("confirmation.description")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DocumentConfirmReadButton
+            documentId={document.id}
+            initialConfirmed={!!existingConfirmation}
+            initialConfirmedAt={existingConfirmation?.confirmedAt.toISOString() ?? null}
+            labels={{
+              confirm: t("confirmation.confirmButton"),
+              confirmed: t("confirmation.confirmedBadge"),
+              confirmedAt: t("confirmation.confirmedAtLabel"),
+            }}
+          />
         </CardContent>
       </Card>
 

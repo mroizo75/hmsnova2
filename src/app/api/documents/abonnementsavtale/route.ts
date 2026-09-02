@@ -47,7 +47,7 @@ export async function GET() {
         content: [
           {
             type: "paragraph",
-            text: "3.1  Bindingstid\nAbonnementet er bindende i 12 – tolv – måneder fra aktiveringstidspunktet (datoen kontoen aktiveres av leverandøren). Kunden forplikter seg til å betale for hele bindingsperioden uavhengig av faktisk bruk.\n\n3.2  Oppsigelse etter bindingsperioden\nEtter bindingsperiodens utløp kan avtalen sies opp av begge parter med 3 – tre – måneders skriftlig varsel. Oppsigelsesvarselet må sendes til post@hmsnova.no eller per post til leverandørens adresse i § 1.\n\n3.3  Automatisk fornyelse\nDersom skriftlig oppsigelse ikke er mottatt innen utgangen av bindingsperioden, fornyes avtalen automatisk for ytterligere 12 måneder på gjeldende vilkår.\n\n3.4  Prøveperiode\nDe første 14 dagene etter aktivering er en frivillig betenkningstid (se Angrerettserklæringen). Bindingstiden starter formelt ved utløp av prøveperioden dersom kunden ikke har benyttet angreretten.",
+            text: "3.1  Bindingstid\nDersom kunden ikke benytter den avtalte 14-dagers angrefrist, er abonnementet bindende i 12 – tolv – måneder fra første dag etter at angrefristens utløp (bindingsstart). Kunden forplikter seg da til å betale for hele bindingsperioden uavhengig av faktisk bruk.\n\n3.2  Oppsigelse etter bindingsperioden\nEtter bindingsperiodens utløp kan avtalen sies opp av begge parter med 3 – tre – måneders skriftlig varsel. Oppsigelsesvarselet må sendes til post@hmsnova.no eller per post til leverandørens adresse i § 1.\n\n3.3  Automatisk fornyelse\nDersom skriftlig oppsigelse ikke er mottatt senest 3 måneder før utgangen av bindingsperioden, fornyes avtalen automatisk for ytterligere 12 måneder på gjeldende vilkår, med 3 måneders oppsigelse.\n\n3.4  Avtalt angrefrist — ikke gratis prøveperiode\nDe første 14 kalenderdagene fra avtaleinngåelsen (elektronisk aksept i bestillingsskjemaet) er en avtalt angrefrist. Kunden kan i denne perioden si opp kostnadsfritt. Dette er ikke en gratis prøveperiode. Tjenesten er tilgjengelig i angrefristperioden. Bindingstiden i § 3.1 starter automatisk dersom skriftlig oppsigelse ikke er mottatt innen fristen.",
           },
         ],
       },
@@ -84,7 +84,7 @@ export async function GET() {
         content: [
           {
             type: "paragraph",
-            text: "7.1  Kunden er behandlingsansvarlig for personopplysninger registrert i HMS Nova. Leverandøren er databehandler, jf. GDPR art. 28.\n\n7.2  En separat databehandleravtale (DBA) inngås ved behov og er tilgjengelig på forespørsel til post@hmsnova.no.\n\n7.3  Personopplysninger slettes innen 30 dager etter avtalens opphør, med mindre annet er påkrevd av norsk lovgivning.",
+            text: "7.1  Kunden er behandlingsansvarlig for personopplysninger registrert i HMS Nova. Leverandøren er databehandler, jf. GDPR art. 28.\n\n7.2  En separat databehandleravtale (DBA) inngås ved behov og er tilgjengelig på forespørsel til post@hmsnova.no.\n\n7.3  Personopplysninger slettes innen 30 dager etter avtalens opphør, med mindre annet er påkrevd av norsk lovgivning.\n\n7.4  For varslingssaker (AML kap. 2 A) er kunden behandlingsansvarlig og HMS Nova databehandler for den tekniske løsningen. Kunden dokumenterer formål, behandlingsgrunnlag, mottakere, innsyn, lagrings- og slettefrister, og beskyttelse mot gjengjeldelse. Supportinnsyn skjer kun som nødinnsyn med kundens godkjenning og full logging. GDPR-innsyn i varslingssaker behandles manuelt av kunden og utleveres ikke automatisk fra systemet.",
           },
         ],
       },
@@ -150,7 +150,7 @@ export async function GET() {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": 'inline; filename="HMS-Nova-Abonnementsavtale.pdf"',
-      "Cache-Control": "public, max-age=86400",
+      "Cache-Control": "no-store",
     },
   });
 }

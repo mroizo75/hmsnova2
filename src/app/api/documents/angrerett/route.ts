@@ -12,7 +12,7 @@ export async function GET() {
     type: "formal",
     reportLabel: "Juridisk dokument",
     title: "Angrerettserklæring",
-    subtitle: "Frivillig 14-dagers betenkningstid for bedriftskunder",
+    subtitle: "Avtalt 14-dagers angrefrist for bedriftskunder — ikke gratis prøveperiode",
     tenant: {
       name: "KKS AS",
       orgNumber: "931 869 266",
@@ -34,51 +34,51 @@ export async function GET() {
         ],
       },
       {
-        title: "2. Bakgrunn og frivillig betenkningstid",
+        title: "2. Bakgrunn og avtalt angrefrist",
         content: [
           {
             type: "paragraph",
-            text: "Angrerettloven (lov av 20. juni 2014 nr. 27) gjelder i utgangspunktet kun for forbrukerkjøp. HMS Nova er en B2B-tjeneste (virksomhet-til-virksomhet) og forbrukervernet i angrerettloven gjelder derfor ikke automatisk.",
+            text: "Angrerettloven (lov av 20. juni 2014 nr. 27) § 1 gjelder salg til forbruker. HMS Nova er en B2B-tjeneste. Lovfestet angrerett etter angrerettloven gjelder derfor ikke automatisk.",
           },
           {
             type: "paragraph",
-            text: "KKS AS tilbyr likevel en frivillig 14-dagers betenkningstid til alle nye bedriftskunder som en del av god forretningsskikk og tillit til tjenesten. Denne retten gjelder fra bestillingsdatoen (avtaleinngåelsen).",
-          },
-        ],
-      },
-      {
-        title: "3. Vilkår for betenkningstiden",
-        content: [
-          {
-            type: "paragraph",
-            text: "1.  Fristen er 14 kalenderdager regnet fra datoen du bekrefter bestillingen.\n\n2.  Retten gjelder kun dersom tjenesten ikke er tatt vesentlig i bruk (opplastede HMS-dokumenter, registrerte avvik, brukere m.m. utover testnivå).\n\n3.  Angreretten bortfaller automatisk dersom bedriften har lastet ned eller generert rapport-PDF-er under perioden, med mindre dette ble gjort i en klar testsammenheng.\n\n4.  Angreretten gjelder ikke for avtaler inngått av superadmin på vegne av kunden (manuelle aktiveringer) med mindre kunden skriftlig er informert om betenkningstiden.",
+            text: "KKS AS gir likevel alle nye bedriftskunder en avtalt angrefrist på 14 kalenderdager fra avtaleinngåelsen (elektronisk aksept i bestillingsskjemaet). Dette erstatter enhver tidligere omtale av «gratis prøveperiode». Angrefristen er en kontraktsfestet rett til kostnadsfri oppsigelse, ikke en prøve uten forpliktelse utover 14 dager.",
           },
         ],
       },
       {
-        title: "4. Slik utøver du betenkningstiden",
+        title: "3. Vilkår for angrefristen",
         content: [
           {
             type: "paragraph",
-            text: "Send en klar og utvetydig melding til oss innen 14 dager fra bestillingsdatoen. Meldingen kan sendes via:\n\n•  E-post til post@hmsnova.no\n•  Telefon: +47 97 07 07 07\n•  Skriftlig post: KKS AS, Siver Stordahls vei 47, 6430 Bud\n\nMeldingen må inneholde: bedriftsnavn, org.nr., kontaktpersonens navn og e-post, samt bestillingsdatoen.",
+            text: "1.  Fristen er 14 kalenderdager, regnet fra og med datoen for elektronisk aksept i bestillingsskjemaet.\n\n2.  Oppsigelse i angrefristperioden er kostnadsfri. Kunden skal ikke belastes for abonnementet dersom gyldig oppsigelse er mottatt innen fristen.\n\n3.  Bruk av tjenesten i angrefristperioden medfører ikke at angrefristen bortfaller.\n\n4.  Angrefristen gjelder registreringer gjort av kunden selv i bestillingsskjemaet. For manuelle aktiveringer av superadmin gjelder angrefristen bare dersom kunden skriftlig er informert om den.",
           },
         ],
       },
       {
-        title: "5. Konsekvenser ved utøvelse av betenkningstiden",
+        title: "4. Slik utøver du angrefristen",
         content: [
           {
             type: "paragraph",
-            text: "Dersom du benytter deg av betenkningstiden innen fristen, vil:\n\n•  Abonnementet avsluttes uten kostnad.\n•  Evt. forhåndsbetalt beløp refunderes innen 14 virkedager.\n•  Alle data slettes fra HMS Nova innen 30 dager etter angremeldingen.",
+            text: "Send en klar og utvetydig skriftlig melding innen 14 kalenderdager fra avtaleinngåelsen. Meldingen kan sendes via:\n\n•  E-post til post@hmsnova.no\n•  Skriftlig post: KKS AS, Siver Stordahls vei 47, 6430 Bud\n\nMeldingen må inneholde: bedriftsnavn, org.nr., kontaktpersonens navn og e-post, samt dato for registrering. Muntlig melding alene er ikke tilstrekkelig.",
           },
         ],
       },
       {
-        title: "6. Etter betenkningstiden — binding og oppsigelse",
+        title: "5. Konsekvenser ved utøvelse av angrefristen",
         content: [
           {
             type: "paragraph",
-            text: "Etter utløp av 14-dagersperioden er abonnementet bindende i 12 måneder fra aktiveringsdatoen, med 3 måneders skriftlig oppsigelsestid. Se Abonnementsavtalen for fullstendige vilkår.",
+            text: "Dersom du benytter angrefristen innen fristen, vil:\n\n•  Abonnementet avsluttes uten kostnad for bindingsperioden.\n•  Evt. forhåndsbetalt beløp refunderes innen 14 virkedager.\n•  Alle data slettes fra HMS Nova innen 30 dager etter angremeldingen, med mindre loven krever lengre lagring.",
+          },
+        ],
+      },
+      {
+        title: "6. Etter angrefristen — 12 måneders binding og 3 måneders oppsigelse",
+        content: [
+          {
+            type: "paragraph",
+            text: "Dersom skriftlig oppsigelse ikke er mottatt innen utløpet av 14-dagersfristen, er abonnementet bindende i 12 måneder fra bindingsstart (dagen etter angrefristens utløp). Etter bindingsperioden kan avtalen sies opp med 3 måneders skriftlig varsel. Se abonnementsavtalen for fullstendige vilkår. Manglende kjennskap til vilkårene kan ikke påberopes når vilkårene er akseptert elektronisk i bestillingsskjemaet.",
           },
         ],
       },
@@ -96,7 +96,7 @@ export async function GET() {
         content: [
           {
             type: "paragraph",
-            text: "Ved å krysse av for «Jeg har lest og forstått angreretten» i bestillingsskjemaet bekrefter kunden at de har mottatt og lest dette dokumentet.",
+            text: "Ved å krysse av for angrerett, 12 måneders binding og abonnementsavtalen i bestillingsskjemaet bekrefter kunden at dokumentene er mottatt, lest og forstått. Aksepten lagres med tidspunkt, IP-adresse og avtaleversjon.",
           },
           {
             type: "signature-block",
@@ -115,7 +115,7 @@ export async function GET() {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": 'inline; filename="HMS-Nova-Angrerett.pdf"',
-      "Cache-Control": "public, max-age=86400",
+      "Cache-Control": "no-store",
     },
   });
 }

@@ -23,12 +23,12 @@ export default async function WhistleblowingListPage() {
 
   const permissions = getPermissions(session.user.role);
 
-  if (!permissions.canViewWhistleblowing) {
-    redirect("/dashboard");
-  }
-
   const initialData = await fetchWhistleblowings();
   if (!initialData) return notFound();
+
+  if (!permissions.canViewWhistleblowing && initialData.cases.length === 0) {
+    redirect("/konfidensielt");
+  }
 
   return (
     <div className="space-y-6">

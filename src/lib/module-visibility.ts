@@ -64,7 +64,7 @@ export const MODULE_DEFAULTS: Record<ModuleKey, Role[]> = {
   environment:  ["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "BHT"],
   meetings:     ["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "BHT", "REVISOR"],
   routines:     ["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "ANSATT", "BHT", "REVISOR"],
-  whistleblowing: ["ADMIN", "HMS", "VARSLINGSANSVARLIG"],
+    whistleblowing: ["VARSLINGSANSVARLIG"],
   feedback:     ["ADMIN", "HMS", "LEDER", "BHT", "REVISOR"],
   // Standard: kun ADMIN ser ALLE andres samtaler.
   // Alle brukere ser alltid egne samtaler uavhengig av dette.

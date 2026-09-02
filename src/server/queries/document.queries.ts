@@ -91,9 +91,17 @@ export async function fetchDocumentDetail(id: string) {
     return null;
   }
 
+  const [confirmedCount, totalUsers] = await Promise.all([
+    prisma.documentConfirmation.count({
+      where: { documentId: document.id, documentVersion: document.version },
+    }),
+    prisma.userTenant.count({ where: { tenantId } }),
+  ]);
+
   return JSON.parse(JSON.stringify({
     document,
     currentUserId: user.id,
     userRole: selectedMembership.role,
+    confirmationStatus: { confirmedCount, totalUsers },
   }));
 }

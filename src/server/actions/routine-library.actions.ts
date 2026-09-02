@@ -9,6 +9,7 @@ import {
   type RoutineTemplateLibraryEntry,
 } from "@/lib/routine-template-library";
 import { parseIndustryScope, toIndustryScopeJson } from "@/lib/industry-scope";
+import { reindexSingleSource } from "@/lib/ai-knowledge-base";
 
 const SYSTEM_LIBRARY_CREATED_BY = "SYSTEM_ROUTINE_LIBRARY";
 const INDUSTRY_KEYS = [
@@ -62,6 +63,7 @@ export async function seedGlobalRoutineTemplateLibrary() {
   const library = getGlobalRoutineTemplateLibrary();
   let created = 0;
   let updated = 0;
+  const changedIds: string[] = [];
 
   for (const entry of library) {
     const mapped = mapLibraryEntryToPersistence(entry);
@@ -85,10 +87,11 @@ export async function seedGlobalRoutineTemplateLibrary() {
     });
 
     if (!existing) {
-      await prisma.routineTemplate.create({
+      const createdEntry = await prisma.routineTemplate.create({
         data: mapped,
       });
       created += 1;
+      changedIds.push(createdEntry.id);
       continue;
     }
 
@@ -108,7 +111,15 @@ export async function seedGlobalRoutineTemplateLibrary() {
         data: mapped,
       });
       updated += 1;
+      changedIds.push(existing.id);
     }
+  }
+
+  // Reindekser kun de faktisk endrede malene i AI-kunnskapsbasen (RAG) - skal aldri feile selve seedingen
+  for (const id of changedIds) {
+    await reindexSingleSource("ROUTINE_TEMPLATE", id).catch((error) => {
+      console.error("Kunne ikke reindeksere rutinemal i AI-kunnskapsbasen:", error);
+    });
   }
 
   return {

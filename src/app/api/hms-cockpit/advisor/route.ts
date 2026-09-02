@@ -46,6 +46,7 @@ Svar kort, konkret og handlingsorientert. Henvis til relevant lov/forskrift.`
     const reply = await generateAIResponse(prompt, "gpt-4o-mini", {
       cacheScope: `advisor:${tenantId}`,
       rateLimitScope: `advisor:${tenantId}`,
+      tenantId,
     })
 
     return NextResponse.json({ reply })

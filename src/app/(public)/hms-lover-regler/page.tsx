@@ -140,7 +140,7 @@ export default function HMSLoverReglerPage() {
                   </Link>
                 </Button>
                 <p className="text-xs text-muted-foreground mt-3">
-                  Registrer bedrift og kom i gang med 14 dagers prøveperiode
+                  Registrer bedrift og kom i gang med 14 dagers angrefrist
                 </p>
               </div>
             </CardContent>
@@ -211,7 +211,7 @@ export default function HMSLoverReglerPage() {
                 </p>
                 <Button size="lg" className="bg-green-700 hover:bg-green-800 text-white" asChild>
                   <Link href="/registrer-bedrift">
-                    Prøv gratis i 14 dager
+                    Registrer bedrift
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>

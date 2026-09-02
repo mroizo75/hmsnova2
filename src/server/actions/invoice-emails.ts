@@ -39,12 +39,12 @@ export function getTrialWelcomeEmail(data: {
                     </p>
                     
                     <p style="color: #1a1a1a; font-size: 16px; line-height: 1.6; margin: 0 0 30px;">
-                      Din konto er nå aktiv! Du har <strong>14 dager gratis prøveperiode</strong> til å utforske alle funksjonene i HMS Nova.
+                      Din konto er nå aktiv. Du har <strong>14 dagers avtalt angrefrist</strong> – ikke en gratis prøveperiode. Sier du ikke opp skriftlig innen fristen, starter 12 måneders binding.
                     </p>
 
                     <div style="background: linear-gradient(135deg, #e8f6f4 0%, #d4f1ec 100%); border-left: 4px solid #2d9c92; padding: 24px; margin: 30px 0; border-radius: 8px; text-align: center;">
                       <p style="margin: 0 0 8px; color: #666; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">
-                        Din prøveperiode utløper
+                        Angrefrist utløper
                       </p>
                       <p style="margin: 0; color: #2d9c92; font-size: 28px; font-weight: 700;">
                         ${new Date(data.trialEndsAt).toLocaleDateString("nb-NO", {
@@ -56,7 +56,7 @@ export function getTrialWelcomeEmail(data: {
                     </div>
 
                     <h2 style="color: #1a1a1a; font-size: 20px; margin: 30px 0 16px;">
-                      Hva skjer etter prøveperioden?
+                      Hva skjer etter angrefristen?
                     </h2>
 
                     <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background: #f9f9f9; border-radius: 8px; margin: 20px 0;">
@@ -152,7 +152,7 @@ export function getTrialWelcomeEmail(data: {
                     <p style="color: #666; font-size: 14px; margin: 30px 0 0; text-align: center;">
                       Har du spørsmål?<br/>
                       📧 <a href="mailto:support@hmsnova.com" style="color: #2d9c92; text-decoration: none;">support@hmsnova.com</a> | 
-                      📞 <a href="tel:+4799112916" style="color: #2d9c92; text-decoration: none;">+47 99 11 29 16</a>
+                      📞 <a href="tel:+4741874010" style="color: #2d9c92; text-decoration: none;">+47 41 87 40 10</a>
                     </p>
                   </td>
                 </tr>
@@ -195,7 +195,7 @@ export function getTrialExpiringEmail(data: {
                 <tr>
                   <td style="padding: 40px; text-align: center; background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%); border-radius: 12px 12px 0 0;">
                     <h1 style="margin: 0; color: #1a1a1a; font-size: 28px; font-weight: 700;">
-                      ⏰ Din prøveperiode utløper snart!
+                      ⏰ Angrefristen utløper snart
                     </h1>
                   </td>
                 </tr>
@@ -207,12 +207,12 @@ export function getTrialExpiringEmail(data: {
                     </p>
                     
                     <p style="color: #1a1a1a; font-size: 16px; line-height: 1.6; margin: 0 0 30px;">
-                      Din 14 dagers gratis prøveperiode på HMS Nova utløper om <strong>3 dager</strong>.
+                      Angrefristen på 14 dager utløper om <strong>3 dager</strong>. Dette er ikke en gratis prøveperiode. Sier dere ikke opp skriftlig til post@hmsnova.no innen fristen, starter 12 måneders binding med 3 måneders oppsigelse.
                     </p>
 
                     <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 24px; margin: 30px 0; border-radius: 8px; text-align: center;">
                       <p style="margin: 0 0 8px; color: #666; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">
-                        Prøveperioden utløper
+                        Angrefristen utløper
                       </p>
                       <p style="margin: 0; color: #856404; font-size: 28px; font-weight: 700;">
                         ${new Date(data.trialEndsAt).toLocaleDateString("nb-NO", {
@@ -234,7 +234,7 @@ export function getTrialExpiringEmail(data: {
                             <strong>Betal fakturaen for å fortsette</strong>
                           </p>
                           <p style="margin: 0 0 20px; color: #666; font-size: 14px;">
-                            For at du skal kunne fortsette å bruke HMS Nova etter prøveperioden, må fakturaen være betalt innen forfallsdato.
+                            For at abonnementet skal fortsette uten avbrudd etter angrefristen, må fakturaen være betalt innen forfall. Alternativt kan dere si opp kostnadsfritt innen angrefristen.
                           </p>
 
                           <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
@@ -300,7 +300,7 @@ export function getTrialExpiringEmail(data: {
                     <p style="color: #666; font-size: 14px; margin: 30px 0 0; text-align: center;">
                       Spørsmål om betaling?<br/>
                       📧 <a href="mailto:support@hmsnova.com" style="color: #2d9c92; text-decoration: none;">support@hmsnova.com</a> | 
-                      📞 <a href="tel:+4799112916" style="color: #2d9c92; text-decoration: none;">+47 99 11 29 16</a>
+                      📞 <a href="tel:+4741874010" style="color: #2d9c92; text-decoration: none;">+47 41 87 40 10</a>
                     </p>
                   </td>
                 </tr>

@@ -7,6 +7,7 @@ import {
   ensureRegulatoryRequirementsSeeded,
   getRegulatoryRoutineSuggestions,
 } from "@/server/actions/regulatory.actions";
+import { getPublishedLawChangesForIndustry } from "@/server/actions/law-change.actions";
 
 export async function fetchJuridiskRegisterData() {
   const user = await getCurrentUser();
@@ -23,15 +24,24 @@ export async function fetchJuridiskRegisterData() {
     ensureRegulatoryRequirementsSeeded(),
   ]);
 
-  const [regulatoryStatus, routineSuggestions] = await Promise.all([
+  const [regulatoryStatus, routineSuggestions, lawChanges] = await Promise.all([
     getRegulatoryStatus(),
     getRegulatoryRoutineSuggestions().catch(() => []),
+    getPublishedLawChangesForIndustry(industry),
   ]);
 
   return JSON.parse(JSON.stringify({
     regulatoryStatus,
     userRole: userTenant.role,
     routineSuggestions,
+    lawChanges: lawChanges.map((change) => ({
+      id: change.id,
+      title: change.title,
+      sourceUrl: change.sourceUrl,
+      customerSummary: change.customerSummary,
+      notifiedAt: change.notifiedAt?.toISOString() ?? null,
+      source: change.source,
+    })),
     manualReferences: references.map((ref: any) => ({
       id: ref.id,
       title: ref.title,

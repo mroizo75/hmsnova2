@@ -381,12 +381,12 @@ export default function BesteHMSSystemISO9001Page() {
             </p>
             <Link href="/registrer-bedrift">
               <Button size="lg" variant="secondary">
-                Start gratis prøveperiode
+                Registrer bedrift
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
             <p className="text-sm mt-6 text-primary-foreground/70">
-              14 dagers gratis test • Ingen binding • Norsk support
+              14 dagers angrefrist • Deretter 12 mnd binding • Norsk support
             </p>
           </CardContent>
         </Card>

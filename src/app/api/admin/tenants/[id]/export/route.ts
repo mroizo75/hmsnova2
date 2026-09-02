@@ -326,6 +326,8 @@ export async function GET(
   });
   zip.file("exposure-register.json", JSON.stringify(exposures, null, 2));
 
+  // Varslingssaker (AML kap. 2 A) utelates bevisst. GDPR-innsyn i varsling behandles manuelt av kunden (POL § 16).
+
   zip.file("metadata.json", JSON.stringify({
     exportedAt: new Date().toISOString(),
     tenantId: tenant.id,

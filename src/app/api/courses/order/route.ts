@@ -235,7 +235,7 @@ export async function POST(request: NextRequest) {
 
                 <div class="info-box">
                   <h2>📞 Kontakt oss</h2>
-                  <p><strong>Kurs:</strong> +47 91 54 08 24<br>
+                  <p><strong>Telefon:</strong> +47 41 87 40 10<br>
                   <strong>E-post:</strong> kurs@hmsnova.no</p>
                 </div>
 

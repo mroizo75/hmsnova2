@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { toPublicTrackView } from "@/lib/whistleblowing-case-access";
 
 export const dynamic = "force-dynamic";
 
@@ -48,10 +49,9 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Don't expose sensitive admin data
-    const { handledBy, assignedTo, investigationNotes, ...publicData } = report;
-
-    return NextResponse.json({ data: publicData });
+    return NextResponse.json({
+      data: toPublicTrackView(report as unknown as Record<string, unknown>),
+    });
   } catch (error: any) {
     console.error("[WHISTLEBLOWING_TRACK]", error);
     if (error instanceof z.ZodError) {

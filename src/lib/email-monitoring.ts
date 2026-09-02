@@ -304,7 +304,7 @@ export async function processSDSFromEmail(
       );
 
       // Parse med AI
-      const extractedData = await parseSDSFile(pdfBuffer);
+      const extractedData = await parseSDSFile(pdfBuffer, tenantId);
 
       if (extractedData.confidence && extractedData.confidence > 0.7) {
         // Oppdater kjemikaliet automatisk

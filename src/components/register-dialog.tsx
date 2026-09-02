@@ -27,6 +27,7 @@ import { Mail, Phone, User, MapPin, Building2, CheckCircle2, Loader2, Code } fro
 import { submitRegistrationRequest } from "@/server/actions/registration.actions";
 import { validateOrgNumber } from "@/server/actions/brreg.actions";
 import { AGRICULTURE_FARM_TYPES, SUPPORTED_INDUSTRIES } from "@/lib/industry-packages";
+import { ContractAcceptanceFields } from "@/features/registration/components/contract-acceptance-fields";
 
 interface RegisterDialogProps {
   trigger?: React.ReactNode;
@@ -50,6 +51,7 @@ export function RegisterDialog({ trigger, children, onOpenChange }: RegisterDial
   const [industry, setIndustry] = useState<string>("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [acceptedAngrerrett, setAcceptedAngrerrett] = useState(false);
+  const [acceptedBinding, setAcceptedBinding] = useState(false);
   const [formData, setFormData] = useState({
     companyName: "",
     orgNumber: "",
@@ -107,8 +109,8 @@ export function RegisterDialog({ trigger, children, onOpenChange }: RegisterDial
       return;
     }
 
-    if (!acceptedTerms || !acceptedAngrerrett) {
-      setError("Du må lese og godta begge avtale-dokumentene for å fortsette.");
+    if (!acceptedTerms || !acceptedAngrerrett || !acceptedBinding) {
+      setError("Du må lese og bekrefte angrerett, abonnementsavtale og 12 måneders binding.");
       return;
     }
 
@@ -118,6 +120,8 @@ export function RegisterDialog({ trigger, children, onOpenChange }: RegisterDial
     const submitData = new FormData(e.currentTarget);
     submitData.set("acceptedTerms", "true");
     submitData.set("acceptedAngrerrett", "true");
+    submitData.set("acceptedBinding", "true");
+    submitData.set("registrationSource", "register-dialog");
 
     try {
       const result = await submitRegistrationRequest(submitData);
@@ -154,7 +158,7 @@ export function RegisterDialog({ trigger, children, onOpenChange }: RegisterDial
         <DialogHeader className="px-3 sm:px-4 md:px-6 pt-3 sm:pt-4 md:pt-6 border-b pb-3 sm:pb-4">
           <DialogTitle className="text-lg sm:text-xl md:text-2xl">Registrer bedrift</DialogTitle>
           <DialogDescription id="register-description" className="text-xs sm:text-sm">
-            Fyll ut skjemaet, så setter vi opp din konto innen 24 timer. 14 dagers gratis prøveperiode.
+            Fyll ut skjemaet og opprett konto. 14 dagers angrefrist, deretter 12 måneders binding.
           </DialogDescription>
         </DialogHeader>
         
@@ -468,57 +472,16 @@ export function RegisterDialog({ trigger, children, onOpenChange }: RegisterDial
             )}
 
             {/* Avtaleaksept */}
-            <div className="space-y-3 mx-1">
-              <div className="p-3 border rounded-lg bg-muted/30 space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="font-medium text-sm">Angrerettserklæring</p>
-                  <a
-                    href="/api/documents/angrerett"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-primary hover:underline whitespace-nowrap"
-                  >
-                    Åpne PDF
-                  </a>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <Checkbox
-                    id="dialog-acceptAngrerrett"
-                    checked={acceptedAngrerrett}
-                    onCheckedChange={(checked) => setAcceptedAngrerrett(checked === true)}
-                  />
-                  <Label htmlFor="dialog-acceptAngrerrett" className="text-xs cursor-pointer leading-snug">
-                    Jeg har lest og forstått angrerettserklæringen, inkludert at den frivillige
-                    14-dagers betenkningstiden gjelder fra bestillingsdatoen.
-                  </Label>
-                </div>
-              </div>
-
-              <div className="p-3 border rounded-lg bg-muted/30 space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="font-medium text-sm">Abonnementsavtale</p>
-                  <a
-                    href="/api/documents/abonnementsavtale"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-primary hover:underline whitespace-nowrap"
-                  >
-                    Åpne PDF
-                  </a>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <Checkbox
-                    id="dialog-acceptTerms"
-                    checked={acceptedTerms}
-                    onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
-                  />
-                  <Label htmlFor="dialog-acceptTerms" className="text-xs cursor-pointer leading-snug">
-                    Jeg godtar abonnementsavtalen, herunder{" "}
-                    <strong>12 måneders binding</strong> og{" "}
-                    <strong>3 måneders oppsigelsestid</strong> etter bindingsperioden.
-                  </Label>
-                </div>
-              </div>
+            <div className="mx-1">
+              <ContractAcceptanceFields
+                compact
+                acceptedWithdrawal={acceptedAngrerrett}
+                acceptedBinding={acceptedBinding}
+                acceptedTerms={acceptedTerms}
+                onAcceptedWithdrawal={setAcceptedAngrerrett}
+                onAcceptedBinding={setAcceptedBinding}
+                onAcceptedTerms={setAcceptedTerms}
+              />
             </div>
 
             {/* Benefits */}
@@ -529,11 +492,11 @@ export function RegisterDialog({ trigger, children, onOpenChange }: RegisterDial
               </div>
               <div className="text-center">
                 <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-primary mx-auto mb-1" />
-                <p className="text-xs font-medium">14 dagers prøve</p>
+                <p className="text-xs font-medium">14 dagers angrefrist</p>
               </div>
               <div className="text-center">
                 <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-primary mx-auto mb-1" />
-                <p className="text-xs font-medium">Ingen binding</p>
+                <p className="text-xs font-medium">Deretter 12 mnd binding</p>
               </div>
             </div>
 
@@ -543,7 +506,7 @@ export function RegisterDialog({ trigger, children, onOpenChange }: RegisterDial
                 type="submit"
                 size="lg"
                 className="w-full h-11"
-                disabled={isSubmitting || !orgValidated || isValidatingOrg || !acceptedTerms || !acceptedAngrerrett}
+                disabled={isSubmitting || !orgValidated || isValidatingOrg || !acceptedTerms || !acceptedAngrerrett || !acceptedBinding}
               >
                 {isSubmitting ? (
                   <>
@@ -552,7 +515,7 @@ export function RegisterDialog({ trigger, children, onOpenChange }: RegisterDial
                   </>
                 ) : !orgValidated ? (
                   "Valider org.nr først"
-                ) : !acceptedTerms || !acceptedAngrerrett ? (
+                ) : !acceptedTerms || !acceptedAngrerrett || !acceptedBinding ? (
                   "Godta avtalene for å fortsette"
                 ) : (
                   "Registrer bedrift"

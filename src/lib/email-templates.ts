@@ -197,7 +197,7 @@ export function getDocumentDeliveryEmail({
                 <tr>
                   <td align="center">
                     <a href="${dashboardUrl}/registrer-bedrift" style="display: inline-block; background-color: #3db88a; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; font-size: 16px;">
-                      Registrer bedrift - prøv gratis i 14 dager
+                      Registrer bedrift
                     </a>
                   </td>
                 </tr>
@@ -206,7 +206,7 @@ export function getDocumentDeliveryEmail({
               <p style="color: #666; font-size: 14px; text-align: center; margin: 30px 0 0;">
                 Har du spørsmål? Ta kontakt med oss på<br/>
                 📧 <a href="mailto:${supportEmail}" style="color: #2d9c92; text-decoration: none;">${supportEmail}</a> eller
-                📞 <a href="tel:+4799112916" style="color: #2d9c92; text-decoration: none;">+47 99 11 29 16</a>
+                📞 <a href="tel:+4741874010" style="color: #2d9c92; text-decoration: none;">+47 41 87 40 10</a>
               </p>
             </td>
           </tr>
@@ -237,6 +237,185 @@ export function getDocumentDeliveryEmail({
     subject: `Din HMS-pakke er klar! 📦`,
     html,
   };
+}
+
+interface ActivationEmailProps {
+  contactPerson: string;
+  companyName: string;
+  activationUrl: string;
+}
+
+export function getActivationEmail({
+  contactPerson,
+  companyName,
+  activationUrl,
+}: ActivationEmailProps): string {
+  const logoBase64 = getLogoBase64();
+  const dashboardUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://hmsnova.no";
+  const supportEmail = process.env.SUPPORT_EMAIL ?? "post@hmsnova.no";
+
+  return `
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aktiver din HMS Nova-konto</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden;">
+          <tr>
+            <td style="background: linear-gradient(135deg, #2d9c92 0%, #3db88a 100%); padding: 40px 40px 30px; text-align: center;">
+              <img src="${logoBase64}" alt="HMS Nova" style="max-width: 180px; height: auto; margin-bottom: 20px;" />
+              <h1 style="color: #ffffff; font-size: 28px; margin: 0; font-weight: 600; letter-spacing: -0.5px;">
+                Aktiver din HMS Nova-konto
+              </h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 40px;">
+              <p style="color: #1a1a1a; font-size: 16px; line-height: 1.6; margin: 0 0 20px;">
+                Hei <strong>${contactPerson}</strong>,
+              </p>
+              <p style="color: #1a1a1a; font-size: 16px; line-height: 1.6; margin: 0 0 20px;">
+                Kontoen for <strong>${companyName}</strong> er opprettet. Klikk knappen under for å aktivere kontoen og sette passord.
+              </p>
+              <p style="color: #1a1a1a; font-size: 15px; line-height: 1.6; margin: 0 0 20px;">
+                Dere har 14 dagers avtalt angrefrist fra registreringsdato. Dette er ikke en gratis prøveperiode. Sier dere ikke opp skriftlig til post@hmsnova.no innen fristen, er abonnementet bindende i 12 måneder med 3 måneders oppsigelse etter det.
+              </p>
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
+                <tr>
+                  <td align="center">
+                    <a href="${activationUrl}" style="display: inline-block; background-color: #2d9c92; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; font-size: 16px;">
+                      Aktiver konto og sett passord
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p style="color: #666; font-size: 14px; line-height: 1.5; margin: 0 0 20px;">
+                Lenken er gyldig i 24 timer. Hvis du ikke ba om denne e-posten, kan du se bort fra den.
+              </p>
+              <p style="color: #9ca3af; font-size: 12px; line-height: 1.5; margin: 0;">
+                Hvis knappen ikke virker, kopier denne lenken i nettleseren:<br/>
+                <a href="${activationUrl}" style="color: #2d9c92; word-break: break-all;">${activationUrl}</a>
+              </p>
+              <p style="color: #1a1a1a; font-size: 16px; line-height: 1.6; margin: 30px 0 0;">
+                Med vennlig hilsen,<br/>
+                <strong>HMS Nova-teamet</strong>
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color: #f9fafb; padding: 30px 40px; text-align: center; border-top: 1px solid #e5e7eb;">
+              <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+                Spørsmål? <a href="mailto:${supportEmail}" style="color: #2d9c92; text-decoration: none;">${supportEmail}</a>
+                · <a href="${dashboardUrl}" style="color: #2d9c92; text-decoration: none;">hmsnova.no</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+}
+
+interface ContractAcceptanceEmailProps {
+  contactPerson: string;
+  companyName: string;
+  orgNumber: string;
+  acceptedAt: Date;
+  withdrawalDeadlineAt: Date;
+  bindingStartsAt: Date;
+  yearlyPrice: number;
+  documentVersion: string;
+}
+
+export function getContractAcceptanceEmail({
+  contactPerson,
+  companyName,
+  orgNumber,
+  acceptedAt,
+  withdrawalDeadlineAt,
+  bindingStartsAt,
+  yearlyPrice,
+  documentVersion,
+}: ContractAcceptanceEmailProps): string {
+  const logoBase64 = getLogoBase64();
+  const dashboardUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://hmsnova.no";
+  const supportEmail = process.env.SUPPORT_EMAIL ?? "post@hmsnova.no";
+  const formatDate = (date: Date) =>
+    date.toLocaleDateString("nb-NO", { day: "2-digit", month: "long", year: "numeric" });
+
+  return `
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Avtalebekreftelse HMS Nova</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden;">
+          <tr>
+            <td style="background: linear-gradient(135deg, #2d9c92 0%, #3db88a 100%); padding: 40px 40px 30px; text-align: center;">
+              <img src="${logoBase64}" alt="HMS Nova" style="max-width: 180px; height: auto; margin-bottom: 20px;" />
+              <h1 style="color: #ffffff; font-size: 24px; margin: 0; font-weight: 600;">
+                Avtalebekreftelse
+              </h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 40px;">
+              <p style="color: #1a1a1a; font-size: 16px; line-height: 1.6; margin: 0 0 20px;">
+                Hei <strong>${contactPerson}</strong>,
+              </p>
+              <p style="color: #1a1a1a; font-size: 16px; line-height: 1.6; margin: 0 0 20px;">
+                Dette er en bekreftelse på at <strong>${companyName}</strong> (org.nr. ${orgNumber}) den ${formatDate(acceptedAt)} elektronisk aksepterte HMS Novas abonnementsavtale og angrerettserklæring.
+              </p>
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fff7ed; border-left: 4px solid #ea580c; border-radius: 4px; margin: 24px 0;">
+                <tr>
+                  <td style="padding: 20px;">
+                    <p style="margin: 0 0 8px; font-weight: 600; color: #1a1a1a;">Dette har dere godtatt</p>
+                    <ul style="margin: 0; padding-left: 18px; color: #1a1a1a; font-size: 14px; line-height: 1.7;">
+                      <li>Ingen gratis prøveperiode.</li>
+                      <li>14 dagers avtalt angrefrist til og med <strong>${formatDate(withdrawalDeadlineAt)}</strong>.</li>
+                      <li>Kostnadsfri oppsigelse i angrefristperioden sendes skriftlig til ${supportEmail}.</li>
+                      <li>Hvis dere ikke sier opp innen fristen, starter 12 måneders binding ${formatDate(bindingStartsAt)}.</li>
+                      <li>Etter bindingstiden gjelder 3 måneders skriftlig oppsigelse.</li>
+                      <li>Årspris: ${yearlyPrice.toLocaleString("nb-NO")} kr eks. mva.</li>
+                    </ul>
+                  </td>
+                </tr>
+              </table>
+              <p style="color: #666; font-size: 13px; line-height: 1.6; margin: 0 0 20px;">
+                Avtaleversjon ${documentVersion}. Dokumentene ligger her:
+                <a href="${dashboardUrl}/api/documents/abonnementsavtale" style="color: #2d9c92;">Abonnementsavtale</a>
+                og
+                <a href="${dashboardUrl}/api/documents/angrerett" style="color: #2d9c92;">Angrerettserklæring</a>.
+                Elektronisk aksept er bindende etter avtaleloven § 1.
+              </p>
+              <p style="color: #1a1a1a; font-size: 16px; line-height: 1.6; margin: 30px 0 0;">
+                Med vennlig hilsen,<br/>
+                <strong>HMS Nova / KKS AS</strong>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
 }
 
 interface CustomerWelcomeEmailProps {
@@ -293,7 +472,7 @@ export function getCustomerWelcomeEmail({
               </p>
               
               <p style="color: #1a1a1a; font-size: 16px; line-height: 1.6; margin: 0 0 20px;">
-                Takk for at du valgte HMS Nova! Vi har mottatt din registrering og jobber med å sette opp din konto.
+                Takk for at du valgte HMS Nova! Bedriften <strong>${companyName}</strong> er lagt til på kontoen din. Du kan logge inn med eksisterende e-post og passord.
               </p>
               
               <!-- Info Box -->
@@ -336,9 +515,9 @@ export function getCustomerWelcomeEmail({
                     <div style="background-color: #2d9c92; color: #ffffff; width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 600;">1</div>
                   </td>
                   <td style="padding-bottom: 15px;">
-                    <strong style="color: #1a1a1a; font-size: 15px;">Vi setter opp din konto</strong>
+                    <strong style="color: #1a1a1a; font-size: 15px;">Logg inn med eksisterende konto</strong>
                     <p style="color: #666; font-size: 14px; margin: 5px 0 0; line-height: 1.5;">
-                      Vi konfigurerer systemet med ferdig HMS-håndbok og alle nødvendige moduler.
+                      Bruk samme e-post og passord som du allerede bruker i HMS Nova.
                     </p>
                   </td>
                 </tr>
@@ -347,9 +526,9 @@ export function getCustomerWelcomeEmail({
                     <div style="background-color: #2d9c92; color: #ffffff; width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 600;">2</div>
                   </td>
                   <td style="padding-bottom: 15px;">
-                    <strong style="color: #1a1a1a; font-size: 15px;">Du mottar innloggingsinformasjon</strong>
+                    <strong style="color: #1a1a1a; font-size: 15px;">Velg bedrift etter innlogging</strong>
                     <p style="color: #666; font-size: 14px; margin: 5px 0 0; line-height: 1.5;">
-                      Innen 24 timer sender vi deg en lenke for å sette passord og logge inn.
+                      Den nye virksomheten ligger klar med bransjetilpasset HMS-startpakke.
                     </p>
                   </td>
                 </tr>
@@ -371,7 +550,7 @@ export function getCustomerWelcomeEmail({
                   <td>
                     <strong style="color: #1a1a1a; font-size: 15px;">Du er i gang!</strong>
                     <p style="color: #666; font-size: 14px; margin: 5px 0 0; line-height: 1.5;">
-                      14 dagers gratis prøveperiode starter når du logger inn første gang.
+                      14 dagers avtalt angrefrist. Sier du ikke opp, starter 12 måneders binding.
                     </p>
                   </td>
                 </tr>
@@ -381,8 +560,8 @@ export function getCustomerWelcomeEmail({
               <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
                 <tr>
                   <td align="center">
-                    <a href="${dashboardUrl}/registrer-bedrift" style="display: inline-block; background-color: #2d9c92; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; font-size: 16px;">
-                      Registrer bedrift mens du venter
+                    <a href="${dashboardUrl}/login" style="display: inline-block; background-color: #2d9c92; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; font-size: 16px;">
+                      Logg inn
                     </a>
                   </td>
                 </tr>
@@ -397,7 +576,7 @@ export function getCustomerWelcomeEmail({
                     </p>
                     <p style="color: #666; font-size: 14px; margin: 0; line-height: 1.6;">
                       📧 <a href="mailto:${supportEmail}" style="color: #2d9c92; text-decoration: none;">${supportEmail}</a><br/>
-                      📞 <a href="tel:+4799112916" style="color: #2d9c92; text-decoration: none;">+47 99 11 29 16</a>
+                      📞 <a href="tel:+4741874010" style="color: #2d9c92; text-decoration: none;">+47 41 87 40 10</a>
                     </p>
                   </td>
                 </tr>

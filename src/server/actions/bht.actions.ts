@@ -175,7 +175,7 @@ Svar i JSON-format:
 
     let aiResult = null;
     try {
-      const aiResponse = await generateAIResponse(prompt, "gpt-4o-mini");
+      const aiResponse = await generateAIResponse(prompt, "gpt-4o-mini", { tenantId: bhtClient.tenant.id });
       // Parse JSON fra AI-responsen
       const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
@@ -322,7 +322,7 @@ Svar i JSON-format:
 
     let aiResult = null;
     try {
-      const aiResponse = await generateAIResponse(prompt, "gpt-4o-mini");
+      const aiResponse = await generateAIResponse(prompt, "gpt-4o-mini", { tenantId: bhtClient.tenant.id });
       const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         aiResult = JSON.parse(jsonMatch[0]);
@@ -401,7 +401,7 @@ Svar i JSON-format:
 
     let aiResult = null;
     try {
-      const aiResponse = await generateAIResponse(prompt, "gpt-4o-mini");
+      const aiResponse = await generateAIResponse(prompt, "gpt-4o-mini", { tenantId: bhtClient.tenant.id });
       const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         aiResult = JSON.parse(jsonMatch[0]);
@@ -485,7 +485,7 @@ Svar i JSON-format:
 
     let aiResult = null;
     try {
-      const aiResponse = await generateAIResponse(prompt, "gpt-4o-mini");
+      const aiResponse = await generateAIResponse(prompt, "gpt-4o-mini", { tenantId: bhtClient.tenant.id });
       const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         aiResult = JSON.parse(jsonMatch[0]);
@@ -599,7 +599,7 @@ Svar i JSON-format:
 
     let aiResult = null;
     try {
-      const aiResponse = await generateAIResponse(prompt, "gpt-4o-mini");
+      const aiResponse = await generateAIResponse(prompt, "gpt-4o-mini", { tenantId: bhtClient.tenant.id });
       const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         aiResult = JSON.parse(jsonMatch[0]);

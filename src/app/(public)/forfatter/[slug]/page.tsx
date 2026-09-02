@@ -206,7 +206,7 @@ export default async function AuthorPage({
                   </p>
                   <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <Button asChild size="lg" className="bg-white text-primary hover:bg-white/90">
-                      <Link href="/registrer-bedrift">Kom i gang gratis</Link>
+                      <Link href="/registrer-bedrift">Registrer bedrift</Link>
                     </Button>
                     <Button
                       asChild

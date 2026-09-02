@@ -4,6 +4,7 @@
  */
 
 import { extractTextFromPDF as adobeExtractText } from "./adobe-pdf";
+import { isAiEnabledForTenant } from "@/lib/ai";
 
 interface SDSExtractedData {
   productName?: string;
@@ -67,12 +68,17 @@ async function extractTextFromPDF(pdfBuffer: Buffer): Promise<string> {
 /**
  * Bruk AI til å ekstrahere strukturert data fra SDS-tekst
  */
-async function extractSDSDataWithAI(pdfText: string): Promise<SDSExtractedData> {
+async function extractSDSDataWithAI(pdfText: string, tenantId?: string): Promise<SDSExtractedData> {
   // Sjekk om OpenAI API-nøkkel er satt
   const apiKey = process.env.OPENAI_API_KEY;
   
   if (!apiKey) {
     console.warn("OpenAI API key ikke satt - hopper over AI-ekstraksjon");
+    return { confidence: 0 };
+  }
+
+  if (tenantId && !(await isAiEnabledForTenant(tenantId))) {
+    console.warn("AI er deaktivert for denne virksomheten - hopper over AI-ekstraksjon, bruker regex-fallback");
     return { confidence: 0 };
   }
 
@@ -227,13 +233,13 @@ function extractSDSDataRegex(pdfText: string): Partial<SDSExtractedData> {
 /**
  * Hovedfunksjon for å parse SDS
  */
-export async function parseSDSFile(pdfBuffer: Buffer): Promise<SDSExtractedData> {
+export async function parseSDSFile(pdfBuffer: Buffer, tenantId?: string): Promise<SDSExtractedData> {
   try {
     // 1. Ekstraher tekst fra PDF
     const pdfText = await extractTextFromPDF(pdfBuffer);
 
-    // 2. Prøv AI-ekstraksjon først
-    const aiExtracted = await extractSDSDataWithAI(pdfText);
+    // 2. Prøv AI-ekstraksjon først (hoppes over hvis AI er deaktivert for tenanten)
+    const aiExtracted = await extractSDSDataWithAI(pdfText, tenantId);
 
     // 3. Hvis AI feiler eller har lav confidence, bruk regex som backup
     if (!aiExtracted || aiExtracted.confidence! < 0.5) {

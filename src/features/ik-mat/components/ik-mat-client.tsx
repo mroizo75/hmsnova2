@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -60,6 +61,7 @@ export function IkMatClient({
   canEdit,
 }: Props) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [tempForm, setTempForm] = useState({
     unitName: "",
     unitType: "KJOLEROM" as "KJOLEROM" | "FRYSER" | "VARMHOLDING" | "ANNET",
@@ -93,8 +95,20 @@ export function IkMatClient({
         }),
       });
       if (!res.ok) throw new Error();
-      toast.success("Temperatur logget");
+      const { data } = await res.json();
+
+      if (data?.log?.isDeviation) {
+        toast.warning(
+          data.incident
+            ? `Avvik opprettet (${data.incident.avviksnummer ?? "AVVIK"}) – temperatur utenfor grenseverdi.`
+            : "Avvik registrert – temperaturen er utenfor grenseverdi!",
+        );
+      } else {
+        toast.success(`${tempForm.unitName}: ${tempForm.temperature} °C registrert`);
+      }
+
       setTempForm((p) => ({ ...p, temperature: "", measuredBy: "" }));
+      await queryClient.invalidateQueries({ queryKey: ["ik-mat"] });
       router.refresh();
     } catch {
       toast.error("Kunne ikke lagre temperatur");
@@ -116,6 +130,7 @@ export function IkMatClient({
       });
       if (!res.ok) throw new Error();
       toast.success("Tilsyn registrert");
+      await queryClient.invalidateQueries({ queryKey: ["ik-mat"] });
       router.refresh();
     } catch {
       toast.error("Kunne ikke registrere tilsyn");
@@ -231,23 +246,32 @@ export function IkMatClient({
       {canEdit && (
         <Card>
           <CardContent className="space-y-3 p-4">
-            <div>
-              <p className="font-medium">Logg temperatur nå</p>
-              <p className="text-xs text-muted-foreground">Daglig kontroll av kjøl og frys</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium flex items-center gap-2">
+                  <Thermometer className="h-4 w-4 text-blue-500" />
+                  Logg temperatur nå
+                </p>
+                <p className="text-xs text-muted-foreground">Daglig kontroll av kjøl og frys</p>
+              </div>
+              <Button size="sm" variant="ghost" asChild className="text-xs text-muted-foreground">
+                <Link href="/dashboard/ik-mat/temperatur">Se full logg</Link>
+              </Button>
             </div>
-            <div className="grid gap-3 sm:grid-cols-4">
+            <div className="grid gap-3 grid-cols-2">
               <div className="space-y-1">
-                <Label className="text-xs">Enhet</Label>
+                <Label className="text-xs">Enhet *</Label>
                 <Input
                   placeholder="Kjølerom 1"
                   value={tempForm.unitName}
                   onChange={(e) => setTempForm((p) => ({ ...p, unitName: e.target.value }))}
+                  className="h-11"
                 />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Type</Label>
                 <select
-                  className="h-9 w-full rounded-md border bg-transparent px-3 text-sm"
+                  className="h-11 w-full rounded-md border bg-transparent px-3 text-sm"
                   value={tempForm.unitType}
                   onChange={(e) =>
                     setTempForm((p) => ({
@@ -256,33 +280,36 @@ export function IkMatClient({
                     }))
                   }
                 >
-                  <option value="KJOLEROM">Kjølerom</option>
-                  <option value="FRYSER">Fryser</option>
-                  <option value="VARMHOLDING">Varmholding</option>
+                  <option value="KJOLEROM">Kjølerom (0–4 °C)</option>
+                  <option value="FRYSER">Fryser (≤ -18 °C)</option>
+                  <option value="VARMHOLDING">Varmholding (≥ 60 °C)</option>
                   <option value="ANNET">Annet</option>
                 </select>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">°C</Label>
+                <Label className="text-xs">Temperatur (°C) *</Label>
                 <Input
                   type="number"
                   step="0.1"
+                  inputMode="decimal"
                   placeholder="4.0"
                   value={tempForm.temperature}
                   onChange={(e) => setTempForm((p) => ({ ...p, temperature: e.target.value }))}
+                  className="h-11 font-mono text-base"
                 />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Målt av</Label>
                 <Input
-                  placeholder="Initialer"
+                  placeholder="Navn / initialer"
                   value={tempForm.measuredBy}
                   onChange={(e) => setTempForm((p) => ({ ...p, measuredBy: e.target.value }))}
+                  className="h-11"
                 />
               </div>
             </div>
-            <Button size="sm" disabled={savingTemp} onClick={logTemp}>
-              {savingTemp ? "Lagrer…" : "Registrer"}
+            <Button className="w-full h-11" disabled={savingTemp} onClick={logTemp}>
+              {savingTemp ? "Lagrer…" : "Registrer temperatur"}
             </Button>
           </CardContent>
         </Card>

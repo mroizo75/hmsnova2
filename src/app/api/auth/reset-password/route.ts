@@ -48,11 +48,12 @@ export async function POST(request: NextRequest) {
     // Hash nytt passord
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Oppdater passord og reset security fields
+    // Oppdater passord, verifiser e-post og reset security fields
     await prisma.user.update({
       where: { id: userId },
       data: {
         password: hashedPassword,
+        emailVerified: new Date(),
         failedLoginAttempts: 0,
         lockedUntil: null,
         updatedAt: new Date(),

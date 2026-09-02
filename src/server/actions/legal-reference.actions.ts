@@ -4,6 +4,14 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { reindexSingleSource } from "@/lib/ai-knowledge-base";
+
+/** Reindekserer AI-kunnskapsbasen for én lovreferanse i bakgrunnen - skal aldri feile selve admin-handlingen. */
+function reindexLegalReferenceInBackground(id: string): void {
+  reindexSingleSource("LEGAL_REFERENCE", id).catch((error) => {
+    console.error("Kunne ikke reindeksere lovreferanse i AI-kunnskapsbasen:", error);
+  });
+}
 
 /**
  * Henter juridiske referanser som gjelder for tenantens bransje.
@@ -95,7 +103,7 @@ export async function createLegalReference(formData: FormData) {
       ? industriesRaw.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean)
       : ["all"];
 
-    await prisma.legalReference.create({
+    const created = await prisma.legalReference.create({
       data: {
         title,
         paragraphRef,
@@ -106,6 +114,7 @@ export async function createLegalReference(formData: FormData) {
         lastVerifiedAt: new Date(),
       },
     });
+    reindexLegalReferenceInBackground(created.id);
     revalidatePath("/admin/legal-references");
     revalidatePath("/dashboard/juridisk-register");
     return { success: true };
@@ -144,6 +153,7 @@ export async function updateLegalReference(id: string, formData: FormData) {
         lastVerifiedAt: new Date(),
       },
     });
+    reindexLegalReferenceInBackground(id);
     revalidatePath("/admin/legal-references");
     revalidatePath("/dashboard/juridisk-register");
     return { success: true };

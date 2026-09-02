@@ -11,7 +11,7 @@ import {
   getDefaultAnswers,
   deriveActiveActivities,
 } from "@/lib/activity-questions";
-import { saveActivityProfile } from "@/server/actions/regulatory.actions";
+import { saveActivityProfile, provisionFromProfile } from "@/server/actions/regulatory.actions";
 import { REGULATORY_REQUIREMENTS } from "@/lib/regulatory-requirements-seed";
 import { Building2, ClipboardCheck, CheckCircle2, ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -51,10 +51,13 @@ export function RegulatoryWizard({ tenant, onComplete }: WizardProps) {
     req.triggerActivities.some((t) => activeActivities.includes(t))
   );
 
-  const handleSubmit = () => {
+  const handleSubmit = (provisionAll: boolean) => {
     startTransition(async () => {
       const result = await saveActivityProfile({ answers });
       if (result.success) {
+        if (provisionAll) {
+          await provisionFromProfile();
+        }
         await queryClient.invalidateQueries({ queryKey: ["juridisk-register"] });
         router.refresh();
         onComplete?.();
@@ -192,6 +195,7 @@ export function RegulatoryWizard({ tenant, onComplete }: WizardProps) {
             <CardTitle>Oppsummering</CardTitle>
             <p className="text-sm text-muted-foreground">
               Basert på dine svar har vi identifisert {matchedRequirements.length} lovkrav som gjelder din virksomhet.
+              Velg «Opprett alt» for å publisere anbefalte rutiner med en gang, eller «Opprett profil» og velg rutiner selv etterpå.
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -218,15 +222,28 @@ export function RegulatoryWizard({ tenant, onComplete }: WizardProps) {
               </p>
             )}
 
-            <div className="flex justify-between pt-4">
+            <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:justify-between">
               <Button variant="outline" onClick={() => setStep(1)}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Tilbake
               </Button>
-              <Button onClick={handleSubmit} disabled={isPending || matchedRequirements.length === 0}>
-                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Opprett profil
-              </Button>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button
+                  variant="outline"
+                  onClick={() => handleSubmit(false)}
+                  disabled={isPending || matchedRequirements.length === 0}
+                >
+                  {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Opprett profil
+                </Button>
+                <Button
+                  onClick={() => handleSubmit(true)}
+                  disabled={isPending || matchedRequirements.length === 0}
+                >
+                  {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Opprett alt
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

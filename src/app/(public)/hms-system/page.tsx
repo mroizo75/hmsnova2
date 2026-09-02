@@ -128,7 +128,7 @@ export default function HMSSystemPage() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button asChild size="lg">
             <Link href="/registrer-bedrift">
-              Kom i gang gratis
+              Registrer bedrift
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
           </Button>
@@ -283,13 +283,13 @@ export default function HMSSystemPage() {
               Klar til å digitalisere HMS-arbeidet?
             </h2>
             <p className="text-lg mb-8 text-primary-foreground/90">
-              Test HMS Nova gratis i 14 dager. Se hvordan et moderne HMS-system 
+              Registrer bedrift. Se hvordan et moderne HMS-system 
               kan transformere din bedrift.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild size="lg" className="bg-white text-primary hover:bg-gray-100">
                 <Link href="/registrer-bedrift">
-                  Kom i gang gratis
+                  Registrer bedrift
                 </Link>
               </Button>
               <Button 
@@ -297,8 +297,8 @@ export default function HMSSystemPage() {
                 size="lg" 
                 className="border-2 border-white text-white hover:bg-white/10"
               >
-                <Link href="/registrer-bedrift">
-                  Last ned gratis HMS-pakke
+                <Link href="/priser">
+                  Se priser
                 </Link>
               </Button>
             </div>

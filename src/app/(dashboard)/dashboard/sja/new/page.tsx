@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HardHat, BookTemplate, FolderOpen } from "lucide-react";
 import { SjaForm } from "@/components/sja/sja-form";
+import { SjaTemplatePicker } from "@/components/sja/sja-template-picker";
 
 interface PageProps {
   searchParams: Promise<{ mal?: string; projectId?: string }>;
@@ -19,7 +20,7 @@ export default async function NewSjaPage({ searchParams }: PageProps) {
 
   const { mal: templateId, projectId } = await searchParams;
 
-  const [project, projects, template, risks] = await Promise.all([
+  const [project, projects, template, risks, allTemplates] = await Promise.all([
     projectId
       ? prisma.project.findFirst({
           where: {
@@ -55,6 +56,11 @@ export default async function NewSjaPage({ searchParams }: PageProps) {
       where: { tenantId: session.user.tenantId },
       select: { id: true, title: true, score: true },
       orderBy: { title: "asc" },
+    }),
+    prisma.sjaTemplate.findMany({
+      where: { tenantId: session.user.tenantId, isActive: true },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
     }),
   ]);
 
@@ -128,6 +134,12 @@ export default async function NewSjaPage({ searchParams }: PageProps) {
               <BookTemplate className="h-4 w-4" />
               Bruker mal: <strong>{template.name}</strong>
             </p>
+          </CardContent>
+        </Card>
+      ) : allTemplates.length > 0 ? (
+        <Card>
+          <CardContent className="p-4">
+            <SjaTemplatePicker templates={allTemplates} selectedTemplateId={templateId} />
           </CardContent>
         </Card>
       ) : null}

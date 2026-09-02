@@ -26,6 +26,12 @@ import {
   ChevronDown,
   ChevronRight,
   X,
+  Landmark,
+  UserCheck,
+  Scale,
+  FlaskConical,
+  HardHat,
+  HeartPulse,
 } from "lucide-react";
 import { toggleSetupGuideVisibility } from "@/server/actions/onboarding.actions";
 import { dismissServiceOffer } from "@/server/actions/service-request.actions";
@@ -44,6 +50,12 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Bell,
   Flame,
   Siren,
+  Landmark,
+  UserCheck,
+  Scale,
+  FlaskConical,
+  HardHat,
+  HeartPulse,
 };
 
 interface SetupGuideProps {

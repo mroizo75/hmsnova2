@@ -66,7 +66,7 @@ export default function BesteHMSSystemHelsePage() {
             <div className="flex flex-wrap gap-4 justify-center">
               <Button size="lg" asChild>
                 <Link href="/register">
-                  Start gratis test
+                  Registrer bedrift
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
@@ -522,7 +522,7 @@ export default function BesteHMSSystemHelsePage() {
             <div className="flex flex-wrap gap-4 justify-center">
               <Button size="lg" variant="secondary" asChild>
                 <Link href="/register">
-                  Start 14 dagers gratis test
+                  Registrer bedrift
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
@@ -531,7 +531,7 @@ export default function BesteHMSSystemHelsePage() {
               </Button>
             </div>
             <p className="text-sm mt-6 text-primary-foreground/70">
-              14 dagers gratis test • Offline Q1 2026 • Mobilapp Q2 2026 • Norsk support
+              14 dagers angrefrist • Deretter 12 mnd binding • Norsk support
             </p>
           </div>
         </div>

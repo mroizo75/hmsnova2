@@ -45,6 +45,22 @@ test("shouldSendImmediateEmailForType krever e-post aktivert og viktig type", ()
   assert.equal(shouldSendImmediateEmailForType(nonImmediateType, userTenant), false);
 });
 
+test("shouldSendImmediateEmailForType sender e-post for regelverksendring", () => {
+  const userTenant = {
+    notifyByEmail: true,
+    notifyIncidents: true,
+    notifyMeasures: true,
+    notifyAudits: true,
+    notifyMeetings: true,
+    notifyInspections: true,
+    notifyRisks: true,
+    notifyDocuments: true,
+    notifyTraining: true,
+  };
+
+  assert.equal(shouldSendImmediateEmailForType("LAW_CHANGE_ALERT", userTenant), true);
+});
+
 test("rutinevarsler bruker dokumentpreferanse", () => {
   const userTenant = {
     notifyIncidents: true,

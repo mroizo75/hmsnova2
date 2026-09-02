@@ -16,7 +16,7 @@ export const SITE_CONFIG = {
   description: "Norges mest moderne HMS-system. Byggjer trygghet gjennom digitalisering, automatisering og ISO 9001 compliance. Fra små bedrifter til store konsern.",
   url: normalizedBaseUrl,
   locale: "nb_NO",
-  contactPhone: "+47 99 11 29 16",
+  contactPhone: "+47 41 87 40 10",
   contactEmail: "post@hmsnova.no",
   socialMedia: {
     linkedin: "https://www.linkedin.com/company/hmsnova",
@@ -236,7 +236,7 @@ export const getBreadcrumbSchema = (items: Array<{ name: string; url: string }>)
 export const PAGE_METADATA = {
   home: {
     title: "HMS Nova - Norges Mest Moderne HMS-system | HMS Nova Bygger Trygghet",
-    description: "HMS Nova bygger trygghet. 300 kr/mnd, ubegrenset brukere, digital signatur inkludert, ISO 9001-støtte og 14 dagers gratis prøve. Prøv i dag!",
+    description: "HMS Nova bygger trygghet. 300 kr/mnd, ubegrenset brukere, digital signatur inkludert, ISO 9001-støtte og 14 dagers angrefrist. Registrer bedrift i dag.",
     keywords: [...PRIMARY_KEYWORDS, ...SECONDARY_KEYWORDS.slice(0, 10)].join(", "),
   },
   priser: {
@@ -261,17 +261,17 @@ export const PAGE_METADATA = {
   },
   handbook: {
     title: "HMS-håndbok - Digital & Oppdatert | HMS Nova",
-    description: "Ferdig HMS-håndbok tilpasset din bedrift. Alltid oppdatert med lovkrav, digital signatur og versjonskontroll. Spar uker med arbeid. Prøv gratis.",
+    description: "Ferdig HMS-håndbok tilpasset din bedrift. Alltid oppdatert med lovkrav, digital signatur og versjonskontroll. Spar uker med arbeid. Registrer bedrift.",
     keywords: "hms håndbok, digital hms håndbok, hms dokumentasjon, arbeidsmiljøhåndbok",
   },
   risikovurdering: {
     title: "Risikovurdering - 5x5 Matrise & Analyse | HMS Nova",
-    description: "Profesjonell risikovurdering med 5x5 matrise (ISO 9001). Enkelt å bruke med automatisk oppfølging. Bestå revisjoner med glans. Prøv gratis i 14 dager.",
+    description: "Profesjonell risikovurdering med 5x5 matrise (ISO 9001). Enkelt å bruke med automatisk oppfølging. Bestå revisjoner med glans. 14 dagers angrefrist, deretter 12 måneders binding.",
     keywords: "risikovurdering, risikoanalyse, 5x5 matrise, risikostyring, hms risikovurdering",
   },
   vernerunde: {
     title: "Vernerunde-guide - Digital Vernerunde på Mobil | HMS Nova",
-    description: "Digital vernerunde på mobil som fungerer offline. Automatisk rapportering, perfekt for byggeplasser. Spar timer hver uke. Prøv gratis.",
+    description: "Digital vernerunde på mobil som fungerer offline. Automatisk rapportering, perfekt for byggeplasser. Spar timer hver uke. Registrer bedrift.",
     keywords: "vernerunde, digital vernerunde, vernerunde mal, sikkerhetsinspeksjon, bygningsvernerunde",
   },
   lover: {

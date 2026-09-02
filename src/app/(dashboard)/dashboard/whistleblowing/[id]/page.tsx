@@ -25,8 +25,6 @@ import {
   Calendar,
   AlertTriangle,
   ClipboardList,
-  Plus,
-  Trash2,
   Edit2,
   Save,
   X,
@@ -38,7 +36,6 @@ import { nb } from "date-fns/locale";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -47,6 +44,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { getWhistleblowCaseView, logWhistleblowClientEvent } from "@/server/actions/whistleblowing-access.actions";
+import { CaseAccessPanel } from "@/features/whistleblowing/components/case-access-panel";
 
 type WhistleblowStatus =
   | "RECEIVED"
@@ -78,40 +77,48 @@ interface TenantUser {
   };
 }
 
-interface CaseAction {
-  id: string;
-  description: string;
-  createdAt: string;
-  completedAt?: string;
-}
-
 interface WhistleblowCase {
   id: string;
   caseNumber: string;
   category: WhistleblowCategory;
   title: string;
   description: string;
-  occurredAt?: string;
-  location?: string;
-  involvedPersons?: string;
-  witnesses?: string;
-  reporterName?: string;
-  reporterEmail?: string;
-  reporterPhone?: string;
+  occurredAt?: string | null;
+  location?: string | null;
+  involvedPersons?: string | null;
+  witnesses?: string | null;
   isAnonymous: boolean;
   status: WhistleblowStatus;
   severity: WhistleblowSeverity;
-  handledBy?: string;
-  assignedTo?: string;
-  investigationNotes?: string;
-  actions?: string;
-  outcome?: string;
-  closedReason?: string;
   receivedAt: string;
-  acknowledgedAt?: string;
-  investigatedAt?: string;
-  closedAt?: string;
-  messages: Message[];
+  acknowledgedAt?: string | null;
+  investigatedAt?: string | null;
+  closedAt?: string | null;
+  reporterName?: string | null;
+  reporterEmail?: string | null;
+  reporterPhone?: string | null;
+  investigationNotes?: string | null;
+  outcome?: string | null;
+  closedReason?: string | null;
+  assignedTo?: string | null;
+  handledBy?: string | null;
+  messages: Array<{
+    id: string;
+    sender: MessageSender;
+    message: string;
+    isInternal: boolean;
+    createdAt: string;
+  }>;
+  access: { allowed: boolean; reason: string; objects: string[] };
+  grants: Array<{
+    id: string;
+    type: string;
+    granteeId: string;
+    purpose: string;
+    expiresAt: string;
+  }>;
+  measures: Array<{ id: string; title: string; description: string; status: string }>;
+  canSeeIdentity: boolean;
 }
 
 interface Message {
@@ -401,91 +408,31 @@ function EditableTextField({
   );
 }
 
-// --- Tiltaksliste ---
-function ActionsList({
-  actions,
-  onAdd,
-  onToggle,
-  onRemove,
+function IsolatedMeasuresList({
+  measures,
 }: {
-  actions: CaseAction[];
-  onAdd: (description: string) => void;
-  onToggle: (id: string) => void;
-  onRemove: (id: string) => void;
+  measures: Array<{ id: string; title: string; description: string; status: string }>;
 }) {
-  const [newAction, setNewAction] = useState("");
-
-  const handleAdd = () => {
-    if (!newAction.trim()) return;
-    onAdd(newAction.trim());
-    setNewAction("");
-  };
-
   return (
     <div className="space-y-3">
-      <h3 className="font-semibold">Tiltak og oppfølging</h3>
+      <h3 className="font-semibold">Isolerte tiltak</h3>
       <p className="text-xs text-muted-foreground">
-        Dokumenter alle tiltak som er besluttet og iverksatt (AML § 2A-3 (4)).
+        Nye tiltak opprettes som isolert oppgave via «Opprett tiltak» (AML § 2 A-3). Mottaker ser
+        ikke at oppgaven kommer fra varsling.
       </p>
-
-      {actions.length === 0 ? (
-        <p className="text-sm italic text-muted-foreground">Ingen tiltak registrert ennå.</p>
+      {measures.length === 0 ? (
+        <p className="text-sm italic text-muted-foreground">Ingen isolerte tiltak registrert ennå.</p>
       ) : (
         <div className="space-y-2">
-          {actions.map((action) => (
-            <div
-              key={action.id}
-              className={`flex items-start gap-3 rounded-lg border p-3 ${
-                action.completedAt ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950" : "bg-muted/30"
-              }`}
-            >
-              <button
-                onClick={() => onToggle(action.id)}
-                className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-2 transition-colors ${
-                  action.completedAt
-                    ? "border-green-500 bg-green-500 text-white"
-                    : "border-border bg-background"
-                }`}
-              >
-                {action.completedAt && <CheckCircle2 className="h-3 w-3" />}
-              </button>
-              <div className="flex-1">
-                <p
-                  className={`text-sm ${
-                    action.completedAt ? "text-muted-foreground line-through" : ""
-                  }`}
-                >
-                  {action.description}
-                </p>
-                {action.completedAt && (
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    Fullført {format(new Date(action.completedAt), "dd. MMM yyyy", { locale: nb })}
-                  </p>
-                )}
-              </div>
-              <button
-                onClick={() => onRemove(action.id)}
-                className="text-muted-foreground hover:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+          {measures.map((measure) => (
+            <div key={measure.id} className="rounded-md border p-3 text-sm">
+              <p className="font-medium">{measure.title}</p>
+              <p className="text-muted-foreground">{measure.description}</p>
+              <p className="text-xs">{measure.status}</p>
             </div>
           ))}
         </div>
       )}
-
-      <div className="flex gap-2">
-        <Input
-          value={newAction}
-          onChange={(e) => setNewAction(e.target.value)}
-          placeholder="Beskriv tiltaket..."
-          onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-        />
-        <Button size="sm" onClick={handleAdd} disabled={!newAction.trim()}>
-          <Plus className="mr-1 h-4 w-4" />
-          Legg til
-        </Button>
-      </div>
     </div>
   );
 }
@@ -603,6 +550,7 @@ function CloseSection({
 export default function WhistleblowingDetailPage() {
   const router = useRouter();
   const params = useParams();
+  const caseId = typeof params.id === "string" ? params.id : params.id?.[0] ?? "";
   const { toast } = useToast();
   const { data: session } = useSession();
   const [caseData, setCaseData] = useState<WhistleblowCase | null>(null);
@@ -615,8 +563,12 @@ export default function WhistleblowingDetailPage() {
   const [savingField, setSavingField] = useState(false);
 
   useEffect(() => {
-    fetchCase();
-  }, [params.id]);
+    const onPrint = () => {
+      void logWhistleblowClientEvent(caseId, "PRINT");
+    };
+    window.addEventListener("beforeprint", onPrint);
+    return () => window.removeEventListener("beforeprint", onPrint);
+  }, [caseId]);
 
   useEffect(() => {
     if (!session?.user?.tenantId) return;
@@ -631,29 +583,54 @@ export default function WhistleblowingDetailPage() {
 
   const fetchCase = async () => {
     try {
-      const response = await fetch(`/api/admin/whistleblowing/${params.id}`);
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Kunne ikke hente sak");
-      setCaseData(data.data);
-    } catch (error: any) {
-      toast({ title: "Feil", description: error.message, variant: "destructive" });
+      const view = await getWhistleblowCaseView(caseId);
+      if (!view.original) {
+        throw new Error("Du har ikke innsyn i originalvarselet");
+      }
+      setCaseData({
+        ...view.original,
+        reporterName: view.identity?.reporterName ?? null,
+        reporterEmail: view.identity?.reporterEmail ?? null,
+        reporterPhone: view.identity?.reporterPhone ?? null,
+        investigationNotes: view.notes,
+        outcome: view.outcome,
+        closedReason: view.closedReason,
+        assignedTo: view.assignedTo,
+        handledBy: view.handledBy,
+        messages: view.messages ?? [],
+        access: view.access,
+        grants: view.grants ?? [],
+        measures: view.measures ?? [],
+        canSeeIdentity: Boolean(view.identity),
+      });
+    } catch (error: unknown) {
+      toast({
+        title: "Feil",
+        description: error instanceof Error ? error.message : "Kunne ikke hente sak",
+        variant: "destructive",
+      });
       router.push("/dashboard/whistleblowing");
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    if (!caseId) return;
+    void fetchCase();
+  }, [caseId]);
+
   const patchCase = async (payload: Record<string, unknown>) => {
     setSavingField(true);
     try {
-      const response = await fetch(`/api/admin/whistleblowing/${params.id}`, {
+      const response = await fetch(`/api/admin/whistleblowing/${caseId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Kunne ikke lagre");
-      setCaseData(data.data);
+      await fetchCase();
       return true;
     } catch (error: any) {
       toast({ title: "Feil", description: error.message, variant: "destructive" });
@@ -675,19 +652,6 @@ export default function WhistleblowingDetailPage() {
     toast({ title: "Alvorlighet oppdatert" });
   };
 
-  const updateAssignedTo = async (userId: string) => {
-    const actualUserId = userId === "NONE" ? null : userId;
-    const ok = await patchCase({ assignedTo: actualUserId });
-    if (ok) {
-      toast({
-        title: actualUserId ? "Sak tildelt" : "Tildeling fjernet",
-        description: actualUserId
-          ? "Saksbehandler er varslet."
-          : "Saken har ikke lenger en tildelt saksbehandler.",
-      });
-    }
-  };
-
   const saveInvestigationNotes = async (notes: string) => {
     await patchCase({ investigationNotes: notes });
     toast({ title: "Notater lagret" });
@@ -703,51 +667,11 @@ export default function WhistleblowingDetailPage() {
     toast({ title: status === "DISMISSED" ? "Sak henlagt" : "Sak avsluttet" });
   };
 
-  // Tiltak (actions) er lagret som JSON-streng i DB
-  const parsedActions: CaseAction[] = (() => {
-    if (!caseData?.actions) return [];
-    try {
-      return JSON.parse(caseData.actions);
-    } catch {
-      return [];
-    }
-  })();
-
-  const saveActions = async (actions: CaseAction[]) => {
-    await patchCase({ actions });
-  };
-
-  const addAction = async (description: string) => {
-    const newAction: CaseAction = {
-      id: `${Date.now()}`,
-      description,
-      createdAt: new Date().toISOString(),
-    };
-    const updated = [...parsedActions, newAction];
-    await saveActions(updated);
-    toast({ title: "Tiltak lagt til" });
-  };
-
-  const toggleAction = async (id: string) => {
-    const updated = parsedActions.map((a) =>
-      a.id === id
-        ? { ...a, completedAt: a.completedAt ? undefined : new Date().toISOString() }
-        : a
-    );
-    await saveActions(updated);
-  };
-
-  const removeAction = async (id: string) => {
-    const updated = parsedActions.filter((a) => a.id !== id);
-    await saveActions(updated);
-    toast({ title: "Tiltak fjernet" });
-  };
-
   const sendMessage = async () => {
     if (!messageText.trim()) return;
     setSendingMessage(true);
     try {
-      const response = await fetch(`/api/admin/whistleblowing/${params.id}/messages`, {
+      const response = await fetch(`/api/admin/whistleblowing/${caseId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: messageText, isInternal: isInternalMessage }),
@@ -779,7 +703,6 @@ export default function WhistleblowingDetailPage() {
   if (!caseData) return null;
 
   const daysSinceReceived = differenceInDays(new Date(), new Date(caseData.receivedAt));
-  const assignedUser = users.find((u) => u.user.id === caseData.assignedTo);
 
   return (
     <div className="space-y-6">
@@ -903,12 +826,7 @@ export default function WhistleblowingDetailPage() {
 
               <Separator />
 
-              <ActionsList
-                actions={parsedActions}
-                onAdd={addAction}
-                onToggle={toggleAction}
-                onRemove={removeAction}
-              />
+              <IsolatedMeasuresList measures={caseData.measures} />
 
               <Separator />
 
@@ -1032,10 +950,14 @@ export default function WhistleblowingDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {caseData.isAnonymous ? (
+              {caseData.isAnonymous || !caseData.canSeeIdentity ? (
                 <div className="flex items-center gap-2 rounded-lg bg-muted p-3">
                   <Shield className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-sm font-medium">Anonym varsling</span>
+                  <span className="text-sm font-medium">
+                    {caseData.canSeeIdentity
+                      ? "Anonym varsling"
+                      : "Identitet er skjult (ikke tildelt)"}
+                  </span>
                 </div>
               ) : (
                 <div className="space-y-3 text-sm">
@@ -1109,37 +1031,13 @@ export default function WhistleblowingDetailPage() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label>Ansvarlig saksbehandler</Label>
-                <Select
-                  value={caseData.assignedTo || "NONE"}
-                  onValueChange={updateAssignedTo}
-                  disabled={loadingUsers || savingField}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={loadingUsers ? "Laster..." : "Velg saksbehandler"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="NONE">Ingen tildelt</SelectItem>
-                    {users
-                      .filter(
-                        (u) =>
-                          u.role === "VARSLINGSANSVARLIG" ||
-                          u.user.id === caseData.assignedTo
-                      )
-                      .map((u) => (
-                        <SelectItem key={u.user.id} value={u.user.id}>
-                          {u.user.name || u.user.email}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                {assignedUser && (
-                  <p className="text-xs text-muted-foreground">
-                    Tildelt: {assignedUser.user.name || assignedUser.user.email}
-                  </p>
-                )}
-              </div>
+              <CaseAccessPanel
+                caseId={caseId}
+                users={users}
+                grants={caseData.grants}
+                isHandler={caseData.access.reason === "HANDLER"}
+                onChanged={fetchCase}
+              />
 
               <Separator />
 

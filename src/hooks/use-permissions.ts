@@ -31,6 +31,9 @@ export function usePermissions() {
 
   const permissions = getPermissions(role);
   const visibleNavItems = getVisibleNavItems(role);
+  if (session?.user?.hasConfidentialInbox) {
+    visibleNavItems.confidentialTasks = true;
+  }
 
   return {
     role,

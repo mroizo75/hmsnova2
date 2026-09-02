@@ -103,7 +103,7 @@ export default function HomePage() {
           <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
             <RegisterDialog>
               <Button size="lg" className="text-lg px-8 h-14 bg-green-700 hover:bg-green-800 text-white shadow-lg shadow-green-700/20">
-                Start gratis i 14 dager
+                Registrer bedrift
                 <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
               </Button>
             </RegisterDialog>
@@ -111,7 +111,7 @@ export default function HomePage() {
           </div>
 
           <p className="text-sm text-muted-foreground">
-            Ingen kredittkort. Ingen binding. Norsk support.
+            14 dagers angrefrist. Deretter 12 måneders binding og 3 måneders oppsigelse.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-10 text-sm text-muted-foreground">
@@ -263,7 +263,7 @@ export default function HomePage() {
               <div className="text-center mt-12">
                 <RegisterDialog>
                   <Button size="lg" className="bg-green-700 hover:bg-green-800 text-white">
-                    Start gratis i 14 dager
+                    Registrer bedrift
                     <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
                   </Button>
                 </RegisterDialog>
@@ -565,7 +565,7 @@ export default function HomePage() {
                       "Automatiske påminnelser",
                       "Bransjetilpassede maler",
                       "Norsk support",
-                      "Ingen binding",
+                      "12 mnd binding etter 14 dager",
                     ].map((item) => (
                       <div key={item} className="flex items-center gap-2">
                         <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0" aria-hidden="true" />
@@ -577,12 +577,12 @@ export default function HomePage() {
                   <div className="text-center">
                     <RegisterDialog>
                       <Button size="lg" className="text-lg px-10 h-14 bg-green-700 hover:bg-green-800 text-white shadow-lg shadow-green-700/20">
-                        Start gratis i 14 dager
+                        Registrer bedrift
                         <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
                       </Button>
                     </RegisterDialog>
                     <p className="text-sm text-muted-foreground mt-4">
-                      Ingen kredittkort. Avbryt når som helst.
+                      14 dagers angrefrist. Deretter 12 måneders binding.
                     </p>
                   </div>
                 </CardContent>
@@ -616,7 +616,7 @@ export default function HomePage() {
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <RegisterDialog>
                     <Button size="lg" className="text-lg px-8 h-14 bg-white text-green-800 hover:bg-white/90 font-semibold shadow-lg">
-                      Start gratis i 14 dager
+                      Registrer bedrift
                       <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
                     </Button>
                   </RegisterDialog>

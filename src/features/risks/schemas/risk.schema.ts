@@ -100,10 +100,29 @@ export const riskLevelToMatrix = {
   CRITICAL: { likelihood: 5, consequence: 5 }, // score 25 – Kritisk
 } as const;
 
+/** Schema for å legge til ett risikopunkt i en eksisterende risikovurdering (hurtigskjema, evt. AI-utfylt) */
+export const addRiskAssessmentItemSchema = z.object({
+  riskAssessmentId: z.string().cuid(),
+  tenantId: z.string().cuid(),
+  ownerId: z.string().cuid(),
+  title: z.string().trim().min(3, "Tittel må være minst 3 tegn").max(500),
+  level: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
+  category: z.nativeEnum(RiskCategory),
+  assessmentDate: z.string().optional().nullable(),
+  nextReviewDate: z.string().optional().nullable(),
+  beskrivelse: z.string().max(2000).optional().nullable(),
+  konsekvens: z.string().max(1000).optional().nullable(),
+  eksisterendeKontroller: z.string().max(2000).optional().nullable(),
+  suggestedMeasures: z.array(z.string().min(1).max(500)).max(5).optional(),
+  /** Opprinnelig AI-forslått tittel (hvis "AI-forslag for din bransje" ble brukt) - kun for bakgrunnslogging av AI-feedback. */
+  aiSuggestedTitle: z.string().optional(),
+});
+
 export type CreateRiskInput = z.infer<typeof createRiskSchema>;
 export type UpdateRiskInput = z.infer<typeof updateRiskSchema>;
 export type CreateRiskAssessmentInput = z.infer<typeof createRiskAssessmentSchema>;
 export type UpdateRiskAssessmentInput = z.infer<typeof updateRiskAssessmentSchema>;
+export type AddRiskAssessmentItemInput = z.infer<typeof addRiskAssessmentItemSchema>;
 
 /**
  * Helper function to calculate risk score and level

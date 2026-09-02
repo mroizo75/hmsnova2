@@ -99,10 +99,8 @@ export async function getGroupTenantOverview(tenantId: string) {
       orderBy: { occurredAt: "desc" },
       take: 5,
     }),
-    prisma.whistleblowing.count({
-      where: { tenantId, status: { in: ["RECEIVED", "ACKNOWLEDGED", "UNDER_INVESTIGATION"] } },
-    }),
-    prisma.whistleblowing.count({ where: { tenantId } }),
+    Promise.resolve(0),
+    Promise.resolve(0),
     prisma.hmsAnnualPlanCompletion.count({ where: { tenantId, year: currentYear } }),
   ]);
 
@@ -376,33 +374,19 @@ export async function getGroupAuditLog(options?: PaginationOptions) {
 // ── Varsling (Whistleblowing) — AML § 2A-1, Varslerloven ────────────────────
 // GDPR: Viser kun aggregert status, ikke innhold i varslingssaker
 
-export async function getGroupTenantWhistleblowing(tenantId: string, options?: PaginationOptions) {
+export async function getGroupTenantWhistleblowing(tenantId: string, _options?: PaginationOptions) {
   await verifyTenantAccess(tenantId);
 
-  const limit = options?.limit ?? DEFAULT_LIMIT;
-  const offset = options?.offset ?? 0;
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { slug: true },
+  });
 
-  const [cases, total] = await Promise.all([
-    prisma.whistleblowing.findMany({
-      where: { tenantId },
-      select: {
-        id: true,
-        caseNumber: true,
-        category: true,
-        status: true,
-        severity: true,
-        isAnonymous: true,
-        receivedAt: true,
-        closedAt: true,
-      },
-      orderBy: { receivedAt: "desc" },
-      take: limit,
-      skip: offset,
-    }),
-    prisma.whistleblowing.count({ where: { tenantId } }),
-  ]);
-
-  return { cases, total };
+  return {
+    cases: [] as Array<never>,
+    total: 0,
+    channelActive: Boolean(tenant?.slug),
+  };
 }
 
 // ── HMS Årshjul ──────────────────────────────────────────────────────────────

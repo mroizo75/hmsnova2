@@ -691,6 +691,116 @@ export async function getDocumentDownloadUrl(id: string) {
   }
 }
 
+/**
+ * Bekreft at innlogget bruker har lest gjeldende versjon av et dokument.
+ * IK-HMS § 5: dokumentasjon på at ansatte kjenner til gjeldende rutiner.
+ * Kvitteringen er versjonsspesifikk - en ny versjon krever ny bekreftelse.
+ */
+export async function confirmDocumentRead(documentId: string) {
+  try {
+    const context = await requireResourceAccess("document", documentId);
+
+    const document = await prisma.document.findUnique({
+      where: { id: documentId },
+      select: { id: true, version: true, tenantId: true },
+    });
+
+    if (!document) {
+      return { success: false, error: "Dokument ikke funnet" };
+    }
+
+    const confirmation = await prisma.documentConfirmation.upsert({
+      where: {
+        documentId_userId_documentVersion: {
+          documentId: document.id,
+          userId: context.userId,
+          documentVersion: document.version,
+        },
+      },
+      update: {},
+      create: {
+        tenantId: document.tenantId,
+        documentId: document.id,
+        userId: context.userId,
+        documentVersion: document.version,
+      },
+    });
+
+    revalidatePath(`/ansatt/dokumenter/${documentId}`);
+    revalidatePath(`/dashboard/documents/${documentId}`);
+
+    return { success: true, data: confirmation };
+  } catch (error: any) {
+    console.error("Confirm document read error:", error);
+    return { success: false, error: error.message || "Kunne ikke bekrefte lesing" };
+  }
+}
+
+/**
+ * Hent bekreftelsesstatus for et dokument: hvem har bekreftet gjeldende versjon,
+ * og hvor mange av virksomhetens ansatte gjenstår. Brukes i admin-dokumentlisten.
+ */
+export async function getDocumentConfirmationStatus(documentId: string) {
+  try {
+    const context = await requireResourceAccess("document", documentId);
+
+    const document = await prisma.document.findUnique({
+      where: { id: documentId },
+      select: { id: true, version: true, tenantId: true },
+    });
+
+    if (!document) {
+      return { success: false, error: "Dokument ikke funnet" };
+    }
+
+    const [totalUsers, confirmations] = await Promise.all([
+      prisma.userTenant.count({ where: { tenantId: document.tenantId } }),
+      prisma.documentConfirmation.findMany({
+        where: { documentId: document.id, documentVersion: document.version },
+        include: { user: { select: { id: true, name: true, email: true } } },
+        orderBy: { confirmedAt: "desc" },
+      }),
+    ]);
+
+    return {
+      success: true,
+      data: {
+        version: document.version,
+        confirmedCount: confirmations.length,
+        totalUsers,
+        confirmations,
+      },
+    };
+  } catch (error: any) {
+    console.error("Get document confirmation status error:", error);
+    return { success: false, error: error.message || "Kunne ikke hente bekreftelsesstatus" };
+  }
+}
+
+/**
+ * Har innlogget bruker allerede bekreftet gjeldende versjon av dokumentet?
+ */
+export async function getMyDocumentConfirmation(documentId: string, documentVersion: string) {
+  try {
+    const context = await requireResourceAccess("document", documentId);
+
+    const confirmation = await prisma.documentConfirmation.findUnique({
+      where: {
+        documentId_userId_documentVersion: {
+          documentId,
+          userId: context.userId,
+          documentVersion,
+        },
+      },
+    });
+
+    return { success: true, data: { confirmed: !!confirmation, confirmedAt: confirmation?.confirmedAt ?? null } };
+  } catch (error: any) {
+    console.error("Get my document confirmation error:", error);
+    return { success: false, error: error.message || "Kunne ikke hente bekreftelsesstatus" };
+  }
+}
+
 export async function convertDocumentToPDFAction(id: string) {
   try {
     const context = await requireResourceAccess("document", id);

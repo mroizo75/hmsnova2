@@ -237,12 +237,12 @@ export default function AnmeldelserPage() {
                 Bli en av våre fornøyde kunder
               </h2>
               <p className="text-lg mb-8 text-primary-foreground/90">
-                Test HMS Nova gratis i 14 dager. Ingen kredittkort. Ingen forpliktelser.
+                Registrer bedrift. 14 dagers angrefrist, deretter 12 måneders binding.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button asChild size="lg" variant="secondary">
                   <Link href="/registrer-bedrift">
-                    Kom i gang gratis
+                    Registrer bedrift
                   </Link>
                 </Button>
                 <Button 

@@ -77,6 +77,7 @@ export async function proxy(request: NextRequest) {
     "/admin",
     "/ansatt",
     "/konsern",
+    "/konfidensielt",
   ];
 
   const isProtectedRoute = protectedRoutes.some((route) =>

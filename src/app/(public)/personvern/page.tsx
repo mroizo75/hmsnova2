@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 export default function PersonvernPage() {
-  const lastUpdated = "11. august 2026";
+  const lastUpdated = "2. september 2026";
 
   return (
     <div className="bg-gradient-to-b from-background to-muted/20">
@@ -57,7 +57,7 @@ export default function PersonvernPage() {
                 </p>
                 <p className="flex items-center gap-2">
                   <Phone className="h-4 w-4" />
-                  <a href="tel:+4799112916" className="hover:text-primary">+47 99 11 29 16</a>
+                  <a href="tel:+4741874010" className="hover:text-primary">+47 41 87 40 10</a>
                 </p>
                 <p>Org.nr. legges inn</p>
               </div>
@@ -157,6 +157,32 @@ export default function PersonvernPage() {
                   <p className="text-sm text-muted-foreground mt-2">
                     <strong>Reservasjon:</strong> Du kan reservere din bedrift mot deltakelse via 
                     Innstillinger &gt; Statistikk i HMS Nova.
+                  </p>
+                </div>
+
+                <div className="border-l-4 border-orange-400 pl-4">
+                  <h4 className="font-semibold">3c. AI-forslag og forbedring av tjenesten</h4>
+                  <p className="text-sm text-muted-foreground">
+                    HMS Nova kan i utvalgte funksjoner (avviksutkast, årsaksanalyse, risikoforslag, 
+                    SDS-tolkning m.m.) bruke kunstig intelligens (OpenAI) til å foreslå tekst og 
+                    vurderinger. Alle AI-funksjoner er i testfase, og administrator kan når som helst 
+                    slå AI av for egen virksomhet under Innstillinger &gt; AI - da brukes ikke 
+                    tjenesten i det hele tatt. Data som sendes til AI-funksjonen brukes ikke til å 
+                    trene OpenAIs modeller.
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    <strong>Kunnskapsbase (RAG):</strong> For å gi mer presise og lovforankrede 
+                    AI-forslag henter systemet relevant kontekst fra en egen, kuratert kunnskapsbase 
+                    (lovtekst og rutinemaler) - ingen egen språkmodell trenes, og ingen 
+                    personopplysninger inngår i denne kunnskapsbasen.
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    <strong>Forbedring av AI-forslag:</strong> Når du redigerer eller godkjenner et 
+                    AI-forslag (f.eks. risikopunkt eller årsaksanalyse), kan HMS Nova AS logge 
+                    AI-forslaget og din endelige lagrede verdi internt, for å forbedre nøyaktigheten 
+                    til egne AI-forslag over tid. Denne loggen brukes utelukkende internt av HMS Nova 
+                    AS - aldri til å trene tredjeparts AI-modeller - og vi tilstreber å minimere 
+                    personopplysninger i loggen (rettslig grunnlag: berettiget interesse, Art. 6.1.f).
                   </p>
                 </div>
               </div>
@@ -394,7 +420,7 @@ export default function PersonvernPage() {
                 </p>
                 <p className="flex items-center gap-2">
                   <Phone className="h-4 w-4 text-primary" />
-                  <a href="tel:+4799112916" className="text-primary font-semibold hover:underline">+47 99 11 29 16</a>
+                  <a href="tel:+4741874010" className="text-primary font-semibold hover:underline">+47 41 87 40 10</a>
                 </p>
                 <p className="flex items-start gap-2">
                   <MapPin className="h-4 w-4 text-primary mt-0.5" />

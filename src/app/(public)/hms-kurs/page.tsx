@@ -710,8 +710,8 @@ export default function HMSKursPage() {
               </Link>
             </Button>
             <p className="text-sm text-muted-foreground mt-4">
-              <strong>Kontakt:</strong> Kurs: <a href="tel:+4791540824" className="underline">+47 91 54 08 24</a> | 
-              Software: <a href="tel:+4799112916" className="underline">+47 99 11 29 16</a> | 
+              <strong>Kontakt:</strong>{" "}
+              <a href="tel:+4741874010" className="underline">+47 41 87 40 10</a> |{" "}
               <a href="mailto:post@hmsnova.no" className="underline">post@hmsnova.no</a>
             </p>
           </div>
@@ -1054,11 +1054,8 @@ export default function HMSKursPage() {
                 </Button>
 
                 <p className="text-xs text-center text-muted-foreground">
-                  {t("booking.contact.title")} <br />
-                  <strong>{t("booking.contact.courseLabel")}</strong>{" "}
-                  <a href="tel:+4791540824" className="text-primary hover:underline">+47 91 54 08 24</a> | {" "}
-                  <strong>{t("booking.contact.softwareLabel")}</strong>{" "}
-                  <a href="tel:+4799112916" className="text-primary hover:underline">+47 99 11 29 16</a>
+                  {t("booking.contact.title")}{" "}
+                  <a href="tel:+4741874010" className="text-primary hover:underline">+47 41 87 40 10</a>
                 </p>
               </form>
             </CardContent>

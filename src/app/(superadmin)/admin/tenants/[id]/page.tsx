@@ -21,6 +21,7 @@ import { TenantOfferCard } from "@/features/admin/components/tenant-offer-card";
 import { IndustryPackageActions } from "@/features/admin/components/industry-package-actions";
 import { KursavtaleCard } from "@/features/admin/components/kursavtale-card";
 import { GdprExportButton } from "@/features/admin/components/gdpr-export-button";
+import { BreakGlassRequestCard } from "@/features/whistleblowing/components/break-glass-request-card";
 import { HandbookTemplateImport } from "@/features/admin/components/handbook-template-import";
 import { 
   ArrowLeft,
@@ -588,6 +589,8 @@ async function TenantDetails({ id }: { id: string }) {
               </CardContent>
             </Card>
           )}
+
+          <BreakGlassRequestCard tenantId={tenant.id} />
 
           {/* Status Actions - kun superadmin */}
           {isSuperAdmin && (

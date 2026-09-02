@@ -56,12 +56,15 @@ const immediateEmailTypes = new Set<NotificationType>([
   "MEASURE_OVERDUE",
   "WHISTLEBLOWING",
   "WHISTLEBLOWING_MSG",
+  "CONFIDENTIAL_ACCESS",
+  "BREAK_GLASS_REQUEST",
   "TRAINING_EXPIRED",
   "SYSTEM_ALERT",
   "INSPECTION_FINDING",
   "GUEST_SUBMISSION",
   "SUPPORT_TICKET",
   "SUPPORT_MSG",
+  "LAW_CHANGE_ALERT",
 ]);
 
 export function isNotificationTypeEnabledForUser(

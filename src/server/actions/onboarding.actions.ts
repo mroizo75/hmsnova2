@@ -217,6 +217,14 @@ const SETUP_STEP_GROUPS: StepGroupDef[] = [
         mandatory: true,
       },
       {
+        key: "hmsPolicy",
+        title: "HMS-policy og mål",
+        description: "Fyll inn HMS-policy og mål i håndboken (IK-HMS § 5 nr. 1)",
+        href: "/dashboard/hms-handbok",
+        icon: "Landmark",
+        mandatory: true,
+      },
+      {
         key: "handbook",
         title: "HMS-håndbok",
         description: "Fyll inn minst 3 seksjoner i HMS-håndboken",
@@ -314,9 +322,120 @@ const SETUP_STEP_GROUPS: StepGroupDef[] = [
       },
     ],
   },
+  {
+    key: "dokumenter",
+    title: "Lovpålagte roller",
+    legalRef: "AML § 6-1",
+    phase: "full",
+    steps: [
+      {
+        key: "verneombud",
+        title: "Verneombud utpekt",
+        description: "Utpek verneombud eller dokumenter avtale om annen ordning (AML § 6-1)",
+        href: "/dashboard/brukere",
+        icon: "UserCheck",
+        mandatory: true,
+      },
+    ],
+  },
+  {
+    key: "regelverk",
+    title: "Virksomhetsprofil",
+    legalRef: "IK-HMS § 5 nr. 1–2",
+    phase: "full",
+    steps: [
+      {
+        key: "regulatoryProfile",
+        title: "Virksomhetsprofil utfylt",
+        description: "Kartlegg aktiviteter i Mitt regelverk for å treffe riktige lovkrav",
+        href: "/dashboard/mitt-regelverk",
+        icon: "Scale",
+        mandatory: false,
+      },
+    ],
+  },
 ];
 
-const ALL_STEP_DEFS: StepDef[] = SETUP_STEP_GROUPS.flatMap((g) => g.steps);
+const SJA_ACTIVITIES = [
+  "height_work",
+  "construction",
+  "hot_work",
+  "electrical_work",
+  "hazardous_substances",
+  "fall_protection",
+];
+
+const BHT_ACTIVITIES = [
+  "night_shift",
+  "chemicals",
+  "hazardous_substances",
+  "biological_risk",
+  "noise_exposure",
+  "construction",
+];
+
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string");
+}
+
+function buildSetupStepGroups(activeActivities: string[] | null): StepGroupDef[] {
+  const groups = SETUP_STEP_GROUPS.map((group) => ({
+    ...group,
+    steps: [...group.steps],
+  }));
+
+  if (!activeActivities || activeActivities.length === 0) {
+    return groups;
+  }
+
+  const extra: StepDef[] = [];
+  if (
+    activeActivities.includes("chemicals") ||
+    activeActivities.includes("chemical_register")
+  ) {
+    extra.push({
+      key: "chemicalRegister",
+      title: "Stoffkartotek",
+      description: "Registrer kjemikalier og sikkerhetsdatablad (forskrift om utførelse av arbeid kap. 2)",
+      href: "/dashboard/chemicals",
+      icon: "FlaskConical",
+      mandatory: false,
+    });
+  }
+  if (activeActivities.some((activity) => SJA_ACTIVITIES.includes(activity))) {
+    extra.push({
+      key: "sjaTemplates",
+      title: "SJA-maler",
+      description: "Opprett sikker jobbanalyse-maler for høyrisikoarbeid",
+      href: "/dashboard/sja",
+      icon: "HardHat",
+      mandatory: false,
+    });
+  }
+  if (activeActivities.some((activity) => BHT_ACTIVITIES.includes(activity))) {
+    extra.push({
+      key: "bhtAgreement",
+      title: "BHT-avtale",
+      description: "Inngå avtale med bedriftshelsetjeneste der det er plikt (AML § 3-3)",
+      href: "/dashboard/bht-nattarbeid",
+      icon: "HeartPulse",
+      mandatory: false,
+    });
+  }
+
+  if (extra.length > 0) {
+    groups.push({
+      key: "aktivitetskrav",
+      title: "Aktivitetskrav",
+      legalRef: "IK-HMS § 5",
+      phase: "full",
+      steps: extra,
+    });
+  }
+
+  return groups;
+}
 
 function computeWeightedCompliance(steps: SetupGuideStep[]): number {
   let totalWeight = 0;
@@ -356,6 +475,12 @@ export async function getSetupGuideProgress(
       varslingRoutineCount,
       brannRoutineCount,
       fireDrillCount,
+      verneombudRoleCount,
+      verneombudOrgCount,
+      chemicalCount,
+      sjaTemplateCount,
+      bhtAvtaleCount,
+      activityProfile,
       handbook,
     ] = await Promise.all([
       prisma.userTenant.count({
@@ -387,6 +512,27 @@ export async function getSetupGuideProgress(
         },
       }),
       prisma.fireDrill.count({ where: { tenantId } }),
+      prisma.userTenant.count({
+        where: { tenantId, role: "VERNEOMBUD" },
+      }),
+      prisma.orgChartNode.count({
+        where: {
+          tenantId,
+          OR: [
+            { title: { contains: "verneombud" } },
+            { title: { contains: "Verneombud" } },
+            { name: { contains: "verneombud" } },
+            { name: { contains: "Verneombud" } },
+          ],
+        },
+      }),
+      prisma.chemical.count({ where: { tenantId } }),
+      prisma.sjaTemplate.count({ where: { tenantId } }),
+      prisma.bhtAvtale.count({ where: { tenantId, isActive: true } }),
+      prisma.tenantActivityProfile.findUnique({
+        where: { tenantId },
+        select: { completedAt: true, activeActivities: true },
+      }),
       prisma.hmsHandbook.findUnique({
         where: { tenantId },
         select: { id: true, currentVersionId: true },
@@ -394,10 +540,11 @@ export async function getSetupGuideProgress(
     ]);
 
     let handbookEdited = false;
+    let hmsPolicyEdited = false;
     let signatureCount = 0;
 
     if (handbook?.currentVersionId) {
-      const [editedSections, sigCount] = await Promise.all([
+      const [editedSections, policySection, sigCount] = await Promise.all([
         prisma.handbookSection.count({
           where: {
             versionId: handbook.currentVersionId,
@@ -405,17 +552,33 @@ export async function getSetupGuideProgress(
             NOT: { content: { startsWith: "<p>Kartlegging" } },
           },
         }),
+        prisma.handbookSection.findFirst({
+          where: {
+            versionId: handbook.currentVersionId,
+            sectionKey: "s1",
+            content: { not: { startsWith: "<p>Beskriv" } },
+          },
+          select: { id: true },
+        }),
         prisma.handbookSignature.count({
           where: { handbookId: handbook.id },
         }),
       ]);
       handbookEdited = editedSections >= 3;
+      hmsPolicyEdited = Boolean(policySection);
       signatureCount = sigCount;
     }
+
+    const activeActivities = asStringArray(activityProfile?.activeActivities);
+    const stepGroups = buildSetupStepGroups(
+      activityProfile?.completedAt ? activeActivities : null,
+    );
+    const stepDefs = stepGroups.flatMap((g) => g.steps);
 
     const completionMap: Record<string, boolean> = {
       employees: employeeCount >= 1,
       orgChart: orgNodeCount >= 2,
+      hmsPolicy: hmsPolicyEdited,
       handbook: handbookEdited,
       signatures: signatureCount >= 1,
       riskAssessment: riskCount >= 1,
@@ -425,14 +588,19 @@ export async function getSetupGuideProgress(
       routineVarsling: varslingRoutineCount >= 1,
       fireRoutine: brannRoutineCount >= 1,
       fireDrill: fireDrillCount >= 1,
+      verneombud: verneombudRoleCount >= 1 || verneombudOrgCount >= 1,
+      regulatoryProfile: Boolean(activityProfile?.completedAt),
+      chemicalRegister: chemicalCount >= 1,
+      sjaTemplates: sjaTemplateCount >= 1,
+      bhtAgreement: bhtAvtaleCount >= 1,
     };
 
-    const steps: SetupGuideStep[] = ALL_STEP_DEFS.map((step) => ({
+    const steps: SetupGuideStep[] = stepDefs.map((step) => ({
       ...step,
       completed: completionMap[step.key] ?? false,
     }));
 
-    const groups: SetupGuideGroup[] = SETUP_STEP_GROUPS.map((groupDef) => {
+    const groups: SetupGuideGroup[] = stepGroups.map((groupDef) => {
       const groupSteps = steps.filter((s) =>
         groupDef.steps.some((gs) => gs.key === s.key),
       );
@@ -867,7 +1035,7 @@ export async function rejectRegistration(tenantId: string, reason: string) {
               <p>Hei ${tenant.contactPerson || ""},</p>
               <p>Vi har mottatt din registrering for ${tenant.name}, men vi må dessverre informere deg om følgende:</p>
               <p style="padding: 15px; background: #f5f5f5; border-left: 4px solid #2d9c92;">${reason}</p>
-              <p>Ta gjerne kontakt med oss på <a href="mailto:support@hmsnova.com">support@hmsnova.com</a> eller ring oss på <a href="tel:+4799112916">+47 99 11 29 16</a> hvis du har spørsmål.</p>
+              <p>Ta gjerne kontakt med oss på <a href="mailto:support@hmsnova.com">support@hmsnova.com</a> eller ring oss på <a href="tel:+4741874010">+47 41 87 40 10</a> hvis du har spørsmål.</p>
               <p>Med vennlig hilsen,<br/>HMS Nova Team</p>
             </div>
           `,
@@ -1077,7 +1245,7 @@ function getActivationEmail(data: {
                     <p style="color: #666; font-size: 14px; line-height: 1.6; margin: 30px 0 0;">
                       Har du spørsmål? Vi er her for å hjelpe!<br/>
                       <a href="mailto:support@hmsnova.com" style="color: #2d9c92; text-decoration: none;">support@hmsnova.com</a><br/>
-                      <a href="tel:+4799112916" style="color: #2d9c92; text-decoration: none;">+47 99 11 29 16</a>
+                      <a href="tel:+4741874010" style="color: #2d9c92; text-decoration: none;">+47 41 87 40 10</a>
                     </p>
                   </td>
                 </tr>

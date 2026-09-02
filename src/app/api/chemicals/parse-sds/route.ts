@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import { getStorage } from "@/lib/storage";
 import { parseSDSFile } from "@/lib/sds-parser";
 
@@ -15,6 +16,12 @@ export async function POST(req: NextRequest) {
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      include: { tenants: true },
+    });
+    const tenantId = (session as any).activeTenantId ?? user?.tenants[0]?.tenantId;
 
     const { sdsKey } = await req.json();
 
@@ -31,7 +38,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Parse med AI
-    const extractedData = await parseSDSFile(fileBuffer);
+    const extractedData = await parseSDSFile(fileBuffer, tenantId);
 
     // Forbered data for frontend
     const responseData = {

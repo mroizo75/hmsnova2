@@ -8,7 +8,7 @@ import { FAQSection } from "@/components/faq-section";
 
 export const metadata: Metadata = {
   title: "Avvikshåndtering - Registrer og følg opp avvik | HMS Nova",
-  description: "Digital avvikshåndtering med registrering fra mobil. Automatisk oppfølging, lær av nestenulykker og ISO 9001-compliance. Prøv gratis.",
+  description: "Digital avvikshåndtering med registrering fra mobil. Automatisk oppfølging, lær av nestenulykker og ISO 9001-compliance. Registrer bedrift.",
   keywords: "avvikshåndtering, avviksmelding, hendelsesrapportering, nestenulykke, hms avvik",
 };
 
@@ -77,7 +77,7 @@ export default function AvvikshandteringPage() {
           <div className="flex flex-col sm:flex-row gap-4">
             <Button asChild size="lg">
               <Link href="/registrer-bedrift">
-                Prøv gratis i 14 dager
+                Registrer bedrift
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
@@ -336,12 +336,12 @@ export default function AvvikshandteringPage() {
               Bygg en sterkere HMS-kultur
             </h2>
             <p className="text-lg mb-8 text-primary-foreground/90">
-              Med enkel avvikshåndtering får dere flere meldinger og lærer mer. Test gratis i 14 dager.
+              Med enkel avvikshåndtering får dere flere meldinger og lærer mer. Registrer bedrift.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild size="lg" className="bg-white text-primary hover:bg-gray-100">
                 <Link href="/registrer-bedrift">
-                  Kom i gang gratis
+                  Registrer bedrift
                 </Link>
               </Button>
               <Button 

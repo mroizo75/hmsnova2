@@ -71,7 +71,7 @@ test("varslingsansvarlig har alltid varslingsmodul uten at ADMIN får innhold", 
   );
 
   const admin = getEffectivePermissions("ADMIN", null);
-  assert.equal(admin.canViewWhistleblowing, true);
+  assert.equal(admin.canViewWhistleblowing, false);
   assert.equal(admin.canViewWhistleblowingContent, false);
   assert.equal(admin.canHandleWhistleblowing, false);
 

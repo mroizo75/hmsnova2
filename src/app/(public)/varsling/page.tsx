@@ -69,7 +69,10 @@ export default function WhistleblowingInfoPage() {
           <CardContent className="space-y-4">
             <p className="text-muted-foreground">
               Anonym varsling er en sikker kanal hvor du kan melde fra om kritiske forhold på
-              arbeidsplassen uten å avsløre din identitet. Dette kan være:
+              arbeidsplassen uten at identiteten din spres. Varslerens identitet behandles
+              konfidensielt og gjøres bare tilgjengelig for personer som har et dokumentert behov
+              for opplysningen. Absolutt anonymitet kan ikke garanteres dersom lov,
+              domstolsbehandling eller hensynet til forsvarlig kontradiksjon krever utlevering.
             </p>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground">
               <li>Trakassering eller diskriminering</li>
@@ -111,7 +114,7 @@ export default function WhistleblowingInfoPage() {
             </p>
             <div className="flex gap-4">
               <Button asChild>
-                <Link href="/registrer-bedrift">Kom i gang gratis</Link>
+                <Link href="/registrer-bedrift">Registrer bedrift</Link>
               </Button>
               <Button asChild variant="outline">
                 <Link href="/priser">Se priser</Link>

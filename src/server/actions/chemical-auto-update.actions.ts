@@ -97,7 +97,7 @@ export async function checkAndUpdateSDSOnCreate(
     await storage.upload(sdsKey, pdfBuffer);
 
     // Parse med AI
-    const extractedData = await parseSDSFile(pdfBuffer);
+    const extractedData = await parseSDSFile(pdfBuffer, tenantId);
 
     // Hent ECHA-data
     let echaData = null;
@@ -250,7 +250,7 @@ export async function weeklyCheckAllChemicals(): Promise<{
               await storage.upload(sdsKey, pdfBuffer);
 
               // Parse med AI
-              const extractedData = await parseSDSFile(pdfBuffer);
+              const extractedData = await parseSDSFile(pdfBuffer, tenant.id);
 
               // Oppdater database
               await prisma.chemical.update({

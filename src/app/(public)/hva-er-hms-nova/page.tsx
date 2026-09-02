@@ -46,7 +46,7 @@ export default function HvaErHMSNovaPage() {
             <Link href="/registrer-bedrift">
               <Button size="lg">
                 <Download className="mr-2 h-5 w-5" />
-                Få gratis HMS-system
+                Registrer bedrift
               </Button>
             </Link>
             <Link href="/#funksjoner">
@@ -478,18 +478,18 @@ export default function HvaErHMSNovaPage() {
               <Link href="/registrer-bedrift">
                 <Button size="lg" variant="secondary">
                   <Download className="mr-2 h-5 w-5" />
-                  Få gratis HMS-system
+                  Registrer bedrift
                 </Button>
               </Link>
-              <Link href="/dashboard">
+              <Link href="/priser">
                 <Button size="lg" variant="outline" className="bg-transparent border-white text-white hover:bg-white/10">
-                  Prøv full versjon gratis
+                  Se priser
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
             </div>
             <p className="text-sm mt-6 text-primary-foreground/70">
-              Ingen kredittkort • 14 dagers gratis prøveperiod • Norsk support
+              14 dagers angrefrist • Deretter 12 mnd binding • Norsk support
             </p>
           </CardContent>
         </Card>

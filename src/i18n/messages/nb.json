@@ -39,6 +39,7 @@
     "timeRegistration": "Timeregistrering",
     "exposureRegister": "Eksponeringsregister",
     "whistleblowing": "Varslinger",
+    "confidentialTasks": "Konfidensielle oppgaver",
     "actions": "Tiltak",
     "goals": "Mål",
     "users": "Brukere",
@@ -74,7 +75,15 @@
     "simpleMode": "Enkel",
     "advancedMode": "Avansert",
     "simpleDescription": "Grunnleggende HMS-funksjoner",
-    "advancedDescription": "Alle funksjoner inkl. ISO"
+    "advancedDescription": "Alle funksjoner inkl. ISO",
+    "hubs": {
+      "oversikt": "Oversikt",
+      "handbok": "HMS-håndbok",
+      "risiko": "Risiko og sikkerhet",
+      "avvikTiltak": "Avvik og tiltak",
+      "organisasjon": "Organisasjon",
+      "tilleggsmoduler": "Tilleggsmoduler"
+    }
   },
   "mobileNav": {
     "navigationMenu": "Navigasjonsmeny",
@@ -827,9 +836,7 @@
         "default": "Send bestilling"
       },
       "contact": {
-        "title": "Eller ring oss direkte:",
-        "courseLabel": "Kurs:",
-        "softwareLabel": "Software:"
+        "title": "Eller ring oss direkte:"
       }
     }
   },
@@ -1360,6 +1367,13 @@
     "tip": {
       "title": "💡 Tips:",
       "description": "Dette er et godkjent dokument som du kan laste ned og bruke. Hvis du har spørsmål om dokumentet, kontakt HMS-ansvarlig."
+    },
+    "confirmation": {
+      "title": "Lesebekreftelse",
+      "description": "Bekreft at du har lest og forstått gjeldende versjon av dette dokumentet.",
+      "confirmButton": "Bekreft at jeg har lest",
+      "confirmedBadge": "Du har bekreftet denne versjonen",
+      "confirmedAtLabel": "Bekreftet"
     }
   },
   "employeeChemicalsPage": {
@@ -1384,8 +1398,8 @@
       "description": "Trygg og konfidensiell kanal for å varsle om kritiske forhold"
     },
     "confidential": {
-      "title": "100% konfidensiell og trygg",
-      "description": "Alle varslinger behandles konfidensielt. Du kan velge å være helt anonym eller oppgi kontaktinformasjon hvis du ønsker tilbakemelding."
+      "title": "Konfidensiell og trygt behandlet",
+      "description": "Alle varslinger behandles konfidensielt. Du kan velge å oppgi kontaktinformasjon hvis du ønsker tilbakemelding. Absolutt anonymitet kan ikke garanteres dersom lov, domstol eller kontradiksjon krever utlevering."
     },
     "whatToReport": {
       "title": "Hva kan jeg varsle om?",
@@ -1425,7 +1439,7 @@
       },
       "step4": {
         "title": "Kommuniser anonymt",
-        "description": "Du kan sende og motta meldinger via sporingssiden uten å avsløre identitet."
+        "description": "Du kan sende og motta meldinger via sporingssiden. Identiteten behandles konfidensielt, men absolutt anonymitet kan ikke garanteres."
       }
     },
     "tenantChannel": {
@@ -3816,6 +3830,11 @@
       "title": "Versjonshistorikk",
       "latest": "Siste {count} versjoner",
       "onlyLastFive": "Viser kun de 5 siste versjonene"
+    },
+    "confirmation": {
+      "title": "Lesebekreftelse",
+      "description": "Antall ansatte som har bekreftet at de har lest gjeldende versjon",
+      "count": "{confirmed} av {total} ansatte"
     },
     "kinds": {
       "LAW": "Lover og regler",

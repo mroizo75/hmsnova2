@@ -13,16 +13,19 @@ import {
   closeIncidentSchema,
 } from "@/features/incidents/schemas/incident.schema";
 import { createNotification, notifyUsersByRoles } from "./notification.actions";
-import { IncidentStage, IncidentStatus } from "@prisma/client";
+import { IncidentStage } from "@prisma/client";
 import {
   parseModuleVisibilityConfig,
   getNotifyRolesForModule,
 } from "@/lib/module-visibility";
 import { dispatchNewIncidentNotifications } from "@/lib/incident-notification-routing.server";
 import { normalizeProjectReference } from "@/lib/incident-project-reference";
+import { logAiFeedback } from "@/lib/ai-feedback";
 import { resolveIncidentProjectId } from "@/lib/incident-project-reference.server";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
 import { getIncidentCloseBlockers } from "@/lib/incident-close-rules";
+import { suggestHandbookUpdates } from "@/lib/handbook-suggestions";
+import { resolveIncidentStage } from "@/lib/incident-stage";
 
 async function getSessionContext() {
   const context = await getRequiredTenantContext();
@@ -133,20 +136,6 @@ const assertTenantScopedRelations = async (input: {
     if (!membership) {
       throw new Error("Rapportert for-bruker finnes ikke i valgt tenant");
     }
-  }
-};
-
-const stageFromStatus = (status: IncidentStatus): IncidentStage => {
-  switch (status) {
-    case "INVESTIGATING":
-      return "UNDER_REVIEW";
-    case "ACTION_TAKEN":
-      return "ACTIONS_DEFINED";
-    case "CLOSED":
-      return "VERIFIED";
-    case "OPEN":
-    default:
-      return "REPORTED";
   }
 };
 
@@ -359,11 +348,12 @@ export async function createIncident(input: any) {
       },
     });
 
-    if (normalizedInput.aiSuggestedMeasures.length > 0) {
+    const aiSuggestedMeasures = validated.aiSuggestedMeasures ?? [];
+    if (aiSuggestedMeasures.length > 0) {
       const dueAt = new Date();
       dueAt.setDate(dueAt.getDate() + 14);
       await prisma.measure.createMany({
-        data: normalizedInput.aiSuggestedMeasures.map((title) => ({
+        data: aiSuggestedMeasures.map((title) => ({
           tenantId,
           incidentId: incident.id,
           title,
@@ -504,13 +494,14 @@ export async function updateIncident(input: any) {
     if (validated.lostWorkdays !== undefined) updateData.lostWorkdays = validated.lostWorkdays;
     if (validated.isRestrictedWork !== undefined) updateData.isRestrictedWork = validated.isRestrictedWork;
     if (validated.source !== undefined) updateData.source = validated.source;
+    if (validated.responsibleId !== undefined) updateData.responsibleId = validated.responsibleId ?? null;
 
-    let stageToPersist = validated.stage;
-    if (!stageToPersist && validated.status) {
-      stageToPersist = stageFromStatus(validated.status);
-    }
-
-    if (stageToPersist && stageToPersist !== existingIncident.stage) {
+    const stageToPersist = resolveIncidentStage(
+      existingIncident.stage,
+      validated.status,
+      validated.stage
+    );
+    if (stageToPersist !== existingIncident.stage) {
       updateData.stage = stageToPersist;
     }
 
@@ -648,7 +639,53 @@ export async function investigateIncident(input: any) {
     revalidatePath("/dashboard/incidents");
     revalidatePath(`/dashboard/incidents/${incident.id}`);
     triggerRealtimeEvent(tenantId, "incident-updated", { id: incident.id });
-    return { success: true, data: incident };
+
+    // AI-feedback-logging: sammenlign AI-forslaget (hvis brukt) med det som faktisk ble lagret.
+    // Ren bakgrunnslogging - grunnlag for evt. finjustering senere, ingen endring i brukerflyten.
+    if (validated.aiSuggestedRootCause) {
+      void logAiFeedback({
+        tenantId,
+        feature: "incident_root_cause",
+        aiSuggestion: validated.aiSuggestedRootCause,
+        userFinalValue: validated.rootCause,
+      });
+    }
+
+    // Regelbasert (ikke-AI) håndbok-forslag - IK-HMS § 5: systematisk oppfølging av avvik.
+    // Mennesket vurderer alltid forslaget selv; ingen dokument endres automatisk.
+    const suggestions = suggestHandbookUpdates({
+      type: incident.type,
+      title: incident.title,
+      rootCause: validated.rootCause,
+      description: incident.description,
+    });
+
+    let handbookSuggestions: Array<{
+      code: string;
+      documentKind: string;
+      message: string;
+      documents: Array<{ id: string; title: string }>;
+    }> = [];
+
+    if (suggestions.length > 0) {
+      const documentKinds = [...new Set(suggestions.map((s) => s.documentKind))];
+      const matchingDocuments = await prisma.document.findMany({
+        where: { tenantId, kind: { in: documentKinds }, status: "APPROVED" },
+        select: { id: true, title: true, kind: true },
+        orderBy: { updatedAt: "desc" },
+        take: 20,
+      });
+
+      handbookSuggestions = suggestions.map((suggestion) => ({
+        ...suggestion,
+        documents: matchingDocuments
+          .filter((doc) => doc.kind === suggestion.documentKind)
+          .slice(0, 3)
+          .map((doc) => ({ id: doc.id, title: doc.title })),
+      }));
+    }
+
+    return { success: true, data: incident, handbookSuggestions };
   } catch (error: any) {
     console.error("Investigate incident error:", error);
     return { success: false, error: error.message || "Kunne ikke utrede avvik" };

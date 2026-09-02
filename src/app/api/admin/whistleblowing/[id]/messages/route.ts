@@ -58,9 +58,9 @@ export async function POST(
       createNotification({
         tenantId: session.user.tenantId,
         userId: report.assignedTo,
-        type: "WHISTLEBLOWING_MSG",
-        title: "Ny melding i varslingssak",
-        message: `Det er lagt til en ny ${isInternal ? "intern notat" : "melding"} i sak ${report.caseNumber}.`,
+        type: "CONFIDENTIAL_ACCESS",
+        title: "Konfidensiell sak",
+        message: "Du har fått tilgang til en konfidensiell sak",
         link: `/dashboard/whistleblowing/${id}`,
       }).catch(() => {});
     }

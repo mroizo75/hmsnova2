@@ -147,7 +147,7 @@ export async function sendUserInvitationEmail({
                     </p>
                     <p style="color: #666; font-size: 14px; margin: 0; line-height: 1.6;">
                       📧 <a href="mailto:support@hmsnova.com" style="color: #2d9c92; text-decoration: none;">support@hmsnova.com</a><br/>
-                      📞 <a href="tel:+4799112916" style="color: #2d9c92; text-decoration: none;">+47 99 11 29 16</a>
+                      📞 <a href="tel:+4741874010" style="color: #2d9c92; text-decoration: none;">+47 41 87 40 10</a>
                     </p>
                   </td>
                 </tr>

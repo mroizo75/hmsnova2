@@ -3,10 +3,10 @@
  *
  * Hjemmel:
  *   AML § 14-5/14-6: arbeidsavtale innen 7 dager
- *   AML § 3-5: HMS-opplæring
- *   AML § 2A-6: varslingsrutiner
+ *   AML § 3-2: opplæring og instruksjon
+ *   AML § 2 A-6: varslingsrutiner
  *   AML § 15-15: sluttattest
- *   GDPR art. 17: rett til sletting
+ *   GDPR art. 13 og art. 17: informasjon og sletting
  */
 
 import { z } from "zod";

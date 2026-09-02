@@ -35,9 +35,10 @@ export default function LoginPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const isVerified = params.get("verified") === "true";
+    const isActivated = params.get("activated") === "true";
     const errorCode = params.get("error");
 
-    if (isVerified) {
+    if (isVerified || isActivated) {
       setVerified(true);
     }
 
@@ -48,7 +49,7 @@ export default function LoginPage() {
       );
     }
 
-    if (isVerified || errorCode) {
+    if (isVerified || isActivated || errorCode) {
       window.history.replaceState({}, "", "/login");
     }
   }, []);
@@ -66,7 +67,9 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError("Ugyldig e-post eller passord");
+        setError(
+          "Ugyldig e-post eller passord. Hvis du nettopp registrerte deg, aktiver kontoen via e-posten vi sendte."
+        );
       } else {
         const response = await fetch("/api/auth/session");
         const session = await response.json();
@@ -125,7 +128,7 @@ export default function LoginPage() {
             </div>
             {verified && (
               <div className="rounded-lg bg-green-100 p-3 text-sm text-green-800">
-                ✓ E-postadressen din er verifisert! Du kan nå logge inn.
+                ✓ Kontoen din er aktivert! Du kan nå logge inn.
               </div>
             )}
             {error && (

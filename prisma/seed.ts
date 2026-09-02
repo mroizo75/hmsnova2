@@ -413,6 +413,35 @@ async function main() {
 
   console.log("✅ Ansatt-bruker opprettet:", employee.email);
 
+  const whistleblowPassword = await bcrypt.hash("varsling123", 10);
+  const whistleblowHandler = await prisma.user.upsert({
+    where: { email: "varsling@test.no" },
+    update: {
+      password: whistleblowPassword,
+      emailVerified: new Date(),
+      failedLoginAttempts: 0,
+      lockedUntil: null,
+    },
+    create: {
+      email: "varsling@test.no",
+      name: "Varslingsansvarlig Test",
+      password: whistleblowPassword,
+      emailVerified: new Date(),
+      tenants: {
+        create: {
+          tenantId: tenant.id,
+          role: "VARSLINGSANSVARLIG",
+        },
+      },
+    },
+  });
+  await prisma.userTenant.upsert({
+    where: { userId_tenantId: { userId: whistleblowHandler.id, tenantId: tenant.id } },
+    update: { role: "VARSLINGSANSVARLIG" },
+    create: { userId: whistleblowHandler.id, tenantId: tenant.id, role: "VARSLINGSANSVARLIG" },
+  });
+  console.log("✅ Varslingsansvarlig opprettet:", whistleblowHandler.email);
+
   // Opprett BHT bruker
   const bhtPassword = await bcrypt.hash("bht123", 10);
 
@@ -1811,6 +1840,7 @@ async function main() {
   console.log("👔 Leder:          leder@test.no / leder123");
   console.log("🛡️  Verneombud:    vern@test.no / vern123");
   console.log("👷 Ansatt:         ansatt@test.no / ansatt123");
+  console.log("🔒 Varsling:       varsling@test.no / varsling123");
   console.log("🏥 BHT:            bht@test.no / bht123");
   console.log("📋 Revisor:        revisor@test.no / revisor123");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");

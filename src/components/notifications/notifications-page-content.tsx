@@ -22,6 +22,8 @@ function getNotificationIcon(type: string): string {
       return "📋";
     case "WHISTLEBLOWING":
     case "WHISTLEBLOWING_MSG":
+    case "CONFIDENTIAL_ACCESS":
+    case "BREAK_GLASS_REQUEST":
       return "🔔";
     case "MEASURE_OVERDUE":
     case "MEASURE_ASSIGNED":

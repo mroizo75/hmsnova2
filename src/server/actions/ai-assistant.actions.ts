@@ -111,6 +111,8 @@ Krav:
       cacheScope: `tenant:${tenantId}:incidentDraft`,
       rateLimitScope: `tenant:${tenantId}`,
       budgetScope: `tenant:${tenantId}`,
+      tenantId,
+      ragQuery: `${validated.type}: ${validated.title} - ${validated.description}`,
     });
     const match = response.match(/\{[\s\S]*\}/);
     if (!match) {
@@ -252,11 +254,13 @@ ${visionImages.length > 0 ? "Det følger " + visionImages.length + " bilde(r) so
             rateLimitScope: `tenant:${tenantId}`,
             budgetScope: `tenant:${tenantId}`,
             bypassCache: true,
+            tenantId,
           })
         : await generateAIResponse(prompt, "gpt-4o-mini", {
             cacheScope: `tenant:${tenantId}:incidentRootCause:${incidentId}:${createHash("sha256").update(incident.description).digest("hex").slice(0, 24)}`,
             rateLimitScope: `tenant:${tenantId}`,
             budgetScope: `tenant:${tenantId}`,
+            tenantId,
           });
 
     const match = response.match(/\{[\s\S]*\}/);
@@ -341,6 +345,7 @@ Gi maks 4 konkrete varsler, kun hvis viktig informasjon mangler/er uklar.`;
       cacheScope: `tenant:${tenantId}:incidentQuality`,
       rateLimitScope: `tenant:${tenantId}`,
       budgetScope: `tenant:${tenantId}`,
+      tenantId,
     });
     const match = response.match(/\{[\s\S]*\}/);
     if (!match) {
@@ -378,6 +383,7 @@ Farer: ${JSON.stringify(validated.hazards)}`;
       cacheScope: `tenant:${tenantId}:sjaSummary`,
       rateLimitScope: `tenant:${tenantId}`,
       budgetScope: `tenant:${tenantId}`,
+      tenantId,
     });
     const match = response.match(/\{[\s\S]*\}/);
     if (!match) return { success: false, error: "AI returnerte ugyldig format" };
@@ -406,6 +412,7 @@ Punkter: ${JSON.stringify(validated.checklistItems)}`;
       cacheScope: `tenant:${tenantId}:inspectionSummary`,
       rateLimitScope: `tenant:${tenantId}`,
       budgetScope: `tenant:${tenantId}`,
+      tenantId,
     });
     const match = response.match(/\{[\s\S]*\}/);
     if (!match) return { success: false, error: "AI returnerte ugyldig format" };
@@ -466,6 +473,7 @@ Data:
       cacheScope: `tenant:${tenantId}:dashboardAssistant`,
       rateLimitScope: `tenant:${tenantId}`,
       budgetScope: `tenant:${tenantId}`,
+      tenantId,
     });
     const match = response.match(/\{[\s\S]*\}/);
     if (!match) {

@@ -366,14 +366,7 @@ export async function getGroupAlerts(): Promise<GroupAlert[]> {
       },
       _count: true,
     }),
-    prisma.whistleblowing.groupBy({
-      by: ["tenantId"],
-      where: {
-        tenantId: { in: tenantIds },
-        status: { in: ["RECEIVED", "ACKNOWLEDGED"] },
-      },
-      _count: true,
-    }),
+    Promise.resolve([] as Array<{ tenantId: string; _count: number }>),
   ]);
 
   for (const item of openIncidents) {
@@ -455,10 +448,8 @@ export async function getGroupOverviewStats() {
     prisma.routine.count({ where: { tenantId: { in: tenantIds }, status: "ACTIVE" } }),
     prisma.riskAssessment.count({ where: { tenantId: { in: tenantIds }, updatedAt: { gte: twelveMonthsAgo } } }),
     prisma.inspection.count({ where: { tenantId: { in: tenantIds }, status: "COMPLETED", scheduledDate: { gte: twelveMonthsAgo } } }),
-    prisma.whistleblowing.count({
-      where: { tenantId: { in: tenantIds }, status: { in: ["RECEIVED", "ACKNOWLEDGED", "UNDER_INVESTIGATION"] } },
-    }),
-    prisma.whistleblowing.count({ where: { tenantId: { in: tenantIds } } }),
+    Promise.resolve(0),
+    Promise.resolve(0),
   ]);
 
   return {
@@ -488,34 +479,17 @@ export async function getGroupWhistleblowingStatus() {
 
   const tenants = await prisma.corporateGroupTenant.findMany({
     where: { groupId: context.groupId, status: "ACTIVE" },
-    include: { tenant: { select: { id: true, name: true } } },
+    include: { tenant: { select: { id: true, name: true, slug: true } } },
   });
 
-  const byStatus = await prisma.whistleblowing.groupBy({
-    by: ["tenantId", "status"],
-    where: { tenantId: { in: tenantIds } },
-    _count: true,
-  });
-
-  return tenants.map((gt) => {
-    const tid = gt.tenant.id;
-    const entries = byStatus.filter((e) => e.tenantId === tid);
-    const total = entries.reduce((s, e) => s + e._count, 0);
-    const open = entries
-      .filter((e) => ["RECEIVED", "ACKNOWLEDGED", "UNDER_INVESTIGATION"].includes(e.status))
-      .reduce((s, e) => s + e._count, 0);
-    const resolved = entries
-      .filter((e) => ["RESOLVED", "CLOSED", "DISMISSED"].includes(e.status))
-      .reduce((s, e) => s + e._count, 0);
-
-    return {
-      tenantId: tid,
-      tenantName: gt.tenant.name,
-      total,
-      open,
-      resolved,
-    };
-  });
+  return tenants.map((gt) => ({
+    tenantId: gt.tenant.id,
+    tenantName: gt.tenant.name,
+    channelActive: Boolean(gt.tenant.slug),
+    total: 0,
+    open: 0,
+    resolved: 0,
+  }));
 }
 
 // ── HMS Årshjul-status per bedrift ──────────────────────────────────────────

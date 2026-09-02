@@ -20,7 +20,7 @@ export const SEO_CONTENT = {
     secondary: [
       "Erstatt Excel-ark og papirrot med et moderne HMS-system",
       "500+ norske bedrifter stoler på HMS Nova",
-      "Fra 250 kr/mnd - ingen skjulte kostnader, valgfri binding",
+      "Fra 300 kr/mnd - ingen skjulte kostnader, 12 måneders binding etter 14 dagers angrefrist",
     ],
   },
 
@@ -60,9 +60,9 @@ export const SEO_CONTENT = {
     },
     {
       feature: "Bindingstid",
-      hmsnova: "Valgfri (0-2 år)",
+      hmsnova: "12 måneder etter 14 dagers angrefrist",
       competitors: "1-3 år påkrevd",
-      benefit: "Du velger bindingsperiode etter dine behov",
+      benefit: "14 dagers angrefrist, deretter 12 måneders binding og 3 måneders oppsigelse",
     },
     {
       feature: "Mobilapp (offline)",
@@ -84,7 +84,7 @@ export const SEO_CONTENT = {
     "ISO 9001 compliant fra dag én",
     "Godkjent av norske revisorer",
     "Data lagres trygt i Norge (GDPR-compliant)",
-    "14 dagers gratis prøveperiod",
+    "14 dagers angrefrist",
     "Norsk kundesupport",
   ],
 
@@ -106,9 +106,9 @@ export const SEO_CONTENT = {
   // Call-to-action variations
   ctas: {
     primary: "Kom i gang nå",
-    secondary: "Få gratis HMS-pakke",
-    tertiary: "Prøv gratis i 14 dager",
-    support: "Ring oss på +47 99 11 29 16",
+    secondary: "Registrer bedrift",
+    tertiary: "Registrer bedrift",
+    support: "Ring oss på +47 41 87 40 10",
   },
 
   // Social proof
@@ -122,7 +122,7 @@ export const SEO_CONTENT = {
 
   // Meta descriptions for different pages
   metaDescriptions: {
-    home: "HMS Nova bygger trygghet. Få kontroll på HMS med digital signatur, automatiske påminnelser og mobilapp. 500+ norske bedrifter stoler på oss. Prøv gratis.",
+    home: "HMS Nova bygger trygghet. Få kontroll på HMS med digital signatur, automatiske påminnelser og mobilapp. 500+ norske bedrifter stoler på oss. Registrer bedrift.",
     priser: "Transparente HMS-priser: 300 kr/mnd (12 mnd abonnement). Ingen oppstartskostnader. 20% rabatt på kurs. BHT fra HMS Nova under etablering. Se alle priser.",
     kurs: "20% rabatt på HMS-kurs for medlemmer. Verneombud, førstehjelp, diisocyanater. HMS Nova AS. Fysisk, digitalt eller hybrid.",
     bht: "HMS Nova etablerer seg som godkjent BHT. Minimum lovkrav, tilleggstjenester og kurs inkludert Diisocyanater. Ett sted for HMS og BHT.",
@@ -134,7 +134,7 @@ export const LONG_TAIL_KEYWORDS = [
   "hms system som bygger trygghet",
   "digital hms løsning for norske bedrifter",
   "hms system med mobilapp offline",
-  "billigste hms system valgfri binding",
+  "hms system 12 måneder binding",
   "hms system med digital signatur inkludert",
   "iso 9001 compliant hms system norge",
   "hms system bedre enn grønn jobb",

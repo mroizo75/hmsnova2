@@ -451,7 +451,7 @@ export default async function BransjeSlugPage({ params }: PageProps) {
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <RegisterDialog>
                   <Button size="lg" className="text-lg px-8 bg-green-700 hover:bg-green-800 text-white">
-                    Start gratis i 14 dager
+                    Registrer bedrift
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </RegisterDialog>
@@ -462,7 +462,7 @@ export default async function BransjeSlugPage({ params }: PageProps) {
                 </Link>
               </div>
               <p className="text-sm text-muted-foreground mt-4">
-                Ingen kredittkort &middot; Full tilgang &middot; Fra 300 kr/mnd
+                14 dagers angrefrist &middot; Deretter 12 mnd binding &middot; Fra 300 kr/mnd
               </p>
             </div>
           </ScrollReveal>
@@ -613,7 +613,7 @@ export default async function BransjeSlugPage({ params }: PageProps) {
                     <div className="mt-8">
                       <RegisterDialog>
                         <Button className="bg-green-700 hover:bg-green-800 text-white">
-                          Prøv gratis i 14 dager
+                          Registrer bedrift
                           <ArrowRight className="ml-2 h-4 w-4" />
                         </Button>
                       </RegisterDialog>
@@ -825,7 +825,7 @@ export default async function BransjeSlugPage({ params }: PageProps) {
                           </div>
                           <h3 className="text-2xl font-bold mb-2">Klar for bedre HMS?</h3>
                           <p className="text-muted-foreground mb-6 text-sm">
-                            Start gratis i 14 dager med alle funksjoner tilpasset {bransje.label.toLowerCase()}.
+                            Registrer bedrift med alle funksjoner tilpasset {bransje.label.toLowerCase()}.
                           </p>
                           <div className="p-4 bg-muted rounded-lg mb-6">
                             <div className="text-3xl font-bold">Fra 300 kr/mnd</div>
@@ -833,12 +833,12 @@ export default async function BransjeSlugPage({ params }: PageProps) {
                           </div>
                           <RegisterDialog>
                             <Button size="lg" className="w-full bg-green-700 hover:bg-green-800 text-white">
-                              Start gratis prøveperiode
+                              Registrer bedrift
                               <ArrowRight className="ml-2 h-5 w-5" />
                             </Button>
                           </RegisterDialog>
                           <p className="text-xs text-muted-foreground mt-3">
-                            Ingen kredittkort nødvendig
+                            14 dagers angrefrist, deretter 12 mnd binding
                           </p>
 
                           <div className="mt-6 pt-6 border-t text-left space-y-3">
@@ -972,7 +972,7 @@ export default async function BransjeSlugPage({ params }: PageProps) {
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <RegisterDialog>
                     <Button size="lg" variant="secondary" className="text-lg px-8">
-                      Start gratis prøveperiode
+                      Registrer bedrift
                       <ArrowRight className="ml-2 h-5 w-5" />
                     </Button>
                   </RegisterDialog>
@@ -983,7 +983,7 @@ export default async function BransjeSlugPage({ params }: PageProps) {
                   </Link>
                 </div>
                 <p className="text-sm mt-6 text-primary-foreground/70">
-                  14 dagers gratis test &middot; Ingen kredittkort &middot; Norsk support
+                  14 dagers angrefrist &middot; Deretter 12 mnd binding &middot; Norsk support
                 </p>
               </CardContent>
             </Card>

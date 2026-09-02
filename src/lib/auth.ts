@@ -77,7 +77,17 @@ export const authOptions: NextAuthOptions = {
           },
         });
 
-        if (!user || !user.password) {
+        if (!user) {
+          throw new Error("Ugyldig pålogging");
+        }
+
+        if (!user.isSuperAdmin && !user.isSupport && !user.emailVerified) {
+          throw new Error(
+            "Kontoen er ikke aktivert. Sjekk e-posten for aktiveringlenke."
+          );
+        }
+
+        if (!user.password) {
           throw new Error("Ugyldig pålogging");
         }
 
@@ -404,10 +414,22 @@ export const authOptions: NextAuthOptions = {
           const dbUpdatedAt = membership.updatedAt.getTime();
           const tokenUpdatedAt = token.roleUpdatedAt as number | null;
           if (tokenUpdatedAt === null || dbUpdatedAt > tokenUpdatedAt) {
-            // Rollen er endret siden sist – oppdater token
             token.role = membership.role;
             token.roleUpdatedAt = dbUpdatedAt;
           }
+        }
+        try {
+          const confidentialCount = await prisma.whistleblowAccessGrant.count({
+            where: {
+              tenantId: token.tenantId as string,
+              granteeId: token.id as string,
+              revokedAt: null,
+              expiresAt: { gt: new Date() },
+            },
+          });
+          token.hasConfidentialInbox = confidentialCount > 0;
+        } catch {
+          token.hasConfidentialInbox = false;
         }
       }
       
@@ -453,6 +475,7 @@ export const authOptions: NextAuthOptions = {
         session.user.hasMultipleTenants = token.hasMultipleTenants as boolean;
         session.user.preferredLocale = (token.preferredLocale as string | undefined) ?? "nb";
         session.user.isTavleOnly = (token.isTavleOnly as boolean | undefined) ?? false;
+        session.user.hasConfidentialInbox = (token.hasConfidentialInbox as boolean | undefined) ?? false;
         session.user.corporateGroupId = (token.corporateGroupId as string | null) ?? null;
         session.user.corporateGroupRole = (token.corporateGroupRole as any) ?? null;
       }

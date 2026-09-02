@@ -626,3 +626,16 @@ export async function publishRegulatoryRoutines(selectedTemplateIds: string[]) {
 
   return { success: true as const, published, archived };
 }
+
+export async function provisionFromProfile() {
+  const suggestions = await getRegulatoryRoutineSuggestions();
+  const ids = suggestions
+    .filter((s) => s.recommended || s.publishedRoutineId)
+    .map((s) => s.templateId);
+
+  if (ids.length === 0) {
+    return { success: true as const, published: 0, archived: 0 };
+  }
+
+  return publishRegulatoryRoutines(ids);
+}

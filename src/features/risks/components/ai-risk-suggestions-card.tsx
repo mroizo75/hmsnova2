@@ -18,6 +18,10 @@ interface LocalAiSuggestion {
   severity: string;
   category: string;
   rationale: string;
+  description: string;
+  riskStatement: string;
+  existingControls: string;
+  suggestedMeasures: string[];
   isDuplicate: boolean;
 }
 
@@ -76,6 +80,10 @@ export function AiRiskSuggestionsCard() {
         severity: suggestion.severity,
         category: suggestion.category,
         rationale: suggestion.rationale,
+        description: suggestion.description ?? "",
+        riskStatement: suggestion.riskStatement ?? "",
+        existingControls: suggestion.existingControls ?? "",
+        suggestedMeasures: suggestion.suggestedMeasures ?? [],
         isDuplicate: suggestion.isDuplicate,
       }));
 
@@ -122,6 +130,11 @@ export function AiRiskSuggestionsCard() {
         title: row.title.trim(),
         severity: row.severity,
         category: row.category,
+        description: row.description,
+        riskStatement: row.riskStatement,
+        existingControls: row.existingControls,
+        suggestedMeasures: row.suggestedMeasures,
+        originalTitle: row.sourceTitle,
       }))
       .filter((row) => row.title.length >= 2);
 
@@ -249,6 +262,27 @@ export function AiRiskSuggestionsCard() {
                         </p>
                         {row.rationale ? (
                           <p className="text-xs text-muted-foreground">Begrunnelse: {row.rationale}</p>
+                        ) : null}
+                        {row.description ? (
+                          <p className="text-xs text-muted-foreground">{row.description}</p>
+                        ) : null}
+                        {row.riskStatement ? (
+                          <p className="text-xs text-muted-foreground">Konsekvens: {row.riskStatement}</p>
+                        ) : null}
+                        {row.existingControls ? (
+                          <p className="text-xs text-muted-foreground">
+                            Eksisterende/anbefalte kontroller: {row.existingControls}
+                          </p>
+                        ) : null}
+                        {row.suggestedMeasures.length > 0 ? (
+                          <div className="text-xs text-muted-foreground">
+                            Tiltak som opprettes automatisk:
+                            <ul className="list-disc list-inside">
+                              {row.suggestedMeasures.map((measure) => (
+                                <li key={measure}>{measure}</li>
+                              ))}
+                            </ul>
+                          </div>
                         ) : null}
                       </div>
                     </div>

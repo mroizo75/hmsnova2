@@ -12,10 +12,11 @@ export default function TakkPage() {
             <CheckCircle2 className="h-12 w-12 text-primary" />
           </div>
 
-          <h1 className="text-4xl font-bold mb-4">Takk for din søknad!</h1>
+          <h1 className="text-4xl font-bold mb-4">Sjekk e-posten din</h1>
           <p className="text-lg text-muted-foreground mb-8">
-            Vi har mottatt søknaden din og vil behandle den så raskt som mulig. 
-            Du vil motta en e-post fra oss innen 24 timer med innloggingsinformasjon og videre instruksjoner.
+            Vi har sendt en aktiveringlenke til e-postadressen du oppga.
+            Klikk lenken for å sette passord og komme i gang. Sjekk også
+            spam/søppelpost hvis du ikke finner e-posten.
           </p>
 
           <Card className="mb-8">
@@ -27,9 +28,9 @@ export default function TakkPage() {
                     1
                   </div>
                   <div>
-                    <p className="font-medium">Vi behandler søknaden din</p>
+                    <p className="font-medium">Sjekk e-posten</p>
                     <p className="text-sm text-muted-foreground">
-                      Vi setter opp din bedrift i systemet med alle nødvendige moduler
+                      Åpne e-posten «Aktiver din HMS Nova-konto» og klikk på knappen
                     </p>
                   </div>
                 </div>
@@ -39,9 +40,9 @@ export default function TakkPage() {
                     2
                   </div>
                   <div>
-                    <p className="font-medium">Du mottar innloggingsinformasjon</p>
+                    <p className="font-medium">Sett passord</p>
                     <p className="text-sm text-muted-foreground">
-                      Vi sender deg e-post med lenke for å sette passord og logge inn
+                      Velg et sterkt passord. Lenken er gyldig i 24 timer
                     </p>
                   </div>
                 </div>
@@ -51,9 +52,9 @@ export default function TakkPage() {
                     3
                   </div>
                   <div>
-                    <p className="font-medium">Personlig onboarding-samtale</p>
+                    <p className="font-medium">Kom i gang med onboarding</p>
                     <p className="text-sm text-muted-foreground">
-                      Vi tar kontakt for å hjelpe deg i gang (15-30 min)
+                      Logg inn og følg veiviseren for å bli klar for tilsyn
                     </p>
                   </div>
                 </div>
@@ -63,9 +64,9 @@ export default function TakkPage() {
                     4
                   </div>
                   <div>
-                    <p className="font-medium">Du er i gang!</p>
+                    <p className="font-medium">Angrefrist og binding</p>
                     <p className="text-sm text-muted-foreground">
-                      14 dagers gratis prøveperiode starter når du logger inn første gang
+                      14 dagers avtalt angrefrist. Sier du ikke opp skriftlig til post@hmsnova.no, starter 12 måneders binding med 3 måneders oppsigelse.
                     </p>
                   </div>
                 </div>
@@ -79,9 +80,9 @@ export default function TakkPage() {
                 Tilbake til forsiden
               </Button>
             </Link>
-            <Link href="/priser">
+            <Link href="/login">
               <Button size="lg">
-                Se priser
+                Gå til innlogging
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
@@ -99,11 +100,11 @@ export default function TakkPage() {
                   support@hmsnova.com
                 </a>
                 <a
-                  href="tel:+4799112916"
+                  href="tel:+4741874010"
                   className="inline-flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground"
                 >
                   <Phone className="h-4 w-4" />
-                  +47 99 11 29 16
+                  +47 41 87 40 10
                 </a>
               </div>
             </CardContent>
@@ -113,4 +114,3 @@ export default function TakkPage() {
     </div>
   );
 }
-

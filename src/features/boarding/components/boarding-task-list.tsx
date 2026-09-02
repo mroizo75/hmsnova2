@@ -94,9 +94,14 @@ export function BoardingTaskList({ tasks, canEdit, currentUserId }: BoardingTask
                             <span className={`text-sm font-medium ${task.status !== "PENDING" ? "line-through text-muted-foreground" : ""}`}>
                               {task.title}
                             </span>
-                            {task.isRequired && task.status === "PENDING" && (
+            {task.isRequired && task.status === "PENDING" && (
                               <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200">
-                                Påkrevd
+                                {task.legalRef ? "Lovpålagt" : "Påkrevd"}
+                              </Badge>
+                            )}
+                            {!task.isRequired && task.status === "PENDING" && (
+                              <Badge variant="secondary" className="text-xs">
+                                Anbefalt
                               </Badge>
                             )}
                             {task.legalRef && (

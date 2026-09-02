@@ -17,7 +17,8 @@ export type Subjects =
   | "EnvironmentalMeasurement"
   | "FormTemplate"
   | "FormSubmission"
-  | "CustomerFeedback";
+  | "CustomerFeedback"
+  | "Whistleblowing";
 
 export type AppAbility = MongoAbility<[Actions, Subjects]>;
 
@@ -35,11 +36,13 @@ export function defineAbilities(user: SessionUser): AppAbility {
 
   if (user.isSuperAdmin) {
     can("manage", "all");
+    cannot(["manage", "read", "create", "update", "delete"], "Whistleblowing");
     return build();
   }
 
   if (user.isSupport) {
     can(["read", "create", "update"], "all");
+    cannot(["manage", "read", "create", "update", "delete"], "Whistleblowing");
     return build();
   }
 

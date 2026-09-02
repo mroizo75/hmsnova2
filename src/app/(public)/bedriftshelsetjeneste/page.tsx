@@ -839,7 +839,7 @@ export default function BHTPage() {
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
-              <a href="tel:+4799112916">
+              <a href="tel:+4741874010">
                 <Button size="lg" variant="outline" className="bg-transparent border-white text-white hover:bg-white/10">
                   <Phone className="mr-2 h-5 w-5" />
                   Ring salg
@@ -847,7 +847,7 @@ export default function BHTPage() {
               </a>
             </div>
             <p className="text-sm mt-6 text-primary-foreground/70">
-              Ring oss på <a href="tel:+4799112916" className="underline font-semibold">+47 99 11 29 16</a> for uforpliktende rådgivning
+              Ring oss på <a href="tel:+4741874010" className="underline font-semibold">+47 41 87 40 10</a> for uforpliktende rådgivning
             </p>
           </CardContent>
         </Card>

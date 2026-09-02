@@ -41,6 +41,9 @@ async function main() {
   await prisma.documentVersion.deleteMany({ where: { tenantId: tenant.id } });
   await prisma.document.deleteMany({ where: { tenantId: tenant.id } });
   await prisma.whistleblowMessage.deleteMany({ where: { whistleblowing: { tenantId: tenant.id } } });
+  await prisma.whistleblowAuditLog.deleteMany({ where: { tenantId: tenant.id } });
+  await prisma.whistleblowBreakGlassRequest.deleteMany({ where: { tenantId: tenant.id } });
+  await prisma.whistleblowAccessGrant.deleteMany({ where: { tenantId: tenant.id } });
   await prisma.whistleblowing.deleteMany({ where: { tenantId: tenant.id } });
   await prisma.meetingDecision.deleteMany({ where: { meeting: { tenantId: tenant.id } } });
   await prisma.meetingParticipant.deleteMany({ where: { meeting: { tenantId: tenant.id } } });
@@ -1755,7 +1758,6 @@ async function main() {
       occurredAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
       location: "Pauserom, 2. etasje",
       involvedPersons: "1 mannlig kollega, ca. 40 år",
-      reporterName: "Ønsker å være anonym",
       isAnonymous: true,
       status: "UNDER_INVESTIGATION",
       severity: "HIGH",
@@ -1811,15 +1813,19 @@ async function main() {
       description: "Nødstopp-knappen på maskin 7 fungerer ikke. Jeg har testet den flere ganger og den reagerer ikke. Dette er en alvorlig sikkerhetsrisiko.",
       occurredAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
       location: "Produksjonshall A, maskin 7",
-      reporterName: "Ole Hansen",
-      reporterEmail: "ole.h.privat@example.com",
-      reporterPhone: "99887766",
       isAnonymous: false,
       status: "RECEIVED",
       severity: "HIGH",
       handledBy: leaderUser.id,
       assignedTo: leaderUser.id,
       acknowledgedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      identity: {
+        create: {
+          reporterName: "Ole Hansen",
+          reporterEmail: "ole.hansen@example.com",
+          reporterPhone: "90000000",
+        },
+      },
     },
   });
 

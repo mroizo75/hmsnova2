@@ -7,6 +7,7 @@ import {
   canViewWhistleblowingInbox,
   toWhistleblowingInboxView,
 } from "@/lib/whistleblowing-access";
+import { isAccusedOfCase } from "@/lib/whistleblowing-impartiality";
 
 export const dynamic = "force-dynamic";
 
@@ -17,29 +18,12 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!canViewWhistleblowingInbox(session.user.role)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!session.user.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const canSeeContent = canViewWhistleblowingContent(session.user.role);
-
-    if (!canSeeContent) {
-      const reports = await db.whistleblowing.findMany({
-        where: { tenantId: session.user.tenantId },
-        select: {
-          id: true,
-          caseNumber: true,
-          status: true,
-          receivedAt: true,
-          closedAt: true,
-          isAnonymous: true,
-        },
-        orderBy: { receivedAt: "desc" },
-      });
-      return NextResponse.json({
-        data: reports.map((r) => toWhistleblowingInboxView(r)),
-        canViewContent: false,
-      });
+    if (!canViewWhistleblowingInbox(session.user.role) || !canViewWhistleblowingContent(session.user.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const reports = await db.whistleblowing.findMany({
@@ -49,11 +33,30 @@ export async function GET() {
           orderBy: { createdAt: "desc" },
           take: 1,
         },
+        parties: {
+          where: { role: "ACCUSED" },
+          select: { userId: true },
+        },
       },
       orderBy: { receivedAt: "desc" },
     });
 
-    return NextResponse.json({ data: reports, canViewContent: true });
+    const data = reports.map((report) => {
+      const accusedUserIds = report.parties
+        .map((party) => party.userId)
+        .filter((id): id is string => Boolean(id));
+      if (isAccusedOfCase(session.user.id, accusedUserIds)) {
+        return {
+          ...toWhistleblowingInboxView(report),
+          inhabile: true,
+          title: "Utilgjengelig (inhabil)",
+        };
+      }
+      const { parties: _parties, ...safe } = report;
+      return safe;
+    });
+
+    return NextResponse.json({ data, canViewContent: true });
   } catch {
     return NextResponse.json(
       { error: "Internal server error" },

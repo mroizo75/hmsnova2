@@ -320,7 +320,10 @@ export default function TenantWhistleblowingPage() {
           <Lock className="h-4 w-4" />
           <AlertTitle>100% konfidensielt</AlertTitle>
           <AlertDescription>
-            Du kan velge å være helt anonym eller oppgi kontaktinformasjon hvis du ønsker tilbakemelding. 
+            Du kan velge å være anonym eller oppgi kontaktinformasjon hvis du ønsker tilbakemelding.
+            Varslerens identitet behandles konfidensielt og gjøres bare tilgjengelig for personer som har
+            et dokumentert behov for opplysningen. Absolutt anonymitet kan ikke garanteres dersom lov,
+            domstolsbehandling eller hensynet til forsvarlig kontradiksjon krever utlevering. 
             Alle varslinger behandles etter arbeidsmiljølovens varslingsregler.
           </AlertDescription>
         </Alert>
@@ -474,7 +477,7 @@ export default function TenantWhistleblowingPage() {
                   className="h-4 w-4"
                 />
                 <Label htmlFor="isAnonymous" className="cursor-pointer">
-                  Jeg ønsker å være helt anonym
+                  Jeg ønsker å være anonym. Identiteten behandles konfidensielt, men absolutt anonymitet kan ikke garanteres.
                 </Label>
               </div>
 

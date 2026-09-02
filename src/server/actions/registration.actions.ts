@@ -1,12 +1,21 @@
 "use server";
 
 import { z } from "zod";
-import bcrypt from "bcryptjs";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
 import { Resend } from "resend";
-import { PricingTier, OnboardingStatus } from "@prisma/client";
-import { getCustomerWelcomeEmail, getAdminNotificationEmail } from "@/lib/email-templates";
+import { PricingTier } from "@prisma/client";
+import {
+  getActivationEmail,
+  getContractAcceptanceEmail,
+  getCustomerWelcomeEmail,
+  getAdminNotificationEmail,
+} from "@/lib/email-templates";
 import { getBindingPrice } from "@/lib/subscription";
+import {
+  ACTIVATION_TOKEN_EXPIRY_HOURS,
+  createPasswordResetToken,
+} from "@/lib/password-reset";
 import {
   getIndustryLabel,
   isSupportedIndustry,
@@ -15,6 +24,14 @@ import {
 import { provisionIndustryPackage } from "@/server/actions/industry-provision.actions";
 import { brregClient } from "@/lib/brreg";
 import { getSubIndustryFromNace } from "@/lib/nace-mapping";
+import {
+  CONTRACT_BINDING_LABEL,
+  CONTRACT_DOCUMENT_VERSION,
+  CONTRACT_TERMS_LABEL,
+  CONTRACT_WITHDRAWAL_LABEL,
+  getBindingStart,
+  getWithdrawalDeadline,
+} from "@/lib/contract-terms";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -41,6 +58,10 @@ const registrationSchema = z.object({
   acceptedAngrerrett: z.literal("true", {
     message: "Du må bekrefte at du har lest angreretten.",
   }),
+  acceptedBinding: z.literal("true", {
+    message: "Du må bekrefte 12 måneders binding og 3 måneders oppsigelse.",
+  }),
+  registrationSource: z.string().optional(),
 });
 
 function calculatePricingTier(employeeCount: string): PricingTier {
@@ -89,6 +110,8 @@ export async function submitRegistrationRequest(formData: FormData) {
       notes: formData.get("notes") as string | null,
       acceptedTerms: formData.get("acceptedTerms") as string,
       acceptedAngrerrett: formData.get("acceptedAngrerrett") as string,
+      acceptedBinding: formData.get("acceptedBinding") as string,
+      registrationSource: (formData.get("registrationSource") as string) || "registrer-bedrift",
     };
 
     const validated = registrationSchema.parse(data);
@@ -132,10 +155,16 @@ export async function submitRegistrationRequest(formData: FormData) {
     const pricingTier = calculatePricingTier(validated.employeeCount);
     const employeeCount = calculateEmployeeCount(validated.employeeCount);
     const yearlyPrice = getBindingPrice("1year").yearlyPrice;
+    const acceptedAt = new Date();
+    const withdrawalDeadlineAt = getWithdrawalDeadline(acceptedAt);
+    const bindingStartsAt = getBindingStart(acceptedAt);
+    const requestHeaders = await headers();
+    const ipAddress =
+      requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      requestHeaders.get("x-real-ip") ||
+      null;
+    const userAgent = requestHeaders.get("user-agent");
 
-    // Generer midlertidig passord for admin-bruker
-    const tempPassword = crypto.randomUUID().slice(0, 12);
-    const hashedPassword = await bcrypt.hash(tempPassword, 10);
     const normalizedEmail = validated.contactEmail.toLowerCase().trim();
 
     // Auto-aktivering: opprett tenant + admin-bruker + subscription i én transaksjon
@@ -146,7 +175,9 @@ export async function submitRegistrationRequest(formData: FormData) {
           slug,
           orgNumber: validated.orgNumber,
           status: "ACTIVE",
-          trialEndsAt: null,
+          trialEndsAt: withdrawalDeadlineAt,
+          withdrawalDeadlineAt,
+          bindingStartsAt,
           contactEmail: validated.contactEmail,
           contactPhone: validated.contactPhone,
           contactPerson: validated.contactPerson,
@@ -165,8 +196,35 @@ export async function submitRegistrationRequest(formData: FormData) {
           onboardingStatus: "ADMIN_CREATED",
           onboardingCompletedAt: new Date(),
           registrationType: "STANDARD",
-          termsAcceptedAt: new Date(),
-          angrerrettInfoAt: new Date(),
+          termsAcceptedAt: acceptedAt,
+          angrerrettInfoAt: acceptedAt,
+          contractAcceptedIp: ipAddress,
+          contractAcceptedUa: userAgent,
+          contractDocumentVersion: CONTRACT_DOCUMENT_VERSION,
+        },
+      });
+
+      await tx.contractAcceptance.create({
+        data: {
+          tenantId: tenant.id,
+          acceptedAt,
+          source: validated.registrationSource || "registrer-bedrift",
+          ipAddress,
+          userAgent,
+          companyName: validated.companyName,
+          orgNumber: validated.orgNumber,
+          contactPerson: validated.contactPerson,
+          contactEmail: normalizedEmail,
+          documentVersion: CONTRACT_DOCUMENT_VERSION,
+          withdrawalLabel: CONTRACT_WITHDRAWAL_LABEL,
+          bindingLabel: CONTRACT_BINDING_LABEL,
+          termsLabel: CONTRACT_TERMS_LABEL,
+          acceptedWithdrawal: true,
+          acceptedBinding: true,
+          acceptedTerms: true,
+          withdrawalDeadlineAt,
+          bindingStartsAt,
+          yearlyPrice,
         },
       });
 
@@ -177,8 +235,8 @@ export async function submitRegistrationRequest(formData: FormData) {
           price: yearlyPrice,
           billingInterval: "YEARLY",
           status: "ACTIVE",
-          currentPeriodStart: new Date(),
-          currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+          currentPeriodStart: bindingStartsAt,
+          currentPeriodEnd: new Date(bindingStartsAt.getTime() + 365 * 24 * 60 * 60 * 1000),
         },
       });
 
@@ -194,24 +252,25 @@ export async function submitRegistrationRequest(formData: FormData) {
             role: "ADMIN",
           },
         });
-      } else {
-        await tx.user.create({
-          data: {
-            email: normalizedEmail,
-            name: validated.contactPerson,
-            password: hashedPassword,
-            emailVerified: new Date(),
-            tenants: {
-              create: { tenantId: tenant.id, role: "ADMIN" },
-            },
-          },
-        });
+        return { tenant, isExistingUser: true, userId: existingUser.id };
       }
 
-      return { tenant, isExistingUser: !!existingUser };
+      const user = await tx.user.create({
+        data: {
+          email: normalizedEmail,
+          name: validated.contactPerson,
+          password: null,
+          emailVerified: null,
+          tenants: {
+            create: { tenantId: tenant.id, role: "ADMIN" },
+          },
+        },
+      });
+
+      return { tenant, isExistingUser: false, userId: user.id };
     });
 
-    const { tenant, isExistingUser } = result;
+    const { tenant, isExistingUser, userId } = result;
 
     // NACE-kode fra Brreg (best-effort)
     try {
@@ -235,13 +294,39 @@ export async function submitRegistrationRequest(formData: FormData) {
 
     await provisionIndustryPackage(tenant.id);
 
-    // Send velkomst-epost med innloggingsinfo
-    if (process.env.RESEND_API_KEY) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://hmsnova.no";
+    const fromEmail = process.env.RESEND_FROM_EMAIL ?? "HMS Nova <noreply@hmsnova.no>";
+
+    if (!isExistingUser) {
+      const tokenResult = await createPasswordResetToken(
+        userId,
+        undefined,
+        undefined,
+        ACTIVATION_TOKEN_EXPIRY_HOURS,
+      );
+      if (process.env.RESEND_API_KEY && "token" in tokenResult) {
+        const activationUrl = `${appUrl}/aktiver-konto?token=${tokenResult.token}`;
+        try {
+          await resend.emails.send({
+            from: fromEmail,
+            to: validated.contactEmail,
+            subject: "Aktiver din HMS Nova-konto",
+            html: getActivationEmail({
+              contactPerson: validated.contactPerson,
+              companyName: validated.companyName,
+              activationUrl,
+            }),
+          });
+        } catch (emailError) {
+          console.error("Failed to send activation email:", emailError);
+        }
+      }
+    } else if (process.env.RESEND_API_KEY) {
       try {
         await resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL ?? "HMS Nova <noreply@hmsnova.no>",
+          from: fromEmail,
           to: validated.contactEmail,
-          subject: "Velkommen til HMS Nova - Kontoen din er klar! 🎉",
+          subject: "Ny bedrift lagt til i HMS Nova",
           html: getCustomerWelcomeEmail({
             contactPerson: validated.contactPerson,
             companyName: validated.companyName,
@@ -256,13 +341,35 @@ export async function submitRegistrationRequest(formData: FormData) {
       }
     }
 
+    if (process.env.RESEND_API_KEY) {
+      try {
+        await resend.emails.send({
+          from: fromEmail,
+          to: validated.contactEmail,
+          subject: `Avtalebekreftelse: ${validated.companyName} – HMS Nova`,
+          html: getContractAcceptanceEmail({
+            contactPerson: validated.contactPerson,
+            companyName: validated.companyName,
+            orgNumber: validated.orgNumber,
+            acceptedAt,
+            withdrawalDeadlineAt,
+            bindingStartsAt,
+            yearlyPrice,
+            documentVersion: CONTRACT_DOCUMENT_VERSION,
+          }),
+        });
+      } catch (emailError) {
+        console.error("Failed to send contract acceptance email:", emailError);
+      }
+    }
+
     // Varsle admin
     if (process.env.RESEND_API_KEY) {
       try {
         await resend.emails.send({
           from: process.env.RESEND_FROM_EMAIL ?? "HMS Nova <noreply@hmsnova.no>",
           to: "kenneth@kksas.no",
-          subject: `🎯 Ny kunde aktivert: ${validated.companyName}`,
+          subject: `🎯 Ny kunde registrert: ${validated.companyName}`,
           html: getAdminNotificationEmail({
             companyName: validated.companyName,
             orgNumber: validated.orgNumber,

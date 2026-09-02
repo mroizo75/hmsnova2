@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Gratis risikovurdering-mal | 5x5 matrise | HMS Nova",
   description:
-    "Last ned gratis risikovurdering-mal i Excel-format. 5x5 risikomatrise med automatisk fargekoding, tiltaksplan og veiledning. Oppfyller krav fra Arbeidsmiljøloven §3-1. Eller få digital risikovurdering med HMS Nova gratis.",
+    "Last ned risikovurdering-mal i Excel-format. 5x5 risikomatrise med automatisk fargekoding, tiltaksplan og veiledning. Oppfyller krav fra Arbeidsmiljøloven §3-1. Digital risikovurdering i HMS Nova med 14 dagers angrefrist, deretter 12 måneders binding.",
   keywords: [
     "gratis risikovurdering mal",
     "risikomatrise",
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Gratis risikovurdering-mal | 5x5 matrise | HMS Nova",
     description:
-      "Profesjonell risikovurdering-mal med 5x5 matrise. Last ned gratis eller få digital risikovurdering med HMS Nova.",
+      "Profesjonell risikovurdering-mal med 5x5 matrise. Digital risikovurdering i HMS Nova – 14 dagers angrefrist, deretter 12 måneders binding.",
     url: "https://hmsnova.com/risikovurdering-mal",
     siteName: "HMS Nova",
     locale: "nb_NO",

@@ -4,7 +4,9 @@ import { db } from "@/lib/db";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import { strictRateLimiter, getClientIp } from "@/lib/rate-limit";
-import { notifyUsersByRole, notifyUsersByRoles } from "@/server/actions/notification.actions";
+import { notifyUsersByRole } from "@/server/actions/notification.actions";
+import { encryptWhistleblowIdentity } from "@/lib/whistleblowing-crypto";
+import { CONFIDENTIAL_ACCESS_COPY } from "@/lib/whistleblowing-case-access";
 
 export const dynamic = "force-dynamic";
 
@@ -115,10 +117,18 @@ export async function POST(req: NextRequest) {
             location: validatedData.location || null,
             involvedPersons: validatedData.involvedPersons || null,
             witnesses: validatedData.witnesses || null,
-            reporterName: validatedData.reporterName || null,
-            reporterEmail: validatedData.reporterEmail || null,
-            reporterPhone: validatedData.reporterPhone || null,
             isAnonymous: validatedData.isAnonymous,
+            identity:
+              !validatedData.isAnonymous &&
+              (validatedData.reporterName || validatedData.reporterEmail || validatedData.reporterPhone)
+                ? {
+                    create: encryptWhistleblowIdentity({
+                      reporterName: validatedData.reporterName,
+                      reporterEmail: validatedData.reporterEmail,
+                      reporterPhone: validatedData.reporterPhone,
+                    }),
+                  }
+                : undefined,
           },
         });
         break;
@@ -146,16 +156,9 @@ export async function POST(req: NextRequest) {
 
     await notifyUsersByRole(tenant.id, "VARSLINGSANSVARLIG", {
       type: "WHISTLEBLOWING",
-      title: "Ny varsling mottatt",
-      message: `Saksnummer ${report.caseNumber} krever behandling.`,
+      title: CONFIDENTIAL_ACCESS_COPY.title,
+      message: CONFIDENTIAL_ACCESS_COPY.message,
       link: `/dashboard/whistleblowing/${report.id}`,
-    });
-
-    await notifyUsersByRoles(tenant.id, ["ADMIN", "HMS"], {
-      type: "WHISTLEBLOWING",
-      title: "Ny varsling mottatt",
-      message: `Det er kommet inn en ny varsling (${report.caseNumber}). Innholdet er kun synlig for varslingsansvarlig.`,
-      link: "/dashboard/whistleblowing",
     });
 
     revalidatePath("/dashboard/whistleblowing");

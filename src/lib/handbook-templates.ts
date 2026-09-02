@@ -311,7 +311,7 @@ const UNIVERSAL_CONTENT: Record<string, string> = {
   <li><strong>Verneombudet</strong> ({{verneombud}})</li>
   <li><strong>Daglig leder</strong> ({{dagligLeder}})</li>
 </ol>
-<p>Varsling kan også gjøres anonymt via HMS Nova.</p>
+<p>Varsling kan også gjøres anonymt via HMS Nova. Varslerens identitet behandles konfidensielt og gjøres bare tilgjengelig for personer som har et dokumentert behov for opplysningen. Absolutt anonymitet kan ikke garanteres dersom lov, domstolsbehandling eller hensynet til forsvarlig kontradiksjon krever utlevering.</p>
 <h4>Behandling av varsler</h4>
 <ul>
   <li>Alle varsler skal behandles innen rimelig tid</li>
@@ -618,7 +618,7 @@ export const DEFAULT_HR_SECTIONS: HandbookHrSectionDef[] = [
 <p>Alle som arbeider i {{bedriftsnavn}} skal ha skriftlig arbeidsavtale. Avtalen skal foreligge senest sju dager etter at arbeidsforholdet starter, jf. AML § 14-5.</p>
 <p>Arbeidsavtalen skal minst inneholde opplysningene i AML § 14-6, blant annet partenes identitet, arbeidssted, stillingsbeskrivelse, tiltredelsesdato, forventet varighet ved midlertidig ansettelse, prøvetid, ferie, oppsigelsesfrister, lønn og andre godtgjørelser, arbeidstid og eventuelle tariffavtaler.</p>
 <h3>Onboarding</h3>
-<p>Nyansatte gjennomgår et strukturert onboarding-løp med HMS-opplæring (AML § 3-5), gjennomgang av denne håndboken og øvrige lovpålagte oppgaver. Fremdrift følges i onboarding-modulen.</p>
+<p>Nyansatte gjennomgår et strukturert onboarding-løp med nødvendig HMS-opplæring og instruksjon (AML § 3-2, org.forskr. kap. 8 og IK-HMS § 5 nr. 2), gjennomgang av denne håndboken og øvrige lovpålagte oppgaver. Fremdrift følges i onboarding-modulen.</p>
 <p>Lønn og godtgjørelser fremgår av arbeidsavtalen og lønnsslippen. Nærmere vilkår avtales individuelt eller i tariffavtale.</p>`,
   },
   {

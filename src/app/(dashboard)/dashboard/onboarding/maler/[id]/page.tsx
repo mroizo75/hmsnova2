@@ -62,9 +62,18 @@ export default async function TemplateDetailPage({ params }: Props) {
                   </Badge>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{task.title}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-medium">{task.title}</p>
+                    {task.legalRef && task.isRequired ? (
+                      <Badge className="text-xs">Lovpålagt</Badge>
+                    ) : task.isRequired ? (
+                      <Badge variant="outline" className="text-xs">Påkrevd</Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-xs">Anbefalt</Badge>
+                    )}
+                  </div>
                   {task.description && (
-                    <p className="text-xs text-muted-foreground">{task.description}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{task.description}</p>
                   )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">

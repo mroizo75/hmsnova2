@@ -20,7 +20,7 @@ import {
 
 export const metadata: Metadata = {
   title: "Digital Vernerunde i HMS Nova | Gjennomfør vernerunder enkelt",
-  description: "Gjennomfør vernerunder digitalt med HMS Nova. Mobil-app for feltarbeid, automatiske sjekklister, bilderegistrering og PDF-rapporter. Prøv gratis i 14 dager.",
+  description: "Gjennomfør vernerunder digitalt med HMS Nova. Mobil-app for feltarbeid, automatiske sjekklister, bilderegistrering og PDF-rapporter. 14 dagers angrefrist, deretter 12 måneders binding.",
   keywords: ["vernerunde", "digital vernerunde", "vernerunde app", "HMS vernerunde", "vernerunde sjekkliste", "vernerunde rapport"],
 };
 
@@ -46,7 +46,7 @@ export default function VernerundeGuidePage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <RegisterDialog>
                 <Button size="lg" className="text-lg px-8 bg-green-700 hover:bg-green-800 text-white">
-                  Prøv gratis i 14 dager
+                  Registrer bedrift
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </RegisterDialog>
@@ -57,7 +57,7 @@ export default function VernerundeGuidePage() {
               </Link>
             </div>
             <p className="text-sm text-muted-foreground mt-4">
-              ✓ Ingen kredittkort  ✓ Full tilgang  ✓ Fra 225 kr/mnd
+              ✓ 14 dagers angrefrist  ✓ Full tilgang  ✓ Fra 225 kr/mnd
             </p>
           </div>
         </div>
@@ -180,18 +180,18 @@ export default function VernerundeGuidePage() {
               <CardContent className="p-8">
                 <div className="text-center">
                   <Eye className="h-16 w-16 text-primary mx-auto mb-4" />
-                  <h3 className="text-2xl font-bold mb-2">Prøv vernerunde-modulen</h3>
+                  <h3 className="text-2xl font-bold mb-2">Digital vernerunde</h3>
                   <p className="text-muted-foreground mb-6">
-                    Test HMS Nova gratis i 14 dager. Full tilgang til alle moduler.
+                    Full tilgang fra dag én. 14 dagers angrefrist, deretter 12 måneders binding.
                   </p>
                   <RegisterDialog>
                     <Button size="lg" className="w-full bg-green-700 hover:bg-green-800 text-white">
-                      Start gratis prøveperiode
+                      Registrer bedrift
                       <ArrowRight className="ml-2 h-5 w-5" />
                     </Button>
                   </RegisterDialog>
                   <p className="text-xs text-muted-foreground mt-3">
-                    Ingen kredittkort nødvendig
+                    14 dagers angrefrist, deretter 12 mnd binding
                   </p>
                 </div>
               </CardContent>
@@ -294,12 +294,12 @@ export default function VernerundeGuidePage() {
                 Klar til å digitalisere vernerundene?
               </h2>
               <p className="text-lg text-primary-foreground/90 mb-8">
-                Test HMS Nova gratis i 14 dager. Ingen kredittkort. Ingen forpliktelser.
+                Registrer bedrift. 14 dagers angrefrist, deretter 12 måneders binding.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <RegisterDialog>
                   <Button size="lg" className="text-lg px-8 bg-green-700 hover:bg-green-800 text-white">
-                    Start gratis prøveperiode
+                    Registrer bedrift
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </RegisterDialog>
@@ -310,7 +310,7 @@ export default function VernerundeGuidePage() {
                 </Link>
               </div>
               <p className="text-sm mt-6 text-primary-foreground/70">
-                Fra 225 kr/mnd • Ingen bindingstid • Norsk support
+                Fra 300 kr/mnd • 12 mnd binding etter 14 dager • Norsk support
               </p>
             </CardContent>
           </Card>

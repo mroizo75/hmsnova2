@@ -239,9 +239,38 @@ export default function VilkarPage() {
               <div>
                 <h4 className="font-semibold mb-2">6.1 Tilgjengelighet</h4>
                 <p className="text-sm text-muted-foreground">
-                  Vi skal tilstrebe at HMS Nova er tilgjengelig 99% av tiden (beregnet per måned), 
-                  unntatt planlagt vedlikehold som varsles minst 24 timer i forveien.
+                  Vi skal tilstrebe at HMS Nova er tilgjengelig 99,5 % av tiden (beregnet per måned), 
+                  unntatt planlagt vedlikehold som varsles minst 24 timer i forveien. Ved henvendelser til 
+                  support gjelder følgende mål for responstid og løsningstid:
                 </p>
+                <div className="mt-3 overflow-x-auto">
+                  <table className="w-full text-sm text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="py-2 pr-4 font-semibold">Kategori</th>
+                        <th className="py-2 pr-4 font-semibold">Responstid</th>
+                        <th className="py-2 font-semibold">Løsningstid</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-muted-foreground">
+                      <tr className="border-b border-border/60">
+                        <td className="py-2 pr-4">Kritisk feil (system utilgjengelig)</td>
+                        <td className="py-2 pr-4">&lt; 2 timer</td>
+                        <td className="py-2">&lt; 8 timer</td>
+                      </tr>
+                      <tr className="border-b border-border/60">
+                        <td className="py-2 pr-4">Høy alvorlighet (kjernefunksjoner rammet)</td>
+                        <td className="py-2 pr-4">&lt; 4 timer</td>
+                        <td className="py-2">&lt; 24 timer</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 pr-4">Vanlig henvendelse</td>
+                        <td className="py-2 pr-4">Neste virkedag</td>
+                        <td className="py-2">3 virkedager</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
               <div>
@@ -459,7 +488,7 @@ export default function VilkarPage() {
                 </p>
                 <p className="flex items-center gap-2">
                   <Phone className="h-4 w-4 text-primary" />
-                  <a href="tel:+4799112916" className="text-primary font-semibold hover:underline">+47 99 11 29 16</a>
+                  <a href="tel:+4741874010" className="text-primary font-semibold hover:underline">+47 41 87 40 10</a>
                 </p>
                 <p className="text-muted-foreground mt-4">
                   <strong>HMS Nova AS</strong><br/>

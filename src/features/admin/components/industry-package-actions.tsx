@@ -17,6 +17,10 @@ interface AiSuggestionItem {
   severity: string;
   category: string;
   rationale: string;
+  description: string;
+  riskStatement: string;
+  existingControls: string;
+  suggestedMeasures: string[];
   isDuplicate: boolean;
 }
 
@@ -125,6 +129,10 @@ export function IndustryPackageActions({
           title: suggestion.title,
           severity: suggestion.severity,
           category: suggestion.category,
+          description: suggestion.description,
+          riskStatement: suggestion.riskStatement,
+          existingControls: suggestion.existingControls,
+          suggestedMeasures: suggestion.suggestedMeasures,
         })),
       });
 
@@ -225,6 +233,16 @@ export function IndustryPackageActions({
                     {suggestion.rationale && (
                       <span className="block text-xs text-muted-foreground mt-1">
                         Begrunnelse: {suggestion.rationale}
+                      </span>
+                    )}
+                    {suggestion.description && (
+                      <span className="block text-xs text-muted-foreground mt-1">
+                        {suggestion.description}
+                      </span>
+                    )}
+                    {suggestion.suggestedMeasures.length > 0 && (
+                      <span className="block text-xs text-muted-foreground mt-1">
+                        Tiltak: {suggestion.suggestedMeasures.join("; ")}
                       </span>
                     )}
                   </label>

@@ -7,7 +7,6 @@ import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
 import { sendEmail } from "@/lib/email";
 import { deleteTenantFiles } from "@/lib/storage";
-import { RiskCategory } from "@prisma/client";
 import { getBindingPrice } from "@/lib/subscription";
 import { provisionIndustryPackage } from "@/server/actions/industry-provision.actions";
 import {
@@ -19,6 +18,7 @@ import {
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { generateRiskAnalysis } from "@/lib/ai";
+import { mapAiSeverityToValues, mapAiCategoryToRiskCategory, normalizeAiMeasures } from "@/lib/risk-ai-mapping";
 import { brregClient } from "@/lib/brreg";
 import { getSubIndustryFromNace } from "@/lib/nace-mapping";
 
@@ -128,45 +128,6 @@ async function requireSuperAdmin() {
 
   if (!user?.isSuperAdmin) return null;
   return user;
-}
-
-function mapAiSeverityToValues(
-  severity: string
-): { likelihood: number; consequence: number } {
-  const normalizedSeverity = severity.trim().toUpperCase();
-  if (normalizedSeverity === "HIGH") {
-    return { likelihood: 3, consequence: 4 };
-  }
-  if (normalizedSeverity === "MEDIUM") {
-    return { likelihood: 2, consequence: 3 };
-  }
-  return { likelihood: 1, consequence: 2 };
-}
-
-function mapAiCategoryToRiskCategory(category: string): RiskCategory {
-  const normalizedCategory = category.trim().toLowerCase();
-  if (normalizedCategory.includes("ergonomi")) {
-    return "ERGONOMIC";
-  }
-  if (normalizedCategory.includes("sikker")) {
-    return "SAFETY";
-  }
-  if (normalizedCategory.includes("psyk")) {
-    return "PSYCHOSOCIAL";
-  }
-  if (normalizedCategory.includes("kjem")) {
-    return "HEALTH";
-  }
-  if (normalizedCategory.includes("fysisk")) {
-    return "PHYSICAL";
-  }
-  if (normalizedCategory.includes("milj")) {
-    return "ENVIRONMENTAL";
-  }
-  if (normalizedCategory.includes("jurid")) {
-    return "LEGAL";
-  }
-  return "OPERATIONAL";
 }
 
 export async function getTenantIndustryPackageStatus(tenantId: string) {
@@ -408,6 +369,7 @@ export async function generateAiRiskSuggestionsForTenant(tenantId: string) {
         cacheScope: `tenant:${tenantId}:riskSuggestions`,
         rateLimitScope: `tenant:${tenantId}`,
         budgetScope: `tenant:${tenantId}`,
+        tenantId,
       }
     );
 
@@ -465,22 +427,43 @@ export async function generateAiRiskSuggestionsForTenant(tenantId: string) {
         }
 
         const severityValues = mapAiSeverityToValues(suggestion.severity);
-        await tx.risk.create({
+        const suggestedMeasures = normalizeAiMeasures(suggestion.suggestedMeasures);
+        const createdRisk = await tx.risk.create({
           data: {
             tenantId,
             riskAssessmentId: assessment.id,
             title: suggestionTitle,
-            context: `AI-forslag for ${industryLabel}: ${suggestionTitle}`,
+            context: suggestion.description?.trim() || `AI-forslag for ${industryLabel}: ${suggestionTitle}`,
             likelihood: severityValues.likelihood,
             consequence: severityValues.consequence,
             score: severityValues.likelihood * severityValues.consequence,
             ownerId: ownerCandidate.userId,
             category: mapAiCategoryToRiskCategory(suggestion.category || ""),
-            description: `Automatisk forslag basert på bransje, eksisterende risiko og hendelseshistorikk.`,
-            existingControls: "Vurder tiltak via SJA, vernerunde og opplæringsplan.",
-            riskStatement: suggestionTitle,
+            description: suggestion.description?.trim() || null,
+            existingControls:
+              suggestion.existingControls?.trim() ||
+              "Vurder tiltak via SJA, vernerunde og opplæringsplan.",
+            riskStatement: suggestion.riskStatement?.trim() || suggestionTitle,
           },
         });
+
+        if (suggestedMeasures.length > 0) {
+          const dueAt = new Date();
+          dueAt.setDate(dueAt.getDate() + 30);
+          await tx.measure.createMany({
+            data: suggestedMeasures.map((measureTitle) => ({
+              tenantId,
+              riskId: createdRisk.id,
+              title: measureTitle,
+              description: "AI-foreslått tiltak. Bekreft ansvarlig, frist og effekt ved oppfølging.",
+              dueAt,
+              responsibleId: ownerCandidate.userId,
+              category: "MITIGATION",
+              followUpFrequency: "ANNUAL",
+            })),
+          });
+        }
+
         createdCount += 1;
       }
     });
@@ -513,6 +496,10 @@ const applyAiSuggestionsSchema = z.object({
         title: z.string().min(2),
         severity: z.string().min(1),
         category: z.string().min(1),
+        description: z.string().max(2000).optional(),
+        riskStatement: z.string().max(500).optional(),
+        existingControls: z.string().max(2000).optional(),
+        suggestedMeasures: z.array(z.string().min(1).max(500)).max(5).optional(),
       })
     )
     .min(1),
@@ -566,6 +553,7 @@ export async function previewAiRiskSuggestionsForTenant(tenantId: string) {
         cacheScope: `tenant:${tenantId}:riskSuggestions`,
         rateLimitScope: `tenant:${tenantId}`,
         budgetScope: `tenant:${tenantId}`,
+        tenantId,
       }
     );
 
@@ -584,6 +572,10 @@ export async function previewAiRiskSuggestionsForTenant(tenantId: string) {
           severity,
           category,
           rationale,
+          description: (suggestion.description || "").trim(),
+          riskStatement: (suggestion.riskStatement || "").trim(),
+          existingControls: (suggestion.existingControls || "").trim(),
+          suggestedMeasures: normalizeAiMeasures(suggestion.suggestedMeasures),
           isDuplicate: existingRiskTitles.has(title.toLowerCase()),
         };
       })
@@ -607,7 +599,15 @@ export async function previewAiRiskSuggestionsForTenant(tenantId: string) {
 export async function applyAiRiskSuggestionsForTenant(input: {
   tenantId: string;
   assessmentTitle?: string;
-  suggestions: Array<{ title: string; severity: string; category: string }>;
+  suggestions: Array<{
+    title: string;
+    severity: string;
+    category: string;
+    description?: string;
+    riskStatement?: string;
+    existingControls?: string;
+    suggestedMeasures?: string[];
+  }>;
 }) {
   try {
     const privilegedUser = await requirePrivilegedUser();
@@ -694,22 +694,43 @@ export async function applyAiRiskSuggestionsForTenant(input: {
         }
 
         const severityValues = mapAiSeverityToValues(suggestion.severity);
-        await tx.risk.create({
+        const suggestedMeasures = normalizeAiMeasures(suggestion.suggestedMeasures);
+        const createdRisk = await tx.risk.create({
           data: {
             tenantId: validated.tenantId,
             riskAssessmentId: assessment.id,
             title: suggestionTitle,
-            context: `AI-forslag for ${industryLabel}: ${suggestionTitle}`,
+            context: suggestion.description?.trim() || `AI-forslag for ${industryLabel}: ${suggestionTitle}`,
             likelihood: severityValues.likelihood,
             consequence: severityValues.consequence,
             score: severityValues.likelihood * severityValues.consequence,
             ownerId: ownerCandidate.userId,
             category: mapAiCategoryToRiskCategory(suggestion.category || ""),
-            description: "Manuelt godkjent AI-forslag basert på bransjedata og historikk.",
-            existingControls: "Vurder tiltak via SJA, vernerunde og opplæringsplan.",
-            riskStatement: suggestionTitle,
+            description: suggestion.description?.trim() || null,
+            existingControls:
+              suggestion.existingControls?.trim() ||
+              "Vurder tiltak via SJA, vernerunde og opplæringsplan.",
+            riskStatement: suggestion.riskStatement?.trim() || suggestionTitle,
           },
         });
+
+        if (suggestedMeasures.length > 0) {
+          const dueAt = new Date();
+          dueAt.setDate(dueAt.getDate() + 30);
+          await tx.measure.createMany({
+            data: suggestedMeasures.map((measureTitle) => ({
+              tenantId: validated.tenantId,
+              riskId: createdRisk.id,
+              title: measureTitle,
+              description: "AI-foreslått tiltak. Bekreft ansvarlig, frist og effekt ved oppfølging.",
+              dueAt,
+              responsibleId: ownerCandidate.userId,
+              category: "MITIGATION",
+              followUpFrequency: "ANNUAL",
+            })),
+          });
+        }
+
         createdCount += 1;
       }
     });

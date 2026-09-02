@@ -111,11 +111,11 @@ test("meny sorteres med Oversikt først og resten på navn", () => {
   };
   const sorted = sortDashboardNavItems(
     [
-      { href: "/dashboard/meldinger", label: "nav.meldinger", permission: "dashboard", defaultSimple: true },
-      { href: "/dashboard/training", label: "nav.training", permission: "training", defaultSimple: true },
-      { href: "/dashboard", label: "nav.dashboard", permission: "dashboard", defaultSimple: true },
-      { href: "/dashboard/incidents", label: "nav.incidents", permission: "incidents", defaultSimple: true },
-      { href: "/dashboard/beredskap", label: "nav.beredskap", permission: "beredskap", defaultSimple: true },
+      { href: "/dashboard/meldinger", label: "nav.meldinger", permission: "dashboard", defaultSimple: true, coreHub: "oversikt" },
+      { href: "/dashboard/training", label: "nav.training", permission: "training", defaultSimple: true, coreHub: "organisasjon" },
+      { href: "/dashboard", label: "nav.dashboard", permission: "dashboard", defaultSimple: true, coreHub: "oversikt" },
+      { href: "/dashboard/incidents", label: "nav.incidents", permission: "incidents", defaultSimple: true, coreHub: "avvikTiltak" },
+      { href: "/dashboard/beredskap", label: "nav.beredskap", permission: "beredskap", defaultSimple: true, coreHub: "tilleggsmoduler" },
     ],
     (item) => labels[item.href] ?? item.href,
   );

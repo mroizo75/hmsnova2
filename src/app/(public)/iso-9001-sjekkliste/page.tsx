@@ -19,7 +19,7 @@ import {
 
 export const metadata: Metadata = {
   title: "ISO 9001-støtte i HMS Nova | Bli klar for sertifisering",
-  description: "HMS Nova er bygget med ISO 9001 som fundament. Alle 27 krav dekket, automatisk dokumentasjon og klar for revisjon. Prøv gratis i 14 dager.",
+  description: "HMS Nova er bygget med ISO 9001 som fundament. Alle 27 krav dekket, automatisk dokumentasjon og klar for revisjon. 14 dagers angrefrist, deretter 12 måneders binding.",
   keywords: ["ISO 9001", "kvalitetssystem", "sertifisering", "ISO-sjekkliste", "kvalitetsstyring", "ISO revisjon"],
 };
 
@@ -45,7 +45,7 @@ export default function ISO9001SjekklistePage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <RegisterDialog>
                 <Button size="lg" className="text-lg px-8 bg-green-700 hover:bg-green-800 text-white">
-                  Prøv gratis i 14 dager
+                  Registrer bedrift
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </RegisterDialog>
@@ -56,7 +56,7 @@ export default function ISO9001SjekklistePage() {
               </Link>
             </div>
             <p className="text-sm text-muted-foreground mt-4">
-              ✓ Ingen kredittkort  ✓ Full tilgang  ✓ Fra 225 kr/mnd
+              ✓ 14 dagers angrefrist  ✓ Full tilgang  ✓ Fra 225 kr/mnd
             </p>
           </div>
         </div>
@@ -203,18 +203,18 @@ export default function ISO9001SjekklistePage() {
               <CardContent className="p-8">
                 <div className="text-center">
                   <Award className="h-16 w-16 text-primary mx-auto mb-4" />
-                  <h3 className="text-2xl font-bold mb-2">Test ISO 9001-modulene</h3>
+                  <h3 className="text-2xl font-bold mb-2">ISO 9001 i HMS Nova</h3>
                   <p className="text-muted-foreground mb-6">
-                    Prøv HMS Nova gratis i 14 dager. Full tilgang til alle moduler.
+                    14 dagers angrefrist, deretter 12 måneders binding. Full tilgang til alle moduler.
                   </p>
                   <RegisterDialog>
                     <Button size="lg" className="w-full bg-green-700 hover:bg-green-800 text-white">
-                      Start gratis prøveperiode
+                      Registrer bedrift
                       <ArrowRight className="ml-2 h-5 w-5" />
                     </Button>
                   </RegisterDialog>
                   <p className="text-xs text-muted-foreground mt-3">
-                    Ingen kredittkort nødvendig
+                    14 dagers angrefrist, deretter 12 mnd binding
                   </p>
                 </div>
               </CardContent>
@@ -316,12 +316,12 @@ export default function ISO9001SjekklistePage() {
                 Klar til å starte ISO 9001-reisen?
               </h2>
               <p className="text-lg text-primary-foreground/90 mb-8">
-                Test HMS Nova gratis i 14 dager. Ingen kredittkort. Ingen forpliktelser.
+                Registrer bedrift. 14 dagers angrefrist, deretter 12 måneders binding.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <RegisterDialog>
                   <Button size="lg" className="text-lg px-8 bg-green-700 hover:bg-green-800 text-white">
-                    Start gratis prøveperiode
+                    Registrer bedrift
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </RegisterDialog>
@@ -332,7 +332,7 @@ export default function ISO9001SjekklistePage() {
                 </Link>
               </div>
               <p className="text-sm mt-6 text-primary-foreground/70">
-                Fra 225 kr/mnd • Ingen bindingstid • Norsk support
+                Fra 300 kr/mnd • 12 mnd binding etter 14 dager • Norsk support
               </p>
             </CardContent>
           </Card>

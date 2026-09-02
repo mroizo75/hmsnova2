@@ -233,7 +233,7 @@ export async function checkSupplierAPIsForUpdates() {
               await storage.upload(sdsKey, pdfBuffer);
 
               // Parse med AI
-              const extractedData = await parseSDSFile(pdfBuffer);
+              const extractedData = await parseSDSFile(pdfBuffer, tenant.id);
 
               if (extractedData.confidence && extractedData.confidence > 0.8) {
                 // Auto-oppdater hvis høy confidence

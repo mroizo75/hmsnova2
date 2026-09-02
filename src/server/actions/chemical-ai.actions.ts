@@ -51,7 +51,7 @@ export async function parseSDSFromFile(sdsKey: string, chemicalId?: string) {
     const fileBuffer = Buffer.from(arrayBuffer);
     
     // Parse SDS med AI (Adobe + OpenAI)
-    const extractedData = await parseSDSFile(fileBuffer);
+    const extractedData = await parseSDSFile(fileBuffer, tenantId);
 
     // Hvis chemicalId er oppgitt, oppdater kjemikaliet automatisk
     if (chemicalId && extractedData.confidence && extractedData.confidence > 0.7) {

@@ -5,15 +5,18 @@ import { useTranslations } from "next-intl";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TenantSettingsForm } from "@/features/settings/components/tenant-settings-form";
 import { UserProfileForm } from "@/features/settings/components/user-profile-form";
+import { TotpSetup } from "@/features/whistleblowing/components/totp-setup";
 import { SubscriptionInfo } from "@/features/settings/components/subscription-info";
 import { AzureAdIntegration } from "@/features/settings/components/azure-ad-integration";
 import { NotificationSettings } from "@/features/settings/components/notification-settings";
 import { SimpleMenuSettings } from "@/features/settings/components/simple-menu-settings";
 import { ModuleVisibilitySettings } from "@/features/settings/components/module-visibility-settings";
 import { RuhModuleSettings } from "@/features/settings/components/ruh-module-settings";
+import { AiSettings } from "@/features/settings/components/ai-settings";
+import { DataExportCard } from "@/features/settings/components/data-export-card";
 import { TenantLogoUpload } from "@/features/settings/components/tenant-logo-upload";
 import { parseModuleVisibilityConfig } from "@/lib/module-visibility";
-import { Building2, User, CreditCard, Cloud, Bell, PanelLeft, Lock, BarChart3, Monitor } from "lucide-react";
+import { Building2, User, CreditCard, Cloud, Bell, PanelLeft, Lock, BarChart3, Monitor, Sparkles } from "lucide-react";
 import { IntelligenceConsentToggle } from "@/features/intelligence/components/consent-toggle";
 import { SetupGuideToggle } from "@/features/settings/components/setup-guide-toggle";
 import { TavleSettingsPane } from "@/features/hms-tavle/components/tavle-settings-pane";
@@ -62,6 +65,10 @@ export function SettingsContent({
           <Lock className="h-4 w-4" />
           <span>Tilganger</span>
         </TabsTrigger>
+        <TabsTrigger value="ai" className="flex shrink-0 items-center gap-2">
+          <Sparkles className="h-4 w-4" />
+          <span>AI</span>
+        </TabsTrigger>
         <TabsTrigger value="profile" className="flex shrink-0 items-center gap-2">
           <User className="h-4 w-4" />
           <span>{t("tabs.profile")}</span>
@@ -96,6 +103,7 @@ export function SettingsContent({
           currentlyHidden={(tenant as any).setupGuideHidden ?? false}
           isAdmin={isAdmin}
         />
+        <DataExportCard isAdmin={isAdmin} />
       </TabsContent>
 
       <TabsContent value="menu">
@@ -120,8 +128,13 @@ export function SettingsContent({
         />
       </TabsContent>
 
-      <TabsContent value="profile">
+      <TabsContent value="ai">
+        <AiSettings initialEnabled={(tenant as any).aiEnabled ?? true} isAdmin={isAdmin} />
+      </TabsContent>
+
+      <TabsContent value="profile" className="space-y-6">
         <UserProfileForm user={user} />
+        <TotpSetup />
       </TabsContent>
 
       <TabsContent value="notifications">

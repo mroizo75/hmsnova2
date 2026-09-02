@@ -96,7 +96,7 @@ export const BlogNewsletterEmail = ({
                 href={`${baseUrl}/registrer-bedrift`}
                 style={primaryButton}
               >
-                Prøv gratis i 14 dager
+                Registrer bedrift
               </Button>
             </Section>
 

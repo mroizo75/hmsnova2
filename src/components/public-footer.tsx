@@ -150,10 +150,13 @@ export function PublicFooter() {
               </li>
               <li className="flex items-start gap-2">
                 <Phone className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" aria-hidden="true" />
-                <div className="text-muted-foreground">
-                  Kurs: <a href="tel:+4791540824" className="hover:text-foreground transition-colors" aria-label="Ring oss for HMS-kurs: +47 91 54 08 24">+47 91 54 08 24</a><br/>
-                  Software: <a href="tel:+4799112916" className="hover:text-foreground transition-colors" aria-label="Ring oss for HMS Nova software: +47 99 11 29 16">+47 99 11 29 16</a>
-                </div>
+                <a
+                  href="tel:+4741874010"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Ring HMS Nova: +47 41 87 40 10"
+                >
+                  +47 41 87 40 10
+                </a>
               </li>
               <li className="text-muted-foreground">
                 <strong>HMS Nova AS</strong>

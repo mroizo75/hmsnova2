@@ -119,13 +119,13 @@ export default function BesteHMSSystemSmaBedrifterPage() {
                   <div className="mt-6 p-4 bg-primary/10 rounded-lg">
                     <div className="text-2xl font-bold mb-1">Fra 225 kr/mnd</div>
                     <div className="text-sm text-muted-foreground">
-                      Alt inkludert • Valgfri binding • 14 dagers gratis test
+                      Alt inkludert • 12 mnd binding etter 14 dagers angrefrist
                     </div>
                   </div>
 
                   <Link href="/registrer-bedrift" className="block mt-4">
                     <Button size="lg" className="w-full">
-                      Start gratis prøveperiode
+                      Registrer bedrift
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </Link>
@@ -362,16 +362,16 @@ export default function BesteHMSSystemSmaBedrifterPage() {
           <CardContent className="p-12 text-center">
             <h2 className="text-3xl font-bold mb-4">Klar til å velge HMS Nova?</h2>
             <p className="text-lg mb-8 text-primary-foreground/90">
-              Test HMS Nova gratis i 14 dager. Ingen kredittkort. Full tilgang til alle funksjoner.
+              Registrer bedrift. 14 dagers angrefrist, deretter 12 måneders binding.
             </p>
             <Link href="/registrer-bedrift">
               <Button size="lg" variant="secondary">
-                Start gratis prøveperiode
+                Registrer bedrift
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
             <p className="text-sm mt-6 text-primary-foreground/70">
-              Valgfri binding • Norsk support • Fra 225 kr/mnd
+              12 mnd binding • Norsk support • Fra 300 kr/mnd
             </p>
           </CardContent>
         </Card>

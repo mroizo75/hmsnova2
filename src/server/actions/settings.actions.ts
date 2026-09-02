@@ -1261,3 +1261,39 @@ export async function updateRuhModuleEnabled(enabled: boolean) {
   }
 }
 
+/**
+ * Selvbetjent av/på for AI-funksjoner (testfase). Ingen prisendring - kun styrer
+ * om tenant.aiEnabled respekteres av den sentrale AI-gaten i src/lib/ai.ts.
+ */
+export async function updateAiSettings(enabled: boolean) {
+  try {
+    const { user, tenantId } = await getSessionContext();
+
+    const userTenant = user.tenants.find((t) => t.tenantId === tenantId);
+    if (!userTenant || userTenant.role !== "ADMIN") {
+      return { success: false, error: "Kun administratorer kan endre AI-innstillinger" };
+    }
+
+    const previous = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { aiEnabled: true },
+    });
+
+    await prisma.tenant.update({
+      where: { id: tenantId },
+      data: { aiEnabled: enabled },
+    });
+
+    await AuditLog.log(tenantId, user.id, "AI_SETTINGS_UPDATED", "Tenant", tenantId, {
+      before: previous?.aiEnabled ?? true,
+      after: enabled,
+    });
+
+    revalidatePath("/dashboard/settings");
+    triggerRealtimeEvent(tenantId, "settings-updated");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Kunne ikke oppdatere AI-innstillinger" };
+  }
+}
+

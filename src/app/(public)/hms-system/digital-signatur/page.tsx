@@ -8,7 +8,7 @@ import { FAQSection } from "@/components/faq-section";
 
 export const metadata: Metadata = {
   title: "Digital signatur - Elektronisk godkjenning av HMS-dokumenter | HMS Nova",
-  description: "Digital signatur inkludert i HMS Nova. Lovlig og bindende, sign på mobil, spar timer hver uke. Økt etterlevelse og ISO 9001. Prøv gratis.",
+  description: "Digital signatur inkludert i HMS Nova. Lovlig og bindende, sign på mobil, spar timer hver uke. Økt etterlevelse og ISO 9001. Registrer bedrift.",
   keywords: "digital signatur, elektronisk signatur, digital godkjenning, hms digital signatur, signere dokumenter digitalt",
 };
 
@@ -78,7 +78,7 @@ export default function DigitalSignaturPage() {
           <div className="flex flex-col sm:flex-row gap-4">
             <Button asChild size="lg">
               <Link href="/registrer-bedrift">
-                Prøv gratis i 14 dager
+                Registrer bedrift
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
@@ -331,12 +331,12 @@ export default function DigitalSignaturPage() {
               Digital signatur inkludert - ingen ekstrakostnad
             </h2>
             <p className="text-lg mb-8 text-primary-foreground/90">
-              Test HMS Nova gratis i 14 dager og opplev hvor enkelt digital signatur er.
+              Registrer bedrift og opplev hvor enkelt digital signatur er.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild size="lg" className="bg-white text-primary hover:bg-gray-100">
                 <Link href="/registrer-bedrift">
-                  Kom i gang gratis
+                  Registrer bedrift
                 </Link>
               </Button>
               <Button 

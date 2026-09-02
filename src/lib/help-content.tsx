@@ -101,6 +101,12 @@ export const helpContent: Record<string, HelpContent> = {
         content:
           "Dette er en oversikt og veiledning. Systemet utgjør ikke juridisk rådgivning. For spesifikke spørsmål om lover og forskrifter, rådfør deg med jurist eller sjekk Lovdata.no.",
       },
+      {
+        heading: "Regelverksendringer",
+        emoji: "🔔",
+        content:
+          "Internkontrollforskriften § 5 nr. 1 og nr. 2 krever at virksomheten har oversikt over gjeldende HMS-krav og informerer ansatte om endringer. HMS Nova skanner Norsk Lovtidend og Arbeidstilsynet hver mandag. Når en endring er vurdert, får berørte bedrifter varsel her og i varslingssenteret.",
+      },
     ],
   },
 
@@ -1423,7 +1429,7 @@ export const helpContent: Record<string, HelpContent> = {
           {
             title: "Administrator og HMS-ansvarlig",
             description:
-              "Ser at en sak finnes (saksnummer, status og dato), men ikke tekst, identitet eller vedlegg.",
+              "Ingen automatisk tilgang til varslingssaker. De utnevner varslingsansvarlig, men ser ikke saksinnhold.",
           },
           {
             title: "Øvrige roller",
@@ -1439,7 +1445,7 @@ export const helpContent: Record<string, HelpContent> = {
           {
             title: "1. Sikre konfidensialitet",
             description:
-              "Varslerens identitet skal beskyttes. Begrens tilgang til saken.",
+              "Varslerens identitet behandles konfidensielt og gjøres bare tilgjengelig for personer som har et dokumentert behov. Absolutt anonymitet kan ikke garanteres dersom lov, domstol eller kontradiksjon krever utlevering.",
           },
           {
             title: "2. Motta og registrer",
@@ -2003,7 +2009,7 @@ export const helpContent: Record<string, HelpContent> = {
   boarding: {
     title: "Onboarding & offboarding",
     description:
-      "Malbaserte sjekklister for mottak av nyansatte og avslutning av arbeidsforhold, i tråd med AML § 14-5/14-6 og GDPR art. 17",
+      "Malbaserte sjekklister for mottak av nyansatte og avslutning av arbeidsforhold, i tråd med AML, internkontrollforskriften og GDPR",
     sections: [
       {
         heading: "Onboarding",
@@ -2012,12 +2018,12 @@ export const helpContent: Record<string, HelpContent> = {
           {
             title: "Arbeidsavtale",
             description:
-              "Skriftlig arbeidsavtale skal være klar innen 7 dager etter oppstart (AML § 14-5).",
+              "Skriftlig arbeidsavtale skal være klar senest sju dager etter oppstart (AML § 14-5). Innholdskrav står i § 14-6.",
           },
           {
             title: "HMS-opplæring",
             description:
-              "Alle nyansatte skal gjennomgå HMS-opplæring (AML § 3-5) og varslingsrutiner (AML § 2A-6).",
+              "Nyansatte skal ha nødvendig opplæring, instruksjon og kjennskap til farer, rutiner og beredskap (AML § 3-2, org.forskr. kap. 8 og IK-HMS § 5 nr. 2). Varslingsrutiner skal gjennomgås (AML § 2 A-6). AML § 3-5 gjelder øverste leders personlige HMS-opplæring, ikke alle nyansatte.",
           },
           {
             title: "Oppfølgingssamtaler",
@@ -2041,9 +2047,9 @@ export const helpContent: Record<string, HelpContent> = {
               "Sjekkliste for innlevering av utstyr, nøkler og stenging av IT-tilganger.",
           },
           {
-            title: "GDPR-sletting",
+            title: "Sluttattest og personvern",
             description:
-              "Persondata skal slettes i henhold til GDPR art. 17 etter avsluttet arbeidsforhold.",
+              "Utsted sluttattest (AML § 15-15). Begrens personopplysninger etter GDPR art. 5(1)e og art. 17, men behold det loven krever (bokføring, a-melding).",
           },
         ],
       },

@@ -91,8 +91,8 @@ export default function PriserPage() {
           Transparent prising.<br />Ingen overraskelser.
         </h1>
         <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-          Velg planen som passer din bedrift. Alle planer inkluderer 14 dagers gratis prøveperiode, 
-          full tilgang og norsk support.
+          Velg planen som passer din bedrift. 14 dagers avtalt angrefrist, deretter
+          12 måneders binding og 3 måneders skriftlig oppsigelse.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link href="/registrer-bedrift">
@@ -429,12 +429,13 @@ export default function PriserPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Hva skjer etter gratis prøveperioden?</CardTitle>
+                <CardTitle className="text-lg">Hva skjer etter angrefristen?</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  Etter 14 dager blir du automatisk fakturert for planen du har valgt. Du kan 
-                  si opp når som helst før prøveperioden utløper uten å bli belastet.
+                  Du har 14 kalenderdager til å si opp kostnadsfritt ved skriftlig e-post til post@hmsnova.no.
+                  Dette er ikke en gratis prøveperiode. Sier du ikke opp innen fristen, er abonnementet
+                  bindende i 12 måneder. Deretter gjelder 3 måneders skriftlig oppsigelse.
                 </p>
               </CardContent>
             </Card>
@@ -457,8 +458,8 @@ export default function PriserPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  I 14 dagers gratis prøveperiode kan du laste opp egne dokumenter og sette opp HMS Nova. 
-                  Vi tilbyr også gratis onboarding-samtaler for å komme i gang.
+                  Fra første dag kan du laste opp egne dokumenter og sette opp HMS Nova.
+                  Du har 14 dagers angrefrist. Vi tilbyr også onboarding-samtaler for å komme i gang.
                 </p>
               </CardContent>
             </Card>
@@ -472,7 +473,7 @@ export default function PriserPage() {
                   Absolutt! Vi tilbyr både:
                 </p>
                 <ul className="space-y-2 text-sm text-muted-foreground ml-4">
-                  <li>• 14 dagers gratis prøveperiode med full tilgang</li>
+                  <li>• 14 dagers avtalt angrefrist med full tilgang</li>
                   <li>• Personlig demo via videomøte (30 min)</li>
                 </ul>
               </CardContent>
@@ -496,9 +497,9 @@ export default function PriserPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  Abonnementet løper i 12 måneder til 300 kr/mnd + mva (3 600 kr/år + mva). 
-                  Full tilgang til alle funksjoner er inkludert. Etter 12 måneder fornyes abonnementet 
-                  med 1 måneds oppsigelsestid.
+                  Abonnementet løper i 12 måneder. Full tilgang til alle funksjoner er inkludert.
+                  Etter 12 måneder fornyes abonnementet automatisk, med 3 måneders skriftlig oppsigelse.
+                  Før binding starter har du 14 dagers avtalt angrefrist.
                 </p>
               </CardContent>
             </Card>
@@ -590,7 +591,7 @@ export default function PriserPage() {
           <CardContent className="p-12 text-center">
             <h2 className="text-3xl font-bold mb-4">Klar til å komme i gang?</h2>
             <p className="text-lg mb-8 text-primary-foreground/90">
-              Prøv HMS Nova gratis i 14 dager. Ingen kredittkort. Ingen forpliktelser.
+              Registrer bedrift. 14 dagers angrefrist, deretter 12 måneders binding.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <RegisterDialog>

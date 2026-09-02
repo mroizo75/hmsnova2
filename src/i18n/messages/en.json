@@ -39,6 +39,7 @@
     "timeRegistration": "Time Registration",
     "exposureRegister": "Exposure Register",
     "whistleblowing": "Whistleblowing",
+    "confidentialTasks": "Confidential tasks",
     "actions": "Actions",
     "goals": "Goals",
     "users": "Users",
@@ -74,7 +75,15 @@
     "simpleMode": "Simple",
     "advancedMode": "Advanced",
     "simpleDescription": "Core HSE features",
-    "advancedDescription": "All features including ISO"
+    "advancedDescription": "All features including ISO",
+    "hubs": {
+      "oversikt": "Overview",
+      "handbok": "HSE Handbook",
+      "risiko": "Risk & Safety",
+      "avvikTiltak": "Incidents & Actions",
+      "organisasjon": "Organization",
+      "tilleggsmoduler": "Add-on modules"
+    }
   },
   "mobileNav": {
     "navigationMenu": "Navigation menu",
@@ -827,9 +836,7 @@
         "default": "Send order"
       },
       "contact": {
-        "title": "Or call us directly:",
-        "courseLabel": "Course:",
-        "softwareLabel": "Software:"
+        "title": "Or call us directly:"
       }
     }
   },
@@ -1360,6 +1367,13 @@
     "tip": {
       "title": "💡 Tip:",
       "description": "This is an approved document you can download and use. If you have questions about the document, contact the HSE responsible."
+    },
+    "confirmation": {
+      "title": "Read confirmation",
+      "description": "Confirm that you have read and understood the current version of this document.",
+      "confirmButton": "Confirm that I have read it",
+      "confirmedBadge": "You have confirmed this version",
+      "confirmedAtLabel": "Confirmed"
     }
   },
   "employeeChemicalsPage": {
@@ -1384,8 +1398,8 @@
       "description": "Safe and confidential channel for reporting critical issues"
     },
     "confidential": {
-      "title": "100% confidential and secure",
-      "description": "All reports are handled confidentially. You can choose to stay fully anonymous or provide contact information if you want feedback."
+      "title": "Confidential and securely handled",
+      "description": "All reports are handled confidentially. You may provide contact details if you want feedback. Absolute anonymity cannot be guaranteed if law, court proceedings or the right to reply require disclosure."
     },
     "whatToReport": {
       "title": "What can I report?",
@@ -1425,7 +1439,7 @@
       },
       "step4": {
         "title": "Communicate anonymously",
-        "description": "You can send and receive messages via the tracking page without revealing your identity."
+        "description": "You can send and receive messages via the tracking page. Identity is treated confidentially, but absolute anonymity cannot be guaranteed."
       }
     },
     "tenantChannel": {
@@ -3816,6 +3830,11 @@
       "title": "Version history",
       "latest": "Latest {count} versions",
       "onlyLastFive": "Showing only the 5 latest versions"
+    },
+    "confirmation": {
+      "title": "Read confirmation",
+      "description": "Number of employees who have confirmed reading the current version",
+      "count": "{confirmed} of {total} employees"
     },
     "kinds": {
       "LAW": "Laws and regulations",

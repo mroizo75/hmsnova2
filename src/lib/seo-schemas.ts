@@ -114,12 +114,12 @@ export const BHT_SERVICE_SCHEMA = {
   },
 } as const;
 
-// How-To Schema for Gratis HMS-pakke
+// How-To Schema for registrering
 export const GRATIS_HMS_HOWTO_SCHEMA = {
   "@context": "https://schema.org",
   "@type": "HowTo",
-  name: "Slik får du gratis HMS-pakke",
-  description: "Få komplett HMS-håndbok og dokumenter gratis på 5 minutter",
+  name: "Slik registrerer du HMS Nova",
+  description: "Registrer bedriften og få HMS-håndbok og dokumenter. 14 dagers angrefrist, deretter 12 måneders binding.",
   totalTime: "PT5M",
   step: [
     {

@@ -8,7 +8,7 @@ import { FAQSection } from "@/components/faq-section";
 
 export const metadata: Metadata = {
   title: "Vernerunde - Digital Vernerunde på Mobil | HMS Nova",
-  description: "Digital vernerunde som fungerer offline. Mobilapp for byggeplasser med automatisk rapportering. Lovpålagt og tidsbesparende. Prøv gratis.",
+  description: "Digital vernerunde som fungerer offline. Mobilapp for byggeplasser med automatisk rapportering. Lovpålagt og tidsbesparende. Registrer bedrift.",
   keywords: "vernerunde, digital vernerunde, vernerunde mal, sikkerhetsinspeksjon, verneombud, hms vernerunde",
 };
 
@@ -74,7 +74,7 @@ export default function VernerundePage() {
           <div className="flex flex-col sm:flex-row gap-4">
             <Button asChild size="lg">
               <Link href="/registrer-bedrift">
-                Prøv gratis i 14 dager
+                Registrer bedrift
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
@@ -295,12 +295,12 @@ export default function VernerundePage() {
               Digitalisér vernerundene i dag
             </h2>
             <p className="text-lg mb-8 text-primary-foreground/90">
-              Test HMS Nova gratis i 14 dager. Mobilapp inkludert.
+              Registrer bedrift. Mobilapp inkludert. 14 dagers angrefrist.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild size="lg" className="bg-white text-primary hover:bg-gray-100">
                 <Link href="/registrer-bedrift">
-                  Kom i gang gratis
+                  Registrer bedrift
                 </Link>
               </Button>
               <Button 

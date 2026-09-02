@@ -8,6 +8,7 @@ import {
   canHandleWhistleblowingCases,
   canViewWhistleblowingContent,
 } from "@/lib/whistleblowing-access";
+import { isAccusedOfCase } from "@/lib/whistleblowing-impartiality";
 
 export const dynamic = "force-dynamic";
 
@@ -25,10 +26,28 @@ const updateWhistleblowSchema = z.object({
   // nullable() slik at null fjerner tildeling
   assignedTo: z.string().nullable().optional(),
   investigationNotes: z.string().optional(),
-  actions: z.array(z.any()).optional(),
   outcome: z.string().optional(),
   closedReason: z.string().optional(),
 });
+
+async function loadCaseForHandler(id: string, tenantId: string, userId: string) {
+  const report = await db.whistleblowing.findFirst({
+    where: { id, tenantId },
+    include: {
+      messages: { orderBy: { createdAt: "asc" as const } },
+      parties: { where: { role: "ACCUSED" }, select: { userId: true } },
+    },
+  });
+  if (!report) return { error: "Not found" as const, status: 404 as const };
+  const accusedUserIds = report.parties
+    .map((party) => party.userId)
+    .filter((partyId): partyId is string => Boolean(partyId));
+  if (isAccusedOfCase(userId, accusedUserIds)) {
+    return { error: "Forbidden" as const, status: 403 as const };
+  }
+  const { parties: _parties, ...safe } = report;
+  return { data: safe };
+}
 
 // GET /api/admin/whistleblowing/[id]
 export async function GET(
@@ -42,27 +61,16 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!canViewWhistleblowingContent(session.user.role)) {
+    if (!canViewWhistleblowingContent(session.user.role) || !session.user.id) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const report = await db.whistleblowing.findFirst({
-      where: {
-        id,
-        tenantId: session.user.tenantId,
-      },
-      include: {
-        messages: {
-          orderBy: { createdAt: "asc" },
-        },
-      },
-    });
-
-    if (!report) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    const result = await loadCaseForHandler(id, session.user.tenantId, session.user.id);
+    if ("error" in result) {
+      return NextResponse.json({ error: result.error }, { status: result.status });
     }
 
-    return NextResponse.json({ data: report });
+    return NextResponse.json({ data: result.data });
   } catch (error: any) {
     console.error("[ADMIN_WHISTLEBLOWING_GET]", error);
     return NextResponse.json(
@@ -91,16 +99,11 @@ export async function PATCH(
     const body = await req.json();
     const validatedData = updateWhistleblowSchema.parse(body);
 
-    const existing = await db.whistleblowing.findFirst({
-      where: {
-        id,
-        tenantId: session.user.tenantId,
-      },
-    });
-
-    if (!existing) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    const existingResult = await loadCaseForHandler(id, session.user.tenantId, session.user.id);
+    if ("error" in existingResult) {
+      return NextResponse.json({ error: existingResult.error }, { status: existingResult.status });
     }
+    const existing = existingResult.data;
 
     if (validatedData.assignedTo) {
       const assignee = await db.userTenant.findFirst({
@@ -119,11 +122,7 @@ export async function PATCH(
       }
     }
 
-    const updateData: any = { ...validatedData };
-
-    if (validatedData.actions !== undefined) {
-      updateData.actions = JSON.stringify(validatedData.actions);
-    }
+    const updateData: Record<string, unknown> = { ...validatedData };
 
     // Tidsstempler per statusovergang (AML § 2A-3)
     if (validatedData.status === "ACKNOWLEDGED" && !existing.acknowledgedAt) {
@@ -144,7 +143,7 @@ export async function PATCH(
 
     const report = await db.whistleblowing.update({
       where: { id },
-      data: updateData,
+      data: updateData as Parameters<typeof db.whistleblowing.update>[0]["data"],
       include: {
         messages: {
           orderBy: { createdAt: "asc" },
@@ -162,9 +161,9 @@ export async function PATCH(
       createNotification({
         tenantId: session.user.tenantId,
         userId: newAssignee,
-        type: "WHISTLEBLOWING",
-        title: "Varslingssak tildelt deg",
-        message: `Sak ${existing.caseNumber} er tildelt deg for behandling.`,
+        type: "CONFIDENTIAL_ACCESS",
+        title: "Konfidensiell sak",
+        message: "Du har fått tilgang til en konfidensiell sak",
         link: `/dashboard/whistleblowing/${id}`,
       }).catch(() => {});
     }

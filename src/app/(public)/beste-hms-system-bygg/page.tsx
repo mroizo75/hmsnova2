@@ -161,7 +161,7 @@ export default function BesteHMSSystemByggPage() {
 
                   <Link href="/registrer-bedrift" className="block">
                     <Button size="lg" className="w-full">
-                      Start gratis prøveperiode
+                      Registrer bedrift
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </Link>
@@ -441,12 +441,12 @@ export default function BesteHMSSystemByggPage() {
             </p>
             <Link href="/registrer-bedrift">
               <Button size="lg" variant="secondary">
-                Start gratis prøveperiode
+                Registrer bedrift
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
             <p className="text-sm mt-6 text-primary-foreground/70">
-              14 dagers gratis test • Offline Q1 2026 • Mobilapp Q2 2026 • Norsk support
+              14 dagers angrefrist • Deretter 12 mnd binding • Norsk support
             </p>
           </CardContent>
         </Card>

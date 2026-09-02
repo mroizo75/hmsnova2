@@ -7,6 +7,8 @@ import { DashboardContent } from "@/features/dashboard/components/dashboard-cont
 import { fetchDashboardData } from "@/server/queries/dashboard.queries";
 import { getMessagesForTenant } from "@/server/actions/corporate-group-messages.actions";
 import { KonsernMessagesBanner } from "@/features/konsern/components/konsern-messages-banner";
+import { evaluateTenantAlerts } from "@/lib/tenant-alerts";
+import { TenantAlertsWidget } from "@/features/dashboard/components/tenant-alerts-widget";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -88,6 +90,12 @@ export default async function DashboardPage() {
   const konsernMessages = await getMessagesForTenant();
   const unreadKonsernMessages = konsernMessages.filter((m) => !m.isRead);
 
+  // Systematiske HMS-varsler er kun relevant for roller med oppfølgingsansvar
+  const tenantAlerts =
+    selectedMembership.role !== "ANSATT"
+      ? await evaluateTenantAlerts(selectedMembership.tenantId)
+      : [];
+
   return (
     <div className="space-y-4">
       {unreadKonsernMessages.length > 0 && (
@@ -99,6 +107,7 @@ export default async function DashboardPage() {
         </h1>
         <p className="text-muted-foreground">Her er ditt dashboard for i dag.</p>
       </div>
+      {selectedMembership.role !== "ANSATT" && <TenantAlertsWidget alerts={tenantAlerts} />}
       <DashboardContent initialData={initialData} />
     </div>
   );

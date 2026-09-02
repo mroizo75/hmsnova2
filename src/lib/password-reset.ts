@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/db";
 import crypto from "crypto";
 
-const TOKEN_EXPIRY_HOURS = 1;
+export const TOKEN_EXPIRY_HOURS = 1;
+export const ACTIVATION_TOKEN_EXPIRY_HOURS = 24;
 const MAX_TOKENS_PER_USER_PER_DAY = 5;
 
 /**
@@ -17,7 +18,8 @@ export function generateResetToken(): string {
 export async function createPasswordResetToken(
   userId: string,
   ipAddress?: string,
-  userAgent?: string
+  userAgent?: string,
+  expiryHours: number = TOKEN_EXPIRY_HOURS
 ): Promise<{ token: string; expires: Date } | { error: string }> {
   try {
     // Sjekk hvor mange tokens brukeren har laget siste 24 timer
@@ -39,7 +41,7 @@ export async function createPasswordResetToken(
 
     // Generer token
     const token = generateResetToken();
-    const expires = new Date(Date.now() + TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
+    const expires = new Date(Date.now() + expiryHours * 60 * 60 * 1000);
 
     // Slett gamle ubrukte tokens for denne brukeren
     await prisma.passwordResetToken.deleteMany({

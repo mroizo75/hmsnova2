@@ -5,10 +5,10 @@
  *
  * Hjemmel:
  *   AML § 14-5/14-6: arbeidsavtale innen 7 dager
- *   AML § 3-5: HMS-opplæring
- *   AML § 2A-6: varslingsrutiner
+ *   AML § 3-2: opplæring og instruksjon
+ *   AML § 2 A-6: varslingsrutiner
  *   AML § 15-15: sluttattest
- *   GDPR art. 17: rett til sletting
+ *   GDPR art. 13 og art. 17: informasjon og sletting
  */
 
 import { revalidatePath } from "next/cache";
@@ -29,6 +29,7 @@ import {
   type CompleteTaskInput,
   type SkipTaskInput,
 } from "@/features/boarding/schemas/boarding.schema";
+import { getBoardingTemplateLibrary } from "@/lib/boarding-template-library";
 
 // ─── Opprett boarding (fra mal) ─────────────────────────────────────────────
 
@@ -338,11 +339,10 @@ export async function deleteTemplate(id: string) {
   }
 }
 
-// ─── Kanseller boarding ─────────────────────────────────────────────────────
-
 export async function cancelBoarding(id: string) {
   try {
     const auth = await getAuthContext();
+    if (!auth) throw new Error("Ikke autentisert");
     if (!auth.permissions.canCreateBoarding) {
       throw new Error("Du har ikke tilgang til å kansellere prosesser");
     }
@@ -368,77 +368,123 @@ export async function cancelBoarding(id: string) {
   }
 }
 
-// ─── Generer standardmaler ──────────────────────────────────────────────────
-
 export async function ensureDefaultTemplates() {
   try {
     const auth = await getAuthContext();
+    if (!auth) throw new Error("Ikke autentisert");
     if (!auth.permissions.canManageBoardingTemplates) {
       throw new Error("Ingen tilgang");
     }
 
-    const existing = await prisma.boardingTemplate.count({
-      where: { tenantId: auth.tenantId },
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: auth.tenantId },
+      select: { industry: true },
     });
-    if (existing > 0) {
-      return { success: true as const, message: "Maler finnes allerede" };
+
+    const library = getBoardingTemplateLibrary(tenant?.industry ?? null);
+    let templatesCreated = 0;
+    let tasksAdded = 0;
+    let tasksUpdated = 0;
+
+    for (const template of library) {
+      const existing =
+        (await prisma.boardingTemplate.findFirst({
+          where: { tenantId: auth.tenantId, sourceKey: template.sourceKey },
+          include: { tasks: true },
+        })) ??
+        (await prisma.boardingTemplate.findFirst({
+          where: { tenantId: auth.tenantId, name: template.name, type: template.type },
+          include: { tasks: true },
+        }));
+
+      if (!existing) {
+        await prisma.boardingTemplate.create({
+          data: {
+            tenantId: auth.tenantId,
+            name: template.name,
+            type: template.type,
+            description: template.description,
+            sourceKey: template.sourceKey,
+            tasks: {
+              create: template.tasks.map((task, index) => ({
+                title: task.title,
+                description: task.description,
+                assigneeRole: task.assigneeRole,
+                daysOffset: task.daysOffset,
+                sortOrder: index,
+                category: task.category,
+                isRequired: task.isRequired,
+                legalRef: task.legalRef ?? null,
+                sourceKey: task.sourceKey,
+              })),
+            },
+          },
+        });
+        templatesCreated += 1;
+        continue;
+      }
+
+      if (!existing.sourceKey) {
+        await prisma.boardingTemplate.update({
+          where: { id: existing.id },
+          data: {
+            sourceKey: template.sourceKey,
+            description: template.description,
+          },
+        });
+      }
+
+      const existingByKey = new Map(
+        existing.tasks.filter((task) => task.sourceKey).map((task) => [task.sourceKey, task])
+      );
+      const existingByTitle = new Map(existing.tasks.map((task) => [task.title, task]));
+      let nextSort = existing.tasks.reduce((max, task) => Math.max(max, task.sortOrder), -1) + 1;
+
+      for (const task of template.tasks) {
+        const match = existingByKey.get(task.sourceKey) ?? existingByTitle.get(task.title);
+        if (!match) {
+          await prisma.boardingTemplateTask.create({
+            data: {
+              templateId: existing.id,
+              title: task.title,
+              description: task.description,
+              assigneeRole: task.assigneeRole,
+              daysOffset: task.daysOffset,
+              sortOrder: nextSort,
+              category: task.category,
+              isRequired: task.isRequired,
+              legalRef: task.legalRef ?? null,
+              sourceKey: task.sourceKey,
+            },
+          });
+          nextSort += 1;
+          tasksAdded += 1;
+          continue;
+        }
+
+        await prisma.boardingTemplateTask.update({
+          where: { id: match.id },
+          data: {
+            title: task.title,
+            description: task.description,
+            assigneeRole: task.assigneeRole,
+            daysOffset: task.daysOffset,
+            category: task.category,
+            isRequired: task.isRequired,
+            legalRef: task.legalRef ?? null,
+            sourceKey: task.sourceKey,
+          },
+        });
+        tasksUpdated += 1;
+      }
     }
 
-    // Onboarding-mal
-    await prisma.boardingTemplate.create({
-      data: {
-        tenantId: auth.tenantId,
-        name: "Standard onboarding",
-        type: "ONBOARDING",
-        description: "Lovpålagt og anbefalt sjekkliste for nye ansatte",
-        tasks: {
-          create: [
-            { title: "Forbered arbeidsplass og IT-tilgang", assigneeRole: "IT", daysOffset: -7, sortOrder: 0, category: "IT/Tilgang" },
-            { title: "Send velkomstpakke/informasjon", assigneeRole: "HR", daysOffset: -3, sortOrder: 1, category: "Sosialt" },
-            { title: "Velkomst og omvisning", assigneeRole: "MANAGER", daysOffset: 0, sortOrder: 2, category: "Sosialt" },
-            { title: "Utlevere nøkler/adgangskort", assigneeRole: "IT", daysOffset: 0, sortOrder: 3, category: "IT/Tilgang" },
-            { title: "Signere arbeidsavtale", assigneeRole: "EMPLOYEE", daysOffset: 0, sortOrder: 4, category: "Dokumenter", legalRef: "AML § 14-5" },
-            { title: "HMS-opplæring grunnkurs", assigneeRole: "EMPLOYEE", daysOffset: 1, sortOrder: 5, category: "HMS", legalRef: "AML § 3-5" },
-            { title: "Gjennomgå varslingsrutiner", assigneeRole: "MANAGER", daysOffset: 1, sortOrder: 6, category: "HMS", legalRef: "AML § 2A-6" },
-            { title: "Gjennomgå personalhåndbok", assigneeRole: "EMPLOYEE", daysOffset: 1, sortOrder: 7, category: "Dokumenter" },
-            { title: "Introduksjon til team og samarbeidspartnere", assigneeRole: "MANAGER", daysOffset: 3, sortOrder: 8, category: "Sosialt" },
-            { title: "Bekreft arbeidsavtale signert", assigneeRole: "HR", daysOffset: 7, sortOrder: 9, category: "Dokumenter", legalRef: "AML § 14-5" },
-            { title: "Oppfølgingssamtale 2 uker", assigneeRole: "MANAGER", daysOffset: 14, sortOrder: 10, category: "Sosialt" },
-            { title: "Oppfølgingssamtale 1 måned", assigneeRole: "MANAGER", daysOffset: 30, sortOrder: 11, category: "Sosialt" },
-            { title: "Oppfølgingssamtale 2 måneder", assigneeRole: "MANAGER", daysOffset: 60, sortOrder: 12, category: "Sosialt" },
-            { title: "Evaluering prøvetid", assigneeRole: "MANAGER", daysOffset: 90, sortOrder: 13, category: "Dokumenter" },
-            { title: "Halvårsevaluering", assigneeRole: "MANAGER", daysOffset: 180, sortOrder: 14, category: "Sosialt", isRequired: false },
-          ],
-        },
-      },
-    });
-
-    // Offboarding-mal
-    await prisma.boardingTemplate.create({
-      data: {
-        tenantId: auth.tenantId,
-        name: "Standard offboarding",
-        type: "OFFBOARDING",
-        description: "Sjekkliste for avslutning av arbeidsforhold",
-        tasks: {
-          create: [
-            { title: "Informere team", assigneeRole: "MANAGER", daysOffset: -14, sortOrder: 0, category: "Sosialt" },
-            { title: "Starte kunnskapsoverføring", assigneeRole: "EMPLOYEE", daysOffset: -7, sortOrder: 1, category: "Dokumenter" },
-            { title: "Sluttsamtale", assigneeRole: "MANAGER", daysOffset: -3, sortOrder: 2, category: "Sosialt" },
-            { title: "Innlevere utstyr", assigneeRole: "EMPLOYEE", daysOffset: -1, sortOrder: 3, category: "Utstyr" },
-            { title: "Innlevere nøkler/adgangskort", assigneeRole: "EMPLOYEE", daysOffset: -1, sortOrder: 4, category: "Utstyr" },
-            { title: "Stenge IT-tilgang og kontoer", assigneeRole: "IT", daysOffset: 0, sortOrder: 5, category: "IT/Tilgang" },
-            { title: "Sluttoppgjør/lønn", assigneeRole: "HR", daysOffset: 0, sortOrder: 6, category: "Dokumenter" },
-            { title: "Utstede sluttattest", assigneeRole: "HR", daysOffset: 0, sortOrder: 7, category: "Dokumenter", legalRef: "AML § 15-15" },
-            { title: "GDPR-sletting av persondata", assigneeRole: "HR", daysOffset: 7, sortOrder: 8, category: "Dokumenter", legalRef: "GDPR art. 17" },
-            { title: "Kontroller at alle tilganger er fjernet", assigneeRole: "IT", daysOffset: 30, sortOrder: 9, category: "IT/Tilgang" },
-          ],
-        },
-      },
-    });
-
     revalidatePath("/dashboard/onboarding/maler");
-    return { success: true as const, message: "Standardmaler opprettet" };
+    const message =
+      templatesCreated > 0
+        ? `Standardmaler opprettet (${templatesCreated})`
+        : `Maler oppdatert fra lovkrav (${tasksAdded} nye oppgaver, ${tasksUpdated} oppdatert)`;
+    return { success: true as const, message };
   } catch (error: any) {
     return { success: false as const, error: error.message || "Kunne ikke opprette standardmaler" };
   }

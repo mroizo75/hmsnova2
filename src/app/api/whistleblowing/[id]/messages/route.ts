@@ -43,16 +43,16 @@ export async function POST(
       createNotification({
         tenantId: report.tenantId,
         userId: notifyUserId,
-        type: "WHISTLEBLOWING_MSG",
-        title: "Ny melding fra varsler",
-        message: `Varsler har sendt en ny melding i sak ${report.caseNumber}.`,
+        type: "CONFIDENTIAL_ACCESS",
+        title: "Konfidensiell sak",
+        message: "Du har fått tilgang til en konfidensiell sak",
         link: `/dashboard/whistleblowing/${id}`,
       }).catch(() => {});
     } else {
       notifyUsersByRole(report.tenantId, "VARSLINGSANSVARLIG", {
-        type: "WHISTLEBLOWING_MSG",
-        title: "Ny melding fra varsler",
-        message: `Varsler har sendt en ny melding i sak ${report.caseNumber}.`,
+        type: "CONFIDENTIAL_ACCESS",
+        title: "Konfidensiell sak",
+        message: "Du har fått tilgang til en konfidensiell sak",
         link: `/dashboard/whistleblowing/${id}`,
       }).catch(() => {});
     }

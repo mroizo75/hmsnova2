@@ -277,7 +277,7 @@ export default function BransjerPage() {
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <RegisterDialog>
                     <Button size="lg" variant="secondary" className="text-lg px-8">
-                      Start gratis i 14 dager
+                      Registrer bedrift
                       <ArrowRight className="ml-2 h-5 w-5" />
                     </Button>
                   </RegisterDialog>
@@ -288,7 +288,7 @@ export default function BransjerPage() {
                   </Link>
                 </div>
                 <p className="text-sm mt-6 text-primary-foreground/70">
-                  14 dagers gratis test &middot; Ingen kredittkort &middot; Norsk support
+                  14 dagers angrefrist &middot; Deretter 12 mnd binding &middot; Norsk support
                 </p>
               </CardContent>
             </Card>

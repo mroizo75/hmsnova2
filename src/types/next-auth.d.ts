@@ -30,6 +30,7 @@ declare module "next-auth" {
       hasMultipleTenants?: boolean;
       preferredLocale?: string;
       isTavleOnly?: boolean;
+      hasConfidentialInbox?: boolean;
       corporateGroupId?: string | null;
       corporateGroupRole?: CorporateGroupRole | null;
     };
@@ -47,6 +48,7 @@ declare module "next-auth/jwt" {
     hasMultipleTenants?: boolean;
     preferredLocale?: string;
     isTavleOnly?: boolean;
+    hasConfidentialInbox?: boolean;
     corporateGroupId?: string | null;
     corporateGroupRole?: CorporateGroupRole | null;
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -17,8 +18,15 @@ import { investigateIncident } from "@/server/actions/incident.actions";
 import { suggestIncidentRootCauseAnalysis } from "@/server/actions/ai-assistant.actions";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { FileSearch, Sparkles } from "lucide-react";
+import { FileSearch, Sparkles, BookOpen, X } from "lucide-react";
 import { useTranslations } from "next-intl";
+
+interface HandbookSuggestion {
+  code: string;
+  documentKind: string;
+  message: string;
+  documents: Array<{ id: string; title: string }>;
+}
 
 interface InvestigationFormProps {
   incidentId: string;
@@ -32,6 +40,8 @@ export function InvestigationForm({ incidentId, users, routines = [] }: Investig
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
+  const [handbookSuggestions, setHandbookSuggestions] = useState<HandbookSuggestion[]>([]);
+  const [aiSuggestedRootCause, setAiSuggestedRootCause] = useState<string | null>(null);
   const rootCauseRef = useRef<HTMLTextAreaElement>(null);
   const contributingFactorsRef = useRef<HTMLTextAreaElement>(null);
 
@@ -43,6 +53,7 @@ export function InvestigationForm({ incidentId, users, routines = [] }: Investig
         if (rootCauseRef.current) {
           rootCauseRef.current.value = result.data.rootCause;
         }
+        setAiSuggestedRootCause(result.data.rootCause);
         if (contributingFactorsRef.current) {
           contributingFactorsRef.current.value = result.data.contributingFactors;
         }
@@ -83,6 +94,7 @@ export function InvestigationForm({ incidentId, users, routines = [] }: Investig
       contributingFactors: formData.get("contributingFactors") as string || undefined,
       investigatedBy: formData.get("investigatedBy") as string,
       relatedRoutineId: relatedRoutineId || null,
+      aiSuggestedRootCause: aiSuggestedRootCause ?? undefined,
     };
 
     try {
@@ -94,6 +106,7 @@ export function InvestigationForm({ incidentId, users, routines = [] }: Investig
           description: t("toasts.success.description"),
           className: "bg-green-50 border-green-200",
         });
+        setHandbookSuggestions(result.handbookSuggestions ?? []);
         router.refresh();
       } else {
         toast({
@@ -113,7 +126,12 @@ export function InvestigationForm({ incidentId, users, routines = [] }: Investig
     }
   };
 
+  const dismissSuggestion = (code: string) => {
+    setHandbookSuggestions((previous) => previous.filter((suggestion) => suggestion.code !== code));
+  };
+
   return (
+    <div className="space-y-4">
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
@@ -232,6 +250,57 @@ export function InvestigationForm({ incidentId, users, routines = [] }: Investig
         </form>
       </CardContent>
     </Card>
+
+    {handbookSuggestions.length > 0 && (
+      <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-800">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <BookOpen className="h-5 w-5 text-blue-600" />
+            Forslag til håndbok-/rutineoppdatering
+          </CardTitle>
+          <CardDescription>
+            Basert på dette avviket kan det være verdt å se på følgende i HMS-håndboken. Dette er
+            kun forslag - ingen dokumenter endres automatisk, og du vurderer selv om det er relevant.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {handbookSuggestions.map((suggestion) => (
+            <div
+              key={suggestion.code}
+              className="flex items-start justify-between gap-3 rounded-lg border bg-card p-3"
+            >
+              <div className="space-y-1.5 min-w-0">
+                <p className="text-sm">{suggestion.message}</p>
+                {suggestion.documents.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {suggestion.documents.map((doc) => (
+                      <Link
+                        key={doc.id}
+                        href={`/dashboard/documents/${doc.id}`}
+                        className="text-xs font-medium text-blue-700 hover:underline dark:text-blue-300"
+                      >
+                        {doc.title} →
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="shrink-0 gap-1 text-muted-foreground"
+                onClick={() => dismissSuggestion(suggestion.code)}
+              >
+                <X className="h-3.5 w-3.5" />
+                Ikke relevant
+              </Button>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    )}
+    </div>
   );
 }
 

@@ -18,6 +18,7 @@ import {
 } from "@/features/sja/schemas/sja.schema";
 import { SjaCreateTemplateButton } from "@/components/sja/sja-create-template-button";
 import { SjaDeleteTemplateButton } from "@/components/sja/sja-delete-template-button";
+import { SjaTemplateActions } from "@/components/sja/sja-template-actions";
 import { useLocale, useTranslations } from "next-intl";
 import { fetchSjaList } from "@/server/queries/sja.queries";
 
@@ -274,7 +275,14 @@ export function SjaListContent({ initialData, tenantId }: SjaListContentProps) {
                         ))}
                       </div>
                     </div>
-                    <SjaDeleteTemplateButton templateId={template.id} templateName={template.name} />
+                    <div className="flex items-center gap-2 shrink-0">
+                      <SjaTemplateActions
+                        templateId={template.id}
+                        templateName={template.name}
+                        basePath="/dashboard/sja/new"
+                      />
+                      <SjaDeleteTemplateButton templateId={template.id} templateName={template.name} />
+                    </div>
                   </div>
                 </div>
               ))}

@@ -131,7 +131,7 @@ export async function deleteInvoice(invoiceId: string) {
 
 /**
  * Opprett onboarding-faktura i Fiken og send til kunde
- * VIKTIG: Faktura forfaller ETTER 14 dagers gratis prøveperiode
+ * VIKTIG: Faktura forfaller ETTER 14 dagers avtalt angrefrist
  */
 export async function createOnboardingInvoice(tenantId: string) {
   try {
@@ -146,8 +146,9 @@ export async function createOnboardingInvoice(tenantId: string) {
       return { success: false, error: "Tenant eller subscription ikke funnet" };
     }
 
-    if (!tenant.trialEndsAt) {
-      return { success: false, error: "Tenant må ha trialEndsAt satt" };
+    const withdrawalDeadline = tenant.withdrawalDeadlineAt ?? tenant.trialEndsAt;
+    if (!withdrawalDeadline) {
+      return { success: false, error: "Tenant må ha angrefrist (withdrawalDeadlineAt) satt" };
     }
 
     // Sjekk om faktura allerede eksisterer
@@ -167,9 +168,8 @@ export async function createOnboardingInvoice(tenantId: string) {
     const amount = isMonthly ? Math.round(tenant.subscription.price / 12) : tenant.subscription.price;
     const netAmount = Math.round(amount / 1.25); // Pris ekskl. MVA
 
-    // VIKTIG: Faktura forfaller DAG 15 (etter 14 dagers gratis prøve)
-    const dueDate = new Date(tenant.trialEndsAt);
-    dueDate.setDate(dueDate.getDate() + 1); // Dag 15
+    const dueDate = new Date(withdrawalDeadline);
+    dueDate.setDate(dueDate.getDate() + 1);
 
     // Opprett faktura i Fiken hvis API er konfigurert
     let fikenInvoiceId: string | undefined;
@@ -250,10 +250,10 @@ export async function createOnboardingInvoice(tenantId: string) {
         await resend.emails.send({
           from: process.env.RESEND_FROM_EMAIL ?? "HMS Nova <noreply@hmsnova.no>",
           to: tenant.invoiceEmail || tenant.contactEmail || "",
-          subject: `🎉 Velkommen til HMS Nova - 14 dager gratis!`,
+          subject: `Velkommen til HMS Nova – 14 dagers angrefrist`,
           html: getTrialWelcomeEmail({
             companyName: tenant.name,
-            trialEndsAt: tenant.trialEndsAt,
+            trialEndsAt: withdrawalDeadline,
             amount,
             plan: tenant.subscription.plan,
             billingInterval: tenant.subscription.billingInterval,
@@ -360,11 +360,22 @@ export async function sendTrialExpiringReminders() {
     // Finn alle tenants med prøveperiode som utløper om 3 dager
     const tenants = await prisma.tenant.findMany({
       where: {
-        status: "TRIAL",
-        trialEndsAt: {
-          gte: threeDaysFromNow,
-          lte: fourDaysFromNow,
-        },
+        OR: [
+          {
+            status: "TRIAL",
+            trialEndsAt: {
+              gte: threeDaysFromNow,
+              lte: fourDaysFromNow,
+            },
+          },
+          {
+            status: "ACTIVE",
+            withdrawalDeadlineAt: {
+              gte: threeDaysFromNow,
+              lte: fourDaysFromNow,
+            },
+          },
+        ],
       },
       include: {
         subscription: true,
@@ -388,10 +399,10 @@ export async function sendTrialExpiringReminders() {
         await resend.emails.send({
           from: process.env.RESEND_FROM_EMAIL ?? "HMS Nova <noreply@hmsnova.no>",
           to: tenant.contactEmail,
-          subject: "⏰ Din gratis prøveperiode utløper om 3 dager",
+          subject: "Angrefrist utløper om 3 dager – deretter 12 måneders binding",
           html: getTrialExpiringEmail({
             companyName: tenant.name,
-            trialEndsAt: tenant.trialEndsAt!,
+            trialEndsAt: tenant.withdrawalDeadlineAt ?? tenant.trialEndsAt!,
             amount: invoice.amount,
             dueDate: invoice.dueDate,
             invoiceNumber: invoice.id.slice(-8).toUpperCase(),
@@ -713,7 +724,7 @@ function getInvoiceEmail(data: {
                     <p style="color: #666; font-size: 14px; margin: 30px 0 0;">
                       Har du spørsmål om fakturaen?<br/>
                       📧 <a href="mailto:support@hmsnova.com" style="color: #2d9c92; text-decoration: none;">support@hmsnova.com</a><br/>
-                      📞 <a href="tel:+4799112916" style="color: #2d9c92; text-decoration: none;">+47 99 11 29 16</a>
+                      📞 <a href="tel:+4741874010" style="color: #2d9c92; text-decoration: none;">+47 41 87 40 10</a>
                     </p>
                   </td>
                 </tr>
@@ -759,7 +770,7 @@ function getSuspensionEmail(data: {
           
           <p>For å reaktivere kontoen, vennligst betal fakturaen. Tilgangen vil bli gjenopprettet automatisk når vi mottar betalingen.</p>
           
-          <p>Kontakt oss på <a href="mailto:support@hmsnova.com">support@hmsnova.com</a> eller ring +47 99 11 29 16 hvis du har spørsmål.</p>
+          <p>Kontakt oss på <a href="mailto:support@hmsnova.com">support@hmsnova.com</a> eller ring +47 41 87 40 10 hvis du har spørsmål.</p>
           
           <p>Med vennlig hilsen,<br/>HMS Nova Team</p>
         </div>

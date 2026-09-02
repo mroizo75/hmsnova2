@@ -8,7 +8,7 @@ import { FAQSection } from "@/components/faq-section";
 
 export const metadata: Metadata = {
   title: "ISO 9001 Sertifisering - Innebygd støtte | HMS Nova",
-  description: "ISO 9001:2015-støtte innebygd i HMS Nova. Alle krav dekket, klar for revisjon med digital dokumentasjon og risikovurdering. Prøv gratis.",
+  description: "ISO 9001:2015-støtte innebygd i HMS Nova. Alle krav dekket, klar for revisjon med digital dokumentasjon og risikovurdering. Registrer bedrift.",
   keywords: "iso 9001, iso 9001 sertifisering, kvalitetsstyring, iso 9001 system, iso compliance",
 };
 
@@ -79,7 +79,7 @@ export default function ISO9001Page() {
           <div className="flex flex-col sm:flex-row gap-4">
             <Button asChild size="lg">
               <Link href="/registrer-bedrift">
-                Prøv gratis i 14 dager
+                Registrer bedrift
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
@@ -363,12 +363,12 @@ export default function ISO9001Page() {
               Klar for ISO 9001-sertifisering?
             </h2>
             <p className="text-lg mb-8 text-primary-foreground/90">
-              HMS Nova har alt du trenger innebygd. Test gratis i 14 dager.
+              HMS Nova har alt du trenger innebygd. Registrer bedrift.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild size="lg" className="bg-white text-primary hover:bg-gray-100">
                 <Link href="/registrer-bedrift">
-                  Kom i gang gratis
+                  Registrer bedrift
                 </Link>
               </Button>
               <Button 
