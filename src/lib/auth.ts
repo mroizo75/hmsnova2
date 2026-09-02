@@ -395,83 +395,75 @@ export const authOptions: NextAuthOptions = {
         }
       }
       
-      // Rolle-versjonskontroll: sjekk om UserTenant.updatedAt har endret seg siden sist.
-      // Ingen polling – vi leser kun ett felt (updatedAt) og bare om token er satt.
-      // Dersom admin har endret rollen vil updatedAt være nyere enn det vi har i token.
-      if (token.id && token.tenantId) {
-        const membership = await prisma.userTenant.findUnique({
-          where: {
-            userId_tenantId: {
-              userId: token.id as string,
-              tenantId: token.tenantId as string,
-            },
-          },
-          select: { role: true, updatedAt: true },
-        });
-        if (membership) {
-          const dbUpdatedAt = membership.updatedAt.getTime();
-          const tokenUpdatedAt = token.roleUpdatedAt as number | null;
-          if (tokenUpdatedAt === null || dbUpdatedAt > tokenUpdatedAt) {
-            token.role = membership.role;
-            token.roleUpdatedAt = dbUpdatedAt;
-          }
-        }
-        try {
-          const confidentialCount = await prisma.whistleblowAccessGrant.count({
-            where: {
-              tenantId: token.tenantId as string,
-              granteeId: token.id as string,
-              revokedAt: null,
-              expiresAt: { gt: new Date() },
-            },
-          });
-          token.hasConfidentialInbox = confidentialCount > 0;
-        } catch {
-          token.hasConfidentialInbox = false;
-        }
-      }
-      
-      if (trigger === "update" && session?.tenantId) {
-        token.tenantId = session.tenantId;
-        
-        const dbUser = await prisma.user.findUnique({
+      // Tenant-bytte + rolle-versjonskontroll.
+      // Sjekker lastTenantId mot nåværende token.tenantId — hvis de avviker har
+      // brukeren byttet bedrift via switch-tenant API-et, og vi oppdaterer tokenet.
+      if (token.id) {
+        const currentUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          include: {
-            tenants: {
-              where: { tenantId: session.tenantId },
-              include: {
-                tenant: {
-                  select: {
-                    name: true,
-                    status: true,
-                    isTavleOnly: true,
-                  },
-                },
+          select: { lastTenantId: true },
+        });
+
+        const effectiveTenantId =
+          currentUser?.lastTenantId && currentUser.lastTenantId !== token.tenantId
+            ? currentUser.lastTenantId
+            : (token.tenantId as string | null);
+
+        if (effectiveTenantId && effectiveTenantId !== token.tenantId) {
+          const newMembership = await prisma.userTenant.findUnique({
+            where: {
+              userId_tenantId: {
+                userId: token.id as string,
+                tenantId: effectiveTenantId,
               },
             },
-          },
-        });
-        
-        const selectedMembership = dbUser?.tenants.at(0);
-        if (selectedMembership) {
-          token.role = selectedMembership.role;
-          token.tenantName = selectedMembership.tenant.name;
-          token.isTavleOnly = selectedMembership.tenant.isTavleOnly ?? false;
-          token.roleUpdatedAt = selectedMembership.updatedAt.getTime();
-        }
-
-        try {
-          const confidentialCount = await prisma.whistleblowAccessGrant.count({
-            where: {
-              tenantId: session.tenantId as string,
-              granteeId: token.id as string,
-              revokedAt: null,
-              expiresAt: { gt: new Date() },
+            include: {
+              tenant: {
+                select: { name: true, status: true, isTavleOnly: true },
+              },
             },
           });
-          token.hasConfidentialInbox = confidentialCount > 0;
-        } catch {
-          token.hasConfidentialInbox = false;
+          if (newMembership) {
+            token.tenantId = effectiveTenantId;
+            token.role = newMembership.role;
+            token.tenantName = newMembership.tenant.name;
+            token.isTavleOnly = newMembership.tenant.isTavleOnly ?? false;
+            token.roleUpdatedAt = newMembership.updatedAt.getTime();
+          }
+        }
+
+        if (token.tenantId) {
+          const membership = await prisma.userTenant.findUnique({
+            where: {
+              userId_tenantId: {
+                userId: token.id as string,
+                tenantId: token.tenantId as string,
+              },
+            },
+            select: { role: true, updatedAt: true },
+          });
+          if (membership) {
+            const dbUpdatedAt = membership.updatedAt.getTime();
+            const tokenUpdatedAt = token.roleUpdatedAt as number | null;
+            if (tokenUpdatedAt === null || dbUpdatedAt > tokenUpdatedAt) {
+              token.role = membership.role;
+              token.roleUpdatedAt = dbUpdatedAt;
+            }
+          }
+
+          try {
+            const confidentialCount = await prisma.whistleblowAccessGrant.count({
+              where: {
+                tenantId: token.tenantId as string,
+                granteeId: token.id as string,
+                revokedAt: null,
+                expiresAt: { gt: new Date() },
+              },
+            });
+            token.hasConfidentialInbox = confidentialCount > 0;
+          } catch {
+            token.hasConfidentialInbox = false;
+          }
         }
       }
       

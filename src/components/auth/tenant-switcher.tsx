@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,8 +23,7 @@ interface Tenant {
 }
 
 export function TenantSwitcher() {
-  const { data: session, update } = useSession();
-  const router = useRouter();
+  const { data: session } = useSession();
   const { toast } = useToast();
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(false);
@@ -63,15 +61,9 @@ export function TenantSwitcher() {
       });
 
       if (!response.ok) {
-        throw new Error("Kunne ikke bytte bedrift");
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Kunne ikke bytte bedrift");
       }
-
-      await update({ tenantId });
-
-      toast({
-        title: "Bedrift byttet",
-        description: `Du er nå koblet til ${tenants.find(t => t.id === tenantId)?.name}`,
-      });
 
       window.location.href = "/dashboard";
     } catch (error) {
@@ -80,7 +72,6 @@ export function TenantSwitcher() {
         description: error instanceof Error ? error.message : "Kunne ikke bytte bedrift",
         variant: "destructive",
       });
-    } finally {
       setLoading(false);
       setSwitchingTo(null);
     }

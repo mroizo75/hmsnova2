@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useSession } from "next-auth/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -58,7 +57,6 @@ function getStatusLabel(status: string): string {
 }
 
 export function TenantSelector({ userId, tenants, lastTenantId }: TenantSelectorProps) {
-  const { update } = useSession();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
@@ -75,10 +73,10 @@ export function TenantSelector({ userId, tenants, lastTenantId }: TenantSelector
       });
 
       if (!response.ok) {
-        throw new Error("Kunne ikke bytte bedrift");
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Kunne ikke bytte bedrift");
       }
 
-      await update({ tenantId });
       window.location.href = "/dashboard";
     } catch (error) {
       toast({
