@@ -81,14 +81,12 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Ugyldig pålogging");
         }
 
-        if (!user.isSuperAdmin && !user.isSupport && !user.emailVerified) {
-          throw new Error(
-            "Kontoen er ikke aktivert. Sjekk e-posten for aktiveringlenke."
-          );
-        }
-
         if (!user.password) {
-          throw new Error("Ugyldig pålogging");
+          throw new Error(
+            !user.emailVerified
+              ? "Kontoen er ikke aktivert. Sjekk e-posten for aktiveringlenke."
+              : "Ugyldig pålogging"
+          );
         }
 
         // SIKKERHET: Sjekk om kontoen er låst
