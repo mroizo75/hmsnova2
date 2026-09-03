@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,6 +38,7 @@ interface InvestigationFormProps {
 export function InvestigationForm({ incidentId, users, routines = [] }: InvestigationFormProps) {
   const t = useTranslations("dashboardIncidentInvestigationForm");
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
@@ -107,6 +109,7 @@ export function InvestigationForm({ incidentId, users, routines = [] }: Investig
           className: "bg-green-50 border-green-200",
         });
         setHandbookSuggestions(result.handbookSuggestions ?? []);
+        await queryClient.invalidateQueries({ queryKey: ["incidents", incidentId] });
         router.refresh();
       } else {
         toast({

@@ -23,6 +23,7 @@ import { filterDashboardNavItems, sortDashboardNavItems } from "@/lib/dashboard-
 import { DASHBOARD_NAV_ICONS } from "@/lib/dashboard-nav-icons";
 import { useTenantNavContext } from "@/hooks/use-tenant-nav-context";
 import { groupNavItemsByHub } from "@/lib/dashboard-nav-hub-groups";
+import { useDashboardLock } from "@/components/dashboard-providers";
 
 export function DashboardNav() {
   const pathname = usePathname();
@@ -32,6 +33,9 @@ export function DashboardNav() {
   const { isSimpleMode, toggleMode } = useSimpleMode();
   const { simpleMenuItems } = useSimpleMenuConfig();
   const { tenantFeatures, moduleVisibility, tenantIndustry } = useTenantNavContext();
+  const { dashboardLocked } = useDashboardLock();
+
+  const effectiveSimpleMode = isSimpleMode || dashboardLocked;
 
   const allowedNavItems = sortDashboardNavItems(
     filterDashboardNavItems({
@@ -41,7 +45,7 @@ export function DashboardNav() {
       moduleVisibility,
       tenantFeatures,
       tenantIndustry,
-      isSimpleMode,
+      isSimpleMode: effectiveSimpleMode,
       simpleMenuItems,
       hasKonsernMenu: hasKonsernMenuInHms({
         corporateGroupId: session?.user?.corporateGroupId,
@@ -93,13 +97,16 @@ export function DashboardNav() {
             <Switch
               checked={!isSimpleMode}
               onCheckedChange={() => toggleMode()}
+              disabled={dashboardLocked}
               className="scale-75"
             />
           </div>
           <p className="text-[10px] text-muted-foreground mt-1">
-            {isSimpleMode
-              ? t("dashboardNav.simpleDescription")
-              : t("dashboardNav.advancedDescription")}
+            {dashboardLocked
+              ? "Låst av administrator"
+              : isSimpleMode
+                ? t("dashboardNav.simpleDescription")
+                : t("dashboardNav.advancedDescription")}
           </p>
         </div>
 

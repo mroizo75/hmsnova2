@@ -43,6 +43,9 @@ export async function fetchInspectionDetail(id: string) {
           linkedMeasure: {
             select: { id: true, title: true, status: true },
           },
+          linkedIncident: {
+            select: { id: true, avviksnummer: true, status: true, stage: true },
+          },
         },
       },
       formTemplate: {

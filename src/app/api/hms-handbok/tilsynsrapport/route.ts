@@ -98,12 +98,20 @@ export async function GET(request: NextRequest) {
   // KUN de seksjonene som tilsynet faktisk krever dokumentasjon på
   if (currentVersion && currentVersion.sections.length > 0) {
     const filteredSections = currentVersion.sections.filter(
-      (s) => !s.parentId && config.sectionKeys.includes(s.sectionKey),
+      (s) => !s.parentId && config.sectionKeys.includes(s.sectionKey) && (s.isEnabled !== false || !!s.externalRef),
     );
 
     for (const section of filteredSections) {
+      if (section.isEnabled === false && section.externalRef) {
+        sections.push({
+          title: `${section.sectionNumber}. ${section.title}`,
+          content: [{ type: "html", html: `<p><em>Henvisning: ${section.externalRef}</em></p>` }],
+        });
+        continue;
+      }
+
       const childSections = currentVersion.sections.filter(
-        (s) => s.parentId === section.id,
+        (s) => s.parentId === section.id && s.isEnabled !== false,
       );
 
       const contentBlocks: PdfSection["content"] = [];

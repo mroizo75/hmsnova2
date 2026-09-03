@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, Mail, Smartphone, Calendar, ClipboardCheck, AlertCircle, Target, TestTube } from "lucide-react";
+import { Bell, Mail, Smartphone, Calendar, ClipboardCheck, AlertCircle, Target, TestTube, HardHat } from "lucide-react";
 import type { Role, User, UserTenant } from "@prisma/client";
 import { updateNotificationSettings } from "@/server/actions/notification-settings.actions";
 import Link from "next/link";
@@ -110,19 +110,26 @@ export function NotificationSettings({ user, userTenant, tenant, isAdmin }: Noti
       {isAdmin ? (
         <Card>
           <CardHeader>
-            <CardTitle>Bygg/anlegg-varsler (tenant)</CardTitle>
-            <CardDescription>
-              Styr daglig varsel om manglende kontroll av elektronisk oversiktsliste.
-            </CardDescription>
+            <div className="flex items-center gap-3">
+              <HardHat className="h-6 w-6 text-orange-600" />
+              <div>
+                <CardTitle>Daglig mannskapskontroll på byggeplass</CardTitle>
+                <CardDescription>
+                  Sikrer at SHA-forskriftens krav om daglig kontroll av personell på byggeplass blir fulgt opp.
+                  Gjelder alle aktive prosjekter med registrerte personer.
+                </CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <Label htmlFor="constructionDailyCheckAlertsEnabled">
-                  Aktiver daglig bygg/anlegg-varsel
+              <div className="space-y-1">
+                <Label htmlFor="constructionDailyCheckAlertsEnabled" className="text-base">
+                  Aktiver daglig påminnelse
                 </Label>
-                <p className="text-sm text-muted-foreground">
-                  Sender varsel når prosjekt har aktive personer, men ingen daglig kontroll i dag.
+                <p className="text-sm text-muted-foreground max-w-md">
+                  Systemet sender en påminnelse på e-post dersom det finnes aktive prosjekter
+                  der dagens oversiktsliste (mannskapskontroll) ikke er utfylt.
                 </p>
               </div>
               <Switch
@@ -133,23 +140,30 @@ export function NotificationSettings({ user, userTenant, tenant, isAdmin }: Noti
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="constructionDailyCheckAlertRole">Hvilken rolle skal varsles?</Label>
-              <Select
-                value={constructionDailyCheckAlertRole}
-                onValueChange={(value) => setConstructionDailyCheckAlertRole(value as Role)}
-                disabled={loading}
-              >
-                <SelectTrigger id="constructionDailyCheckAlertRole">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="HMS">HMS-ansvarlig</SelectItem>
-                  <SelectItem value="ADMIN">Administrator</SelectItem>
-                  <SelectItem value="LEDER">Leder</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {constructionDailyCheckAlertsEnabled && (
+              <div className="space-y-2 rounded-lg border bg-muted/30 p-4">
+                <Label htmlFor="constructionDailyCheckAlertRole" className="text-sm font-medium">
+                  Hvem skal motta påminnelsen?
+                </Label>
+                <Select
+                  value={constructionDailyCheckAlertRole}
+                  onValueChange={(value) => setConstructionDailyCheckAlertRole(value as Role)}
+                  disabled={loading}
+                >
+                  <SelectTrigger id="constructionDailyCheckAlertRole" className="max-w-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="HMS">HMS-ansvarlig</SelectItem>
+                    <SelectItem value="ADMIN">Administrator</SelectItem>
+                    <SelectItem value="LEDER">Leder / prosjektleder</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Alle brukere med denne rollen i bedriften vil motta påminnelsen.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       ) : null}

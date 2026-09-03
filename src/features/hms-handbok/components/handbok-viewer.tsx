@@ -5,7 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { BookOpen, PenLine, Download, AlertTriangle } from "lucide-react";
+import { BookOpen, PenLine, Download, AlertTriangle, ExternalLink, Save } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import { TilsynsrapportDialog } from "./tilsynsrapport-dialog";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
@@ -13,9 +15,11 @@ import { HandbokSectionExpanded } from "./handbok-section-expanded";
 import { HandbokVersionBar } from "./handbok-version-bar";
 import { HandbokSignButton } from "./handbok-sign-button";
 import { HandbokReviewButton } from "./handbok-review-button";
-import { ensureHrSections } from "@/server/actions/hms-handbok.actions";
+import { ensureHrSections, toggleSectionEnabled, updateSectionExternalRef } from "@/server/actions/hms-handbok.actions";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import type {
   HandbookData,
   LiveHandbookStats,
@@ -79,8 +83,12 @@ export function HandbokViewer({
 }: HandbokViewerProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [filter, setFilter] = useState<"ALL" | "HMS" | "HR">("ALL");
   const [addingHr, setAddingHr] = useState(false);
+  const [togglingSection, setTogglingSection] = useState<string | null>(null);
+  const [editingRef, setEditingRef] = useState<Record<string, string>>({});
+  const [savingRef, setSavingRef] = useState<string | null>(null);
   const currentVersion = handbook.currentVersion;
   const alreadySigned = handbook.signatures.some((s) => s.userId === currentUserId);
   const isDraft = currentVersion?.status === "DRAFT";
@@ -90,11 +98,56 @@ export function HandbokViewer({
 
   const visibleSections = (currentVersion?.sections ?? [])
     .filter((section) => !isEmployee || !ADMIN_ONLY_SECTIONS.has(section.sectionKey))
+    .filter((section) => !isEmployee || section.isEnabled !== false || !!section.externalRef)
     .filter((section) => {
       if (filter === "ALL") return true;
       const category = section.category ?? (section.sectionKey.startsWith("hr-") ? "HR" : "HMS");
       return category === filter;
     });
+
+  async function handleToggleSection(sectionId: string, enabled: boolean) {
+    setTogglingSection(sectionId);
+    const result = await toggleSectionEnabled({ sectionId, enabled });
+    setTogglingSection(null);
+    if (result.success) {
+      toast({
+        title: enabled ? "Seksjon aktivert" : "Seksjon deaktivert",
+        description: enabled
+          ? "Seksjonen vises nå for ansatte og i PDF-eksport."
+          : "Seksjonen er skjult for ansatte og utelatt fra PDF-eksport.",
+      });
+      await queryClient.invalidateQueries({ queryKey: ["hms-handbok"] });
+      router.refresh();
+    } else {
+      toast({
+        title: "Feil",
+        description: result.error,
+        variant: "destructive",
+      });
+    }
+  }
+
+  async function handleSaveExternalRef(sectionId: string) {
+    setSavingRef(sectionId);
+    const value = editingRef[sectionId];
+    const result = await updateSectionExternalRef({
+      sectionId,
+      externalRef: value?.trim() || null,
+    });
+    setSavingRef(null);
+    if (result.success) {
+      toast({ title: "Henvisning lagret" });
+      setEditingRef((prev) => {
+        const next = { ...prev };
+        delete next[sectionId];
+        return next;
+      });
+      await queryClient.invalidateQueries({ queryKey: ["hms-handbok"] });
+      router.refresh();
+    } else {
+      toast({ title: "Feil", description: result.error, variant: "destructive" });
+    }
+  }
 
   async function handleAddHrSections() {
     if (!currentVersion) return;
@@ -234,19 +287,92 @@ export function HandbokViewer({
               ))}
             </div>
           </div>
-          {visibleSections.map((section) => (
-            <HandbokSectionExpanded
-              key={section.id}
-              section={section}
-              versionStatus={currentVersion.status}
-              canEdit={canManage}
-              annualPlanProgress={stats.annualPlanProgress}
-              legalRequirements={stats.legalRequirements}
-              suggestions={suggestions.filter(
-                (s) => s.targetSectionKey === section.sectionKey,
-              )}
-            />
-          ))}
+          {visibleSections.map((section) => {
+            const isDisabled = section.isEnabled === false;
+            const showRefOnly = isEmployee && isDisabled && !!section.externalRef;
+
+            return (
+              <div key={section.id} className={cn(isDisabled && !showRefOnly && "opacity-60")}>
+                {isDraft && canManage && (
+                  <div className="space-y-0">
+                    <div className="flex items-center justify-between rounded-t-lg border border-b-0 bg-muted/50 px-4 py-2">
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={!isDisabled}
+                          disabled={togglingSection === section.id}
+                          onCheckedChange={(checked) => handleToggleSection(section.id, checked)}
+                          className="scale-90"
+                        />
+                        <span className="text-xs font-medium text-muted-foreground">
+                          {!isDisabled
+                            ? "Synlig for ansatte"
+                            : "Skjult for ansatte"}
+                        </span>
+                      </div>
+                      {isDisabled && (
+                        <Badge variant="outline" className="text-xs text-amber-700 border-amber-300 bg-amber-50">
+                          Deaktivert
+                        </Badge>
+                      )}
+                    </div>
+                    {isDisabled && (
+                      <div className="flex items-center gap-2 border border-b-0 border-t-0 bg-amber-50/50 px-4 py-2">
+                        <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <Input
+                          placeholder="Henvisning til eksternt system, f.eks. «Se personalhåndbok i Simployer» eller en URL"
+                          value={editingRef[section.id] ?? section.externalRef ?? ""}
+                          onChange={(e) =>
+                            setEditingRef((prev) => ({ ...prev, [section.id]: e.target.value }))
+                          }
+                          className="h-8 text-xs"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 shrink-0"
+                          disabled={
+                            savingRef === section.id ||
+                            (editingRef[section.id] === undefined && !section.externalRef) ||
+                            (editingRef[section.id] ?? section.externalRef ?? "") === (section.externalRef ?? "")
+                          }
+                          onClick={() => handleSaveExternalRef(section.id)}
+                        >
+                          <Save className="mr-1 h-3 w-3" />
+                          {savingRef === section.id ? "Lagrer..." : "Lagre"}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {showRefOnly ? (
+                  <Card className="border-blue-200 bg-blue-50/50">
+                    <CardContent className="flex items-start gap-3 py-4">
+                      <ExternalLink className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+                      <div>
+                        <p className="text-sm font-medium text-blue-900">
+                          {section.sectionNumber}. {section.title}
+                        </p>
+                        <p className="mt-1 text-sm text-blue-700">
+                          {section.externalRef}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <HandbokSectionExpanded
+                    section={section}
+                    versionStatus={currentVersion.status}
+                    canEdit={canManage}
+                    annualPlanProgress={stats.annualPlanProgress}
+                    legalRequirements={stats.legalRequirements}
+                    suggestions={suggestions.filter(
+                      (s) => s.targetSectionKey === section.sectionKey,
+                    )}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
       ) : (
         <Card className="border-dashed">

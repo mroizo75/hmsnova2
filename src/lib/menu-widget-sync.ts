@@ -75,3 +75,34 @@ export function menuPathsToWidgetIds(menuPaths: string[]): string[] {
 
   return widgetIds
 }
+
+const WIDGET_TO_PATHS: Record<string, string[]> = (() => {
+  const map: Record<string, string[]> = {}
+  for (const [path, widgetId] of Object.entries(PATH_TO_WIDGET)) {
+    if (!map[widgetId]) map[widgetId] = []
+    map[widgetId].push(path)
+  }
+  return map
+})()
+
+/**
+ * Konverterer dashboard widget-IDer til meny-stier.
+ * Brukes når dashboard er låst: flisene bestemmer enkel-menyen.
+ */
+export function widgetIdsToMenuPaths(widgetIds: string[]): string[] {
+  const paths: string[] = []
+  const seen = new Set<string>()
+
+  for (const widgetId of widgetIds) {
+    const widgetPaths = WIDGET_TO_PATHS[widgetId]
+    if (!widgetPaths) continue
+    for (const path of widgetPaths) {
+      if (!seen.has(path)) {
+        seen.add(path)
+        paths.push(path)
+      }
+    }
+  }
+
+  return paths
+}

@@ -25,6 +25,7 @@ import { filterDashboardNavItems, sortDashboardNavItems } from "@/lib/dashboard-
 import { DASHBOARD_NAV_ICONS } from "@/lib/dashboard-nav-icons";
 import { useTenantNavContext } from "@/hooks/use-tenant-nav-context";
 import { groupNavItemsByHub } from "@/lib/dashboard-nav-hub-groups";
+import { useDashboardLock } from "@/components/dashboard-providers";
 
 export function MobileNav() {
   const pathname = usePathname();
@@ -33,8 +34,11 @@ export function MobileNav() {
   const { visibleNavItems, role, permissions } = usePermissions();
   const { isSimpleMode, toggleMode } = useSimpleMode();
   const { simpleMenuItems } = useSimpleMenuConfig();
+  const { dashboardLocked } = useDashboardLock();
   const { tenantFeatures, moduleVisibility, tenantIndustry } = useTenantNavContext();
   const [open, setOpen] = useState(false);
+
+  const effectiveSimpleMode = isSimpleMode || dashboardLocked;
 
   const allowedNavItems = sortDashboardNavItems(
     filterDashboardNavItems({
@@ -44,7 +48,7 @@ export function MobileNav() {
       moduleVisibility,
       tenantFeatures,
       tenantIndustry,
-      isSimpleMode,
+      isSimpleMode: effectiveSimpleMode,
       simpleMenuItems,
       hasKonsernMenu: hasKonsernMenuInHms({
         corporateGroupId: session?.user?.corporateGroupId,
@@ -97,6 +101,7 @@ export function MobileNav() {
                     <Switch
                       checked={!isSimpleMode}
                       onCheckedChange={() => toggleMode()}
+                      disabled={dashboardLocked}
                     />
                   </div>
                 </div>

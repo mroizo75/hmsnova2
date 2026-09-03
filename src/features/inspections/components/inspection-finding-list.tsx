@@ -12,19 +12,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { MapPin, Calendar, CheckCircle2, Edit, Trash2, ClipboardList, ExternalLink } from "lucide-react";
+import { MapPin, Calendar, CheckCircle2, Edit, Trash2, ExternalLink, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { enUS, nb } from "date-fns/locale";
@@ -45,6 +43,8 @@ interface Finding {
   inspectionId: string;
   linkedMeasureId: string | null;
   linkedMeasure: { id: string; title: string; status: string } | null;
+  linkedIncidentId: string | null;
+  linkedIncident: { id: string; avviksnummer: string | null; status: string; stage: string } | null;
 }
 
 interface InspectionFindingListProps {
@@ -87,99 +87,6 @@ function getMeasureStatusBadge(status: string) {
   return <Badge className={c.className}>{c.label}</Badge>;
 }
 
-function CreateMeasureDialog({ finding }: { finding: Finding }) {
-  const router = useRouter();
-  const { toast } = useToast();
-  const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [title, setTitle] = useState(`Tiltak: ${finding.title}`);
-  const [description, setDescription] = useState(finding.description || "");
-  const [dueAt, setDueAt] = useState("");
-
-  const handleCreate = async () => {
-    if (!title.trim()) return;
-    setLoading(true);
-
-    try {
-      const response = await fetch(`/api/inspections/findings/${finding.id}/measure`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description, dueAt: dueAt || undefined }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Kunne ikke opprette tiltak");
-      }
-
-      toast({ title: "Tiltak opprettet", description: `«${title}» er nå koblet til funnet.` });
-      setOpen(false);
-      router.refresh();
-    } catch (error: any) {
-      toast({ title: "Feil", description: error.message, variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <ClipboardList className="mr-2 h-4 w-4" />
-          Opprett tiltak
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Opprett tiltak fra funn</DialogTitle>
-          <DialogDescription>
-            Opprett et korrigerende tiltak knyttet til dette funnet.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="measure-title">Tittel</Label>
-            <Input
-              id="measure-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Tittel på tiltak"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="measure-description">Beskrivelse</Label>
-            <Textarea
-              id="measure-description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Beskriv tiltaket"
-              rows={4}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="measure-due">Frist</Label>
-            <Input
-              id="measure-due"
-              type="date"
-              value={dueAt}
-              onChange={(e) => setDueAt(e.target.value)}
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
-            Avbryt
-          </Button>
-          <Button onClick={handleCreate} disabled={loading || !title.trim()}>
-            {loading ? "Oppretter…" : "Opprett tiltak"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 function UpdateFindingStatusDialog({ finding }: { finding: Finding }) {
   const t = useTranslations("dashboardInspectionComponents.findingList");
@@ -402,7 +309,20 @@ export function InspectionFindingList({ findings, inspectionId }: InspectionFind
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {finding.linkedMeasure ? (
+                  {finding.linkedIncident ? (
+                    <Link href={`/dashboard/incidents/${finding.linkedIncident.id}`}>
+                      <Button variant="outline" size="sm" className="gap-2">
+                        <AlertTriangle className="h-4 w-4" />
+                        {t("actions.goToIncident")}
+                        {finding.linkedIncident.avviksnummer && (
+                          <Badge variant="outline" className="font-mono text-xs">
+                            {finding.linkedIncident.avviksnummer}
+                          </Badge>
+                        )}
+                        {getStatusBadge(finding.linkedIncident.status === "CLOSED" ? "CLOSED" : finding.linkedIncident.status === "ACTION_TAKEN" ? "IN_PROGRESS" : "OPEN", t)}
+                      </Button>
+                    </Link>
+                  ) : finding.linkedMeasure ? (
                     <Link href={`/dashboard/measures/${finding.linkedMeasure.id}`}>
                       <Button variant="outline" size="sm" className="gap-2">
                         <ExternalLink className="h-4 w-4" />
@@ -410,9 +330,7 @@ export function InspectionFindingList({ findings, inspectionId }: InspectionFind
                         {getMeasureStatusBadge(finding.linkedMeasure.status)}
                       </Button>
                     </Link>
-                  ) : (
-                    <CreateMeasureDialog finding={finding} />
-                  )}
+                  ) : null}
                   <UpdateFindingStatusDialog finding={finding} />
                   <Button
                     variant="outline"

@@ -10,6 +10,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { SessionUser } from "@/types";
 import { DashboardProviders } from "@/components/dashboard-providers";
 import { OfflineSyncBannerWrapper } from "@/components/offline-sync-banner-wrapper";
+import { widgetIdsToMenuPaths } from "@/lib/menu-widget-sync";
 export default async function DashboardLayout({
   children,
 }: {
@@ -38,15 +39,28 @@ export default async function DashboardLayout({
   // Hent tenant-info inkl. isTavleOnly og simpleMenuItems
   let isTavleOnly = false;
   let simpleMenuItems: string[] | null = null;
+  let dashboardLocked = false;
 
   if (tenantId) {
     try {
       const tenant = await prisma.tenant.findUnique({
         where: { id: tenantId },
-        select: { simpleMenuItems: true, isTavleOnly: true },
+        select: {
+          simpleMenuItems: true,
+          isTavleOnly: true,
+          dashboardLocked: true,
+          lockedDashboardConfig: true,
+        },
       });
       simpleMenuItems = (tenant?.simpleMenuItems as string[] | null) ?? null;
       isTavleOnly = tenant?.isTavleOnly ?? false;
+      dashboardLocked = (tenant?.dashboardLocked ?? false) && user.role !== "ADMIN";
+
+      if (dashboardLocked && tenant?.lockedDashboardConfig) {
+        const lockedWidgets = tenant.lockedDashboardConfig as Array<{ id: string }>;
+        const widgetIds = lockedWidgets.map((w) => w.id);
+        simpleMenuItems = widgetIdsToMenuPaths(widgetIds);
+      }
     } catch {
       // Kolonnen finnes kanskje ikke ennå – bruk standardverdier
     }
@@ -69,7 +83,7 @@ export default async function DashboardLayout({
   }
 
   return (
-    <DashboardProviders simpleMenuItems={simpleMenuItems}>
+    <DashboardProviders simpleMenuItems={simpleMenuItems} dashboardLocked={dashboardLocked}>
       <div className="flex min-h-dvh flex-col overflow-hidden lg:flex-row">
         <MobileNav />
         <DashboardNav />

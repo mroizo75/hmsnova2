@@ -167,16 +167,29 @@ export async function GET() {
     content: statusContent,
   });
 
-  // Dynamiske seksjoner fra versjonskontroll
+  // Dynamiske seksjoner fra versjonskontroll (ekskluder deaktiverte)
   if (currentVersion && currentVersion.sections.length > 0) {
     for (const section of currentVersion.sections) {
       if (section.parentId) continue;
-
-      const childSections = currentVersion.sections.filter(
-        (s) => s.parentId === section.id,
-      );
+      if (section.isEnabled === false && !section.externalRef) continue;
 
       const contentBlocks: PdfSection["content"] = [];
+
+      if (section.isEnabled === false && section.externalRef) {
+        contentBlocks.push({
+          type: "html",
+          html: `<p><em>Henvisning: ${section.externalRef}</em></p>`,
+        });
+        sections.push({
+          title: `${section.sectionNumber}. ${section.title}`,
+          content: contentBlocks,
+        });
+        continue;
+      }
+
+      const childSections = currentVersion.sections.filter(
+        (s) => s.parentId === section.id && s.isEnabled !== false,
+      );
 
       if (section.content && section.content.trim() !== "<p></p>") {
         contentBlocks.push({ type: "html", html: section.content });

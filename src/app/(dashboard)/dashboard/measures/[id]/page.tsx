@@ -42,9 +42,22 @@ export default async function MeasureDetailPage({
     notFound();
   }
 
-  const backUrl = initialData.measure.riskId
-    ? `/dashboard/risks/${initialData.measure.riskId}#tiltak`
-    : "/dashboard/actions";
+  const measure = initialData.measure;
+  const backUrl = measure.incidentId
+    ? `/dashboard/incidents/${measure.incidentId}`
+    : measure.riskId
+      ? `/dashboard/risks/${measure.riskId}#tiltak`
+      : measure.auditId
+        ? `/dashboard/audits/${measure.auditId}`
+        : "/dashboard/actions";
+
+  const backLabel = measure.incidentId
+    ? "Tilbake til avviksbehandling"
+    : measure.riskId
+      ? "Tilbake til risikovurdering"
+      : measure.auditId
+        ? "Tilbake til revisjon"
+        : "Tilbake til tiltak";
 
   return (
     <div className="space-y-6">
@@ -52,7 +65,7 @@ export default async function MeasureDetailPage({
         <Button variant="ghost" asChild className="mb-4">
           <Link href={backUrl}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            {initialData.measure.riskId ? "Tilbake til risikovurdering" : "Tilbake til tiltak"}
+            {backLabel}
           </Link>
         </Button>
         <MeasureDetailContent initialData={initialData} measureId={id} />

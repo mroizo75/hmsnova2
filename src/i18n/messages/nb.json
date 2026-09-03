@@ -4876,7 +4876,8 @@
         "delete": "Slett",
         "cancel": "Avbryt",
         "save": "Lagre",
-        "saving": "Lagrer..."
+        "saving": "Lagrer...",
+        "goToIncident": "Gå til avviksbehandling"
       },
       "toasts": {
         "updated": {

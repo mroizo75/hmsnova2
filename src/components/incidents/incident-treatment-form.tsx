@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -91,6 +92,7 @@ export function IncidentTreatmentForm({
   ruhModuleEnabled = true,
 }: IncidentTreatmentFormProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
   const [type, setType] = useState(currentType);
@@ -253,10 +255,11 @@ export function IncidentTreatmentForm({
       }
 
       toast({
-        title: "✅ Oppdatert",
+        title: "Oppdatert",
         description: "Avviket er oppdatert",
       });
 
+      await queryClient.invalidateQueries({ queryKey: ["incidents", incidentId] });
       router.refresh();
     } catch (error) {
       toast({
@@ -333,15 +336,11 @@ export function IncidentTreatmentForm({
               <SelectItem value="OPEN">Åpen</SelectItem>
               <SelectItem value="INVESTIGATING">Under behandling</SelectItem>
               <SelectItem value="ACTION_TAKEN">Tiltak iverksatt</SelectItem>
-              <SelectItem value="CLOSED" disabled>
-                Lukket (krever årsak, tiltak og effektvurdering)
-              </SelectItem>
             </SelectContent>
           </Select>
           <p className="mt-1.5 text-xs text-muted-foreground">
-            Avviket er ferdig når det er <strong>lukket</strong> — ikke bare behandlet.
-            Lukking skjer nederst på siden etter årsaksanalyse, gjennomførte tiltak og
-            effektvurdering (IK-HMS § 5 nr. 7, ISO 9001 kap. 10.2).
+            Lukking skjer i steget «Lukking» etter årsaksanalyse, gjennomførte tiltak og
+            effektvurdering (IK-HMS § 5 nr. 7).
           </p>
         </div>
 

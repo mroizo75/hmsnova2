@@ -4147,7 +4147,8 @@
         "delete": "Delete",
         "cancel": "Cancel",
         "save": "Save",
-        "saving": "Saving..."
+        "saving": "Saving...",
+        "goToIncident": "Go to incident"
       },
       "toasts": {
         "updated": {

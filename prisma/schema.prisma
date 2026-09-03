@@ -1926,13 +1926,14 @@ model Incident {
   createdAt                DateTime             @default(now())
   updatedAt                DateTime             @updatedAt
 
-  tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  measures          Measure[]
-  attachments       Attachment[]
-  customerFeedbacks CustomerFeedback[]
-  risk              Risk?              @relation("IncidentRiskReference", fields: [riskReferenceId], references: [id])
-  project           Project?           @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  relatedRoutine    Routine?           @relation("IncidentRelatedRoutine", fields: [relatedRoutineId], references: [id], onDelete: SetNull)
+  tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  measures           Measure[]
+  attachments        Attachment[]
+  customerFeedbacks  CustomerFeedback[]
+  risk               Risk?               @relation("IncidentRiskReference", fields: [riskReferenceId], references: [id])
+  project            Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  relatedRoutine     Routine?            @relation("IncidentRelatedRoutine", fields: [relatedRoutineId], references: [id], onDelete: SetNull)
+  inspectionFindings InspectionFinding[] @relation("InspectionFindingIncident")
 
   @@index([tenantId])
   @@index([avviksnummer])
@@ -2723,20 +2724,23 @@ model InspectionFinding {
   dueDate         DateTime?
   resolvedAt      DateTime?
   resolutionNotes String?                 @db.Text
-  linkedRiskId    String?
-  linkedMeasureId String?
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
+  linkedRiskId      String?
+  linkedMeasureId   String?
+  linkedIncidentId  String?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
 
-  inspection    Inspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
-  linkedRisk    Risk?      @relation("InspectionFindingRisk", fields: [linkedRiskId], references: [id])
-  linkedMeasure Measure?   @relation("InspectionFindingMeasure", fields: [linkedMeasureId], references: [id])
+  inspection     Inspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  linkedRisk     Risk?      @relation("InspectionFindingRisk", fields: [linkedRiskId], references: [id])
+  linkedMeasure  Measure?   @relation("InspectionFindingMeasure", fields: [linkedMeasureId], references: [id])
+  linkedIncident Incident?  @relation("InspectionFindingIncident", fields: [linkedIncidentId], references: [id])
 
   @@index([inspectionId])
   @@index([status])
   @@index([responsibleId])
   @@index([linkedRiskId])
   @@index([linkedMeasureId])
+  @@index([linkedIncidentId])
 }
 
 enum InspectionType {
@@ -5693,6 +5697,8 @@ model HandbookSection {
   legalRef      String? // "AML § 3-1, IK-HMS § 5"
   category      String  @default("HMS") // "HMS" | "HR"
   sortOrder     Int
+  isEnabled     Boolean @default(true) // Bedriften kan deaktivere seksjoner som ikke er relevante
+  externalRef   String? @db.Text // Henvisning til eksternt system når seksjon er deaktivert, f.eks. "Se personalhåndbok i Simployer"
   moduleLink    String? // Kobling til HMS Nova-modul: "/dashboard/risks"
   updatedById   String?
 

@@ -7,6 +7,7 @@ import { IncidentStatus, IncidentType } from "@prisma/client";
 import { createNotification, notifyUsersByRoles } from "@/server/actions/notification.actions";
 import { normalizeProjectReference } from "@/lib/incident-project-reference";
 import { resolveIncidentStage } from "@/lib/incident-stage";
+import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
 function parseBoolean(value: unknown): boolean | undefined {
   if (typeof value === "boolean") {
@@ -284,6 +285,8 @@ export async function PUT(
 
     revalidatePath(`/dashboard/incidents/${id}`);
     revalidatePath("/dashboard/incidents");
+
+    await triggerRealtimeEvent(tenantId, "incident-updated", { id: incident.id });
 
     // IK-HMS § 5 nr. 7: den som får avviket til behandling må få beskjed om det
     if (incident.responsibleId && incident.responsibleId !== existingIncident.responsibleId) {

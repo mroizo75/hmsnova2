@@ -35,6 +35,9 @@ const nextConfig: NextConfig = {
       { source: "/beste-hms-system-kontor", destination: "/bransjer/teknologi-og-it", permanent: true },
     ];
   },
+  outputFileTracingExcludes: {
+    '/*': ['**/node_modules/@swc/**'],
+  },
   experimental: {
     staleTimes: {
       dynamic: 0,

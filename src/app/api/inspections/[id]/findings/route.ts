@@ -117,14 +117,13 @@ export async function POST(
       ? `${inspectionContext}\nLokasjon i funn: ${findingLocation}\n\n${findingDescription}`
       : `${inspectionContext}\n\n${findingDescription}`;
 
-    await prisma.incident.create({
+    const incident = await prisma.incident.create({
       data: {
         tenantId: inspection.tenantId,
         avviksnummer,
         type: "AVVIK",
         title: `[Vernerunde] ${finding.title}`,
         description: incidentDescription,
-        // Null = ikke vurdert; leder setter grad ved behandling av avviket
         severity:
           typeof data.severity === "number"
             ? Math.max(1, Math.min(5, data.severity))
@@ -135,7 +134,12 @@ export async function POST(
       },
     });
 
-    return createSuccessResponse({ finding }, "Funn registrert", 201);
+    await prisma.inspectionFinding.update({
+      where: { id: finding.id },
+      data: { linkedIncidentId: incident.id },
+    });
+
+    return createSuccessResponse({ finding: { ...finding, linkedIncidentId: incident.id } }, "Funn registrert", 201);
   } catch (error) {
     console.error("[Inspection Finding POST] Error:", error);
     return createErrorResponse(ErrorCodes.INTERNAL_ERROR, "Kunne ikke registrere funn", 500);

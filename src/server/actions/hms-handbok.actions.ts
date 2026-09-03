@@ -200,6 +200,8 @@ export type HandbookSectionData = {
   legalRef: string | null;
   category: string;
   sortOrder: number;
+  isEnabled: boolean;
+  externalRef: string | null;
   moduleLink: string | null;
   children: HandbookSectionData[];
 };
@@ -386,6 +388,8 @@ function buildSectionTree(sections: Array<{
   legalRef: string | null;
   category?: string | null;
   sortOrder: number;
+  isEnabled?: boolean;
+  externalRef?: string | null;
   moduleLink: string | null;
   parentId: string | null;
 }>): HandbookSectionData[] {
@@ -402,6 +406,8 @@ function buildSectionTree(sections: Array<{
       legalRef: s.legalRef,
       category: s.category ?? (s.sectionKey.startsWith("hr-") ? "HR" : "HMS"),
       sortOrder: s.sortOrder,
+      isEnabled: s.isEnabled ?? true,
+      externalRef: s.externalRef ?? null,
       moduleLink: repairDashboardRoute(s.moduleLink),
       children: [],
     });
@@ -773,6 +779,95 @@ export async function updateDraftSection(
     return { success: true };
   } catch {
     return { success: false, error: "Kunne ikke oppdatere seksjon" };
+  }
+}
+
+const toggleSectionEnabledSchema = z.object({
+  sectionId: z.string().min(1),
+  enabled: z.boolean(),
+});
+
+export async function toggleSectionEnabled(
+  input: z.infer<typeof toggleSectionEnabledSchema>,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { sectionId, enabled } = toggleSectionEnabledSchema.parse(input);
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) return { success: false, error: "Ikke autorisert" };
+
+    const section = await prisma.handbookSection.findUniqueOrThrow({
+      where: { id: sectionId },
+      include: {
+        version: {
+          include: { handbook: true },
+        },
+      },
+    });
+
+    if (section.version.handbook.tenantId !== session.user.tenantId) {
+      return { success: false, error: "Ikke autorisert" };
+    }
+    if (section.version.status !== "DRAFT") {
+      return { success: false, error: "Kan kun endre seksjoner i utkast" };
+    }
+
+    const permissions = getPermissions(session.user.role as import("@prisma/client").Role);
+    if (!permissions.canUpdateSettings) return { success: false, error: "Ingen tilgang" };
+
+    await prisma.handbookSection.update({
+      where: { id: sectionId },
+      data: { isEnabled: enabled },
+    });
+
+    revalidatePath("/dashboard/hms-handbok");
+    triggerRealtimeEvent(section.version.handbook.tenantId, "settings-updated");
+    return { success: true };
+  } catch {
+    return { success: false, error: "Kunne ikke oppdatere seksjon" };
+  }
+}
+
+const updateSectionExternalRefSchema = z.object({
+  sectionId: z.string().min(1),
+  externalRef: z.string().nullable(),
+});
+
+export async function updateSectionExternalRef(
+  input: z.infer<typeof updateSectionExternalRefSchema>,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { sectionId, externalRef } = updateSectionExternalRefSchema.parse(input);
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) return { success: false, error: "Ikke autorisert" };
+
+    const section = await prisma.handbookSection.findUniqueOrThrow({
+      where: { id: sectionId },
+      include: {
+        version: {
+          include: { handbook: true },
+        },
+      },
+    });
+
+    if (section.version.handbook.tenantId !== session.user.tenantId) {
+      return { success: false, error: "Ikke autorisert" };
+    }
+    if (section.version.status !== "DRAFT") {
+      return { success: false, error: "Kan kun endre seksjoner i utkast" };
+    }
+
+    const permissions = getPermissions(session.user.role as import("@prisma/client").Role);
+    if (!permissions.canUpdateSettings) return { success: false, error: "Ingen tilgang" };
+
+    await prisma.handbookSection.update({
+      where: { id: sectionId },
+      data: { externalRef: externalRef?.trim() || null },
+    });
+
+    revalidatePath("/dashboard/hms-handbok");
+    return { success: true };
+  } catch {
+    return { success: false, error: "Kunne ikke oppdatere henvisning" };
   }
 }
 

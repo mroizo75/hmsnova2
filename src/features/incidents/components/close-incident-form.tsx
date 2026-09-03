@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,6 +23,7 @@ interface CloseIncidentFormProps {
 export function CloseIncidentForm({ incidentId, userId, routines = [], currentRoutineId }: CloseIncidentFormProps) {
   const t = useTranslations("dashboardIncidentCloseForm");
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
@@ -49,6 +51,7 @@ export function CloseIncidentForm({ incidentId, userId, routines = [], currentRo
           description: t("toasts.success.description"),
           className: "bg-green-50 border-green-200",
         });
+        await queryClient.invalidateQueries({ queryKey: ["incidents", incidentId] });
         router.refresh();
       } else {
         toast({
