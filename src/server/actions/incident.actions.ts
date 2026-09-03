@@ -6,12 +6,24 @@ import { generateSequenceNumber } from "@/lib/sequence";
 import { onIncidentCreated, onIncidentClosed } from "@/features/hms-ai/lib/event-handler";
 import { getRequiredTenantContext } from "@/lib/tenant-context";
 import { getAuthContext } from "@/lib/server-authorization";
+import { ZodError } from "zod";
 import {
   createIncidentSchema,
   updateIncidentSchema,
   investigateIncidentSchema,
   closeIncidentSchema,
 } from "@/features/incidents/schemas/incident.schema";
+
+function formatActionError(error: unknown, fallback: string): string {
+  if (error instanceof ZodError) {
+    const messages = error.issues.map((e) => e.message);
+    return messages.join(". ");
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return fallback;
+}
 import { createNotification, notifyUsersByRoles } from "./notification.actions";
 import { IncidentStage } from "@prisma/client";
 import {
@@ -208,9 +220,9 @@ export async function getIncidents(_tenantId: string) {
     });
     
     return { success: true, data: incidents, ownOnly: !canReadAll };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Get incidents error:", error);
-    return { success: false, error: error.message || "Kunne ikke hente avvik" };
+    return { success: false, error: formatActionError(error, "Kunne ikke hente avvik") };
   }
 }
 
@@ -256,9 +268,9 @@ export async function getIncident(id: string) {
     }
     
     return { success: true, data: incident };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Get incident error:", error);
-    return { success: false, error: error.message || "Kunne ikke hente avvik" };
+    return { success: false, error: formatActionError(error, "Kunne ikke hente avvik") };
   }
 }
 
@@ -414,9 +426,9 @@ export async function createIncident(input: any) {
     triggerRealtimeEvent(tenantId, "incident-updated", { id: incident.id });
 
     return { success: true, data: incident };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Create incident error:", error);
-    return { success: false, error: error.message || "Kunne ikke opprette avvik" };
+    return { success: false, error: formatActionError(error, "Kunne ikke opprette avvik") };
   }
 }
 
@@ -582,9 +594,9 @@ export async function updateIncident(input: any) {
     revalidatePath(`/dashboard/incidents/${incident.id}`);
     triggerRealtimeEvent(tenantId, "incident-updated", { id: incident.id });
     return { success: true, data: incident };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Update incident error:", error);
-    return { success: false, error: error.message || "Kunne ikke oppdatere avvik" };
+    return { success: false, error: formatActionError(error, "Kunne ikke oppdatere avvik") };
   }
 }
 
@@ -686,9 +698,9 @@ export async function investigateIncident(input: any) {
     }
 
     return { success: true, data: incident, handbookSuggestions };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Investigate incident error:", error);
-    return { success: false, error: error.message || "Kunne ikke utrede avvik" };
+    return { success: false, error: formatActionError(error, "Kunne ikke utrede avvik") };
   }
 }
 
@@ -773,9 +785,9 @@ export async function closeIncident(input: any) {
     triggerRealtimeEvent(tenantId, "incident-updated", { id: incident.id });
 
     return { success: true, data: incident };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Close incident error:", error);
-    return { success: false, error: error.message || "Kunne ikke lukke avvik" };
+    return { success: false, error: formatActionError(error, "Kunne ikke lukke avvik") };
   }
 }
 
@@ -868,9 +880,9 @@ export async function createUploadedIncident(formData: FormData) {
     revalidatePath("/dashboard/incidents");
     triggerRealtimeEvent(tenantId, "incident-updated", { id: incident.id });
     return { success: true, data: incident };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Create uploaded incident error:", error);
-    return { success: false, error: error.message || "Kunne ikke opprette avvik" };
+    return { success: false, error: formatActionError(error, "Kunne ikke opprette avvik") };
   }
 }
 
@@ -914,9 +926,9 @@ export async function deleteIncident(id: string) {
     revalidatePath("/dashboard/incidents");
     triggerRealtimeEvent(tenantId, "incident-updated");
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Delete incident error:", error);
-    return { success: false, error: error.message || "Kunne ikke slette avvik" };
+    return { success: false, error: formatActionError(error, "Kunne ikke slette avvik") };
   }
 }
 
@@ -952,9 +964,9 @@ export async function getIncidentStats(_tenantId: string) {
     };
     
     return { success: true, data: stats };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Get incident stats error:", error);
-    return { success: false, error: error.message || "Kunne ikke hente statistikk" };
+    return { success: false, error: formatActionError(error, "Kunne ikke hente statistikk") };
   }
 }
 

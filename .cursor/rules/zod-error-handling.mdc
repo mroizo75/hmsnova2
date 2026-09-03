@@ -1,0 +1,38 @@
+---
+description: Korrekt Zod feilhåndtering i server actions
+globs: "**/server/actions/**/*.ts"
+alwaysApply: false
+---
+
+# Zod feilhåndtering
+
+## ZodError bruker `.issues`, IKKE `.errors`
+
+```typescript
+// ❌ FEIL — .errors finnes ikke på ZodError
+error.errors.map((e) => e.message)
+
+// ✅ RIKTIG — bruk .issues
+error.issues.map((e) => e.message)
+```
+
+## Alltid formater ZodError for brukeren
+
+Returner aldri `error.message` rått fra en catch-blokk — ZodError.message er en uleselig JSON-streng.
+
+```typescript
+import { ZodError } from "zod";
+
+function formatActionError(error: unknown, fallback: string): string {
+  if (error instanceof ZodError) {
+    return error.issues.map((e) => e.message).join(". ");
+  }
+  if (error instanceof Error) return error.message;
+  return fallback;
+}
+
+// Bruk i catch:
+catch (error: unknown) {
+  return { success: false, error: formatActionError(error, "Fallback-melding") };
+}
+```
