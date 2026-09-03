@@ -4760,21 +4760,21 @@
       "create": "Could not create inspection"
     },
     "noTemplates": {
-      "title": "No safety-round forms found",
-      "subtitle": "Create a form first:",
-      "s1": "1. Go to Forms → New form",
-      "s2": "2. Choose category \"Inspection / Safety round\"",
-      "s3": "3. Build the form and save",
-      "s4": "4. Come back here and select the form"
+      "title": "No inspection templates available",
+      "subtitle": "Industry-specific templates are activated automatically:",
+      "s1": "1. Contact your administrator",
+      "s2": "2. Select industry under Settings",
+      "s3": "3. Templates for your industry will appear here",
+      "s4": "4. Select a template and start the inspection"
     },
     "template": {
       "exampleTemplate": "Example template",
-      "globalInfo": "This is a global example template. Create a copy under Forms if you want to change or add items.",
+      "globalInfo": "This is a ready-made inspection template tailored to your industry. Select it to get started.",
       "fieldsCount": "Fields in template: {count}",
       "requiredSuffix": "(required)",
       "moreFields": "+{count} more fields in form.",
-      "createOwnTitle": "💡 Create your own safety-round form",
-      "createOwnDescription": "Go to Forms → New form and choose category \"Inspection / Safety round\"",
+      "createOwnTitle": "💡 No inspection templates found",
+      "createOwnDescription": "Contact your administrator to enable industry-specific inspection templates for your company.",
       "availableCount": "✅ {count} safety-round forms available"
     }
   },

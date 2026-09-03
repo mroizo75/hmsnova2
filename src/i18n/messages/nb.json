@@ -4402,21 +4402,21 @@
       "create": "Kunne ikke opprette inspeksjon"
     },
     "noTemplates": {
-      "title": "Ingen vernerunde-skjemaer funnet",
-      "subtitle": "Opprett først et skjema:",
-      "s1": "1. Gå til Skjemaer → Nytt skjema",
-      "s2": "2. Velg kategori \"Inspeksjon / Vernerunde\"",
-      "s3": "3. Bygg skjemaet og lagre",
-      "s4": "4. Kom tilbake hit og velg skjemaet"
+      "title": "Ingen inspeksjonsmaler tilgjengelig",
+      "subtitle": "Bransjetilpassede maler aktiveres automatisk:",
+      "s1": "1. Kontakt administrator",
+      "s2": "2. Velg bransje under Innstillinger",
+      "s3": "3. Maler for din bransje vil vises her",
+      "s4": "4. Velg mal og start inspeksjonen"
     },
     "template": {
       "exampleTemplate": "Eksempelmal",
-      "globalInfo": "Dette er en global eksempelmal. Lag en kopi under Skjemaer hvis du vil endre eller legge til punkter.",
+      "globalInfo": "Dette er en ferdig inspeksjonsmal tilpasset din bransje. Velg den for å komme i gang.",
       "fieldsCount": "Felter i malen: {count}",
       "requiredSuffix": "(påkrevd)",
       "moreFields": "+{count} flere felter i skjemaet.",
-      "createOwnTitle": "💡 Opprett ditt eget vernerunde-skjema",
-      "createOwnDescription": "Gå til Skjemaer → Nytt skjema og velg kategori \"Inspeksjon / Vernerunde\"",
+      "createOwnTitle": "💡 Ingen inspeksjonsmaler funnet",
+      "createOwnDescription": "Kontakt administrator for å aktivere bransjetilpassede inspeksjonsmaler for din bedrift.",
       "availableCount": "✅ {count} vernerunde-skjema tilgjengelig"
     },
     "riskCategories": {
