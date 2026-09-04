@@ -422,6 +422,8 @@ async function inviteSingleUser(ctx: InviteContext, data: { email: string; name:
   const tempPassword = generateSecurePassword();
   const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
+  const isNewUser = !existingUser;
+
   if (!existingUser) {
     existingUser = await prisma.$transaction(async (tx) => {
       const createdUser = await tx.user.create({
@@ -429,6 +431,7 @@ async function inviteSingleUser(ctx: InviteContext, data: { email: string; name:
           email: normalizedEmail,
           name: data.name,
           password: hashedPassword,
+          emailVerified: new Date(),
         },
       });
 
@@ -444,22 +447,13 @@ async function inviteSingleUser(ctx: InviteContext, data: { email: string; name:
       return createdUser;
     });
   } else {
-    existingUser = await prisma.$transaction(async (tx) => {
-      const updatedUser = await tx.user.update({
-        where: { id: existingUser!.id },
-        data: { password: hashedPassword },
-      });
-
-      await tx.userTenant.create({
-        data: {
-          userId: updatedUser.id,
-          tenantId: ctx.tenantId,
-          role: data.role as Role,
-          invitationSentAt: new Date(),
-        },
-      });
-
-      return updatedUser;
+    await prisma.userTenant.create({
+      data: {
+        userId: existingUser.id,
+        tenantId: ctx.tenantId,
+        role: data.role as Role,
+        invitationSentAt: new Date(),
+      },
     });
   }
 
@@ -467,9 +461,9 @@ async function inviteSingleUser(ctx: InviteContext, data: { email: string; name:
     const { sendUserInvitationEmail } = await import("@/lib/email-service");
     await sendUserInvitationEmail({
       to: normalizedEmail,
-      userName: data.name,
+      userName: isNewUser ? data.name : (existingUser.name || data.name),
       userEmail: normalizedEmail,
-      tempPassword,
+      tempPassword: isNewUser ? tempPassword : undefined,
       companyName: ctx.tenantName,
       invitedByName: ctx.user.name || ctx.user.email,
     });

@@ -15,7 +15,7 @@ interface SendUserInvitationEmailParams {
   to: string;
   userName: string;
   userEmail: string;
-  tempPassword: string;
+  tempPassword?: string;
   companyName: string;
   invitedByName: string;
 }
@@ -93,12 +93,14 @@ export async function sendUserInvitationEmail({
                         <td style="color: #666; padding: 4px 0; width: 40%;">E-post:</td>
                         <td style="color: #1a1a1a; padding: 4px 0; font-weight: 600;">${userEmail}</td>
                       </tr>
-                      <tr>
+                      ${tempPassword ? `<tr>
                         <td style="color: #666; padding: 4px 0;">Midlertidig passord:</td>
                         <td style="color: #1a1a1a; padding: 4px 0;">
                           <code style="background-color: #f3f4f6; padding: 4px 8px; border-radius: 4px; font-family: monospace; font-weight: 600;">${tempPassword}</code>
                         </td>
-                      </tr>
+                      </tr>` : `<tr>
+                        <td colspan="2" style="color: #666; padding: 4px 0;">Logg inn med ditt eksisterende passord.</td>
+                      </tr>`}
                     </table>
                   </td>
                 </tr>
