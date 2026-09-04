@@ -422,7 +422,7 @@ async function inviteSingleUser(ctx: InviteContext, data: { email: string; name:
   const tempPassword = generateSecurePassword();
   const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
-  const isNewUser = !existingUser;
+  const needsPassword = !existingUser || !existingUser.password;
 
   if (!existingUser) {
     existingUser = await prisma.$transaction(async (tx) => {
@@ -447,6 +447,16 @@ async function inviteSingleUser(ctx: InviteContext, data: { email: string; name:
       return createdUser;
     });
   } else {
+    if (needsPassword) {
+      await prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          password: hashedPassword,
+          emailVerified: existingUser.emailVerified ?? new Date(),
+        },
+      });
+    }
+
     await prisma.userTenant.create({
       data: {
         userId: existingUser.id,
@@ -461,9 +471,9 @@ async function inviteSingleUser(ctx: InviteContext, data: { email: string; name:
     const { sendUserInvitationEmail } = await import("@/lib/email-service");
     await sendUserInvitationEmail({
       to: normalizedEmail,
-      userName: isNewUser ? data.name : (existingUser.name || data.name),
+      userName: existingUser.name || data.name,
       userEmail: normalizedEmail,
-      tempPassword: isNewUser ? tempPassword : undefined,
+      tempPassword: needsPassword ? tempPassword : undefined,
       companyName: ctx.tenantName,
       invitedByName: ctx.user.name || ctx.user.email,
     });
