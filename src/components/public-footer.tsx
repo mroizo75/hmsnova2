@@ -9,9 +9,9 @@ export function PublicFooter() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="space-y-4">
-            <div className="flex items-center space-x-2">
+            <Link href="/" className="inline-block">
                 <Image src="/logo-nova.png" alt="HMS Nova" width={155} height={150} />
-            </div>
+            </Link>
             <p className="text-sm text-muted-foreground">
             HMS Nova er utviklet av <strong>HMS Nova AS</strong> – moderne HMS-system og kurs for norske bedrifter.
             </p>
@@ -49,8 +49,13 @@ export function PublicFooter() {
             <h3 className="font-semibold mb-4">Produkt</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/#funksjoner" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Funksjoner
+                <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Hjem
+                </Link>
+              </li>
+              <li>
+                <Link href="/hms-system" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Alle funksjoner
                 </Link>
               </li>
               <li>
