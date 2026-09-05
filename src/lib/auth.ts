@@ -290,11 +290,23 @@ export const authOptions: NextAuthOptions = {
             return false;
           }
         } else {
-          // Bruker eksisterer - sjekk om de har denne tenanten
           const hasTenant = existingUser.tenants.some(t => t.tenantId === validation.tenantId);
           
           if (!hasTenant) {
-            // Legg til tenant-tilknytning
+            if (existingUser.tenants.length > 0) {
+              const isPrivileged = existingUser.isSuperAdmin || existingUser.isSupport;
+              if (!isPrivileged) {
+                const groupMembership = await prisma.corporateGroupUser.findFirst({
+                  where: { userId: existingUser.id, role: { in: ["GROUP_ADMIN", "GROUP_HMS"] } },
+                  select: { id: true },
+                });
+                if (!groupMembership) {
+                  console.error(`❌ SSO denied: ${finalEmail} already belongs to another tenant and is not privileged`);
+                  return false;
+                }
+              }
+            }
+
             try {
               await prisma.userTenant.create({
                 data: {
@@ -395,14 +407,23 @@ export const authOptions: NextAuthOptions = {
         }
       }
       
-      // Tenant-bytte + rolle-versjonskontroll.
-      // Sjekker lastTenantId mot nåværende token.tenantId — hvis de avviker har
-      // brukeren byttet bedrift via switch-tenant API-et, og vi oppdaterer tokenet.
       if (token.id) {
         const currentUser = await prisma.user.findUnique({
           where: { id: token.id as string },
           select: { lastTenantId: true },
         });
+
+        const tenantCount = await prisma.userTenant.count({
+          where: { userId: token.id as string },
+        });
+        token.hasMultipleTenants = tenantCount > 1;
+
+        const groupMembership = await prisma.corporateGroupUser.findFirst({
+          where: { userId: token.id as string },
+          select: { groupId: true, role: true },
+        });
+        token.corporateGroupId = groupMembership?.groupId ?? null;
+        token.corporateGroupRole = groupMembership?.role ?? null;
 
         const effectiveTenantId =
           currentUser?.lastTenantId && currentUser.lastTenantId !== token.tenantId

@@ -90,17 +90,29 @@ export async function createSSOUser(
   });
 
   if (existingUser) {
-    // Hvis bruker eksisterer men ikke har tenant, legg til
-    if (existingUser.tenants.length === 0) {
-      await prisma.userTenant.create({
-        data: {
-          userId: existingUser.id,
-          tenantId,
-          role,
-        },
-      });
-      return existingUser;
+    const hasTenant = existingUser.tenants.some(t => t.tenantId === tenantId);
+    if (hasTenant) return existingUser;
+
+    if (existingUser.tenants.length > 0) {
+      const isPrivileged = existingUser.isSuperAdmin || existingUser.isSupport;
+      if (!isPrivileged) {
+        const groupMembership = await prisma.corporateGroupUser.findFirst({
+          where: { userId: existingUser.id, role: { in: ["GROUP_ADMIN", "GROUP_HMS"] } },
+          select: { id: true },
+        });
+        if (!groupMembership) {
+          throw new Error("Brukeren er allerede tilknyttet en annen bedrift");
+        }
+      }
     }
+
+    await prisma.userTenant.create({
+      data: {
+        userId: existingUser.id,
+        tenantId,
+        role,
+      },
+    });
     return existingUser;
   }
 

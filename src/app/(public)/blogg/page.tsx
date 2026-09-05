@@ -8,6 +8,7 @@ import { Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
 import { getPublishedPosts } from "@/server/actions/blog.actions";
+import { ShareButtons } from "@/components/blog/share-buttons";
 
 export default function BloggPage() {
   const [posts, setPosts] = useState<any[]>([]);
@@ -88,13 +89,18 @@ export default function BloggPage() {
                   )}
                   <h2 className="text-3xl font-bold mb-4">{featuredPost.title}</h2>
                   <p className="text-muted-foreground mb-6">{featuredPost.excerpt}</p>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
                       {format(new Date(featuredPost.publishedAt), "d. MMMM yyyy", {
                         locale: nb,
                       })}
                     </div>
+                    <ShareButtons
+                      url={`https://hmsnova.no/blogg/${featuredPost.slug}`}
+                      title={featuredPost.title}
+                      variant="compact"
+                    />
                   </div>
                 </CardContent>
               </div>
@@ -149,13 +155,18 @@ export default function BloggPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+                    <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         {format(new Date(post.publishedAt), "d. MMM yyyy", {
                           locale: nb,
                         })}
                       </div>
+                      <ShareButtons
+                        url={`https://hmsnova.no/blogg/${post.slug}`}
+                        title={post.title}
+                        variant="compact"
+                      />
                     </div>
                     {post.keywords && (
                       <div className="flex flex-wrap gap-1.5">

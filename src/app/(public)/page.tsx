@@ -35,6 +35,7 @@ import {
   Clock,
   ClipboardCheck,
   Star,
+  ChevronRight,
 } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -125,7 +126,7 @@ export default function HomePage() {
             </span>
             <span className="flex items-center gap-1.5">
               <Globe className="h-4 w-4 text-primary" aria-hidden="true" />
-              Norske servere
+              EU/EØS-servere
             </span>
             <span className="flex items-center gap-1.5">
               <HeartHandshake className="h-4 w-4 text-primary" aria-hidden="true" />
@@ -308,114 +309,77 @@ export default function HomePage() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            <ScrollReveal delay={0}>
-              <Card className="h-full hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <ClipboardCheck className="h-5 w-5 text-primary" aria-hidden="true" />
-                    </div>
-                    <CardTitle className="text-base">Avvik og hendelser</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    Meld avvik fra mobil eller PC. Automatisk oppfølging, rotårsaksanalyse og korrigerende tiltak. Oppfyller AML § 5-2.
-                  </p>
-                </CardContent>
-              </Card>
-            </ScrollReveal>
-
-            <ScrollReveal delay={50}>
-              <Card className="h-full hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <Shield className="h-5 w-5 text-primary" aria-hidden="true" />
-                    </div>
-                    <CardTitle className="text-base">Risikovurdering</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    5x5-matrise med ferdige maler per bransje. Tiltaksoppfølging og revisjonshistorikk inkludert.
-                  </p>
-                </CardContent>
-              </Card>
-            </ScrollReveal>
-
-            <ScrollReveal delay={100}>
-              <Card className="h-full hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <FileText className="h-5 w-5 text-primary" aria-hidden="true" />
-                    </div>
-                    <CardTitle className="text-base">Dokumentstyring</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    Versjonskontroll, digital signatur og automatisk arkivering. Alle dokumenter samlet og sporbare.
-                  </p>
-                </CardContent>
-              </Card>
-            </ScrollReveal>
-
-            <ScrollReveal delay={150}>
-              <Card className="h-full hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <Users className="h-5 w-5 text-primary" aria-hidden="true" />
-                    </div>
-                    <CardTitle className="text-base">Vernerunder</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    Gjennomfør vernerunder fra mobilen med ferdige sjekklister. Funn og tiltak følges opp automatisk.
-                  </p>
-                </CardContent>
-              </Card>
-            </ScrollReveal>
-
-            <ScrollReveal delay={200}>
-              <Card className="h-full hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <TrendingUp className="h-5 w-5 text-primary" aria-hidden="true" />
-                    </div>
-                    <CardTitle className="text-base">Opplæring og kompetanse</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    Kompetansematrise, kurs-oppfølging og automatiske påminnelser når sertifikater utløper.
-                  </p>
-                </CardContent>
-              </Card>
-            </ScrollReveal>
-
-            <ScrollReveal delay={250}>
-              <Card className="h-full hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <Zap className="h-5 w-5 text-primary" aria-hidden="true" />
-                    </div>
-                    <CardTitle className="text-base">HMS-håndbok</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    Ferdig HMS-håndbok tilpasset din bedrift og bransje. Automatisk oppdatert og alltid tilgjengelig.
-                  </p>
-                </CardContent>
-              </Card>
-            </ScrollReveal>
+            {[
+              {
+                icon: ClipboardCheck,
+                title: "Avvik og hendelser",
+                desc: "Meld avvik fra mobil eller PC. Automatisk oppfølging, rotårsaksanalyse og korrigerende tiltak.",
+                href: "/hms-system/avvikshandtering",
+              },
+              {
+                icon: Shield,
+                title: "Risikovurdering",
+                desc: "5x5-matrise med ferdige maler per bransje. Tiltaksoppfølging og revisjonshistorikk inkludert.",
+                href: "/hms-system/risikovurdering",
+              },
+              {
+                icon: FileText,
+                title: "Dokumentstyring",
+                desc: "Versjonskontroll, digital signatur og automatisk arkivering. Alle dokumenter samlet og sporbare.",
+                href: "/hms-system/dokumenter",
+              },
+              {
+                icon: Users,
+                title: "Vernerunder",
+                desc: "Gjennomfør vernerunder fra mobilen med ferdige sjekklister. Funn og tiltak følges opp automatisk.",
+                href: "/hms-system/vernerunde",
+              },
+              {
+                icon: Zap,
+                title: "HMS-håndbok",
+                desc: "Ferdig HMS-håndbok tilpasset din bedrift og bransje. Automatisk oppdatert og alltid tilgjengelig.",
+                href: "/hms-handbok",
+              },
+              {
+                icon: TrendingUp,
+                title: "Opplæring og kompetanse",
+                desc: "Kompetansematrise, kurs-oppfølging og automatiske påminnelser når sertifikater utløper.",
+                href: "/hms-system",
+              },
+            ].map((feature, i) => (
+              <ScrollReveal key={feature.title} delay={i * 50}>
+                <Link href={feature.href} className="block h-full">
+                  <Card className="h-full hover:shadow-md transition-shadow">
+                    <CardHeader>
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <feature.icon className="h-5 w-5 text-primary" aria-hidden="true" />
+                        </div>
+                        <CardTitle className="text-base">{feature.title}</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">{feature.desc}</p>
+                    </CardContent>
+                  </Card>
+                </Link>
+              </ScrollReveal>
+            ))}
           </div>
+
+          <ScrollReveal delay={400} direction="fade">
+            <div className="text-center mt-10">
+              <p className="text-sm text-muted-foreground mb-4">
+                Pluss varsling, stoffkartotek, SJA, pulsundersøkelse, konsern-portal, revisjon, brannøvelser og mer
+              </p>
+              <Button asChild variant="outline" size="lg">
+                <Link href="/hms-system">
+                  Se alle {11} funksjoner
+                  <ChevronRight className="ml-1 h-4 w-4" aria-hidden="true" />
+                </Link>
+              </Button>
+            </div>
+          </ScrollReveal>
         </section>
 
         {/* ═══════════════════════════════════════════

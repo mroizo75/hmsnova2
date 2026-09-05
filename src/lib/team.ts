@@ -50,7 +50,7 @@ I dag jobber Kenneth med å utvikle HMS Nova videre og hjelper bedrifter med dig
     ],
     expertise: [
       "HMS-systemer",
-      "ISO 9001 sertifisering",
+      "ISO 9001-støtte",
       "Risikovurdering",
       "Arbeidsmiljø",
       "Internkontroll",

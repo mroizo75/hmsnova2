@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, ClipboardCheck, Shield, FileSearch, PenLine, FlaskConical } from "lucide-react";
+import { LayoutDashboard, ClipboardCheck, Shield, FileSearch, PenLine, FlaskConical, Building2 } from "lucide-react";
 
 const TABS = [
   {
@@ -53,6 +53,14 @@ const TABS = [
     image: "/images/mockups/stoffkartotek.png",
     alt: "HMS Nova stoffkartotek med kjemikalieregister, faresymboler og SDS",
     caption: "Komplett kjemikalieregister med GHS-faresymboler, verneutstyr, sikkerhetsdatablad og isocyanat-varsling.",
+  },
+  {
+    id: "konsern",
+    label: "Konsern",
+    icon: Building2,
+    image: "/images/konsern-losning.png",
+    alt: "HMS Nova konsernportal med oversikt over datterselskaper og HMS-score",
+    caption: "Konsernportalen gir full oversikt over HMS-status i alle datterselskaper – HMS-score, rapportering og innholdsdistribusjon.",
   },
 ] as const;
 

@@ -31,46 +31,118 @@ export const metadata: Metadata = {
 // Content clusters - disse sidene skal lenke hit og tilbake
 const HMS_SYSTEM_TOPICS = [
   {
-    title: "Risikovurdering",
-    description: "Identifiser, vurder og håndter risiko i arbeidsplassen. Strukturert og systematisk.",
-    icon: AlertTriangle,
-    href: "/hms-system/risikovurdering",
-    badge: "Kritisk",
-  },
-  {
-    title: "Digital signatur",
-    description: "Elektronisk godkjenning av HMS-dokumenter. Spar tid og øk etterlevelse.",
-    icon: FileCheck,
-    href: "/hms-system/digital-signatur",
-    badge: "Populært",
-  },
-  {
-    title: "Vernerunde",
-    description: "Digitale vernerunder med automatiske påminnelser og enkel dokumentasjon.",
-    icon: Users,
-    href: "/hms-system/vernerunde",
-    badge: "Lovpålagt",
-  },
-  {
     title: "Avvikshåndtering",
-    description: "Registrer, følg opp og lær av avvik. Fra mobilapp til ferdig rapport.",
+    description: "Registrer, følg opp og lær av avvik og hendelser.",
+    details: "Ansatte melder avvik fra mobil eller PC. Systemet styrer hele behandlingsflyten: kategorisering, rotårsaksanalyse (5 Whys), korrigerende tiltak med frist og ansvarlig, og til slutt lukking med godkjenning. Alle involvert får varsler automatisk.",
+    legalRef: "AML § 5-2 (varslingspliktige hendelser), IK-HMS § 5 punkt 7-8",
     icon: ClipboardCheck,
     href: "/hms-system/avvikshandtering",
     badge: "Essensielt",
   },
   {
-    title: "ISO 9001 sertifisering",
-    description: "Innebygd støtte for ISO 9001:2015. Alle krav dekket ut av boksen.",
-    icon: CheckCircle2,
-    href: "/hms-system/iso-9001",
-    badge: "Sertifisering",
+    title: "Risikovurdering",
+    description: "5x5-matrise med tiltaksoppfølging og revisjonshistorikk.",
+    details: "Bygg risikovurderinger med innebygd 5x5-matrise. Velg bransjemal eller start fra scratch. For hvert risikoelement registreres sannsynlighet, konsekvens og tiltak. Systemet beregner risikoverdi, fargemarkerer og sender påminnelser om årlig revisjon.",
+    legalRef: "AML § 3-1, IK-HMS § 5 punkt 6, ISO 9001:2015 kap. 6.1",
+    icon: AlertTriangle,
+    href: "/hms-system/risikovurdering",
+    badge: "Kritisk",
+  },
+  {
+    title: "Vernerunde",
+    description: "Digital vernerunde fra mobil med sjekklister og automatisk oppfølging.",
+    details: "Gjennomfør vernerunder med ferdige sjekklister tilpasset din bransje. Registrer funn med bilder direkte fra mobilen. Avvik som oppdages kan konverteres til hendelser med ett trykk. Rapport genereres automatisk for verneombudet og ledelsen.",
+    legalRef: "AML § 6-2, Forskrift om organisering kap. 2",
+    icon: Users,
+    href: "/hms-system/vernerunde",
+    badge: "Lovpålagt",
   },
   {
     title: "Dokumenthåndtering",
-    description: "Sentral lagring av alle HMS-dokumenter. Versjonskontr og tilgangsstyring.",
+    description: "Alle HMS-dokumenter samlet med versjonskontroll og digital signatur.",
+    details: "Last opp rutiner, prosedyrer og policyer. Systemet holder styr på versjoner, hvem som har lest hva, og sender påminnelse når dokumenter må oppdateres. Digital signatur er inkludert — ansatte signerer direkte i appen.",
+    legalRef: "IK-HMS § 5 punkt 4-5",
     icon: FileText,
     href: "/hms-system/dokumenter",
     badge: "Organisering",
+  },
+  {
+    title: "Digital signatur",
+    description: "Elektronisk godkjenning av HMS-dokumenter uten ekstrakostnad.",
+    details: "Alle ansatte kan signere HMS-dokumenter, rutiner og sjekklister digitalt. Signaturen er sporbar med tidsstempel og IP-adresse. Inkludert i prisen — ingen tilleggsavgift per signatur.",
+    icon: FileCheck,
+    href: "/hms-system/digital-signatur",
+    badge: "Inkludert",
+  },
+  {
+    title: "HMS-håndbok",
+    description: "Ferdig håndbok tilpasset bedriften med automatisk oppdatering.",
+    details: "Velg bransje så genererer systemet en komplett HMS-håndbok basert på gjeldende lovkrav. Bedriften kan tilpasse innhold, slå av seksjoner og legge til egne rutiner. Håndboken er alltid tilgjengelig digitalt for alle ansatte.",
+    legalRef: "IK-HMS § 5 punkt 1-5",
+    icon: BookOpen,
+    href: "/hms-handbok",
+    badge: "Inkludert",
+  },
+  {
+    title: "Psykososialt arbeidsmiljø",
+    description: "Kartlegg trivsel og arbeidsmiljø med anonyme pulsundersøkelser.",
+    details: "Send ut korte, anonyme undersøkelser til ansatte med jevne mellomrom. Resultater vises aggregert per avdeling — ingen enkeltpersoner kan identifiseres. Trendrapporter viser utvikling over tid slik at ledelsen kan handle tidlig.",
+    legalRef: "AML § 4-3 (psykososialt arbeidsmiljø), AML § 3-1",
+    icon: BookOpen,
+    href: "/hms-system/psykososialt-arbeidsmiljo",
+    badge: "Lovpålagt",
+  },
+  {
+    title: "Stoffkartotek og eksponeringsregister",
+    description: "Sikkerhetsdatablad, kjemikalier og lovpålagt eksponeringslogg.",
+    details: "Registrer alle kjemiske stoffer bedriften bruker med tilhørende sikkerhetsdatablad. Eksponeringsregisteret logger hvem som eksponeres for hva, varighet og målte verdier. Loven krever 60 års oppbevaring — HMS Nova håndterer dette automatisk.",
+    legalRef: "AML § 4-5, Forskrift om utførelse av arbeid § 2-1 og kap. 31",
+    icon: TrendingUp,
+    href: "/hms-system/stoffkartotek",
+    badge: "Lovpålagt",
+  },
+  {
+    title: "Varsling (whistleblowing)",
+    description: "Anonym varslingskanal for kritikkverdige forhold.",
+    details: "Bedrifter med 5+ ansatte plikter å ha varslingsrutiner. HMS Nova tilbyr en anonym varslingsportal der ansatte kan melde fra uten å oppgi identitet. Saksbehandler kommuniserer med varsleren via kryptert kanal med sporingsnummer.",
+    legalRef: "AML kap. 2A (§ 2A-1 til § 2A-7)",
+    icon: Shield,
+    href: "/hms-system/varsling",
+    badge: "Lovpålagt",
+  },
+  {
+    title: "SJA – Sikker Jobb Analyse",
+    description: "Risikovurdering for enkeltoppgaver i felt.",
+    details: "Før risikofylte oppgaver gjennomføres en SJA direkte fra mobilen. Beskriv oppgaven, identifiser farer, bestem tiltak og la alle involverte signere digitalt. SJA-en lagres som dokumentasjon — viktig ved tilsyn eller granskning.",
+    legalRef: "Forskrift om utførelse av arbeid § 2-2, Byggherreforskriften § 19",
+    icon: CheckCircle2,
+    href: "/hms-system/sja",
+    badge: "Operasjonelt",
+  },
+  {
+    title: "Konsern-løsning",
+    description: "HMS-portal for konsern med flere datterselskaper.",
+    details: "Konsern-portalen gir ledelsen oversikt over HMS-status i alle selskaper. Distribuer rutiner og policyer sentralt, sammenlign HMS-score på tvers, og hent ut samlet rapportering. Hver bedrift har sitt eget miljø — konsernledelsen ser helheten.",
+    icon: BookOpen,
+    href: "/hms-system/konsern",
+    badge: "Enterprise",
+  },
+  {
+    title: "HR og personaladministrasjon",
+    description: "Personalarkiv, onboarding, offboarding og opplæring.",
+    details: "Komplett personalmodul med digitalt personalarkiv, sjekklister for onboarding av nye ansatte og offboarding ved avslutning. Hold oversikt over kompetanse, sertifikater og kurshistorikk. Automatiske påminnelser når sertifikater utløper eller opplæring forfaller.",
+    legalRef: "AML § 4-2 (tilrettelegging), GDPR art. 5 og 9 (behandling av personaldata)",
+    icon: Users,
+    href: "/hms-system",
+    badge: "HR",
+  },
+  {
+    title: "ISO 9001-støtte",
+    description: "Følger ISO 9001:2015 kravene — klargjort for revisjon.",
+    details: "HMS Nova dekker kravene i ISO 9001:2015 for avvik (kap. 10.2), risiko (kap. 6.1), dokumentstyring (kap. 7.5) og revisjon. Revisjonsmodulen har ferdige sjekklister for alle 27 ISO-klausuler. Vi er ikke selv sertifisert, men gjør det enkelt for bedrifter å bli det.",
+    icon: CheckCircle2,
+    href: "/hms-system/iso-9001",
+    badge: "Kvalitet",
   },
 ];
 
@@ -121,7 +193,7 @@ export default function HMSSystemPage() {
           HMS-system: Komplett guide
         </h1>
         <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-          Alt du trenger å vite om HMS-systemer. Fra risikovurdering til ISO 9001 sertifisering.
+          Alt du trenger å vite om HMS-systemer. Fra risikovurdering til ISO 9001-støtte.
           Lær hvordan HMS Nova bygger trygghet i norske bedrifter.
         </p>
 
@@ -165,98 +237,105 @@ export default function HMSSystemPage() {
         </div>
       </section>
 
-      {/* Topics Grid - Content Clusters */}
+      {/* Funksjoner med utfyllende innhold */}
       <section className="container mx-auto px-4 py-12">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold mb-4">
-            HMS-system funksjoner og moduler
+            Alle funksjoner i HMS Nova
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Utforsk de ulike delene av et moderne HMS-system. Klikk på hvert emne for å lære mer.
+            HMS Nova dekker alle lovpålagte HMS-krav og gir deg verktøyene du trenger for systematisk HMS-arbeid.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+        <div className="max-w-5xl mx-auto space-y-6">
           {HMS_SYSTEM_TOPICS.map((topic) => (
-            <Link key={topic.href} href={topic.href}>
-              <Card className="h-full hover:shadow-lg transition-all hover:scale-105 cursor-pointer">
-                <CardHeader>
-                  <div className="flex items-start justify-between mb-2">
-                    <topic.icon className="h-10 w-10 text-primary" />
-                    <Badge variant="secondary">{topic.badge}</Badge>
+            <Card key={topic.href} className="hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-start gap-4 space-y-0">
+                <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
+                  <topic.icon className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-1">
+                    <CardTitle className="text-lg">{topic.title}</CardTitle>
+                    <Badge variant="secondary" className="text-xs">{topic.badge}</Badge>
                   </div>
-                  <CardTitle>{topic.title}</CardTitle>
-                  <CardDescription>{topic.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button variant="ghost" className="w-full justify-between">
-                    Les mer
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </CardContent>
-              </Card>
-            </Link>
+                  <CardDescription className="text-sm">{topic.description}</CardDescription>
+                  {topic.details && (
+                    <p className="text-sm text-muted-foreground mt-3 leading-relaxed">{topic.details}</p>
+                  )}
+                  {topic.legalRef && (
+                    <p className="text-xs text-muted-foreground/70 mt-2 italic">{topic.legalRef}</p>
+                  )}
+                </div>
+                <Button asChild variant="ghost" size="sm" className="flex-shrink-0">
+                  <Link href={topic.href}>
+                    Les mer <ArrowRight className="ml-1 h-4 w-4" />
+                  </Link>
+                </Button>
+              </CardHeader>
+            </Card>
           ))}
         </div>
       </section>
 
-      {/* Why Digital HMS */}
+      {/* Lovkrav-oversikt */}
       <section className="container mx-auto px-4 py-20 bg-muted/30">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            Hvorfor velge digitalt HMS-system?
+          <h2 className="text-3xl font-bold text-center mb-4">
+            Hvilke lovkrav dekker HMS Nova?
           </h2>
+          <p className="text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
+            Norske bedrifter har en rekke HMS-plikter. Her er en oversikt over de viktigste lovkravene og hvordan HMS Nova hjelper deg å oppfylle dem.
+          </p>
 
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <TrendingUp className="h-8 w-8 text-primary mb-2" />
-                <CardTitle>Spar tid</CardTitle>
+                <CardTitle className="text-base">Arbeidsmiljøloven (AML)</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Fra 10+ timer/uke på HMS-administrasjon til bare noen få minutter. 
-                  Automatisering og digitalisering frigjør tid til viktigere oppgaver.
-                </p>
+              <CardContent className="text-sm text-muted-foreground space-y-2">
+                <p><strong>§ 3-1</strong> — Systematisk HMS-arbeid (internkontroll)</p>
+                <p><strong>§ 4-3</strong> — Psykososialt arbeidsmiljø</p>
+                <p><strong>§ 4-5</strong> — Kjemisk og biologisk helsefare</p>
+                <p><strong>§ 5-1 til § 5-3</strong> — Registrering av skader og sykdom</p>
+                <p><strong>Kap. 2A</strong> — Varsling av kritikkverdige forhold</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <Shield className="h-8 w-8 text-primary mb-2" />
-                <CardTitle>Reduser risiko</CardTitle>
+                <CardTitle className="text-base">Internkontrollforskriften (IK-HMS)</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Systematisk HMS-arbeid reduserer ulykker og sykefravær. 
-                  Dokumentasjon sikrer deg mot bøter fra Arbeidstilsynet.
-                </p>
+              <CardContent className="text-sm text-muted-foreground space-y-2">
+                <p><strong>§ 5, punkt 6</strong> — Kartlegge farer og vurdere risiko</p>
+                <p><strong>§ 5, punkt 7</strong> — Iverksette tiltak for å redusere risiko</p>
+                <p><strong>§ 5, punkt 8</strong> — Avvikshåndtering og korrigerende tiltak</p>
+                <p>HMS Nova dokumenterer alle disse punktene automatisk.</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CheckCircle2 className="h-8 w-8 text-primary mb-2" />
-                <CardTitle>Oppfyll lovkrav</CardTitle>
+                <CardTitle className="text-base">ISO-standarder</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Innebygd støtte for Arbeidsmiljøloven, Internkontrollforskriften og ISO 9001. 
-                  Alt du trenger på ett sted.
-                </p>
+              <CardContent className="text-sm text-muted-foreground space-y-2">
+                <p><strong>ISO 9001:2015</strong> — Kvalitetsstyring (kap. 10.2 avvik)</p>
+                <p><strong>ISO 45001:2018</strong> — Arbeidsmiljøstyring</p>
+                <p><strong>ISO 14001:2015</strong> — Miljøstyring</p>
+                <p>HMS Nova følger disse kravene og klargjør deg for revisjon.</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <BookOpen className="h-8 w-8 text-primary mb-2" />
-                <CardTitle>Full dokumentasjon</CardTitle>
+                <CardTitle className="text-base">Øvrige forskrifter</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Alle HMS-dokumenter samlet digitalt. Versjonshistorikk, tilgangsstyring 
-                  og enkel søk. Aldri gå glipp av viktig informasjon.
-                </p>
+              <CardContent className="text-sm text-muted-foreground space-y-2">
+                <p><strong>Forskrift om utførelse av arbeid</strong> — Stoffkartotek og eksponeringsregister</p>
+                <p><strong>Forskrift om tiltaksverdier</strong> — Grenseverdier for eksponering</p>
+                <p><strong>Byggherreforskriften</strong> — SJA på bygg og anlegg</p>
+                <p><strong>GDPR / Personopplysningsloven</strong> — Personvern i HMS-data</p>
               </CardContent>
             </Card>
           </div>

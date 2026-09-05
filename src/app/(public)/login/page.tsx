@@ -13,7 +13,7 @@ import Image from "next/image";
 
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
   AccessDenied:
-    "Microsoft-kontoen din er ikke koblet til en bedrift med aktiv SSO i HMS Nova. Kontakt administratoren din.",
+    "Innlogging avvist. E-postadressen kan allerede være tilknyttet en annen bedrift, eller bedriften har ikke aktiv SSO. Kontakt administratoren din.",
   OAuthAccountNotLinked:
     "Det finnes allerede en HMS Nova-bruker med denne e-postadressen. Logg inn med e-post og passord, eller kontakt post@hmsnova.no.",
   OAuthSignin: "Kunne ikke starte innlogging med Microsoft. Kontakt post@hmsnova.no.",

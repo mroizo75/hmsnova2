@@ -12,8 +12,8 @@ export function TrustBadges({
   const badges = [
     {
       icon: Award,
-      title: "ISO 9001 Sertifisert",
-      description: "Oppfyller ISO 9001:2015 krav",
+      title: "ISO 9001-klar",
+      description: "Følger ISO 9001:2015 kravene",
     },
     {
       icon: Lock,
@@ -32,8 +32,8 @@ export function TrustBadges({
     },
     {
       icon: Shield,
-      title: "Norske Servere",
-      description: "Dataene dine i Norge",
+      title: "EU/EØS-servere",
+      description: "Data trygt innenfor EU/EØS",
     },
     {
       icon: Globe,

@@ -5,7 +5,7 @@ export const faqDatabase = {
     {
       question: 'Hva er HMS Nova?',
       answer:
-        'HMS Nova er et moderne, skybasert HMS-system (Helse, Miljø og Sikkerhet) laget spesielt for norske bedrifter. Vi hjelper bedrifter med å følge alle HMS-lovkrav, oppnå ISO 9001 sertifisering, og spare tid på HMS-administrasjon. Systemet inkluderer risikovurderinger, hendelsesrapportering, vernerunder, opplæring, og mye mer.',
+        'HMS Nova er et moderne, skybasert HMS-system (Helse, Miljø og Sikkerhet) laget spesielt for norske bedrifter. Vi hjelper bedrifter med å følge alle HMS-lovkrav, oppfylle ISO 9001-krav, og spare tid på HMS-administrasjon. Systemet inkluderer risikovurderinger, hendelsesrapportering, vernerunder, opplæring, og mye mer.',
     },
     {
       question: 'Hva koster HMS Nova?',
@@ -56,7 +56,7 @@ export const faqDatabase = {
     {
       question: 'Er HMS Nova GDPR-compliant?',
       answer:
-        'Ja, HMS Nova er <strong>fullt GDPR-compliant</strong>. Data lagres på norske servere, vi har databehandleravtale, alle data er kryptert, og du har full kontroll over dine data. Vi gjennomfører årlige sikkerhetsrevisjoner og følger alle personvernkrav.',
+        'Ja, HMS Nova er <strong>fullt GDPR-compliant</strong>. Data lagres på servere innenfor EU/EØS, vi har databehandleravtale, alle data er kryptert, og du har full kontroll over dine data. Vi gjennomfører årlige sikkerhetsrevisjoner og følger alle personvernkrav.',
     },
     {
       question: 'Kan HMS Nova integreres med andre systemer?',

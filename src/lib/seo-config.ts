@@ -41,6 +41,12 @@ export const PRIMARY_KEYWORDS = [
   "digital HMS",
   "HMS automation",
   "trygt arbeidsmiljø",
+  "varsling",
+  "eksponeringsregister",
+  "stoffkartotek",
+  "psykososialt arbeidsmiljø",
+  "SJA",
+  "konsern HMS",
 ] as const;
 
 // Sekundære keywords for long-tail SEO
@@ -159,6 +165,12 @@ export const SOFTWARE_PRODUCT_SCHEMA = {
     "Stoffkartotek",
     "Revisjoner og audits",
     "Mål og KPI-oppfølging",
+    "Psykososial arbeidsmiljøundersøkelse",
+    "Eksponeringsregister",
+    "Varsling/whistleblowing",
+    "SJA - Sikker Jobb Analyse",
+    "Konsern-HMS",
+    "HMS Tavle",
   ],
   description: "HMS Nova bygger trygghet. Norges mest moderne HMS-system med full ISO 9001 compliance, digital signatur og mobilapp.",
   screenshot: `${SITE_CONFIG.url}/opengraph-image`,
@@ -283,6 +295,31 @@ export const PAGE_METADATA = {
     title: "ISO 9001 Sjekkliste - Gratis Last Ned | HMS Nova",
     description: "Gratis ISO 9001 sjekkliste for full compliance med kvalitetsstyringsstandarden. HMS Nova har innebygd ISO 9001-støtte. Last ned nå.",
     keywords: "iso 9001 sjekkliste, iso 9001 compliance, kvalitetsstyring, iso sertifisering",
+  },
+  psykososialt: {
+    title: "Psykososialt arbeidsmiljø - Pulsundersøkelse og trivselskartlegging | HMS Nova",
+    description: "Kartlegg psykososialt arbeidsmiljø med anonyme pulsundersøkelser. Oppfyll AML § 4-3 med digital trivselsmåling, trendrapporter og handlingsplaner.",
+    keywords: "psykososialt arbeidsmiljø, arbeidsmiljøundersøkelse, trivselsmåling, pulsundersøkelse, AML 4-3, medarbeiderundersøkelse",
+  },
+  stoffkartotek: {
+    title: "Stoffkartotek og eksponeringsregister - Digital kjemikaliestyring | HMS Nova",
+    description: "Digitalt stoffkartotek med sikkerhetsdatablad og lovpålagt eksponeringsregister. Oppfyll forskrift om tiltaksverdier og AML § 4-5.",
+    keywords: "stoffkartotek, eksponeringsregister, sikkerhetsdatablad, kjemikalieregister, SDS, AML 4-5, tiltaksverdier",
+  },
+  varsling: {
+    title: "Varsling - Anonym varslingskanal for arbeidsplassen | HMS Nova",
+    description: "Lovpålagt varslingskanal etter AML kapittel 2A. Anonym og trygg varsling av kritikkverdige forhold. Sporbar saksbehandling.",
+    keywords: "varsling, varslingskanal, whistleblowing, anonym varsling, AML 2A, kritikkverdige forhold, varslingsrutiner",
+  },
+  konsern: {
+    title: "Konsern HMS-løsning - Administrer HMS på tvers av selskaper | HMS Nova",
+    description: "HMS-løsning for konsern og kjeder. Samlet HMS-score, innholdsdistribusjon og rapportering på tvers av datterselskaper.",
+    keywords: "konsern HMS, HMS konsernløsning, HMS kjede, multi-tenant HMS, HMS flere selskaper, sentralisert HMS",
+  },
+  sja: {
+    title: "SJA - Sikker Jobb Analyse | Digital SJA-skjema | HMS Nova",
+    description: "Digital Sikker Jobb Analyse (SJA) for risikofylte arbeidsoperasjoner. Identifiser farer, vurder risiko og dokumenter tiltak før arbeidet starter.",
+    keywords: "SJA, sikker jobb analyse, SJA skjema, SJA mal, risikovurdering enkeltoppgave, SJA bygg, farlig arbeid",
   },
 } as const;
 

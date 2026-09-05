@@ -393,6 +393,20 @@ type InviteContext = {
   tenantName: string;
 };
 
+async function canHaveMultipleTenants(userId: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { isSuperAdmin: true, isSupport: true },
+  });
+  if (user?.isSuperAdmin || user?.isSupport) return true;
+
+  const groupMembership = await prisma.corporateGroupUser.findFirst({
+    where: { userId, role: { in: ["GROUP_ADMIN", "GROUP_HMS"] } },
+    select: { id: true },
+  });
+  return Boolean(groupMembership);
+}
+
 async function inviteSingleUser(ctx: InviteContext, data: { email: string; name: string; role: string }): Promise<{ success: true } | { success: false; error: string }> {
   const normalizedEmail = data.email.toLowerCase().trim();
 
@@ -408,6 +422,19 @@ async function inviteSingleUser(ctx: InviteContext, data: { email: string; name:
     });
     if (inTenant) {
       return { success: false, error: `${normalizedEmail} er allerede medlem` };
+    }
+
+    const existingTenantCount = await prisma.userTenant.count({
+      where: { userId: existingUser.id },
+    });
+    if (existingTenantCount > 0) {
+      const allowed = await canHaveMultipleTenants(existingUser.id);
+      if (!allowed) {
+        return {
+          success: false,
+          error: `${normalizedEmail} er allerede tilknyttet en annen bedrift. En bruker kan kun tilhøre én bedrift.`,
+        };
+      }
     }
   }
 
@@ -628,6 +655,15 @@ export async function importUsersFromFile(formData: FormData): Promise<ImportUse
       if (existingInTenant) {
         skipped++;
         continue;
+      }
+
+      if (existingUser) {
+        const allowed = await canHaveMultipleTenants(existingUser.id);
+        if (!allowed) {
+          errors.push(`${normalizedEmail} er allerede tilknyttet en annen bedrift`);
+          skipped++;
+          continue;
+        }
       }
 
       if (!existingUser) {

@@ -7,7 +7,7 @@
  * - Digital signatur på skjemaer
  * - Kraftig rapportering og analytics
  * - Automatiserte varsler og oppfølging
- * - ISO 9001 sertifiserings-klart
+ * - Følger ISO 9001:2015 krav
  */
 
 import { PricingTier } from "@prisma/client";
@@ -188,10 +188,10 @@ export const COMPETITIVE_ADVANTAGES = [
     advantage: "Granulær kontroll over hvem som kan gjøre hva",
   },
   {
-    feature: "ISO 9001 sertifisering",
-    hmsNova: "✅ 100% compliant med dokumentasjon",
+    feature: "ISO 9001-støtte",
+    hmsNova: "✅ Følger alle ISO 9001:2015 krav",
     gronnJobb: "⚠️ Delvis",
-    advantage: "Ferdig for sertifisering out-of-the-box",
+    advantage: "Klargjort for ISO-sertifisering out-of-the-box",
   },
   {
     feature: "Revisjonsmodul",

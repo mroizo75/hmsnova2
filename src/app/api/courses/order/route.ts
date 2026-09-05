@@ -241,7 +241,7 @@ export async function POST(request: NextRequest) {
 
                 <div class="footer">
                   <p><strong>HMS Nova</strong> – HMS Nova AS<br>
-                  Godkjent kursleverandør | ISO 9001 sertifisert</p>
+                  Godkjent kursleverandør | Følger ISO 9001:2015</p>
                   <p style="font-size: 0.85em; color: #999; margin-top: 15px;">
                     <a href="https://hmsnova.no" style="color: #16a34a; text-decoration: none;">hmsnova.no</a>
                   </p>

@@ -12,6 +12,7 @@ import { nb } from "date-fns/locale";
 import { getPostBySlug, getRelatedPosts } from "@/server/actions/blog.actions";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 import { TableOfContents } from "@/components/blog/table-of-contents";
+import { ShareButtons } from "@/components/blog/share-buttons";
 
 export default function BlogPostPage() {
   const params = useParams();
@@ -91,7 +92,7 @@ export default function BlogPostPage() {
 
           <h1 className="text-4xl md:text-5xl font-bold mb-6">{post.title}</h1>
 
-          <div className="flex items-center gap-6 text-muted-foreground mb-8">
+          <div className="flex flex-wrap items-center gap-6 text-muted-foreground mb-4">
             <div className="flex items-center gap-2">
               {post.author.image && (
                 <img
@@ -111,6 +112,12 @@ export default function BlogPostPage() {
               {readingTime} min lesing
             </div>
           </div>
+
+          <ShareButtons
+            url={`https://hmsnova.no/blogg/${slug}`}
+            title={post.title}
+            className="mb-8"
+          />
 
           {post.coverImage && (
             <div className="relative w-full h-[400px] rounded-xl overflow-hidden mb-8">
@@ -160,6 +167,13 @@ export default function BlogPostPage() {
                   ))}
                 </div>
               )}
+
+              <div className="mt-8 pt-6 border-t">
+                <ShareButtons
+                  url={`https://hmsnova.no/blogg/${slug}`}
+                  title={post.title}
+                />
+              </div>
             </div>
 
             {/* Table of Contents - Sticky sidebar */}

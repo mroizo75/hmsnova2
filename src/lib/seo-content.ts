@@ -83,7 +83,7 @@ export const SEO_CONTENT = {
     "500+ norske bedrifter stoler på HMS Nova",
     "ISO 9001 compliant fra dag én",
     "Godkjent av norske revisorer",
-    "Data lagres trygt i Norge (GDPR-compliant)",
+    "Data lagres trygt innenfor EU/EØS (GDPR-compliant)",
     "14 dagers angrefrist",
     "Norsk kundesupport",
   ],
