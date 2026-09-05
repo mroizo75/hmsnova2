@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
+import { ArrowLeft } from "lucide-react";
 
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
   AccessDenied:
@@ -93,9 +94,16 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-secondary p-4">
-      <Card className="w-full max-w-md">
+      <div className="w-full max-w-md space-y-4">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Tilbake til forsiden
+        </Link>
+      <Card>
         <CardHeader className="space-y-1">
-          {/* <CardTitle className="text-2xl font-bold">HMS Nova logg inn</CardTitle> */}
           <Image src="/logo-nova.png" alt="HMS Nova" width={150} height={150} className="mx-auto" />
           <CardDescription className="text-center text-xl md:text-lg">
             Logg inn med din e-post og passord
@@ -186,6 +194,7 @@ export default function LoginPage() {
           </form>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

@@ -22,10 +22,10 @@ export function PublicNav() {
           {/* Desktop Menu */}
           <div className="hidden items-center gap-4 lg:flex xl:gap-6">
             <Link 
-              href="/#funksjoner" 
+              href="/" 
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
-              Funksjoner
+              Hjem
             </Link>
             <Link 
               href="/bransjer" 
@@ -95,11 +95,11 @@ export function PublicNav() {
         {mobileMenuOpen && (
           <div className="space-y-1 border-t py-4 lg:hidden">
             <Link 
-              href="/#funksjoner" 
+              href="/" 
               className="flex min-h-11 items-center py-3 text-sm font-medium text-muted-foreground hover:text-foreground"
               onClick={() => setMobileMenuOpen(false)}
             >
-              Funksjoner
+              Hjem
             </Link>
             <Link 
               href="/bransjer" 
