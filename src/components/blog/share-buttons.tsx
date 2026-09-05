@@ -53,20 +53,17 @@ export function ShareButtons({ url, title, variant = "inline", className }: Shar
     return (
       <div className={cn("flex items-center gap-1", className)} onClick={(e) => e.preventDefault()}>
         {shareLinks.map((link) => (
-          <a
+          <button
             key={link.name}
-            href={link.href}
-            target="_blank"
-            rel="noopener noreferrer"
             title={`Del på ${link.name}`}
             className={cn("p-1.5 rounded-md text-muted-foreground transition-colors hover:bg-muted", link.color)}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); window.open(link.href, "_blank", "noopener,noreferrer"); }}
           >
             <link.icon className="h-3.5 w-3.5" />
-          </a>
+          </button>
         ))}
         <button
-          onClick={(e) => { e.stopPropagation(); copyLink(); }}
+          onClick={(e) => { e.stopPropagation(); e.preventDefault(); copyLink(); }}
           title="Kopier lenke"
           className="p-1.5 rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
         >
