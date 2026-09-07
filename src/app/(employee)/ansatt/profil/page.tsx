@@ -35,9 +35,6 @@ export default async function AnsattProfil() {
       where: { id: session.user.id },
       include: {
         tenants: {
-          include: {
-            tenant: { select: { name: true } },
-          },
           select: {
             id: true,
             role: true,
