@@ -1,6 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,8 +10,10 @@ import Link from "next/link";
 import type { ProjectStatus } from "@prisma/client";
 import { useLocale, useTranslations } from "next-intl";
 import { fetchProjects } from "@/server/queries/project.queries";
+import { InvoicePreviewDialog } from "@/features/projects/components/invoice-preview-dialog";
 
 type ProjectsData = Awaited<ReturnType<typeof fetchProjects>>;
+type Filter = "all" | "active" | "hms" | "ready";
 
 function getStatusConfig(
   t: ReturnType<typeof useTranslations>
@@ -26,11 +29,19 @@ function getStatusConfig(
 
 interface ProjectsListContentProps {
   initialData: ProjectsData;
+  accountingEnabled?: boolean;
+  canInvoice?: boolean;
 }
 
-export function ProjectsListContent({ initialData }: ProjectsListContentProps) {
+export function ProjectsListContent({
+  initialData,
+  accountingEnabled = false,
+  canInvoice = false,
+}: ProjectsListContentProps) {
   const t = useTranslations("dashboardProjectsPage");
   const locale = useLocale();
+  const queryClient = useQueryClient();
+  const [filter, setFilter] = useState<Filter>("all");
 
   const { data: projects } = useQuery({
     queryKey: ["projects"],
@@ -38,10 +49,17 @@ export function ProjectsListContent({ initialData }: ProjectsListContentProps) {
     initialData,
   });
 
-  const active = projects.filter((p: any) => p.status === "ACTIVE").length;
-  const planning = projects.filter((p: any) => p.status === "PLANNING").length;
-  const completed = projects.filter((p: any) => p.status === "COMPLETED").length;
+  const active = projects.filter((p: { status: string }) => p.status === "ACTIVE").length;
+  const planning = projects.filter((p: { status: string }) => p.status === "PLANNING").length;
+  const ready = projects.filter((p: { billingStatus?: string }) => p.billingStatus === "READY").length;
   const statusConfig = getStatusConfig(t);
+
+  const visible = projects.filter((p: { status: string; jobKind?: string; billingStatus?: string }) => {
+    if (filter === "active") return p.status === "ACTIVE";
+    if (filter === "hms") return p.jobKind === "HMS";
+    if (filter === "ready") return p.billingStatus === "READY";
+    return true;
+  });
 
   return (
     <>
@@ -60,13 +78,36 @@ export function ProjectsListContent({ initialData }: ProjectsListContentProps) {
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-gray-600">{completed}</div>
-            <p className="text-sm text-muted-foreground">{t("stats.completed")}</p>
+            <div className="text-2xl font-bold text-amber-700">{ready}</div>
+            <p className="text-sm text-muted-foreground">{t("stats.readyToInvoice")}</p>
           </CardContent>
         </Card>
       </div>
 
-      {projects.length === 0 ? (
+      {accountingEnabled && (
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              ["all", t("filters.all")],
+              ["active", t("filters.active")],
+              ["hms", t("filters.hms")],
+              ["ready", t("filters.ready")],
+            ] as const
+          ).map(([key, label]) => (
+            <Button
+              key={key}
+              size="sm"
+              variant={filter === key ? "default" : "outline"}
+              className={filter === key ? "" : "bg-transparent"}
+              onClick={() => setFilter(key)}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+      )}
+
+      {visible.length === 0 ? (
         <Card>
           <CardContent className="py-16 text-center">
             <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -82,11 +123,11 @@ export function ProjectsListContent({ initialData }: ProjectsListContentProps) {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {projects.map((project: any) => {
+          {visible.map((project: any) => {
             const sc = statusConfig[project.status as ProjectStatus];
             return (
-              <Link key={project.id} href={`/dashboard/projects/${project.id}`}>
-                <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-blue-500">
+              <Card key={project.id} className="h-full border-l-4 border-l-blue-500">
+                <Link href={`/dashboard/projects/${project.id}`}>
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-2">
                       <CardTitle className="text-base leading-tight">{project.name}</CardTitle>
@@ -96,70 +137,72 @@ export function ProjectsListContent({ initialData }: ProjectsListContentProps) {
                       <p className="text-xs text-muted-foreground font-mono">{project.code}</p>
                     )}
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="space-y-1.5 text-sm">
-                      {project.clientName && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Building2 className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate">{project.clientName}</span>
-                        </div>
-                      )}
-                      {project.orderNumber && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <span className="text-xs font-mono">{t("orderNumber", { number: project.orderNumber })}</span>
-                        </div>
-                      )}
-                      {project.location && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <MapPin className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate">{project.location}</span>
-                        </div>
-                      )}
-                      {project.projectManager && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <User className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate">
-                            {project.projectManager.name || project.projectManager.email}
-                          </span>
-                        </div>
-                      )}
-                      {(project.startDate || project.endDate) && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <CalendarDays className="h-3.5 w-3.5 shrink-0" />
-                          <span className="text-xs">
-                            {project.startDate
-                              ? new Date(project.startDate).toLocaleDateString(locale === "en" ? "en-US" : "nb-NO")
-                              : "—"}
-                            {" → "}
-                            {project.endDate
-                              ? new Date(project.endDate).toLocaleDateString(locale === "en" ? "en-US" : "nb-NO")
-                              : t("ongoing")}
-                          </span>
-                        </div>
-                      )}
-                    </div>
+                </Link>
+                <CardContent className="space-y-3">
+                  <div className="space-y-1.5 text-sm">
+                    {project.clientName && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Building2 className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{project.clientName}</span>
+                      </div>
+                    )}
+                    {project.location && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <MapPin className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{project.location}</span>
+                      </div>
+                    )}
+                    {project.projectManager && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <User className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">
+                          {project.projectManager.name || project.projectManager.email}
+                        </span>
+                      </div>
+                    )}
+                    {(project.startDate || project.endDate) && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <CalendarDays className="h-3.5 w-3.5 shrink-0" />
+                        <span className="text-xs">
+                          {project.startDate
+                            ? new Date(project.startDate).toLocaleDateString(locale === "en" ? "en-US" : "nb-NO")
+                            : "—"}
+                          {" → "}
+                          {project.endDate
+                            ? new Date(project.endDate).toLocaleDateString(locale === "en" ? "en-US" : "nb-NO")
+                            : t("ongoing")}
+                        </span>
+                      </div>
+                    )}
+                  </div>
 
-                    <div className="flex gap-3 pt-1 border-t text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        {t("counters.incidents", { count: project._count.incidents })}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <HardHat className="h-3 w-3" />
-                        {t("counters.sja", { count: project._count.sjaAnalyses })}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <ClipboardCheck className="h-3 w-3" />
-                        {t("counters.inspections", { count: project._count.inspections })}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <ListTodo className="h-3 w-3" />
-                        {t("counters.measures", { count: project._count.measures })}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
+                  <div className="flex gap-3 pt-1 border-t text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {t("counters.incidents", { count: project._count.incidents })}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <HardHat className="h-3 w-3" />
+                      {t("counters.sja", { count: project._count.sjaAnalyses })}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <ClipboardCheck className="h-3 w-3" />
+                      {t("counters.inspections", { count: project._count.inspections })}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <ListTodo className="h-3 w-3" />
+                      {t("counters.measures", { count: project._count.measures })}
+                    </span>
+                  </div>
+
+                  {accountingEnabled && canInvoice && project.billingStatus === "READY" && (
+                    <InvoicePreviewDialog
+                      projectId={project.id}
+                      onDone={() => queryClient.invalidateQueries({ queryKey: ["projects"] })}
+                    />
+                  )}
+                </CardContent>
+              </Card>
             );
           })}
         </div>

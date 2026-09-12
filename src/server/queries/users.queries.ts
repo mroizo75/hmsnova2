@@ -2,6 +2,8 @@
 
 import { prisma } from "@/lib/db";
 import { getTenantContextSafe } from "@/lib/tenant-context";
+import { getInvitableRoles, getPermissions } from "@/lib/permissions";
+import type { Role } from "@prisma/client";
 
 export async function fetchUsers() {
   const ctx = await getTenantContextSafe();
@@ -26,27 +28,36 @@ export async function fetchUsers() {
   const selectedMembership = user.tenants[0];
   const tenant = selectedMembership.tenant;
   const isAdmin = selectedMembership.role === "ADMIN";
+  const permissions = getPermissions(selectedMembership.role as Role);
 
-  const tenantUsers = await prisma.userTenant.findMany({
-    where: { tenantId },
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          createdAt: true,
+  const [tenantUsers, departments] = await Promise.all([
+    prisma.userTenant.findMany({
+      where: { tenantId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            createdAt: true,
+          },
         },
       },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.department.findMany({
+      where: { tenantId, isActive: true },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true },
+    }),
+  ]);
 
   const usersWithEmployeeNumber = tenantUsers.map((ut) => ({
     ...ut,
     employeeNumber: ut.employeeNumber ?? null,
     position: ut.position ?? null,
     managerId: ut.managerId ?? null,
+    departmentId: ut.departmentId ?? null,
   }));
 
   const { getSubscriptionLimits } = await import("@/lib/subscription");
@@ -56,6 +67,9 @@ export async function fetchUsers() {
     users: usersWithEmployeeNumber,
     currentUserId: user.id,
     isAdmin,
+    canManagePeople: permissions.canManageUsers,
+    invitableRoles: getInvitableRoles(selectedMembership.role),
+    departments,
     pricingTier: tenant.pricingTier,
     maxUsers: limits.maxUsers,
   }));

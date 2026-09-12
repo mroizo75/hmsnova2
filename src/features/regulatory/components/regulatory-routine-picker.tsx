@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -22,6 +23,7 @@ export function RegulatoryRoutinePicker({ suggestions }: Props) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
+  const [showAll, setShowAll] = useState(false);
 
   const selectionSeed = suggestions
     .map((s) => `${s.templateId}:${s.publishedRoutineId ?? ""}:${s.recommended ? "1" : "0"}`)
@@ -41,16 +43,27 @@ export function RegulatoryRoutinePicker({ suggestions }: Props) {
     );
   }, [selectionSeed, suggestions]);
 
-  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
-  const allIds = suggestions.map((s) => s.templateId);
-  const allSelected = allIds.length > 0 && allIds.every((id) => selectedSet.has(id));
+  const visibleSuggestions = useMemo(
+    () =>
+      showAll
+        ? suggestions
+        : suggestions.filter((s) => s.recommended || s.publishedRoutineId),
+    [suggestions, showAll],
+  );
 
-  function selectAll() {
-    setSelectedIds(allIds);
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const visibleIds = visibleSuggestions.map((s) => s.templateId);
+  const allVisibleSelected =
+    visibleIds.length > 0 && visibleIds.every((id) => selectedSet.has(id));
+  const extraCount = suggestions.filter((s) => !s.recommended && !s.publishedRoutineId).length;
+
+  function selectAllVisible() {
+    setSelectedIds((prev) => [...new Set([...prev, ...visibleIds])]);
   }
 
-  function clearAll() {
-    setSelectedIds([]);
+  function clearVisible() {
+    const visible = new Set(visibleIds);
+    setSelectedIds((prev) => prev.filter((id) => !visible.has(id)));
   }
 
   function handlePublish() {
@@ -62,10 +75,11 @@ export function RegulatoryRoutinePicker({ suggestions }: Props) {
       }
       await queryClient.invalidateQueries({ queryKey: ["juridisk-register"] });
       await queryClient.invalidateQueries({ queryKey: ["routines"] });
+      await queryClient.invalidateQueries({ queryKey: ["regulatory-routine-suggestions"] });
       router.refresh();
       toast({
         title: "Rutiner oppdatert",
-        description: `${result.published} publisert, ${result.archived} tatt vekk.`,
+        description: `${result.published} publisert, ${result.archived} tatt vekk. De vises i listen under.`,
       });
     });
   }
@@ -77,7 +91,7 @@ export function RegulatoryRoutinePicker({ suggestions }: Props) {
   const publishedCount = suggestions.filter((s) => s.publishedRoutineId).length;
 
   return (
-    <Card>
+    <Card id="regelverk-rutiner" className="scroll-mt-24">
       <CardHeader className="space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -86,14 +100,19 @@ export function RegulatoryRoutinePicker({ suggestions }: Props) {
               Rutiner fra regelverket
             </CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">
-              Velg hvilke rutiner som skal publiseres for virksomheten. Du kan huke av flere, velge alle, eller ta vekk rutiner som ikke skal gjelde. Hjemmel: IK-HMS § 5.
+              Velg hvilke rutiner som skal publiseres for virksomheten. Publiserte rutiner vises i listen under.
+              Forslagene kommer fra{" "}
+              <Link href="/dashboard/juridisk-register" className="text-primary hover:underline">
+                juridisk register
+              </Link>
+              . Hjemmel: IK-HMS § 5.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={selectAll} disabled={isPending || allSelected}>
+            <Button type="button" variant="outline" size="sm" onClick={selectAllVisible} disabled={isPending || allVisibleSelected}>
               Velg alle
             </Button>
-            <Button type="button" variant="outline" size="sm" onClick={clearAll} disabled={isPending || selectedIds.length === 0}>
+            <Button type="button" variant="outline" size="sm" onClick={clearVisible} disabled={isPending || selectedIds.length === 0}>
               Fjern alle
             </Button>
           </div>
@@ -101,7 +120,7 @@ export function RegulatoryRoutinePicker({ suggestions }: Props) {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="max-h-[28rem] space-y-2 overflow-y-auto pr-1">
-          {suggestions.map((item) => {
+          {visibleSuggestions.map((item) => {
             const checked = selectedSet.has(item.templateId);
             return (
               <div
@@ -145,6 +164,12 @@ export function RegulatoryRoutinePicker({ suggestions }: Props) {
             );
           })}
         </div>
+
+        {extraCount > 0 && (
+          <Button type="button" variant="ghost" size="sm" onClick={() => setShowAll((v) => !v)}>
+            {showAll ? "Vis bare anbefalte" : `Vis alle maler (${extraCount} til)`}
+          </Button>
+        )}
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-muted-foreground">

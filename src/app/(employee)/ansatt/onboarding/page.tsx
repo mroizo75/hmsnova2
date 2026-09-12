@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BoardingProgressBar } from "@/features/boarding/components/boarding-progress-bar";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { EmployeeHrWorkspaceNav } from "@/features/hr/components/employee-hr-workspace-nav";
 
 export default async function AnsattOnboardingPage() {
   const auth = await getAuthContext();
@@ -21,6 +22,7 @@ export default async function AnsattOnboardingPage() {
 
   return (
     <div className="p-6 space-y-6">
+      <EmployeeHrWorkspaceNav />
       <div>
         <h1 className="text-2xl font-bold">Mine onboarding-oppgaver</h1>
         <p className="text-muted-foreground mt-1">

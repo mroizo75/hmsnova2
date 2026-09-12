@@ -24,11 +24,29 @@ export default async function NewProjectPage() {
 
   const tenantId = selectedMembership.tenantId;
 
-  const users = await prisma.userTenant.findMany({
-    where: { tenantId },
-    include: { user: { select: { id: true, name: true, email: true } } },
-    orderBy: { user: { name: "asc" } },
-  });
+  const [users, tenant, customers, parentProjects] = await Promise.all([
+    prisma.userTenant.findMany({
+      where: { tenantId },
+      include: { user: { select: { id: true, name: true, email: true } } },
+      orderBy: { user: { name: "asc" } },
+    }),
+    prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { accountingProvider: true },
+    }),
+    prisma.accountingCustomer.findMany({
+      where: { tenantId, isInactive: false },
+      orderBy: { name: "asc" },
+      take: 200,
+    }),
+    prisma.project.findMany({
+      where: { tenantId, parentId: null },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
+
+  const accountingEnabled = tenant?.accountingProvider === "TRIPLETEX";
 
   return (
     <div className="space-y-6">
@@ -52,6 +70,13 @@ export default async function NewProjectPage() {
       <ProjectForm
         mode="create"
         users={users.map((ut) => ut.user)}
+        accountingEnabled={accountingEnabled}
+        customers={customers.map((c) => ({
+          externalId: c.externalId,
+          name: c.name,
+          organizationNumber: c.organizationNumber,
+        }))}
+        parentProjects={parentProjects}
       />
     </div>
   );

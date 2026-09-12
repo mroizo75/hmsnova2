@@ -41,9 +41,21 @@ export function canAccessPersonnelFile(opts: {
   employeeId: string;
   canReadOwn: boolean;
   canReadAll: boolean;
+  canReadDepartment?: boolean;
+  viewerDepartmentId?: string | null;
+  employeeDepartmentId?: string | null;
 }): boolean {
   if (opts.canReadAll) return true;
-  return opts.canReadOwn && opts.viewerId === opts.employeeId;
+  if (opts.canReadOwn && opts.viewerId === opts.employeeId) return true;
+  if (
+    opts.canReadDepartment &&
+    opts.viewerDepartmentId &&
+    opts.employeeDepartmentId &&
+    opts.viewerDepartmentId === opts.employeeDepartmentId
+  ) {
+    return true;
+  }
+  return false;
 }
 
 export function isRetainExpired(

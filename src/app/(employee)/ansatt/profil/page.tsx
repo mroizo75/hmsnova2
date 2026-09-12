@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
 import { User, FlaskConical, AlertTriangle, Info, Download } from "lucide-react";
 import Link from "next/link";
 import { ProfileForm } from "@/components/ansatt/profile-form";
+import { HrProfileForm } from "@/features/personnel/components/hr-profile-form";
+import { fetchPersonnelFolder } from "@/server/queries/personnel.queries";
+import { EmployeeHrWorkspaceNav } from "@/features/hr/components/employee-hr-workspace-nav";
 
 const EXPOSURE_TYPE_KEYS: Record<string, string> = {
   INHALATION: "exposure.types.INHALATION",
@@ -30,7 +33,7 @@ export default async function AnsattProfil() {
     redirect("/login");
   }
 
-  const [user, exposureEntries] = await Promise.all([
+  const [user, exposureEntries, folder] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },
       include: {
@@ -66,6 +69,7 @@ export default async function AnsattProfil() {
       },
       orderBy: { exposureStartDate: "desc" },
     }),
+    fetchPersonnelFolder(session.user.id),
   ]);
 
   if (!user) {
@@ -74,7 +78,7 @@ export default async function AnsattProfil() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      <EmployeeHrWorkspaceNav />
       <div>
         <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
           <User className="h-7 w-7 text-primary" />
@@ -94,6 +98,25 @@ export default async function AnsattProfil() {
           <ProfileForm user={user} />
         </CardContent>
       </Card>
+
+      {folder?.hrProfile && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Pårørende og personalopplysninger</CardTitle>
+            <CardDescription>Du kan oppdatere pårørende og fødselsdato. HR-notat vises ikke her.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <HrProfileForm
+              userId={user.id}
+              profile={folder.hrProfile}
+              canEditHrFields={false}
+              canEditNotes={false}
+              canEditKin
+              canEditBirthDate
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Bedriftsinformasjon */}
       <Card>

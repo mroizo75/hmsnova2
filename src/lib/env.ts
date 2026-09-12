@@ -58,9 +58,14 @@ interface EnvConfig {
   // SMS — salg
   RING_MEG_SALES_PHONE?: string;
 
-  // Fiken (optional)
+  // Fiken (optional — HMS Nova SaaS-faktura)
   FIKEN_API_KEY?: string;
   FIKEN_WEBHOOK_SECRET?: string;
+
+  // Tripletex (optional — tenant kundefaktura / feltjobber)
+  TRIPLETEX_CONSUMER_TOKEN?: string;
+  TRIPLETEX_API_BASE?: string;
+  FIELD_ENCRYPTION_KEY?: string;
 
   // AI (optional)
   OPENAI_API_KEY?: string;
@@ -142,8 +147,8 @@ export function validateEnv(): void {
     warnings.push("Upstash Redis ikke konfigurert - bruker in-memory rate limiting (ikke anbefalt for produksjon)");
   }
 
-  if (!process.env.NEXT_PUBLIC_APP_URL) {
-    warnings.push("NEXT_PUBLIC_APP_URL ikke satt - noen lenker i e-poster kan være feil");
+  if (process.env.TRIPLETEX_CONSUMER_TOKEN && (!process.env.FIELD_ENCRYPTION_KEY || process.env.FIELD_ENCRYPTION_KEY.length !== 64)) {
+    warnings.push("FIELD_ENCRYPTION_KEY (64 hex) må være satt for å lagre Tripletex-token kryptert per virksomhet");
   }
 
   if (!process.env.PUSHER_APP_ID || !process.env.PUSHER_SECRET || !process.env.NEXT_PUBLIC_PUSHER_KEY) {

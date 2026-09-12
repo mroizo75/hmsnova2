@@ -15,6 +15,7 @@ import {
   getEmployeeWidgetsFromLockedConfig,
   getEmployeeBottomNavItems,
 } from "@/features/dashboard/lib/employee-widget-registry";
+import { filterEmployeeWidgetsForAccounting } from "@/lib/accounting/widgets";
 
 export default async function EmployeeLayout({
   children,
@@ -44,6 +45,7 @@ export default async function EmployeeLayout({
             dashboardLocked: true,
             lockedDashboardConfig: true,
             ruhModuleEnabled: true,
+            accountingProvider: true,
           },
         })
       : null,
@@ -53,9 +55,10 @@ export default async function EmployeeLayout({
     ? getEmployeeWidgetsFromLockedConfig(tenant.lockedDashboardConfig as Array<{ id: string }>)
     : [...EMPLOYEE_WIDGET_REGISTRY];
 
-  if (!tenant?.timeRegistrationEnabled) {
-    allWidgets = allWidgets.filter((w) => w.id !== "emp-time");
-  }
+  allWidgets = filterEmployeeWidgetsForAccounting(allWidgets, {
+    timeRegistrationEnabled: tenant?.timeRegistrationEnabled,
+    accountingProvider: tenant?.accountingProvider,
+  });
 
   if (tenant && !tenant.ruhModuleEnabled) {
     allWidgets = allWidgets.filter((w) => w.id !== "emp-ruh");

@@ -27,6 +27,14 @@ export async function GET(
       employeeId: document.userId,
       canReadOwn: auth.permissions.canReadOwnPersonnelFile,
       canReadAll: auth.permissions.canReadAllPersonnelFiles,
+      canReadDepartment: auth.permissions.canReadDepartmentPersonnelFiles,
+      viewerDepartmentId: auth.departmentId,
+      employeeDepartmentId: (
+        await prisma.userTenant.findUnique({
+          where: { userId_tenantId: { userId: document.userId, tenantId: auth.tenantId } },
+          select: { departmentId: true },
+        })
+      )?.departmentId ?? null,
     });
     if (!allowed) {
       return NextResponse.json({ code: "FORBIDDEN", message: "Du har ikke tilgang til dette dokumentet" }, { status: 403 });

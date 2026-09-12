@@ -3,12 +3,13 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, HardHat, ClipboardCheck, ListTodo, Plus, ExternalLink, ShieldCheck, Clock, Paperclip, Upload, FileImage, FileSpreadsheet, FileText, FileCheck2, Trash2 } from "lucide-react";
+import { AlertCircle, HardHat, ClipboardCheck, ListTodo, Plus, ExternalLink, ShieldCheck, Clock, Paperclip, Upload, FileImage, FileSpreadsheet, FileText, FileCheck2, Trash2, CalendarDays } from "lucide-react";
 import Link from "next/link";
 import { getIncidentTypeLabel, getIncidentStatusLabel } from "@/features/incidents/schemas/incident.schema";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocale, useTranslations } from "next-intl";
+import { ResourcePlanPanel } from "@/features/projects/components/resource-plan-panel";
 
 interface Incident {
   id: string;
@@ -216,7 +217,7 @@ export function ProjectTabs({
           </Link>
         </Button>
       </div>
-      <TabsList className="grid w-full grid-cols-7">
+      <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
         <TabsTrigger value="incidents" className="flex items-center gap-1.5">
           <AlertCircle className="h-3.5 w-3.5" />
           {t("tabs.incidents")}
@@ -266,7 +267,15 @@ export function ProjectTabs({
             <Badge variant="secondary" className="ml-1 text-xs h-4 px-1">{formSubmissions.length}</Badge>
           )}
         </TabsTrigger>
+        <TabsTrigger value="plan" className="flex items-center gap-1.5">
+          <CalendarDays className="h-3.5 w-3.5" />
+          {t("tabs.plan")}
+        </TabsTrigger>
       </TabsList>
+
+      <TabsContent value="plan" className="mt-4">
+        <ResourcePlanPanel projectId={projectId} />
+      </TabsContent>
 
       {/* ── Avvik ── */}
       <TabsContent value="incidents" className="mt-4">

@@ -7,6 +7,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { NextIntlClientProvider, type AbstractIntlMessages } from "next-intl";
 import { useState } from "react";
 import { PusherSync } from "@/components/pusher-sync";
+import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 
 type ProvidersProps = {
   children: React.ReactNode;
@@ -42,6 +43,7 @@ export function Providers({ children, locale, messages, session, nowISO }: Provi
       >
         <QueryClientProvider client={queryClient}>
           <PusherSync />
+          <PwaInstallPrompt />
           {children}
           <ReactQueryDevtools initialIsOpen={false} />
         </QueryClientProvider>

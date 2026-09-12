@@ -42,6 +42,7 @@ const PATH_TO_WIDGET: Record<string, string> = {
   "/dashboard/fravaer": "absence",
   "/dashboard/onboarding": "boarding",
   "/dashboard/personalarkiv": "personnel-archive",
+  "/dashboard/hr": "hr",
   "/dashboard/projects": "projects",
   "/dashboard/risk-register": "risk-register",
   "/dashboard/management-reviews": "management-reviews",

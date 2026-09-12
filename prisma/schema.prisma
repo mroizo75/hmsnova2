@@ -90,6 +90,7 @@ model User {
   sessions                        Session[]
   tenants                         UserTenant[]
   managedUserTenants              UserTenant[]                   @relation("UserTenantManager") // Ansatte denne brukeren er nærmeste leder for
+  incidentComments                IncidentComment[]            @relation("IncidentCommentAuthor")
   blogPosts                       BlogPost[] // Blogg-artikler skrevet av bruker
   passwordResetTokens             PasswordResetToken[]
   meetingParticipants             MeetingParticipant[]           @relation("MeetingParticipants")
@@ -118,8 +119,13 @@ model User {
   projectsManaged                 Project[]                      @relation("ProjectManager")
   timeEntries                     TimeEntry[]
   editedTimeEntries               TimeEntry[]                    @relation("TimeEntryEditedBy")
+  approvedTimeEntries             TimeEntry[]                    @relation("TimeEntryApprovedBy")
   mileageEntries                  MileageEntry[]
   editedMileageEntries            MileageEntry[]                 @relation("MileageEntryEditedBy")
+  projectInvoicesCreated          ProjectInvoice[]               @relation("ProjectInvoiceCreatedBy")
+  resourceAssignments             ResourceAssignment[]
+  timeBankLedgers                 TimeBankLedger[]
+  timeBankCorrections             TimeBankLedger[]               @relation("TimeBankCorrectedBy")
   constructionRosterChecks        ConstructionRosterDailyCheck[] @relation("ConstructionRosterCheckedBy")
   exposureRegisters               ExposureRegister[]             @relation("ExposureRegisterEmployee")
   routinesResponsible             Routine[]                      @relation("RoutineResponsible")
@@ -246,7 +252,7 @@ model Tenant {
   azureAdEnabled     Boolean   @default(false) // Er Azure AD SSO aktivert?
   azureAdSyncEnabled Boolean   @default(false) // Auto-sync brukere fra Azure AD?
   azureAdLastSync    DateTime? // Sist synkronisert
-  azureAdDomain      String? // Primary domain (f.eks. "firma.no")
+  azureAdDomain      String?   @unique // Primary domain (f.eks. "firma.no")
   azureAdAutoRole    Role? // Standard rolle for nye brukere fra Azure AD
 
   // AI-funksjoner (testfase) – selvbetjent av/på per bedrift, ingen prisendring
@@ -283,6 +289,7 @@ model Tenant {
   serviceOfferDismissed Boolean @default(false) // Skjuler "Vi kan hjelpe"-linjen i veiviseren
 
   users                               UserTenant[]
+  departments                         Department[]
   activities                          TenantActivity[]
   documents                           Document[]
   documentVersions                    DocumentVersion[]
@@ -304,6 +311,7 @@ model Tenant {
   accessReviewEntries                 AccessReviewEntry[]
   customerFeedbacks                   CustomerFeedback[]
   incidents                           Incident[]
+  incidentPeriodAnalyses              IncidentPeriodAnalysis[]
   trainings                           Training[]
   courseTemplates                     CourseTemplate[]
   actions                             Measure[]
@@ -345,6 +353,28 @@ model Tenant {
   moduleVisibilityConfig              Json? // Hvilke roller kan se hvert modul (null = systemstandard)
   ruhModuleEnabled                    Boolean                        @default(true) // false = skjul RUH, kun Avvik brukes (IK-HMS § 5: virksomheten velger egen avviksstruktur)
   hmsAnnualPlanCompletions            HmsAnnualPlanCompletion[] // Avkryssing av årlig HMS-plan (sjekkliste)
+  // Regnskap / Tripletex (feltjobber og kundefaktura — ikke SaaS-Invoice)
+  accountingProvider                  AccountingProviderType         @default(NONE)
+  tripletexEmployeeToken              String?                        @db.Text // AES-256-GCM employee token
+  tripletexCompanyId                  String?
+  tripletexActivityNormalId           String?
+  tripletexActivityOt50Id             String?
+  tripletexActivityOt100Id            String?
+  tripletexProductKmId                String?
+  tripletexProductMachineHoursId      String?
+  accountingWebhookSecret             String?
+  accountingLastPullAt                DateTime?
+  accountingCustomers                 AccountingCustomer[]
+  accountingProducts                  AccountingProduct[]
+  accountingContacts                  AccountingContact[]
+  accountingSalaryTypes               AccountingSalaryType[]
+  accountingSyncJobs                  AccountingSyncJob[]
+  projectUsageLines                   ProjectUsageLine[]
+  projectInvoices                     ProjectInvoice[]
+  resourceAssignments                 ResourceAssignment[]
+  timeBankRules                       TimeBankRule[]
+  timeBankLedgers                     TimeBankLedger[]
+
   // Timeregistrering (prosjekter, timer, kjøring)
   timeRegistrationEnabled             Boolean                        @default(false) // Aktiver modul per tenant
   weeklyHoursNorm                     Float                          @default(37.5) // Ordinær uke (timer)
@@ -355,10 +385,16 @@ model Tenant {
   defaultKmRate                       Float                          @default(4.5) // Standard kr/km
   kmAllowanceTaxable                  Boolean                        @default(false) // true = overskudd over 3,50 kr/km skattes, false = km utenom
   lunchBreakMinutes                   Int                            @default(30) // Lunsj som trekkes fra klokketimer (0 = ingen)
+  dayStartHour                        Float                          @default(7) // Ordinær start (AML-relatert dagsregel, konfigurerbar)
+  dayEndHour                          Float                          @default(15.5) // Ordinær slutt. 07:00–15:00 + 30 min lunsj = 7,5 t (37,5 t/uke)
+  overtime50CapHours                  Float                          @default(4.5) // Timer OT 50 % etter dagsnorm (man–fre)
+  saturdayOt50UntilHour               Float                          @default(12) // Lørdag: OT 50 % frem til denne klokken
+  timeCommentPresets                  Json? // Standard kommentarer for timeføring
+  absenceProjectId                    String? // Fraværsprosjekt for Tripletex
   eveningOvertimeFromHour             Int? // Fra denne kl (man–fre) = 100 % overtid. Null = alt 50 %
   saturdayOvertime40LimitHours        Float? // Lørdag: første X t ved 40 %, resten 100 %. Null = alt 100 %
-  defaultHourlyRate                   Float? // Timelønn (N.Rate) for ca. utbetaling. Null = skjul
-  approximateTaxPercent               Float? // Ca. skatt i % (f.eks. 25). Brukes for ca. utbetaling
+  defaultHourlyRate                   Float? // Valgfritt felles Excel-estimat, ikke individuell lønn. Null = skjul
+  approximateTaxPercent               Float? // Ca. trekk i % for Excel-estimat. Ikke forskuddstrekk.
   constructionDailyCheckAlertsEnabled Boolean                        @default(true) // Varsling ved manglende daglig kontroll i bygg/anlegg
   constructionDailyCheckAlertRole     Role                           @default(HMS) // Hvilken rolle som varsles for bygg/anlegg-kontroll
   // Digital HMS Tavle
@@ -772,15 +808,63 @@ model InvoiceExport {
   @@index([exportedById])
 }
 
+model Department {
+  id        String  @id @default(cuid())
+  tenantId  String
+  name      String
+  code      String?
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  memberships  UserTenant[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model EmployeeHrProfile {
+  id           String    @id @default(cuid())
+  userTenantId String     @unique
+  nationality  String?
+  languages    String? // JSON-array av arbeidsspråk
+  hrNotes      String?   @db.Text // Kun HR/ADMIN – GDPR art. 5 formålsbegrensning
+  startedAt    DateTime?
+  dateOfBirth  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  userTenant UserTenant @relation(fields: [userTenantId], references: [id], onDelete: Cascade)
+}
+
+model EmployeeNextOfKin {
+  id           String  @id @default(cuid())
+  userTenantId String
+  name         String
+  relation     String?
+  phone        String?
+  sortOrder    Int     @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  userTenant UserTenant @relation(fields: [userTenantId], references: [id], onDelete: Cascade)
+
+  @@index([userTenantId])
+}
+
 model UserTenant {
   id         String  @id @default(cuid())
   userId     String
   tenantId   String
   role       Role
   department String?
+  departmentId String?
 
-  // Intern ansatt-ID (bedriftens eget nummersystem, f.eks. "A-0042")
+  // Intern ansatt-ID (bedriftens eget nummersystem, f.eks. "A-0042") / lønnsnummer
   employeeNumber String?
+  externalEmployeeId String? // Tripletex/Fiken employee id
 
   // Organisasjonshierarki (AML § 3-1: HMS-ansvar skal være plassert i linjen)
   managerId String? // UserId for nærmeste leder. Null = fall tilbake til rollebasert varsling
@@ -811,20 +895,25 @@ model UserTenant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant  Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  manager User?  @relation("UserTenantManager", fields: [managerId], references: [id], onDelete: SetNull)
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant     Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  manager    User?             @relation("UserTenantManager", fields: [managerId], references: [id], onDelete: SetNull)
+  orgDepartment Department?   @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  hrProfile  EmployeeHrProfile?
+  nextOfKin  EmployeeNextOfKin[]
 
   @@unique([userId, tenantId])
   @@index([userId])
   @@index([tenantId])
   @@index([managerId])
+  @@index([departmentId])
 }
 
 enum Role {
   ADMIN
   HMS
   LEDER
+  HR
   VERNEOMBUD
   ANSATT
   BHT
@@ -951,6 +1040,9 @@ model DocumentTemplate {
   name                        String
   category                    String?
   description                 String?  @db.Text
+  bodyHtml                    String?  @db.LongText
+  variables                   Json?
+  industryScope               Json?
   pdcaGuidance                Json?
   defaultReviewIntervalMonths Int      @default(12)
   isGlobal                    Boolean  @default(false)
@@ -962,6 +1054,7 @@ model DocumentTemplate {
 
   @@index([tenantId])
   @@index([isGlobal])
+  @@index([category])
 }
 
 /// Digital signatur på dokument (IK-HMS § 5: dokumenter skal signeres av ansvarlige)
@@ -1910,6 +2003,7 @@ model Incident {
   environmentalDescription String?              @db.Text
   // Underkategorier (JSON-array med keys fra IncidentSubcategoryOption)
   subcategoryKeys          String?              @db.Text
+  treatmentOtherText      String?              @db.Text
   // Prosjektkobling (valgfritt – AML § 3-1 systematisk HMS per arbeidssted)
   projectId                String?
   // Fritekst prosjektnummer/referanse for sporbarhet når prosjektet ikke er registrert
@@ -1934,6 +2028,7 @@ model Incident {
   project            Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
   relatedRoutine     Routine?            @relation("IncidentRelatedRoutine", fields: [relatedRoutineId], references: [id], onDelete: SetNull)
   inspectionFindings InspectionFinding[] @relation("InspectionFindingIncident")
+  comments           IncidentComment[]
 
   @@index([tenantId])
   @@index([avviksnummer])
@@ -1977,6 +2072,26 @@ enum IncidentStage {
   ACTIONS_DEFINED
   ACTIONS_COMPLETE
   VERIFIED
+}
+
+enum IncidentCommentKind {
+  SUBMITTER
+  TREATMENT
+}
+
+model IncidentComment {
+  id         String              @id @default(cuid())
+  incidentId String
+  authorId   String
+  body       String              @db.Text
+  kind       IncidentCommentKind
+  createdAt  DateTime            @default(now())
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  author   User     @relation("IncidentCommentAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([incidentId])
+  @@index([authorId])
 }
 
 // ============================================
@@ -2036,6 +2151,45 @@ enum RuhStatus {
   SUBMITTED
   UNDER_REVIEW
   COMPLETED
+}
+
+// ============================================
+// Periodisk AI-analyse av RUH og kvalitetsavvik
+// AML § 5-1 statistikk, IK-HMS § 5, ISO 9001 10.2
+// ============================================
+
+enum IncidentAnalysisPeriodType {
+  WEEK
+  MONTH
+  CUSTOM
+}
+
+enum IncidentAnalysisScope {
+  ALL
+  RUH
+  KVALITET
+  AVVIK
+}
+
+model IncidentPeriodAnalysis {
+  id            String                     @id @default(cuid())
+  tenantId      String
+  periodType    IncidentAnalysisPeriodType
+  periodStart   DateTime
+  periodEnd     DateTime
+  scope         IncidentAnalysisScope      @default(ALL)
+  statsJson     Json
+  narrativeJson Json
+  generatedBy   String
+  generatedAt   DateTime                   @default(now())
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, periodType, periodStart, periodEnd, scope], map: "incident_period_analysis_unique")
+  @@index([tenantId])
+  @@index([generatedAt])
 }
 
 // ============================================
@@ -4255,14 +4409,26 @@ model Project {
   endDate          DateTime?
   projectManagerId String? // UserId for prosjektleder
   createdById      String
+  jobKind          JobKind       @default(HMS)
+  billingStatus    BillingStatus @default(OPEN)
+  externalProjectId  String?
+  externalCustomerId String?
+  externalOrderId    String?
+  parentId           String?
+  contactExternalId  String?
+  isAbsenceProject   Boolean       @default(false)
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
   tenant                      Tenant                         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   createdBy                   User                           @relation("ProjectCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   projectManager              User?                          @relation("ProjectManager", fields: [projectManagerId], references: [id], onDelete: SetNull)
+  parent                      Project?                       @relation("ProjectTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children                    Project[]                      @relation("ProjectTree")
   timeEntries                 TimeEntry[]
   mileageEntries              MileageEntry[]
+  usageLines                  ProjectUsageLine[]
+  invoices                    ProjectInvoice[]
   incidents                   Incident[]
   sjaAnalyses                 SjaAnalysis[]
   inspections                 Inspection[]
@@ -4274,11 +4440,17 @@ model Project {
   riskAssessments             RiskAssessment[]
   formSubmissions             FormSubmission[]
   hmsTavle                    HmsTavle?
+  resourceAssignments         ResourceAssignment[]
+  absences                    Absence[]
 
   @@index([tenantId])
   @@index([status])
   @@index([createdById])
   @@index([projectManagerId])
+  @@index([billingStatus])
+  @@index([jobKind])
+  @@index([externalProjectId])
+  @@index([parentId])
 }
 
 model ConstructionShaPlan {
@@ -4394,6 +4566,36 @@ enum ProjectStatus {
   ARCHIVED
 }
 
+enum JobKind {
+  SERVICE
+  HMS
+}
+
+enum BillingStatus {
+  OPEN
+  READY
+  INVOICED
+}
+
+enum AccountingProviderType {
+  NONE
+  TRIPLETEX
+  FIKEN
+}
+
+enum AccountingSyncStatus {
+  IDLE
+  PENDING
+  SYNCED
+  ERROR
+}
+
+enum ProjectUsageKind {
+  PRODUCT
+  MACHINE
+  KM
+}
+
 enum ConstructionPlanStatus {
   DRAFT
   ACTIVE
@@ -4416,21 +4618,34 @@ model TimeEntry {
   hours           Float
   timeType        TimeEntryType @default(NORMAL)
   workedUntilHour Int? // Arbeidet til kl (0–23). For kveldsovertid 100 %
+  clockFrom       String? // "07:00" — AML kap. 10
+  clockTo         String? // "15:30"
+  lunchMinutes    Int?
+  billingActivityId String? // Tripletex-aktivitet (faktura)
+  salaryTypeId    String? // Tripletex timeart (lønn)
+  approvalStatus  TimesheetApprovalStatus @default(DRAFT)
+  approvedById    String?
+  approvedAt      DateTime?
   comment         String?       @db.Text
   editedById      String? // Hvis admin har rettet
   editedAt        DateTime?
+  externalId      String?
+  syncStatus      AccountingSyncStatus @default(IDLE)
+  invoicedAt      DateTime?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  tenant   Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  editedBy User?   @relation("TimeEntryEditedBy", fields: [editedById], references: [id], onDelete: SetNull)
+  tenant     Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  editedBy   User?   @relation("TimeEntryEditedBy", fields: [editedById], references: [id], onDelete: SetNull)
+  approvedBy User?   @relation("TimeEntryApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([projectId])
   @@index([userId])
   @@index([date])
+  @@index([approvalStatus])
 }
 
 enum TimeEntryType {
@@ -4441,6 +4656,15 @@ enum TimeEntryType {
   WEEKEND // Helg/helligdag
   TRAVEL // Reise/kjøring (timer, ikke km)
   SICK_LEAVE // Sykefravær (Sick Day / Sick Leave)
+}
+
+enum TimesheetApprovalStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  SYNCED
+  SYNC_ERROR
 }
 
 model MileageEntry {
@@ -4455,6 +4679,9 @@ model MileageEntry {
   comment    String?   @db.Text
   editedById String?
   editedAt   DateTime?
+  externalId String?
+  syncStatus AccountingSyncStatus @default(IDLE)
+  invoicedAt DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
@@ -4467,6 +4694,203 @@ model MileageEntry {
   @@index([projectId])
   @@index([userId])
   @@index([date])
+}
+
+model ProjectUsageLine {
+  id          String           @id @default(cuid())
+  tenantId    String
+  projectId   String
+  userId      String
+  kind        ProjectUsageKind
+  productExternalId String
+  productName String
+  quantity    Float
+  unitPrice   Float?
+  comment     String?          @db.Text
+  externalId  String?
+  syncStatus  AccountingSyncStatus @default(IDLE)
+  invoicedAt  DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([projectId])
+}
+
+model ProjectInvoice {
+  id                 String   @id @default(cuid())
+  tenantId           String
+  projectId          String
+  createdById        String
+  externalInvoiceId  String
+  invoiceNumber      String?
+  amountExclVat      Float?
+  createdAt          DateTime @default(now())
+
+  tenant    Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy User    @relation("ProjectInvoiceCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([tenantId])
+  @@index([projectId])
+}
+
+model AccountingCustomer {
+  id             String   @id @default(cuid())
+  tenantId       String
+  externalId     String
+  name           String
+  organizationNumber String?
+  customerNumber String?
+  email          String?
+  phone          String?
+  isInactive     Boolean  @default(false)
+  updatedAt      DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, externalId])
+  @@index([tenantId])
+  @@index([name])
+}
+
+model AccountingProduct {
+  id               String   @id @default(cuid())
+  tenantId         String
+  externalId       String
+  name             String
+  number           String?
+  unit             String?
+  categoryExternalId String?
+  categoryName     String?
+  priceExclVat     Float?
+  priceInclVat     Float?
+  isStockItem      Boolean  @default(false)
+  isInactive       Boolean  @default(false)
+  updatedAt        DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, externalId])
+  @@index([tenantId])
+  @@index([name])
+}
+
+model AccountingSyncJob {
+  id         String   @id @default(cuid())
+  tenantId   String
+  entityType String
+  entityId   String
+  action     String
+  payload    Json
+  attempts   Int      @default(0)
+  lastError  String?  @db.Text
+  status     AccountingSyncStatus @default(PENDING)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@index([status, createdAt])
+}
+
+model AccountingContact {
+  id                 String   @id @default(cuid())
+  tenantId           String
+  customerExternalId String
+  externalId         String
+  firstName          String?
+  lastName           String?
+  email              String?
+  phone              String?
+  isInactive         Boolean  @default(false)
+  updatedAt          DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, externalId])
+  @@index([tenantId, customerExternalId])
+}
+
+model AccountingSalaryType {
+  id         String   @id @default(cuid())
+  tenantId   String
+  externalId String
+  name       String
+  number     String?
+  isInactive Boolean  @default(false)
+  updatedAt  DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, externalId])
+  @@index([tenantId])
+}
+
+model ResourceAssignment {
+  id           String   @id @default(cuid())
+  tenantId     String
+  userId       String
+  projectId    String
+  startDate    DateTime @db.Date
+  endDate      DateTime @db.Date
+  plannedHours Float?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, startDate])
+  @@index([userId, startDate])
+  @@index([projectId])
+}
+
+enum TimeBankEntryKind {
+  EARN
+  TAKE
+  PAYOUT
+  CORRECTION
+}
+
+model TimeBankRule {
+  id               String         @id @default(cuid())
+  tenantId         String
+  salaryTypeId     String?
+  timeType         TimeEntryType?
+  factor           Float          @default(1)
+  appliesToUserIds Json?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model TimeBankLedger {
+  id            String            @id @default(cuid())
+  tenantId      String
+  userId        String
+  kind          TimeBankEntryKind
+  hours         Float
+  balanceAfter  Float
+  timeEntryId   String?
+  reason        String            @db.Text
+  correctedById String?
+  createdAt     DateTime          @default(now())
+
+  tenant      Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  correctedBy User?  @relation("TimeBankCorrectedBy", fields: [correctedById], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, userId])
+  @@index([userId, createdAt])
 }
 
 // ============================================
@@ -6451,12 +6875,18 @@ model Absence {
   attachmentUrl  String?
   attachmentName String?
 
+  projectId             String?
+  salaryTypeExternalId  String?
+  externalId            String?
+  syncStatus            AccountingSyncStatus @default(IDLE)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   tenant     Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user       User                @relation("UserAbsences", fields: [userId], references: [id], onDelete: Cascade)
   approvedBy User?               @relation("AbsenceApprovedBy", fields: [approvedById], references: [id])
+  project    Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
   followUps  SickLeaveFollowUp[]
 
   @@index([tenantId, userId])

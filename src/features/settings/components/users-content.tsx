@@ -24,6 +24,9 @@ export function UsersContent({ initialData }: UsersContentProps) {
       users={data.users}
       currentUserId={data.currentUserId}
       isAdmin={data.isAdmin}
+      canManagePeople={data.canManagePeople ?? data.isAdmin}
+      invitableRoles={data.invitableRoles}
+      departments={data.departments ?? []}
       pricingTier={data.pricingTier}
       maxUsers={data.maxUsers}
     />

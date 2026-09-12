@@ -36,11 +36,7 @@ function buildChecklistFromFormTemplateFields(
       title: field.label,
       checked: false,
       status: "UNSET" as const,
-      findingTitle: "",
-      findingDescription: "",
-      findingSeverity: 3,
-      findingLocation: "",
-      findingImageKeys: [] as string[],
+      findings: [],
     }));
 
   if (checklistItems.length === 0) {

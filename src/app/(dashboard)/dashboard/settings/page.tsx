@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import {
   buildMicrosoftAdminConsentUrl,
+  createMicrosoftConsentState,
   type MicrosoftConsentResult,
 } from "@/lib/microsoft-admin-consent";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
@@ -13,7 +14,7 @@ import { SettingsContent } from "@/features/settings/components/settings-content
 
 const CONSENT_RESULTS: MicrosoftConsentResult[] = ["granted", "denied", "failed"];
 
-function buildAdminConsentUrl(): string | null {
+function buildAdminConsentUrl(userId: string, tenantId: string): string | null {
   const clientId = process.env.AZURE_AD_CLIENT_ID;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXTAUTH_URL;
 
@@ -21,13 +22,31 @@ function buildAdminConsentUrl(): string | null {
     return null;
   }
 
-  return buildMicrosoftAdminConsentUrl({ clientId, appUrl });
+  return buildMicrosoftAdminConsentUrl({
+    clientId,
+    appUrl,
+    state: createMicrosoftConsentState(userId, tenantId),
+  });
 }
+
+const SETTINGS_TABS = [
+  "company",
+  "menu",
+  "visibility",
+  "ai",
+  "profile",
+  "notifications",
+  "sso",
+  "tripletex",
+  "subscription",
+  "intelligence",
+  "tavle",
+] as const;
 
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ consent?: string }>;
+  searchParams: Promise<{ consent?: string; tab?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   const t = await getTranslations("dashboardSettingsPage");
@@ -36,14 +55,20 @@ export default async function SettingsPage({
     redirect("/login");
   }
 
-  const { consent } = await searchParams;
+  const { consent, tab } = await searchParams;
   const consentResult = CONSENT_RESULTS.find((result) => result === consent) ?? null;
+  const defaultTab = SETTINGS_TABS.find((value) => value === tab);
 
-  const initialData = await fetchSettingsData(session.user.email);
+  const initialData = await fetchSettingsData();
 
   if (!initialData) {
     return <div>{t("notLinkedTenant")}</div>;
   }
+
+  const adminConsentUrl =
+    session.user.id && session.user.tenantId
+      ? buildAdminConsentUrl(session.user.id, session.user.tenantId)
+      : null;
 
   return (
     <div className="space-y-6">
@@ -59,9 +84,9 @@ export default async function SettingsPage({
 
       <SettingsContent
         initialData={initialData}
-        adminConsentUrl={buildAdminConsentUrl()}
+        adminConsentUrl={adminConsentUrl}
         consentResult={consentResult}
-        userEmail={session.user.email}
+        defaultTab={defaultTab}
       />
     </div>
   );

@@ -54,6 +54,8 @@
     "absence": "Fråvær og ferie",
     "boarding": "Onboarding",
     "personnelArchive": "Personalarkiv",
+    "departments": "Avdelingar",
+    "hr": "HR",
     "hmsTavle": "HMS-tavle",
     "ikMat": "IK-mat og mattryggleik",
     "skjenking": "Skjenking",
@@ -62,7 +64,24 @@
     "transport": "Transport",
     "bhtNattarbeid": "BHT og nattarbeid",
     "hmsHandbok": "HMS- og personalhandbok",
-    "meldinger": "Meldingar"
+    "meldinger": "Meldingar",
+    "templates": "Malbibliotek"
+  },
+  "dashboardNav": {
+    "simpleMode": "Enkel",
+    "advancedMode": "Avansert",
+    "simpleDescription": "Grunnleggjande HMS-funksjonar",
+    "advancedDescription": "Alle funksjonar inkl. ISO",
+    "hubs": {
+      "oversikt": "Oversikt",
+      "avvikTiltak": "Avvik og tiltak",
+      "dokumenter": "Dokument",
+      "risiko": "Risiko",
+      "skjema": "Skjema og bransje",
+      "organisasjon": "Organisasjon",
+      "hr": "HR",
+      "system": "System"
+    }
   },
   "auth": {
     "login": "Logg inn",

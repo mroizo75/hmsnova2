@@ -28,13 +28,32 @@ export type PersonnelDocumentRow = {
   uploadedBy: { id: string; name: string | null };
 };
 
+export type NextOfKinRow = {
+  name: string;
+  relation: string | null;
+  phone: string | null;
+};
+
+export type HrProfileRow = {
+  nationality: string | null;
+  languages: string[];
+  hrNotes: string | null;
+  startedAt: string | null;
+  dateOfBirth: string | null;
+  employeeNumber: string | null;
+  nextOfKin: NextOfKinRow[];
+  canReadHrNotes: boolean;
+};
+
 export type PersonnelFolder = {
   userId: string;
   name: string | null;
   email: string;
   department: string | null;
+  departmentId: string | null;
   position: string | null;
   documents: PersonnelDocumentRow[];
+  hrProfile: HrProfileRow | null;
 };
 
 function serializeDoc(doc: {
@@ -65,14 +84,32 @@ function serializeDoc(doc: {
   };
 }
 
+function parseLanguages(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchPersonnelEmployees(): Promise<PersonnelEmployeeRow[]> {
   const auth = await getAuthContext();
-  if (!auth?.permissions.canReadAllPersonnelFiles) return [];
+  if (!auth) return [];
+
+  const canAll = auth.permissions.canReadAllPersonnelFiles;
+  const canDept = auth.permissions.canReadDepartmentPersonnelFiles && auth.departmentId;
+  if (!canAll && !canDept) return [];
 
   const memberships = await prisma.userTenant.findMany({
-    where: { tenantId: auth.tenantId },
+    where: {
+      tenantId: auth.tenantId,
+      ...(canAll ? {} : { departmentId: auth.departmentId }),
+    },
     include: {
       user: { select: { id: true, name: true, email: true } },
+      orgDepartment: { select: { name: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -96,7 +133,7 @@ export async function fetchPersonnelEmployees(): Promise<PersonnelEmployeeRow[]>
     userId: m.user.id,
     name: m.user.name,
     email: m.user.email,
-    department: m.department,
+    department: m.orgDepartment?.name ?? m.department,
     position: m.position,
     documentCount: countMap.get(m.user.id) ?? 0,
     expiredCount: expiredMap.get(m.user.id) ?? 0,
@@ -107,19 +144,27 @@ export async function fetchPersonnelFolder(userId: string): Promise<PersonnelFol
   const auth = await getAuthContext();
   if (!auth) return null;
 
+  const membership = await prisma.userTenant.findUnique({
+    where: { userId_tenantId: { userId, tenantId: auth.tenantId } },
+    include: {
+      user: { select: { id: true, name: true, email: true } },
+      orgDepartment: { select: { name: true } },
+      hrProfile: true,
+      nextOfKin: { orderBy: { sortOrder: "asc" } },
+    },
+  });
+  if (!membership) return null;
+
   const allowed = canAccessPersonnelFile({
     viewerId: auth.userId,
     employeeId: userId,
     canReadOwn: auth.permissions.canReadOwnPersonnelFile,
     canReadAll: auth.permissions.canReadAllPersonnelFiles,
+    canReadDepartment: auth.permissions.canReadDepartmentPersonnelFiles,
+    viewerDepartmentId: auth.departmentId,
+    employeeDepartmentId: membership.departmentId,
   });
   if (!allowed) return null;
-
-  const membership = await prisma.userTenant.findUnique({
-    where: { userId_tenantId: { userId, tenantId: auth.tenantId } },
-    include: { user: { select: { id: true, name: true, email: true } } },
-  });
-  if (!membership) return null;
 
   const documents = await prisma.personnelDocument.findMany({
     where: { tenantId: auth.tenantId, userId },
@@ -127,13 +172,37 @@ export async function fetchPersonnelFolder(userId: string): Promise<PersonnelFol
     orderBy: [{ category: "asc" }, { createdAt: "desc" }],
   });
 
+  const canReadHrNotes = auth.permissions.canReadHrNotes;
+  const isSelf = auth.userId === userId;
+
   return {
     userId: membership.user.id,
     name: membership.user.name,
     email: membership.user.email,
-    department: membership.department,
+    department: membership.orgDepartment?.name ?? membership.department,
+    departmentId: membership.departmentId,
     position: membership.position,
     documents: documents.map(serializeDoc),
+    hrProfile: {
+      nationality: canReadHrNotes || auth.permissions.canReadAllPersonnelFiles ? membership.hrProfile?.nationality ?? null : null,
+      languages:
+        canReadHrNotes || auth.permissions.canReadDepartmentPersonnelFiles || isSelf
+          ? parseLanguages(membership.hrProfile?.languages)
+          : [],
+      hrNotes: canReadHrNotes ? membership.hrProfile?.hrNotes ?? null : null,
+      startedAt: membership.hrProfile?.startedAt?.toISOString() ?? null,
+      dateOfBirth: canReadHrNotes || isSelf ? membership.hrProfile?.dateOfBirth?.toISOString() ?? null : null,
+      employeeNumber: membership.employeeNumber,
+      nextOfKin:
+        canReadHrNotes || isSelf
+          ? membership.nextOfKin.map((kin) => ({
+              name: kin.name,
+              relation: kin.relation,
+              phone: kin.phone,
+            }))
+          : [],
+      canReadHrNotes,
+    },
   };
 }
 

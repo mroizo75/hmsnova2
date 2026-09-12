@@ -137,7 +137,10 @@ export interface RolePermissions {
   canViewAllReports: boolean;
 
   // Timeregistrering (prosjekter, timer, kjøring)
-  canAccessTimeRegistration: boolean;
+    canAccessTimeRegistration: boolean;
+  canCreateFieldProject: boolean;
+  canInvoiceProject: boolean;
+  canApproveTimesheet: boolean;
 
   // Juridisk register – lover og forskrifter per bransje (alle roller)
   canReadLegalRegister: boolean;
@@ -178,8 +181,13 @@ export interface RolePermissions {
   // Personalarkiv (GDPR art. 5/6/15/17, AML § 14-5)
   canReadOwnPersonnelFile: boolean;
   canReadAllPersonnelFiles: boolean;
+  canReadDepartmentPersonnelFiles: boolean;
   canUploadPersonnelFile: boolean;
   canDeletePersonnelFile: boolean;
+  canManageDepartments: boolean;
+  canReadDepartments: boolean;
+  canReadHrNotes: boolean;
+  canImportHrDirectory: boolean;
 }
 
 /**
@@ -275,6 +283,9 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canExportReports: true,
     canViewAllReports: true,
     canAccessTimeRegistration: true,
+    canCreateFieldProject: true,
+    canInvoiceProject: true,
+    canApproveTimesheet: true,
     canReadLegalRegister: true,
     canReadExposureRegister: true,
     canManageExposureRegister: true,
@@ -299,8 +310,13 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canManageBoardingTemplates: true,
     canReadOwnPersonnelFile: true,
     canReadAllPersonnelFiles: true,
+    canReadDepartmentPersonnelFiles: true,
     canUploadPersonnelFile: true,
     canDeletePersonnelFile: true,
+    canManageDepartments: true,
+    canReadDepartments: true,
+    canReadHrNotes: true,
+    canImportHrDirectory: true,
   },
 
   // HMS - HMS-ansvarlig, nesten full tilgang
@@ -391,6 +407,9 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canExportReports: true,
     canViewAllReports: true,
     canAccessTimeRegistration: true,
+    canCreateFieldProject: true,
+    canInvoiceProject: true,
+    canApproveTimesheet: true,
     canReadLegalRegister: true,
     canReadExposureRegister: true,
     canManageExposureRegister: true,
@@ -416,9 +435,14 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateBoarding: true,
     canManageBoardingTemplates: true,
     canReadOwnPersonnelFile: true,
-    canReadAllPersonnelFiles: true,
-    canUploadPersonnelFile: true,
-    canDeletePersonnelFile: true,
+    canReadAllPersonnelFiles: false,
+    canReadDepartmentPersonnelFiles: false,
+    canUploadPersonnelFile: false,
+    canDeletePersonnelFile: false,
+    canManageDepartments: false,
+    canReadDepartments: true,
+    canReadHrNotes: false,
+    canImportHrDirectory: false,
   },
 
   // LEDER - Leder, kan administrere i sin avdeling
@@ -509,6 +533,9 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canExportReports: true,
     canViewAllReports: true,
     canAccessTimeRegistration: true,
+    canCreateFieldProject: true,
+    canInvoiceProject: true,
+    canApproveTimesheet: true,
     canReadLegalRegister: true,
     canReadExposureRegister: true,
     canManageExposureRegister: true,
@@ -532,9 +559,138 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateBoarding: true,
     canManageBoardingTemplates: false,
     canReadOwnPersonnelFile: true,
-    canReadAllPersonnelFiles: true,
+    canReadAllPersonnelFiles: false,
+    canReadDepartmentPersonnelFiles: true,
     canUploadPersonnelFile: true,
     canDeletePersonnelFile: false,
+    canManageDepartments: false,
+    canReadDepartments: true,
+    canReadHrNotes: false,
+    canImportHrDirectory: false,
+  },
+
+  // HR - kun personal og organisasjon (GDPR art. 5/6). Ingen HMS-kjerne.
+  HR: {
+    canAccessDashboard: true,
+    canViewAnalytics: false,
+    canReadDocuments: true,
+    canCreateDocuments: false,
+    canApproveDocuments: false,
+    canDeleteDocuments: false,
+    canReadIncidents: false,
+    canReadOwnIncidents: true,
+    canCreateIncidents: true,
+    canInvestigateIncidents: false,
+    canCloseIncidents: false,
+    canReadRuh: false,
+    canReadOwnRuh: true,
+    canCreateRuh: true,
+    canHandleRuh: false,
+    canReadSja: false,
+    canReadOwnSja: true,
+    canCreateSja: true,
+    canApproveSja: false,
+    canReadRisks: false,
+    canCreateRisks: false,
+    canApproveRisks: false,
+    canDeleteRisks: false,
+    canReadActions: false,
+    canCreateActions: false,
+    canUpdateActions: false,
+    canDeleteActions: false,
+    canReadForms: true,
+    canFillForms: true,
+    canCreateForms: false,
+    canManageForms: false,
+    canReadAllFormSubmissions: false,
+    canReadOwnFormSubmissions: true,
+    canReadRoutines: true,
+    canCreateRoutines: false,
+    canManageRoutines: false,
+    canReadChemicals: false,
+    canCreateChemicals: false,
+    canUpdateChemicals: false,
+    canDeleteChemicals: false,
+    canReadOwnTraining: true,
+    canReadAllTraining: true,
+    canCreateTraining: true,
+    canAssignTraining: true,
+    canEvaluateTraining: false,
+    canReadAudits: false,
+    canCreateAudits: false,
+    canConductAudits: false,
+    canCloseAudits: false,
+    canReadInspections: false,
+    canCreateInspections: false,
+    canConductInspections: false,
+    canCloseInspections: false,
+    canDeleteInspections: false,
+    canReadGoals: false,
+    canCreateGoals: false,
+    canUpdateGoals: false,
+    canMeasureGoals: false,
+    canReadOwnFeedback: true,
+    canReadAllFeedback: false,
+    canCreateFeedback: true,
+    canManageFeedback: false,
+    canReadEnvironment: false,
+    canCreateEnvironment: false,
+    canUpdateEnvironment: false,
+    canRecordEnvironmentalMeasurements: false,
+    canReadManagementReviews: false,
+    canCreateManagementReviews: false,
+    canApproveManagementReviews: false,
+    canReadMeetings: false,
+    canCreateMeetings: false,
+    canOrganizeMeetings: false,
+    canViewAllMeetings: false,
+    canSubmitWhistleblowing: true,
+    canViewWhistleblowing: false,
+    canViewWhistleblowingContent: false,
+    canHandleWhistleblowing: false,
+    canReadUsers: true,
+    canInviteUsers: true,
+    canManageUsers: true,
+    canDeleteUsers: false,
+    canReadSettings: true,
+    canUpdateSettings: false,
+    canExportReports: true,
+    canViewAllReports: true,
+    canAccessTimeRegistration: true,
+    canCreateFieldProject: false,
+    canInvoiceProject: false,
+    canApproveTimesheet: false,
+    canReadLegalRegister: true,
+    canReadExposureRegister: false,
+    canManageExposureRegister: false,
+    canReadConstructionCompliance: false,
+    canManageConstructionCompliance: false,
+    canViewHmsTavle: true,
+    canManageHmsTavle: false,
+    canReviewSubmissions: false,
+    canReadOwnEmployeeReviews: true,
+    canReadAllEmployeeReviews: true,
+    canCreateEmployeeReviews: true,
+    canConductEmployeeReviews: true,
+    canDeleteEmployeeReviews: false,
+    canReadOwnAbsence: true,
+    canReadAllAbsence: true,
+    canCreateAbsence: true,
+    canApproveAbsence: true,
+    canExportAbsenceStats: true,
+    canReadOwnBoarding: true,
+    canReadAllBoarding: true,
+    canCreateBoarding: true,
+    canManageBoardingTemplates: true,
+    canReadOwnPersonnelFile: true,
+    canReadAllPersonnelFiles: true,
+    canReadDepartmentPersonnelFiles: true,
+    canUploadPersonnelFile: true,
+    canDeletePersonnelFile: true,
+    canManageDepartments: true,
+    canReadDepartments: true,
+    canReadHrNotes: true,
+    canImportHrDirectory: true,
   },
 
   // VERNEOMBUD - Verneombud, fokus på HMS (AML § 6-2: rett til informasjon om arbeidsmiljøet)
@@ -625,6 +781,9 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canExportReports: false,
     canViewAllReports: false,
     canAccessTimeRegistration: true,
+    canCreateFieldProject: false,
+    canInvoiceProject: false,
+    canApproveTimesheet: false,
     canReadLegalRegister: true,
     canReadExposureRegister: true,
     canManageExposureRegister: false,
@@ -649,8 +808,13 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canManageBoardingTemplates: false,
     canReadOwnPersonnelFile: true,
     canReadAllPersonnelFiles: false,
+    canReadDepartmentPersonnelFiles: false,
     canUploadPersonnelFile: false,
     canDeletePersonnelFile: false,
+    canManageDepartments: false,
+    canReadDepartments: false,
+    canReadHrNotes: false,
+    canImportHrDirectory: false,
   },
 
   // ANSATT - Ansatt, begrenset tilgang
@@ -741,6 +905,9 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canExportReports: false,
     canViewAllReports: false,
     canAccessTimeRegistration: true,
+    canCreateFieldProject: true,
+    canInvoiceProject: false,
+    canApproveTimesheet: false,
     canReadLegalRegister: true,
     canReadExposureRegister: false,
     canManageExposureRegister: false,
@@ -765,8 +932,13 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canManageBoardingTemplates: false,
     canReadOwnPersonnelFile: true,
     canReadAllPersonnelFiles: false,
+    canReadDepartmentPersonnelFiles: false,
     canUploadPersonnelFile: false,
     canDeletePersonnelFile: false,
+    canManageDepartments: false,
+    canReadDepartments: false,
+    canReadHrNotes: false,
+    canImportHrDirectory: false,
   },
 
   // BHT - Bedriftshelsetjeneste, lesetilgang + rapportering
@@ -857,6 +1029,9 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canExportReports: true,
     canViewAllReports: true,
     canAccessTimeRegistration: true,
+    canCreateFieldProject: false,
+    canInvoiceProject: false,
+    canApproveTimesheet: false,
     canReadLegalRegister: true,
     canReadExposureRegister: true,
     canManageExposureRegister: false,
@@ -881,8 +1056,13 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canManageBoardingTemplates: false,
     canReadOwnPersonnelFile: true,
     canReadAllPersonnelFiles: false,
+    canReadDepartmentPersonnelFiles: false,
     canUploadPersonnelFile: false,
     canDeletePersonnelFile: false,
+    canManageDepartments: false,
+    canReadDepartments: false,
+    canReadHrNotes: false,
+    canImportHrDirectory: false,
   },
 
   // REVISOR - Revisor, kun lesetilgang
@@ -973,6 +1153,9 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canExportReports: true,
     canViewAllReports: true,
     canAccessTimeRegistration: true,
+    canCreateFieldProject: false,
+    canInvoiceProject: false,
+    canApproveTimesheet: false,
     canReadLegalRegister: true,
     canReadExposureRegister: true,
     canManageExposureRegister: false,
@@ -997,8 +1180,13 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canManageBoardingTemplates: false,
     canReadOwnPersonnelFile: true,
     canReadAllPersonnelFiles: false,
+    canReadDepartmentPersonnelFiles: false,
     canUploadPersonnelFile: false,
     canDeletePersonnelFile: false,
+    canManageDepartments: false,
+    canReadDepartments: false,
+    canReadHrNotes: false,
+    canImportHrDirectory: false,
   },
 
   // VARSLINGSANSVARLIG — AML kap. 2 A, GDPR art. 5/9: eneste rolle med fullt saksinnhold
@@ -1088,7 +1276,10 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canUpdateSettings: false,
     canExportReports: false,
     canViewAllReports: false,
-    canAccessTimeRegistration: false,
+    canAccessTimeRegistration: true,
+    canCreateFieldProject: false,
+    canInvoiceProject: false,
+    canApproveTimesheet: false,
     canReadLegalRegister: false,
     canReadExposureRegister: false,
     canManageExposureRegister: false,
@@ -1113,8 +1304,13 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canManageBoardingTemplates: false,
     canReadOwnPersonnelFile: false,
     canReadAllPersonnelFiles: false,
+    canReadDepartmentPersonnelFiles: false,
     canUploadPersonnelFile: false,
     canDeletePersonnelFile: false,
+    canManageDepartments: false,
+    canReadDepartments: false,
+    canReadHrNotes: false,
+    canImportHrDirectory: false,
   },
 };
 
@@ -1167,6 +1363,9 @@ export function getVisibleNavItems(role: Role) {
     complaints: perms.canCreateIncidents,
     settings: perms.canReadSettings,
     timeRegistration: perms.canAccessTimeRegistration,
+    fieldProject: perms.canCreateFieldProject,
+    invoiceProject: perms.canInvoiceProject,
+    approveTimesheet: perms.canApproveTimesheet,
     legalRegister: perms.canReadLegalRegister,
     exposureRegister: perms.canReadExposureRegister,
     constructionCompliance: perms.canReadConstructionCompliance,
@@ -1174,7 +1373,18 @@ export function getVisibleNavItems(role: Role) {
     employeeReviews: perms.canReadOwnEmployeeReviews || perms.canReadAllEmployeeReviews,
     absence: perms.canReadOwnAbsence || perms.canReadAllAbsence,
     boarding: perms.canReadOwnBoarding || perms.canReadAllBoarding,
-    personnelArchive: perms.canReadAllPersonnelFiles,
+    personnelArchive: perms.canReadAllPersonnelFiles || perms.canReadDepartmentPersonnelFiles,
+    departments: perms.canReadDepartments,
+    hr:
+      perms.canReadAllPersonnelFiles ||
+      perms.canReadDepartmentPersonnelFiles ||
+      perms.canReadOwnAbsence ||
+      perms.canReadAllAbsence ||
+      perms.canReadOwnBoarding ||
+      perms.canReadAllBoarding ||
+      perms.canReadOwnEmployeeReviews ||
+      perms.canReadAllEmployeeReviews ||
+      perms.canReadDepartments,
     ikMat: perms.canReadInspections,
     skjenking: perms.canReadInspections,
     aktivitetssikkerhet: perms.canReadInspections,
@@ -1183,8 +1393,9 @@ export function getVisibleNavItems(role: Role) {
     beredskap: perms.canReadIncidents,
     support: true, // Alle innloggede brukere kan kontakte HMS-representanter
     benchmark: perms.canReadIncidents || perms.canViewAnalytics,
-    hmsHandbok: perms.canReadDocuments || perms.canReadRoutines, // Alle som kan lese dokumenter/rutiner ser håndboken
-    hmsCockpit: perms.canReadDocuments, // HMS Cockpit krever lesetilgang til dokumenter
+    hmsHandbok: perms.canReadDocuments || perms.canReadRoutines,
+    hmsCockpit: perms.canReadDocuments,
+    templates: perms.canReadDocuments || perms.canReadRoutines,
   };
 }
 
@@ -1203,6 +1414,7 @@ export function getRoleDisplayName(role: Role): string {
     ADMIN: "Administrator",
     HMS: "HMS-ansvarlig",
     LEDER: "Leder",
+    HR: "HR",
     VERNEOMBUD: "Verneombud",
     ANSATT: "Ansatt",
     BHT: "Bedriftshelsetjeneste",
@@ -1220,6 +1432,7 @@ export function getRoleDescription(role: Role): string {
     ADMIN: "Full tilgang til alle funksjoner i bedriften",
     HMS: "Administrerer HMS-systemet og har full tilgang til HMS-relaterte funksjoner",
     LEDER: "Kan administrere sin avdeling og håndtere HMS-oppgaver",
+    HR: "Administrerer personal, avdelinger og ansettelsesforhold. Ingen tilgang til HMS-kjerne (GDPR art. 5)",
     VERNEOMBUD: "Kan rapportere avvik, risikovurderinger og delta i HMS-arbeid",
     ANSATT: "Kan rapportere avvik, fylle ut skjemaer og lese dokumenter",
     BHT: "Lesetilgang til alt og kan rapportere hendelser og risikovurderinger",
@@ -1228,5 +1441,18 @@ export function getRoleDescription(role: Role): string {
       "Mottar og behandler kun varslingssaker. Ingen tilgang til avvik, RUH eller annen HMS-behandling (AML kap. 2 A, GDPR art. 5 formålsbegrensning).",
   };
   return descriptions[role];
+}
+
+export function getInvitableRoles(actorRole: Role): Role[] {
+  if (actorRole === "ADMIN") {
+    return ["ANSATT", "LEDER", "HMS", "HR", "VERNEOMBUD", "BHT", "REVISOR", "VARSLINGSANSVARLIG", "ADMIN"];
+  }
+  if (actorRole === "HR") {
+    return ["ANSATT", "LEDER", "VERNEOMBUD"];
+  }
+  if (actorRole === "HMS") {
+    return ["ANSATT", "LEDER", "VERNEOMBUD"];
+  }
+  return [];
 }
 

@@ -87,7 +87,7 @@ export function TenantSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="w-full justify-between" disabled={loading}>
+        <Button variant="outline" className="mt-2 h-8 w-full justify-between bg-transparent text-foreground" disabled={loading}>
           <div className="flex items-center gap-2 truncate">
             <Building2 className="h-4 w-4 flex-shrink-0" />
             <span className="truncate">{currentTenant?.name || "Velg bedrift"}</span>

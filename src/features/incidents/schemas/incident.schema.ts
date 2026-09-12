@@ -47,6 +47,7 @@ export const createIncidentSchema = z.object({
   projectReference: z.string().max(PROJECT_REFERENCE_MAX_LENGTH).optional().nullable(),
   // Underkategorier (sjekkbokser per hendelsestype)
   subcategoryKeys: z.array(z.string()).optional(),
+  submitterComment: z.string().max(4000).optional(),
   // RUH-felt (AML § 5-2)
   involvedPersons: z.string().optional(),
   injuryDescription: z.string().optional(),
@@ -92,6 +93,7 @@ export const updateIncidentSchema = z.object({
   projectReference: z.string().max(PROJECT_REFERENCE_MAX_LENGTH).optional().nullable(),
   // Underkategorier
   subcategoryKeys: z.array(z.string()).optional(),
+  treatmentOtherText: z.string().max(500).optional().nullable(),
   // RUH-felt
   involvedPersons: z.string().optional(),
   injuryDescription: z.string().optional(),
@@ -131,12 +133,22 @@ export type CloseIncidentInput = z.infer<typeof closeIncidentSchema>;
 
 export type MainIncidentCategory = "AVVIK" | "RUH";
 
-const RUH_TYPES: ReadonlySet<IncidentType> = new Set<IncidentType>([
+export const RUH_TYPES: ReadonlySet<IncidentType> = new Set<IncidentType>([
   "ULYKKE",
   "NESTEN",
   "FARLIG_SITUASJON",
   "YRKESSYKDOM",
+  "SKADE",
 ]);
+
+export type AnalysisBucket = "RUH" | "KVALITET" | "AVVIK";
+
+/** AML § 5-2-hendelser, ISO 9001 kvalitetsavvik, øvrige avvik. */
+export function getAnalysisBucket(type: IncidentType): AnalysisBucket {
+  if (type === "KVALITET") return "KVALITET";
+  if (RUH_TYPES.has(type)) return "RUH";
+  return "AVVIK";
+}
 
 export function getMainCategory(type: IncidentType): MainIncidentCategory {
   return RUH_TYPES.has(type) ? "RUH" : "AVVIK";

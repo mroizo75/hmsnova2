@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ProjectTabs } from "@/features/projects/components/project-tabs";
 import { useLocale, useTranslations } from "next-intl";
 import { fetchProjectDetail } from "@/server/queries/project.queries";
+import Link from "next/link";
 
 type ProjectDetailData = NonNullable<Awaited<ReturnType<typeof fetchProjectDetail>>>;
 
@@ -104,6 +105,20 @@ export function ProjectDetailContent({ initialData }: ProjectDetailContentProps)
           </CardContent>
         </Card>
       </div>
+
+      {project.children?.length > 0 && (
+        <div className="flex flex-wrap gap-2 text-sm">
+          {project.children.map((child: { id: string; name: string }) => (
+            <Link
+              key={child.id}
+              href={`/dashboard/projects/${child.id}`}
+              className="rounded-md border px-2 py-1 hover:bg-muted"
+            >
+              {child.name}
+            </Link>
+          ))}
+        </div>
+      )}
 
       <ProjectTabs
         projectId={project.id}

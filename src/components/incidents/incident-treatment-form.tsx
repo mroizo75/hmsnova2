@@ -10,9 +10,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles, AlertCircle } from "lucide-react";
 import { PROJECT_REFERENCE_MAX_LENGTH } from "@/lib/incident-project-reference";
 import { INCIDENT_TREATMENT_STATUSES } from "@/lib/incident-close-rules";
+import { runAiIncidentQualityCheck } from "@/server/actions/ai-assistant.actions";
+import { addIncidentComment } from "@/server/actions/incident-comment.actions";
+import { TREATMENT_CHECKLIST_COLUMNS } from "@/lib/incident-treatment-checklist";
 
 interface SubcategoryOption {
   id: string;
@@ -23,6 +26,8 @@ interface SubcategoryOption {
 
 interface IncidentTreatmentFormProps {
   incidentId: string;
+  incidentTitle: string;
+  incidentDescription: string;
   currentType: string;
   currentSubcategoryKeys: string[];
   currentProjectId: string | null;
@@ -47,9 +52,18 @@ interface IncidentTreatmentFormProps {
   currentInjuryType: string | null;
   currentInjuryDescription: string | null;
   currentSuggestedActions: string | null;
+  currentTreatmentOtherText?: string | null;
+  comments?: Array<{
+    id: string;
+    body: string;
+    kind: string;
+    createdAt: string;
+    author: { id: string; name: string | null };
+  }>;
   users: Array<{ id: string; name: string | null; email: string }>;
   projects: Array<{ id: string; name: string; code: string | null; status: string }>;
   ruhModuleEnabled?: boolean;
+  aiEnabled?: boolean;
 }
 
 const NO_PROJECT_VALUE = "__none_project__";
@@ -63,6 +77,8 @@ function severityToSelectValue(severity: number | null): string {
 
 export function IncidentTreatmentForm({
   incidentId,
+  incidentTitle,
+  incidentDescription,
   currentType,
   currentSubcategoryKeys,
   currentProjectId,
@@ -87,9 +103,12 @@ export function IncidentTreatmentForm({
   currentInjuryType,
   currentInjuryDescription,
   currentSuggestedActions,
+  currentTreatmentOtherText = null,
+  comments = [],
   users,
   projects,
   ruhModuleEnabled = true,
+  aiEnabled = false,
 }: IncidentTreatmentFormProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -101,6 +120,9 @@ export function IncidentTreatmentForm({
   const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>(
     currentSubcategoryKeys
   );
+  const [treatmentOtherText, setTreatmentOtherText] = useState(currentTreatmentOtherText ?? "");
+  const [treatmentComment, setTreatmentComment] = useState("");
+  const [commentSaving, setCommentSaving] = useState(false);
   const [loadingSubcategories, setLoadingSubcategories] = useState(false);
   const [status, setStatus] = useState(
     currentStatus === "OPEN" ? "INVESTIGATING" : currentStatus
@@ -133,6 +155,8 @@ export function IncidentTreatmentForm({
   const [injuryType, setInjuryType] = useState(currentInjuryType ?? "");
   const [injuryDescription, setInjuryDescription] = useState(currentInjuryDescription ?? "");
   const [suggestedActions, setSuggestedActions] = useState(currentSuggestedActions ?? "");
+  const [aiQualityLoading, setAiQualityLoading] = useState(false);
+  const [aiWarnings, setAiWarnings] = useState<string[]>([]);
   const requiresHseCompletion = status !== "OPEN";
   const lostWorkdaysValue = lostWorkdays.trim();
   const isLostWorkdaysInvalid =
@@ -194,6 +218,29 @@ export function IncidentTreatmentForm({
     );
   }
 
+  async function handleAiQualityCheck() {
+    setAiQualityLoading(true);
+    try {
+      const result = await runAiIncidentQualityCheck({
+        type,
+        title: incidentTitle,
+        description: incidentDescription,
+        suggestedActions: suggestedActions || undefined,
+        severity: severity === NOT_ASSESSED_SEVERITY_VALUE ? null : parseInt(severity, 10),
+      });
+      if (result.success && result.data) {
+        setAiWarnings(result.data.warnings);
+        if (result.data.warnings.length === 0) {
+          toast({ title: "Alt ser bra ut", description: "AI fant ingen mangler i registreringen." });
+        }
+      }
+    } catch {
+      toast({ title: "AI-feil", description: "Kunne ikke kjøre kvalitetssjekk", variant: "destructive" });
+    } finally {
+      setAiQualityLoading(false);
+    }
+  }
+
   async function handleUpdate() {
     if (isLostWorkdaysInvalid) {
       toast({
@@ -246,6 +293,7 @@ export function IncidentTreatmentForm({
           injuryDescription: injuryDescription.trim() || null,
           suggestedActions: suggestedActions.trim() || null,
           source,
+          treatmentOtherText: treatmentOtherText.trim() || null,
         }),
       });
 
@@ -296,10 +344,44 @@ export function IncidentTreatmentForm({
     injuryType !== (currentInjuryType ?? "") ||
     injuryDescription !== (currentInjuryDescription ?? "") ||
     suggestedActions !== (currentSuggestedActions ?? "") ||
-    source !== (currentSource || "INTERNAL");
+    source !== (currentSource || "INTERNAL") ||
+    treatmentOtherText.trim() !== (currentTreatmentOtherText ?? "");
 
   return (
     <div className="space-y-4">
+      {aiEnabled && (
+        <div className="space-y-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleAiQualityCheck}
+            disabled={aiQualityLoading}
+            className="gap-2"
+          >
+            {aiQualityLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+            {aiQualityLoading ? "Sjekker..." : "AI-kvalitetssjekk"}
+          </Button>
+          {aiWarnings.length > 0 && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-3 space-y-1">
+              <p className="text-sm font-medium flex items-center gap-1.5">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+                AI fant {aiWarnings.length} forbedrings{aiWarnings.length === 1 ? "punkt" : "punkter"}
+              </p>
+              <ul className="list-disc ml-6 text-sm text-muted-foreground space-y-0.5">
+                {aiWarnings.map((w, i) => (
+                  <li key={i}>{w}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="grid md:grid-cols-2 gap-4">
         <div>
           <Label className="mb-2 block">Hendelsestype</Label>
@@ -457,6 +539,93 @@ export function IncidentTreatmentForm({
             ))}
           </div>
         )}
+      </div>
+
+      <div className="rounded-lg border p-4 space-y-3">
+        <div>
+          <Label className="block font-semibold">Kvalitets- og Ex-sjekkliste</Label>
+          <p className="text-xs text-muted-foreground mt-1">
+            Flerkryss ved behandling (ISO 9001 kap. 10.2). Ikke begrenset til ATEX.
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {TREATMENT_CHECKLIST_COLUMNS.map((column, columnIndex) => (
+            <div key={columnIndex} className="space-y-2">
+              {column.map((item) => (
+                <label key={item.key} className="flex cursor-pointer items-center gap-2 select-none">
+                  <Checkbox
+                    checked={selectedSubcategories.includes(item.key)}
+                    onCheckedChange={() => toggleSubcategory(item.key)}
+                  />
+                  <span className="text-sm">{item.label}</span>
+                </label>
+              ))}
+            </div>
+          ))}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="treatmentOtherText">Annet</Label>
+          <Input
+            id="treatmentOtherText"
+            value={treatmentOtherText}
+            onChange={(event) => setTreatmentOtherText(event.target.value)}
+            placeholder="______________"
+            maxLength={500}
+          />
+        </div>
+      </div>
+
+      <div className="rounded-lg border p-4 space-y-3">
+        <Label className="block font-semibold">Interne merknader</Label>
+        {comments.filter((comment) => comment.kind === "TREATMENT" || comment.kind === "SUBMITTER").length === 0 ? (
+          <p className="text-sm text-muted-foreground">Ingen kommentarer ennå.</p>
+        ) : (
+          <ul className="space-y-2">
+            {comments.map((comment) => (
+              <li key={comment.id} className="rounded-md bg-muted/40 p-3 text-sm">
+                <p className="text-xs text-muted-foreground">
+                  {comment.kind === "SUBMITTER" ? "Innsender" : "Behandler"} ·{" "}
+                  {comment.author.name ?? "Ukjent"} ·{" "}
+                  {new Date(comment.createdAt).toLocaleString("nb-NO")}
+                </p>
+                <p className="mt-1 whitespace-pre-wrap">{comment.body}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+        <Textarea
+          value={treatmentComment}
+          onChange={(event) => setTreatmentComment(event.target.value)}
+          placeholder="Intern merknad til saken"
+          rows={2}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={commentSaving || treatmentComment.trim().length < 2}
+          onClick={async () => {
+            setCommentSaving(true);
+            try {
+              const result = await addIncidentComment({
+                incidentId,
+                body: treatmentComment,
+                kind: "TREATMENT",
+              });
+              if (result.success === false) {
+                toast({ title: "Feil", description: result.error, variant: "destructive" });
+                return;
+              }
+              setTreatmentComment("");
+              await queryClient.invalidateQueries({ queryKey: ["incidents", incidentId] });
+              router.refresh();
+            } finally {
+              setCommentSaving(false);
+            }
+          }}
+        >
+          {commentSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Legg til merknad"}
+        </Button>
       </div>
 
       <div className="rounded-lg border p-4 space-y-4">

@@ -7,9 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, X, Sparkles } from "lucide-react";
+import { Camera, Plus, Sparkles, X } from "lucide-react";
 import { generateAiInspectionSummary } from "@/server/actions/ai-assistant.actions";
 import { useTranslations } from "next-intl";
+import {
+  createEmptyInspectionFinding,
+  findingsFromChecklistItem,
+  type InspectionFindingDraft,
+} from "@/lib/inspection-findings";
 
 type ChecklistEntry =
   | { type: "heading"; title: string }
@@ -18,12 +23,7 @@ type ChecklistEntry =
       title: string;
       checked: boolean;
       status?: "OK" | "NOT_OK" | "UNSET";
-      findingTitle?: string;
-      findingDescription?: string;
-      findingSeverity?: number;
-      findingLocation?: string;
-      findingImageKeys?: string[];
-      linkedFindingId?: string;
+      findings: InspectionFindingDraft[];
     };
 
 interface InspectionChecklistProps {
@@ -39,7 +39,7 @@ function normalizeChecklistEntries(checklist: unknown): ChecklistEntry[] {
   return rawItems
     .map((entry): ChecklistEntry | null => {
       if (typeof entry === "string") {
-        return { type: "item", title: entry, checked: false };
+        return { type: "item", title: entry, checked: false, findings: [] };
       }
 
       if (!entry || typeof entry !== "object") {
@@ -51,12 +51,6 @@ function normalizeChecklistEntries(checklist: unknown): ChecklistEntry[] {
         title?: string;
         checked?: boolean;
         status?: "OK" | "NOT_OK" | "UNSET";
-        findingTitle?: string;
-        findingDescription?: string;
-        findingSeverity?: number;
-        findingLocation?: string;
-        findingImageKeys?: string[];
-        linkedFindingId?: string;
       };
       const title = String(typed.title || "").trim();
       if (!title) return null;
@@ -75,17 +69,7 @@ function normalizeChecklistEntries(checklist: unknown): ChecklistEntry[] {
             : typed.checked === true
               ? "OK"
               : "UNSET",
-        findingTitle: typeof typed.findingTitle === "string" ? typed.findingTitle : "",
-        findingDescription: typeof typed.findingDescription === "string" ? typed.findingDescription : "",
-        findingSeverity:
-          typeof typed.findingSeverity === "number" && typed.findingSeverity >= 1 && typed.findingSeverity <= 5
-            ? typed.findingSeverity
-            : 3,
-        findingLocation: typeof typed.findingLocation === "string" ? typed.findingLocation : "",
-        findingImageKeys: Array.isArray(typed.findingImageKeys)
-          ? typed.findingImageKeys.filter((value): value is string => typeof value === "string")
-          : [],
-        linkedFindingId: typeof typed.linkedFindingId === "string" ? typed.linkedFindingId : undefined,
+        findings: findingsFromChecklistItem(typed as Record<string, unknown>, title),
       };
     })
     .filter((entry): entry is ChecklistEntry => entry !== null);
@@ -134,34 +118,62 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
           ...entry,
           checked: false,
           status: "NOT_OK",
-          findingTitle: entry.findingTitle || entry.title,
-          findingSeverity: entry.findingSeverity || 3,
+          findings:
+            entry.findings.length > 0 ? entry.findings : [createEmptyInspectionFinding(entry.title)],
         };
       })
     );
   };
 
-  const updateItemFindingField = (
-    index: number,
-    field: "findingTitle" | "findingDescription" | "findingLocation" | "findingSeverity",
+  const updateFindingField = (
+    itemIndex: number,
+    findingIndex: number,
+    field: "title" | "description" | "location" | "severity",
     value: string | number
   ) => {
     setEntries((previous) =>
       previous.map((entry, entryIndex) => {
-        if (entryIndex !== index || entry.type !== "item") return entry;
+        if (entryIndex !== itemIndex || entry.type !== "item") return entry;
         return {
           ...entry,
-          [field]: value,
+          findings: entry.findings.map((finding, currentIndex) =>
+            currentIndex === findingIndex ? { ...finding, [field]: value } : finding,
+          ),
         };
       })
     );
   };
 
-  const uploadFindingImages = async (index: number, files: FileList | null) => {
+  const addFinding = (itemIndex: number) => {
+    setEntries((previous) =>
+      previous.map((entry, entryIndex) => {
+        if (entryIndex !== itemIndex || entry.type !== "item") return entry;
+        return {
+          ...entry,
+          findings: [...entry.findings, createEmptyInspectionFinding(entry.title)],
+        };
+      })
+    );
+  };
+
+  const removeFinding = (itemIndex: number, findingIndex: number) => {
+    setEntries((previous) =>
+      previous.map((entry, entryIndex) => {
+        if (entryIndex !== itemIndex || entry.type !== "item") return entry;
+        if (entry.findings.length <= 1) return entry;
+        return {
+          ...entry,
+          findings: entry.findings.filter((_, currentIndex) => currentIndex !== findingIndex),
+        };
+      })
+    );
+  };
+
+  const uploadFindingImages = async (itemIndex: number, findingIndex: number, files: FileList | null) => {
     if (!files || files.length === 0) {
       return;
     }
-    setUploadingIndex(index);
+    setUploadingIndex(itemIndex);
     try {
       const uploadedKeys: string[] = [];
       for (const file of Array.from(files)) {
@@ -185,11 +197,14 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
 
       setEntries((previous) =>
         previous.map((entry, entryIndex) => {
-          if (entryIndex !== index || entry.type !== "item") return entry;
-          const existingImages = entry.findingImageKeys || [];
+          if (entryIndex !== itemIndex || entry.type !== "item") return entry;
           return {
             ...entry,
-            findingImageKeys: [...existingImages, ...uploadedKeys],
+            findings: entry.findings.map((finding, currentIndex) =>
+              currentIndex === findingIndex
+                ? { ...finding, imageKeys: [...finding.imageKeys, ...uploadedKeys] }
+                : finding,
+            ),
           };
         })
       );
@@ -204,7 +219,7 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
     }
   };
 
-  const removeFindingImage = async (index: number, imageKey: string) => {
+  const removeFindingImage = async (itemIndex: number, findingIndex: number, imageKey: string) => {
     try {
       await fetch("/api/inspections/upload", {
         method: "DELETE",
@@ -214,10 +229,14 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
 
       setEntries((previous) =>
         previous.map((entry, entryIndex) => {
-          if (entryIndex !== index || entry.type !== "item") return entry;
+          if (entryIndex !== itemIndex || entry.type !== "item") return entry;
           return {
             ...entry,
-            findingImageKeys: (entry.findingImageKeys || []).filter((key) => key !== imageKey),
+            findings: entry.findings.map((finding, currentIndex) =>
+              currentIndex === findingIndex
+                ? { ...finding, imageKeys: finding.imageKeys.filter((key) => key !== imageKey) }
+                : finding,
+            ),
           };
         })
       );
@@ -242,37 +261,50 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
           continue;
         }
 
-        const findingTitle = (entry.findingTitle || entry.title).trim();
-        const findingDescription = (entry.findingDescription || "").trim();
-        if (findingDescription.length === 0) {
+        const nextFindings = [...entry.findings];
+        if (nextFindings.length === 0) {
           throw new Error(t("errors.missingFindingDescription", { title: entry.title }));
         }
 
-        if (!entry.linkedFindingId) {
-          const findingResponse = await fetch(`/api/inspections/${inspectionId}/findings`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              title: findingTitle,
-              description: findingDescription,
-              severity: entry.findingSeverity || 3,
-              location: entry.findingLocation || null,
-              imageKeys: entry.findingImageKeys || [],
-            }),
-          });
-          const findingResult = (await findingResponse.json()) as {
-            data?: { finding?: { id?: string } };
-            message?: string;
-          };
-          if (!findingResponse.ok || !findingResult.data?.finding?.id) {
-            throw new Error(findingResult.message || t("errors.createFindingFromCheckpoint"));
+        for (let findingIndex = 0; findingIndex < nextFindings.length; findingIndex += 1) {
+          const finding = nextFindings[findingIndex];
+          const findingTitle = (finding.title || entry.title).trim();
+          const findingDescription = finding.description.trim();
+          if (findingDescription.length === 0) {
+            throw new Error(t("errors.missingFindingDescription", { title: entry.title }));
           }
-          entriesWithLinkedFindings[index] = {
-            ...entry,
-            linkedFindingId: findingResult.data.finding.id,
-          };
-          createdFindings += 1;
+
+          if (!finding.linkedFindingId) {
+            const findingResponse = await fetch(`/api/inspections/${inspectionId}/findings`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                title: findingTitle,
+                description: findingDescription,
+                severity: finding.severity || 3,
+                location: finding.location || null,
+                imageKeys: finding.imageKeys || [],
+              }),
+            });
+            const findingResult = (await findingResponse.json()) as {
+              data?: { finding?: { id?: string } };
+              message?: string;
+            };
+            if (!findingResponse.ok || !findingResult.data?.finding?.id) {
+              throw new Error(findingResult.message || t("errors.createFindingFromCheckpoint"));
+            }
+            nextFindings[findingIndex] = {
+              ...finding,
+              linkedFindingId: findingResult.data.finding.id,
+            };
+            createdFindings += 1;
+          }
         }
+
+        entriesWithLinkedFindings[index] = {
+          ...entry,
+          findings: nextFindings,
+        };
       }
 
       const response = await fetch(`/api/inspections/${inspectionId}`, {
@@ -319,7 +351,10 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
           .map((entry) => ({
             title: entry.title,
             status: entry.status || "UNSET",
-            findingDescription: entry.findingDescription || "",
+            findingDescription: entry.findings
+              .map((finding) => finding.description.trim())
+              .filter((description) => description.length > 0)
+              .join(" | "),
           })),
       });
       if (!result.success || !result.data) {
@@ -360,10 +395,12 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
                     <span className="text-sm font-medium">{entry.title}</span>
                     {entry.status === "NOT_OK" && (
                       <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-medium text-red-800">
-                        {t("badges.finding")}
+                        {entry.findings.length > 1
+                          ? t("badges.findingsCount", { count: entry.findings.length })
+                          : t("badges.finding")}
                       </span>
                     )}
-                    {entry.linkedFindingId && (
+                    {entry.findings.some((finding) => finding.linkedFindingId) && (
                       <span className="rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-medium text-green-800">
                         {t("badges.findingRegistered")}
                       </span>
@@ -392,89 +429,136 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
 
               {entry.status === "NOT_OK" && (
                 <div className="space-y-3 rounded border bg-red-50/40 p-3">
-                  <div className="space-y-2">
-                    <Label>{t("fields.findingTitle")}</Label>
-                    <Input
-                      value={entry.findingTitle || ""}
-                      onChange={(event) => updateItemFindingField(index, "findingTitle", event.target.value)}
-                      placeholder={t("placeholders.findingTitle")}
-                    />
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-semibold text-red-900">{t("findingsHeading")}</p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="bg-transparent"
+                      onClick={() => addFinding(index)}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      {t("actions.addFinding")}
+                    </Button>
                   </div>
-                  <div className="space-y-2">
-                    <Label>{t("fields.findingDescription")}</Label>
-                    <Textarea
-                      value={entry.findingDescription || ""}
-                      onChange={(event) => updateItemFindingField(index, "findingDescription", event.target.value)}
-                      placeholder={t("placeholders.findingDescription")}
-                      rows={3}
-                    />
-                  </div>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label>{t("fields.severity")}</Label>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={5}
-                        value={entry.findingSeverity || 3}
-                        onChange={(event) => {
-                          const nextValue = Number(event.target.value);
-                          if (!Number.isFinite(nextValue)) return;
-                          updateItemFindingField(index, "findingSeverity", Math.max(1, Math.min(5, nextValue)));
-                        }}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>{t("fields.location")}</Label>
-                      <Input
-                        value={entry.findingLocation || ""}
-                        onChange={(event) => updateItemFindingField(index, "findingLocation", event.target.value)}
-                        placeholder={t("placeholders.location")}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>{t("fields.images")}</Label>
-                    <div className="rounded border border-dashed bg-background p-3">
-                      <input
-                        type="file"
-                        id={`finding-image-${index}`}
-                        accept="image/*"
-                        multiple
-                        className="hidden"
-                        onChange={(event) => uploadFindingImages(index, event.target.files)}
-                        disabled={uploadingIndex === index}
-                      />
-                      <label
-                        htmlFor={`finding-image-${index}`}
-                        className="flex cursor-pointer items-center justify-center gap-2 text-sm text-muted-foreground"
-                      >
-                        <Camera className="h-4 w-4" />
-                        {uploadingIndex === index ? t("actions.uploading") : t("actions.addImage")}
-                      </label>
-                    </div>
-                    {(entry.findingImageKeys || []).length > 0 && (
-                      <div className="grid grid-cols-3 gap-2">
-                        {(entry.findingImageKeys || []).map((imageKey) => (
-                          <div key={imageKey} className="relative">
-                            <img
-                              src={`/api/inspections/images/${imageKey}`}
-                              alt={t("imageAlt")}
-                              className="h-20 w-full rounded border object-cover"
-                            />
-                            <button
-                              type="button"
-                              className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white"
-                              onClick={() => removeFindingImage(index, imageKey)}
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </div>
-                        ))}
+                  {entry.findings.map((finding, findingIndex) => (
+                    <div
+                      key={`${index}-finding-${findingIndex}`}
+                      className="space-y-3 rounded-md border bg-background p-3"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-medium text-muted-foreground">
+                          {t("findingNumber", { number: findingIndex + 1 })}
+                        </p>
+                        {entry.findings.length > 1 && (
+                          <button
+                            type="button"
+                            className="text-xs text-muted-foreground hover:text-destructive"
+                            onClick={() => removeFinding(index, findingIndex)}
+                          >
+                            {t("actions.removeFinding")}
+                          </button>
+                        )}
                       </div>
-                    )}
-                  </div>
+                      <div className="space-y-2">
+                        <Label>{t("fields.findingTitle")}</Label>
+                        <Input
+                          value={finding.title}
+                          onChange={(event) =>
+                            updateFindingField(index, findingIndex, "title", event.target.value)
+                          }
+                          placeholder={t("placeholders.findingTitle")}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{t("fields.findingDescription")}</Label>
+                        <Textarea
+                          value={finding.description}
+                          onChange={(event) =>
+                            updateFindingField(index, findingIndex, "description", event.target.value)
+                          }
+                          placeholder={t("placeholders.findingDescription")}
+                          rows={3}
+                        />
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label>{t("fields.severity")}</Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={5}
+                            value={finding.severity || 3}
+                            onChange={(event) => {
+                              const nextValue = Number(event.target.value);
+                              if (!Number.isFinite(nextValue)) return;
+                              updateFindingField(
+                                index,
+                                findingIndex,
+                                "severity",
+                                Math.max(1, Math.min(5, nextValue)),
+                              );
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>{t("fields.location")}</Label>
+                          <Input
+                            value={finding.location}
+                            onChange={(event) =>
+                              updateFindingField(index, findingIndex, "location", event.target.value)
+                            }
+                            placeholder={t("placeholders.location")}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>{t("fields.images")}</Label>
+                        <div className="rounded border border-dashed bg-background p-3">
+                          <input
+                            type="file"
+                            id={`finding-image-${index}-${findingIndex}`}
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            onChange={(event) =>
+                              uploadFindingImages(index, findingIndex, event.target.files)
+                            }
+                            disabled={uploadingIndex === index}
+                          />
+                          <label
+                            htmlFor={`finding-image-${index}-${findingIndex}`}
+                            className="flex cursor-pointer items-center justify-center gap-2 text-sm text-muted-foreground"
+                          >
+                            <Camera className="h-4 w-4" />
+                            {uploadingIndex === index ? t("actions.uploading") : t("actions.addImage")}
+                          </label>
+                        </div>
+                        {finding.imageKeys.length > 0 && (
+                          <div className="grid grid-cols-3 gap-2">
+                            {finding.imageKeys.map((imageKey) => (
+                              <div key={imageKey} className="relative">
+                                <img
+                                  src={`/api/inspections/images/${imageKey}`}
+                                  alt={t("imageAlt")}
+                                  className="h-20 w-full rounded border object-cover"
+                                />
+                                <button
+                                  type="button"
+                                  className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white"
+                                  onClick={() => removeFindingImage(index, findingIndex, imageKey)}
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

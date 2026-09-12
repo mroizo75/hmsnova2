@@ -3,11 +3,23 @@
 import { prisma } from "@/lib/db";
 import { getTenantContextSafe } from "@/lib/tenant-context";
 import { listTenantRoutines, getRoutineById, listAllRoutineTemplates, listRecommendedRoutineTemplates } from "@/server/actions/routine.actions";
+import { getRegulatoryStatus, getRegulatoryRoutineSuggestions } from "@/server/actions/regulatory.actions";
 
 export async function fetchRoutines(query?: string) {
   const result = await listTenantRoutines(query);
   if (!result.success) return null;
   return JSON.parse(JSON.stringify(result.data));
+}
+
+export async function fetchRegulatoryRoutineSuggestions() {
+  const status = await getRegulatoryStatus();
+  if (!status.hasProfile) return [];
+  try {
+    const suggestions = await getRegulatoryRoutineSuggestions();
+    return JSON.parse(JSON.stringify(suggestions)) as typeof suggestions;
+  } catch {
+    return [];
+  }
 }
 
 export async function fetchRoutineTemplates(params: { showAll: boolean; query?: string }) {

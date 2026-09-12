@@ -8,6 +8,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
 import { fetchAbsences } from "@/server/queries/absence.queries";
+import { EmployeeHrWorkspaceNav } from "@/features/hr/components/employee-hr-workspace-nav";
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
   PENDING: { label: "Venter", className: "bg-yellow-50 text-yellow-700 border-yellow-300" },
@@ -41,6 +42,7 @@ export default async function AnsattFravaerPage() {
 
   return (
     <div className="space-y-6">
+      <EmployeeHrWorkspaceNav />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">

@@ -8,7 +8,7 @@ import { fetchDashboardData } from "@/server/queries/dashboard.queries";
 import { getMessagesForTenant } from "@/server/actions/corporate-group-messages.actions";
 import { KonsernMessagesBanner } from "@/features/konsern/components/konsern-messages-banner";
 import { evaluateTenantAlerts } from "@/lib/tenant-alerts";
-import { TenantAlertsWidget } from "@/features/dashboard/components/tenant-alerts-widget";
+import { DashboardInsightBar } from "@/features/dashboard/components/dashboard-insight-bar";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -48,6 +48,7 @@ export default async function DashboardPage() {
     startpakkeCompleted?: boolean;
     onboardingStatus?: string;
     createdAt?: Date;
+    aiEnabled?: boolean;
   };
 
   if (
@@ -107,7 +108,12 @@ export default async function DashboardPage() {
         </h1>
         <p className="text-muted-foreground">Her er ditt dashboard for i dag.</p>
       </div>
-      {selectedMembership.role !== "ANSATT" && <TenantAlertsWidget alerts={tenantAlerts} />}
+      {selectedMembership.role !== "ANSATT" && (
+        <DashboardInsightBar
+          alerts={tenantAlerts}
+          aiEnabled={!!tenant.aiEnabled && !!process.env.OPENAI_API_KEY}
+        />
+      )}
       <DashboardContent initialData={initialData} />
     </div>
   );

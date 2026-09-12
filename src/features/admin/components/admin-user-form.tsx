@@ -26,7 +26,7 @@ const adminUserSchema = z.object({
   password: z.string().min(8, "Passord må være minst 8 tegn").optional(),
   isSuperAdmin: z.boolean(),
   tenantId: z.string().optional(),
-  role: z.enum(["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "ANSATT", "BHT", "REVISOR", "VARSLINGSANSVARLIG"]).optional(),
+  role: z.nativeEnum(Role).optional(),
 });
 
 type AdminUserFormValues = z.infer<typeof adminUserSchema>;
@@ -203,6 +203,7 @@ export function AdminUserForm({ tenants, user }: AdminUserFormProps) {
                 <SelectItem value="HMS">HMS-ansvarlig</SelectItem>
                 <SelectItem value="VARSLINGSANSVARLIG">Varslingsansvarlig</SelectItem>
                 <SelectItem value="LEDER">Leder</SelectItem>
+                <SelectItem value="HR">HR</SelectItem>
                 <SelectItem value="VERNEOMBUD">Verneombud</SelectItem>
                 <SelectItem value="ANSATT">Ansatt</SelectItem>
                 <SelectItem value="BHT">Bedriftshelsetjeneste</SelectItem>

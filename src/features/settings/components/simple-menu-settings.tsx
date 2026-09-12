@@ -15,6 +15,7 @@ import {
   DEFAULT_SIMPLE_MENU_HREFS,
 } from "@/lib/dashboard-nav-config";
 import { sortDashboardNavItems } from "@/lib/dashboard-nav-filter";
+import { groupNavItemsByHub } from "@/lib/dashboard-nav-hub-groups";
 import { PanelLeft, RotateCcw } from "lucide-react";
 
 interface SimpleMenuSettingsProps {
@@ -33,13 +34,14 @@ export function SimpleMenuSettings({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
 
-  const eligibleItems = sortDashboardNavItems(
-    DASHBOARD_NAV_CONFIG.filter(
-      (item) =>
-        !item.requiresKonsern &&
-        visibleNavItems[item.permission as keyof typeof visibleNavItems]
+  const eligibleGroups = groupNavItemsByHub(
+    sortDashboardNavItems(
+      DASHBOARD_NAV_CONFIG.filter(
+        (item) =>
+          !item.requiresKonsern &&
+          visibleNavItems[item.permission as keyof typeof visibleNavItems]
+      ),
     ),
-    (item) => t(item.label),
   );
 
   useEffect(() => {
@@ -118,23 +120,32 @@ export function SimpleMenuSettings({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid gap-3 sm:grid-cols-2">
-          {eligibleItems.map((item) => (
-            <div
-              key={item.href}
-              className="flex items-center space-x-2 rounded-lg border p-3"
-            >
-              <Checkbox
-                id={`simple-${item.href}`}
-                checked={selected.has(item.href)}
-                onCheckedChange={() => toggle(item.href)}
-              />
-              <Label
-                htmlFor={`simple-${item.href}`}
-                className="flex-1 cursor-pointer text-sm font-normal"
-              >
-                {t(item.label)}
-              </Label>
+        <div className="space-y-6">
+          {eligibleGroups.map((group) => (
+            <div key={group.hub} className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {t(group.labelKey)}
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {group.items.map((item) => (
+                  <div
+                    key={item.href}
+                    className="flex items-center space-x-2 rounded-lg border p-3"
+                  >
+                    <Checkbox
+                      id={`simple-${item.href}`}
+                      checked={selected.has(item.href)}
+                      onCheckedChange={() => toggle(item.href)}
+                    />
+                    <Label
+                      htmlFor={`simple-${item.href}`}
+                      className="flex-1 cursor-pointer text-sm font-normal"
+                    >
+                      {t(item.label)}
+                    </Label>
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>

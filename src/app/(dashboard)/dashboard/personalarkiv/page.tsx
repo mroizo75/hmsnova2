@@ -5,12 +5,16 @@ import { helpContent } from "@/lib/help-content";
 import { getAuthContext } from "@/lib/server-authorization";
 import { fetchPersonnelEmployees } from "@/server/queries/personnel.queries";
 import { PersonnelEmployeeList } from "@/features/personnel/components/personnel-employee-list";
+import { HrWorkspaceNav } from "@/features/hr/components/hr-workspace-nav";
 
 export default async function PersonalarkivPage() {
   const auth = await getAuthContext();
   if (!auth) redirect("/login");
 
-  if (!auth.permissions.canReadAllPersonnelFiles) {
+  const canList =
+    auth.permissions.canReadAllPersonnelFiles || auth.permissions.canReadDepartmentPersonnelFiles;
+
+  if (!canList) {
     if (auth.permissions.canReadOwnPersonnelFile) {
       redirect(`/dashboard/personalarkiv/${auth.userId}`);
     }
@@ -21,6 +25,7 @@ export default async function PersonalarkivPage() {
 
   return (
     <div className="space-y-6 p-6">
+      <HrWorkspaceNav />
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold">

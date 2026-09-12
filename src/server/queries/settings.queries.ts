@@ -5,11 +5,15 @@ import { getAuthContext } from "@/lib/server-authorization";
 import { HOSPITALITY_COURSE_KEYS } from "@/lib/hospitality-courses";
 import { ensureHospitalityCourses } from "@/server/hospitality-courses";
 
-export async function fetchSettingsData(email: string) {
+export async function fetchSettingsData() {
+  const auth = await getAuthContext();
+  if (!auth) return null;
+
   const user = await prisma.user.findUnique({
-    where: { email },
+    where: { id: auth.userId },
     include: {
       tenants: {
+        where: { tenantId: auth.tenantId },
         include: {
           tenant: {
             include: { subscription: true },

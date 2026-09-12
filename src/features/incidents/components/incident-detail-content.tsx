@@ -493,6 +493,8 @@ export function IncidentDetailContent({
               <CardContent>
                 <IncidentTreatmentForm
                   incidentId={incident.id}
+                  incidentTitle={incident.title}
+                  incidentDescription={incident.description}
                   currentType={incident.type}
                   currentSubcategoryKeys={parsedSubcategoryKeys}
                   currentProjectId={incident.projectId}
@@ -517,9 +519,12 @@ export function IncidentDetailContent({
                   currentInjuryType={incident.injuryType}
                   currentInjuryDescription={incident.injuryDescription}
                   currentSuggestedActions={incident.suggestedActions}
+                  currentTreatmentOtherText={incident.treatmentOtherText ?? null}
+                  comments={incident.comments ?? []}
                   users={tenantUsers}
                   projects={tenantProjects}
                   ruhModuleEnabled={tenant?.ruhModuleEnabled ?? true}
+                  aiEnabled={!!tenant?.aiEnabled}
                 />
               </CardContent>
             </Card>

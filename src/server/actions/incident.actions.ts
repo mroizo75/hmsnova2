@@ -38,6 +38,8 @@ import { triggerRealtimeEvent } from "@/lib/pusher-server";
 import { getIncidentCloseBlockers } from "@/lib/incident-close-rules";
 import { suggestHandbookUpdates } from "@/lib/handbook-suggestions";
 import { resolveIncidentStage } from "@/lib/incident-stage";
+import { prismaIncidentWhereForRole, canRoleSeeIncident, isQualityOnlyIncident } from "@/lib/incident-visibility";
+import type { IncidentType } from "@prisma/client";
 
 async function getSessionContext() {
   const context = await getRequiredTenantContext();
@@ -182,13 +184,29 @@ export async function getIncidents(_tenantId: string) {
       throw new Error("Ikke autorisert til å se avvik");
     }
 
-    const { tenantId, userId } = auth;
-
-    // Ansatte uten full tilgang ser kun egne avvik (rapportBy = innlogget bruker)
-    const ownerFilter = canReadAll ? {} : { reportedBy: userId };
+    const { tenantId, userId, role, departmentId } = auth;
+    const departmentMembers =
+      role === "LEDER" && departmentId
+        ? await prisma.userTenant.findMany({
+            where: { tenantId, departmentId },
+            select: { userId: true },
+          })
+        : [];
+    const where = prismaIncidentWhereForRole({
+      role,
+      tenantId,
+      userId,
+      canReadIncidents: canReadAll,
+      canReadOwnIncidents: canReadOwn,
+      departmentId,
+      departmentUserIds: departmentMembers.map((m) => m.userId),
+    });
+    if (!where) {
+      throw new Error("Ikke autorisert til å se avvik");
+    }
 
     const incidents = await prisma.incident.findMany({
-      where: { tenantId, ...ownerFilter },
+      where: where as object,
       include: {
         measures: {
           select: {
@@ -219,7 +237,12 @@ export async function getIncidents(_tenantId: string) {
       ],
     });
     
-    return { success: true, data: incidents, ownOnly: !canReadAll };
+    const visible =
+      role === "VERNEOMBUD"
+        ? incidents.filter((incident) => !isQualityOnlyIncident(incident.type as IncidentType, incident.subcategoryKeys))
+        : incidents;
+
+    return { success: true, data: visible, ownOnly: !canReadAll };
   } catch (error: unknown) {
     console.error("Get incidents error:", error);
     return { success: false, error: formatActionError(error, "Kunne ikke hente avvik") };
@@ -266,6 +289,25 @@ export async function getIncident(id: string) {
     if (!incident) {
       return { success: false, error: "Avvik ikke funnet" };
     }
+
+    const reporter = await prisma.userTenant.findUnique({
+      where: { userId_tenantId: { userId: incident.reportedBy, tenantId } },
+      select: { departmentId: true },
+    });
+    const visibleIncident = canRoleSeeIncident({
+      role: auth.role,
+      canReadIncidents: canReadAll,
+      canReadOwnIncidents: canReadOwn,
+      viewerId: auth.userId,
+      reportedBy: incident.reportedBy,
+      type: incident.type as IncidentType,
+      subcategoryKeysRaw: incident.subcategoryKeys,
+      reporterDepartmentId: reporter?.departmentId ?? null,
+      viewerDepartmentId: auth.departmentId,
+    });
+    if (!visibleIncident) {
+      return { success: false, error: "Avvik ikke funnet" };
+    }
     
     return { success: true, data: incident };
   } catch (error: unknown) {
@@ -292,6 +334,7 @@ export async function createIncident(input: any) {
       responseDeadline: parseOptionalDate(input.responseDeadline),
       customerSatisfaction: parseOptionalNumber(input.customerSatisfaction),
       subcategoryKeys: Array.isArray(input.subcategoryKeys) ? input.subcategoryKeys : [],
+      submitterComment: typeof input.submitterComment === "string" ? input.submitterComment : undefined,
       aiSuggestedMeasures: normalizeSuggestedMeasures(input.aiSuggestedMeasures),
     };
     const validated = createIncidentSchema.parse(normalizedInput);
@@ -347,6 +390,15 @@ export async function createIncident(input: any) {
         subcategoryKeys: validated.subcategoryKeys?.length
           ? JSON.stringify(validated.subcategoryKeys)
           : null,
+        comments: validated.submitterComment?.trim()
+          ? {
+              create: {
+                authorId: user.id,
+                body: validated.submitterComment.trim(),
+                kind: "SUBMITTER",
+              },
+            }
+          : undefined,
         // RUH-felt (AML § 5-2)
         involvedPersons: sanitizeString(validated.involvedPersons),
         injuryDescription: sanitizeString(validated.injuryDescription),
@@ -497,6 +549,9 @@ export async function updateIncident(input: any) {
       updateData.subcategoryKeys = validated.subcategoryKeys.length
         ? JSON.stringify(validated.subcategoryKeys)
         : null;
+    }
+    if (validated.treatmentOtherText !== undefined) {
+      updateData.treatmentOtherText = sanitizeString(validated.treatmentOtherText);
     }
     if (validated.involvedPersons !== undefined) updateData.involvedPersons = sanitizeString(validated.involvedPersons);
     if (validated.injuryDescription !== undefined) updateData.injuryDescription = sanitizeString(validated.injuryDescription);

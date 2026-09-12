@@ -410,6 +410,7 @@ export function IncidentForm({
       projectReference: (formData.get("projectReference") as string) || undefined,
       // Underkategorier
       subcategoryKeys: selectedSubcategories,
+      submitterComment: (formData.get("submitterComment") as string) || undefined,
       // RUH-felt
       involvedPersons: (formData.get("involvedPersons") as string) || undefined,
       injuryDescription: (formData.get("injuryDescription") as string) || undefined,
@@ -707,6 +708,17 @@ export function IncidentForm({
               required
               disabled={loading}
               rows={5}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="submitterComment">Kommentar (valgfritt)</Label>
+            <Textarea
+              id="submitterComment"
+              name="submitterComment"
+              placeholder="Tilleggsopplysninger til behandler"
+              disabled={loading}
+              rows={2}
             />
           </div>
 

@@ -5,6 +5,7 @@ import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fetchEmployeeReviewDetail } from "@/server/queries/employee-review.queries";
 import { EmployeeReviewDetailContent } from "@/features/employee-reviews/components/employee-review-detail-content";
+import { HrWorkspaceNav } from "@/features/hr/components/hr-workspace-nav";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -26,6 +27,7 @@ export default async function MedarbeidersamtaleDetaljPage({ params }: Props) {
 
   return (
     <div className="space-y-4 p-6">
+      <HrWorkspaceNav />
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/dashboard/medarbeidersamtale">

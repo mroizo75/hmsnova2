@@ -12,6 +12,7 @@ import { fetchFollowUps } from "@/server/queries/absence.queries";
 import { approveAbsence, rejectAbsence, cancelAbsence } from "@/server/actions/absence.actions";
 import { AbsenceForm } from "@/features/absence/components/absence-form";
 import { FollowUpTimeline } from "@/features/absence/components/follow-up-timeline";
+import { HrWorkspaceNav } from "@/features/hr/components/hr-workspace-nav";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -65,6 +66,7 @@ export default async function FravaerDetailPage({ params }: Props) {
   if (canEdit) {
     return (
       <div className="space-y-6 p-6">
+        <HrWorkspaceNav />
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" asChild>
             <Link href="/dashboard/fravaer">
@@ -88,6 +90,7 @@ export default async function FravaerDetailPage({ params }: Props) {
 
   return (
     <div className="space-y-6 p-6">
+      <HrWorkspaceNav />
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/dashboard/fravaer">

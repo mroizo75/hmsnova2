@@ -3,6 +3,7 @@ import { Role } from "@prisma/client";
 export const roleHierarchy: Record<Role, number> = {
   ADMIN: 100,
   HMS: 90,
+  HR: 75,
   LEDER: 70,
   VARSLINGSANSVARLIG: 60,
   VERNEOMBUD: 50,
@@ -19,6 +20,7 @@ export const roleLabels: Record<Role, string> = {
   ADMIN: "Administrator",
   HMS: "HMS-ansvarlig",
   LEDER: "Leder",
+  HR: "HR",
   VARSLINGSANSVARLIG: "Varslingsansvarlig",
   VERNEOMBUD: "Verneombud",
   ANSATT: "Ansatt",

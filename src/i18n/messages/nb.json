@@ -10,6 +10,96 @@
     "error": "Noe gikk galt",
     "success": "Vellykket"
   },
+  "timesheet": {
+    "title": "Timeregistrering",
+    "subtitle": "Registrer dagen med fra–til, prosjekt og kommentar. Godkjenning før Tripletex.",
+    "loading": "Laster…",
+    "error": "Feil",
+    "saved": "Dagen er sendt til godkjenning",
+    "date": "Dato",
+    "from": "Fra",
+    "to": "Til",
+    "lunch": "Lunsj (minutt)",
+    "project": "Prosjekt",
+    "subproject": "Underprosjekt",
+    "mainProject": "Bruk hovedprosjekt",
+    "selectProject": "Velg prosjekt",
+    "salaryType": "Timeart (lønn)",
+    "defaultSalaryType": "Standard timeart",
+    "activity": "Aktivitet (faktura)",
+    "comment": "Kommentar",
+    "usage": "Bil, maskin og vare",
+    "productSearch": "Søk produkt (alle ord må treffe)",
+    "selectProduct": "Velg produkt",
+    "unit": "Enhet",
+    "addLine": "Legg til linje",
+    "reportIncident": "Meld avvik",
+    "newSja": "Ny SJA",
+    "saving": "Lagrer…",
+    "submitDay": "Send inn dagen",
+    "todayEntries": "Registrert i dag",
+    "noEntries": "Ingen linjer i dag",
+    "saveComment": "Lagre kommentar",
+    "emptyQueue": "Ingen timer venter på godkjenning",
+    "approve": "Godkjenn",
+    "approved": "Godkjent",
+    "reject": "Avvis",
+    "rejectReason": "Begrunnelse for avvisning",
+    "retry": "Prøv igjen",
+    "syncLog": "Synk-logg",
+    "employee": "Ansatt",
+    "doubleBooked": "Varsel: overlapping i ressursplan",
+    "savePlan": "Lagre plan",
+    "remove": "Fjern",
+    "hoursSuffix": "t",
+    "reason": "Årsak",
+    "take": "Ta ut timebank",
+    "factor": "Faktor",
+    "saveRule": "Lagre regel",
+    "correct": "Korriger",
+    "kind": {
+      "PRODUCT": "Vare",
+      "MACHINE": "Maskin",
+      "KM": "Km"
+    },
+    "status": {
+      "draft": "Utkast",
+      "submitted": "Til godkjenning",
+      "approved": "Godkjent",
+      "rejected": "Avvist",
+      "synced": "Synket",
+      "syncError": "Synk-feil"
+    },
+    "tabs": {
+      "day": "I dag",
+      "myWeek": "Min uke",
+      "history": "Historikk",
+      "approval": "Godkjenning",
+      "plan": "Ressursplan",
+      "timebank": "Timebank",
+      "team": "Team"
+    },
+    "disabled": {
+      "title": "Timeregistrering er av",
+      "description": "Aktiveres under Innstillinger → Regnskap. Der styres også arbeidstid, km og Tripletex.",
+      "link": "Gå til Innstillinger → Regnskap"
+    },
+    "reports": {
+      "button": "Rapporter",
+      "title": "Last ned rapport",
+      "description": "Velg periode, prosjekt og ansatt. Last ned som Excel eller PDF.",
+      "ownOnly": "Rapporten inneholder bare dine egne timer.",
+      "period": "Periode",
+      "day": "Dag",
+      "week": "Uke",
+      "month": "Måned",
+      "year": "År",
+      "allProjects": "Alle prosjekter",
+      "allEmployees": "Alle ansatte",
+      "excel": "Last ned Excel",
+      "pdf": "Last ned PDF"
+    }
+  },
   "nav": {
     "dashboard": "Oversikt",
     "documents": "Dokumenter",
@@ -54,6 +144,8 @@
     "absence": "Fravær & ferie",
     "boarding": "Onboarding",
     "personnelArchive": "Personalarkiv",
+    "departments": "Avdelinger",
+    "hr": "HR",
     "hmsTavle": "Digital HMS Tavle",
     "ikMat": "IK-mat og mattrygghet",
     "skjenking": "Skjenking",
@@ -62,7 +154,8 @@
     "transport": "Transport",
     "bhtNattarbeid": "BHT og nattarbeid",
     "hmsHandbok": "HMS- og personalhåndbok",
-    "meldinger": "Meldinger"
+    "meldinger": "Meldinger",
+    "templates": "Malbibliotek"
   },
   "auth": {
     "login": "Logg inn",
@@ -78,11 +171,13 @@
     "advancedDescription": "Alle funksjoner inkl. ISO",
     "hubs": {
       "oversikt": "Oversikt",
-      "handbok": "HMS-håndbok",
-      "risiko": "Risiko og sikkerhet",
       "avvikTiltak": "Avvik og tiltak",
+      "dokumenter": "Dokumenter",
+      "risiko": "Risiko",
+      "skjema": "Skjema og bransje",
       "organisasjon": "Organisasjon",
-      "tilleggsmoduler": "Tilleggsmoduler"
+      "hr": "HR",
+      "system": "System"
     }
   },
   "mobileNav": {
@@ -1530,7 +1625,7 @@
     "loadError": "Kunne ikke laste oversikt. Prøv igjen senere.",
     "disabled": {
       "title": "Timeføring er ikke aktivert",
-      "description": "Kontakt din leder eller administrator for å aktivere timeregistrering for bedriften."
+      "description": "Kontakt administratoren. Timeregistrering aktiveres under Innstillinger → Regnskap."
     },
     "form": {
       "title": "Registrer timer og kjøring",
@@ -1996,6 +2091,12 @@
       "witnessName": {
         "label": "Vitner",
         "placeholder": "Navn på eventuelle vitner"
+      },
+      "reportedForUser": {
+        "label": "Rapporter på vegne av",
+        "placeholder": "Velg ansatt (valgfritt)",
+        "none": "— Ingen (rapporterer for meg selv) —",
+        "help": "Brukes når du rapporterer på vegne av en annen ansatt."
       },
       "description": {
         "label": "Detaljert beskrivelse *",
@@ -2472,7 +2573,52 @@
       "notifications": "Varsler",
       "users": "Brukere",
       "office365": "Office 365",
+      "tripletex": "Regnskap",
       "subscription": "Abonnement"
+    },
+    "payroll": {
+      "saved": "Innstillinger lagret",
+      "saving": "Lagrer…",
+      "enableTitle": "Timeregistrering",
+      "enableDescription": "AML § 10-7: arbeidsgiver skal ha oversikt over den arbeidstid den enkelte har utført. Når modulen er på, kan alle ansatte sende inn egne timer. Tripletex er valgfri synk etter godkjenning.",
+      "enableLabel": "Aktiver timeregistrering for virksomheten",
+      "workTitle": "Arbeidstid",
+      "workLegal": "AML kap. 10: disse feltene er bedriftens kollektive regler (arbeidsavtale/tariff). De styrer hvordan dagen splittes i ordinær tid og overtid. Individuell lønn og timeart per ansatt hører hjemme i Tripletex, ikke her.",
+      "weeklyNorm": "Ukenorm",
+      "weekly375": "7,5 t/dag (37,5 t/uke)",
+      "weekly40": "8 t/dag (40 t/uke)",
+      "dayStart": "Ordinær start",
+      "dayEnd": "Ordinær slutt",
+      "lunch": "Lunsj (minutt)",
+      "netDay": "Netto arbeidstid: {hours} t (slutt − start − lunsj).",
+      "normMismatch": "Ukenormen tilsier {expected} t/dag. Juster klokkeslett eller lunsj, eller lagre likevel om tariffen avviker.",
+      "ot50Cap": "Overtid 50 % (timer etter dagsnorm, man–fre)",
+      "ot50CapHelp": "Timer utover dagsnorm inntil denne grensen blir overtid 50 %. Resten blir 100 %. Standard 4,5 t.",
+      "saturdayUntil": "Lørdag: overtid 50 % frem til",
+      "saturdayUntilHelp": "Arbeid på lørdag frem til dette klokkeslettet er 50 %. Etterpå 100 %. Søndag er alltid 100 %.",
+      "overtime40": "Bruk 40 % i Excel-estimat i stedet for 50 % på hverdagsovertid (tariff). Timeart i Tripletex velges under kartlegging under.",
+      "saveWork": "Lagre arbeidstid",
+      "kmTitle": "Kilometergodtgjørelse",
+      "kmLegal": "Satsforskriften § 4: trekkfritt kilometergodtgjørelse er 3,50 kr/km (2026). Statens satser: 5,30 kr/km. Differansen er trekkpliktig hvis hele satsen utbetales. Dette er ikke A-melding — lønnskjøring skjer i Tripletex eller annet lønnssystem.",
+      "kmRate": "Standard km-sats (kr/km)",
+      "kmTaxable": "Skatt av overskudd over 3,50 kr/km i Excel-estimat",
+      "kmTaxableHelp": "Av: overskytende km inngår i grovt utbetalingsestimat. Faktisk forskuddstrekk styres av skattekort i lønnssystemet.",
+      "saveKm": "Lagre km-satser",
+      "estimateTitle": "Estimert utbetaling (valgfritt)",
+      "estimateLegal": "GDPR art. 6 nr. 1 b: arbeidstid er nødvendig for arbeidsforholdet. Individuell timelønn, skattekort og fødselsnummer skal ikke ligge her — de hører hjemme i lønnssystemet. Feltene under er et grovt internestimat for Excel og er ikke forskuddstrekk (skattebetalingsloven).",
+      "hourlyRate": "Felles timesats for estimat (kr)",
+      "hourlyRatePlaceholder": "Tom = skjul estimat",
+      "hourlyRateHelp": "Ikke individuell lønn. Én sats for intern oversikt. Faktisk lønn styres via timeart i Tripletex.",
+      "taxPercent": "Ca. trekk til estimat (%)",
+      "taxPercentHelp": "Ikke skattekort eller tabelltrekk. Tom = ikke trekk i estimatet.",
+      "saveEstimate": "Lagre estimat",
+      "invalidLunch": "Lunsj må være 0–480 minutter",
+      "invalidClock": "Slutt må være etter start",
+      "invalidOt50": "Overtid 50 % må være 0–12 timer",
+      "invalidSaturday": "Ugyldig klokkeslett for lørdag",
+      "invalidKm": "Km-sats må være 0–100 kr",
+      "invalidRate": "Timesats må være 0–9999 kr",
+      "invalidTax": "Estimat-trekk må være 0–100 %"
     }
   },
   "dashboardIncidentsPage": {
@@ -3138,6 +3284,25 @@
     },
     "notSet": "Ikke satt"
   },
+  "dashboardTemplateLibraryPage": {
+    "title": "Malbibliotek",
+    "description": "Hent ferdige maler til bedriften din — rutiner, skjema, dokumenter og mer.",
+    "tabs": {
+      "all": "Alle",
+      "routines": "Rutiner",
+      "forms": "Skjema",
+      "documents": "Dokumenter"
+    },
+    "empty": "Ingen maler funnet i denne kategorien.",
+    "copyButton": "Hent til bedriften",
+    "copying": "Henter...",
+    "copySuccess": "«{name}» er lagt til",
+    "copyError": "Kunne ikke hente malen",
+    "categoryHR": "HR",
+    "categoryHMS": "HMS",
+    "searchPlaceholder": "Søk i maler...",
+    "legalRef": "Lovhjemmel"
+  },
   "dashboardRoutineTemplatesPage": {
     "title": "Rutinemaler",
     "loadFailed": "Kunne ikke hente rutinemaler akkurat nå.",
@@ -3330,7 +3495,14 @@
     "stats": {
       "activeProjects": "Aktive prosjekter",
       "inPlanning": "Under planlegging",
-      "completed": "Fullførte"
+      "completed": "Fullførte",
+      "readyToInvoice": "Klar til faktura"
+    },
+    "filters": {
+      "all": "Alle",
+      "active": "Aktive jobber",
+      "hms": "HMS-prosjekter",
+      "ready": "Klar til faktura"
     },
     "empty": {
       "title": "Ingen prosjekter ennå",
@@ -4180,7 +4352,8 @@
       "measures": "Tiltak",
       "time": "Timer",
       "attachments": "Vedlegg",
-      "forms": "Skjema"
+      "forms": "Skjema",
+      "plan": "Ressursplan"
     },
     "actions": {
       "constructionCompliance": "Bygg/anlegg-compliance"
@@ -4541,6 +4714,7 @@
       "ADMIN": "Admin",
       "HMS": "HMS",
       "LEDER": "Leder",
+      "HR": "HR",
       "VERNEOMBUD": "Verneombud",
       "ANSATT": "Ansatt",
       "BHT": "BHT",
@@ -4639,6 +4813,7 @@
       "ADMIN": "Admin",
       "HMS": "HMS-leder",
       "LEDER": "Leder",
+      "HR": "HR",
       "VERNEOMBUD": "Verneombud",
       "ANSATT": "Ansatt",
       "BHT": "BHT",
@@ -4726,6 +4901,7 @@
       "ADMIN": "Admin",
       "HMS": "HMS-leder",
       "LEDER": "Leder",
+      "HR": "HR",
       "VERNEOMBUD": "Verneombud",
       "ANSATT": "Ansatt",
       "BHT": "BHT",
@@ -5049,6 +5225,8 @@
       "empty": "Ingen sjekkpunkter i denne malen.",
       "progress": "Ferdig: {completed} av {total} sjekkpunkter.",
       "imageAlt": "Funnbilde",
+      "findingsHeading": "Avvik for punktet",
+      "findingNumber": "Avvik {number}",
       "fields": {
         "findingTitle": "Funn-tittel",
         "findingDescription": "Beskrivelse av funn",
@@ -5063,6 +5241,7 @@
       },
       "badges": {
         "finding": "Funn",
+        "findingsCount": "{count} avvik",
         "findingRegistered": "Funn registrert"
       },
       "actions": {
@@ -5070,6 +5249,8 @@
         "notOk": "Ikke OK",
         "uploading": "Laster opp...",
         "addImage": "Legg til bilde",
+        "addFinding": "Legg til flere avvik",
+        "removeFinding": "Fjern",
         "saving": "Lagrer...",
         "saveChecklist": "Lagre sjekkliste"
       },

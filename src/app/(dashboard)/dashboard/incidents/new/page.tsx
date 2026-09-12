@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { IncidentForm } from "@/features/incidents/components/incident-form";
+import { ReportIncidentForm } from "@/components/ansatt/report-incident-form";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -25,8 +25,36 @@ type PageSearchParams =
     }
   | undefined;
 
+const TEMPLATE_PRESETS: Record<
+  "homeVisitRisk" | "violenceThreat" | "infectionExposure",
+  { type: IncidentType; titleKey: string; descriptionKey: string; locationKey: string; immediateActionKey: string }
+> = {
+  homeVisitRisk: {
+    type: "FARLIG_SITUASJON",
+    titleKey: "templates.homeVisitRisk.title",
+    descriptionKey: "templates.homeVisitRisk.description",
+    locationKey: "templates.homeVisitRisk.location",
+    immediateActionKey: "templates.homeVisitRisk.immediateAction",
+  },
+  violenceThreat: {
+    type: "ULYKKE",
+    titleKey: "templates.violenceThreat.title",
+    descriptionKey: "templates.violenceThreat.description",
+    locationKey: "templates.violenceThreat.location",
+    immediateActionKey: "templates.violenceThreat.immediateAction",
+  },
+  infectionExposure: {
+    type: "FARLIG_SITUASJON",
+    titleKey: "templates.infectionExposure.title",
+    descriptionKey: "templates.infectionExposure.description",
+    locationKey: "templates.infectionExposure.location",
+    immediateActionKey: "templates.infectionExposure.immediateAction",
+  },
+};
+
 export default async function NewIncidentPage({ searchParams }: { searchParams?: PageSearchParams }) {
   const t = await getTranslations("dashboardIncidentNewPage");
+  const tForm = await getTranslations("incidentForm");
   const resolvedSearchParams =
     typeof searchParams === "object" && searchParams !== null && "then" in searchParams
       ? await searchParams
@@ -51,6 +79,7 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
             select: {
               industry: true,
               ruhModuleEnabled: true,
+              aiEnabled: true,
             },
           },
         },
@@ -76,13 +105,7 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
   );
   const isTabletMode = resolvedSearchParams?.tablet === "1" && isHealthcareTenant;
 
-  const [risks, users, projects] = await Promise.all([
-    prisma.risk.findMany({
-      where: { tenantId },
-      select: { id: true, title: true, category: true, score: true },
-      orderBy: [{ score: "desc" }, { createdAt: "desc" }],
-      take: 25,
-    }),
+  const [users, projects] = await Promise.all([
     prisma.userTenant.findMany({
       where: { tenantId },
       include: { user: { select: { id: true, name: true, email: true } } },
@@ -98,6 +121,19 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
   const userList = users
     .map((ut) => ut.user)
     .filter((u) => u.id !== user.id);
+
+  const preset = resolvedSearchParams?.template
+    ? TEMPLATE_PRESETS[resolvedSearchParams.template]
+    : null;
+
+  const defaultValues = {
+    type: resolvedSearchParams?.type ?? preset?.type,
+    projectId: resolvedSearchParams?.projectId,
+    title: preset ? tForm(preset.titleKey) : undefined,
+    description: preset ? tForm(preset.descriptionKey) : undefined,
+    location: preset ? tForm(preset.locationKey) : undefined,
+    immediateAction: preset ? tForm(preset.immediateActionKey) : undefined,
+  };
 
   return (
     <div className="space-y-6">
@@ -119,19 +155,16 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
         )}
       </div>
 
-      <IncidentForm
+      <ReportIncidentForm
         tenantId={tenantId}
-        userId={user.id}
-        risks={risks}
-        users={userList}
+        reportedBy={user.id}
         projects={projects}
-        defaultType={resolvedSearchParams?.type}
-        defaultProjectId={resolvedSearchParams?.projectId}
-        isTabletMode={isTabletMode}
-        templatePreset={resolvedSearchParams?.template}
+        users={userList}
+        successRedirectPath="/dashboard/incidents"
         ruhModuleEnabled={selectedMembership.tenant.ruhModuleEnabled}
+        aiEnabled={selectedMembership.tenant.aiEnabled && !!process.env.OPENAI_API_KEY}
+        defaultValues={defaultValues}
       />
     </div>
   );
 }
-

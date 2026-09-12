@@ -18,6 +18,7 @@ interface RoutinesListContentProps {
   categoryLabelMap: Map<string, string>;
   routinePerms: { canCreateRoutines: boolean; canManageRoutines: boolean } | null;
   query?: string;
+  hasRegulatorySuggestions?: boolean;
 }
 
 export function RoutinesListContent({
@@ -26,6 +27,7 @@ export function RoutinesListContent({
   categoryLabelMap,
   routinePerms,
   query,
+  hasRegulatorySuggestions = false,
 }: RoutinesListContentProps) {
   const t = useTranslations("dashboardRoutinesPage");
   const locale = useLocale();
@@ -137,7 +139,11 @@ export function RoutinesListContent({
         <CardContent>
           {routines.length === 0 ? (
             <div className="py-10 text-center text-muted-foreground">
-              {activeCategory ? "Ingen rutiner i denne kategorien." : t("list.empty")}
+              {activeCategory
+                ? "Ingen rutiner i denne kategorien."
+                : hasRegulatorySuggestions
+                  ? "Ingen rutiner er publisert ennå. Velg fra regelverket over og klikk «Publiser valgte rutiner»."
+                  : t("list.empty")}
             </div>
           ) : (
             <div className="space-y-2">

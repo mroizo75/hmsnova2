@@ -13,8 +13,9 @@ import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTranslations } from "next-intl/server";
-import { fetchRoutines } from "@/server/queries/routine.queries";
+import { fetchRoutines, fetchRegulatoryRoutineSuggestions } from "@/server/queries/routine.queries";
 import { RoutinesListContent } from "@/features/routines/components/routines-list-content";
+import { RegulatoryRoutinesSection } from "@/features/routines/components/regulatory-routines-section";
 
 export default async function RutinerPage({
   searchParams,
@@ -31,10 +32,11 @@ export default async function RutinerPage({
   const query = params.q?.trim() || undefined;
   const activeCategory = params.kategori?.trim() || undefined;
 
-  const [initialRoutines, user, uploadsResult] = await Promise.all([
+  const [initialRoutines, user, uploadsResult, routineSuggestions] = await Promise.all([
     fetchRoutines(query),
     getCurrentUser(),
     listRoutineUploadedDocumentsForDashboard(),
+    fetchRegulatoryRoutineSuggestions(),
   ]);
 
   if (!initialRoutines) {
@@ -94,12 +96,17 @@ export default async function RutinerPage({
         </div>
       </div>
 
+      {routinePerms?.canCreateRoutines && routineSuggestions.length > 0 && (
+        <RegulatoryRoutinesSection initialSuggestions={routineSuggestions} />
+      )}
+
       <RoutinesListContent
         initialData={initialRoutines}
         activeCategory={activeCategory}
         categoryLabelMap={categoryLabelMap}
         routinePerms={routinePerms ? { canCreateRoutines: routinePerms.canCreateRoutines, canManageRoutines: routinePerms.canManageRoutines } : null}
         query={query}
+        hasRegulatorySuggestions={routineSuggestions.length > 0}
       />
 
       {user && routinePerms && uploadsResult.success === true && (

@@ -1,29 +1,25 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, Suspense } from "react";
+import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { startOfWeek } from "date-fns";
 import { nb } from "date-fns/locale";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, History, Settings2, Car, HeartPulse, MapPin, Users, ChevronDown, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Calendar, History, Users, CheckSquare, Wallet } from "lucide-react";
 import { WeekNavigation } from "./week-navigation";
-import { WeekGrid } from "./week-grid";
 import { WeekSummary } from "./week-summary";
 import { AdminTeamOverview } from "./admin-team-overview";
 import { TimeRegistrationOverview } from "./time-registration-overview";
-import { RegistrationFormUnified } from "./registration-form-unified";
-import { ProjectsList } from "./projects-list";
 import { ReportExportDropdown } from "./report-export-dropdown";
-import { TimeRegistrationEnableCard } from "./time-registration-enable-card";
-import { TimeRegistrationBasicSettings } from "./time-registration-basic-settings";
-import { TimeRegistrationSettings } from "./time-registration-settings";
-import { TimeRegistrationPayrollSettings } from "./time-registration-payroll-settings";
-import { MileageEntryForm } from "./mileage-entry-form";
-import { TimeEntryForm } from "./time-entry-form";
+import { DayTimesheetScreen } from "./day-timesheet-screen";
+import { TimesheetApprovalQueue } from "./timesheet-approval-queue";
+import { TimeBankPanel } from "./timebank-panel";
+import { ResourcePlanPanel } from "@/features/projects/components/resource-plan-panel";
 import { getWeekEntries, getAllUsersWeekSummary } from "@/server/actions/time-registration.actions";
 import { fetchTimeRegistrationData } from "@/server/queries/time-registration.queries";
+import { useTranslations } from "next-intl";
 
 type TimeRegData = Awaited<ReturnType<typeof fetchTimeRegistrationData>>;
 
@@ -40,6 +36,7 @@ export function TimeRegistrationContent({
   role,
   selectedProjectId,
 }: TimeRegistrationContentProps) {
+  const t = useTranslations("timesheet");
   const queryClient = useQueryClient();
   const [weekStart, setWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1, locale: nb })
@@ -78,12 +75,25 @@ export function TimeRegistrationContent({
     return (
       <>
         <div>
-          <h1 className="text-3xl font-bold">Timeregistrering</h1>
-          <p className="text-muted-foreground">
-            Prosjekter, timer og kjøring – eksporter til Excel og PDF
-          </p>
+          <h1 className="text-3xl font-bold">{t("title")}</h1>
+          <p className="text-muted-foreground">{t("subtitle")}</p>
         </div>
-        <TimeRegistrationEnableCard tenantId={tenantId} canEdit={role === "ADMIN"} />
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">{t("disabled.title")}</CardTitle>
+            <CardDescription>{t("disabled.description")}</CardDescription>
+          </CardHeader>
+          {role === "ADMIN" && (
+            <CardContent>
+              <Link
+                href="/dashboard/settings?tab=tripletex"
+                className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+              >
+                {t("disabled.link")}
+              </Link>
+            </CardContent>
+          )}
+        </Card>
       </>
     );
   }
@@ -109,114 +119,68 @@ export function TimeRegistrationContent({
     <>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Timeregistrering</h1>
-          <p className="text-muted-foreground">
-            Registrer timer direkte i ukegridet – klikk en celle for å fylle inn
-          </p>
+          <h1 className="text-3xl font-bold">{t("title")}</h1>
+          <p className="text-muted-foreground">{t("subtitle")}</p>
         </div>
-        <ReportExportDropdown />
+        <ReportExportDropdown
+          projects={activeProjects}
+          employees={canSeeTeam && teamData?.success ? teamData.data?.users ?? [] : []}
+          canFilterEmployees={canSeeTeam}
+          initialProjectId={selectedProjectId}
+        />
       </div>
 
-      <Tabs defaultValue="week" className="space-y-4">
+      <Tabs defaultValue="day" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="week" className="gap-1.5">
+          <TabsTrigger value="day" className="gap-1.5">
             <Calendar className="h-4 w-4" />
-            Ukevisning
+            {t("tabs.day")}
           </TabsTrigger>
-          <TabsTrigger value="extras" className="gap-1.5">
-            <Car className="h-4 w-4" />
-            Reise / Fravær
+          <TabsTrigger value="week" className="gap-1.5">
+            {t("tabs.myWeek")}
           </TabsTrigger>
           <TabsTrigger value="history" className="gap-1.5">
             <History className="h-4 w-4" />
-            Historikk
+            {t("tabs.history")}
+          </TabsTrigger>
+          {canSeeTeam && (
+            <TabsTrigger value="approval" className="gap-1.5">
+              <CheckSquare className="h-4 w-4" />
+              {t("tabs.approval")}
+            </TabsTrigger>
+          )}
+          {canSeeTeam && (
+            <TabsTrigger value="plan" className="gap-1.5">
+              <Users className="h-4 w-4" />
+              {t("tabs.plan")}
+            </TabsTrigger>
+          )}
+          <TabsTrigger value="timebank" className="gap-1.5">
+            <Wallet className="h-4 w-4" />
+            {t("tabs.timebank")}
           </TabsTrigger>
           {canSeeTeam && (
             <TabsTrigger value="team" className="gap-1.5">
               <Users className="h-4 w-4" />
-              Team
-            </TabsTrigger>
-          )}
-          {isAdmin && (
-            <TabsTrigger value="settings" className="gap-1.5">
-              <Settings2 className="h-4 w-4" />
-              Innstillinger
+              {t("tabs.team")}
             </TabsTrigger>
           )}
         </TabsList>
 
+        <TabsContent value="day">
+          <Suspense fallback={<p className="text-sm text-muted-foreground">{t("loading")}</p>}>
+            <DayTimesheetScreen />
+          </Suspense>
+        </TabsContent>
+
         <TabsContent value="week" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <WeekNavigation weekStart={weekStart} onWeekChange={setWeekStart} />
-          </div>
-
-          <WeekGrid
-            weekStart={weekStart}
-            timeEntries={weekEntries?.timeEntries ?? []}
-            projects={activeProjects}
-            dailyNorm={dailyNorm}
-            onEntryChanged={handleEntryChanged}
-          />
-
+          <WeekNavigation weekStart={weekStart} onWeekChange={setWeekStart} />
           <WeekSummary
             timeEntries={weekEntries?.timeEntries ?? []}
             mileageEntries={weekEntries?.mileageEntries ?? []}
             weeklyNorm={config?.weeklyHoursNorm ?? 37.5}
             defaultKmRate={config?.defaultKmRate ?? 4.5}
           />
-        </TabsContent>
-
-        <TabsContent value="extras" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Reise, sykefravær og km godtgjørelse</CardTitle>
-              <CardDescription>
-                Registrer reisetid, sykefravær eller km separat fra arbeidstimer
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="travel">
-                <TabsList className="grid w-full max-w-md grid-cols-3 mb-4">
-                  <TabsTrigger value="travel" className="gap-1.5 text-xs">
-                    <Car className="h-3.5 w-3.5" />
-                    Reise
-                  </TabsTrigger>
-                  <TabsTrigger value="sick" className="gap-1.5 text-xs">
-                    <HeartPulse className="h-3.5 w-3.5" />
-                    Sykefravær
-                  </TabsTrigger>
-                  <TabsTrigger value="km" className="gap-1.5 text-xs">
-                    <MapPin className="h-3.5 w-3.5" />
-                    Km godtgjørelse
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="travel">
-                  <TimeEntryForm
-                    tenantId={tenantId}
-                    projects={activeProjects}
-                    lunchBreakMinutes={config?.lunchBreakMinutes ?? 30}
-                    forceMode="travel"
-                  />
-                </TabsContent>
-                <TabsContent value="sick">
-                  <TimeEntryForm
-                    tenantId={tenantId}
-                    projects={activeProjects}
-                    lunchBreakMinutes={config?.lunchBreakMinutes ?? 30}
-                    forceMode="sick"
-                  />
-                </TabsContent>
-                <TabsContent value="km">
-                  <MileageEntryForm
-                    tenantId={tenantId}
-                    projects={activeProjects}
-                    defaultKmRate={config?.defaultKmRate ?? 4.5}
-                    rateEditable={true}
-                  />
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
         </TabsContent>
 
         <TabsContent value="history" className="space-y-4">
@@ -236,6 +200,22 @@ export function TimeRegistrationContent({
               />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {canSeeTeam && (
+          <TabsContent value="approval">
+            <TimesheetApprovalQueue />
+          </TabsContent>
+        )}
+
+        {canSeeTeam && (
+          <TabsContent value="plan">
+            <ResourcePlanPanel />
+          </TabsContent>
+        )}
+
+        <TabsContent value="timebank">
+          <TimeBankPanel canManage={canSeeTeam} />
         </TabsContent>
 
         {canSeeTeam && (
@@ -263,83 +243,7 @@ export function TimeRegistrationContent({
             </Card>
           </TabsContent>
         )}
-
-        {isAdmin && (
-          <TabsContent value="settings" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Prosjekter</CardTitle>
-                <CardDescription>
-                  Opprett og rediger prosjekter som ansatte kan registrere timer på
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ProjectsList tenantId={tenantId} projects={projects} />
-              </CardContent>
-            </Card>
-
-            <TimeRegistrationBasicSettings
-              tenantId={tenantId}
-              weeklyHoursNorm={config?.weeklyHoursNorm ?? 37.5}
-              defaultKmRate={config?.defaultKmRate ?? null}
-            />
-
-            <AdvancedSettingsSection
-              tenantId={tenantId}
-              config={config}
-            />
-          </TabsContent>
-        )}
       </Tabs>
     </>
-  );
-}
-
-function AdvancedSettingsSection({
-  tenantId,
-  config,
-}: {
-  tenantId: string;
-  config: any;
-}) {
-  const [showAdvanced, setShowAdvanced] = useState(false);
-
-  return (
-    <div className="space-y-4">
-      <Button
-        variant="ghost"
-        size="sm"
-        className="gap-2 text-muted-foreground"
-        onClick={() => setShowAdvanced(!showAdvanced)}
-      >
-        {showAdvanced ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-        Vis avanserte regler
-      </Button>
-      {!showAdvanced && (
-        <p className="text-xs text-muted-foreground -mt-2 ml-8">
-          Overtidsberegning og lønnsestimater – de fleste sender timelisten til regnskap og trenger ikke dette.
-        </p>
-      )}
-      {showAdvanced && (
-        <>
-          <TimeRegistrationSettings
-            tenantId={tenantId}
-            weeklyHoursNorm={config?.weeklyHoursNorm ?? 37.5}
-            lunchBreakMinutes={config?.lunchBreakMinutes ?? 30}
-            eveningOvertimeFromHour={config?.eveningOvertimeFromHour ?? null}
-            useOvertime40Percent={config?.useOvertime40Percent ?? false}
-            saturdayOvertime40LimitHours={config?.saturdayOvertime40LimitHours ?? null}
-          />
-
-          <TimeRegistrationPayrollSettings
-            tenantId={tenantId}
-            defaultHourlyRate={config?.defaultHourlyRate ?? null}
-            approximateTaxPercent={config?.approximateTaxPercent ?? null}
-            defaultKmRate={config?.defaultKmRate ?? null}
-            kmAllowanceTaxable={config?.kmAllowanceTaxable ?? false}
-          />
-        </>
-      )}
-    </div>
   );
 }

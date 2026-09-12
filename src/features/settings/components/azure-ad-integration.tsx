@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Cloud, CheckCircle2, AlertCircle, Info, Sparkles, ShieldCheck } from "lucide-react";
 import type { Tenant } from "@prisma/client";
 import { updateAzureAdSettings } from "@/server/actions/azure-ad.actions";
+import { resolveAzureAdJitRole } from "@/lib/azure-ad-email";
 import type { MicrosoftConsentResult } from "@/lib/microsoft-admin-consent";
 
 const LOGIN_URL = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://www.hmsnova.no"}/login`;
@@ -59,6 +60,7 @@ export function AzureAdIntegration({
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [enabled, setEnabled] = useState(tenant.azureAdEnabled || false);
+  const [autoRole, setAutoRole] = useState(resolveAzureAdJitRole(tenant.azureAdAutoRole));
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -77,7 +79,7 @@ export function AzureAdIntegration({
     const data = {
       azureAdEnabled: enabled,
       azureAdDomain: formData.get("azureAdDomain") as string || undefined,
-      azureAdAutoRole: formData.get("azureAdAutoRole") as string || undefined,
+      azureAdAutoRole: autoRole,
     };
 
     const result = await updateAzureAdSettings(data);
@@ -200,12 +202,12 @@ export function AzureAdIntegration({
               variant="outline"
               className="bg-transparent text-foreground hover:bg-muted"
             >
-              <a href={adminConsentUrl} target="_blank" rel="noopener noreferrer">
+              <a href={adminConsentUrl}>
                 Godkjenn HMS Nova i Microsoft 365
               </a>
             </Button>
             <p className="text-xs text-muted-foreground">
-              HMS Nova ber kun om å lese navn, e-postadresse og profil for den som logger inn. Er du
+              HMS Nova ber kun om navn og e-postadresse for den som logger inn. Er du
               ikke global administrator, send denne siden videre til den som er det.
             </p>
           </CardContent>
@@ -250,21 +252,21 @@ export function AzureAdIntegration({
                 Standard rolle for nye ansatte
               </Label>
               <Select
-                name="azureAdAutoRole"
-                defaultValue={tenant.azureAdAutoRole || "ANSATT"}
+                value={autoRole}
+                onValueChange={(value) => setAutoRole(resolveAzureAdJitRole(value))}
                 disabled={!isAdmin || loading}
               >
                 <SelectTrigger className="text-base">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ANSATT">👤 Ansatt</SelectItem>
-                  <SelectItem value="LEDER">👔 Leder</SelectItem>
-                  <SelectItem value="HMS">🦺 HMS-ansvarlig</SelectItem>
-                  <SelectItem value="VERNEOMBUD">🛡️ Verneombud</SelectItem>
-                  <SelectItem value="BHT">🩺 Bedriftshelsetjeneste</SelectItem>
-                  <SelectItem value="REVISOR">📋 Revisor</SelectItem>
-                  <SelectItem value="ADMIN">⚙️ Administrator</SelectItem>
+                  <SelectItem value="ANSATT">Ansatt</SelectItem>
+                  <SelectItem value="LEDER">Leder</SelectItem>
+                  <SelectItem value="HR">HR</SelectItem>
+                  <SelectItem value="HMS">HMS-ansvarlig</SelectItem>
+                  <SelectItem value="VERNEOMBUD">Verneombud</SelectItem>
+                  <SelectItem value="BHT">Bedriftshelsetjeneste</SelectItem>
+                  <SelectItem value="REVISOR">Revisor</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-sm text-muted-foreground">

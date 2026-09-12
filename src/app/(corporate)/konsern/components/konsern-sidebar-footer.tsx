@@ -5,7 +5,6 @@ import Link from "next/link";
 import { signOut } from "next-auth/react";
 import { LogOut, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PwaInstallButton } from "@/components/pwa-install-button";
 
 interface KonsernSidebarFooterProps {
   userName: string;
@@ -39,7 +38,6 @@ export function KonsernSidebarFooter({ userName, userEmail, groupRole, hasTenant
       </div>
 
       <div className="px-3 pb-4 space-y-1">
-        <PwaInstallButton />
         {hasTenantAccess && (
           <Link href="/dashboard">
             <Button

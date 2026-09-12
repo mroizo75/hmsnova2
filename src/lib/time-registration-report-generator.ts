@@ -12,12 +12,24 @@ const TIME_TYPE_LABELS: Record<string, string> = {
   SICK_LEAVE: "Sykefravær",
 };
 
+const APPROVAL_LABELS: Record<string, string> = {
+  DRAFT: "Utkast",
+  SUBMITTED: "Til godkjenning",
+  APPROVED: "Godkjent",
+  REJECTED: "Avvist",
+  SYNCED: "Synket",
+  SYNC_ERROR: "Synk-feil",
+};
+
 export interface TimeEntryForReport {
   id: string;
   date: Date;
   hours: number;
   timeType: string;
   comment: string | null;
+  clockFrom?: string | null;
+  clockTo?: string | null;
+  approvalStatus?: string | null;
   project: { name: string; code: string | null };
   user: { id: string; name: string | null; email: string };
   editedBy: { name: string | null } | null;
@@ -55,6 +67,7 @@ export interface TimeRegistrationReportData {
   mileageEntries: MileageEntryForReport[];
   userDisplayNames: Record<string, string>;
   config?: TimeRegistrationReportConfig | null;
+  filterSummary?: string;
 }
 
 export async function generateTimeRegistrationExcel(
@@ -77,7 +90,7 @@ export async function generateTimeRegistrationExcel(
   // Sheet 1: Timer
   const timeSheet = workbook.addWorksheet("Timer", {
     headerFooter: {
-      firstHeader: `${tenantName} – Timeregistrering`,
+      firstHeader: `${tenantName} – Timeregistrering ${dateRangeStr}`,
       firstFooter: `Generert ${format(new Date(), "d. MMMM yyyy", { locale: nb })}`,
     },
   });
@@ -85,10 +98,13 @@ export async function generateTimeRegistrationExcel(
   timeSheet.columns = [
     { header: "Navn", key: "name", width: 22 },
     { header: "Dato", key: "date", width: 12 },
+    { header: "Fra", key: "from", width: 8 },
+    { header: "Til", key: "to", width: 8 },
     { header: "Prosjekt", key: "project", width: 25 },
     { header: "Kode", key: "code", width: 12 },
     { header: "Timer", key: "hours", width: 8 },
     { header: "Type", key: "type", width: 14 },
+    { header: "Status", key: "status", width: 16 },
     { header: "Kommentar", key: "comment", width: 30 },
   ];
 
@@ -109,34 +125,23 @@ export async function generateTimeRegistrationExcel(
     timeSheet.addRow({
       name,
       date: format(new Date(e.date), "dd.MM.yyyy", { locale: nb }),
+      from: e.clockFrom || "",
+      to: e.clockTo || "",
       project: e.project.name,
       code: e.project.code || "",
       hours: Math.round(e.hours * 10) / 10,
       type: TIME_TYPE_LABELS[e.timeType] || e.timeType,
+      status: e.approvalStatus ? APPROVAL_LABELS[e.approvalStatus] ?? e.approvalStatus : "",
       comment: e.comment || "",
     });
   }
 
-  // Oppsummering timer
   const totalHours = timeEntries.reduce((s, e) => s + e.hours, 0);
-  const normalHours = timeEntries
-    .filter((e) => e.timeType === "NORMAL")
-    .reduce((s, e) => s + e.hours, 0);
-  const overtime50 = timeEntries
-    .filter((e) => e.timeType === "OVERTIME_50")
-    .reduce((s, e) => s + e.hours, 0);
-  const overtime40 = timeEntries
-    .filter((e) => e.timeType === "OVERTIME_40")
-    .reduce((s, e) => s + e.hours, 0);
-  const overtime100 = timeEntries
-    .filter((e) => e.timeType === "OVERTIME_100")
-    .reduce((s, e) => s + e.hours, 0);
-  const weekend = timeEntries
-    .filter((e) => e.timeType === "WEEKEND")
-    .reduce((s, e) => s + e.hours, 0);
 
   timeSheet.addRow([]);
   timeSheet.addRow([
+    "",
+    "",
     "",
     "",
     "",
@@ -144,9 +149,54 @@ export async function generateTimeRegistrationExcel(
     totalHours,
     "",
     "",
+    "",
   ]);
   const summaryRow = timeSheet.lastRow;
   if (summaryRow) summaryRow.font = { bold: true };
+
+  const projectTotals = new Map<string, { name: string; code: string; hours: number }>();
+  for (const e of timeEntries) {
+    const key = e.project.name + "|" + (e.project.code || "");
+    const row = projectTotals.get(key) ?? {
+      name: e.project.name,
+      code: e.project.code || "",
+      hours: 0,
+    };
+    row.hours += e.hours;
+    projectTotals.set(key, row);
+  }
+
+  const projectSheet = workbook.addWorksheet("Per prosjekt", {
+    headerFooter: {
+      firstHeader: `${tenantName} – Timer per prosjekt`,
+      firstFooter: `Generert ${format(new Date(), "d. MMMM yyyy", { locale: nb })}`,
+    },
+  });
+  projectSheet.columns = [
+    { header: "Prosjekt", key: "name", width: 28 },
+    { header: "Kode", key: "code", width: 12 },
+    { header: "Timer", key: "hours", width: 10 },
+  ];
+  const projectHeaderRow = projectSheet.getRow(1);
+  projectHeaderRow.font = { bold: true };
+  projectHeaderRow.fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FFE0E0E0" },
+  };
+  const projectRows = Array.from(projectTotals.values()).sort((a, b) =>
+    a.name.localeCompare(b.name, "nb")
+  );
+  for (const row of projectRows) {
+    projectSheet.addRow({
+      name: row.name,
+      code: row.code,
+      hours: Math.round(row.hours * 10) / 10,
+    });
+  }
+  projectSheet.addRow([]);
+  projectSheet.addRow(["Totalt:", "", totalHours]);
+  if (projectSheet.lastRow) projectSheet.lastRow.font = { bold: true };
 
   // Sheet 2: Km godtgjørelse
   const mileageSheet = workbook.addWorksheet("Km godtgjørelse", {
@@ -378,10 +428,13 @@ export async function generateTimeRegistrationPdf(
   data: TimeRegistrationReportData
 ): Promise<Buffer> {
   const { generateBrandedPdf } = await import("@/lib/pdf-brand");
-  const { tenantName, dateRange, timeEntries, mileageEntries, userDisplayNames } = data;
+  const { tenantName, dateRange, timeEntries, mileageEntries, userDisplayNames, filterSummary } = data;
   const defaultKmRate = data.config?.defaultKmRate ?? 4.5;
 
   const periodStr = `${format(dateRange.from, "d. MMM yyyy", { locale: nb })} – ${format(dateRange.to, "d. MMM yyyy", { locale: nb })}`;
+  const subtitle = filterSummary
+    ? `Periode: ${periodStr} · ${filterSummary}`
+    : `Periode: ${periodStr}`;
 
   let totalHours = 0;
   let totalKm = 0;
@@ -390,10 +443,13 @@ export async function generateTimeRegistrationPdf(
   const timeRows = timeEntries.map((e) => {
     const name = userDisplayNames[e.user.id] || e.user.name || e.user.email || "–";
     totalHours += e.hours;
+    const clock =
+      e.clockFrom && e.clockTo ? `${e.clockFrom}–${e.clockTo}` : "";
     return [
       format(new Date(e.date), "dd.MM.yy"),
       name,
       e.project.name,
+      clock,
       `${(Math.round(e.hours * 10) / 10).toFixed(1)} t`,
       TIME_TYPE_LABELS[e.timeType] ?? e.timeType,
     ];
@@ -417,7 +473,7 @@ export async function generateTimeRegistrationPdf(
     type: "operational",
     reportLabel: "Timeregistrering",
     title: "Timeregistrering – Rapport",
-    subtitle: `Periode: ${periodStr}`,
+    subtitle,
     tenant: { name: tenantName },
     generatedAt: new Date(),
     sections: [
@@ -426,8 +482,8 @@ export async function generateTimeRegistrationPdf(
         content: timeRows.length > 0
           ? [{
               type: "table" as const,
-              headers: ["Dato", "Ansatt", "Prosjekt", "Timer", "Type"],
-              rows: [...timeRows, ["", "", "Sum timer", `${totalHours.toFixed(1)} t`, ""]],
+              headers: ["Dato", "Ansatt", "Prosjekt", "Fra–til", "Timer", "Type"],
+              rows: [...timeRows, ["", "", "Sum timer", "", `${totalHours.toFixed(1)} t`, ""]],
             }]
           : [{ type: "paragraph" as const, text: "Ingen timer registrert i perioden." }],
       },

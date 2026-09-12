@@ -9,9 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/lib/db";
 import {
   EMPLOYEE_WIDGET_REGISTRY,
+  EMPLOYEE_HR_WIDGET_IDS,
   getEmployeeWidgetsFromLockedConfig,
   type EmployeeWidgetDefinition,
 } from "@/features/dashboard/lib/employee-widget-registry";
+import { filterEmployeeWidgetsForAccounting } from "@/lib/accounting/widgets";
 
 export default async function AnsattDashboard() {
   const session = await getServerSession(authOptions);
@@ -32,6 +34,7 @@ export default async function AnsattDashboard() {
       dashboardLocked: true,
       lockedDashboardConfig: true,
       ruhModuleEnabled: true,
+      accountingProvider: true,
     },
   });
   const isAgricultureTenant = tenant?.industry?.toLowerCase() === "agriculture";
@@ -45,12 +48,38 @@ export default async function AnsattDashboard() {
     visibleWidgets = [...EMPLOYEE_WIDGET_REGISTRY];
   }
 
-  if (!tenant?.timeRegistrationEnabled) {
-    visibleWidgets = visibleWidgets.filter((w) => w.id !== "emp-time");
-  }
+  visibleWidgets = filterEmployeeWidgetsForAccounting(visibleWidgets, {
+    timeRegistrationEnabled: tenant?.timeRegistrationEnabled,
+    accountingProvider: tenant?.accountingProvider,
+  });
 
   if (tenant && !tenant.ruhModuleEnabled) {
     visibleWidgets = visibleWidgets.filter((w) => w.id !== "emp-ruh");
+  }
+
+  const hrWidgets = visibleWidgets.filter((widget) => EMPLOYEE_HR_WIDGET_IDS.has(widget.id));
+  const otherWidgets = visibleWidgets.filter((widget) => !EMPLOYEE_HR_WIDGET_IDS.has(widget.id));
+
+  function renderWidgetGrid(widgets: EmployeeWidgetDefinition[]) {
+    return (
+      <div className="grid grid-cols-2 gap-4">
+        {widgets.map((widget) => (
+          <Link key={widget.id} href={widget.href}>
+            <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-primary">
+              <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+                <div className={`h-16 w-16 rounded-full ${widget.bgColor} flex items-center justify-center mb-3`}>
+                  <widget.icon className={`h-8 w-8 ${widget.color}`} />
+                </div>
+                <h3 className="font-semibold text-lg mb-1">{widget.label}</h3>
+                <p className="text-xs text-muted-foreground">
+                  {widget.description}
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
+    );
   }
 
   return (
@@ -109,23 +138,21 @@ export default async function AnsattDashboard() {
         </Card>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
-        {visibleWidgets.map((widget) => (
-          <Link key={widget.id} href={widget.href}>
-            <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-primary">
-              <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-                <div className={`h-16 w-16 rounded-full ${widget.bgColor} flex items-center justify-center mb-3`}>
-                  <widget.icon className={`h-8 w-8 ${widget.color}`} />
-                </div>
-                <h3 className="font-semibold text-lg mb-1">{widget.label}</h3>
-                <p className="text-xs text-muted-foreground">
-                  {widget.description}
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
+      {hrWidgets.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium text-muted-foreground">HR – profil, fravær, onboarding og samtaler</h3>
+          {renderWidgetGrid(hrWidgets)}
+        </div>
+      )}
+
+      {otherWidgets.length > 0 && (
+        <div className="space-y-3">
+          {hrWidgets.length > 0 && (
+            <h3 className="text-sm font-medium text-muted-foreground">HMS og arbeid</h3>
+          )}
+          {renderWidgetGrid(otherWidgets)}
+        </div>
+      )}
 
       <Card>
         <CardHeader>

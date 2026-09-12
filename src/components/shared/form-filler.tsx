@@ -12,9 +12,13 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { SignaturePad } from "@/components/shared/signature-pad";
-import { ArrowLeft, Send, Save, ShieldCheck, Camera, Paperclip, X, ImageIcon, MessageSquarePlus, MessageSquare } from "lucide-react";
+import { ArrowLeft, Send, Save, ShieldCheck, Camera, Paperclip, Plus, X, ImageIcon, MessageSquarePlus, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import {
+  createEmptyInspectionFinding,
+  type InspectionFindingDraft,
+} from "@/lib/inspection-findings";
 
 function isImageFile(file: File): boolean {
   return file.type.startsWith("image/");
@@ -58,13 +62,7 @@ interface FormFillerProps {
   industryScopeBypass?: boolean;
 }
 
-interface InlineInspectionFindingDraft {
-  title: string;
-  description: string;
-  severity: number;
-  location: string;
-  imageKeys: string[];
-}
+type InlineInspectionFindingDraft = InspectionFindingDraft;
 
 function getMultiCheckboxSelected(stored: string | undefined): string[] {
   if (!stored) return [];
@@ -137,9 +135,9 @@ export function FormFiller({
   const cameraInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const findingImageInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [inlineInspectionFindings, setInlineInspectionFindings] = useState<
-    Record<string, InlineInspectionFindingDraft>
+    Record<string, InlineInspectionFindingDraft[]>
   >({});
-  const [uploadingFindingFieldId, setUploadingFindingFieldId] = useState<string | null>(null);
+  const [uploadingFindingKey, setUploadingFindingKey] = useState<string | null>(null);
 
   // Merknader er alltid tilgjengelig i vernerunde-kontekst (inspectionId satt)
   const showComments = !!inspectionId;
@@ -164,44 +162,65 @@ export function FormFiller({
     setFormValues((prev) => ({ ...prev, [fieldId]: value }));
   }
 
-  function getInlineFindingDraft(fieldId: string, fieldLabel: string): InlineInspectionFindingDraft {
-    return (
-      inlineInspectionFindings[fieldId] ?? {
-        title: fieldLabel,
-        description: "",
-        severity: 3,
-        location: "",
-        imageKeys: [],
-      }
-    );
+  function findingUploadKey(fieldId: string, findingIndex: number): string {
+    return `${fieldId}__${findingIndex}`;
+  }
+
+  function getInlineFindingDrafts(fieldId: string, fieldLabel: string): InlineInspectionFindingDraft[] {
+    const current = inlineInspectionFindings[fieldId];
+    if (current && current.length > 0) return current;
+    return [createEmptyInspectionFinding(fieldLabel)];
+  }
+
+  function setFieldFindings(
+    fieldId: string,
+    fieldLabel: string,
+    updater: (drafts: InlineInspectionFindingDraft[]) => InlineInspectionFindingDraft[],
+  ) {
+    setInlineInspectionFindings((prev) => {
+      const current = prev[fieldId] && prev[fieldId].length > 0
+        ? prev[fieldId]
+        : [createEmptyInspectionFinding(fieldLabel)];
+      return { ...prev, [fieldId]: updater(current) };
+    });
   }
 
   function updateInlineFindingDraft(
     fieldId: string,
     fieldLabel: string,
+    findingIndex: number,
     patch: Partial<InlineInspectionFindingDraft>
   ) {
-    setInlineInspectionFindings((prev) => {
-      const current = getInlineFindingDraft(fieldId, fieldLabel);
-      return {
-        ...prev,
-        [fieldId]: {
-          ...current,
-          ...patch,
-        },
-      };
+    setFieldFindings(fieldId, fieldLabel, (drafts) =>
+      drafts.map((draft, index) => (index === findingIndex ? { ...draft, ...patch } : draft)),
+    );
+  }
+
+  function addInlineFindingDraft(fieldId: string, fieldLabel: string) {
+    setFieldFindings(fieldId, fieldLabel, (drafts) => [
+      ...drafts,
+      createEmptyInspectionFinding(fieldLabel),
+    ]);
+  }
+
+  function removeInlineFindingDraft(fieldId: string, fieldLabel: string, findingIndex: number) {
+    setFieldFindings(fieldId, fieldLabel, (drafts) => {
+      if (drafts.length <= 1) return drafts;
+      return drafts.filter((_, index) => index !== findingIndex);
     });
   }
 
   async function uploadInlineFindingImages(
     fieldId: string,
     fieldLabel: string,
+    findingIndex: number,
     filesToUpload: FileList | null
   ) {
     if (!inspectionId || !filesToUpload || filesToUpload.length === 0) {
       return;
     }
-    setUploadingFindingFieldId(fieldId);
+    const uploadKey = findingUploadKey(fieldId, findingIndex);
+    setUploadingFindingKey(uploadKey);
     try {
       const uploadedKeys: string[] = [];
       for (const file of Array.from(filesToUpload)) {
@@ -223,10 +242,13 @@ export function FormFiller({
         uploadedKeys.push(result.data.key);
       }
 
-      const currentDraft = getInlineFindingDraft(fieldId, fieldLabel);
-      updateInlineFindingDraft(fieldId, fieldLabel, {
-        imageKeys: [...currentDraft.imageKeys, ...uploadedKeys],
-      });
+      setFieldFindings(fieldId, fieldLabel, (drafts) =>
+        drafts.map((draft, index) =>
+          index === findingIndex
+            ? { ...draft, imageKeys: [...draft.imageKeys, ...uploadedKeys] }
+            : draft,
+        ),
+      );
     } catch {
       toast({
         variant: "destructive",
@@ -234,11 +256,16 @@ export function FormFiller({
         description: "Kunne ikke laste opp bilde for funnet.",
       });
     } finally {
-      setUploadingFindingFieldId(null);
+      setUploadingFindingKey(null);
     }
   }
 
-  async function removeInlineFindingImage(fieldId: string, fieldLabel: string, imageKey: string) {
+  async function removeInlineFindingImage(
+    fieldId: string,
+    fieldLabel: string,
+    findingIndex: number,
+    imageKey: string,
+  ) {
     try {
       await fetch("/api/inspections/upload", {
         method: "DELETE",
@@ -246,10 +273,13 @@ export function FormFiller({
         body: JSON.stringify({ key: imageKey }),
       });
 
-      const currentDraft = getInlineFindingDraft(fieldId, fieldLabel);
-      updateInlineFindingDraft(fieldId, fieldLabel, {
-        imageKeys: currentDraft.imageKeys.filter((key) => key !== imageKey),
-      });
+      setFieldFindings(fieldId, fieldLabel, (drafts) =>
+        drafts.map((draft, index) =>
+          index === findingIndex
+            ? { ...draft, imageKeys: draft.imageKeys.filter((key) => key !== imageKey) }
+            : draft,
+        ),
+      );
     } catch {
       toast({
         variant: "destructive",
@@ -342,12 +372,15 @@ export function FormFiller({
             continue;
           }
 
-          const draft = getInlineFindingDraft(field.id, field.label);
-          const description = draft.description.trim() || (fieldComments[field.id] || "").trim();
-          if (!description) {
+          const drafts = getInlineFindingDrafts(field.id, field.label);
+          const commentFallback = (fieldComments[field.id] || "").trim();
+          const hasDescription = drafts.some(
+            (draft) => draft.description.trim().length > 0 || commentFallback.length > 0,
+          );
+          if (!hasDescription) {
             toast({
               title: "❌ Mangler funnbeskrivelse",
-              description: `Du har valgt "Ikke OK" på "${field.label}", men mangler beskrivelse av funnet.`,
+              description: `Du har valgt "Ikke OK" på "${field.label}", men mangler beskrivelse av minst ett avvik.`,
               variant: "destructive",
             });
             return;
@@ -384,18 +417,25 @@ export function FormFiller({
       if (status === "SUBMITTED" && inspectionId) {
         const inspectionFindings = form.fields
           .filter((field) => isNotOkAnswer(formValues[field.id]))
-          .map((field) => {
-            const draft = getInlineFindingDraft(field.id, field.label);
-            return {
-              fieldId: field.id,
-              fieldLabel: field.label,
-              answer: formValues[field.id] ?? "",
-              title: (draft.title || field.label).trim(),
-              description: (draft.description || fieldComments[field.id] || "").trim(),
-              severity: clampSeverity(draft.severity || 3),
-              location: draft.location.trim(),
-              imageKeys: draft.imageKeys,
-            };
+          .flatMap((field) => {
+            const drafts = getInlineFindingDrafts(field.id, field.label);
+            const commentFallback = (fieldComments[field.id] || "").trim();
+            return drafts
+              .map((draft, draftIndex) => {
+                const description = draft.description.trim()
+                  || (draftIndex === 0 ? commentFallback : "");
+                return {
+                  fieldId: field.id,
+                  fieldLabel: field.label,
+                  answer: formValues[field.id] ?? "",
+                  title: (draft.title || field.label).trim(),
+                  description,
+                  severity: clampSeverity(draft.severity || 3),
+                  location: draft.location.trim(),
+                  imageKeys: draft.imageKeys,
+                };
+              })
+              .filter((finding) => finding.description.length > 0);
           });
 
         if (inspectionFindings.length > 0) {
@@ -781,21 +821,54 @@ export function FormFiller({
 
               {inspectionId && isNotOkAnswer(formValues[field.id]) && (
                 <div className="mt-3 rounded-lg border border-red-200 bg-red-50/40 p-3 space-y-3">
-                  <div className="text-xs font-semibold text-red-900">
-                    Funn for punktet (Ikke OK)
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-xs font-semibold text-red-900">
+                      Avvik for punktet (Ikke OK)
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="bg-transparent"
+                      onClick={() => addInlineFindingDraft(field.id, field.label)}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Legg til flere avvik
+                    </Button>
                   </div>
-                  {(() => {
-                    const draft = getInlineFindingDraft(field.id, field.label);
+                  {getInlineFindingDrafts(field.id, field.label).map((draft, findingIndex) => {
+                    const uploadKey = findingUploadKey(field.id, findingIndex);
                     return (
-                      <>
+                      <div
+                        key={`${field.id}-finding-${findingIndex}`}
+                        className="space-y-3 rounded-md border border-red-200 bg-background p-3"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-medium text-muted-foreground">
+                            Avvik {findingIndex + 1}
+                          </p>
+                          {getInlineFindingDrafts(field.id, field.label).length > 1 && (
+                            <button
+                              type="button"
+                              className="text-xs text-muted-foreground hover:text-destructive"
+                              onClick={() =>
+                                removeInlineFindingDraft(field.id, field.label, findingIndex)
+                              }
+                            >
+                              Fjern
+                            </button>
+                          )}
+                        </div>
                         <div className="space-y-1.5">
                           <Label className="text-xs">Funn-tittel</Label>
                           <Input
                             value={draft.title}
                             onChange={(event) =>
-                              updateInlineFindingDraft(field.id, field.label, { title: event.target.value })
+                              updateInlineFindingDraft(field.id, field.label, findingIndex, {
+                                title: event.target.value,
+                              })
                             }
-                            placeholder="Kort tittel på funnet"
+                            placeholder="Kort tittel, f.eks. Dårlig belysning"
                           />
                         </div>
                         <div className="space-y-1.5">
@@ -805,7 +878,9 @@ export function FormFiller({
                           <Textarea
                             value={draft.description}
                             onChange={(event) =>
-                              updateInlineFindingDraft(field.id, field.label, { description: event.target.value })
+                              updateInlineFindingDraft(field.id, field.label, findingIndex, {
+                                description: event.target.value,
+                              })
                             }
                             placeholder="Beskriv hva som er avviket og hva som ble observert"
                             rows={3}
@@ -823,7 +898,7 @@ export function FormFiller({
                               onChange={(event) => {
                                 const nextValue = Number(event.target.value);
                                 if (!Number.isFinite(nextValue)) return;
-                                updateInlineFindingDraft(field.id, field.label, {
+                                updateInlineFindingDraft(field.id, field.label, findingIndex, {
                                   severity: clampSeverity(nextValue),
                                 });
                               }}
@@ -834,7 +909,9 @@ export function FormFiller({
                             <Input
                               value={draft.location}
                               onChange={(event) =>
-                                updateInlineFindingDraft(field.id, field.label, { location: event.target.value })
+                                updateInlineFindingDraft(field.id, field.label, findingIndex, {
+                                  location: event.target.value,
+                                })
                               }
                               placeholder="F.eks. Lager 2"
                             />
@@ -844,26 +921,32 @@ export function FormFiller({
                           <Label className="text-xs">Bilder (valgfritt)</Label>
                           <input
                             ref={(el) => {
-                              findingImageInputRefs.current[field.id] = el;
+                              findingImageInputRefs.current[uploadKey] = el;
                             }}
                             type="file"
                             accept="image/*"
                             multiple
                             className="hidden"
                             onChange={(event) =>
-                              uploadInlineFindingImages(field.id, field.label, event.target.files)
+                              uploadInlineFindingImages(
+                                field.id,
+                                field.label,
+                                findingIndex,
+                                event.target.files,
+                              )
                             }
-                            disabled={uploadingFindingFieldId === field.id}
+                            disabled={uploadingFindingKey === uploadKey}
                           />
                           <Button
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={() => findingImageInputRefs.current[field.id]?.click()}
-                            disabled={uploadingFindingFieldId === field.id}
+                            className="bg-transparent"
+                            onClick={() => findingImageInputRefs.current[uploadKey]?.click()}
+                            disabled={uploadingFindingKey === uploadKey}
                           >
                             <Camera className="h-4 w-4 mr-2" />
-                            {uploadingFindingFieldId === field.id ? "Laster opp..." : "Legg til bilde"}
+                            {uploadingFindingKey === uploadKey ? "Laster opp..." : "Legg til bilde"}
                           </Button>
                           {draft.imageKeys.length > 0 && (
                             <div className="grid grid-cols-3 gap-2">
@@ -877,7 +960,14 @@ export function FormFiller({
                                   <button
                                     type="button"
                                     className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white"
-                                    onClick={() => removeInlineFindingImage(field.id, field.label, imageKey)}
+                                    onClick={() =>
+                                      removeInlineFindingImage(
+                                        field.id,
+                                        field.label,
+                                        findingIndex,
+                                        imageKey,
+                                      )
+                                    }
                                   >
                                     <X className="h-3 w-3" />
                                   </button>
@@ -886,9 +976,9 @@ export function FormFiller({
                             </div>
                           )}
                         </div>
-                      </>
+                      </div>
                     );
-                  })()}
+                  })}
                 </div>
               )}
 

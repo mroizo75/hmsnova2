@@ -5,12 +5,30 @@ import AzureADProvider from "next-auth/providers/azure-ad";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/lib/db";
 import { sanitizeAdapterAccount } from "@/lib/oauth-account";
+import {
+  AZURE_AD_OIDC_SCOPE,
+  azureAdLoginMayIssueSession,
+  canonicalizeAzureAdEmail,
+  type AzureAdIdTokenProfile,
+} from "@/lib/azure-ad-email";
+import {
+  ensureAzureAdUserTenant,
+  getAzureAdJoinBlockReason,
+  validateAzureAdLogin,
+} from "@/lib/azure-ad-login";
 import bcrypt from "bcryptjs";
 
 const prismaAdapter = PrismaAdapter(prisma);
 
 const adapter: Adapter = {
   ...prismaAdapter,
+  createUser: (data) =>
+    prismaAdapter.createUser!({
+      ...data,
+      email: data.email ? data.email.toLowerCase().trim() : data.email,
+      emailVerified: data.emailVerified ?? new Date(),
+      image: null,
+    }),
   linkAccount: (account) => prismaAdapter.linkAccount!(sanitizeAdapterAccount(account)),
 };
 
@@ -30,15 +48,22 @@ export const authOptions: NextAuthOptions = {
             clientId: azureAdClientId!,
             clientSecret: azureAdClientSecret!,
             tenantId: process.env.AZURE_AD_TENANT_ID || "common",
-            // Tenant-tilknytning og brukeropprettelse skjer i signIn-callbacken under.
-            // Uten dette avviser PrismaAdapter hver førstegangsinnlogging med
-            // OAuthAccountNotLinked fordi brukeren allerede er opprettet der.
             allowDangerousEmailAccountLinking: true,
             authorization: {
               params: {
-                scope: "openid profile email User.Read",
-                prompt: "select_account", // Tvinger bruker til å velge konto
+                scope: AZURE_AD_OIDC_SCOPE,
+                prompt: "select_account",
               },
+            },
+            profile(profile) {
+              const azureProfile = profile as AzureAdIdTokenProfile;
+              const email = canonicalizeAzureAdEmail(azureProfile);
+              return {
+                id: azureProfile.sub ?? email,
+                name: azureProfile.name ?? email,
+                email,
+                image: null,
+              };
             },
           }),
         ]
@@ -225,137 +250,51 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async signIn({ user, account, profile }) {
-      // OAuth providers (Microsoft, Google, etc.)
-      if (account?.provider !== "credentials") {
-        const email = user.email!;
-        
-        // VIKTIG: Microsoft kan returnere ulike e-postadresser
-        // - email: Primær e-post (kan være gmail.com, outlook.com, etc.)
-        // - userPrincipalName: Innloggingsnavn i Azure AD (bedrift.no)
-        // Vi må sjekke UPN for å finne riktig tenant!
-        const azureProfile = profile as any;
-        const userPrincipalName = azureProfile?.preferred_username || azureProfile?.upn || email;
-        
-        console.log(`🔐 SSO Login attempt:`, {
-          email,
-          userPrincipalName,
-          provider: account?.provider,
-        });
-        
-        // Valider om brukeren kan logge inn via Azure AD
-        // Bruk UPN for tenant-matching, men email for brukeroppretting
-        const { validateAzureAdLogin } = await import("@/server/actions/azure-ad.actions");
-        const validation = await validateAzureAdLogin(userPrincipalName, email);
-
-        if (!validation.allowed) {
-          console.error(`SSO login denied for ${userPrincipalName}: ${validation.error}`);
-          return false;
-        }
-
-        // Bruk e-posten som validation returnerte (kan være annerledes enn user.email)
-        const finalEmail = validation.email || email;
-
-        console.log(`✅ SSO validation passed. Using email: ${finalEmail} for tenant: ${validation.tenantId}`);
-
-        // KRITISK: Sjekk om bruker eksisterer OG har tenant
-        let existingUser = await prisma.user.findUnique({
-          where: { email: finalEmail.toLowerCase() },
-          include: {
-            tenants: true, // Hent ALLE tenants for brukeren
-          },
-        });
-
-        // Hvis bruker ikke eksisterer, opprett automatisk (JIT provisioning)
-        if (!existingUser) {
-          try {
-            existingUser = await prisma.user.create({
-              data: {
-                email: finalEmail.toLowerCase(),
-                name: user.name,
-                emailVerified: new Date(),
-                tenants: {
-                  create: {
-                    tenantId: validation.tenantId!,
-                    role: validation.role!,
-                  },
-                },
-              },
-              include: {
-                tenants: true,
-              },
-            });
-            console.log(`✅ JIT provisioning: Created user ${finalEmail} with tenant ${validation.tenantId} and role ${validation.role}`);
-          } catch (error) {
-            console.error(`❌ Failed to create user ${finalEmail}:`, error);
-            return false;
-          }
-        } else {
-          const hasTenant = existingUser.tenants.some(t => t.tenantId === validation.tenantId);
-          
-          if (!hasTenant) {
-            if (existingUser.tenants.length > 0) {
-              const isPrivileged = existingUser.isSuperAdmin || existingUser.isSupport;
-              if (!isPrivileged) {
-                const groupMembership = await prisma.corporateGroupUser.findFirst({
-                  where: { userId: existingUser.id, role: { in: ["GROUP_ADMIN", "GROUP_HMS"] } },
-                  select: { id: true },
-                });
-                if (!groupMembership) {
-                  console.error(`❌ SSO denied: ${finalEmail} already belongs to another tenant and is not privileged`);
-                  return false;
-                }
-              }
-            }
-
-            try {
-              await prisma.userTenant.create({
-                data: {
-                  userId: existingUser.id,
-                  tenantId: validation.tenantId!,
-                  role: validation.role!,
-                },
-              });
-              console.log(`✅ JIT provisioning: Added ${finalEmail} to tenant ${validation.tenantId} with role ${validation.role}`);
-            } catch (error) {
-              console.error(`❌ Failed to add tenant for user ${finalEmail}:`, error);
-              return false;
-            }
-          } else {
-            console.log(`✅ User ${finalEmail} already has tenant ${validation.tenantId}`);
-          }
-        }
-
-        // EKSTRA SIKKERHET: Verifiser at bruker faktisk har tenant før vi tillater innlogging
-        const verifyUser = await prisma.user.findUnique({
-          where: { email: finalEmail.toLowerCase() },
-          include: {
-            tenants: {
-              where: {
-                tenantId: validation.tenantId,
-              },
-            },
-          },
-        });
-
-        if (!verifyUser || verifyUser.tenants.length === 0) {
-          console.error(`❌ CRITICAL: User ${finalEmail} exists but has NO tenant after JIT provisioning!`);
-          return false; // Avvis innlogging hvis tenant mangler
-        }
-
-        console.log(`✅ SSO login successful for ${finalEmail} (UPN: ${userPrincipalName}) - Tenant verified`);
+      if (account?.provider !== "azure-ad") {
         return true;
       }
 
-      // Credentials provider - standard håndtering
+      const email =
+        canonicalizeAzureAdEmail(profile as AzureAdIdTokenProfile | undefined) ||
+        canonicalizeAzureAdEmail(user.email);
+      if (!email) {
+        return false;
+      }
+
+      const validation = await validateAzureAdLogin(email);
+      if (!validation.allowed || !validation.tenantId) {
+        return false;
+      }
+
+      const blockReason = await getAzureAdJoinBlockReason(email, validation.tenantId);
+      if (blockReason) {
+        return false;
+      }
+
       return true;
     },
-    async jwt({ token, user, account, trigger, session }) {
+    async jwt({ token, user, account }) {
+      delete (token as { picture?: unknown }).picture;
+
+      const isAzureAdLogin = account?.provider === "azure-ad";
+
       if (user) {
         token.id = user.id;
+
+        if (isAzureAdLogin) {
+          if (!user.email) {
+            throw new Error("AccessDenied");
+          }
+          const ensured = await ensureAzureAdUserTenant(user.id, user.email);
+          if (!ensured.ok) {
+            throw new Error("AccessDenied");
+          }
+          token.id = ensured.userId;
+        }
         
         // Hent brukerdata fra database for å få isSuperAdmin, isSupport, tenantId og role
         const dbUser = await prisma.user.findUnique({
-          where: { id: user.id },
+          where: { id: token.id as string },
           include: {
             tenants: {
               include: {
@@ -370,6 +309,10 @@ export const authOptions: NextAuthOptions = {
             },
           },
         });
+
+        if (isAzureAdLogin && !dbUser) {
+          throw new Error("AccessDenied");
+        }
         
         if (dbUser) {
           token.isSuperAdmin = dbUser.isSuperAdmin;
@@ -404,6 +347,18 @@ export const authOptions: NextAuthOptions = {
           });
           token.corporateGroupId = groupMembership?.groupId ?? null;
           token.corporateGroupRole = groupMembership?.role ?? null;
+
+          if (
+            isAzureAdLogin &&
+            !azureAdLoginMayIssueSession({
+              membershipCount: dbUser.tenants.length,
+              tenantId: token.tenantId as string | null,
+              isSuperAdmin: dbUser.isSuperAdmin,
+              isSupport: dbUser.isSupport || false,
+            })
+          ) {
+            throw new Error("AccessDenied");
+          }
         }
       }
       
@@ -506,14 +461,6 @@ export const authOptions: NextAuthOptions = {
         session.user.corporateGroupRole = (token.corporateGroupRole as any) ?? null;
       }
       return session;
-    },
-  },
-  events: {
-    async signIn({ user, account, isNewUser }) {
-      // Logg SSO innlogginger
-      if (account?.provider !== "credentials") {
-        console.log(`SSO login: ${user.email} via ${account.provider}`);
-      }
     },
   },
   secret: process.env.NEXTAUTH_SECRET,

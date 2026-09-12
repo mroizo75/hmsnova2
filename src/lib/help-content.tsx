@@ -93,7 +93,7 @@ export const helpContent: Record<string, HelpContent> = {
         heading: "Rutiner fra regelverket",
         emoji: "📋",
         content:
-          "Etter at profilen er opprettet kan du velge hvilke rutiner som skal publiseres. Bruk «Velg alle», huk av enkeltvis, eller ta vekk rutiner som ikke gjelder. Endringen vises med en gang.",
+          "Juridisk register viser lover og forskrifter. Når profilen er opprettet, foreslår systemet rutiner ut fra kravene. Publisering og vedlikehold skjer under Rutiner — ikke her.",
       },
       {
         heading: "Viktig om juridisk ansvar",
@@ -1674,6 +1674,11 @@ export const helpContent: Record<string, HelpContent> = {
             description:
               "Oppdater virksomhetsinformasjon, logo og kontaktopplysninger.",
           },
+          {
+            title: "Regnskap og timer",
+            description:
+              "Arbeidstid (AML kap. 10), km-satser og Tripletex. Ansatte sender inn egne timer. Individuell lønn og skattekort ligger i lønnssystemet.",
+          },
         ],
       },
       {
@@ -1825,6 +1830,12 @@ export const helpContent: Record<string, HelpContent> = {
         emoji: "📋",
         content:
           "Rutiner beskriver hvordan virksomheten skal utføre bestemte oppgaver for å ivareta helse, miljø og sikkerhet. Internkontrollforskriften krever at virksomheten har dokumenterte rutiner som er kjent for alle ansatte.",
+      },
+      {
+        heading: "Rutiner fra regelverket",
+        emoji: "⚖️",
+        content:
+          "Etter at juridisk register er kartlagt vises anbefalte rutiner her. Huk av hvilke som skal gjelde og klikk «Publiser valgte rutiner». Da opprettes de som vanlige rutiner i listen under, der du kan tilpasse, sette ansvarlig og revidere dem. Hjemmel: IK-HMS § 5.",
       },
       {
         heading: "Hvordan komme i gang",

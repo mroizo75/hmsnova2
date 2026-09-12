@@ -20,6 +20,7 @@ export interface AuthContext {
   userEmail: string;
   tenantId: string;
   role: Role;
+  departmentId: string | null;
   permissions: RolePermissions;
   moduleVisibilityConfig: ModuleVisibilityConfig | null;
 }
@@ -102,6 +103,7 @@ export async function getAuthContext(): Promise<AuthContext | null> {
     userEmail: user.email,
     tenantId: userTenant.tenantId,
     role,
+    departmentId: userTenant.departmentId ?? null,
     permissions,
     moduleVisibilityConfig,
   };

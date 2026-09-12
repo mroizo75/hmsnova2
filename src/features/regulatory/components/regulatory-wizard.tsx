@@ -195,7 +195,7 @@ export function RegulatoryWizard({ tenant, onComplete }: WizardProps) {
             <CardTitle>Oppsummering</CardTitle>
             <p className="text-sm text-muted-foreground">
               Basert på dine svar har vi identifisert {matchedRequirements.length} lovkrav som gjelder din virksomhet.
-              Velg «Opprett alt» for å publisere anbefalte rutiner med en gang, eller «Opprett profil» og velg rutiner selv etterpå.
+              Lovkravene vises her i juridisk register. Rutiner publiseres under Rutiner — velg «Opprett alt» for å publisere anbefalte rutiner med en gang, eller «Opprett profil» og velg rutiner selv etterpå.
             </p>
           </CardHeader>
           <CardContent className="space-y-4">

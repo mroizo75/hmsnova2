@@ -48,6 +48,7 @@ import {
   FolderArchive,
   Wine,
   Headphones,
+  HeartHandshake,
 } from "lucide-react";
 import { BRANSJE_MODULES } from "@/lib/bransje-modules";
 import { menuPathsToWidgetIds } from "@/lib/menu-widget-sync";
@@ -80,7 +81,7 @@ export const WIDGET_CATEGORIES: Record<WidgetCategory, { label: string; color: s
   sikkerhet: { label: "Sikkerhet & Beredskap", color: "text-red-700" },
   helse: { label: "Helse & Miljø", color: "text-emerald-700" },
   dokumenter: { label: "Dokumenter & Rutiner", color: "text-slate-700" },
-  personal: { label: "Personal & Administrasjon", color: "text-amber-700" },
+  personal: { label: "HR og organisasjon", color: "text-amber-700" },
   kvalitet: { label: "Kvalitet & Forbedring", color: "text-indigo-700" },
   spesial: { label: "Dashboard-widgeter", color: "text-purple-700" },
 };
@@ -531,6 +532,18 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
     bgColor: "bg-slate-50",
     borderColor: "border-slate-200",
     permission: "support",
+  },
+  {
+    id: "hr",
+    label: "HR",
+    description: "Ansatte, fravær, sykdom, onboarding og samtaler i samme løp",
+    icon: HeartHandshake,
+    href: "/dashboard/hr",
+    category: "personal",
+    color: "text-amber-700",
+    bgColor: "bg-amber-50",
+    borderColor: "border-amber-200",
+    permission: "hr",
   },
   {
     id: "employee-reviews",

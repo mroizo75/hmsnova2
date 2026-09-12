@@ -280,6 +280,10 @@ export async function PUT(
         injuryDescription,
         suggestedActions,
         source: source ?? undefined,
+        treatmentOtherText:
+          typeof body.treatmentOtherText === "string"
+            ? body.treatmentOtherText.trim() || null
+            : undefined,
       },
     });
 

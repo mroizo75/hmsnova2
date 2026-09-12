@@ -10,6 +10,96 @@
     "error": "Something went wrong",
     "success": "Success"
   },
+  "timesheet": {
+    "title": "Time registration",
+    "subtitle": "Register the day with from–to, project and comment. Approval before Tripletex.",
+    "loading": "Loading…",
+    "error": "Error",
+    "saved": "Day submitted for approval",
+    "date": "Date",
+    "from": "From",
+    "to": "To",
+    "lunch": "Lunch (minutes)",
+    "project": "Project",
+    "subproject": "Subproject",
+    "mainProject": "Use main project",
+    "selectProject": "Select project",
+    "salaryType": "Salary type (payroll)",
+    "defaultSalaryType": "Default salary type",
+    "activity": "Activity (invoice)",
+    "comment": "Comment",
+    "usage": "Vehicle, machine and goods",
+    "productSearch": "Search product (all words must match)",
+    "selectProduct": "Select product",
+    "unit": "Unit",
+    "addLine": "Add line",
+    "reportIncident": "Report incident",
+    "newSja": "New SJA",
+    "saving": "Saving…",
+    "submitDay": "Submit day",
+    "todayEntries": "Registered today",
+    "noEntries": "No entries today",
+    "saveComment": "Save comment",
+    "emptyQueue": "No timesheets waiting for approval",
+    "approve": "Approve",
+    "approved": "Approved",
+    "reject": "Reject",
+    "rejectReason": "Reason for rejection",
+    "retry": "Retry",
+    "syncLog": "Sync log",
+    "employee": "Employee",
+    "doubleBooked": "Warning: overlapping resource assignment",
+    "savePlan": "Save plan",
+    "remove": "Remove",
+    "hoursSuffix": "h",
+    "reason": "Reason",
+    "take": "Take from time bank",
+    "factor": "Factor",
+    "saveRule": "Save rule",
+    "correct": "Correct",
+    "kind": {
+      "PRODUCT": "Goods",
+      "MACHINE": "Machine",
+      "KM": "Km"
+    },
+    "status": {
+      "draft": "Draft",
+      "submitted": "Submitted",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "synced": "Synced",
+      "syncError": "Sync error"
+    },
+    "tabs": {
+      "day": "Today",
+      "myWeek": "My week",
+      "history": "History",
+      "approval": "Approval",
+      "plan": "Resource plan",
+      "timebank": "Time bank",
+      "team": "Team"
+    },
+    "disabled": {
+      "title": "Time registration is off",
+      "description": "Enable it under Settings → Accounting. Working hours, mileage and Tripletex are managed there too.",
+      "link": "Go to Settings → Accounting"
+    },
+    "reports": {
+      "button": "Reports",
+      "title": "Download report",
+      "description": "Choose period, project and employee. Download as Excel or PDF.",
+      "ownOnly": "The report only includes your own hours.",
+      "period": "Period",
+      "day": "Day",
+      "week": "Week",
+      "month": "Month",
+      "year": "Year",
+      "allProjects": "All projects",
+      "allEmployees": "All employees",
+      "excel": "Download Excel",
+      "pdf": "Download PDF"
+    }
+  },
   "nav": {
     "dashboard": "Dashboard",
     "documents": "Documents",
@@ -54,6 +144,8 @@
     "absence": "Absence & Leave",
     "boarding": "Onboarding",
     "personnelArchive": "Personnel files",
+    "departments": "Departments",
+    "hr": "HR",
     "hmsTavle": "HMS Board",
     "ikMat": "Food safety and HACCP",
     "skjenking": "Alcohol serving",
@@ -62,7 +154,8 @@
     "transport": "Transport",
     "bhtNattarbeid": "Occupational health and night work",
     "hmsHandbok": "HSE and staff handbook",
-    "meldinger": "Messages"
+    "meldinger": "Messages",
+    "templates": "Template library"
   },
   "auth": {
     "login": "Login",
@@ -78,11 +171,13 @@
     "advancedDescription": "All features including ISO",
     "hubs": {
       "oversikt": "Overview",
-      "handbok": "HSE Handbook",
-      "risiko": "Risk & Safety",
       "avvikTiltak": "Incidents & Actions",
+      "dokumenter": "Documents",
+      "risiko": "Risk",
+      "skjema": "Forms & industry",
       "organisasjon": "Organization",
-      "tilleggsmoduler": "Add-on modules"
+      "hr": "HR",
+      "system": "System"
     }
   },
   "mobileNav": {
@@ -1530,7 +1625,7 @@
     "loadError": "Could not load overview. Please try again later.",
     "disabled": {
       "title": "Time registration is not enabled",
-      "description": "Contact your manager or administrator to enable time registration for the company."
+      "description": "Contact an administrator. Time registration is enabled under Settings → Accounting."
     },
     "form": {
       "title": "Register hours and driving",
@@ -1996,6 +2091,12 @@
       "witnessName": {
         "label": "Witnesses",
         "placeholder": "Names of any witnesses"
+      },
+      "reportedForUser": {
+        "label": "Report on behalf of",
+        "placeholder": "Select employee (optional)",
+        "none": "— None (reporting for myself) —",
+        "help": "Use when reporting on behalf of another employee."
       },
       "description": {
         "label": "Detailed description *",
@@ -2472,7 +2573,52 @@
       "notifications": "Notifications",
       "users": "Users",
       "office365": "Office 365",
+      "tripletex": "Accounting",
       "subscription": "Subscription"
+    },
+    "payroll": {
+      "saved": "Settings saved",
+      "saving": "Saving…",
+      "enableTitle": "Time registration",
+      "enableDescription": "Working Environment Act section 10-7: the employer must keep records of hours worked. When enabled, every employee can submit their own hours. Tripletex is optional sync after approval.",
+      "enableLabel": "Enable time registration for this company",
+      "workTitle": "Working hours",
+      "workLegal": "Working Environment Act chapter 10: these fields are the company’s collective rules (contract/tariff). They split the day into ordinary time and overtime. Individual pay and salary types belong in Tripletex, not here.",
+      "weeklyNorm": "Weekly norm",
+      "weekly375": "7.5 h/day (37.5 h/week)",
+      "weekly40": "8 h/day (40 h/week)",
+      "dayStart": "Ordinary start",
+      "dayEnd": "Ordinary end",
+      "lunch": "Lunch (minutes)",
+      "netDay": "Net working time: {hours} h (end − start − lunch).",
+      "normMismatch": "The weekly norm implies {expected} h/day. Adjust clocks or lunch, or save anyway if the tariff differs.",
+      "ot50Cap": "Overtime 50% (hours after daily norm, Mon–Fri)",
+      "ot50CapHelp": "Hours beyond the daily norm up to this cap become 50% overtime. The rest becomes 100%. Default 4.5 h.",
+      "saturdayUntil": "Saturday: 50% overtime until",
+      "saturdayUntilHelp": "Saturday work until this time is 50%. After that 100%. Sunday is always 100%.",
+      "overtime40": "Use 40% in the Excel estimate instead of 50% for weekday overtime (tariff). Tripletex salary types are mapped below.",
+      "saveWork": "Save working hours",
+      "kmTitle": "Mileage allowance",
+      "kmLegal": "The rate regulation section 4: tax-free mileage is NOK 3.50/km (2026). Government rate: NOK 5.30/km. The difference is taxable if the full rate is paid. This is not an A-melding — payroll runs in Tripletex or another payroll system.",
+      "kmRate": "Default mileage rate (NOK/km)",
+      "kmTaxable": "Tax surplus above NOK 3.50/km in the Excel estimate",
+      "kmTaxableHelp": "On: surplus mileage is included in the rough payout estimate. Actual withholding is driven by the tax deduction card in payroll.",
+      "saveKm": "Save mileage rates",
+      "estimateTitle": "Estimated payout (optional)",
+      "estimateLegal": "GDPR art. 6(1)(b): working time is necessary for the employment relationship. Individual hourly pay, tax cards and national ID numbers must not live here — they belong in payroll. The fields below are a rough internal Excel estimate and are not withholding tax.",
+      "hourlyRate": "Shared hourly rate for estimate (NOK)",
+      "hourlyRatePlaceholder": "Empty = hide estimate",
+      "hourlyRateHelp": "Not individual pay. One rate for an internal overview. Actual pay is driven by salary type in Tripletex.",
+      "taxPercent": "Approx. deduction for estimate (%)",
+      "taxPercentHelp": "Not a tax card or table withholding. Empty = no deduction in the estimate.",
+      "saveEstimate": "Save estimate",
+      "invalidLunch": "Lunch must be 0–480 minutes",
+      "invalidClock": "End must be after start",
+      "invalidOt50": "50% overtime must be 0–12 hours",
+      "invalidSaturday": "Invalid Saturday time",
+      "invalidKm": "Mileage rate must be 0–100 NOK",
+      "invalidRate": "Hourly rate must be 0–9999 NOK",
+      "invalidTax": "Estimate deduction must be 0–100%"
     }
   },
   "dashboardIncidentsPage": {
@@ -3138,6 +3284,25 @@
     },
     "notSet": "Not set"
   },
+  "dashboardTemplateLibraryPage": {
+    "title": "Template library",
+    "description": "Get ready-made templates for your company — routines, forms, documents and more.",
+    "tabs": {
+      "all": "All",
+      "routines": "Routines",
+      "forms": "Forms",
+      "documents": "Documents"
+    },
+    "empty": "No templates found in this category.",
+    "copyButton": "Add to company",
+    "copying": "Adding...",
+    "copySuccess": "\"{name}\" has been added",
+    "copyError": "Could not add the template",
+    "categoryHR": "HR",
+    "categoryHMS": "HSE",
+    "searchPlaceholder": "Search templates...",
+    "legalRef": "Legal reference"
+  },
   "dashboardRoutineTemplatesPage": {
     "title": "Routine templates",
     "loadFailed": "Could not load routine templates right now.",
@@ -3330,7 +3495,14 @@
     "stats": {
       "activeProjects": "Active projects",
       "inPlanning": "In planning",
-      "completed": "Completed"
+      "completed": "Completed",
+      "readyToInvoice": "Ready to invoice"
+    },
+    "filters": {
+      "all": "All",
+      "active": "Active jobs",
+      "hms": "HSE projects",
+      "ready": "Ready to invoice"
     },
     "empty": {
       "title": "No projects yet",
@@ -4320,6 +4492,8 @@
       "empty": "No checklist points in this template.",
       "progress": "Completed: {completed} of {total} checklist points.",
       "imageAlt": "Finding image",
+      "findingsHeading": "Findings for this point",
+      "findingNumber": "Finding {number}",
       "fields": {
         "findingTitle": "Finding title",
         "findingDescription": "Finding description",
@@ -4334,6 +4508,7 @@
       },
       "badges": {
         "finding": "Finding",
+        "findingsCount": "{count} findings",
         "findingRegistered": "Finding registered"
       },
       "actions": {
@@ -4341,6 +4516,8 @@
         "notOk": "Not OK",
         "uploading": "Uploading...",
         "addImage": "Add image",
+        "addFinding": "Add another finding",
+        "removeFinding": "Remove",
         "saving": "Saving...",
         "saveChecklist": "Save checklist"
       },
@@ -4539,7 +4716,8 @@
       "measures": "Measures",
       "time": "Time",
       "attachments": "Attachments",
-      "forms": "Forms"
+      "forms": "Forms",
+      "plan": "Resource plan"
     },
     "actions": {
       "constructionCompliance": "Construction compliance"
@@ -4892,6 +5070,7 @@
       "ADMIN": "Admin",
       "HMS": "HSE manager",
       "LEDER": "Leader",
+      "HR": "HR",
       "VERNEOMBUD": "Safety representative",
       "ANSATT": "Employee",
       "BHT": "OHS service",
@@ -4990,6 +5169,7 @@
       "ADMIN": "Admin",
       "HMS": "HSE manager",
       "LEDER": "Leader",
+      "HR": "HR",
       "VERNEOMBUD": "Safety representative",
       "ANSATT": "Employee",
       "BHT": "OHS service",
@@ -5077,6 +5257,7 @@
       "ADMIN": "Admin",
       "HMS": "HSE manager",
       "LEDER": "Leader",
+      "HR": "HR",
       "VERNEOMBUD": "Safety representative",
       "ANSATT": "Employee",
       "BHT": "OHS service",

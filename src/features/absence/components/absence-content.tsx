@@ -22,6 +22,7 @@ type AbsenceItem = {
 
 interface AbsenceContentProps {
   absences: AbsenceItem[];
+  initialSearch?: string;
   permissions: {
     canCreateAbsence: boolean;
     canApproveAbsence: boolean;
@@ -31,7 +32,7 @@ interface AbsenceContentProps {
 
 type ViewMode = "list" | "calendar";
 
-export function AbsenceContent({ absences, permissions }: AbsenceContentProps) {
+export function AbsenceContent({ absences, initialSearch, permissions }: AbsenceContentProps) {
   const [view, setView] = useState<ViewMode>("list");
 
   return (
@@ -90,6 +91,7 @@ export function AbsenceContent({ absences, permissions }: AbsenceContentProps) {
         <AbsenceList
           absences={absences}
           canApprove={permissions.canApproveAbsence}
+          initialSearch={initialSearch}
         />
       ) : (
         <AbsenceCalendar absences={absences} />

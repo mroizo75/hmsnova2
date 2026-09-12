@@ -11,7 +11,13 @@ import {
 import { fetchTimeRegistrationData } from "@/server/queries/time-registration.queries";
 import { TimeRegistrationContent } from "@/features/time-registration/components/time-registration-content";
 
-export default async function AnsattTimeregistreringPage() {
+interface AnsattTimeregistreringPageProps {
+  searchParams: Promise<{ projectId?: string }>;
+}
+
+export default async function AnsattTimeregistreringPage({
+  searchParams,
+}: AnsattTimeregistreringPageProps) {
   const session = await getServerSession(authOptions);
   const t = await getTranslations("employeeTimeRegistrationPage");
 
@@ -49,6 +55,7 @@ export default async function AnsattTimeregistreringPage() {
   }
 
   const initialData = await fetchTimeRegistrationData();
+  const { projectId } = await searchParams;
 
   return (
     <div className="space-y-6">
@@ -64,6 +71,7 @@ export default async function AnsattTimeregistreringPage() {
         initialData={initialData}
         isAdmin={false}
         role="ANSATT"
+        selectedProjectId={projectId}
       />
     </div>
   );

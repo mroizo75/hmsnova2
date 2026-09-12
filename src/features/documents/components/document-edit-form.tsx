@@ -41,7 +41,7 @@ interface DocumentEditFormProps {
 }
 
 const documentKinds = ["LAW", "PLAN", "PROCEDURE", "CHECKLIST", "FORM", "SDS", "OTHER"] as const;
-const userRoles = ["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "ANSATT", "BHT", "REVISOR"] as const;
+const userRoles = ["ADMIN", "HMS", "LEDER", "HR", "VERNEOMBUD", "ANSATT", "BHT", "REVISOR"] as const;
 
 const NO_OWNER_VALUE = "__none_owner__";
 const NO_TEMPLATE_VALUE = "__none_template__";

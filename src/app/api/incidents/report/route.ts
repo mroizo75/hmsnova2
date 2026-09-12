@@ -78,6 +78,7 @@ export async function POST(request: NextRequest) {
       rawSubcategoryKeys && rawSubcategoryKeys.trim().startsWith("[")
         ? rawSubcategoryKeys
         : null;
+    const submitterComment = (formData.get("submitterComment") as string | null)?.trim() || null;
     const enrichedDescription = contextDetails
       ? `${description}\n\nKontekstnotat: ${contextDetails}`
       : description;
@@ -169,6 +170,15 @@ export async function POST(request: NextRequest) {
         customerTicketId,
         responseDeadline,
         customerSatisfaction,
+        comments: submitterComment
+          ? {
+              create: {
+                authorId: reportedBy,
+                body: submitterComment,
+                kind: "SUBMITTER",
+              },
+            }
+          : undefined,
       },
     });
 

@@ -5,6 +5,8 @@ import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
+import { enqueueAccountingJob } from "@/lib/accounting/sync";
+import { canEnqueueTimesheetSync } from "@/lib/time/approval";
 import {
   startOfWeek,
   endOfWeek,
@@ -15,6 +17,37 @@ import {
   getWeek,
 } from "date-fns";
 import { nb } from "date-fns/locale";
+
+async function enqueueTimeSync(tenantId: string, entryId: string) {
+  const entry = await prisma.timeEntry.findFirst({
+    where: { id: entryId, tenantId },
+    select: { approvalStatus: true },
+  });
+  if (!entry || !canEnqueueTimesheetSync(entry.approvalStatus)) return;
+  await enqueueAccountingJob({
+    tenantId,
+    entityType: "TimeEntry",
+    entityId: entryId,
+    action: "UPSERT_TIME",
+    payload: {},
+  });
+}
+
+async function enqueueRecentTimeSync(tenantId: string, projectId: string, userId: string, date: Date) {
+  const entries = await prisma.timeEntry.findMany({
+    where: {
+      tenantId,
+      projectId,
+      userId,
+      date,
+      createdAt: { gte: new Date(Date.now() - 15_000) },
+    },
+    select: { id: true },
+  });
+  for (const e of entries) {
+    await enqueueTimeSync(tenantId, e.id);
+  }
+}
 
 async function getSessionContext() {
   const session = await getServerSession(authOptions);
@@ -80,6 +113,10 @@ export async function getTimeRegistrationConfig(tenantId: string) {
         saturdayOvertime40LimitHours: true,
         defaultHourlyRate: true,
         approximateTaxPercent: true,
+        dayStartHour: true,
+        dayEndHour: true,
+        overtime50CapHours: true,
+        saturdayOt50UntilHour: true,
       },
     });
     if (!tenant) return { success: false, error: "Virksomhet ikke funnet" };
@@ -102,6 +139,10 @@ export async function updateTimeRegistrationConfig(
     defaultKmRate?: number;
     kmAllowanceTaxable?: boolean;
     lunchBreakMinutes?: number;
+    dayStartHour?: number;
+    dayEndHour?: number;
+    overtime50CapHours?: number;
+    saturdayOt50UntilHour?: number;
     eveningOvertimeFromHour?: number | null;
     saturdayOvertime40LimitHours?: number | null;
     defaultHourlyRate?: number | null;
@@ -109,9 +150,12 @@ export async function updateTimeRegistrationConfig(
   }
 ) {
   try {
-    const { user, role } = await getSessionContext();
+    const { user, role, tenantId: sessionTenantId } = await getSessionContext();
     if (role !== "ADMIN") {
       return { success: false, error: "Kun administrator kan endre innstillinger" };
+    }
+    if (tenantId !== sessionTenantId) {
+      return { success: false, error: "Ingen tilgang" };
     }
 
     await prisma.tenant.update({
@@ -126,6 +170,10 @@ export async function updateTimeRegistrationConfig(
         defaultKmRate: data.defaultKmRate,
         kmAllowanceTaxable: data.kmAllowanceTaxable,
         lunchBreakMinutes: data.lunchBreakMinutes,
+        dayStartHour: data.dayStartHour,
+        dayEndHour: data.dayEndHour,
+        overtime50CapHours: data.overtime50CapHours,
+        saturdayOt50UntilHour: data.saturdayOt50UntilHour,
         eveningOvertimeFromHour: data.eveningOvertimeFromHour,
         saturdayOvertime40LimitHours: data.saturdayOvertime40LimitHours,
         defaultHourlyRate: data.defaultHourlyRate,
@@ -139,6 +187,8 @@ export async function updateTimeRegistrationConfig(
 
     revalidatePath("/dashboard/time-registration");
     revalidatePath("/dashboard/settings");
+    revalidatePath("/ansatt/timeregistrering");
+    revalidatePath("/ansatt");
     triggerRealtimeEvent(tenantId, "time-registration-updated");
     return { success: true };
   } catch (e) {
@@ -419,6 +469,7 @@ export async function createTimeEntry(input: {
       revalidatePath("/dashboard/time-registration");
       revalidatePath("/ansatt/timeregistrering");
       triggerRealtimeEvent(tenantId, "time-registration-updated");
+      await enqueueTimeSync(tenantId, entry.id);
       return { success: true, data: entry };
     }
 
@@ -441,6 +492,7 @@ export async function createTimeEntry(input: {
       revalidatePath("/dashboard/time-registration");
       revalidatePath("/ansatt/timeregistrering");
       triggerRealtimeEvent(tenantId, "time-registration-updated");
+      await enqueueTimeSync(tenantId, entry.id);
       return { success: true, data: entry };
     }
 
@@ -476,6 +528,7 @@ export async function createTimeEntry(input: {
       revalidatePath("/dashboard/time-registration");
       revalidatePath("/ansatt/timeregistrering");
       triggerRealtimeEvent(tenantId, "time-registration-updated");
+      await enqueueTimeSync(tenantId, entry.id);
       return { success: true, data: entry };
     }
 
@@ -563,6 +616,7 @@ export async function createTimeEntry(input: {
     revalidatePath("/dashboard/time-registration");
     revalidatePath("/ansatt/timeregistrering");
     triggerRealtimeEvent(tenantId, "time-registration-updated");
+    await enqueueRecentTimeSync(tenantId, input.projectId, user.id, date);
     return { success: true, data: null };
   } catch (e) {
     const err = e as Error;
@@ -607,6 +661,7 @@ export async function updateTimeEntry(
     revalidatePath("/dashboard/time-registration");
     revalidatePath("/ansatt/timeregistrering");
     triggerRealtimeEvent(tenantId, "time-registration-updated");
+    await enqueueTimeSync(tenantId, id);
     return { success: true };
   } catch (e) {
     const err = e as Error;
@@ -631,6 +686,15 @@ export async function deleteTimeEntry(id: string) {
     revalidatePath("/dashboard/time-registration");
     revalidatePath("/ansatt/timeregistrering");
     triggerRealtimeEvent(tenantId, "time-registration-updated");
+    if (existing.externalId) {
+      await enqueueAccountingJob({
+        tenantId,
+        entityType: "TimeEntry",
+        entityId: id,
+        action: "DELETE_TIME",
+        payload: { externalId: existing.externalId },
+      });
+    }
     return { success: true };
   } catch (e) {
     const err = e as Error;
@@ -658,7 +722,12 @@ export async function createMileageEntry(input: {
 
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
-      select: { timeRegistrationEnabled: true, defaultKmRate: true },
+      select: {
+        timeRegistrationEnabled: true,
+        defaultKmRate: true,
+        accountingProvider: true,
+        tripletexProductKmId: true,
+      },
     });
     if (!tenant?.timeRegistrationEnabled) {
       return { success: false, error: "Timeregistrering er ikke aktivert" };
@@ -693,6 +762,31 @@ export async function createMileageEntry(input: {
     revalidatePath("/dashboard/time-registration");
     revalidatePath("/ansatt/timeregistrering");
     triggerRealtimeEvent(tenantId, "time-registration-updated");
+
+    if (tenant.accountingProvider === "TRIPLETEX" && tenant.tripletexProductKmId) {
+      const line = await prisma.projectUsageLine.create({
+        data: {
+          tenantId,
+          projectId: input.projectId,
+          userId: user.id,
+          kind: "KM",
+          productExternalId: tenant.tripletexProductKmId,
+          productName: "Km-tillegg",
+          quantity: input.kilometers,
+          unitPrice: rate,
+          comment: input.comment?.trim() || null,
+          syncStatus: "PENDING",
+        },
+      });
+      await enqueueAccountingJob({
+        tenantId,
+        entityType: "ProjectUsageLine",
+        entityId: line.id,
+        action: "UPSERT_LINE",
+        payload: {},
+      });
+    }
+
     return { success: true, data: entry };
   } catch (e) {
     const err = e as Error;

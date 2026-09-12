@@ -28,7 +28,7 @@ const getActionTag = (href: string): string => {
   return "Oppfølging";
 };
 
-export function AiAssistantPanel() {
+export function AiAssistantPanel({ active = true }: { active?: boolean }) {
   const [loading, setLoading] = useState(false);
   const [nextActions, setNextActions] = useState<Array<{ title: string; href: string }>>([]);
   const [monthlySummary, setMonthlySummary] = useState("");
@@ -56,6 +56,7 @@ export function AiAssistantPanel() {
   }, []);
 
   useEffect(() => {
+    if (!active) return;
     if (typeof window !== "undefined") {
       try {
         const raw = window.localStorage.getItem(DASHBOARD_AI_CACHE_KEY);
@@ -82,7 +83,7 @@ export function AiAssistantPanel() {
       }
     }
     void handleGenerate();
-  }, [handleGenerate]);
+  }, [active, handleGenerate]);
 
   return (
     <Card>

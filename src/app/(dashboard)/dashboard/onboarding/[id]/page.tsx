@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/server-authorization";
 import { fetchBoardingById } from "@/server/queries/boarding.queries";
 import { BoardingDetail } from "@/features/boarding/components/boarding-detail";
+import { HrWorkspaceNav } from "@/features/hr/components/hr-workspace-nav";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -19,10 +20,13 @@ export default async function BoardingDetailPage({ params }: Props) {
   if (!boarding) notFound();
 
   return (
-    <BoardingDetail
-      boarding={boarding}
-      canEdit={auth.permissions.canCreateBoarding}
-      currentUserId={auth.userId}
-    />
+    <div className="space-y-6 p-6">
+      <HrWorkspaceNav />
+      <BoardingDetail
+        boarding={boarding}
+        canEdit={auth.permissions.canCreateBoarding}
+        currentUserId={auth.userId}
+      />
+    </div>
   );
 }

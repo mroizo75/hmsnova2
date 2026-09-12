@@ -36,7 +36,15 @@ export async function fetchAbsences() {
     orderBy: { startDate: "desc" },
   });
 
-  return JSON.parse(JSON.stringify(absences));
+  return JSON.parse(
+    JSON.stringify(
+      absences.map((absence) => ({
+        ...absence,
+        employee: absence.user,
+        workdays: absence.workdays ?? 0,
+      })),
+    ),
+  );
 }
 
 export async function fetchAbsenceById(id: string) {

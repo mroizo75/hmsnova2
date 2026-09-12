@@ -42,6 +42,7 @@ type AbsenceListItem = {
 interface AbsenceListProps {
   absences: AbsenceListItem[];
   canApprove: boolean;
+  initialSearch?: string;
 }
 
 const STATUS_LABELS: Record<AbsenceStatus | "ALL", string> = {
@@ -66,9 +67,9 @@ const TYPE_LABELS: Record<AbsenceType | "ALL", string> = {
   OTHER: "Annet",
 };
 
-export function AbsenceList({ absences, canApprove }: AbsenceListProps) {
+export function AbsenceList({ absences, canApprove, initialSearch = "" }: AbsenceListProps) {
   const { toast } = useToast();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(initialSearch);
   const [statusFilter, setStatusFilter] = useState<AbsenceStatus | "ALL">("ALL");
   const [typeFilter, setTypeFilter] = useState<AbsenceType | "ALL">("ALL");
   const [pendingAction, setPendingAction] = useState<string | null>(null);

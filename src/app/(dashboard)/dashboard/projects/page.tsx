@@ -8,6 +8,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { fetchProjects } from "@/server/queries/project.queries";
 import { ProjectsListContent } from "@/features/projects/components/projects-list-content";
+import { getPermissions } from "@/lib/permissions";
 
 export default async function ProjectsPage() {
   const t = await getTranslations("dashboardProjectsPage");
@@ -27,6 +28,11 @@ export default async function ProjectsPage() {
     return <div>{t("noAccess")}</div>;
   }
 
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: selectedMembership.tenantId },
+    select: { accountingProvider: true },
+  });
+  const perms = getPermissions(selectedMembership.role);
   const initialData = await fetchProjects();
 
   return (
@@ -49,7 +55,11 @@ export default async function ProjectsPage() {
         </Button>
       </div>
 
-      <ProjectsListContent initialData={initialData} />
+      <ProjectsListContent
+        initialData={initialData}
+        accountingEnabled={tenant?.accountingProvider === "TRIPLETEX"}
+        canInvoice={perms.canInvoiceProject}
+      />
     </div>
   );
 }

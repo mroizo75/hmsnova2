@@ -53,6 +53,7 @@ export async function saveActivityProfile(input: {
   await generateRegulatoryProfile(tenantId, activeActivities);
 
   revalidatePath("/dashboard/juridisk-register");
+  revalidatePath("/dashboard/rutiner");
   revalidatePath("/dashboard/hms-handbok");
   triggerRealtimeEvent(tenantId, "settings-updated");
   return { success: true, data: profile };

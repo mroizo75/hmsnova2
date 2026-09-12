@@ -41,6 +41,7 @@ const allNavItems = [
   { href: "/admin/invoices", label: "Fakturaer", icon: FileText, supportAccess: false },
   { href: "/admin/legal-references", label: "Juridisk register", icon: Scale, supportAccess: true },
   { href: "/admin/lovendringer", label: "Lovendringer", icon: ScrollText, supportAccess: true },
+  { href: "/admin/malbibliotek", label: "Malbibliotek", icon: BookOpenCheck, supportAccess: true },
   { href: "/admin/routine-library", label: "Rutinebibliotek", icon: BookOpenCheck, supportAccess: true },
   { href: "/admin/intelligence", label: "Intelligence", icon: Brain, supportAccess: false },
   { href: "/admin/blog", label: "Blogg & SEO", icon: Newspaper, supportAccess: false },

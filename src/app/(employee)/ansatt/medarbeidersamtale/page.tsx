@@ -9,6 +9,7 @@ import { Calendar, ChevronRight, MessageSquare, PenLine } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { EmployeeReviewStatus } from "@prisma/client";
+import { EmployeeHrWorkspaceNav } from "@/features/hr/components/employee-hr-workspace-nav";
 
 const STATUS_CONFIG: Record<
   EmployeeReviewStatus,
@@ -38,6 +39,7 @@ export default async function AnsattMedarbeidersamtalePage() {
 
   return (
     <div className="space-y-6 p-4">
+      <EmployeeHrWorkspaceNav />
       <div>
         <h1 className="text-xl font-bold flex items-center gap-2">
           <MessageSquare className="h-5 w-5 text-primary" />

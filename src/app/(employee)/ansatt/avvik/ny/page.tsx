@@ -7,13 +7,19 @@ import { AlertCircle } from "lucide-react";
 import { ReportIncidentForm } from "@/components/ansatt/report-incident-form";
 import { prisma } from "@/lib/db";
 
-export default async function NyttAvvik() {
+interface PageProps {
+  searchParams: Promise<{ projectId?: string }>;
+}
+
+export default async function NyttAvvik({ searchParams }: PageProps) {
   const session = await getServerSession(authOptions);
   const t = await getTranslations("employeeIncidentNewPage");
 
   if (!session?.user?.tenantId) {
     redirect("/login");
   }
+
+  const { projectId } = await searchParams;
 
   const [projects, tenant] = await Promise.all([
     prisma.project.findMany({
@@ -60,6 +66,7 @@ export default async function NyttAvvik() {
             reportedBy={session.user.name || session.user.email || t("employeeFallback")}
             projects={projects}
             ruhModuleEnabled={tenant?.ruhModuleEnabled ?? true}
+            defaultValues={projectId ? { projectId } : undefined}
           />
         </CardContent>
       </Card>

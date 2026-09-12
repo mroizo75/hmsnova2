@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { Role } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -27,7 +28,7 @@ const createAdminUserSchema = z.object({
   password: z.string().min(8),
   isSuperAdmin: z.boolean().default(false),
   tenantId: z.string().optional(),
-  role: z.enum(["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "ANSATT", "BHT", "REVISOR", "VARSLINGSANSVARLIG"]).optional(),
+  role: z.nativeEnum(Role).optional(),
 });
 
 // Schema for å oppdatere bruker
@@ -36,7 +37,7 @@ const updateAdminUserSchema = z.object({
   name: z.string().min(2).optional(),
   isSuperAdmin: z.boolean().optional(),
   tenantId: z.string().optional(),
-  role: z.enum(["ADMIN", "HMS", "LEDER", "VERNEOMBUD", "ANSATT", "BHT", "REVISOR", "VARSLINGSANSVARLIG"]).optional(),
+  role: z.nativeEnum(Role).optional(),
 });
 
 export async function createAdminUser(input: z.infer<typeof createAdminUserSchema>) {

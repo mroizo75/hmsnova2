@@ -4,7 +4,7 @@ import { getAuthContext } from "@/lib/server-authorization";
 import { generatePersonnelFileKey, getStorage } from "@/lib/storage";
 import { validateDocumentFile, validateFileSize } from "@/lib/file-validation";
 import { PersonnelCategorySchema } from "@/features/personnel/schemas/personnel.schema";
-import { PERSONNEL_CATEGORY_LEGAL } from "@/features/personnel/lib/personnel-categories";
+import { PERSONNEL_CATEGORY_LEGAL, canAccessPersonnelFile } from "@/features/personnel/lib/personnel-categories";
 import type { PersonnelDocumentCategory } from "@prisma/client";
 
 export async function POST(request: NextRequest) {
@@ -44,6 +44,19 @@ export async function POST(request: NextRequest) {
     });
     if (!membership) {
       return NextResponse.json({ code: "NOT_FOUND", message: "Ansatt ikke funnet i denne bedriften" }, { status: 404 });
+    }
+
+    const allowed = canAccessPersonnelFile({
+      viewerId: auth.userId,
+      employeeId: userId,
+      canReadOwn: auth.permissions.canReadOwnPersonnelFile,
+      canReadAll: auth.permissions.canReadAllPersonnelFiles,
+      canReadDepartment: auth.permissions.canReadDepartmentPersonnelFiles,
+      viewerDepartmentId: auth.departmentId,
+      employeeDepartmentId: membership.departmentId,
+    });
+    if (!allowed) {
+      return NextResponse.json({ code: "FORBIDDEN", message: "Du har ikke tilgang til denne personalmappen" }, { status: 403 });
     }
 
     const sizeValidation = validateFileSize(file.size, 10);

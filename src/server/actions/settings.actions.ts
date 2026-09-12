@@ -9,6 +9,7 @@ import { AuditLog } from "@/lib/audit-log";
 import { assertNoManagerCycle } from "@/lib/incident-notification-routing";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
 import { Role } from "@prisma/client";
+import { getInvitableRoles } from "@/lib/permissions";
 
 async function getSessionContext() {
   const tenantContext = await getRequiredTenantContext();
@@ -29,6 +30,7 @@ const VALID_ROLES: Role[] = [
   "ADMIN",
   "HMS",
   "LEDER",
+  "HR",
   "VERNEOMBUD",
   "ANSATT",
   "BHT",
@@ -38,6 +40,7 @@ const VALID_ROLES: Role[] = [
 const ROLE_ALIASES: Record<string, Role> = {
   administrator: "ADMIN",
   admin: "ADMIN",
+  hr: "HR",
   leder: "LEDER",
   hms: "HMS",
   "hms-ansvarlig": "HMS",
@@ -521,8 +524,15 @@ export async function inviteUser(data: { email: string; name: string; role: stri
     const { user, tenantId } = await getSessionContext();
 
     const userTenant = user.tenants.find((t) => t.tenantId === tenantId);
-    if (!userTenant || userTenant.role !== "ADMIN") {
-      return { success: false, error: "Kun administratorer kan invitere brukere" };
+    if (!userTenant) {
+      return { success: false, error: "Ikke innlogget" };
+    }
+    const allowedRoles = getInvitableRoles(userTenant.role);
+    if (allowedRoles.length === 0) {
+      return { success: false, error: "Du har ikke tilgang til å invitere brukere" };
+    }
+    if (!allowedRoles.includes(data.role as Role)) {
+      return { success: false, error: "Du kan ikke tildele denne rollen" };
     }
 
     const tenant = await prisma.tenant.findUnique({
@@ -938,8 +948,15 @@ export async function updateUserRole(userId: string, role: string) {
 
     // Sjekk om bruker er admin
     const userTenant = user.tenants.find((t) => t.tenantId === tenantId);
-    if (!userTenant || userTenant.role !== "ADMIN") {
-      return { success: false, error: "Kun administratorer kan endre brukerroller" };
+    if (!userTenant) {
+      return { success: false, error: "Ikke innlogget" };
+    }
+    const allowedRoles = getInvitableRoles(userTenant.role);
+    if (allowedRoles.length === 0) {
+      return { success: false, error: "Kun administratorer og HR kan endre brukerroller" };
+    }
+    if (!allowedRoles.includes(role as Role)) {
+      return { success: false, error: "Du kan ikke tildele denne rollen" };
     }
 
     // Ikke la admin endre sin egen rolle
@@ -1040,8 +1057,8 @@ export async function updateEmployeeNumber(userId: string, employeeNumber: strin
 async function requireAdminContext() {
   const { user, tenantId } = await getSessionContext();
   const userTenant = user.tenants.find((t) => t.tenantId === tenantId);
-  if (!userTenant || userTenant.role !== "ADMIN") {
-    throw new Error("Kun administratorer kan endre organisasjonshierarkiet");
+  if (!userTenant || (userTenant.role !== "ADMIN" && userTenant.role !== "HR")) {
+    throw new Error("Kun administrator eller HR kan endre organisasjonshierarkiet");
   }
   return { user, tenantId };
 }

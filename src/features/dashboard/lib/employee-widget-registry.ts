@@ -10,6 +10,7 @@ import {
   Plug,
   ShieldAlert,
   Clock,
+  Briefcase,
   Eye,
   Flame,
   Droplets,
@@ -298,6 +299,17 @@ export const EMPLOYEE_WIDGET_REGISTRY: EmployeeWidgetDefinition[] = [
     borderColor: "border-emerald-300",
   },
   {
+    id: "emp-jobs",
+    label: "Jobber",
+    description: "Aktive jobber og dagsregistrering av timer",
+    icon: Briefcase,
+    href: "/ansatt/jobber",
+    color: "text-emerald-700",
+    bgColor: "bg-emerald-100",
+    borderColor: "border-emerald-300",
+    showInBottomNav: true,
+  },
+  {
     id: "emp-support",
     label: "Hjelp",
     description: "Chat med HMS-representantene våre",
@@ -309,6 +321,13 @@ export const EMPLOYEE_WIDGET_REGISTRY: EmployeeWidgetDefinition[] = [
     showInBottomNav: true,
   },
 ];
+
+export const EMPLOYEE_HR_WIDGET_IDS = new Set([
+  "emp-employee-reviews",
+  "emp-absence",
+  "emp-boarding",
+  "emp-personnel",
+]);
 
 export const DEFAULT_EMPLOYEE_WIDGET_IDS = EMPLOYEE_WIDGET_REGISTRY.map((w) => w.id);
 

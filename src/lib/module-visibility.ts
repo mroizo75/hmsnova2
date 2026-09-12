@@ -40,6 +40,7 @@ export const ALL_ROLES: Role[] = [
   "ADMIN",
   "HMS",
   "LEDER",
+  "HR",
   "VERNEOMBUD",
   "ANSATT",
   "BHT",
@@ -68,10 +69,10 @@ export const MODULE_DEFAULTS: Record<ModuleKey, Role[]> = {
   feedback:     ["ADMIN", "HMS", "LEDER", "BHT", "REVISOR"],
   // Standard: kun ADMIN ser ALLE andres samtaler.
   // Alle brukere ser alltid egne samtaler uavhengig av dette.
-  employeeReviews: ["ADMIN"],
-  absence: ["ADMIN", "HMS", "LEDER", "BHT", "REVISOR"],
-  boarding: ["ADMIN", "HMS", "LEDER"],
-  personnelArchive: ["ADMIN", "HMS", "LEDER"],
+  employeeReviews: ["ADMIN", "HR"],
+  absence: ["ADMIN", "HMS", "LEDER", "HR", "BHT", "REVISOR"],
+  boarding: ["ADMIN", "HMS", "LEDER", "HR"],
+  personnelArchive: ["ADMIN", "HR", "LEDER"],
 };
 
 /** Norske visningsnavn for hvert modul */
@@ -138,7 +139,7 @@ export const MODULE_PERMISSION_KEYS: Record<ModuleKey, Array<keyof RolePermissio
   employeeReviews: ["canReadAllEmployeeReviews"],
   absence: ["canReadAllAbsence", "canApproveAbsence", "canExportAbsenceStats"],
   boarding: ["canReadAllBoarding", "canCreateBoarding", "canManageBoardingTemplates"],
-  personnelArchive: ["canReadAllPersonnelFiles", "canUploadPersonnelFile", "canDeletePersonnelFile"],
+  personnelArchive: ["canReadAllPersonnelFiles", "canReadDepartmentPersonnelFiles", "canUploadPersonnelFile", "canDeletePersonnelFile"],
 };
 
 /** Mapping fra nav-permission til modul-nøkkel */
@@ -164,6 +165,7 @@ export const NAV_PERMISSION_TO_MODULE: Partial<Record<string, ModuleKey>> = {
   absence: "absence",
   boarding: "boarding",
   personnelArchive: "personnelArchive",
+  templates: "documents",
 };
 
 /**

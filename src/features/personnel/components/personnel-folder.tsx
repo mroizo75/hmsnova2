@@ -6,13 +6,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PersonnelDocumentList } from "./personnel-document-list";
 import { PersonnelUploadForm } from "./personnel-upload-form";
+import { HrProfileForm } from "./hr-profile-form";
 import type { PersonnelFolder } from "@/server/queries/personnel.queries";
+import { EmployeeHrThreadCard } from "@/features/hr/components/employee-hr-thread";
+import type { EmployeeHrThread } from "@/server/queries/hr-overview.queries";
 
 interface PersonnelFolderViewProps {
   folder: PersonnelFolder;
   canUpload: boolean;
   canDelete: boolean;
   backHref?: string | null;
+  canEditHrFields?: boolean;
+  canEditNotes?: boolean;
+  canEditKin?: boolean;
+  canEditBirthDate?: boolean;
+  hrThread?: EmployeeHrThread | null;
 }
 
 export function PersonnelFolderView({
@@ -20,6 +28,11 @@ export function PersonnelFolderView({
   canUpload,
   canDelete,
   backHref = "/dashboard/personalarkiv",
+  canEditHrFields = false,
+  canEditNotes = false,
+  canEditKin = false,
+  canEditBirthDate = false,
+  hrThread = null,
 }: PersonnelFolderViewProps) {
   return (
     <div className="space-y-6">
@@ -42,6 +55,31 @@ export function PersonnelFolderView({
           {folder.email}
         </p>
       </div>
+
+      {hrThread && (
+        <EmployeeHrThreadCard
+          employeeName={folder.name ?? folder.email}
+          thread={hrThread}
+        />
+      )}
+
+      {folder.hrProfile && (canEditHrFields || canEditNotes || canEditKin || folder.hrProfile.nextOfKin.length > 0) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Personalopplysninger</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <HrProfileForm
+              userId={folder.userId}
+              profile={folder.hrProfile}
+              canEditHrFields={canEditHrFields}
+              canEditNotes={canEditNotes}
+              canEditKin={canEditKin}
+              canEditBirthDate={canEditBirthDate}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {canUpload && (
         <Card>

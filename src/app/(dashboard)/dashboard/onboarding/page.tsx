@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/server-authorization";
 import { fetchBoardings } from "@/server/queries/boarding.queries";
 import { BoardingContent } from "@/features/boarding/components/boarding-content";
+import { HrWorkspaceNav } from "@/features/hr/components/hr-workspace-nav";
 
 export default async function OnboardingPage() {
   const auth = await getAuthContext();
@@ -13,7 +14,8 @@ export default async function OnboardingPage() {
   const boardings = await fetchBoardings();
 
   return (
-    <div className="p-6">
+    <div className="space-y-6 p-6">
+      <HrWorkspaceNav />
       <BoardingContent
         boardings={boardings}
         canCreate={auth.permissions.canCreateBoarding}

@@ -89,13 +89,41 @@ export function filterDashboardNavItems(opts: {
 
 export const DASHBOARD_HOME_HREF = "/dashboard";
 
+export function isDashboardNavHrefActive(
+  pathname: string,
+  href: string,
+  allHrefs: string[] = [],
+): boolean {
+  if (href === DASHBOARD_HOME_HREF) {
+    return pathname === DASHBOARD_HOME_HREF || pathname === `${DASHBOARD_HOME_HREF}/`;
+  }
+  const matches = pathname === href || pathname.startsWith(`${href}/`);
+  if (!matches) return false;
+  return !allHrefs.some(
+    (other) =>
+      other !== href &&
+      other.startsWith(`${href}/`) &&
+      (pathname === other || pathname.startsWith(`${other}/`)),
+  );
+}
+
+const NAV_CONFIG_ORDER = new Map(
+  DASHBOARD_NAV_CONFIG.map((item, index) => [item.href, index]),
+);
+
+/**
+ * Beholder arbeidsflyt-rekkefølgen fra DASHBOARD_NAV_CONFIG.
+ * getLabel brukes bare som tiebreaker for ukjente href.
+ */
 export function sortDashboardNavItems(
   items: DashboardNavItemConfig[],
-  getLabel: (item: DashboardNavItemConfig) => string,
+  getLabel?: (item: DashboardNavItemConfig) => string,
 ): DashboardNavItemConfig[] {
-  const home = items.filter((item) => item.href === DASHBOARD_HOME_HREF);
-  const rest = items
-    .filter((item) => item.href !== DASHBOARD_HOME_HREF)
-    .sort((a, b) => getLabel(a).localeCompare(getLabel(b), "nb"));
-  return [...home, ...rest];
+  return [...items].sort((a, b) => {
+    const aOrder = NAV_CONFIG_ORDER.get(a.href) ?? Number.MAX_SAFE_INTEGER;
+    const bOrder = NAV_CONFIG_ORDER.get(b.href) ?? Number.MAX_SAFE_INTEGER;
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    if (!getLabel) return 0;
+    return getLabel(a).localeCompare(getLabel(b), "nb");
+  });
 }

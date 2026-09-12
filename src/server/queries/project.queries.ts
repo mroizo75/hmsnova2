@@ -31,6 +31,8 @@ export async function fetchProjectDetail(id: string) {
     where: { id, tenantId },
     include: {
       createdBy: { select: { name: true, email: true } },
+      parent: { select: { id: true, name: true } },
+      children: { select: { id: true, name: true, status: true } },
       projectManager: { select: { name: true, email: true } },
       incidents: {
         orderBy: { occurredAt: "desc" },

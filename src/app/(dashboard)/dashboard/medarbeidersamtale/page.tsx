@@ -3,6 +3,7 @@ import { getAuthContext } from "@/lib/server-authorization";
 import { MessageSquare } from "lucide-react";
 import { fetchEmployeeReviews } from "@/server/queries/employee-review.queries";
 import { EmployeeReviewsContent } from "@/features/employee-reviews/components/employee-reviews-content";
+import { HrWorkspaceNav } from "@/features/hr/components/hr-workspace-nav";
 
 export default async function MedarbeidersamtalePage() {
   const auth = await getAuthContext();
@@ -17,6 +18,7 @@ export default async function MedarbeidersamtalePage() {
 
   return (
     <div className="space-y-6 p-6">
+      <HrWorkspaceNav />
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <MessageSquare className="h-6 w-6 text-primary" />

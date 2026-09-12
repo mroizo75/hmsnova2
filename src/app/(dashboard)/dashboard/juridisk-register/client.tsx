@@ -48,7 +48,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { RegulatoryWizard } from "@/features/regulatory/components/regulatory-wizard";
-import { RegulatoryRoutinePicker } from "@/features/regulatory/components/regulatory-routine-picker";
+import { RegulatoryRoutinesCta } from "@/features/regulatory/components/regulatory-routines-cta";
 import type { RegulatoryRoutineSuggestion } from "@/server/actions/regulatory.actions";
 import {
   confirmRequirement,
@@ -275,7 +275,7 @@ export function JuridiskRegisterClient({
       )}
 
       {canManage && routineSuggestions.length > 0 && (
-        <RegulatoryRoutinePicker suggestions={routineSuggestions} />
+        <RegulatoryRoutinesCta suggestions={routineSuggestions} />
       )}
 
       {lawChanges.length > 0 && (

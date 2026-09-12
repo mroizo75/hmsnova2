@@ -43,6 +43,8 @@ import {
   updateUserPosition,
   assignManagerToUsers,
 } from "@/server/actions/settings.actions";
+import { assignUserDepartment } from "@/server/actions/department.actions";
+import { getRoleDisplayName } from "@/lib/permissions";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, FileSpreadsheet, Send, HelpCircle, Pencil, Check, X } from "lucide-react";
@@ -55,6 +57,7 @@ interface UserManagementProps {
     employeeNumber: string | null;
     position: string | null;
     managerId: string | null;
+    departmentId: string | null;
     user: {
       id: string;
       name: string | null;
@@ -64,13 +67,25 @@ interface UserManagementProps {
   }>;
   currentUserId: string;
   isAdmin: boolean;
+  canManagePeople?: boolean;
+  invitableRoles?: string[];
+  departments?: Array<{ id: string; name: string }>;
   pricingTier: string | null;
   maxUsers: number;
 }
 
 const NO_MANAGER_VALUE = "__no_manager__";
 
-export function UserManagement({ users, currentUserId, isAdmin, pricingTier, maxUsers }: UserManagementProps) {
+export function UserManagement({
+  users,
+  currentUserId,
+  isAdmin,
+  canManagePeople = isAdmin,
+  invitableRoles,
+  departments = [],
+  pricingTier,
+  maxUsers,
+}: UserManagementProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
@@ -185,6 +200,22 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
       });
     }
 
+    setLoading(null);
+  };
+
+  const handleDepartmentChange = async (userId: string, departmentId: string) => {
+    setLoading(userId);
+    const result = await assignUserDepartment(userId, departmentId === "__none_dept__" ? null : departmentId);
+    if (result.success === false) {
+      toast({
+        variant: "destructive",
+        title: "Feil",
+        description: result.error || "Kunne ikke oppdatere avdeling",
+      });
+    } else {
+      toast({ title: "Avdeling oppdatert", className: "bg-green-50 border-green-200" });
+      router.refresh();
+    }
     setLoading(null);
   };
 
@@ -423,6 +454,8 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
         return <Badge className="bg-purple-100 text-purple-800 border-purple-200">⚙️ Admin</Badge>;
       case "LEDER":
         return <Badge className="bg-blue-100 text-blue-800 border-blue-200">👔 Leder</Badge>;
+      case "HR":
+        return <Badge className="bg-pink-100 text-pink-800 border-pink-200">👥 HR</Badge>;
       case "HMS":
         return <Badge className="bg-orange-100 text-orange-800 border-orange-200">🦺 HMS-ansvarlig</Badge>;
       case "VARSLINGSANSVARLIG":
@@ -470,7 +503,7 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
           </div>
         </div>
 
-          {isAdmin && (
+          {canManagePeople && (
             <div className="flex flex-col items-end gap-3">
               {remainingSlots <= 3 && remainingSlots > 0 && maxUsers !== 999 && (
                 <div className="flex items-center gap-1 text-xs text-amber-600">
@@ -571,16 +604,16 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
                       <SelectTrigger>
                         <SelectValue placeholder="Velg rolle" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ANSATT">👤 Ansatt</SelectItem>
-                        <SelectItem value="LEDER">👔 Leder</SelectItem>
-                        <SelectItem value="HMS">🦺 HMS-ansvarlig</SelectItem>
-                        <SelectItem value="VARSLINGSANSVARLIG">🔔 Varslingsansvarlig</SelectItem>
-                        <SelectItem value="VERNEOMBUD">🛡️ Verneombud</SelectItem>
-                        <SelectItem value="BHT">🩺 Bedriftshelsetjeneste</SelectItem>
-                        <SelectItem value="REVISOR">📋 Revisor</SelectItem>
-                        <SelectItem value="ADMIN">⚙️ Administrator</SelectItem>
-                      </SelectContent>
+                            <SelectContent>
+                              {(invitableRoles?.length
+                                ? invitableRoles
+                                : ["ANSATT", "LEDER", "HR", "HMS", "VARSLINGSANSVARLIG", "VERNEOMBUD", "BHT", "REVISOR", "ADMIN"]
+                              ).map((role) => (
+                                <SelectItem key={role} value={role}>
+                                  {getRoleDisplayName(role as Parameters<typeof getRoleDisplayName>[0])}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
                     </Select>
                   </div>
 
@@ -725,6 +758,7 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
                   <TableHead>E-post</TableHead>
                   <TableHead>Ansattnr.</TableHead>
                   <TableHead>Stilling</TableHead>
+                  <TableHead>Avdeling</TableHead>
                   <TableHead>Rolle</TableHead>
                   <TableHead>Nærmeste leder</TableHead>
                   <TableHead>Medlem siden</TableHead>
@@ -856,7 +890,32 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
                         )}
                       </TableCell>
                       <TableCell>
-                        {isAdmin && !isCurrentUser ? (
+                        {canManagePeople ? (
+                          <Select
+                            value={userTenant.departmentId ?? "__none_dept__"}
+                            onValueChange={(value) => handleDepartmentChange(userTenant.userId, value)}
+                            disabled={loading === userTenant.userId}
+                          >
+                            <SelectTrigger className="w-[150px]">
+                              <SelectValue placeholder="Avdeling" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none_dept__">Ingen avdeling</SelectItem>
+                              {departments.map((department) => (
+                                <SelectItem key={department.id} value={department.id}>
+                                  {department.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            {departments.find((department) => department.id === userTenant.departmentId)?.name ?? "—"}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {canManagePeople && !isCurrentUser ? (
                           <Select
                             value={userTenant.role}
                             onValueChange={(value) =>
@@ -868,14 +927,14 @@ export function UserManagement({ users, currentUserId, isAdmin, pricingTier, max
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="ANSATT">👤 Ansatt</SelectItem>
-                              <SelectItem value="LEDER">👔 Leder</SelectItem>
-                              <SelectItem value="HMS">🦺 HMS-ansvarlig</SelectItem>
-                              <SelectItem value="VARSLINGSANSVARLIG">🔔 Varslingsansvarlig</SelectItem>
-                              <SelectItem value="VERNEOMBUD">🛡️ Verneombud</SelectItem>
-                              <SelectItem value="BHT">🩺 Bedriftshelsetjeneste</SelectItem>
-                              <SelectItem value="REVISOR">📋 Revisor</SelectItem>
-                              <SelectItem value="ADMIN">⚙️ Administrator</SelectItem>
+                              {(invitableRoles?.length
+                                ? invitableRoles
+                                : ["ANSATT", "LEDER", "HR", "HMS", "VARSLINGSANSVARLIG", "VERNEOMBUD", "BHT", "REVISOR", "ADMIN"]
+                              ).map((role) => (
+                                <SelectItem key={role} value={role}>
+                                  {getRoleDisplayName(role as Parameters<typeof getRoleDisplayName>[0])}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         ) : (

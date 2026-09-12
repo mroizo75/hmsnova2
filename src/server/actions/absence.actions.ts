@@ -213,6 +213,28 @@ export async function approveAbsence(input: ApproveAbsenceInput) {
       link: "/dashboard/fravaer",
     });
 
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: auth.tenantId },
+      select: { accountingProvider: true, absenceProjectId: true },
+    });
+    if (tenant?.accountingProvider === "TRIPLETEX") {
+      await prisma.absence.update({
+        where: { id: validated.id },
+        data: {
+          projectId: absence.projectId ?? tenant.absenceProjectId,
+          syncStatus: "PENDING",
+        },
+      });
+      const { enqueueAccountingJob } = await import("@/lib/accounting/sync");
+      await enqueueAccountingJob({
+        tenantId: auth.tenantId,
+        entityType: "Absence",
+        entityId: validated.id,
+        action: "UPSERT_ABSENCE",
+        payload: {},
+      });
+    }
+
     revalidatePath("/dashboard/fravaer");
     triggerRealtimeEvent(auth.tenantId, "absence-updated");
     return { success: true as const, data: JSON.parse(JSON.stringify(updated)) };
