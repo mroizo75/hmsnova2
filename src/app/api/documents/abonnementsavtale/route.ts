@@ -38,7 +38,7 @@ export async function GET() {
         content: [
           {
             type: "paragraph",
-            text: "Denne avtalen regulerer kundens tilgang til og bruk av HMS Nova — en nettbasert programvaretjeneste (SaaS) for systematisk HMS-arbeid i henhold til Arbeidsmiljøloven (AML) og Internkontrollforskriften (IK-HMS).\n\nTjenesten inkluderer blant annet:\n•  Avviksregistrering og oppfølging (jf. AML § 3-1 og IK-HMS § 5)\n•  Risikovurderinger og SJA (sikker jobb-analyse)\n•  HMS-dokumentasjon, håndbøker og maler\n•  Vernerunder og inspeksjoner\n•  Opplæringsregister og kompetanseoversikt\n•  Rapporter og statistikk\n•  Evt. tilleggstjenester ifølge valgt plan",
+            text: "Denne avtalen regulerer kundens tilgang til og bruk av HMS Nova — en nettbasert programvaretjeneste (SaaS) for systematisk HMS-arbeid i henhold til Arbeidsmiljøloven (AML) og Internkontrollforskriften (IK-HMS). Opplistingen nedenfor er illustrerende, ikke en fastlåst spesifikasjon av skjermbilder eller menyplassering, jf. § 5.\n\nTjenesten omfatter blant annet verktøy for:\n•  Avviksregistrering og oppfølging (jf. AML § 3-1 og IK-HMS § 5)\n•  Risikovurderinger og SJA (sikker jobb-analyse)\n•  HMS-dokumentasjon, håndbøker og maler\n•  Vernerunder og inspeksjoner\n•  Opplæringsregister og kompetanseoversikt\n•  Rapporter og statistikk\n•  Evt. tilleggstjenester ifølge valgt plan",
           },
         ],
       },
@@ -61,53 +61,63 @@ export async function GET() {
         ],
       },
       {
-        title: "§ 5  Tjenestenivå og support",
+        title: "§ 5  Løpende utvikling av tjenesten",
+        legalRef: "AML, IK-HMS, Avtaleloven § 36",
         content: [
           {
             type: "paragraph",
-            text: "5.1  Leverandøren tilstreber minimum 99,5 % tilgjengelighet per kalendermåned for produksjonsmiljøet, eksklusive planlagt vedlikehold.\n\n5.2  Support ytes på norsk via e-post (post@hmsnova.no) på hverdager kl. 08:00–16:00. Responstid er normalt 1 virkedag.\n\n5.3  Planlagt vedlikehold varsles minst 48 timer i forkant via e-post og systemvarsel.",
+            text: "5.1  Skybasert tjeneste under fortløpende oppgradering\nHMS Nova leveres som programvare som tjeneste (SaaS). Tjenesten utvikles og oppgraderes fortløpende for å følge norsk lov og forskrift (herunder arbeidsmiljøloven og internkontrollforskriften), tilsynspraksis, relevante ISO-standarder og tekniske sikkerhetskrav. Kunden aksepterer at tjenesten ikke er et statisk produkt, og at innhold, arbeidsflyt og utforming kan endres i avtaleperioden uten at dette i seg selv er mangel eller mislighold.\n\n5.2  Endring av utforming, plassering og betegnelser\nLeverandøren kan uten særskilt samtykke:\n•  endre menyer, navigasjon, skjermbilder, feltplassering, ikoner og rapportlayout\n•  flytte, slå sammen eller gi funksjoner nytt navn, så lenge tilsvarende formål fortsatt dekkes i tjenesten\n•  oppdatere maler, hjelpetekster og lovhenvisninger når regelverk eller praksis endres\n\nAt en funksjon ligger et annet sted enn ved avtaleinngåelsen, har annet navn, eller at brukergrensesnittet er endret, gir ikke grunnlag for prisavslag, heving, erstatning eller påstand om at tjenesten «ikke er i samsvar med loven», så lenge tjenesten fortsatt gir verktøy for det systematiske HMS-arbeidet som omfattes av avtalen.\n\n5.3  Kundens lovpålagte plikter\nKunden er og forblir ansvarlig for å oppfylle egne plikter som arbeidsgiver og virksomhet etter arbeidsmiljøloven, internkontrollforskriften, personopplysningsloven/GDPR og annet relevant regelverk. Tjenesten er et digitalt verktøy som understøtter dette arbeidet. Leverandøren yter ikke juridisk rådgivning og garanterer ikke at kundens registreringer, rutiner eller faktiske HMS-arbeid er lovmessige. Rettmessig klage gjelder vesentlig svikt i avtalt tjeneste, ikke at skjermbilder, menyer eller arbeidsflyt er endret.\n\n5.4  Vesentlig innskrenkning av kjernefunksjon\nDersom leverandøren fjerner en kjernefunksjon som inngår i kundens betalte plan, uten å tilby tilsvarende funksjonalitet, varsles kunden i rimelig tid. Kunden kan da si opp avtalen skriftlig med virkning fra endringen. Alminnelig videreutvikling, omorganisering av menyer, endret plassering og lovpålagte tilpasninger er ikke vesentlig innskrenkning.\n\n5.5  Forholdet til vilkårsendringer\nEndringer i selve avtalevilkårene varsles etter § 11. § 5 gjelder endringer i tjenestens utforming og innhold, ikke i betalings- og bindingsvilkår.",
           },
         ],
       },
       {
-        title: "§ 6  Kundens plikter",
+        title: "§ 6  Tjenestenivå og support",
         content: [
           {
             type: "paragraph",
-            text: "•  Holde brukeropplysninger (e-post, passord) hemmelig og sikre eget utstyr.\n•  Sikre at bare autoriserte ansatte har tilgang til systemet.\n•  Varsle leverandøren omgående dersom uautorisert tilgang mistenkes.\n•  Ikke videresende, kopiere eller distribuere tjenesten til tredjeparter.\n•  Bruke tjenesten i samsvar med gjeldende norsk lov, herunder GDPR/personopplysningsloven.",
+            text: "6.1  Leverandøren tilstreber minimum 99,5 % tilgjengelighet per kalendermåned for produksjonsmiljøet, eksklusive planlagt vedlikehold.\n\n6.2  Support ytes på norsk via e-post (post@hmsnova.no) på hverdager kl. 08:00–16:00. Responstid er normalt 1 virkedag.\n\n6.3  Planlagt vedlikehold varsles minst 48 timer i forkant via e-post og systemvarsel.",
           },
         ],
       },
       {
-        title: "§ 7  Personopplysninger og GDPR",
+        title: "§ 7  Kundens plikter",
+        content: [
+          {
+            type: "paragraph",
+            text: "•  Holde brukeropplysninger (e-post, passord) hemmelig og sikre eget utstyr.\n•  Sikre at bare autoriserte ansatte har tilgang til systemet.\n•  Varsle leverandøren omgående dersom uautorisert tilgang mistenkes.\n•  Ikke videresende, kopiere eller distribuere tjenesten til tredjeparter.\n•  Bruke tjenesten i samsvar med gjeldende norsk lov, herunder GDPR/personopplysningsloven.\n•  Sørge for at virksomhetens eget HMS-arbeid og registreringer oppfyller arbeidsmiljøloven, internkontrollforskriften og annet regelverk som gjelder kunden. Tjenesten erstatter ikke dette ansvaret, jf. § 5.3.",
+          },
+        ],
+      },
+      {
+        title: "§ 8  Personopplysninger og GDPR",
         legalRef: "GDPR art. 28, Personopplysningsloven",
         content: [
           {
             type: "paragraph",
-            text: "7.1  Kunden er behandlingsansvarlig for personopplysninger registrert i HMS Nova. Leverandøren er databehandler, jf. GDPR art. 28.\n\n7.2  En separat databehandleravtale (DBA) inngås ved behov og er tilgjengelig på forespørsel til post@hmsnova.no.\n\n7.3  Personopplysninger slettes innen 30 dager etter avtalens opphør, med mindre annet er påkrevd av norsk lovgivning.\n\n7.4  For varslingssaker (AML kap. 2 A) er kunden behandlingsansvarlig og HMS Nova databehandler for den tekniske løsningen. Kunden dokumenterer formål, behandlingsgrunnlag, mottakere, innsyn, lagrings- og slettefrister, og beskyttelse mot gjengjeldelse. Supportinnsyn skjer kun som nødinnsyn med kundens godkjenning og full logging. GDPR-innsyn i varslingssaker behandles manuelt av kunden og utleveres ikke automatisk fra systemet.",
+            text: "8.1  Kunden er behandlingsansvarlig for personopplysninger registrert i HMS Nova. Leverandøren er databehandler, jf. GDPR art. 28.\n\n8.2  En separat databehandleravtale (DBA) inngås ved behov og er tilgjengelig på forespørsel til post@hmsnova.no.\n\n8.3  Personopplysninger slettes innen 30 dager etter avtalens opphør, med mindre annet er påkrevd av norsk lovgivning.\n\n8.4  For varslingssaker (AML kap. 2 A) er kunden behandlingsansvarlig og HMS Nova databehandler for den tekniske løsningen. Kunden dokumenterer formål, behandlingsgrunnlag, mottakere, innsyn, lagrings- og slettefrister, og beskyttelse mot gjengjeldelse. Supportinnsyn skjer kun som nødinnsyn med kundens godkjenning og full logging. GDPR-innsyn i varslingssaker behandles manuelt av kunden og utleveres ikke automatisk fra systemet.",
           },
         ],
       },
       {
-        title: "§ 8  Ansvarsbegrensning",
+        title: "§ 9  Ansvarsbegrensning",
         content: [
           {
             type: "paragraph",
-            text: "8.1  Leverandørens samlede erstatningsansvar under denne avtalen er begrenset til 3 måneders abonnementsbeløp betalt av kunden de siste 12 måneder før kravet oppsto.\n\n8.2  Leverandøren er ikke ansvarlig for indirekte tap, tap av data eller driftstap som følge av avbrudd, tekniske feil eller force majeure.",
+            text: "9.1  Leverandørens samlede erstatningsansvar under denne avtalen er begrenset til 3 måneders abonnementsbeløp betalt av kunden de siste 12 måneder før kravet oppsto.\n\n9.2  Leverandøren er ikke ansvarlig for indirekte tap, tap av data eller driftstap som følge av avbrudd, tekniske feil eller force majeure.",
           },
         ],
       },
       {
-        title: "§ 9  Oppsigelse og avslutning",
+        title: "§ 10  Oppsigelse og avslutning",
         content: [
           {
             type: "paragraph",
-            text: "9.1  Oppsigelse etter bindingsperioden: 3 måneders skriftlig varsel til post@hmsnova.no.\n\n9.2  Vesentlig mislighold gir den andre parten rett til heving med umiddelbar virkning etter skriftlig advarsel.\n\n9.3  Ved avtalens opphør har kunden rett til eksport av egne data i maskinlesbart format (JSON/CSV/PDF) i inntil 30 dager.",
+            text: "10.1  Oppsigelse etter bindingsperioden: 3 måneders skriftlig varsel til post@hmsnova.no.\n\n10.2  Vesentlig mislighold gir den andre parten rett til heving med umiddelbar virkning etter skriftlig advarsel.\n\n10.3  Ved avtalens opphør har kunden rett til eksport av egne data i maskinlesbart format (JSON/CSV/PDF) i inntil 30 dager.",
           },
         ],
       },
       {
-        title: "§ 10  Endringer i vilkårene",
+        title: "§ 11  Endringer i vilkårene",
         content: [
           {
             type: "paragraph",
@@ -116,7 +126,7 @@ export async function GET() {
         ],
       },
       {
-        title: "§ 11  Lovvalg og verneting",
+        title: "§ 12  Lovvalg og verneting",
         legalRef: "Avtaleloven § 1",
         content: [
           {

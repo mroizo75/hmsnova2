@@ -51,6 +51,11 @@ export function ContractAcceptanceFields({
           <li>
             Etter bindingstiden er oppsigelsestiden <strong>3 måneder</strong> skriftlig.
           </li>
+          <li>
+            Systemet oppgraderes fortløpende. Menyer og funksjoner kan flyttes eller få nytt navn.
+            Det er ikke en mangel at noe ligger et annet sted enn ved registrering, så lenge
+            tilsvarende HMS-verktøy fortsatt finnes i tjenesten.
+          </li>
         </ul>
       </div>
 

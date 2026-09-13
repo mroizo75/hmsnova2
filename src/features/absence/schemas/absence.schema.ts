@@ -52,16 +52,7 @@ export const CreateAbsenceSchema = z
   .refine((data) => data.endDate >= data.startDate, {
     message: "Sluttdato kan ikke være før startdato",
     path: ["endDate"],
-  })
-  .refine(
-    (data) =>
-      data.type !== "SELF_CERTIFIED" ||
-      (data.selfCertifiedDays !== undefined && data.selfCertifiedDays > 0),
-    {
-      message: "Antall egenmeldingsdager er påkrevd for egenmelding",
-      path: ["selfCertifiedDays"],
-    },
-  );
+  });
 
 // ─── Oppdater fravær ────────────────────────────────────────────────────────
 

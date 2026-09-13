@@ -9,7 +9,7 @@
  * skriftlig oppsigelse, jf. abonnementsavtalen.
  */
 
-export const CONTRACT_DOCUMENT_VERSION = "2026-09-01";
+export const CONTRACT_DOCUMENT_VERSION = "2026-09-12";
 export const WITHDRAWAL_DAYS = 14;
 export const BINDING_MONTHS = 12;
 export const NOTICE_MONTHS = 3;

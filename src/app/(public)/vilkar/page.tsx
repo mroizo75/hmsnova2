@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 export default function VilkarPage() {
-  const lastUpdated = "11. august 2026";
+  const lastUpdated = "12. september 2026";
 
   return (
     <div className="bg-gradient-to-b from-background to-muted/20">
@@ -87,13 +87,16 @@ export default function VilkarPage() {
               </div>
 
               <div>
-                <h4 className="font-semibold mb-2">2.3 Utvikling og forbedringer</h4>
+                <h4 className="font-semibold mb-2">2.3 Løpende oppgradering</h4>
                 <p className="text-sm text-muted-foreground">
-                  HMS Nova er under kontinuerlig utvikling. Vi jobber aktivt med å implementere støtte for 
-                  ISO 9001, ISO 45001, ISO 14001, ISO 27001, ISO 31000 og andre relevante standarder. 
-                  Funksjoner kan legges til, endres eller forbedres over tid. Beskrivelser på nettsiden 
-                  og i markedsføringsmateriell kan avvike fra den faktiske tjenesten, spesielt for 
-                  funksjoner som er under utvikling eller planlagt.
+                  HMS Nova er en skybasert tjeneste som utvikles fortløpende for å følge norsk lov og forskrift
+                  (arbeidsmiljøloven, internkontrollforskriften m.m.), tilsynspraksis og relevante ISO-standarder.
+                  Menyer, skjermbilder, feltplassering, betegnelser og rapportlayout kan endres. Funksjoner kan
+                  flyttes, slås sammen eller få nytt navn. Slike endringer er ikke mangel, og gir ikke grunnlag
+                  for å hevde at tjenesten «ikke er lovlig», så lenge tilsvarende verktøy for systematisk HMS-arbeid
+                  fortsatt finnes. Du som kunde er ansvarlig for virksomhetens eget lovpålagte HMS-arbeid.
+                  Vesentlig fjerning av kjernefunksjon uten tilsvarende erstatning varsles, og gir da rett til
+                  oppsigelse, jf. abonnementsavtalen § 5.
                 </p>
               </div>
             </CardContent>
@@ -321,9 +324,9 @@ export default function VilkarPage() {
                 </p>
                 <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground mt-2">
                   <li>Funksjoner, tekst og grensesnitt kan avvike fra beskrivelser på nettsiden, i markedsføringsmateriell eller tidligere versjoner</li>
-                  <li>Funksjoner kan legges til, endres eller fjernes uten forvarsel for å forbedre tjenesten</li>
+                  <li>Menyer og funksjoner kan flyttes, slås sammen eller få nytt navn. Det er ikke mangel at noe ligger et annet sted enn tidligere</li>
                   <li>Ordlyd, terminologi og dokumentmaler kan oppdateres for å reflektere gjeldende standarder og lovkrav</li>
-                  <li>ISO-compliance og sertifiseringsstøtte er veiledende og erstatter ikke profesjonell revisjonsbistand</li>
+                  <li>ISO-støtte er veiledende og erstatter ikke profesjonell revisjonsbistand. Du er selv ansvarlig for virksomhetens lovpålagte HMS-arbeid</li>
                 </ul>
                 <p className="text-sm text-muted-foreground mt-2">
                   Markedsføringsmateriell og produktbeskrivelser er veiledende og kan avvike fra den faktiske 

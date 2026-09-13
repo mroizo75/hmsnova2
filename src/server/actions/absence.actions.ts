@@ -36,6 +36,11 @@ import {
   type UpdateDialogMeetingInput,
 } from "@/features/absence/schemas/follow-up.schema";
 import { addDays } from "date-fns";
+import {
+  calendarDaysInclusive,
+  MAX_SELF_CERTIFIED_CALENDAR_DAYS,
+} from "@/lib/hr/absence-span";
+import { Role } from "@prisma/client";
 
 // ─── Hjelpefunksjon: beregn virkedager ──────────────────────────────────────
 
@@ -50,6 +55,50 @@ function calculateWorkdays(startDate: string, endDate: string, percentage: numbe
     current.setDate(current.getDate() + 1);
   }
   return Math.round(count * (percentage / 100) * 10) / 10;
+}
+
+async function notifyAbsenceRequested(input: {
+  tenantId: string;
+  employeeUserId: string;
+  employeeName: string | null;
+  startDate: string;
+  endDate: string;
+}) {
+  const recipients = new Set<string>();
+  const membership = await prisma.userTenant.findFirst({
+    where: { userId: input.employeeUserId, tenantId: input.tenantId },
+    select: { managerId: true },
+  });
+  if (membership?.managerId) recipients.add(membership.managerId);
+
+  const staff = await prisma.userTenant.findMany({
+    where: { tenantId: input.tenantId, role: { in: [Role.HR, Role.ADMIN] } },
+    select: { userId: true },
+  });
+  for (const row of staff) recipients.add(row.userId);
+  recipients.delete(input.employeeUserId);
+
+  if (recipients.size === 0) {
+    const leaders = await prisma.userTenant.findMany({
+      where: { tenantId: input.tenantId, role: Role.LEDER },
+      select: { userId: true },
+    });
+    for (const row of leaders) recipients.add(row.userId);
+  }
+
+  const message = `${input.employeeName ?? "En ansatt"} har registrert fravær fra ${input.startDate} til ${input.endDate}`;
+  await Promise.all(
+    [...recipients].map((userId) =>
+      createNotification({
+        tenantId: input.tenantId,
+        userId,
+        type: "ABSENCE_REQUESTED",
+        title: "Nytt fravær registrert",
+        message,
+        link: "/dashboard/fravaer",
+      })
+    )
+  );
 }
 
 // ─── Opprett fravær ─────────────────────────────────────────────────────────
@@ -82,6 +131,17 @@ export async function createAbsence(input: CreateAbsenceInput) {
       validated.percentage,
     );
 
+    let selfCertifiedDays = validated.selfCertifiedDays ?? null;
+    if (validated.type === "SELF_CERTIFIED") {
+      const days = calendarDaysInclusive(validated.startDate, validated.endDate);
+      if (days < 1 || days > MAX_SELF_CERTIFIED_CALENDAR_DAYS) {
+        throw new Error(
+          `Egenmelding kan brukes i inntil ${MAX_SELF_CERTIFIED_CALENDAR_DAYS} kalenderdager (folketrygdloven § 8-23). Velg sykmelding ved lengre fravær.`,
+        );
+      }
+      selfCertifiedDays = days;
+    }
+
     const absence = await prisma.absence.create({
       data: {
         tenantId: auth.tenantId,
@@ -94,7 +154,7 @@ export async function createAbsence(input: CreateAbsenceInput) {
         reason: validated.reason ?? null,
         doctorName: validated.doctorName ?? null,
         diagnosisCode: validated.diagnosisCode ?? null,
-        selfCertifiedDays: validated.selfCertifiedDays ?? null,
+        selfCertifiedDays,
         attachmentUrl: validated.attachmentUrl ?? null,
         attachmentName: validated.attachmentName ?? null,
       },
@@ -103,24 +163,19 @@ export async function createAbsence(input: CreateAbsenceInput) {
       },
     });
 
-    // Varsle nærmeste leder om nytt fravær
-    const userTenant = await prisma.userTenant.findFirst({
-      where: { userId: targetUserId, tenantId: auth.tenantId },
-      select: { managerId: true },
+    await notifyAbsenceRequested({
+      tenantId: auth.tenantId,
+      employeeUserId: targetUserId,
+      employeeName: absence.user.name,
+      startDate: validated.startDate,
+      endDate: validated.endDate,
     });
 
-    if (userTenant?.managerId) {
-      await createNotification({
-        tenantId: auth.tenantId,
-        userId: userTenant.managerId,
-        type: "ABSENCE_REQUESTED",
-        title: "Nytt fravær registrert",
-        message: `${absence.user.name ?? "En ansatt"} har registrert fravær fra ${validated.startDate} til ${validated.endDate}`,
-        link: "/dashboard/fravaer",
-      });
-    }
-
     revalidatePath("/dashboard/fravaer");
+    revalidatePath("/ansatt/fravaer");
+    revalidatePath("/ansatt/timeregistrering");
+    revalidatePath("/dashboard/time-registration");
+    revalidatePath("/dashboard/hr");
     triggerRealtimeEvent(auth.tenantId, "absence-updated");
     return { success: true as const, data: JSON.parse(JSON.stringify(absence)) };
   } catch (error: any) {

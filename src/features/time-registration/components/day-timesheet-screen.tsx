@@ -17,6 +17,7 @@ import {
   updateOwnTimesheetEntry,
 } from "@/server/actions/timesheet.actions";
 import { hoursToClock } from "@/lib/time/split-day";
+import { DayAbsenceForm } from "./day-absence-form";
 
 type Product = {
   externalId: string;
@@ -62,19 +63,25 @@ export function DayTimesheetScreen() {
   >([]);
   const [loading, setLoading] = useState(false);
   const [ctx, setCtx] = useState<Awaited<ReturnType<typeof getDayTimesheetContext>> | null>(null);
+  const [mode, setMode] = useState<"work" | "absence">(
+    searchParams.get("mode") === "absence" ? "absence" : "work"
+  );
+
+  async function reloadDay(nextDate = date, nextProjectId = projectId) {
+    const res = await getDayTimesheetContext(nextDate, nextProjectId || undefined);
+    setCtx(res);
+    if (res.success) {
+      setLunchMinutes(res.data.lunchMinutes);
+      setClockFrom(hoursToClock(res.data.dayStartHour));
+      setClockTo(hoursToClock(res.data.dayEndHour));
+      if (!nextProjectId && res.data.suggestedProjectId) {
+        setProjectId(res.data.suggestedProjectId);
+      }
+    }
+  }
 
   useEffect(() => {
-    getDayTimesheetContext(date, searchParams.get("projectId") || undefined).then((res) => {
-      setCtx(res);
-      if (res.success) {
-        setLunchMinutes(res.data.lunchMinutes);
-        setClockFrom(hoursToClock(res.data.dayStartHour));
-        setClockTo(hoursToClock(res.data.dayEndHour));
-        if (!projectId && res.data.suggestedProjectId) {
-          setProjectId(res.data.suggestedProjectId);
-        }
-      }
-    });
+    reloadDay(date, searchParams.get("projectId") || projectId);
   }, [date]);
 
   useEffect(() => {
@@ -129,18 +136,68 @@ export function DayTimesheetScreen() {
     setComment("");
     setPendingLines([]);
     router.refresh();
-    const next = await getDayTimesheetContext(date, projectId);
-    setCtx(next);
+    await reloadDay();
   }
+
+  const absences = ctx?.success ? ctx.data.absences ?? [] : [];
+  const canCreateAbsence = ctx?.success ? Boolean(ctx.data.canCreateAbsence) : false;
 
   return (
     <div className="space-y-4">
+      {canCreateAbsence && (
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant={mode === "work" ? "default" : "outline"}
+            className={mode === "work" ? "" : "bg-transparent"}
+            onClick={() => setMode("work")}
+          >
+            {t("modes.work")}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={mode === "absence" ? "default" : "outline"}
+            className={mode === "absence" ? "" : "bg-transparent"}
+            onClick={() => setMode("absence")}
+          >
+            {t("modes.absence")}
+          </Button>
+        </div>
+      )}
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="space-y-1 sm:col-span-1">
+          <Label>{t("date")}</Label>
+          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </div>
+      </div>
+
+      {absences.length > 0 && (
+        <div className="space-y-2">
+          <p className="font-medium">{t("absence.today")}</p>
+          {absences.map((a: { id: string; type: string; percentage: number; status: string }) => (
+            <Card key={a.id}>
+              <CardContent className="flex items-center justify-between gap-2 py-3">
+                <p className="text-sm font-medium">
+                  {t(`absence.types.${a.type}` as "absence.types.SELF_CERTIFIED")}
+                  {a.percentage < 100 ? ` · ${a.percentage} %` : ""}
+                </p>
+                <Badge variant="outline" className="bg-transparent">
+                  {statusLabel[a.status as keyof typeof statusLabel] ?? a.status}
+                </Badge>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {mode === "absence" && canCreateAbsence ? (
+        <DayAbsenceForm date={date} onSaved={() => reloadDay()} />
+      ) : (
       <form onSubmit={onSubmit} className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div className="space-y-1">
-            <Label>{t("date")}</Label>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          </div>
+        <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1">
             <Label>{t("from")}</Label>
             <Input type="time" required value={clockFrom} onChange={(e) => setClockFrom(e.target.value)} />
@@ -299,6 +356,9 @@ export function DayTimesheetScreen() {
           {loading ? t("saving") : t("submitDay")}
         </Button>
       </form>
+      )}
+
+      {mode === "work" && (
 
       <div className="space-y-2">
         <p className="font-medium">{t("todayEntries")}</p>
@@ -324,6 +384,7 @@ export function DayTimesheetScreen() {
           ))
         )}
       </div>
+      )}
     </div>
   );
 }

@@ -12,7 +12,7 @@
   },
   "timesheet": {
     "title": "Timeregistrering",
-    "subtitle": "Registrer dagen med fra–til, prosjekt og kommentar. Godkjenning før Tripletex.",
+    "subtitle": "Registrer arbeidstid eller fravær. Timer godkjennes før Tripletex.",
     "loading": "Laster…",
     "error": "Feil",
     "saved": "Dagen er sendt til godkjenning",
@@ -37,6 +37,39 @@
     "newSja": "Ny SJA",
     "saving": "Lagrer…",
     "submitDay": "Send inn dagen",
+    "modes": {
+      "work": "Arbeid",
+      "absence": "Fravær"
+    },
+    "absence": {
+      "today": "Fravær denne dagen",
+      "legal": "Fravær går til leder, HR og admin for godkjenning. Diagnose og sykmeldingsdetaljer hører hjemme i HR-oppfølgingen, ikke her (GDPR art. 9). Egenmelding: folketrygdloven § 8-23.",
+      "type": "Type",
+      "from": "Fra",
+      "to": "Til",
+      "percentage": "Grad (%)",
+      "percentageHelp": "100 = hele dagen. Lavere ved gradert sykmelding, så kan du også føre timer.",
+      "note": "Merknad (valgfri)",
+      "notePlaceholder": "Ikke skriv diagnose eller helsedetaljer",
+      "selfCertifiedHelp": "Egenmelding: inntil 3 kalenderdager. Deretter kreves sykmelding.",
+      "sickLeaveHelp": "Sykmelding: last opp eller følg opp i HR ved behov. Ikke før diagnose her.",
+      "submit": "Send inn fravær",
+      "saving": "Sender…",
+      "saved": "Fravær er sendt til leder og HR",
+      "error": "Kunne ikke registrere fravær",
+      "types": {
+        "SELF_CERTIFIED": "Egenmelding",
+        "SICK_LEAVE": "Sykmelding",
+        "CARE_DAYS": "Omsorgsdager / sykt barn",
+        "VACATION": "Ferie",
+        "COMPENSATORY": "Avspasering",
+        "LEAVE_OF_ABSENCE": "Permisjon",
+        "PARENTAL_LEAVE": "Foreldrepermisjon",
+        "BEREAVEMENT": "Velferdspermisjon",
+        "MILITARY": "Militærtjeneste",
+        "OTHER": "Annet"
+      }
+    },
     "todayEntries": "Registrert i dag",
     "noEntries": "Ingen linjer i dag",
     "saveComment": "Lagre kommentar",

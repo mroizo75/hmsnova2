@@ -50,11 +50,11 @@ export default async function AnsattFravaerPage() {
             Mine fravær
           </h1>
           <p className="text-muted-foreground">
-            Oversikt over dine registrerte fravær, sykmeldinger og ferier.
+            Oversikt over dine registrerte fravær. Nytt fravær meldes i timeregistrering.
           </p>
         </div>
         {auth.permissions.canCreateAbsence && (
-          <Link href="/ansatt/fravaer/ny">
+          <Link href="/ansatt/timeregistrering?mode=absence">
             <Button size="lg" className="h-12">
               <Plus className="h-5 w-5 mr-2" />
               Registrer fravær
@@ -114,7 +114,7 @@ export default async function AnsattFravaerPage() {
                 Du har ingen registrerte fravær ennå.
               </p>
               {auth.permissions.canCreateAbsence && (
-                <Link href="/ansatt/fravaer/ny">
+                <Link href="/ansatt/timeregistrering?mode=absence">
                   <Button>
                     <Plus className="h-4 w-4 mr-2" />
                     Registrer fravær

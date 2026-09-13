@@ -50,7 +50,7 @@ export async function getDayTimesheetContext(dateIso: string, projectId?: string
   if (!ctx) return { success: false as const, error: "Ikke autentisert" };
 
   const date = new Date(`${dateIso.slice(0, 10)}T12:00:00`);
-  const [projects, entries, usage, products, tenantSettings, salaryTypes, assignments] =
+  const [projects, entries, usage, products, tenantSettings, salaryTypes, assignments, absences] =
     await Promise.all([
       prisma.project.findMany({
         where: { tenantId: ctx.tenantId, status: { in: ["ACTIVE", "PLANNING"] } },
@@ -105,6 +105,24 @@ export async function getDayTimesheetContext(dateIso: string, projectId?: string
         where: { tenantId: ctx.tenantId, userId: ctx.userId },
         include: { project: { select: { id: true, name: true } } },
       }),
+      prisma.absence.findMany({
+        where: {
+          tenantId: ctx.tenantId,
+          userId: ctx.userId,
+          status: { in: ["PENDING", "APPROVED"] },
+          startDate: { lte: date },
+          endDate: { gte: date },
+        },
+        select: {
+          id: true,
+          type: true,
+          startDate: true,
+          endDate: true,
+          percentage: true,
+          status: true,
+        },
+        orderBy: { startDate: "asc" },
+      }),
     ]);
 
   const suggested = assignments.find((a) => assignmentCoversDate(a, date));
@@ -132,6 +150,8 @@ export async function getDayTimesheetContext(dateIso: string, projectId?: string
         dayStartHour: tenantSettings?.dayStartHour ?? 7,
         dayEndHour: tenantSettings?.dayEndHour ?? 15.5,
         canApprove: ctx.permissions.canApproveTimesheet,
+        canCreateAbsence: ctx.permissions.canCreateAbsence,
+        absences,
       })
     ),
   };

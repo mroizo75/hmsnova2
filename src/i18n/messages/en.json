@@ -12,7 +12,7 @@
   },
   "timesheet": {
     "title": "Time registration",
-    "subtitle": "Register the day with from–to, project and comment. Approval before Tripletex.",
+    "subtitle": "Register working hours or absence. Hours are approved before Tripletex.",
     "loading": "Loading…",
     "error": "Error",
     "saved": "Day submitted for approval",
@@ -37,6 +37,39 @@
     "newSja": "New SJA",
     "saving": "Saving…",
     "submitDay": "Submit day",
+    "modes": {
+      "work": "Work",
+      "absence": "Absence"
+    },
+    "absence": {
+      "today": "Absence this day",
+      "legal": "Absence is sent to manager, HR and admin for approval. Diagnosis belongs in HR follow-up, not here (GDPR art. 9). Self-certification: National Insurance Act section 8-23.",
+      "type": "Type",
+      "from": "From",
+      "to": "To",
+      "percentage": "Grade (%)",
+      "percentageHelp": "100 = the whole day. Lower for graded sick leave, so you can still register hours.",
+      "note": "Note (optional)",
+      "notePlaceholder": "Do not write a diagnosis or health details",
+      "selfCertifiedHelp": "Self-certification: up to 3 calendar days. A doctor's note is required after that.",
+      "sickLeaveHelp": "Sick leave: follow up in HR if needed. Do not enter a diagnosis here.",
+      "submit": "Submit absence",
+      "saving": "Sending…",
+      "saved": "Absence sent to manager and HR",
+      "error": "Could not register absence",
+      "types": {
+        "SELF_CERTIFIED": "Self-certification",
+        "SICK_LEAVE": "Sick leave (doctor)",
+        "CARE_DAYS": "Care days / sick child",
+        "VACATION": "Vacation",
+        "COMPENSATORY": "Time off in lieu",
+        "LEAVE_OF_ABSENCE": "Leave of absence",
+        "PARENTAL_LEAVE": "Parental leave",
+        "BEREAVEMENT": "Compassionate leave",
+        "MILITARY": "Military service",
+        "OTHER": "Other"
+      }
+    },
     "todayEntries": "Registered today",
     "noEntries": "No entries today",
     "saveComment": "Save comment",

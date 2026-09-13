@@ -1047,7 +1047,7 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canDeleteEmployeeReviews: false,
     canReadOwnAbsence: true,
     canReadAllAbsence: true,     // BHT har innsyn i fraværsstatistikk
-    canCreateAbsence: false,
+    canCreateAbsence: true,
     canApproveAbsence: false,
     canExportAbsenceStats: true, // BHT trenger statistikk for AMO-møter
     canReadOwnBoarding: false,
@@ -1169,9 +1169,9 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateEmployeeReviews: false,
     canConductEmployeeReviews: false,
     canDeleteEmployeeReviews: false,
-    canReadOwnAbsence: false,
+    canReadOwnAbsence: true,
     canReadAllAbsence: true,     // Revisor har lesetilgang
-    canCreateAbsence: false,
+    canCreateAbsence: true,
     canApproveAbsence: false,
     canExportAbsenceStats: true,
     canReadOwnBoarding: false,
@@ -1293,9 +1293,9 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canCreateEmployeeReviews: false,
     canConductEmployeeReviews: false,
     canDeleteEmployeeReviews: false,
-    canReadOwnAbsence: false,
+    canReadOwnAbsence: true,
     canReadAllAbsence: false,
-    canCreateAbsence: false,
+    canCreateAbsence: true,
     canApproveAbsence: false,
     canExportAbsenceStats: false,
     canReadOwnBoarding: false,
