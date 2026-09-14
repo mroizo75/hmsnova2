@@ -15,7 +15,9 @@ export async function GET() {
     { header: "email", key: "email", width: 30 },
     { header: "navn", key: "navn", width: 25 },
     { header: "rolle", key: "rolle", width: 18 },
+    { header: "ansattnummer", key: "ansattnummer", width: 16 },
     { header: "stilling", key: "stilling", width: 22 },
+    { header: "avdeling", key: "avdeling", width: 18 },
     { header: "leder", key: "leder", width: 30 },
   ];
 
@@ -23,14 +25,18 @@ export async function GET() {
     email: "ola.nordmann@example.com",
     navn: "Ola Nordmann",
     rolle: "ANSATT",
+    ansattnummer: "A-0042",
     stilling: "Tømrer",
+    avdeling: "Bygg",
     leder: "kari.leder@example.com",
   });
   sheet.addRow({
     email: "kari.leder@example.com",
     navn: "Kari Leder",
     rolle: "LEDER",
+    ansattnummer: "A-0001",
     stilling: "Prosjektleder",
+    avdeling: "Bygg",
     leder: "",
   });
 

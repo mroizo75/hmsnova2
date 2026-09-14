@@ -10,6 +10,14 @@ import { assertNoManagerCycle } from "@/lib/incident-notification-routing";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
 import { Role } from "@prisma/client";
 import { getInvitableRoles } from "@/lib/permissions";
+import {
+  DEFAULT_USER_IMPORT_COLUMNS,
+  detectUserImportColumns,
+  mapUserImportRow,
+  parseUserImportCsv,
+  type UserImportColumnIndex,
+  type UserImportRow,
+} from "@/lib/user-import-rows";
 
 async function getSessionContext() {
   const tenantContext = await getRequiredTenantContext();
@@ -26,124 +34,68 @@ async function getSessionContext() {
   return { user, tenantId: tenantContext.tenantId };
 }
 
-const VALID_ROLES: Role[] = [
-  "ADMIN",
-  "HMS",
-  "LEDER",
-  "HR",
-  "VERNEOMBUD",
-  "ANSATT",
-  "BHT",
-  "REVISOR",
-  "VARSLINGSANSVARLIG",
-];
-const ROLE_ALIASES: Record<string, Role> = {
-  administrator: "ADMIN",
-  admin: "ADMIN",
-  hr: "HR",
-  leder: "LEDER",
-  hms: "HMS",
-  "hms-ansvarlig": "HMS",
-  verneombud: "VERNEOMBUD",
-  ansatt: "ANSATT",
-  bht: "BHT",
-  "bedriftshelsetjeneste": "BHT",
-  revisor: "REVISOR",
-  varslingsansvarlig: "VARSLINGSANSVARLIG",
-  "varslings-ansvarlig": "VARSLINGSANSVARLIG",
-};
-
-function normalizeRole(value: string): Role | null {
-  const key = value.trim().toLowerCase().replace(/\s+/g, "-");
-  if (VALID_ROLES.includes(value.trim().toUpperCase() as Role)) {
-    return value.trim().toUpperCase() as Role;
-  }
-  return ROLE_ALIASES[key] ?? null;
-}
-
 const MAX_IMPORT_ROWS = 500;
 const MAX_IMPORT_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 
-interface ImportRow {
-  email: string;
-  name: string;
-  role: Role;
-  /** Stillingstittel, kolonne 4. Valgfri. */
-  position: string | null;
-  /** E-post til nærmeste leder, kolonne 5. Valgfri, kobles etter at alle brukere er opprettet. */
-  managerEmail: string | null;
-}
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function normalizeOptionalCell(value: unknown): string | null {
-  const text = String(value ?? "").trim();
-  return text.length > 0 ? text.slice(0, 100) : null;
-}
-
-function normalizeManagerEmail(value: unknown): string | null {
-  const email = String(value ?? "").toLowerCase().trim();
-  return EMAIL_PATTERN.test(email) ? email : null;
-}
-
-function parseCsvToRows(buffer: Buffer): ImportRow[] {
-  const text = buffer.toString("utf-8").replace(/^\uFEFF/, "");
-  const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  const rows: ImportRow[] = [];
-  const sep = lines[0]?.includes(";") ? ";" : ",";
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const cells = line.split(sep).map((c) => c.replace(/^"|"$/g, "").trim());
-    if (cells.length < 3) continue;
-    const [emailRaw, nameRaw, roleRaw, positionRaw, managerRaw] = cells;
-    const email = emailRaw?.toLowerCase().trim() ?? "";
-    const name = nameRaw?.trim() ?? "";
-    const role = normalizeRole(roleRaw ?? "");
-    if (!email || !name || !role) continue;
-    const isHeader =
-      i === 0 &&
-      (email === "email" || email === "e-post" || name.toLowerCase() === "navn" || role.toLowerCase() === "rolle");
-    if (isHeader) continue;
-    if (!EMAIL_PATTERN.test(email)) continue;
-    if (!VALID_ROLES.includes(role)) continue;
-    rows.push({
-      email,
-      name,
-      role,
-      position: normalizeOptionalCell(positionRaw),
-      managerEmail: normalizeManagerEmail(managerRaw),
-    });
+function generateSecurePassword() {
+  const charset = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let password = "";
+  for (let i = 0; i < 16; i++) {
+    password += charset.charAt(Math.floor(Math.random() * charset.length));
   }
-  return rows;
+  return password;
 }
 
-async function parseExcelToRows(buffer: Buffer): Promise<ImportRow[]> {
+async function sendInvitationEmail(input: {
+  to: string;
+  userName: string;
+  tempPassword?: string;
+  companyName: string;
+  invitedByName: string;
+}) {
+  try {
+    const { sendUserInvitationEmail } = await import("@/lib/email-service");
+    await sendUserInvitationEmail({
+      to: input.to,
+      userName: input.userName,
+      userEmail: input.to,
+      tempPassword: input.tempPassword,
+      companyName: input.companyName,
+      invitedByName: input.invitedByName,
+    });
+  } catch {
+    // Bruker er opprettet; e-post feilet
+  }
+}
+
+function excelRowCells(row: ExcelJS.Row): string[] {
+  const values = row.values;
+  if (!Array.isArray(values)) return [];
+  return values.slice(1).map((cell) => String(cell ?? "").trim());
+}
+
+async function parseExcelToRows(buffer: Buffer): Promise<UserImportRow[]> {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer as unknown as Parameters<ExcelJS.Workbook["xlsx"]["load"]>[0]);
   const sheet = workbook.worksheets[0];
   if (!sheet) return [];
-  const rows: ImportRow[] = [];
+
+  const rows: UserImportRow[] = [];
+  let columns: UserImportColumnIndex = DEFAULT_USER_IMPORT_COLUMNS;
+
   sheet.eachRow((row, rowNumber) => {
-    const cells = row.values as (string | number | undefined)[];
-    const email = String(cells[1] ?? "").toLowerCase().trim();
-    const name = String(cells[2] ?? "").trim();
-    const role = normalizeRole(String(cells[3] ?? ""));
-    if (!email || !name || !role) return;
-    const isHeader =
-      rowNumber === 1 &&
-      (email === "email" || email === "e-post" || name.toLowerCase() === "navn" || role.toLowerCase() === "rolle");
-    if (isHeader) return;
-    if (!EMAIL_PATTERN.test(email)) return;
-    if (!VALID_ROLES.includes(role)) return;
-    rows.push({
-      email,
-      name,
-      role,
-      position: normalizeOptionalCell(cells[4]),
-      managerEmail: normalizeManagerEmail(cells[5]),
-    });
+    const cells = excelRowCells(row);
+    if (rowNumber === 1) {
+      const detected = detectUserImportColumns(cells);
+      if (detected) {
+        columns = detected;
+        return;
+      }
+    }
+    const mapped = mapUserImportRow(cells, columns);
+    if (mapped) rows.push(mapped);
   });
+
   return rows;
 }
 
@@ -396,6 +348,73 @@ type InviteContext = {
   tenantName: string;
 };
 
+export type InviteUserInput = {
+  email: string;
+  name: string;
+  role: string;
+  employeeNumber?: string | null;
+  position?: string | null;
+  departmentId?: string | null;
+  managerId?: string | null;
+};
+
+type InviteOrgFields = {
+  employeeNumber: string | null;
+  position: string | null;
+  departmentId: string | null;
+  department: string | null;
+  managerId: string | null;
+};
+
+function emptyToNull(value: string | null | undefined, max: number): string | null {
+  const text = (value ?? "").trim();
+  return text.length > 0 ? text.slice(0, max) : null;
+}
+
+async function resolveInviteOrgFields(
+  tenantId: string,
+  data: InviteUserInput,
+  existingUserId: string | null
+): Promise<{ ok: true; fields: InviteOrgFields } | { ok: false; error: string }> {
+  const employeeNumber = emptyToNull(data.employeeNumber, 40);
+  const position = emptyToNull(data.position, 100);
+
+  let departmentId = emptyToNull(data.departmentId, 64);
+  if (departmentId === "__none_dept__") departmentId = null;
+  let department: string | null = null;
+  if (departmentId) {
+    const match = await prisma.department.findFirst({
+      where: { id: departmentId, tenantId },
+      select: { id: true, name: true },
+    });
+    if (!match) {
+      return { ok: false, error: "Avdelingen ble ikke funnet" };
+    }
+    departmentId = match.id;
+    department = match.name;
+  }
+
+  let managerId = emptyToNull(data.managerId, 64);
+  if (managerId === "__no_manager__") managerId = null;
+  if (managerId) {
+    if (existingUserId && managerId === existingUserId) {
+      return { ok: false, error: "Brukeren kan ikke være sin egen leder" };
+    }
+    const manager = await prisma.userTenant.findUnique({
+      where: { userId_tenantId: { userId: managerId, tenantId } },
+      select: { userId: true },
+    });
+    if (!manager) {
+      return { ok: false, error: "Nærmeste leder er ikke medlem i bedriften" };
+    }
+  }
+
+  return {
+    ok: true,
+    fields: { employeeNumber, position, departmentId, department, managerId },
+  };
+}
+
 async function canHaveMultipleTenants(userId: string): Promise<boolean> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -410,7 +429,10 @@ async function canHaveMultipleTenants(userId: string): Promise<boolean> {
   return Boolean(groupMembership);
 }
 
-async function inviteSingleUser(ctx: InviteContext, data: { email: string; name: string; role: string }): Promise<{ success: true } | { success: false; error: string }> {
+async function inviteSingleUser(
+  ctx: InviteContext,
+  data: InviteUserInput
+): Promise<{ success: true } | { success: false; error: string }> {
   const normalizedEmail = data.email.toLowerCase().trim();
 
   let existingUser = await prisma.user.findUnique({
@@ -441,18 +463,21 @@ async function inviteSingleUser(ctx: InviteContext, data: { email: string; name:
     }
   }
 
-  const generateSecurePassword = () => {
-    const charset = "abcdefghijklmnopqrstuvwxyz0123456789";
-    let password = "";
-    for (let i = 0; i < 16; i++) {
-      password += charset.charAt(Math.floor(Math.random() * charset.length));
-    }
-    return password;
-  };
+  const org = await resolveInviteOrgFields(ctx.tenantId, data, existingUser?.id ?? null);
+  if (org.ok === false) {
+    return { success: false, error: org.error };
+  }
+
   const tempPassword = generateSecurePassword();
   const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
   const needsPassword = !existingUser || !existingUser.password;
+  const membershipData = {
+    tenantId: ctx.tenantId,
+    role: data.role as Role,
+    invitationSentAt: new Date(),
+    ...org.fields,
+  };
 
   if (!existingUser) {
     existingUser = await prisma.$transaction(async (tx) => {
@@ -468,9 +493,7 @@ async function inviteSingleUser(ctx: InviteContext, data: { email: string; name:
       await tx.userTenant.create({
         data: {
           userId: createdUser.id,
-          tenantId: ctx.tenantId,
-          role: data.role as Role,
-          invitationSentAt: new Date(),
+          ...membershipData,
         },
       });
 
@@ -490,26 +513,18 @@ async function inviteSingleUser(ctx: InviteContext, data: { email: string; name:
     await prisma.userTenant.create({
       data: {
         userId: existingUser.id,
-        tenantId: ctx.tenantId,
-        role: data.role as Role,
-        invitationSentAt: new Date(),
+        ...membershipData,
       },
     });
   }
 
-  try {
-    const { sendUserInvitationEmail } = await import("@/lib/email-service");
-    await sendUserInvitationEmail({
-      to: normalizedEmail,
-      userName: existingUser.name || data.name,
-      userEmail: normalizedEmail,
-      tempPassword: needsPassword ? tempPassword : undefined,
-      companyName: ctx.tenantName,
-      invitedByName: ctx.user.name || ctx.user.email,
-    });
-  } catch {
-    // Bruker er opprettet; epost feilet
-  }
+  await sendInvitationEmail({
+    to: normalizedEmail,
+    userName: existingUser.name || data.name,
+    tempPassword: needsPassword ? tempPassword : undefined,
+    companyName: ctx.tenantName,
+    invitedByName: ctx.user.name || ctx.user.email,
+  });
 
   await AuditLog.log(ctx.tenantId, ctx.user.id, "USER_INVITED", "User", existingUser.id, {
     email: normalizedEmail,
@@ -519,7 +534,7 @@ async function inviteSingleUser(ctx: InviteContext, data: { email: string; name:
   return { success: true };
 }
 
-export async function inviteUser(data: { email: string; name: string; role: string }) {
+export async function inviteUser(data: InviteUserInput) {
   try {
     const { user, tenantId } = await getSessionContext();
 
@@ -566,6 +581,7 @@ export async function inviteUser(data: { email: string; name: string; role: stri
     }
 
     revalidatePath("/dashboard/settings");
+    revalidatePath("/dashboard/brukere");
     triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true, data: {} };
   } catch (error: any) {
@@ -603,7 +619,7 @@ export async function importUsersFromFile(formData: FormData): Promise<ImportUse
 
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
-      select: { pricingTier: true },
+      select: { pricingTier: true, name: true },
     });
     if (!tenant) {
       return { success: false, error: "Tenant ikke funnet" };
@@ -613,11 +629,11 @@ export async function importUsersFromFile(formData: FormData): Promise<ImportUse
     const { getSubscriptionLimits } = await import("@/lib/subscription");
     const limits = getSubscriptionLimits(tenant.pricingTier as any);
 
-    let rows: ImportRow[];
+    let rows: UserImportRow[];
     const buffer = Buffer.from(await file.arrayBuffer());
 
     if (ext === ".csv") {
-      rows = parseCsvToRows(buffer);
+      rows = parseUserImportCsv(buffer.toString("utf-8"));
     } else {
       rows = await parseExcelToRows(buffer);
     }
@@ -625,7 +641,7 @@ export async function importUsersFromFile(formData: FormData): Promise<ImportUse
     if (rows.length === 0) {
       return {
         success: false,
-        error: "Ingen gyldige rader i filen. Bruk kolonner: e-post, navn, rolle, og valgfritt stilling og leder.",
+        error: "Ingen gyldige rader i filen. Bruk kolonner: e-post, navn, rolle, og valgfritt ansattnummer, stilling, avdeling og leder.",
       };
     }
 
@@ -646,6 +662,14 @@ export async function importUsersFromFile(formData: FormData): Promise<ImportUse
     let imported = 0;
     let skipped = 0;
     const errors: string[] = [];
+
+    const departments = await prisma.department.findMany({
+      where: { tenantId },
+      select: { id: true, name: true },
+    });
+    const departmentByName = new Map(
+      departments.map((department) => [department.name.trim().toLowerCase(), department] as const)
+    );
 
     for (const row of rows) {
       const normalizedEmail = row.email.toLowerCase().trim();
@@ -676,13 +700,37 @@ export async function importUsersFromFile(formData: FormData): Promise<ImportUse
         }
       }
 
+      let departmentId: string | null = null;
+      let department: string | null = null;
+      if (row.departmentName) {
+        const match = departmentByName.get(row.departmentName.toLowerCase());
+        if (!match) {
+          errors.push(`${normalizedEmail}: fant ingen avdeling med navn ${row.departmentName}`);
+        } else {
+          departmentId = match.id;
+          department = match.name;
+        }
+      }
+
+      const membershipOrg = {
+        position: row.position,
+        employeeNumber: row.employeeNumber,
+        departmentId,
+        department,
+      };
+
+      const needsPassword = !existingUser || !existingUser.password;
+      const tempPassword = generateSecurePassword();
+      const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
       if (!existingUser) {
         existingUser = await prisma.$transaction(async (tx) => {
           const createdUser = await tx.user.create({
             data: {
               email: normalizedEmail,
               name: row.name,
-              password: null,
+              password: hashedPassword,
+              emailVerified: new Date(),
             },
           });
 
@@ -691,24 +739,42 @@ export async function importUsersFromFile(formData: FormData): Promise<ImportUse
               userId: createdUser.id,
               tenantId,
               role: row.role,
-              position: row.position,
-              invitationSentAt: null,
+              invitationSentAt: new Date(),
+              ...membershipOrg,
             },
           });
 
           return createdUser;
         });
       } else {
+        if (needsPassword) {
+          await prisma.user.update({
+            where: { id: existingUser.id },
+            data: {
+              password: hashedPassword,
+              emailVerified: existingUser.emailVerified ?? new Date(),
+            },
+          });
+        }
+
         await prisma.userTenant.create({
           data: {
             userId: existingUser.id,
             tenantId,
             role: row.role,
-            position: row.position,
-            invitationSentAt: null,
+            invitationSentAt: new Date(),
+            ...membershipOrg,
           },
         });
       }
+
+      await sendInvitationEmail({
+        to: normalizedEmail,
+        userName: existingUser.name || row.name,
+        tempPassword: needsPassword ? tempPassword : undefined,
+        companyName: tenant.name || "Bedrift",
+        invitedByName: user.name || user.email,
+      });
       imported++;
     }
 
@@ -761,184 +827,12 @@ export async function importUsersFromFile(formData: FormData): Promise<ImportUse
     });
 
     revalidatePath("/dashboard/settings");
+    revalidatePath("/dashboard/brukere");
     triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true, imported, skipped, errors };
   } catch (error: any) {
     console.error("Import users error:", error);
     return { success: false, error: error.message || "Kunne ikke importere brukere" };
-  }
-}
-
-export async function activateUserInTenant(userId: string): Promise<{ success: true } | { success: false; error: string }> {
-  try {
-    const { user, tenantId } = await getSessionContext();
-
-    const adminTenant = user.tenants.find((t) => t.tenantId === tenantId);
-    if (!adminTenant || adminTenant.role !== "ADMIN") {
-      return { success: false, error: "Kun administratorer kan aktivere brukere" };
-    }
-    if (userId === user.id) {
-      return { success: false, error: "Du kan ikke aktivere deg selv" };
-    }
-
-    const userTenant = await prisma.userTenant.findUnique({
-      where: {
-        userId_tenantId: { userId, tenantId },
-      },
-      include: {
-        user: { select: { email: true, name: true } },
-      },
-    });
-
-    if (!userTenant) {
-      return { success: false, error: "Bruker ikke funnet i denne bedriften" };
-    }
-    if (userTenant.invitationSentAt) {
-      return { success: false, error: "Brukeren er allerede aktivert" };
-    }
-
-    const tenant = await prisma.tenant.findUnique({
-      where: { id: tenantId },
-      select: { name: true },
-    });
-    const tenantName = tenant?.name ?? "Bedrift";
-
-    const generateSecurePassword = () => {
-      const charset = "abcdefghijklmnopqrstuvwxyz0123456789";
-      let password = "";
-      for (let i = 0; i < 16; i++) {
-        password += charset.charAt(Math.floor(Math.random() * charset.length));
-      }
-      return password;
-    };
-    const tempPassword = generateSecurePassword();
-    const hashedPassword = await bcrypt.hash(tempPassword, 10);
-
-    await prisma.user.update({
-      where: { id: userId },
-      data: { password: hashedPassword },
-    });
-
-    await prisma.userTenant.update({
-      where: { id: userTenant.id },
-      data: { invitationSentAt: new Date() },
-    });
-
-    try {
-      const { sendUserInvitationEmail } = await import("@/lib/email-service");
-      await sendUserInvitationEmail({
-        to: userTenant.user.email,
-        userName: userTenant.user.name ?? userTenant.user.email,
-        userEmail: userTenant.user.email,
-        tempPassword,
-        companyName: tenantName,
-        invitedByName: user.name || user.email,
-      });
-    } catch (emailErr) {
-      // Bruker er aktivert; logg men ikke feil
-    }
-
-    await AuditLog.log(tenantId, user.id, "USER_ACTIVATED", "User", userId, {
-      email: userTenant.user.email,
-    });
-
-    revalidatePath("/dashboard/settings");
-    triggerRealtimeEvent(tenantId, "settings-updated");
-    return { success: true };
-  } catch (error: any) {
-    console.error("Activate user error:", error);
-    return { success: false, error: error.message || "Kunne ikke aktivere bruker" };
-  }
-}
-
-export type ActivateAllResult =
-  | { success: true; activated: number; failed: number; errors: string[] }
-  | { success: false; error: string };
-
-export async function activateAllPendingUsers(): Promise<ActivateAllResult> {
-  try {
-    const { user, tenantId } = await getSessionContext();
-
-    const adminTenant = user.tenants.find((t) => t.tenantId === tenantId);
-    if (!adminTenant || adminTenant.role !== "ADMIN") {
-      return { success: false, error: "Kun administratorer kan aktivere brukere" };
-    }
-
-    const pending = await prisma.userTenant.findMany({
-      where: {
-        tenantId,
-        invitationSentAt: null,
-        userId: { not: user.id },
-      },
-      include: {
-        user: { select: { id: true, email: true, name: true } },
-      },
-    });
-
-    if (pending.length === 0) {
-      return { success: false, error: "Ingen brukere å aktivere. Alle importerte brukere er allerede aktiverte." };
-    }
-
-    const tenant = await prisma.tenant.findUnique({
-      where: { id: tenantId },
-      select: { name: true },
-    });
-    const tenantName = tenant?.name ?? "Bedrift";
-
-    const generateSecurePassword = () => {
-      const charset = "abcdefghijklmnopqrstuvwxyz0123456789";
-      let password = "";
-      for (let i = 0; i < 16; i++) {
-        password += charset.charAt(Math.floor(Math.random() * charset.length));
-      }
-      return password;
-    };
-
-    let activated = 0;
-    let failed = 0;
-    const errors: string[] = [];
-    const { sendUserInvitationEmail } = await import("@/lib/email-service");
-
-    for (const ut of pending) {
-      try {
-        const tempPassword = generateSecurePassword();
-        const hashedPassword = await bcrypt.hash(tempPassword, 10);
-
-        await prisma.user.update({
-          where: { id: ut.userId },
-          data: { password: hashedPassword },
-        });
-
-        await prisma.userTenant.update({
-          where: { id: ut.id },
-          data: { invitationSentAt: new Date() },
-        });
-
-        await sendUserInvitationEmail({
-          to: ut.user.email,
-          userName: ut.user.name ?? ut.user.email,
-          userEmail: ut.user.email,
-          tempPassword,
-          companyName: tenantName,
-          invitedByName: user.name || user.email,
-        });
-
-        await AuditLog.log(tenantId, user.id, "USER_ACTIVATED", "User", ut.userId, {
-          email: ut.user.email,
-        });
-        activated++;
-      } catch (err) {
-        failed++;
-        errors.push(`${ut.user.email}: ${err instanceof Error ? err.message : "Ukjent feil"}`);
-      }
-    }
-
-    revalidatePath("/dashboard/settings");
-    triggerRealtimeEvent(tenantId, "settings-updated");
-    return { success: true, activated, failed, errors };
-  } catch (error: any) {
-    console.error("Activate all users error:", error);
-    return { success: false, error: error.message ?? "Kunne ikke aktivere brukere" };
   }
 }
 
@@ -1014,6 +908,7 @@ export async function removeUserFromTenant(userId: string) {
     await AuditLog.log(tenantId, user.id, "USER_REMOVED", "User", userId, {});
 
     revalidatePath("/dashboard/settings");
+    revalidatePath("/dashboard/brukere");
     triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true };
   } catch (error: any) {

@@ -30,14 +30,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { UserPlus, Trash2, Shield, User, AlertCircle, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { UserPlus, Trash2, Shield, User, AlertCircle, ChevronLeft, ChevronRight, Search, Upload, FileSpreadsheet, HelpCircle, Pencil, Check, X } from "lucide-react";
 import {
   inviteUser,
   updateUserRole,
   removeUserFromTenant,
   importUsersFromFile,
-  activateUserInTenant,
-  activateAllPendingUsers,
   updateEmployeeNumber,
   updateUserManager,
   updateUserPosition,
@@ -47,13 +45,11 @@ import { assignUserDepartment } from "@/server/actions/department.actions";
 import { getRoleDisplayName } from "@/lib/permissions";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, FileSpreadsheet, Send, HelpCircle, Pencil, Check, X } from "lucide-react";
 
 interface UserManagementProps {
   users: Array<{
     userId: string;
     role: string;
-    invitationSentAt: Date | null;
     employeeNumber: string | null;
     position: string | null;
     managerId: string | null;
@@ -89,12 +85,15 @@ export function UserManagement({
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
+  const defaultInviteRole =
+    invitableRoles?.includes("ANSATT") ? "ANSATT" : invitableRoles?.[0] ?? "ANSATT";
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteRole, setInviteRole] = useState(defaultInviteRole);
+  const [inviteDepartmentId, setInviteDepartmentId] = useState("__none_dept__");
+  const [inviteManagerId, setInviteManagerId] = useState(NO_MANAGER_VALUE);
   const [importLoading, setImportLoading] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
-  const [activatingUserId, setActivatingUserId] = useState<string | null>(null);
-  const [activatingAll, setActivatingAll] = useState(false);
   const [editingEmployeeNumber, setEditingEmployeeNumber] = useState<string | null>(null);
   const [employeeNumberDraft, setEmployeeNumberDraft] = useState("");
   const [editingPosition, setEditingPosition] = useState<string | null>(null);
@@ -105,10 +104,6 @@ export function UserManagement({
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-
-  const pendingActivationCount = users.filter(
-    (u) => !u.invitationSentAt && u.userId !== currentUserId
-  ).length;
 
   const currentUserCount = users.length;
   const remainingSlots = maxUsers - currentUserCount;
@@ -157,7 +152,11 @@ export function UserManagement({
     const data = {
       email: formData.get("email") as string,
       name: formData.get("name") as string,
-      role: formData.get("role") as string,
+      role: inviteRole,
+      employeeNumber: (formData.get("employeeNumber") as string) || null,
+      position: (formData.get("position") as string) || null,
+      departmentId: inviteDepartmentId === "__none_dept__" ? null : inviteDepartmentId,
+      managerId: inviteManagerId === NO_MANAGER_VALUE ? null : inviteManagerId,
     };
 
     const result = await inviteUser(data);
@@ -280,8 +279,8 @@ export function UserManagement({
 
     const baseMsg =
       result.skipped > 0
-        ? `${result.imported} importert, ${result.skipped} allerede medlem. Aktiver brukere under Handlinger når du vil sende invitasjon.`
-        : `${result.imported} brukere importert. Aktiver under Handlinger for å sende invitasjon.`;
+        ? `${result.imported} importert, ${result.skipped} allerede medlem. Invitasjon er sendt på e-post.`
+        : `${result.imported} brukere importert. Invitasjon er sendt på e-post.`;
     const warningMsg =
       result.errors.length > 0
         ? ` ${result.errors.length} rad${result.errors.length === 1 ? "" : "er"} fikk ikke leder: ${result.errors[0]}`
@@ -292,58 +291,6 @@ export function UserManagement({
       className: "bg-green-50 border-green-200",
     });
     router.refresh();
-  };
-
-  const handleActivate = async (userId: string) => {
-    setActivatingUserId(userId);
-    const result = await activateUserInTenant(userId);
-    setActivatingUserId(null);
-    if (result.success) {
-      toast({
-        title: "Bruker aktivert",
-        description: "Invitasjon med passord er sendt på e-post.",
-        className: "bg-green-50 border-green-200",
-      });
-      router.refresh();
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Kunne ikke aktivere",
-        description: "error" in result ? result.error : "Kunne ikke aktivere bruker",
-      });
-    }
-  };
-
-  const handleActivateAll = async () => {
-    if (pendingActivationCount === 0) return;
-    if (
-      !confirm(
-        `Aktiver ${pendingActivationCount} bruker${pendingActivationCount === 1 ? "" : "e"}? Invitasjon med passord sendes til alle på e-post.`
-      )
-    ) {
-      return;
-    }
-    setActivatingAll(true);
-    const result = await activateAllPendingUsers();
-    setActivatingAll(false);
-    if (result.success) {
-      const msg =
-        result.failed > 0
-          ? `${result.activated} aktivert, ${result.failed} feilet.${result.errors.length > 0 ? ` ${result.errors[0]}` : ""}`
-          : `${result.activated} brukere aktivert – invitasjon sendt på e-post.`;
-      toast({
-        title: "Aktivering fullført",
-        description: msg,
-        className: "bg-green-50 border-green-200",
-      });
-      router.refresh();
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Kunne ikke aktivere",
-        description: "error" in result ? result.error : "Kunne ikke aktivere",
-      });
-    }
   };
 
   const handleEmployeeNumberSave = async (userId: string) => {
@@ -498,7 +445,7 @@ export function UserManagement({
               Brukere ({currentUserCount} / {maxUsers === 999 ? "∞" : maxUsers})
             </CardTitle>
             <CardDescription>
-              Administrer brukere og deres tilgang • {getPlanName(pricingTier)}. Importer uten å sende invitasjon; aktiver under Handlinger for å sende e-post.
+              Administrer brukere og deres tilgang • {getPlanName(pricingTier)}. Invitasjon sendes på e-post med en gang.
             </CardDescription>
           </div>
         </div>
@@ -553,24 +500,33 @@ export function UserManagement({
                   <div className="mt-3 space-y-2 border-t pt-3 text-muted-foreground">
                     <p><strong>1. Last ned eksempelfil</strong> – Klikk «Last ned Excel-eksempel» for å få en ferdig mal.</p>
                     <p><strong>2. Fyll ut Excel-filen</strong> – Bruk kolonnene <code className="rounded bg-muted px-1">email</code>, <code className="rounded bg-muted px-1">navn</code> og <code className="rounded bg-muted px-1">rolle</code>. Gyldige roller: ANSATT, LEDER, HMS, VARSLINGSANSVARLIG, VERNEOMBUD, BHT, REVISOR, ADMIN.</p>
-                    <p><strong>2b. Valgfritt: stilling og leder</strong> – Kolonnen <code className="rounded bg-muted px-1">stilling</code> tar en fritekst som «Tømrer», og <code className="rounded bg-muted px-1">leder</code> tar e-postadressen til nærmeste leder. Lederen kan stå hvor som helst i filen; koblingen gjøres etter at alle radene er lest. Ukjent leder-e-post gir en advarsel, men stopper ikke importen.</p>
-                    <p><strong>3. Importer filen</strong> – Velg din fil og klikk «Importer». Brukere legges til uten invitasjon.</p>
-                    <p><strong>4. Aktiver brukere</strong> – Klikk «Aktiver alle» for å sende invitasjon med passord til alle importerte brukere, eller aktiver en og en under Handlinger.</p>
+                    <p><strong>2b. Valgfritt: organisasjon</strong> – Kolonnene <code className="rounded bg-muted px-1">ansattnummer</code>, <code className="rounded bg-muted px-1">stilling</code>, <code className="rounded bg-muted px-1">avdeling</code> og <code className="rounded bg-muted px-1">leder</code> kan fylles ut. Avdeling må treffe et avdelingsnavn som allerede finnes. Leder tar e-postadressen til nærmeste leder og kan stå hvor som helst i filen. Ukjent avdeling eller leder-e-post gir en advarsel, men stopper ikke importen.</p>
+                    <p><strong>3. Importer filen</strong> – Velg din fil og klikk «Importer». Brukere legges til og får invitasjon på e-post.</p>
                     <p className="text-xs pt-1">Støtter både .csv og .xlsx (Excel). Maks 500 brukere per import, filstørrelse inntil 2 MB.</p>
                   </div>
                 </details>
-                <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+                <Dialog
+                open={inviteOpen}
+                onOpenChange={(open) => {
+                  setInviteOpen(open);
+                  if (!open) {
+                    setInviteRole(defaultInviteRole);
+                    setInviteDepartmentId("__none_dept__");
+                    setInviteManagerId(NO_MANAGER_VALUE);
+                  }
+                }}
+                >
                 <DialogTrigger asChild>
                   <Button disabled={hasReachedLimit && maxUsers !== 999}>
                     <UserPlus className="mr-2 h-4 w-4" />
                     Inviter bruker
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
                 <DialogHeader>
                   <DialogTitle>Inviter ny bruker</DialogTitle>
                   <DialogDescription>
-                    Legg til en ny bruker i bedriften
+                    Legg til en ny bruker i bedriften. Organisasjonsfeltene er valgfrie.
                   </DialogDescription>
                 </DialogHeader>
 
@@ -600,8 +556,12 @@ export function UserManagement({
 
                   <div className="space-y-2">
                     <Label htmlFor="role">Rolle *</Label>
-                    <Select name="role" required disabled={inviteLoading} defaultValue="ANSATT">
-                      <SelectTrigger>
+                    <Select
+                      value={inviteRole}
+                      onValueChange={setInviteRole}
+                      disabled={inviteLoading}
+                    >
+                      <SelectTrigger id="role">
                         <SelectValue placeholder="Velg rolle" />
                       </SelectTrigger>
                             <SelectContent>
@@ -615,6 +575,67 @@ export function UserManagement({
                               ))}
                             </SelectContent>
                     </Select>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="employeeNumber">Ansattnummer</Label>
+                      <Input
+                        id="employeeNumber"
+                        name="employeeNumber"
+                        placeholder="A-0042"
+                        disabled={inviteLoading}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="position">Stilling</Label>
+                      <Input
+                        id="position"
+                        name="position"
+                        placeholder="f.eks. Tømrer"
+                        disabled={inviteLoading}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="department">Avdeling</Label>
+                      <Select
+                        value={inviteDepartmentId}
+                        onValueChange={setInviteDepartmentId}
+                        disabled={inviteLoading}
+                      >
+                        <SelectTrigger id="department">
+                          <SelectValue placeholder="Velg avdeling" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none_dept__">Ingen avdeling</SelectItem>
+                          {departments.map((department) => (
+                            <SelectItem key={department.id} value={department.id}>
+                              {department.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="manager">Nærmeste leder</Label>
+                      <Select
+                        value={inviteManagerId}
+                        onValueChange={setInviteManagerId}
+                        disabled={inviteLoading}
+                      >
+                        <SelectTrigger id="manager">
+                          <SelectValue placeholder="Velg nærmeste leder" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={NO_MANAGER_VALUE}>Ingen leder</SelectItem>
+                          {users.map((candidate) => (
+                            <SelectItem key={candidate.userId} value={candidate.userId}>
+                              {candidate.user.name || candidate.user.email}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
 
                   <div className="flex justify-end gap-4">
@@ -638,23 +659,6 @@ export function UserManagement({
           )}
       </CardHeader>
       <CardContent>
-        {pendingActivationCount > 0 && isAdmin && (
-          <div className="mb-4 flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-            <p className="text-sm text-amber-800">
-              {pendingActivationCount} bruker{pendingActivationCount === 1 ? "" : "e"} venter på aktivering (invitasjon med passord)
-            </p>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleActivateAll}
-              disabled={activatingAll}
-            >
-              <Send className="mr-2 h-4 w-4" />
-              {activatingAll ? "Aktiverer..." : "Aktiver alle"}
-            </Button>
-          </div>
-        )}
-
         {users.length > 0 && (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
             <div className="relative max-w-sm">
@@ -979,17 +983,6 @@ export function UserManagement({
                         <TableCell className="text-right">
                           {!isCurrentUser && (
                             <div className="flex items-center justify-end gap-2">
-                              {!userTenant.invitationSentAt && (
-                                <Button
-                                  variant="default"
-                                  size="sm"
-                                  onClick={() => handleActivate(userTenant.userId)}
-                                  disabled={activatingUserId === userTenant.userId || loading === userTenant.userId}
-                                >
-                                  <Send className="h-4 w-4 mr-1" />
-                                  {activatingUserId === userTenant.userId ? "Aktiverer..." : "Aktiver"}
-                                </Button>
-                              )}
                               <Button
                                 variant="destructive"
                                 size="sm"

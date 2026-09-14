@@ -1693,12 +1693,7 @@ export const helpContent: Record<string, HelpContent> = {
           {
             title: "2. Fyll ut og importer",
             description:
-              "Bruk Excel (.xlsx) eller CSV. Gyldige roller: ANSATT, LEDER, HMS, VERNEOMBUD, BHT, REVISOR, ADMIN. Brukere legges til uten invitasjon.",
-          },
-          {
-            title: "3. Aktiver alle",
-            description:
-              "Etter import: Klikk «Aktiver alle» for å sende invitasjon med passord til alle importerte brukere på én gang, eller aktiver en og en under Handlinger.",
+              "Bruk Excel (.xlsx) eller CSV. Gyldige roller: ANSATT, LEDER, HMS, VERNEOMBUD, BHT, REVISOR, ADMIN. Invitasjon med innloggingsinfo sendes på e-post med en gang.",
           },
         ],
       },
@@ -1735,7 +1730,6 @@ export const helpContent: Record<string, HelpContent> = {
       "GDPR: Krav om tilgangsstyring og logging",
     ],
     tips: [
-      "Bruk «Aktiver alle» etter import for å sende invitasjoner til mange brukere samtidig",
       "Dokumenter hvem som har hvilke roller og hvorfor",
       "Logg alle administrative endringer for sporbarhet",
       "Test varslingsfunksjonen for å sikre at e-poster kommer fram",

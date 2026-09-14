@@ -376,8 +376,9 @@ export function AzureAdIntegration({
           <div>
             <p className="font-medium text-gray-900 mb-1">Hva hvis en ansatt slutter?</p>
             <p className="text-gray-600">
-              Deaktiver eller slett brukeren under "Brukere" i HMS Nova. 
-              Hvis de deaktiveres i Microsoft 365, kan de heller ikke logge inn via SSO.
+              Brukeren må fjernes manuelt under Brukere i HMS Nova (søppelikonet). Microsoft SSO sletter
+              ikke kontoen her. Hvis personen deaktiveres i Microsoft 365, kan de ikke lenger logge inn
+              med Microsoft – men de kan fortsatt bruke passord inntil de er fjernet i HMS Nova.
             </p>
           </div>
 
