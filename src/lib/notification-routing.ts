@@ -48,6 +48,7 @@ const notificationTypePreferenceMap: Partial<Record<NotificationType, Notificati
   HMS_SCORE_MILESTONE: "notifyIncidents",
   ROUTINE_COMPLIANCE_ALERT: "notifyDocuments",
   LAW_CHANGE_ALERT: "notifyDocuments",
+  MOC_UPDATED: "notifyRisks",
 };
 
 const immediateEmailTypes = new Set<NotificationType>([

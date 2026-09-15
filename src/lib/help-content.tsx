@@ -3,13 +3,13 @@ import { HelpContent } from "@/components/dashboard/page-help-dialog";
 export const helpContent: Record<string, HelpContent> = {
   documents: {
     title: "Dokumentstyring",
-    description: "Slik bruker du dokumentmodulen for å bygge ditt kvalitetssikringssystem",
+    description: "Styrende dokumenter som skal distribueres til ansatte (IK-HMS § 5)",
     sections: [
       {
-        heading: "Hva er dokumentstyring?",
+        heading: "Hva hører hjemme her?",
         emoji: "📚",
         content:
-          "Dokumenter er selve grunnmuren i ditt HMS- og kvalitetssystem. Her lagrer du alle styrende dokumenter som bestemmer hvordan du skal jobbe: policyer, prosedyrer, arbeidsinstrukser, sjekklister og maler. Dette er kvalitetssikringssystemet ditt.",
+          "Dokumenter er arkivet for styrende filer du deler med ansatte: KS-dokumenter, policyer, instrukser og andre viktige dokumenter som krever versjon, godkjenning og lesebekreftelse. HMS-håndbok, rutiner, beredskap, stoffkartotek og skjemaer har egne funksjoner.",
       },
       {
         heading: "Hvorfor trenger du dette?",
@@ -33,7 +33,7 @@ export const helpContent: Record<string, HelpContent> = {
           {
             title: "ISO-krav oppfylt",
             description:
-              "Alle ISO-standarder krever dokumentert styringssystem med kontrollerte prosesser.",
+              "ISO 9001/14001/45001 krever dokumentert informasjon (krav 7.5) med kontrollert utgave.",
           },
         ],
       },
@@ -412,6 +412,52 @@ export const helpContent: Record<string, HelpContent> = {
       "Lukk avvik når tiltak er gjennomført og effekt er verifisert",
       "Et åpent avvik = systemet fungerer ikke – revisor vil stille spørsmål",
       "ISO PDCA: Hvis du ikke lukker avvik og tiltak, stopper syklusen.",
+    ],
+  },
+
+  moc: {
+    title: "Endringsledelse (MoC)",
+    description: "Styr planlagte og utilsiktede endringer som påvirker HMS",
+    sections: [
+      {
+        heading: "Hva er endringsledelse?",
+        emoji: "🔀",
+        content:
+          "Management of Change (MoC) er arbeidsflyten for å foreslå, konsekvensvurdere, godkjenne, iverksette og verifisere endringer. ISO 45001 krav 8.1.3 krever dette for midlertidige og permanente endringer som påvirker HMS. ISO 14001:2026 krav 6.3 krever at konsekvenser for ytre miljø vurderes før endringen godkjennes. Internkontrollforskriften § 5 nr. 2 og nr. 6 krever informasjon til ansatte og risikovurdering ved endrede forhold.",
+      },
+      {
+        heading: "Når må du bruke MoC?",
+        emoji: "⚖️",
+        items: [
+          {
+            title: "Før iverksetting",
+            description:
+              "Planlagte endringer skal godkjennes før de settes i verk. Vesentlige og alvorlige endringer krever koblet risikovurdering og medvirkning fra verneombud (AML § 4-2).",
+          },
+          {
+            title: "Utilsiktede endringer",
+            description:
+              "Hopper over forhåndsgodkjenning, men krever konsekvensvurdering og tiltak etterpå.",
+          },
+          {
+            title: "Lukking",
+            description:
+              "Saken kan ikke lukkes før berørte er informert og endringen er verifisert.",
+          },
+        ],
+      },
+    ],
+    isoStandards: [
+      "ISO 45001 (HMS): Krav 8.1.3 – Styring av endringer",
+      "ISO 14001:2026 (Miljø): Krav 6.3 – Planlegging av endringer",
+      "ISO 9001 (Kvalitet): Krav 6.3 og 8.5.6 – Planlegging og styring av endringer",
+      "IK-HMS § 5 nr. 2 og nr. 6",
+      "AML § 4-2 – Medvirkning ved endringer",
+    ],
+    tips: [
+      "Slå på modulen i innstillinger – den er auto-på for høyrisikobransjer",
+      "Knytt MoC-saken til risiko, SJA, avvik, miljøaspekt og tiltak",
+      "Personkonflikter og varsling går i varslingsmodulen, ikke her",
     ],
   },
 
@@ -969,7 +1015,12 @@ export const helpContent: Record<string, HelpContent> = {
               "Vurdering av om systemet har tilstrekkelige ressurser for å fungere.",
           },
           {
-            title: "6. Muligheter for forbedring",
+            title: "6. Miljøprestasjon",
+            description:
+              "ISO 14001:2026 9.3 krever gjennomgang av miljøaspekter, målinger og mål. Bruk «Last inn miljødata» for å fylle feltet.",
+          },
+          {
+            title: "7. Muligheter for forbedring",
             description:
               "Identifisere områder for forbedring og beslutte nye tiltak.",
           },
@@ -978,7 +1029,7 @@ export const helpContent: Record<string, HelpContent> = {
     ],
     isoStandards: [
       "ISO 9001 (Kvalitet): Krav 9.3 - Ledelsens gjennomgåelse",
-      "ISO 14001 (Miljø): Krav 9.3 - Ledelsens gjennomgåelse",
+      "ISO 14001:2026 (Miljø): Krav 9.3 - Ledelsens gjennomgåelse av miljøprestasjon",
       "ISO 45001 (HMS): Krav 9.3 - Ledelsens gjennomgåelse",
       "ISO 27001 (IT-sikkerhet): Krav 9.3 - Ledelsens gjennomgåelse",
     ],
@@ -1061,7 +1112,7 @@ export const helpContent: Record<string, HelpContent> = {
       },
     ],
     isoStandards: [
-      "ISO 45001 (HMS): Krav 8.1.3 - Håndtering av farlige stoffer",
+      "ISO 45001 (HMS): Krav 8.1.2 – Hierarki av tiltak og kjemikalier",
       "ISO 14001 (Miljø): Krav 8.1 - Miljøaspekter knyttet til kjemikalier",
     ],
     tips: [
@@ -1116,7 +1167,7 @@ export const helpContent: Record<string, HelpContent> = {
           {
             title: "1. Identifiser miljøaspekter",
             description:
-              "Kartlegg alle aktiviteter som påvirker miljøet: energi, avfall, utslipp, transport, kjemikalier.",
+              "Kartlegg aktiviteter som påvirker miljøet i hele livsløpet (design, innkjøp, drift, bruk og avhending). Merk om aspektet berører klima, naturmangfold, ressurser eller forurensning (ISO 14001:2026 6.1.2 og 4.1).",
           },
           {
             title: "2. Vurder betydning",
@@ -1137,7 +1188,7 @@ export const helpContent: Record<string, HelpContent> = {
       },
     ],
     isoStandards: [
-      "ISO 14001: Miljøstyringssystemer – krav og veiledning",
+      "ISO 14001:2026: Miljøstyringssystemer – krav og veiledning (6.1.2, 4.1, 6.3, 9.3)",
       "ISO 14004: Retningslinjer for implementering av miljøstyringssystem",
       "ISO 50001: Energistyringssystemer (frivillig)",
     ],
@@ -1228,14 +1279,14 @@ export const helpContent: Record<string, HelpContent> = {
   },
 
   bcm: {
-    title: "Beredskap og kontinuitet (BCM)",
-    description: "Sikre virksomhetens evne til å håndtere kriser og fortsette drift",
+    title: "Beredskap",
+    description: "Evakuering, hendelser, krisekommunikasjon og kontinuitetsplaner",
     sections: [
       {
-        heading: "Hva er BCM?",
+        heading: "Hva er beredskap?",
         emoji: "🛡️",
         content:
-          "Business Continuity Management (BCM) handler om å sikre at organisasjonen kan fortsette å levere kritiske tjenester selv ved alvorlige hendelser som brann, IT-utfall, pandemi eller andre kriser.",
+          "Beredskap dekker både akutt håndtering (brann, evakuering, personskade) og kontinuitet (BCM). Arbeidsgiver skal sørge for opplæring og varsling (AML § 3-2), internkontroll av beredskap (IK-HMS § 5) og brannvern (forskrift om brannforebygging). ISO 22301 dekker i tillegg evnen til å fortsette kritiske tjenester etter krise.",
       },
       {
         heading: "Hvorfor er det viktig?",
@@ -1264,7 +1315,7 @@ export const helpContent: Record<string, HelpContent> = {
         ],
       },
       {
-        heading: "Hvordan bruke BCM-modulen",
+        heading: "Hvordan bruke modulen",
         emoji: "📋",
         items: [
           {
@@ -1283,7 +1334,12 @@ export const helpContent: Record<string, HelpContent> = {
               "Dokumenter hvordan dere gjenoppretter drift: backup, alternativt utstyr, kommunikasjon.",
           },
           {
-            title: "4. Øv og test",
+            title: "4. Registrer hendelser og evakuering",
+            description:
+              "Bruk samme side til operative hendelser, evakueringsplan og krisekommunikasjon (AML § 3-2, IK-HMS § 5, forskrift om brannforebygging).",
+          },
+          {
+            title: "5. Øv og test",
             description:
               "Gjennomfør regelmessige øvelser for å sikre at planene fungerer.",
           },

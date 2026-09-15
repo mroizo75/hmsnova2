@@ -2,7 +2,8 @@ export type TenantFeature =
   | "helseforetak"
   | "bht"
   | "healthIncidentSubcategories"
-  | "trir";
+  | "trir"
+  | "moc";
 
 const HEALTHCARE_INDUSTRY_VALUES = new Set([
   "healthcare",

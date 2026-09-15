@@ -24,9 +24,10 @@ interface AuditFormProps {
   users: Array<{ id: string; name: string | null; email: string }>;
   audit?: Audit;
   mode?: "create" | "edit";
+  returnTo?: string;
 }
 
-export function AuditForm({ tenantId, users, audit, mode = "create" }: AuditFormProps) {
+export function AuditForm({ tenantId, users, audit, mode = "create", returnTo = "/dashboard/audits" }: AuditFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -71,7 +72,7 @@ export function AuditForm({ tenantId, users, audit, mode = "create" }: AuditForm
           description: mode === "edit" ? "Endringene er lagret" : "Revisjonen er planlagt",
           className: "bg-green-50 border-green-200",
         });
-        router.push("/dashboard/audits");
+        router.push(returnTo);
         router.refresh();
       } else {
         toast({

@@ -5,6 +5,11 @@ import {
   type IncidentRoutingLookups,
 } from "@/lib/incident-notification-routing";
 import { createNotification } from "@/server/actions/notification.actions";
+import {
+  buildIncidentReporterNotification,
+  shouldNotifyIncidentReporter,
+  type IncidentReporterEvent,
+} from "@/lib/incident-reporter-notify";
 
 /**
  * Databaseoppslagene for varslingshierarkiet. Alle oppslag er låst til én tenant, slik at
@@ -109,4 +114,36 @@ export async function dispatchNewIncidentNotifications(
   ]);
 
   return routing;
+}
+
+export async function notifyIncidentReporter(opts: {
+  tenantId: string;
+  incidentId: string;
+  reportedBy: string;
+  actorId: string;
+  title: string;
+  typeLabel: string;
+  event: IncidentReporterEvent;
+  statusLabel?: string;
+}) {
+  if (!shouldNotifyIncidentReporter({ reportedBy: opts.reportedBy, actorId: opts.actorId })) {
+    return;
+  }
+
+  const payload = buildIncidentReporterNotification({
+    event: opts.event,
+    incidentId: opts.incidentId,
+    typeLabel: opts.typeLabel,
+    title: opts.title,
+    statusLabel: opts.statusLabel,
+  });
+
+  await createNotification({
+    tenantId: opts.tenantId,
+    userId: opts.reportedBy,
+    type: payload.type,
+    title: payload.title,
+    message: payload.message,
+    link: payload.link,
+  });
 }

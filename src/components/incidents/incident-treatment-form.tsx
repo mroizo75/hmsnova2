@@ -114,6 +114,7 @@ export function IncidentTreatmentForm({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isForwarding, setIsForwarding] = useState(false);
   const [type, setType] = useState(currentType);
   const [source, setSource] = useState(currentSource || "INTERNAL");
   const [subcategoryOptions, setSubcategoryOptions] = useState<SubcategoryOption[]>([]);
@@ -261,8 +262,6 @@ export function IncidentTreatmentForm({
       return;
     }
 
-    setIsUpdating(true);
-
     try {
       const response = await fetch(`/api/incidents/${incidentId}/update`, {
         method: "PUT",
@@ -317,6 +316,47 @@ export function IncidentTreatmentForm({
       });
     } finally {
       setIsUpdating(false);
+    }
+  }
+
+  async function handleForward() {
+    if (responsibleId === "NONE" || responsibleId === (currentResponsibleId || "NONE")) {
+      toast({
+        title: "Velg ny behandler",
+        description: "Velg en annen ansvarlig enn den som har saken i dag.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsForwarding(true);
+    try {
+      const response = await fetch(`/api/incidents/${incidentId}/update`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          responsibleId,
+          ...(currentStatus === "OPEN" ? { status: "INVESTIGATING" as const } : {}),
+        }),
+      });
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error || "Kunne ikke sende videre");
+      }
+      toast({
+        title: "Sendt videre",
+        description: "Ny behandler er varslet. Innsender får beskjed om tildelingen.",
+      });
+      await queryClient.invalidateQueries({ queryKey: ["incidents", incidentId] });
+      router.refresh();
+    } catch {
+      toast({
+        title: "Kunne ikke sende videre",
+        description: "Prøv igjen.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsForwarding(false);
     }
   }
 
@@ -493,11 +533,16 @@ export function IncidentTreatmentForm({
         </p>
       </div>
 
-      <div>
-        <Label className="mb-2 block">Ansvarlig for oppfølging</Label>
+      <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 space-y-3">
+        <div>
+          <Label className="mb-1 block text-base">Send videre</Label>
+          <p className="text-xs text-muted-foreground">
+            Tildel saken til en annen behandler. Ny ansvarlig varsles, og innsender får beskjed (IK-HMS § 5 nr. 7).
+          </p>
+        </div>
         <Select value={responsibleId} onValueChange={setResponsibleId}>
           <SelectTrigger>
-            <SelectValue placeholder="Velg ansvarlig..." />
+            <SelectValue placeholder="Velg behandler..." />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="NONE">Ingen tildelt</SelectItem>
@@ -508,6 +553,25 @@ export function IncidentTreatmentForm({
             ))}
           </SelectContent>
         </Select>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleForward}
+          disabled={
+            isForwarding ||
+            responsibleId === "NONE" ||
+            responsibleId === (currentResponsibleId || "NONE")
+          }
+        >
+          {isForwarding ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Sender...
+            </>
+          ) : (
+            "Send videre til valgt behandler"
+          )}
+        </Button>
       </div>
 
       <div className="rounded-lg border p-4 space-y-3">

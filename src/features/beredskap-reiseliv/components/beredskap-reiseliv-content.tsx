@@ -10,9 +10,10 @@ interface BeredskapReiselivContentProps {
   initialData: BeredskapData;
   canEdit: boolean;
   isReiseliv: boolean;
+  embedded?: boolean;
 }
 
-export function BeredskapReiselivContent({ initialData, canEdit, isReiseliv }: BeredskapReiselivContentProps) {
+export function BeredskapReiselivContent({ initialData, canEdit, isReiseliv, embedded }: BeredskapReiselivContentProps) {
   const { data } = useQuery({
     queryKey: ["beredskap"],
     queryFn: () => fetchBeredskapReiselivData(),
@@ -21,10 +22,11 @@ export function BeredskapReiselivContent({ initialData, canEdit, isReiseliv }: B
 
   return (
     <BeredskapReiselivClient
-      hendelser={data.hendelser}
-      evakueringsplaner={data.evakueringsplaner}
+      hendelser={data?.hendelser ?? []}
+      evakueringsplaner={data?.evakueringsplaner ?? []}
       canEdit={canEdit}
       isReiseliv={isReiseliv}
+      embedded={embedded}
     />
   );
 }

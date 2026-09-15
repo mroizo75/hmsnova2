@@ -53,6 +53,9 @@ export async function fetchRiskDetail(id: string) {
     include: {
       measures: {
         orderBy: { createdAt: "desc" },
+        include: {
+          moc: { select: { id: true, number: true, title: true } },
+        },
       },
       owner: {
         select: { id: true, name: true, email: true },
@@ -82,12 +85,17 @@ export async function fetchRiskDetail(id: string) {
         },
         orderBy: { createdAt: "desc" },
       },
+      mocLinks: {
+        include: {
+          moc: { select: { id: true, number: true, title: true, status: true } },
+        },
+      },
     },
   });
 
   if (!risk) return null;
 
-  const [tenantUsers, goals, inspectionTemplates, documents, audits, sjaHazards, routineLinks, availableRoutines] = await Promise.all([
+  const [tenantUsers, goals, inspectionTemplates, documents, audits, sjaHazards, routineLinks, availableRoutines, tenant] = await Promise.all([
     prisma.user.findMany({
       where: { tenants: { some: { tenantId } } },
       select: { id: true, name: true, email: true },
@@ -127,6 +135,10 @@ export async function fetchRiskDetail(id: string) {
       select: { id: true, title: true },
       orderBy: { title: "asc" },
     }),
+    prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { mocModuleEnabled: true },
+    }),
   ]);
 
   const linkedRoutines = routineLinks.map((l) => l.routine);
@@ -141,6 +153,7 @@ export async function fetchRiskDetail(id: string) {
     sjaHazards,
     linkedRoutines,
     availableRoutines,
+    mocModuleEnabled: tenant?.mocModuleEnabled ?? false,
   }));
 }
 

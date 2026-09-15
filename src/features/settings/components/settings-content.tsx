@@ -14,10 +14,12 @@ import { NotificationSettings } from "@/features/settings/components/notificatio
 import { SimpleMenuSettings } from "@/features/settings/components/simple-menu-settings";
 import { ModuleVisibilitySettings } from "@/features/settings/components/module-visibility-settings";
 import { RuhModuleSettings } from "@/features/settings/components/ruh-module-settings";
+import { MocModuleSettings } from "@/features/settings/components/moc-module-settings";
 import { AiSettings } from "@/features/settings/components/ai-settings";
 import { DataExportCard } from "@/features/settings/components/data-export-card";
 import { TenantLogoUpload } from "@/features/settings/components/tenant-logo-upload";
 import { parseModuleVisibilityConfig } from "@/lib/module-visibility";
+import { aliasDashboardMenuHrefs } from "@/lib/legal-link-repair";
 import { Building2, User, CreditCard, Cloud, Bell, PanelLeft, Lock, BarChart3, Monitor, Sparkles, Receipt } from "lucide-react";
 import { getAccountingSettings } from "@/server/actions/accounting.actions";
 import { IntelligenceConsentToggle } from "@/features/intelligence/components/consent-toggle";
@@ -116,7 +118,7 @@ export function SettingsContent({
       <TabsContent value="menu">
         <SimpleMenuSettings
           initialSimpleMenuItems={
-            (tenant.simpleMenuItems as string[] | null) ?? null
+            aliasDashboardMenuHrefs((tenant.simpleMenuItems as string[] | null) ?? null)
           }
           isAdmin={isAdmin}
         />
@@ -126,6 +128,13 @@ export function SettingsContent({
         <RuhModuleSettings
           initialEnabled={tenant.ruhModuleEnabled}
           isAdmin={isAdmin}
+        />
+        <MocModuleSettings
+          initialEnabled={Boolean(tenant.mocModuleEnabled)}
+          isAdmin={isAdmin}
+          recommended={["oil_gas", "offshore", "manufacturing", "bergverk", "marine", "elektro", "construction"].includes(
+            String(tenant.industry ?? "").toLowerCase(),
+          )}
         />
         <ModuleVisibilitySettings
           initialConfig={parseModuleVisibilityConfig(

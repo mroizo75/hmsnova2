@@ -255,6 +255,14 @@ export function ManagementReviewDetailContent({
               </div>
             </div>
           )}
+          {review.environmentSummary && (
+            <div>
+              <h3 className="mb-2 font-semibold">Miljøprestasjon (ISO 14001:2026 9.3)</h3>
+              <div className="whitespace-pre-wrap text-sm text-muted-foreground bg-emerald-50 p-4 rounded-lg border border-emerald-200">
+                {review.environmentSummary}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

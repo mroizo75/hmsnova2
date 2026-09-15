@@ -17,6 +17,7 @@ export type NavPermission =
   | "hseStatistics"
   | "exposureRegister"
   | "sja"
+  | "moc"
   | "inspections"
   | "training"
   | "actions"
@@ -122,14 +123,14 @@ export const DASHBOARD_NAV_CONFIG: DashboardNavItemConfig[] = [
   { href: "/dashboard/risks", label: "nav.risks", permission: "risks", defaultSimple: false, coreHub: "risiko" },
   { href: "/dashboard/risk-register", label: "nav.riskRegister", permission: "risks", defaultSimple: false, coreHub: "risiko" },
   { href: "/dashboard/sja", label: "nav.sja", permission: "sja", defaultSimple: true, coreHub: "risiko" },
+  { href: "/dashboard/moc", label: "nav.moc", permission: "moc", defaultSimple: false, alwaysShow: true, feature: "moc", coreHub: "risiko" },
   { href: "/dashboard/chemicals", label: "nav.chemicals", permission: "chemicals", defaultSimple: true, coreHub: "risiko" },
   { href: "/dashboard/exposure-register", label: "nav.exposureRegister", permission: "exposureRegister", defaultSimple: true, coreHub: "risiko" },
   { href: "/dashboard/inspections", label: "nav.inspections", permission: "inspections", defaultSimple: true, coreHub: "risiko" },
   { href: "/dashboard/fire-drills", label: "nav.fireDrills", permission: "inspections", defaultSimple: true, coreHub: "risiko" },
   { href: "/dashboard/wellbeing", label: "nav.wellbeing", permission: "inspections", defaultSimple: true, coreHub: "risiko" },
   { href: "/dashboard/environment", label: "nav.environment", permission: "environment", defaultSimple: false, coreHub: "risiko" },
-  { href: "/dashboard/bcm", label: "nav.bcm", permission: "audits", defaultSimple: false, coreHub: "risiko" },
-  { href: "/dashboard/beredskap", label: "nav.beredskap", permission: "beredskap", defaultSimple: true, coreHub: "risiko" },
+  { href: "/dashboard/bcm", label: "nav.bcm", permission: "beredskap", defaultSimple: true, coreHub: "risiko" },
   { href: "/dashboard/audits", label: "nav.audits", permission: "audits", defaultSimple: false, coreHub: "risiko" },
 
   { href: "/dashboard/construction-compliance", label: "nav.constructionCompliance", permission: "constructionCompliance", defaultSimple: true, coreHub: "skjema" },

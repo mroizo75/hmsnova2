@@ -8,6 +8,7 @@ import {
   isNavItemAllowedByModuleVisibility,
   type ModuleVisibilityConfig,
 } from "@/lib/module-visibility";
+import { aliasDashboardMenuHrefs } from "@/lib/legal-link-repair";
 import type { RolePermissions } from "@/lib/permissions";
 
 export function normalizeIndustryKey(industry: string | null | undefined): string | null {
@@ -57,7 +58,8 @@ export function filterDashboardNavItems(opts: {
   hasKonsernMenu?: boolean;
   items?: DashboardNavItemConfig[];
 }): DashboardNavItemConfig[] {
-  const industryHrefs = getIndustrySimpleHrefs(opts.tenantIndustry);
+  const industryHrefs = aliasDashboardMenuHrefs(getIndustrySimpleHrefs(opts.tenantIndustry)) ?? [];
+  const simpleMenuItems = aliasDashboardMenuHrefs(opts.simpleMenuItems);
   const items = opts.items ?? DASHBOARD_NAV_CONFIG;
 
   return items.filter((item) => {
@@ -81,7 +83,7 @@ export function filterDashboardNavItems(opts: {
       item.href,
       item.defaultSimple,
       item.alwaysShow,
-      opts.simpleMenuItems,
+      simpleMenuItems,
       industryHrefs,
     );
   });

@@ -11,7 +11,7 @@ export const BASE_SIMPLE_MODULES: string[] = [
   "/dashboard/inspections",
   "/dashboard/training",
   "/dashboard/fire-drills",
-  "/dashboard/beredskap",
+  "/dashboard/bcm",
   "/dashboard/annual-hms-plan",
   "/dashboard/settings",
 ]
@@ -32,6 +32,7 @@ export const BRANSJE_MODULES: Record<
     modules: [
       ...BASE_SIMPLE_MODULES,
       "/dashboard/sja",
+      "/dashboard/moc",
       "/dashboard/chemicals",
       "/dashboard/exposure-register",
       "/dashboard/construction-compliance",
@@ -43,6 +44,7 @@ export const BRANSJE_MODULES: Record<
     modules: [
       ...BASE_SIMPLE_MODULES,
       "/dashboard/sja",
+      "/dashboard/moc",
       "/dashboard/chemicals",
       "/dashboard/samsvarserklaringer",
     ],
@@ -53,6 +55,7 @@ export const BRANSJE_MODULES: Record<
     modules: [
       ...BASE_SIMPLE_MODULES,
       "/dashboard/sja",
+      "/dashboard/moc",
       "/dashboard/chemicals",
       "/dashboard/exposure-register",
     ],
@@ -63,6 +66,7 @@ export const BRANSJE_MODULES: Record<
     modules: [
       ...BASE_SIMPLE_MODULES,
       "/dashboard/sja",
+      "/dashboard/moc",
       "/dashboard/chemicals",
       "/dashboard/exposure-register",
     ],
@@ -73,6 +77,7 @@ export const BRANSJE_MODULES: Record<
     modules: [
       ...BASE_SIMPLE_MODULES,
       "/dashboard/sja",
+      "/dashboard/moc",
       "/dashboard/chemicals",
       "/dashboard/exposure-register",
     ],
@@ -83,6 +88,7 @@ export const BRANSJE_MODULES: Record<
     modules: [
       ...BASE_SIMPLE_MODULES,
       "/dashboard/sja",
+      "/dashboard/moc",
       "/dashboard/chemicals",
     ],
   },
@@ -92,6 +98,7 @@ export const BRANSJE_MODULES: Record<
     modules: [
       ...BASE_SIMPLE_MODULES,
       "/dashboard/sja",
+      "/dashboard/moc",
       "/dashboard/chemicals",
       "/dashboard/exposure-register",
     ],
@@ -135,6 +142,7 @@ export const BRANSJE_MODULES: Record<
     modules: [
       ...BASE_SIMPLE_MODULES,
       "/dashboard/sja",
+      "/dashboard/moc",
       "/dashboard/aktivitetssikkerhet",
     ],
   },
@@ -147,6 +155,7 @@ export const BRANSJE_MODULES: Record<
       ...BASE_SIMPLE_MODULES,
       "/dashboard/transport",
       "/dashboard/sja",
+      "/dashboard/moc",
     ],
   },
 
@@ -157,6 +166,7 @@ export const BRANSJE_MODULES: Record<
     modules: [
       ...BASE_SIMPLE_MODULES,
       "/dashboard/sja",
+      "/dashboard/moc",
       "/dashboard/chemicals",
       "/dashboard/exposure-register",
     ],
@@ -177,6 +187,7 @@ export const BRANSJE_MODULES: Record<
     modules: [
       ...BASE_SIMPLE_MODULES,
       "/dashboard/sja",
+      "/dashboard/moc",
       "/dashboard/chemicals",
     ],
   },

@@ -21,7 +21,8 @@ export const DASHBOARD_ROUTE_ALIASES: Record<string, string> = {
   "/dashboard/dokumenter": "/dashboard/documents",
   "/dashboard/risiko": "/dashboard/risks",
   "/dashboard/tiltak": "/dashboard/actions",
-  "/dashboard/beredskap-reiseliv": "/dashboard/beredskap",
+  "/dashboard/beredskap-reiseliv": "/dashboard/bcm",
+  "/dashboard/beredskap": "/dashboard/bcm",
 };
 
 export const LOVDATA_URL_REPLACEMENTS: Record<string, string> = {
@@ -59,6 +60,21 @@ export function canonicalRequirementTitle(title: string): string {
 export function repairDashboardRoute(route: string | null | undefined): string | null {
   if (!route) return null;
   return DASHBOARD_ROUTE_ALIASES[route] ?? route;
+}
+
+/** Mapper gamle meny-stier (f.eks. /dashboard/beredskap) til gjeldende href. */
+export function aliasDashboardMenuHrefs(hrefs: string[] | null | undefined): string[] | null {
+  if (!hrefs) return null;
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const href of hrefs) {
+    const resolved = repairDashboardRoute(href) ?? href;
+    if (!seen.has(resolved)) {
+      seen.add(resolved);
+      out.push(resolved);
+    }
+  }
+  return out;
 }
 
 export function repairLovdataUrl(url: string | null | undefined): string | null {

@@ -5,6 +5,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { IncidentStatus, IncidentType } from "@prisma/client";
 import { createNotification, notifyUsersByRoles } from "@/server/actions/notification.actions";
+import { notifyIncidentReporter } from "@/lib/incident-notification-routing.server";
+import { getIncidentStatusLabel } from "@/features/incidents/schemas/incident.schema";
 import { normalizeProjectReference } from "@/lib/incident-project-reference";
 import { resolveIncidentStage } from "@/lib/incident-stage";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
@@ -179,7 +181,13 @@ export async function PUT(
     const injuryDescription = parseNullableText(body.injuryDescription);
     const suggestedActions = parseNullableText(body.suggestedActions);
 
-    const requiresHseCompletion = status && status !== "OPEN";
+    // HSE-krav gjelder full behandling, ikke «Send videre» som bare setter responsibleId.
+    const hasHsePayload =
+      medicalAttentionRequired !== undefined ||
+      isFatal !== undefined ||
+      isLostTimeIncident !== undefined ||
+      isRestrictedWork !== undefined;
+    const requiresHseCompletion = Boolean(status) && status !== "OPEN" && hasHsePayload;
     if (requiresHseCompletion) {
       if (
         medicalAttentionRequired === undefined ||
@@ -209,6 +217,8 @@ export async function PUT(
         severity: true,
         isRestrictedWork: true,
         responsibleId: true,
+        reportedBy: true,
+        status: true,
         avviksnummer: true,
         stage: true,
       },
@@ -289,6 +299,8 @@ export async function PUT(
 
     revalidatePath(`/dashboard/incidents/${id}`);
     revalidatePath("/dashboard/incidents");
+    revalidatePath("/ansatt/avvik");
+    revalidatePath(`/ansatt/avvik/${id}`);
 
     await triggerRealtimeEvent(tenantId, "incident-updated", { id: incident.id });
 
@@ -301,6 +313,28 @@ export async function PUT(
         title: "Avvik tildelt deg",
         message: `${incident.avviksnummer ?? incident.type}: ${incident.title} er sendt til deg for behandling.`,
         link: `/dashboard/incidents/${incident.id}`,
+      });
+      await notifyIncidentReporter({
+        tenantId,
+        incidentId: incident.id,
+        reportedBy: existingIncident.reportedBy,
+        actorId: session.user.id,
+        title: incident.title,
+        typeLabel: incident.type,
+        event: "assigned",
+      });
+    }
+
+    if (status && status !== existingIncident.status) {
+      await notifyIncidentReporter({
+        tenantId,
+        incidentId: incident.id,
+        reportedBy: existingIncident.reportedBy,
+        actorId: session.user.id,
+        title: incident.title,
+        typeLabel: incident.type,
+        event: "status",
+        statusLabel: getIncidentStatusLabel(incident.status),
       });
     }
 

@@ -48,6 +48,7 @@ export default function NewManagementReviewPage() {
     trainingStatus: "",
     resourcesReview: "",
     externalChanges: "",
+    environmentSummary: "",
     conclusions: "",
     notes: "",
   });
@@ -92,6 +93,7 @@ export default function NewManagementReviewPage() {
         riskReview: data.data.riskReview || prev.riskReview,
         auditResults: data.data.auditResults || prev.auditResults,
         trainingStatus: data.data.trainingStatus || prev.trainingStatus,
+        environmentSummary: data.data.environmentSummary || prev.environmentSummary,
       }));
 
       toast({
@@ -373,6 +375,19 @@ export default function NewManagementReviewPage() {
                 }
                 placeholder="Endringer i lover, forskrifter, standarder..."
                 rows={4}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="environmentSummary">Miljøprestasjon (ISO 14001:2026 9.3)</Label>
+              <Textarea
+                id="environmentSummary"
+                value={formData.environmentSummary}
+                onChange={(e) =>
+                  setFormData({ ...formData, environmentSummary: e.target.value })
+                }
+                placeholder="Oppsummering av miljøaspekter, målinger og miljømål..."
+                rows={8}
               />
             </div>
           </CardContent>

@@ -9,6 +9,7 @@ import { activateBcmTemplate } from "@/server/actions/bcm.actions";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { bcmPlanHref } from "@/lib/bcm-audit";
 
 interface BcmTemplate {
   id: string;
@@ -40,7 +41,7 @@ export function BcmTemplates({ templates, activatedTemplateIds }: BcmTemplatesPr
         queryClient.invalidateQueries({ queryKey: ["bcm"] });
         queryClient.invalidateQueries({ queryKey: ["documents"] });
         if (result.documentId) {
-          router.push(`/dashboard/documents/${result.documentId}`);
+          router.push(bcmPlanHref(result.documentId));
         }
       } else {
         toast({ title: "Info", description: result.error });

@@ -26,6 +26,7 @@ import {
   type IncidentTypeGroup,
 } from "@/features/incidents/schemas/incident.schema";
 import { generateAiIncidentCaseDraft } from "@/server/actions/ai-assistant.actions";
+import { PsychosocialIncidentHint } from "@/features/incidents/components/psychosocial-incident-hint";
 
 const NO_REPORTED_FOR = "__none__";
 const NO_PROJECT = "__none__";
@@ -275,6 +276,7 @@ export function ReportIncidentForm({
             </button>
           ))}
         </div>
+        <PsychosocialIncidentHint />
       </div>
 
       {/* Undertype — kun hvis gruppen har flere typer */}

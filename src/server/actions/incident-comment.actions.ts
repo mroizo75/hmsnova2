@@ -64,5 +64,7 @@ export async function addIncidentComment(input: {
   });
 
   revalidatePath(`/dashboard/incidents/${incident.id}`);
+  revalidatePath("/ansatt/avvik");
+  revalidatePath(`/ansatt/avvik/${incident.id}`);
   return { success: true as const };
 }

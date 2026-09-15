@@ -123,6 +123,18 @@ export function ChemicalDetailContent({ initialData }: ChemicalDetailContentProp
                 <p className="font-medium font-mono">{chemical.casNumber}</p>
               </div>
             )}
+            {chemical.gtin && (
+              <div>
+                <p className="text-sm text-muted-foreground">GTIN / EAN</p>
+                <p className="font-medium font-mono">{chemical.gtin}</p>
+              </div>
+            )}
+            {chemical.supplierProductCode && (
+              <div>
+                <p className="text-sm text-muted-foreground">Varenummer</p>
+                <p className="font-medium font-mono">{chemical.supplierProductCode}</p>
+              </div>
+            )}
             {chemical.ecNumber && (
               <div>
                 <p className="text-sm text-muted-foreground">EC-nummer (ECHA)</p>

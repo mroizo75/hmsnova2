@@ -1,7 +1,6 @@
 import { DASHBOARD_NAV_CONFIG } from "@/lib/dashboard-nav-config";
 
 const PERMISSION_ALIASES: Record<string, string> = {
-  bcm: "audits",
   wellbeing: "inspections",
 };
 

@@ -8,6 +8,7 @@ import { CopyFormButton } from "@/components/forms/copy-form-button";
 import { DeleteFormButton } from "@/components/forms/delete-form-button";
 import { fetchFormDetail } from "@/server/queries/form.queries";
 import { FormDetailContent } from "@/features/forms/components/form-detail-content";
+import { bcmFormHref, isBcmTemplateCategory } from "@/lib/bcm-audit";
 
 export default async function FormDetailPage({
   params,
@@ -40,6 +41,14 @@ export default async function FormDetailPage({
   }
 
   const { form, permissions, restrictedGlobalView } = initialData;
+
+  if (isBcmTemplateCategory(form.category) && !projectId) {
+    const qs = new URLSearchParams();
+    if (queryParams.page) qs.set("page", queryParams.page);
+    if (allTemplatesView) qs.set("allTemplates", "1");
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    redirect(`${bcmFormHref(id)}${suffix}`);
+  }
 
   const fillSearchParams = new URLSearchParams({
     returnUrl: projectId ? `/dashboard/projects/${projectId}` : `/dashboard/forms/${form.id}`,

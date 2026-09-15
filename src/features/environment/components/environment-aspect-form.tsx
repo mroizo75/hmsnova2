@@ -22,11 +22,19 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import {
   createEnvironmentalAspect,
   updateEnvironmentalAspect,
 } from "@/server/actions/environment.actions";
+import {
+  ENVIRONMENT_CONTEXT_LABELS,
+  ENVIRONMENT_LIFECYCLE_LABELS,
+  ENVIRONMENT_LIFECYCLE_STAGES,
+  parseLifecycleStages,
+  type EnvironmentLifecycleStage,
+} from "@/lib/environment-iso14001";
 
 type UserOption = { id: string; name: string | null; email: string | null };
 type GoalOption = { id: string; title: string };
@@ -122,6 +130,13 @@ export function EnvironmentAspectForm({
   const [monitoringFrequency, setMonitoringFrequency] = useState<
     ControlFrequency | typeof NO_MONITORING_VALUE
   >(aspect?.monitoringFrequency ?? NO_MONITORING_VALUE);
+  const [lifecycleStages, setLifecycleStages] = useState<EnvironmentLifecycleStage[]>(
+    parseLifecycleStages(aspect?.lifecycleStages),
+  );
+  const [contextClimate, setContextClimate] = useState(aspect?.contextClimate ?? false);
+  const [contextBiodiversity, setContextBiodiversity] = useState(aspect?.contextBiodiversity ?? false);
+  const [contextResources, setContextResources] = useState(aspect?.contextResources ?? false);
+  const [contextPollution, setContextPollution] = useState(aspect?.contextPollution ?? false);
 
   const significanceScore = severity * likelihood;
   const significanceMeta = getSignificanceMeta(significanceScore);
@@ -148,6 +163,11 @@ export function EnvironmentAspectForm({
       goalId: goalId === NO_GOAL_VALUE ? undefined : goalId,
       nextReviewDate: emptyToUndefined(formData.get("nextReviewDate")),
       status: mode === "edit" ? status : undefined,
+      lifecycleStages,
+      contextClimate,
+      contextBiodiversity,
+      contextResources,
+      contextPollution,
     };
 
     try {
@@ -374,6 +394,73 @@ export function EnvironmentAspectForm({
                 defaultValue={aspect?.location ?? ""}
                 disabled={loading}
               />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Livsløp og miljøforhold</CardTitle>
+          <CardDescription>
+            ISO 14001:2026 6.1.2 og 4.1 – hvor i livsløpet aspektet oppstår, og hvilke forhold det berører
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Livsløpstrinn</Label>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {ENVIRONMENT_LIFECYCLE_STAGES.map((stage) => (
+                <label key={stage} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={lifecycleStages.includes(stage)}
+                    onCheckedChange={(checked) => {
+                      setLifecycleStages((prev) =>
+                        checked ? [...prev, stage] : prev.filter((item) => item !== stage),
+                      );
+                    }}
+                    disabled={loading}
+                  />
+                  {ENVIRONMENT_LIFECYCLE_LABELS[stage]}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Relevante miljøforhold</Label>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={contextClimate}
+                  onCheckedChange={(checked) => setContextClimate(Boolean(checked))}
+                  disabled={loading}
+                />
+                {ENVIRONMENT_CONTEXT_LABELS.climate}
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={contextBiodiversity}
+                  onCheckedChange={(checked) => setContextBiodiversity(Boolean(checked))}
+                  disabled={loading}
+                />
+                {ENVIRONMENT_CONTEXT_LABELS.biodiversity}
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={contextResources}
+                  onCheckedChange={(checked) => setContextResources(Boolean(checked))}
+                  disabled={loading}
+                />
+                {ENVIRONMENT_CONTEXT_LABELS.resources}
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={contextPollution}
+                  onCheckedChange={(checked) => setContextPollution(Boolean(checked))}
+                  disabled={loading}
+                />
+                {ENVIRONMENT_CONTEXT_LABELS.pollution}
+              </label>
             </div>
           </div>
         </CardContent>

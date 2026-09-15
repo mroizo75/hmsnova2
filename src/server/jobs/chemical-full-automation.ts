@@ -12,6 +12,7 @@ import { SupplierSDSManager } from "@/lib/supplier-api";
 import { parseSDSFile } from "@/lib/sds-parser";
 import { getStorage } from "@/lib/storage";
 import { createNotification } from "@/server/actions/notification.actions";
+import { catalogLookupNumber } from "@/lib/chemical-product-identity";
 
 /**
  * Daglig: Overvåk e-post for nye SDS-er
@@ -206,7 +207,7 @@ export async function checkSupplierAPIsForUpdates() {
 
         // Anta katalognummer er lagret i notes eller et eget felt
         // For demo: bruk CAS-nummer som fallback
-        const catalogNumber = chemical.casNumber || "";
+        const catalogNumber = catalogLookupNumber(chemical) || "";
 
         if (!catalogNumber) continue;
 

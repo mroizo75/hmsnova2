@@ -35,6 +35,12 @@ export interface RolePermissions {
   canReadOwnSja: boolean;         // Lese egne opprettede SJA (alle som kan opprette)
   canCreateSja: boolean;
   canApproveSja: boolean;
+
+  // MoC / endringsledelse (ISO 45001:2018 8.1.3)
+  canReadMoc: boolean;
+  canReadOwnMoc: boolean;
+  canCreateMoc: boolean;
+  canApproveMoc: boolean;
   
   // Risikovurderinger
   canReadRisks: boolean;
@@ -216,6 +222,10 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canReadOwnSja: true,
     canCreateSja: true,
     canApproveSja: true,
+    canReadMoc: true,
+    canReadOwnMoc: true,
+    canCreateMoc: true,
+    canApproveMoc: true,
     canReadRisks: true,
     canCreateRisks: true,
     canApproveRisks: true,
@@ -340,6 +350,10 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canReadOwnSja: true,
     canCreateSja: true,
     canApproveSja: true,
+    canReadMoc: true,
+    canReadOwnMoc: true,
+    canCreateMoc: true,
+    canApproveMoc: true,
     canReadRisks: true,
     canCreateRisks: true,
     canApproveRisks: true,
@@ -466,6 +480,10 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canReadOwnSja: true,
     canCreateSja: true,
     canApproveSja: true,
+    canReadMoc: true,
+    canReadOwnMoc: true,
+    canCreateMoc: true,
+    canApproveMoc: true,
     canReadRisks: true,
     canCreateRisks: true,
     canApproveRisks: false,
@@ -590,6 +608,10 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canReadOwnSja: true,
     canCreateSja: true,
     canApproveSja: false,
+    canReadMoc: true,
+    canReadOwnMoc: true,
+    canCreateMoc: true,
+    canApproveMoc: false,
     canReadRisks: false,
     canCreateRisks: false,
     canApproveRisks: false,
@@ -714,6 +736,10 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canReadOwnSja: true,
     canCreateSja: true,
     canApproveSja: false,
+    canReadMoc: true,
+    canReadOwnMoc: true,
+    canCreateMoc: true,
+    canApproveMoc: false,
     canReadRisks: true,
     canCreateRisks: true,
     canApproveRisks: false,
@@ -838,6 +864,10 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canReadOwnSja: true,            // Kan se egne opprettede SJA
     canCreateSja: true,             // Alle ansatte kan opprette SJA
     canApproveSja: false,
+    canReadMoc: false,
+    canReadOwnMoc: true,
+    canCreateMoc: true,
+    canApproveMoc: false,
     canReadRisks: false,
     canCreateRisks: false,
     canApproveRisks: false,
@@ -962,6 +992,10 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canReadOwnSja: true,
     canCreateSja: true,
     canApproveSja: false,
+    canReadMoc: true,
+    canReadOwnMoc: true,
+    canCreateMoc: true,
+    canApproveMoc: false,
     canReadRisks: true,
     canCreateRisks: true,
     canApproveRisks: false,
@@ -1086,6 +1120,10 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canReadOwnSja: true,
     canCreateSja: false,
     canApproveSja: false,
+    canReadMoc: true,
+    canReadOwnMoc: true,
+    canCreateMoc: false,
+    canApproveMoc: false,
     canReadRisks: true,
     canCreateRisks: false,
     canApproveRisks: false,
@@ -1210,6 +1248,10 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canReadOwnSja: false,
     canCreateSja: false,
     canApproveSja: false,
+    canReadMoc: false,
+    canReadOwnMoc: false,
+    canCreateMoc: false,
+    canApproveMoc: false,
     canReadRisks: false,
     canCreateRisks: false,
     canApproveRisks: false,
@@ -1347,6 +1389,7 @@ export function getVisibleNavItems(role: Role) {
     hseStatistics: perms.canReadIncidents || perms.canCreateIncidents,
     ruh: perms.canReadRuh || perms.canCreateRuh,
     sja: perms.canReadSja || perms.canCreateSja,
+    moc: perms.canReadMoc || perms.canReadOwnMoc || perms.canCreateMoc,
     inspections: perms.canReadInspections,
     chemicals: perms.canReadChemicals,
     training: perms.canReadOwnTraining || perms.canReadAllTraining,

@@ -20,6 +20,7 @@ import { updateDocument } from "@/server/actions/document.actions";
 import { Save } from "lucide-react";
 import { Document } from "@prisma/client";
 import { useTranslations } from "next-intl";
+import { documentKindsForForm } from "@/lib/document-module-scope";
 
 interface DocumentEditFormProps {
   document: Document;
@@ -38,9 +39,9 @@ interface DocumentEditFormProps {
     isGlobal: boolean;
     pdcaGuidance?: Record<string, string> | null;
   }>;
+  returnTo?: string;
 }
 
-const documentKinds = ["LAW", "PLAN", "PROCEDURE", "CHECKLIST", "FORM", "SDS", "OTHER"] as const;
 const userRoles = ["ADMIN", "HMS", "LEDER", "HR", "VERNEOMBUD", "ANSATT", "BHT", "REVISOR"] as const;
 
 const NO_OWNER_VALUE = "__none_owner__";
@@ -53,7 +54,7 @@ const formatDateInput = (value?: Date | string | null) => {
   return date.toISOString().slice(0, 10);
 };
 
-export function DocumentEditForm({ document, owners, templates }: DocumentEditFormProps) {
+export function DocumentEditForm({ document, owners, templates, returnTo = "/dashboard/documents" }: DocumentEditFormProps) {
   const t = useTranslations("dashboardDocumentEditForm");
   const router = useRouter();
   const { toast } = useToast();
@@ -95,6 +96,7 @@ export function DocumentEditForm({ document, owners, templates }: DocumentEditFo
     templates.forEach((template) => map.set(template.id, template));
     return map;
   }, [templates]);
+  const documentKinds = documentKindsForForm(document.kind);
 
   const handleTemplateChange = (value: string) => {
     setSelectedTemplate(value);
@@ -148,7 +150,7 @@ export function DocumentEditForm({ document, owners, templates }: DocumentEditFo
           description: t("toasts.updated.description"),
           className: "bg-green-50 border-green-200",
         });
-        router.push("/dashboard/documents");
+        router.push(returnTo);
         router.refresh();
       } else {
         toast({

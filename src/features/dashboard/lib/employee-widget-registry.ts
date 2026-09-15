@@ -24,6 +24,7 @@ import {
   CalendarDays,
   UserPlus,
   FolderArchive,
+  GitBranch,
   type LucideIcon,
 } from "lucide-react";
 
@@ -121,6 +122,17 @@ export const EMPLOYEE_WIDGET_REGISTRY: EmployeeWidgetDefinition[] = [
     bgColor: "bg-orange-100",
     borderColor: "border-orange-300",
     adminWidgetId: "sja",
+  },
+  {
+    id: "emp-moc",
+    label: "Endringsledelse",
+    description: "Foreslå og følge endringer",
+    icon: GitBranch,
+    href: "/ansatt/moc",
+    color: "text-teal-700",
+    bgColor: "bg-teal-100",
+    borderColor: "border-teal-300",
+    adminWidgetId: "moc",
   },
   {
     id: "emp-chemicals",

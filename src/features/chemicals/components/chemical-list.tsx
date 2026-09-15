@@ -197,7 +197,9 @@ export function ChemicalList({
     const matchesSearch =
       chemical.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       chemical.supplier?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      chemical.casNumber?.toLowerCase().includes(searchTerm.toLowerCase());
+      chemical.casNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      chemical.gtin?.includes(searchTerm.replace(/\s/g, "")) ||
+      chemical.supplierProductCode?.toLowerCase().includes(searchTerm.toLowerCase());
 
     if (!matchesSearch) return false;
     if (statusFilter !== "all" && chemical.status !== statusFilter) return false;

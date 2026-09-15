@@ -36,6 +36,13 @@ Komplett løsning for HMS-styring av kjemikalier med sikkerhetsdatablad, faresym
 - **Versjonshåndtering**: Spor versjoner og datoer
 - **Revisjonsplan**: Automatisk påminnelse om årlig gjennomgang
 - **Nedlasting**: Enkel tilgang til databladet
+- **Produktidentitet**: GTIN og leverandørens varenummer – forutsetning for matching mot masterkatalog
+
+### SDS-oppdatering (beslutning 15. sep. 2026)
+
+Steg 1 (intern masterkatalog i `/admin`) ligger på backlog nå. Vi venter ikke på flere kundeforespørsler: kundene har allerede spurt, og intern katalog dekker vanlige norske produkter uten leverandør-onboarding.
+
+Ikke betal kjemikalieleverandører for SDS (REACH art. 31 – gratis, aktiv levering). Ikke kjøp EcoOnline/Chemcontrol som kilde. Leverandørportal er steg 2, lab-API steg 3. Kunden godkjenner ny versjon; vi overskriver ikke stille.
 
 ### 🔍 Revisjonskontroll
 - **Årlig gjennomgang**: Påminnelse om revisjonsfrister
@@ -85,6 +92,8 @@ model Chemical {
   productName      String          // Produktnavn
   supplier         String?         // Leverandør
   casNumber        String?         // CAS-nummer
+  gtin             String?         // GS1 GTIN
+  supplierProductCode String?      // Leverandørens varenummer
   hazardClass      String?         // Fareklasse (GHS/CLP)
   hazardStatements String?         // H-setninger
   warningPictograms String?        // JSON array av faresymboler (filnavn)

@@ -24,12 +24,18 @@ export async function fetchIncidentDetail(id: string) {
               email: true,
             },
           },
+          moc: { select: { id: true, number: true, title: true } },
         },
       },
       attachments: true,
       comments: {
         orderBy: { createdAt: "asc" },
         include: { author: { select: { id: true, name: true } } },
+      },
+      mocLinks: {
+        include: {
+          moc: { select: { id: true, number: true, title: true, status: true } },
+        },
       },
       risk: {
         select: {
@@ -99,6 +105,7 @@ export async function fetchIncidentDetail(id: string) {
     where: { id: tenantId },
     select: {
       ruhModuleEnabled: true,
+      mocModuleEnabled: true,
       aiEnabled: true,
       name: true,
       orgNumber: true,

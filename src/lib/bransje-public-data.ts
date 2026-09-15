@@ -174,8 +174,8 @@ export const MODULE_DESCRIPTIONS: Record<string, ModuleDescription> = {
     description: "Sikkerhetsvurdering av opplevelsesaktiviteter og guidede turer",
     icon: TreePine,
   },
-  "/dashboard/beredskap": {
-    path: "/dashboard/beredskap",
+  "/dashboard/bcm": {
+    path: "/dashboard/bcm",
     name: "Beredskap",
     shortName: "Beredskap",
     description: "Beredskapsplaner, evakuering, hendelser og krisekommunikasjon",
@@ -353,7 +353,7 @@ export const BRANSJE_PUBLIC_DATA: BransjePublicData[] = [
       { title: "Kjemikaliehandtering", description: "Ny kjemikalie tas i bruk. Stoffkartotek oppdateres, risikovurdering gjennomfores og eksponeringsregisteret knyttes til berørte ansatte." },
       { title: "Beredskapsovelse", description: "Årlig storulykkeovelse dokumenteres med deltakerliste, evalueringspunkter og forbedringstiltak i HMS-handboken." },
     ],
-    extraModulePaths: ["/dashboard/sja", "/dashboard/chemicals", "/dashboard/exposure-register"],
+    extraModulePaths: ["/dashboard/sja", "/dashboard/moc", "/dashboard/chemicals", "/dashboard/exposure-register"],
   },
   {
     key: "fiskeri",
@@ -381,7 +381,7 @@ export const BRANSJE_PUBLIC_DATA: BransjePublicData[] = [
     ],
     scenarios: [
       { title: "SJA for dykkeroperasjon", description: "For notskifte gjennomfores SJA med dykkerlag. Risikoer vurderes og tiltak dokumenteres digitalt." },
-      { title: "Avlusningsbehandling", description: "Ved bruk av avlusningskjemikalier oppdateres stoffkartotek og eksponerte ansatte registreres automatisk." },
+      { title: "Avlusningsbehandling", description: "Ved bruk av avlusningskjemikalier oppdateres stoffkartotek, og eksponerte ansatte registreres manuelt i eksponeringsregisteret." },
       { title: "Sjøfartsdokumentasjon", description: "Kompetanseoversikten viser hvilke sertifikater som utloper og genererer rapporter for myndigheter." },
     ],
     extraModulePaths: ["/dashboard/sja", "/dashboard/chemicals"],

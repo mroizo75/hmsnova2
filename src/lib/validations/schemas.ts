@@ -96,6 +96,8 @@ export const CreateChemicalSchema = z.object({
   productName: z.string().min(1, "Produktnavn er påkrevd").max(200),
   supplier: z.string().max(200).optional(),
   casNumber: z.string().max(50).optional(),
+  gtin: z.string().max(18).optional(),
+  supplierProductCode: z.string().max(80).optional(),
   hazardStatements: z.string().max(1000).optional(),
   warningPictograms: z.string().max(1000).optional(),
   requiredPPE: z.string().max(1000).optional(),

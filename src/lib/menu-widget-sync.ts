@@ -4,6 +4,8 @@
  * ved onboarding og tilbakestilling.
  */
 
+import { repairDashboardRoute } from "@/lib/legal-link-repair";
+
 const PATH_TO_WIDGET: Record<string, string> = {
   "/dashboard/hms-handbok": "hms-handbok",
   "/dashboard/hms-cockpit": "hms-cockpit",
@@ -15,6 +17,7 @@ const PATH_TO_WIDGET: Record<string, string> = {
   "/dashboard/fire-drills": "fire-safety",
   "/dashboard/annual-hms-plan": "annual-hms-plan",
   "/dashboard/sja": "sja",
+  "/dashboard/moc": "moc",
   "/dashboard/chemicals": "chemicals",
   "/dashboard/exposure-register": "exposure-register",
   "/dashboard/construction-compliance": "construction-compliance",
@@ -23,7 +26,7 @@ const PATH_TO_WIDGET: Record<string, string> = {
   "/dashboard/aktivitetssikkerhet": "aktivitetssikkerhet",
   "/dashboard/transport": "transport",
   "/dashboard/bht-nattarbeid": "bht-nattarbeid",
-  "/dashboard/beredskap": "beredskap",
+  "/dashboard/bcm": "bcm",
   "/dashboard/documents": "documents",
   "/dashboard/actions": "actions",
   "/dashboard/audits": "audits",
@@ -67,7 +70,8 @@ export function menuPathsToWidgetIds(menuPaths: string[]): string[] {
 
   for (const path of menuPaths) {
     if (EXCLUDED_PATHS.has(path)) continue
-    const widgetId = PATH_TO_WIDGET[path]
+    const resolvedPath = repairDashboardRoute(path) ?? path
+    const widgetId = PATH_TO_WIDGET[resolvedPath]
     if (widgetId && !seen.has(widgetId)) {
       seen.add(widgetId)
       widgetIds.push(widgetId)
@@ -95,7 +99,8 @@ export function widgetIdsToMenuPaths(widgetIds: string[]): string[] {
   const seen = new Set<string>()
 
   for (const widgetId of widgetIds) {
-    const widgetPaths = WIDGET_TO_PATHS[widgetId]
+    const resolvedId = widgetId === "beredskap" ? "bcm" : widgetId
+    const widgetPaths = WIDGET_TO_PATHS[resolvedId]
     if (!widgetPaths) continue
     for (const path of widgetPaths) {
       if (!seen.has(path)) {

@@ -11,6 +11,7 @@ import {
   assertKonsernCanAttachTenant,
 } from "@/lib/corporate-group-context";
 import { createTenantAdminAndSendEmail } from "@/lib/konsern-tenant-email";
+import { isMocDefaultIndustry } from "@/lib/moc-industry";
 
 export async function getCorporateGroupDetails() {
   const context = await requireCorporateGroupContext();
@@ -147,6 +148,7 @@ export async function createTenantForGroup(data: {
       employeeCount: data.employeeCount || undefined,
       status: "ACTIVE",
       onboardingStatus: "NOT_STARTED",
+      mocModuleEnabled: isMocDefaultIndustry(data.industry),
     },
   });
 

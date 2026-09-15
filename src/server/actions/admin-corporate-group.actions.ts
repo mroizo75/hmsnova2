@@ -9,6 +9,7 @@ import { Resend } from "resend";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { createTenantAdminAndSendEmail } from "@/lib/konsern-tenant-email";
+import { isMocDefaultIndustry } from "@/lib/moc-industry";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "HMS Nova <noreply@hmsnova.no>";
@@ -288,6 +289,7 @@ export async function adminCreateTenantForGroup(groupId: string, data: {
       industry: data.industry || undefined,
       status: "ACTIVE",
       onboardingStatus: "NOT_STARTED",
+      mocModuleEnabled: isMocDefaultIndustry(data.industry),
     },
   });
 

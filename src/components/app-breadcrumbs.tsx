@@ -1,8 +1,10 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { ChevronRight, Home } from "lucide-react";
+import { BCM_PATH } from "@/lib/bcm-audit";
 
 const segmentLabels: Record<string, string> = {
   dashboard: "Dashboard",
@@ -39,6 +41,7 @@ const segmentLabels: Record<string, string> = {
   profil: "Profil",
   dokumenter: "Dokumenter",
   avvik: "Avvik",
+  moc: "Endringsledelse",
   ny: "Ny registrering",
   new: "Ny",
   ruh: "RUH",
@@ -56,6 +59,9 @@ const segmentLabels: Record<string, string> = {
   logg: "Revisjonslogg",
   innstillinger: "Innstillinger",
   rediger: "Rediger",
+  planer: "Planer",
+  ovelser: "Øvelser",
+  skjemaer: "Skjemaer",
   rutiner: "Rutiner",
   risikovurderinger: "Risikovurderinger",
   vernerunder: "Vernerunder",
@@ -74,6 +80,9 @@ function formatSegmentLabel(segment: string, previousSegment?: string): string {
     if (previousSegment === "projects") return "Prosjekt";
     if (previousSegment === "incidents") return "Avvik";
     if (previousSegment === "bedrifter") return "Bedrift";
+    if (previousSegment === "ovelser") return "Øvelse";
+    if (previousSegment === "planer") return "Plan";
+    if (previousSegment === "skjemaer") return "Skjema";
     return "Detalj";
   }
 
@@ -86,20 +95,54 @@ function formatSegmentLabel(segment: string, previousSegment?: string): string {
 }
 
 export function AppBreadcrumbs() {
+  return (
+    <Suspense fallback={null}>
+      <AppBreadcrumbsInner />
+    </Suspense>
+  );
+}
+
+function AppBreadcrumbsInner() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const fromBcm = searchParams.get("from") === "bcm";
   const segments = pathname.split("/").filter(Boolean);
 
   if (segments.length === 0) return null;
   if (segments[0] !== "dashboard" && segments[0] !== "ansatt" && segments[0] !== "konsern") return null;
 
-  const crumbs = segments.map((segment, index) => {
-    const href = `/${segments.slice(0, index + 1).join("/")}`;
-    const previousSegment = index > 0 ? segments[index - 1] : undefined;
-    const label = formatSegmentLabel(segment, previousSegment);
-    const isLast = index === segments.length - 1;
-
-    return { href, label, isLast };
-  });
+  const crumbs = segments
+    .map((segment, index) => {
+      const href = `/${segments.slice(0, index + 1).join("/")}`;
+      const previousSegment = index > 0 ? segments[index - 1] : undefined;
+      const isLast = index === segments.length - 1;
+      const isBcmNested =
+        segments[0] === "dashboard" &&
+        segments[1] === "bcm" &&
+        (segment === "planer" || segment === "ovelser" || segment === "skjemaer");
+      if (isBcmNested && !isLast) {
+        return null;
+      }
+      if (fromBcm && segment === "audits") {
+        return { href: BCM_PATH, label: "Beredskap", isLast };
+      }
+      if (fromBcm && previousSegment === "audits" && isLikelyEntityId(segment)) {
+        return {
+          href: `${href}?from=bcm`,
+          label: "Øvelse",
+          isLast,
+        };
+      }
+      if (fromBcm && segment === "new" && previousSegment === "audits") {
+        return { href, label: "Ny øvelse", isLast };
+      }
+      if (segment === "ny" && previousSegment === "ovelser") {
+        return { href, label: "Ny øvelse", isLast };
+      }
+      const label = formatSegmentLabel(segment, previousSegment);
+      return { href, label, isLast };
+    })
+    .filter((crumb): crumb is { href: string; label: string; isLast: boolean } => crumb != null);
 
   return (
     <nav aria-label="Brodsmulesti" className="mb-4 border-b pb-3 text-sm text-muted-foreground">

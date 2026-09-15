@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { BCM_PATH, bcmAuditHref } from "@/lib/bcm-audit";
 
 interface TenantUser {
   user: {
@@ -37,6 +38,10 @@ interface TenantUser {
 export default function NewAuditPage() {
   const t = useTranslations("dashboardAuditNewPage");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const fromBcm = searchParams.get("from") === "bcm" || pathname.startsWith("/dashboard/bcm");
+  const returnPath = fromBcm ? BCM_PATH : "/dashboard/audits";
   const { toast } = useToast();
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
@@ -49,7 +54,7 @@ export default function NewAuditPage() {
     scope: "",
     criteria: "",
     scheduledDate: "",
-    area: "",
+    area: fromBcm ? "Kontinuitet" : "",
     department: "",
     leadAuditorId: "",
   });
@@ -101,7 +106,7 @@ export default function NewAuditPage() {
         description: t("toasts.created.description"),
       });
 
-      router.push(`/dashboard/audits/${data.data.audit.id}`);
+      router.push(fromBcm ? bcmAuditHref(data.data.audit.id) : `/dashboard/audits/${data.data.audit.id}`);
     } catch (error: any) {
       toast({
         title: t("toasts.error.title"),
@@ -116,15 +121,19 @@ export default function NewAuditPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/dashboard/audits">
+        <Link href={returnPath}>
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {fromBcm ? "Ny kontinuitetsøvelse" : t("title")}
+          </h1>
           <p className="text-muted-foreground">
-            {t("description")}
+            {fromBcm
+              ? "Registrer en beredskapsøvelse eller kontinuitetstest (ISO 22301)."
+              : t("description")}
           </p>
         </div>
       </div>
@@ -283,7 +292,7 @@ export default function NewAuditPage() {
             </div>
 
             <div className="flex justify-end gap-4">
-              <Link href="/dashboard/audits">
+              <Link href={returnPath}>
                 <Button type="button" variant="outline">
                   {t("actions.cancel")}
                 </Button>

@@ -22,7 +22,7 @@ const DEFAULT_NAVIGATION_ITEMS = [
   { key: "complaints", label: "nav.complaints", icon: "MessageSquareWarning", href: "/dashboard/complaints", permission: "complaints", isSimpleMode: false, order: 13 },
   { key: "feedback", label: "nav.feedback", icon: "MessageSquare", href: "/dashboard/feedback", permission: "feedback", isSimpleMode: false, order: 14 },
   { key: "environment", label: "nav.environment", icon: "Leaf", href: "/dashboard/environment", permission: "environment", isSimpleMode: false, order: 15 },
-  { key: "bcm", label: "nav.bcm", icon: "ShieldCheck", href: "/dashboard/bcm", permission: "bcm", isSimpleMode: false, order: 16 },
+  { key: "bcm", label: "nav.bcm", icon: "ShieldCheck", href: "/dashboard/bcm", permission: "beredskap", isSimpleMode: true, order: 16 },
   { key: "audits", label: "nav.audits", icon: "Search", href: "/dashboard/audits", permission: "audits", isSimpleMode: false, order: 17 },
   { key: "managementReviews", label: "nav.managementReviews", icon: "Users", href: "/dashboard/management-reviews", permission: "managementReviews", isSimpleMode: false, order: 18 },
   { key: "annualHmsPlan", label: "nav.annualHmsPlan", icon: "ClipboardCheck", href: "/dashboard/annual-hms-plan", permission: "annualHmsPlan", isSimpleMode: true, order: 19 },

@@ -39,6 +39,10 @@ export async function copyGlobalFormTemplate(formId: string) {
       return { success: false, error: "Kan kun kopiere globale skjemaer" };
     }
 
+    if (globalForm.category === "BCM") {
+      return { success: false, error: "Beredskapsskjemaer brukes under Beredskap, ikke som generell skjemamal." };
+    }
+
     // Sjekk om tenanten allerede har en kopi
     const existingCopy = await prisma.formTemplate.findFirst({
       where: {

@@ -7,14 +7,21 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { fetchBcmData } from "@/server/queries/bcm.queries";
+import { fetchBeredskapReiselivData } from "@/server/queries/settings.queries";
 import { BcmWizard } from "./bcm-wizard";
 import { BcmTemplates } from "./bcm-templates";
+import { BeredskapReiselivContent } from "@/features/beredskap-reiseliv/components/beredskap-reiseliv-content";
+import { bcmAuditHref, bcmFormHref, bcmPlanHref, isBcmContinuityAudit } from "@/lib/bcm-audit";
 import { ShieldCheck, Plus, FileText, ClipboardList } from "lucide-react";
 
 type BcmData = NonNullable<Awaited<ReturnType<typeof fetchBcmData>>>;
+type OperationalData = Awaited<ReturnType<typeof fetchBeredskapReiselivData>>;
 
 interface BcmContentProps {
   initialData: BcmData;
+  operational: OperationalData;
+  canEdit: boolean;
+  isReiseliv: boolean;
 }
 
 function formatDate(date?: string | null) {
@@ -26,7 +33,7 @@ function formatDate(date?: string | null) {
   });
 }
 
-export function BcmContent({ initialData }: BcmContentProps) {
+export function BcmContent({ initialData, operational, canEdit, isReiseliv }: BcmContentProps) {
   const [showWizard, setShowWizard] = useState(false);
 
   const { data } = useQuery({
@@ -39,15 +46,9 @@ export function BcmContent({ initialData }: BcmContentProps) {
 
   const { bcmDocuments, auditsRaw, bcmForms, availableTemplates, activatedTemplateIds, hasWizardPlan } = data;
 
-  const continuityAudits = auditsRaw.filter((audit: any) => {
-    const areaValue = audit.area?.toLowerCase() ?? "";
-    const titleValue = audit.title.toLowerCase();
-    return (
-      areaValue.includes("kontinuitet") ||
-      titleValue.includes("bcm") ||
-      titleValue.includes("kontinuitet")
-    );
-  });
+  const continuityAudits = auditsRaw.filter((audit: { area?: string | null; title: string }) =>
+    isBcmContinuityAudit(audit),
+  );
 
   if (showWizard) {
     return <BcmWizard onComplete={() => setShowWizard(false)} />;
@@ -78,7 +79,7 @@ export function BcmContent({ initialData }: BcmContentProps) {
       {!showEmptyState && (
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold">Dine BCM-planer</h2>
+            <h2 className="text-lg font-semibold">Dine beredskapsplaner</h2>
             <p className="text-sm text-muted-foreground">
               {bcmDocuments.length} dokument{bcmDocuments.length !== 1 ? "er" : ""} opprettet
             </p>
@@ -92,7 +93,7 @@ export function BcmContent({ initialData }: BcmContentProps) {
       {bcmDocuments.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {bcmDocuments.map((doc: any) => (
-            <Link key={doc.id} href={`/dashboard/documents/${doc.id}`}>
+            <Link key={doc.id} href={bcmPlanHref(doc.id)}>
               <Card className="h-full hover:border-primary/50 transition-colors cursor-pointer">
                 <CardHeader className="pb-3">
                   <div className="flex items-start gap-3">
@@ -129,7 +130,7 @@ export function BcmContent({ initialData }: BcmContentProps) {
           <h2 className="text-lg font-semibold">Kontinuitetsøvelser og tester</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {continuityAudits.map((audit: any) => (
-              <Link key={audit.id} href={`/dashboard/audits/${audit.id}`}>
+              <Link key={audit.id} href={bcmAuditHref(audit.id)}>
                 <Card className="hover:border-primary/50 transition-colors cursor-pointer">
                   <CardContent className="flex items-center justify-between p-4">
                     <div>
@@ -152,7 +153,7 @@ export function BcmContent({ initialData }: BcmContentProps) {
           <h2 className="text-lg font-semibold">Beredskapsrelaterte skjemaer</h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {bcmForms.map((form: any) => (
-              <Link key={form.id} href={`/dashboard/forms/${form.id}`}>
+              <Link key={form.id} href={bcmFormHref(form.id)}>
                 <Card className="hover:border-primary/50 transition-colors cursor-pointer">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
@@ -177,6 +178,15 @@ export function BcmContent({ initialData }: BcmContentProps) {
             ))}
           </div>
         </div>
+      )}
+
+      {operational && (
+        <BeredskapReiselivContent
+          initialData={operational}
+          canEdit={canEdit}
+          isReiseliv={isReiseliv}
+          embedded
+        />
       )}
     </div>
   );

@@ -21,6 +21,7 @@ import {
   isSupportedIndustry,
   normalizeIndustryValue,
 } from "@/lib/industry-packages";
+import { isMocDefaultIndustry } from "@/lib/moc-industry";
 import { provisionIndustryPackage } from "@/server/actions/industry-provision.actions";
 import { brregClient } from "@/lib/brreg";
 import { getSubIndustryFromNace } from "@/lib/nace-mapping";
@@ -196,6 +197,7 @@ export async function submitRegistrationRequest(formData: FormData) {
           onboardingStatus: "ADMIN_CREATED",
           onboardingCompletedAt: new Date(),
           registrationType: "STANDARD",
+          mocModuleEnabled: isMocDefaultIndustry(normalizedIndustry),
           termsAcceptedAt: acceptedAt,
           angrerrettInfoAt: acceptedAt,
           contractAcceptedIp: ipAddress,

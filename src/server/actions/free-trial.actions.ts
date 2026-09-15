@@ -7,6 +7,7 @@ import { createGeneratedDocument, generateDocuments, importGeneratedDocumentsToT
 import type { CompleteGeneratorData } from "@/features/document-generator/schemas/generator.schema";
 import { getBindingPrice } from "@/lib/subscription";
 import { provisionIndustryPackage } from "@/server/actions/industry-provision.actions";
+import { isMocDefaultIndustry } from "@/lib/moc-industry";
 
 const freeTrialSignupSchema = z.object({
   companyName: z.string().min(2, "Bedriftsnavn må være minst 2 tegn"),
@@ -133,6 +134,7 @@ export async function createFreeTrialTenant(
         onboardingStatus: "ADMIN_CREATED",
         onboardingCompletedAt: new Date(),
         registrationType: "FREE_14_DAY",
+        mocModuleEnabled: isMocDefaultIndustry("OTHER"),
       },
     });
 

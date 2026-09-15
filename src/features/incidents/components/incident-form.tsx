@@ -44,6 +44,7 @@ import {
   type IncidentTypeGroup,
 } from "@/features/incidents/schemas/incident.schema";
 import { PROJECT_REFERENCE_MAX_LENGTH } from "@/lib/incident-project-reference";
+import { PsychosocialIncidentHint } from "@/features/incidents/components/psychosocial-incident-hint";
 
 function toLocalISOString(date: Date): string {
   const y = date.getFullYear();
@@ -551,6 +552,7 @@ export function IncidentForm({
                 </button>
               ))}
             </div>
+            <PsychosocialIncidentHint href="/dashboard/whistleblowing" />
           </div>
 
           {/* Steg 2: Type + alvorlighet. Grupper med bare én type hopper over typevalget */}

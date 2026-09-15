@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchIncidentDetail } from "@/server/queries/incident-detail.queries";
+import { MocRelatedCard } from "@/features/moc/components/moc-related-card";
 
 type IncidentDetailData = NonNullable<Awaited<ReturnType<typeof fetchIncidentDetail>>>;
 
@@ -312,6 +313,11 @@ export function IncidentDetailContent({
               <h4 className="font-semibold mb-2">{t("sections.whatHappened.descriptionLabel")}</h4>
               <p className="text-sm whitespace-pre-wrap">{incident.description}</p>
             </div>
+
+            <MocRelatedCard
+              links={incident.mocLinks}
+              moduleEnabled={tenant?.mocModuleEnabled}
+            />
 
             <div className="grid gap-4 md:grid-cols-3">
               <div>

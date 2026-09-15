@@ -34,6 +34,7 @@ export default async function AnsattDashboard() {
       dashboardLocked: true,
       lockedDashboardConfig: true,
       ruhModuleEnabled: true,
+      mocModuleEnabled: true,
       accountingProvider: true,
     },
   });
@@ -55,6 +56,10 @@ export default async function AnsattDashboard() {
 
   if (tenant && !tenant.ruhModuleEnabled) {
     visibleWidgets = visibleWidgets.filter((w) => w.id !== "emp-ruh");
+  }
+
+  if (tenant && !tenant.mocModuleEnabled) {
+    visibleWidgets = visibleWidgets.filter((w) => w.id !== "emp-moc");
   }
 
   const hrWidgets = visibleWidgets.filter((widget) => EMPLOYEE_HR_WIDGET_IDS.has(widget.id));

@@ -6,6 +6,14 @@ import {
   EnvironmentalImpactType,
 } from "@prisma/client";
 
+const iso14001AspectFields = {
+  lifecycleStages: z.array(z.enum(["DESIGN", "PROCUREMENT", "PRODUCTION", "USE", "END_OF_LIFE"])).optional(),
+  contextClimate: z.boolean().optional(),
+  contextBiodiversity: z.boolean().optional(),
+  contextResources: z.boolean().optional(),
+  contextPollution: z.boolean().optional(),
+};
+
 export const createEnvironmentalAspectSchema = z.object({
   tenantId: z.string().cuid(),
   title: z.string().min(3, "Tittel må være minst 3 tegn"),
@@ -24,6 +32,7 @@ export const createEnvironmentalAspectSchema = z.object({
   goalId: z.string().cuid().optional().nullable(),
   status: z.nativeEnum(EnvironmentalAspectStatus).optional(),
   nextReviewDate: z.date().optional().nullable(),
+  ...iso14001AspectFields,
 });
 
 export const updateEnvironmentalAspectSchema = z.object({
@@ -44,6 +53,7 @@ export const updateEnvironmentalAspectSchema = z.object({
   goalId: z.string().cuid().optional().nullable(),
   status: z.nativeEnum(EnvironmentalAspectStatus).optional(),
   nextReviewDate: z.date().optional().nullable(),
+  ...iso14001AspectFields,
 });
 
 export const createEnvironmentalMeasurementSchema = z.object({
@@ -63,4 +73,3 @@ export const createEnvironmentalMeasurementSchema = z.object({
 export type CreateEnvironmentalAspectInput = z.infer<typeof createEnvironmentalAspectSchema>;
 export type UpdateEnvironmentalAspectInput = z.infer<typeof updateEnvironmentalAspectSchema>;
 export type CreateEnvironmentalMeasurementInput = z.infer<typeof createEnvironmentalMeasurementSchema>;
-

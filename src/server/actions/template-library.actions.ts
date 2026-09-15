@@ -11,6 +11,7 @@ import { toIndustryScopeJson } from "@/lib/industry-scope";
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/server-authorization";
 import type { Prisma } from "@prisma/client";
+import { isModuleOwnedDocumentCategory } from "@/lib/document-module-scope";
 
 const SYSTEM_HR_LIBRARY_CREATED_BY = "SYSTEM_HR_DOCUMENT_LIBRARY";
 
@@ -160,6 +161,13 @@ export async function copyDocumentTemplateToTenant(templateId: string) {
   });
 
   if (!template) return { success: false as const, error: "Mal ikke funnet" };
+
+  if (isModuleOwnedDocumentCategory(template.category)) {
+    return {
+      success: false as const,
+      error: "Beredskapsmaler aktiveres under Beredskap, ikke i Dokumenter.",
+    };
+  }
 
   const existingCount = await prisma.documentTemplate.count({
     where: { tenantId: context.tenantId, name: { contains: template.name } },

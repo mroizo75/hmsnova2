@@ -81,7 +81,6 @@ export const ADVANCED_MODE_ONLY = [
   "complaints",         // Klager
   "feedback",           // Kundetilbakemeldinger
   "environment",        // Miljø (ISO 14001)
-  "bcm",                // Business Continuity
   "audits",             // Revisjoner
   "managementReviews",  // Ledelsens gjennomgang
   "meetings",           // AMU/VO-møter

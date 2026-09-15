@@ -4,6 +4,7 @@ import { Role } from "@prisma/client";
 
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { distributableDocumentsWhere } from "@/lib/document-module-scope";
 import { resolveEffectivePermissions } from "@/lib/server-authorization";
 
 const isVisibleForRole = (visibleToRoles: unknown, role: Role): boolean => {
@@ -61,6 +62,7 @@ export async function GET() {
       where: {
         tenantId: session.user.tenantId,
         status: "APPROVED",
+        ...distributableDocumentsWhere,
       },
       orderBy: {
         updatedAt: "desc",

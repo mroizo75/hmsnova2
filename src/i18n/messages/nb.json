@@ -146,6 +146,7 @@
     "constructionCompliance": "Bygg/anlegg-compliance",
     "hseStatistics": "HSE-statistikk",
     "sja": "SJA",
+    "moc": "Endringsledelse",
     "inspections": "Vernerunde",
     "fireDrills": "Brannøvelser",
     "chemicals": "Stoffkartotek",
@@ -153,7 +154,7 @@
     "wellbeing": "Psykososial puls",
     "complaints": "Kundeklager",
     "feedback": "Tilbakemeldinger",
-    "bcm": "Beredskap og kontinuitet",
+    "bcm": "Beredskap",
     "training": "Kompetanse",
     "audits": "Revisjoner",
     "managementReviews": "Ledelsens gjennomgang",
@@ -3592,7 +3593,7 @@
   "dashboardDocumentsPage": {
     "title": "Dokumenter",
     "noTenantAccess": "Ingen tilgang til tenant",
-    "description": "Administrer lover, prosedyrer, sjekklister og mer",
+    "description": "Styrende dokumenter som deles med ansatte — KS, policy og andre viktige filer",
     "actions": {
       "newDocument": "Nytt dokument"
     },
@@ -3655,6 +3656,7 @@
     "details": "Revisjonsdetaljer",
     "actions": {
       "back": "Tilbake til revisjoner",
+      "backToBcm": "Tilbake til beredskap",
       "edit": "Rediger"
     },
     "basicInfo": {

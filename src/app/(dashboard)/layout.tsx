@@ -11,6 +11,7 @@ import { SessionUser } from "@/types";
 import { DashboardProviders } from "@/components/dashboard-providers";
 import { OfflineSyncBannerWrapper } from "@/components/offline-sync-banner-wrapper";
 import { widgetIdsToMenuPaths } from "@/lib/menu-widget-sync";
+import { aliasDashboardMenuHrefs } from "@/lib/legal-link-repair";
 export default async function DashboardLayout({
   children,
 }: {
@@ -52,14 +53,14 @@ export default async function DashboardLayout({
           lockedDashboardConfig: true,
         },
       });
-      simpleMenuItems = (tenant?.simpleMenuItems as string[] | null) ?? null;
+      simpleMenuItems = aliasDashboardMenuHrefs((tenant?.simpleMenuItems as string[] | null) ?? null);
       isTavleOnly = tenant?.isTavleOnly ?? false;
       dashboardLocked = (tenant?.dashboardLocked ?? false) && user.role !== "ADMIN";
 
       if (dashboardLocked && tenant?.lockedDashboardConfig) {
         const lockedWidgets = tenant.lockedDashboardConfig as Array<{ id: string }>;
         const widgetIds = lockedWidgets.map((w) => w.id);
-        simpleMenuItems = widgetIdsToMenuPaths(widgetIds);
+        simpleMenuItems = aliasDashboardMenuHrefs(widgetIdsToMenuPaths(widgetIds));
       }
     } catch {
       // Kolonnen finnes kanskje ikke ennå – bruk standardverdier

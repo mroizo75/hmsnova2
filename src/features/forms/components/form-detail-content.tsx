@@ -42,6 +42,7 @@ interface FormDetailContentProps {
   formId: string;
   currentPage: number;
   allTemplatesView: boolean;
+  detailHref?: string;
 }
 
 const ITEMS_PER_PAGE = 20;
@@ -51,6 +52,7 @@ export function FormDetailContent({
   formId,
   currentPage,
   allTemplatesView,
+  detailHref,
 }: FormDetailContentProps) {
   const { data } = useQuery({
     queryKey: ["forms", formId],
@@ -85,7 +87,7 @@ export function FormDetailContent({
     const params = new URLSearchParams();
     if (allTemplatesView) params.set("allTemplates", "1");
     params.set("page", String(page));
-    return `/dashboard/forms/${formId}?${params.toString()}`;
+    return `${detailHref ?? `/dashboard/forms/${formId}`}?${params.toString()}`;
   };
 
   return (

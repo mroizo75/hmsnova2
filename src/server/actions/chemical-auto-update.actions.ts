@@ -16,6 +16,7 @@ import { SupplierSDSManager } from "@/lib/supplier-api";
 import { getStorage } from "@/lib/storage";
 import { searchSubstanceByCAS, calculateHazardLevel, isCMRSubstance } from "@/lib/echa-api";
 import { createNotification } from "@/server/actions/notification.actions";
+import { catalogLookupNumber } from "@/lib/chemical-product-identity";
 
 /**
  * STEG 1: Sjekk om nyeste versjon ved første registrering
@@ -43,11 +44,11 @@ export async function checkAndUpdateSDSOnCreate(
       return { success: false, message: "Kjemikalie ikke funnet", wasUpdated: false };
     }
 
-    // Hvis ingen leverandør eller CAS-nummer, kan ikke sjekke
-    if (!chemical.supplier || !chemical.casNumber) {
+    const catalogNumber = catalogLookupNumber(chemical);
+    if (!chemical.supplier || !catalogNumber) {
       return {
         success: true,
-        message: "Ingen leverandør eller CAS-nummer registrert. Kan ikke sjekke for oppdateringer.",
+        message: "Ingen leverandør eller varenummer/CAS registrert. Kan ikke sjekke for oppdateringer.",
         wasUpdated: false,
       };
     }
@@ -59,10 +60,9 @@ export async function checkAndUpdateSDSOnCreate(
       fisherScientificApiKey: process.env.FISHER_SCIENTIFIC_API_KEY,
     });
 
-    // Sjekk om det finnes nyere versjon hos leverandør
     const updateCheck = await supplierManager.checkForUpdates(
       chemical.supplier,
-      chemical.casNumber,
+      catalogNumber,
       chemical.sdsDate || undefined
     );
 
@@ -80,7 +80,7 @@ export async function checkAndUpdateSDSOnCreate(
 
     const pdfBuffer = await supplierManager.downloadUpdatedSDS(
       chemical.supplier,
-      chemical.casNumber
+      catalogNumber
     );
 
     if (!pdfBuffer) {
@@ -218,7 +218,10 @@ export async function weeklyCheckAllChemicals(): Promise<{
           tenantId: tenant.id,
           status: "ACTIVE",
           supplier: { not: null },
-          casNumber: { not: null },
+          OR: [
+            { supplierProductCode: { not: null } },
+            { casNumber: { not: null } },
+          ],
         },
       });
 
@@ -229,18 +232,19 @@ export async function weeklyCheckAllChemicals(): Promise<{
         try {
           tenantChecked++;
 
-          // Sjekk for oppdatering
+          const catalogNumber = catalogLookupNumber(chemical);
+          if (!catalogNumber) continue;
+
           const updateCheck = await supplierManager.checkForUpdates(
             chemical.supplier!,
-            chemical.casNumber!,
+            catalogNumber,
             chemical.sdsDate || undefined
           );
 
           if (updateCheck.hasUpdate && updateCheck.sdsInfo) {
-            // Last ned ny versjon
             const pdfBuffer = await supplierManager.downloadUpdatedSDS(
               chemical.supplier!,
-              chemical.casNumber!
+              catalogNumber
             );
 
             if (pdfBuffer) {
@@ -386,10 +390,11 @@ export async function manualCheckChemical(
       };
     }
 
-    if (!chemical.supplier || !chemical.casNumber) {
+    const catalogNumber = catalogLookupNumber(chemical);
+    if (!chemical.supplier || !catalogNumber) {
       return {
         success: false,
-        message: "Mangler leverandør eller CAS-nummer",
+        message: "Mangler leverandør eller varenummer/CAS",
         hasUpdate: false,
       };
     }
@@ -402,7 +407,7 @@ export async function manualCheckChemical(
 
     const updateCheck = await supplierManager.checkForUpdates(
       chemical.supplier,
-      chemical.casNumber,
+      catalogNumber,
       chemical.sdsDate || undefined
     );
 

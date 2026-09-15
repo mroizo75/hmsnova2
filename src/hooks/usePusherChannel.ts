@@ -26,6 +26,7 @@ const EVENT_TO_QUERY_KEYS: Record<string, string[][]> = {
     ["hms-handbok"],
     ["juridisk-register"],
     ["beredskap"],
+    ["bcm"],
     ["bht-nattarbeid"],
     ["ik-mat"],
     ["skjenking"],

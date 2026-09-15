@@ -13,6 +13,11 @@ import { requirePermission, requireResourceAccess } from "@/lib/server-authoriza
 import { calculateNextReviewDate, parseDateInput } from "@/lib/document-utils";
 import { convertDocumentToPDF } from "@/lib/adobe-pdf";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
+import {
+  distributableDocumentsWhere,
+  isDistributableDocumentKind,
+  isModuleOwnedDocumentCategory,
+} from "@/lib/document-module-scope";
 
 // Helper: Logg til audit log
 async function logAudit(
@@ -76,7 +81,7 @@ export async function getDocuments(tenantId: string) {
     const context = await requirePermission("canReadDocuments");
 
     const documents = await prisma.document.findMany({
-      where: { tenantId },
+      where: { tenantId, ...distributableDocumentsWhere },
       orderBy: { createdAt: "desc" },
       include: {
         versions: {
@@ -217,6 +222,13 @@ export async function createDocument(formData: FormData) {
       }
     }
 
+    if (!isDistributableDocumentKind(validated.kind)) {
+      return {
+        success: false,
+        error: "Sjekklister, skjemaer og SDS hører hjemme i egne moduler, ikke i Dokumenter.",
+      };
+    }
+
     let template: Awaited<ReturnType<typeof resolveTemplate>> | null = null;
     if (validated.templateId) {
       try {
@@ -224,6 +236,13 @@ export async function createDocument(formData: FormData) {
       } catch (error: any) {
         return { success: false, error: error.message };
       }
+    }
+
+    if (template && isModuleOwnedDocumentCategory(template.category)) {
+      return {
+        success: false,
+        error: "Beredskapsplaner opprettes under Beredskap, ikke i Dokumenter.",
+      };
     }
 
     const resolvedReviewInterval = reviewIntervalProvided
@@ -433,6 +452,7 @@ export async function updateDocument(input: any) {
 
     const document = await prisma.document.findUnique({
       where: { id: validated.id },
+      include: { template: { select: { category: true } } },
     });
 
     if (!document) {
@@ -451,6 +471,13 @@ export async function updateDocument(input: any) {
       }
     }
 
+    if (validated.kind && !isDistributableDocumentKind(validated.kind) && validated.kind !== document.kind) {
+      return {
+        success: false,
+        error: "Sjekklister, skjemaer og SDS hører hjemme i egne moduler, ikke i Dokumenter.",
+      };
+    }
+
     let template: Awaited<ReturnType<typeof resolveTemplate>> | null = null;
     const templateFieldProvided = hasField("templateId");
     if (validated.templateId) {
@@ -459,6 +486,17 @@ export async function updateDocument(input: any) {
       } catch (error: any) {
         return { success: false, error: error.message };
       }
+    }
+
+    if (
+      template &&
+      isModuleOwnedDocumentCategory(template.category) &&
+      !isModuleOwnedDocumentCategory(document.template?.category)
+    ) {
+      return {
+        success: false,
+        error: "Beredskapsplaner redigeres under Beredskap, ikke i Dokumenter.",
+      };
     }
 
     const resolvedReviewInterval = (() => {

@@ -200,6 +200,8 @@ export function ChemicalForm({ chemical, mode = "create" }: ChemicalFormProps) {
         productName: formData.get("productName") as string,
         supplier: (formData.get("supplier") as string) || undefined,
         casNumber: (formData.get("casNumber") as string) || undefined,
+        gtin: (formData.get("gtin") as string) || undefined,
+        supplierProductCode: (formData.get("supplierProductCode") as string) || undefined,
         hazardClass: (formData.get("hazardClass") as string) || undefined,
         hazardStatements: (formData.get("hazardStatements") as string) || undefined,
         precautionaryStatements: (formData.get("precautionaryStatements") as string) || undefined,
@@ -342,6 +344,28 @@ export function ChemicalForm({ chemical, mode = "create" }: ChemicalFormProps) {
               <Input id="casNumber" name="casNumber" disabled={loading} placeholder="000-00-0"
                 key={aiData?.casNumber || "cas"}
                 defaultValue={aiData?.casNumber || chemical?.casNumber || ""} />
+            </FieldRow>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FieldRow label="GTIN / EAN" hint="Strekkode for matching mot SDS-katalog (8, 12, 13 eller 14 siffer)">
+              <Input
+                id="gtin"
+                name="gtin"
+                inputMode="numeric"
+                disabled={loading}
+                placeholder="7046110001234"
+                defaultValue={chemical?.gtin || ""}
+              />
+            </FieldRow>
+            <FieldRow label="Varenummer" hint="Leverandørens produktkode – trengs for automatisk SDS-sjekk">
+              <Input
+                id="supplierProductCode"
+                name="supplierProductCode"
+                disabled={loading}
+                placeholder="F.eks. 123456"
+                defaultValue={chemical?.supplierProductCode || ""}
+              />
             </FieldRow>
           </div>
 

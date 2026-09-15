@@ -53,6 +53,7 @@ export async function fetchSettingsData() {
 
 export async function fetchBeredskapReiselivData() {
   const auth = await getAuthContext();
+  if (!auth) return { hendelser: [], evakueringsplaner: [] };
 
   const [hendelser, evakueringsplaner] = await Promise.all([
     prisma.gjesteHendelse.findMany({

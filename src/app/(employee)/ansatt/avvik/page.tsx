@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Plus, Clock, CheckCircle } from "lucide-react";
 import Link from "next/link";
-import type { IncidentType } from "@prisma/client";
+import { employeeOwnIncidentsWhere } from "@/lib/incident-visibility";
+import { IncidentType } from "@prisma/client";
 
 const TYPE_LABEL_KEYS: Record<IncidentType, string> = {
   AVVIK: "type.AVVIK",
@@ -35,10 +36,7 @@ export default async function AnsattAvvik() {
 
   // Hent ansattes egne avviksrapporter
   const myIncidents = await prisma.incident.findMany({
-    where: {
-      tenantId: session.user.tenantId,
-      reportedBy: session.user.name || session.user.email || "Ansatt",
-    },
+    where: employeeOwnIncidentsWhere(session.user.tenantId, session.user.id),
     orderBy: {
       occurredAt: "desc",
     },
@@ -231,6 +229,7 @@ export default async function AnsattAvvik() {
                     key={incident.id}
                     className="p-4 border rounded-lg hover:bg-gray-50 transition-colors"
                   >
+                    <Link href={`/ansatt/avvik/${incident.id}`} className="block">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         {/* Tittel */}
@@ -298,6 +297,7 @@ export default async function AnsattAvvik() {
                         )}
                       </div>
                     </div>
+                    </Link>
                   </div>
                 );
               })}

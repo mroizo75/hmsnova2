@@ -5,6 +5,8 @@ import { DocumentEditForm } from "@/features/documents/components/document-edit-
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { bcmPlanEditHref, isBcmTemplateCategory } from "@/lib/bcm-audit";
+import { filterDistributableDocumentTemplates } from "@/lib/document-module-scope";
 
 export default async function EditDocumentPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
@@ -24,6 +26,9 @@ export default async function EditDocumentPage({ params }: { params: Promise<{ i
       id,
       tenantId: userTenant.tenantId,
     },
+    include: {
+      template: { select: { category: true } },
+    },
   });
 
   if (!document) {
@@ -41,6 +46,10 @@ export default async function EditDocumentPage({ params }: { params: Promise<{ i
         </Button>
       </div>
     );
+  }
+
+  if (isBcmTemplateCategory(document.template?.category)) {
+    redirect(bcmPlanEditHref(id));
   }
 
   const tenantUsers = await prisma.userTenant.findMany({
@@ -65,6 +74,7 @@ export default async function EditDocumentPage({ params }: { params: Promise<{ i
     ],
   });
 
+  const { template: _documentTemplate, ...documentRecord } = document;
   const ownerOptions = tenantUsers
     .map((member) => ({
       id: member.user?.id ?? "",
@@ -74,7 +84,7 @@ export default async function EditDocumentPage({ params }: { params: Promise<{ i
     }))
     .filter((user) => user.id);
 
-  const templateOptions = templates.map((template) => ({
+  const templateOptions = filterDistributableDocumentTemplates(templates).map((template) => ({
     id: template.id,
     name: template.name,
     category: template.category,
@@ -100,7 +110,7 @@ export default async function EditDocumentPage({ params }: { params: Promise<{ i
       </div>
 
       <DocumentEditForm
-        document={document}
+        document={documentRecord}
         owners={ownerOptions}
         templates={templateOptions}
       />

@@ -15,6 +15,7 @@ import {
 } from "@/lib/echa-api";
 import { parseSDSFile, mapPictogramsToFiles, suggestPPE } from "@/lib/sds-parser";
 import { checkAndUpdateSDSOnCreate } from "./chemical-auto-update.actions";
+import { catalogLookupNumber, readChemicalIdentity } from "@/lib/chemical-product-identity";
 
 async function getSessionContext() {
   const tenantContext = await getRequiredTenantContext();
@@ -102,12 +103,16 @@ export async function createChemical(input: any) {
       );
     }
 
+    const identity = readChemicalIdentity(input);
+
     const chemical = await prisma.chemical.create({
       data: {
         tenantId,
         productName: input.productName,
         supplier: input.supplier,
         casNumber: input.casNumber,
+        gtin: identity.gtin,
+        supplierProductCode: identity.supplierProductCode,
         hazardClass: input.hazardClass,
         hazardStatements: input.hazardStatements,
         precautionaryStatements: input.precautionaryStatements,
@@ -143,7 +148,7 @@ export async function createChemical(input: any) {
 
     // ✨ AUTOMATISK SJEKK FOR NYESTE VERSJON
     // Kjøres i bakgrunnen etter opprettelse
-    if (chemical.supplier && chemical.casNumber) {
+    if (chemical.supplier && catalogLookupNumber(chemical)) {
       checkAndUpdateSDSOnCreate(chemical.id, tenantId)
         .then((result) => {
           if (result.wasUpdated) {
@@ -188,10 +193,14 @@ export async function updateChemical(chemicalId: string, input: any) {
       }
     }
 
+    const identity = readChemicalIdentity(input);
+
     const updateData: any = {
       productName: input.productName,
       supplier: input.supplier,
       casNumber: input.casNumber,
+      gtin: identity.gtin,
+      supplierProductCode: identity.supplierProductCode,
       hazardClass: input.hazardClass,
       hazardStatements: input.hazardStatements,
       precautionaryStatements: input.precautionaryStatements,

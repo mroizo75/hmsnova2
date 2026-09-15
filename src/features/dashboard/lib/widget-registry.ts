@@ -39,7 +39,6 @@ import {
   Truck,
   TreePine,
   PersonStanding,
-  MapPin,
   Moon,
   UserCheck,
   Radar,
@@ -49,6 +48,7 @@ import {
   Wine,
   Headphones,
   HeartHandshake,
+  GitBranch,
 } from "lucide-react";
 import { BRANSJE_MODULES } from "@/lib/bransje-modules";
 import { menuPathsToWidgetIds } from "@/lib/menu-widget-sync";
@@ -150,6 +150,18 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
     permission: "sja",
   },
   {
+    id: "moc",
+    label: "Endringsledelse",
+    description: "Management of Change",
+    icon: GitBranch,
+    href: "/dashboard/moc",
+    category: "hms",
+    color: "text-teal-700",
+    bgColor: "bg-teal-50",
+    borderColor: "border-teal-200",
+    permission: "moc",
+  },
+  {
     id: "ruh",
     label: "RUH",
     description: "Rapport uønsket hendelse",
@@ -222,16 +234,15 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
   },
   {
     id: "bcm",
-    label: "Beredskap og kontinuitet",
-    description: "Beredskapsplaner og krisehåndtering (BCM / ISO 22301)",
+    label: "Beredskap",
+    description: "Beredskapsplaner, evakuering, hendelser og krisehåndtering (AML § 3-2, ISO 22301)",
     icon: ShieldCheck,
     href: "/dashboard/bcm",
     category: "sikkerhet",
     color: "text-rose-700",
     bgColor: "bg-rose-50",
     borderColor: "border-rose-200",
-    permission: "bcm",
-    isAdvanced: true,
+    permission: "beredskap",
   },
 
   // Helse & Miljø
@@ -681,18 +692,6 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
     permission: "bhtNattarbeid",
   },
   {
-    id: "beredskap",
-    label: "Beredskap",
-    description: "Evakuering, hendelser og krisekommunikasjon",
-    icon: MapPin,
-    href: "/dashboard/beredskap",
-    category: "sikkerhet",
-    color: "text-teal-600",
-    bgColor: "bg-teal-50",
-    borderColor: "border-teal-200",
-    permission: "beredskap",
-  },
-  {
     id: "projects",
     label: "Prosjekter",
     description: "Prosjektstyring og prosjektbaserte avvik",
@@ -776,6 +775,7 @@ export const DEFAULT_WIDGET_IDS = [
   "widget-task-center",
   "widget-hms-score",
   "fire-safety",
+  "bcm",
   "electrical",
   "risks",
 ];
@@ -796,5 +796,6 @@ export function getDefaultWidgetIdsForIndustry(industry: string | null | undefin
 }
 
 export function getWidgetById(id: string): WidgetDefinition | undefined {
-  return WIDGET_REGISTRY.find((w) => w.id === id);
+  const resolved = id === "beredskap" ? "bcm" : id;
+  return WIDGET_REGISTRY.find((w) => w.id === resolved);
 }

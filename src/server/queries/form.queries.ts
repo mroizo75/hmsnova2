@@ -48,6 +48,7 @@ export async function fetchFormsList(params: {
       AND: [
         { OR: [{ tenantId }, { isGlobal: true }] },
         formSearchFilter,
+        { NOT: { category: "BCM" } },
       ],
     },
     include: {

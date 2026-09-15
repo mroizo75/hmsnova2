@@ -7,6 +7,11 @@ import { EnvironmentMeasurementForm } from "@/features/environment/components/en
 import { EnvironmentMeasurementList } from "@/features/environment/components/environment-measurement-list";
 import { EnvironmentAspectForm } from "@/features/environment/components/environment-aspect-form";
 import { fetchEnvironmentDetail } from "@/server/queries/environment.queries";
+import {
+  ENVIRONMENT_CONTEXT_LABELS,
+  ENVIRONMENT_LIFECYCLE_LABELS,
+  parseLifecycleStages,
+} from "@/lib/environment-iso14001";
 
 type EnvironmentDetailData = NonNullable<Awaited<ReturnType<typeof fetchEnvironmentDetail>>>;
 
@@ -110,6 +115,22 @@ export function EnvironmentDetailContent({ initialData, tenantId }: EnvironmentD
           <div>
             <p className="text-xs text-muted-foreground">Målemetode</p>
             <p className="text-sm">{aspect.monitoringMethod || "Ikke definert"}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Livsløp (ISO 14001:2026 6.1.2)</p>
+            <p className="text-sm">
+              {parseLifecycleStages(aspect.lifecycleStages)
+                .map((stage) => ENVIRONMENT_LIFECYCLE_LABELS[stage])
+                .join(", ") || "Ikke satt"}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {aspect.contextClimate && <Badge variant="outline">{ENVIRONMENT_CONTEXT_LABELS.climate}</Badge>}
+            {aspect.contextBiodiversity && (
+              <Badge variant="outline">{ENVIRONMENT_CONTEXT_LABELS.biodiversity}</Badge>
+            )}
+            {aspect.contextResources && <Badge variant="outline">{ENVIRONMENT_CONTEXT_LABELS.resources}</Badge>}
+            {aspect.contextPollution && <Badge variant="outline">{ENVIRONMENT_CONTEXT_LABELS.pollution}</Badge>}
           </div>
         </CardContent>
       </Card>

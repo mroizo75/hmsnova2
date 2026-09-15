@@ -13,6 +13,7 @@ import {
   EnvironmentalMeasurementStatus,
 } from "@prisma/client";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
+import { serializeLifecycleStages } from "@/lib/environment-iso14001";
 
 async function getSessionContext() {
   const tenantContext = await getRequiredTenantContext();
@@ -100,6 +101,11 @@ export async function createEnvironmentalAspect(input: any) {
         goalId: validated.goalId || null,
         status: validated.status || EnvironmentalAspectStatus.ACTIVE,
         nextReviewDate: validated.nextReviewDate ?? null,
+        lifecycleStages: serializeLifecycleStages(validated.lifecycleStages ?? []),
+        contextClimate: validated.contextClimate ?? false,
+        contextBiodiversity: validated.contextBiodiversity ?? false,
+        contextResources: validated.contextResources ?? false,
+        contextPollution: validated.contextPollution ?? false,
       },
     });
 
@@ -197,6 +203,14 @@ export async function updateEnvironmentalAspect(input: any) {
           validated.nextReviewDate === undefined
             ? existing.nextReviewDate
             : validated.nextReviewDate,
+        lifecycleStages:
+          validated.lifecycleStages !== undefined
+            ? serializeLifecycleStages(validated.lifecycleStages)
+            : existing.lifecycleStages,
+        contextClimate: validated.contextClimate ?? existing.contextClimate,
+        contextBiodiversity: validated.contextBiodiversity ?? existing.contextBiodiversity,
+        contextResources: validated.contextResources ?? existing.contextResources,
+        contextPollution: validated.contextPollution ?? existing.contextPollution,
       },
     });
 

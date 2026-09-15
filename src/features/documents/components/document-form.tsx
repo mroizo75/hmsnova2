@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { createDocument } from "@/server/actions/document.actions";
 import { Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { DISTRIBUTABLE_DOCUMENT_KINDS } from "@/lib/document-module-scope";
 
 interface DocumentFormProps {
   tenantId: string;
@@ -39,7 +40,7 @@ interface DocumentFormProps {
   }>;
 }
 
-const documentKinds = ["LAW", "PLAN", "PROCEDURE", "CHECKLIST", "FORM", "SDS", "OTHER"] as const;
+const documentKinds = DISTRIBUTABLE_DOCUMENT_KINDS;
 const userRoles = ["ADMIN", "HMS", "LEDER", "HR", "VERNEOMBUD", "ANSATT", "BHT", "REVISOR"] as const;
 
 const NO_OWNER_VALUE = "__none_owner__";

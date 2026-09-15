@@ -32,7 +32,8 @@ export type ModuleKey =
   | "employeeReviews"
   | "absence"
   | "boarding"
-  | "personnelArchive";
+  | "personnelArchive"
+  | "moc";
 
 export type ModuleVisibilityConfig = Partial<Record<ModuleKey, Role[]>>;
 
@@ -73,6 +74,7 @@ export const MODULE_DEFAULTS: Record<ModuleKey, Role[]> = {
   absence: ["ADMIN", "HMS", "LEDER", "HR", "BHT", "REVISOR"],
   boarding: ["ADMIN", "HMS", "LEDER", "HR"],
   personnelArchive: ["ADMIN", "HR", "LEDER"],
+  moc: ["ADMIN", "HMS", "LEDER", "HR", "VERNEOMBUD", "ANSATT", "BHT", "REVISOR"],
 };
 
 /** Norske visningsnavn for hvert modul */
@@ -98,6 +100,7 @@ export const MODULE_LABELS: Record<ModuleKey, string> = {
   absence: "Fravær & ferie",
   boarding: "Onboarding & offboarding",
   personnelArchive: "Personalarkiv",
+  moc: "Endringsledelse (MoC)",
 };
 
 /**
@@ -140,6 +143,7 @@ export const MODULE_PERMISSION_KEYS: Record<ModuleKey, Array<keyof RolePermissio
   absence: ["canReadAllAbsence", "canApproveAbsence", "canExportAbsenceStats"],
   boarding: ["canReadAllBoarding", "canCreateBoarding", "canManageBoardingTemplates"],
   personnelArchive: ["canReadAllPersonnelFiles", "canReadDepartmentPersonnelFiles", "canUploadPersonnelFile", "canDeletePersonnelFile"],
+  moc: ["canReadMoc", "canApproveMoc"],
 };
 
 /** Mapping fra nav-permission til modul-nøkkel */
@@ -165,6 +169,7 @@ export const NAV_PERMISSION_TO_MODULE: Partial<Record<string, ModuleKey>> = {
   absence: "absence",
   boarding: "boarding",
   personnelArchive: "personnelArchive",
+  moc: "moc",
   templates: "documents",
 };
 
@@ -184,6 +189,7 @@ export const MODULE_CREATE_PERMISSION: Partial<Record<ModuleKey, keyof RolePermi
   absence: "canCreateAbsence",
   boarding: "canCreateBoarding",
   personnelArchive: "canUploadPersonnelFile",
+  moc: "canCreateMoc",
 };
 
 /**

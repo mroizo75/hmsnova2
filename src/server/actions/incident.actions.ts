@@ -12,6 +12,7 @@ import {
   updateIncidentSchema,
   investigateIncidentSchema,
   closeIncidentSchema,
+  getIncidentStatusLabel,
 } from "@/features/incidents/schemas/incident.schema";
 
 function formatActionError(error: unknown, fallback: string): string {
@@ -30,7 +31,7 @@ import {
   parseModuleVisibilityConfig,
   getNotifyRolesForModule,
 } from "@/lib/module-visibility";
-import { dispatchNewIncidentNotifications } from "@/lib/incident-notification-routing.server";
+import { dispatchNewIncidentNotifications, notifyIncidentReporter } from "@/lib/incident-notification-routing.server";
 import { normalizeProjectReference } from "@/lib/incident-project-reference";
 import { logAiFeedback } from "@/lib/ai-feedback";
 import { resolveIncidentProjectId } from "@/lib/incident-project-reference.server";
@@ -613,7 +614,32 @@ export async function updateIncident(input: any) {
             message: `${incident.type}: ${incident.title} – Status endret til ${incident.status}`,
             link: `/dashboard/incidents/${incident.id}`,
           });
-        } else if (substantiveChange) {
+          await notifyIncidentReporter({
+            tenantId,
+            incidentId: incident.id,
+            reportedBy: incident.reportedBy,
+            actorId: user.id,
+            title: incident.title,
+            typeLabel: incident.type,
+            event: "status",
+            statusLabel: getIncidentStatusLabel(incident.status),
+          });
+        }
+        if (
+          validated.responsibleId !== undefined &&
+          (validated.responsibleId ?? null) !== (existingIncident.responsibleId ?? null)
+        ) {
+          await notifyIncidentReporter({
+            tenantId,
+            incidentId: incident.id,
+            reportedBy: incident.reportedBy,
+            actorId: user.id,
+            title: incident.title,
+            typeLabel: incident.type,
+            event: "assigned",
+          });
+        }
+        if (!statusChanged && substantiveChange) {
           const changedLabels: string[] = [];
           if (updateData.injuryDescription !== undefined) changedLabels.push("skadebeskrivelse");
           if (updateData.involvedPersons !== undefined) changedLabels.push("involverte personer");
@@ -647,6 +673,8 @@ export async function updateIncident(input: any) {
 
     revalidatePath("/dashboard/incidents");
     revalidatePath(`/dashboard/incidents/${incident.id}`);
+    revalidatePath("/ansatt/avvik");
+    revalidatePath(`/ansatt/avvik/${incident.id}`);
     triggerRealtimeEvent(tenantId, "incident-updated", { id: incident.id });
     return { success: true, data: incident };
   } catch (error: unknown) {
@@ -698,6 +726,16 @@ export async function investigateIncident(input: any) {
           message: `${incident.type}: ${incident.title} – Årsaksanalyse er gjennomført av ${user.name ?? "ukjent"}`,
           link: `/dashboard/incidents/${incident.id}`,
         });
+        await notifyIncidentReporter({
+          tenantId,
+          incidentId: incident.id,
+          reportedBy: incident.reportedBy,
+          actorId: user.id,
+          title: incident.title,
+          typeLabel: incident.type,
+          event: "status",
+          statusLabel: getIncidentStatusLabel(incident.status),
+        });
       } catch (bgError) {
         console.error("Background notification error:", bgError);
       }
@@ -705,6 +743,8 @@ export async function investigateIncident(input: any) {
 
     revalidatePath("/dashboard/incidents");
     revalidatePath(`/dashboard/incidents/${incident.id}`);
+    revalidatePath("/ansatt/avvik");
+    revalidatePath(`/ansatt/avvik/${incident.id}`);
     triggerRealtimeEvent(tenantId, "incident-updated", { id: incident.id });
 
     // AI-feedback-logging: sammenlign AI-forslaget (hvis brukt) med det som faktisk ble lagret.
@@ -826,6 +866,15 @@ export async function closeIncident(input: any) {
           message: `${incident.type}: ${incident.title} er nå lukket`,
           link: `/dashboard/incidents/${incident.id}`,
         });
+        await notifyIncidentReporter({
+          tenantId,
+          incidentId: incident.id,
+          reportedBy: incident.reportedBy,
+          actorId: user.id,
+          title: incident.title,
+          typeLabel: incident.type,
+          event: "closed",
+        });
       } catch (bgError) {
         console.error("Background notification error:", bgError);
       }
@@ -833,6 +882,8 @@ export async function closeIncident(input: any) {
 
     revalidatePath("/dashboard/incidents");
     revalidatePath(`/dashboard/incidents/${incident.id}`);
+    revalidatePath("/ansatt/avvik");
+    revalidatePath(`/ansatt/avvik/${incident.id}`);
 
     // HMS Intelligens-motor: oppdater score etter lukking
     onIncidentClosed(tenantId, incident.id).catch(() => {});

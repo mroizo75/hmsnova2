@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { generateEnvironmentReviewSummary } from "@/lib/environment-iso14001";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,9 @@ export async function GET(req: NextRequest) {
       inspections,
       trainings,
       measures,
+      aspects,
+      measurements,
+      environmentGoals,
     ] = await Promise.all([
       // HMS-mål
       db.goal.findMany({
@@ -99,6 +103,34 @@ export async function GET(req: NextRequest) {
         },
         orderBy: { createdAt: "desc" },
       }),
+
+      db.environmentalAspect.findMany({
+        where: { tenantId },
+        select: {
+          title: true,
+          category: true,
+          significanceScore: true,
+          status: true,
+          contextClimate: true,
+          contextBiodiversity: true,
+          contextResources: true,
+          contextPollution: true,
+        },
+      }),
+
+      db.environmentalMeasurement.findMany({
+        where: {
+          tenantId,
+          measurementDate: { gte: startDate },
+        },
+        select: { status: true, parameter: true },
+      }),
+
+      db.goal.findMany({
+        where: { tenantId, category: "ENVIRONMENT" },
+        select: { title: true, status: true },
+        orderBy: { createdAt: "desc" },
+      }),
     ]);
 
     // Generer tekst for HMS-mål
@@ -115,6 +147,14 @@ export async function GET(req: NextRequest) {
 
     // Generer tekst for opplæring
     const trainingStatus = generateTrainingStatus(trainings);
+    const environmentSummary = generateEnvironmentReviewSummary({
+      aspects,
+      measurements,
+      environmentIncidents: incidents
+        .filter((incident) => incident.type === "MILJO")
+        .map((incident) => ({ title: incident.title, status: incident.status })),
+      environmentGoals,
+    });
 
     return NextResponse.json({
       data: {
@@ -123,6 +163,7 @@ export async function GET(req: NextRequest) {
         riskReview,
         auditResults,
         trainingStatus,
+        environmentSummary,
         // Raw data for evt. videre prosessering
         raw: {
           goals,
@@ -132,6 +173,9 @@ export async function GET(req: NextRequest) {
           inspections,
           trainings,
           measures,
+          aspects,
+          measurements,
+          environmentGoals,
         },
       },
     });

@@ -50,6 +50,11 @@ export function isQualityOnlyIncident(type: IncidentType, subcategoryKeysRaw: st
   return keys.every((key) => QUALITY_ONLY_KEYS.has(key));
 }
 
+/** Ansattportalen viser kun saker innsenderen selv har meldt (userId, ikke navn). */
+export function employeeOwnIncidentsWhere(tenantId: string, userId: string) {
+  return { tenantId, reportedBy: userId };
+}
+
 export function canRoleSeeIncident(opts: {
   role: Role;
   canReadIncidents: boolean;

@@ -10,6 +10,7 @@ import { assertNoManagerCycle } from "@/lib/incident-notification-routing";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
 import { Role } from "@prisma/client";
 import { getInvitableRoles } from "@/lib/permissions";
+import { aliasDashboardMenuHrefs } from "@/lib/legal-link-repair";
 import {
   DEFAULT_USER_IMPORT_COLUMNS,
   detectUserImportColumns,
@@ -99,10 +100,6 @@ async function parseExcelToRows(buffer: Buffer): Promise<UserImportRow[]> {
   return rows;
 }
 
-// ============================================================================
-// TENANT SETTINGS
-// ============================================================================
-
 export async function updateTenantSettings(data: {
   name: string;
   orgNumber?: string;
@@ -118,7 +115,6 @@ export async function updateTenantSettings(data: {
   try {
     const { user, tenantId } = await getSessionContext();
 
-    // Sjekk om bruker er admin
     const userTenant = user.tenants.find((t) => t.tenantId === tenantId);
     if (!userTenant || userTenant.role !== "ADMIN") {
       return { success: false, error: "Kun administratorer kan endre bedriftsinnstillinger" };
@@ -220,7 +216,7 @@ export async function updateTenantSimpleMenuItems(hrefs: string[]) {
 
     await prisma.tenant.update({
       where: { id: tenantId },
-      data: { simpleMenuItems: hrefs },
+      data: { simpleMenuItems: aliasDashboardMenuHrefs(hrefs) ?? hrefs },
     });
 
     await AuditLog.log(tenantId, user.id, "TENANT_SIMPLE_MENU_UPDATED", "Tenant", tenantId, {
@@ -1210,6 +1206,44 @@ export async function updateRuhModuleEnabled(enabled: boolean) {
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke oppdatere RUH-modulen" };
+  }
+}
+
+/**
+ * Slår MoC-modulen av eller på. ISO 45001 8.1.3 krever prosess for endringer
+ * som påvirker HMS; virksomheter uten formell MoC kan holde den av.
+ */
+export async function updateMocModuleEnabled(enabled: boolean) {
+  try {
+    const { user, tenantId } = await getSessionContext();
+
+    const userTenant = user.tenants.find((t) => t.tenantId === tenantId);
+    if (!userTenant || userTenant.role !== "ADMIN") {
+      return { success: false, error: "Kun administratorer kan endre endringsledelse" };
+    }
+
+    const previous = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { mocModuleEnabled: true },
+    });
+
+    await prisma.tenant.update({
+      where: { id: tenantId },
+      data: { mocModuleEnabled: enabled },
+    });
+
+    await AuditLog.log(tenantId, user.id, "MOC_MODULE_UPDATED", "Tenant", tenantId, {
+      before: previous?.mocModuleEnabled ?? false,
+      after: enabled,
+    });
+
+    revalidatePath("/dashboard/settings");
+    revalidatePath("/dashboard/moc");
+    revalidatePath("/ansatt");
+    triggerRealtimeEvent(tenantId, "settings-updated");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Kunne ikke oppdatere endringsledelse" };
   }
 }
 

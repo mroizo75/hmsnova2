@@ -43,9 +43,10 @@ interface Props {
   evakueringsplaner: HotellEvakueringsplan[];
   canEdit: boolean;
   isReiseliv: boolean;
+  embedded?: boolean;
 }
 
-export function BeredskapReiselivClient({ hendelser, evakueringsplaner, canEdit, isReiseliv }: Props) {
+export function BeredskapReiselivClient({ hendelser, evakueringsplaner, canEdit, isReiseliv, embedded }: Props) {
   const router = useRouter();
   const [showNyHendelse, setShowNyHendelse] = useState(false);
   const [hendelsForm, setHendelsForm] = useState({
@@ -94,7 +95,8 @@ export function BeredskapReiselivClient({ hendelser, evakueringsplaner, canEdit,
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-5xl">
+    <div className={embedded ? "space-y-6" : "p-6 space-y-6 max-w-5xl"}>
+      {!embedded && (
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Shield className="h-6 w-6 text-red-500" />
@@ -104,6 +106,7 @@ export function BeredskapReiselivClient({ hendelser, evakueringsplaner, canEdit,
           AML § 3-2 og IK-HMS § 5 – evakuering, hendelser og krisehåndtering
         </p>
       </div>
+      )}
 
       {/* Hurtigstatus */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

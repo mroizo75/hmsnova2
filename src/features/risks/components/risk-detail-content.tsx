@@ -17,6 +17,7 @@ import { RiskAuditLinks } from "@/features/risks/components/risk-audit-links";
 import { RiskRoutineLinker } from "@/features/risks/components/risk-routine-linker";
 import { RiskTrainingRequirements } from "@/components/risk-training-requirements";
 import { ResourceHistory } from "@/components/shared/resource-history";
+import { MocRelatedCard } from "@/features/moc/components/moc-related-card";
 
 type RiskDetailData = NonNullable<Awaited<ReturnType<typeof fetchRiskDetail>>>;
 
@@ -45,7 +46,7 @@ export function RiskDetailContent({
 
   if (!data) return null;
 
-  const { risk, tenantUsers, goals, inspectionTemplates, documents, audits, sjaHazards, linkedRoutines, availableRoutines } = data;
+  const { risk, tenantUsers, goals, inspectionTemplates, documents, audits, sjaHazards, linkedRoutines, availableRoutines, mocModuleEnabled } = data;
 
   return (
     <div className="space-y-6">
@@ -171,6 +172,8 @@ export function RiskDetailContent({
           <RiskAuditLinks riskId={risk.id} audits={audits} links={risk.auditLinks} />
         </CardContent>
       </Card>
+
+      <MocRelatedCard links={risk.mocLinks} moduleEnabled={mocModuleEnabled} />
 
       <ResourceHistory entries={history} />
     </div>

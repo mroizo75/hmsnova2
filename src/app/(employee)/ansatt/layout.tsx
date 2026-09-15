@@ -45,6 +45,7 @@ export default async function EmployeeLayout({
             dashboardLocked: true,
             lockedDashboardConfig: true,
             ruhModuleEnabled: true,
+            mocModuleEnabled: true,
             accountingProvider: true,
           },
         })
@@ -62,6 +63,10 @@ export default async function EmployeeLayout({
 
   if (tenant && !tenant.ruhModuleEnabled) {
     allWidgets = allWidgets.filter((w) => w.id !== "emp-ruh");
+  }
+
+  if (tenant && !tenant.mocModuleEnabled) {
+    allWidgets = allWidgets.filter((w) => w.id !== "emp-moc");
   }
 
   const bottomNavItems = getEmployeeBottomNavItems(allWidgets);

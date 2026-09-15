@@ -21,6 +21,7 @@ const updateManagementReviewSchema = z.object({
   resourcesReview: z.string().optional(),
   externalChanges: z.string().optional(),
   wellbeingSummary: z.string().optional(),
+  environmentSummary: z.string().optional(),
   conclusions: z.string().optional(),
   decisions: z.array(z.any()).optional(),
   actionPlan: z.array(z.any()).optional(),

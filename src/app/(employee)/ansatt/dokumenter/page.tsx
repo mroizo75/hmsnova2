@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
+import { distributableDocumentsWhere } from "@/lib/document-module-scope";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Eye, Clock } from "lucide-react";
@@ -35,7 +36,8 @@ export default async function AnsattDokumenter() {
   const allDocuments = await prisma.document.findMany({
     where: {
       tenantId: session.user.tenantId,
-      status: "APPROVED", // Kun godkjente dokumenter for ansatte
+      status: "APPROVED",
+      ...distributableDocumentsWhere,
     },
     include: {
       approvedByUser: {

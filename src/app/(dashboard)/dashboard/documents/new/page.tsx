@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/db";
+import { filterDistributableDocumentTemplates } from "@/lib/document-module-scope";
 
 export default async function NewDocumentPage() {
   const user = await getCurrentUser();
@@ -54,7 +55,7 @@ export default async function NewDocumentPage() {
     }))
     .filter((user) => user.id);
 
-  const templateOptions = templates.map((template) => ({
+  const templateOptions = filterDistributableDocumentTemplates(templates).map((template) => ({
     id: template.id,
     name: template.name,
     category: template.category,
@@ -75,7 +76,7 @@ export default async function NewDocumentPage() {
         </Button>
         <h1 className="text-3xl font-bold">Nytt dokument</h1>
         <p className="text-muted-foreground">
-          Last opp et nytt dokument til systemet
+          Last opp styrende dokumenter som skal deles med ansatte. Beredskap, rutiner, SDS og skjemaer har egne funksjoner.
         </p>
       </div>
 

@@ -7,6 +7,7 @@ import { FileText, Download, Edit } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 import { DocumentDetailContent } from "@/features/documents/components/document-detail-content";
 import { fetchDocumentDetail } from "@/server/queries/document.queries";
+import { bcmPlanHref, isBcmTemplateCategory } from "@/lib/bcm-audit";
 
 export default async function DocumentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const t = await getTranslations("dashboardDocumentDetailPage");
@@ -31,6 +32,10 @@ export default async function DocumentDetailPage({ params }: { params: Promise<{
 
   if (!initialData) {
     redirect("/dashboard/documents");
+  }
+
+  if (isBcmTemplateCategory(initialData.document.template?.category)) {
+    redirect(bcmPlanHref(id));
   }
 
   return (

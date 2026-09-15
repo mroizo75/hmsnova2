@@ -29,6 +29,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ResourceHistory } from "@/components/shared/resource-history";
 import { fetchSjaDetail } from "@/server/queries/sja.queries";
+import { MocRelatedCard } from "@/features/moc/components/moc-related-card";
 
 type SjaDetailData = NonNullable<Awaited<ReturnType<typeof fetchSjaDetail>>>;
 
@@ -254,6 +255,10 @@ export function SjaDetailContent({ initialData, history }: SjaDetailContentProps
         </div>
 
         <div className="space-y-6">
+          <MocRelatedCard
+            links={analysis.mocLinks}
+            moduleEnabled={analysis.mocModuleEnabled}
+          />
           <Card>
             <CardHeader>
               <CardTitle className="text-sm">Detaljer</CardTitle>

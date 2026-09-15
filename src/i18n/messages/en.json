@@ -146,6 +146,7 @@
     "constructionCompliance": "Construction Compliance",
     "hseStatistics": "HSE Statistics",
     "sja": "Safe Job Analysis",
+    "moc": "Management of Change",
     "inspections": "Inspections",
     "fireDrills": "Fire Drills",
     "chemicals": "Chemical Registry",
@@ -153,7 +154,7 @@
     "wellbeing": "Psychosocial Pulse",
     "complaints": "Customer Complaints",
     "feedback": "Feedback",
-    "bcm": "Preparedness and continuity",
+    "bcm": "Emergency preparedness",
     "training": "Competence",
     "audits": "Audits",
     "managementReviews": "Management Reviews",
@@ -3592,7 +3593,7 @@
   "dashboardDocumentsPage": {
     "title": "Documents",
     "noTenantAccess": "No tenant access",
-    "description": "Manage laws, procedures, checklists and more",
+    "description": "Governing documents shared with employees — quality system, policies and other key files",
     "actions": {
       "newDocument": "New document"
     },
@@ -3655,6 +3656,7 @@
     "details": "Audit details",
     "actions": {
       "back": "Back to audits",
+      "backToBcm": "Back to emergency preparedness",
       "edit": "Edit"
     },
     "basicInfo": {

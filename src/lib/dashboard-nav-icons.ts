@@ -72,7 +72,6 @@ export const DASHBOARD_NAV_ICONS: Record<string, LucideIcon> = {
   "/dashboard/exposure-register": FlaskConical,
   "/dashboard/ik-mat": UtensilsCrossed,
   "/dashboard/skjenking": Wine,
-  "/dashboard/beredskap": LifeBuoy,
   "/dashboard/aktivitetssikkerhet": PersonStanding,
   "/dashboard/transport": Truck,
   "/dashboard/bht-nattarbeid": Moon,

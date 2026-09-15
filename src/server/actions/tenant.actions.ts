@@ -15,6 +15,7 @@ import {
   isSupportedIndustry,
   normalizeIndustryValue,
 } from "@/lib/industry-packages";
+import { isMocDefaultIndustry } from "@/lib/moc-industry";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { generateRiskAnalysis } from "@/lib/ai";
@@ -1522,6 +1523,7 @@ export async function createTenant(input: z.infer<typeof createTenantSchema>) {
         status: "TRIAL",
         onboardingStatus: "NOT_STARTED",
         trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 dager
+        mocModuleEnabled: isMocDefaultIndustry(normalizedIndustry),
         // Standard HMS-oppsett
         hmsAnnualPlanEnabled: true,
         managementReviewFrequencyMonths: 12,

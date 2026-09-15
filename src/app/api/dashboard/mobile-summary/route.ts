@@ -5,6 +5,7 @@ import { Role } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { resolveEffectivePermissions } from "@/lib/server-authorization";
+import { distributableDocumentsWhere } from "@/lib/document-module-scope";
 
 export async function GET() {
   try {
@@ -74,13 +75,14 @@ export async function GET() {
             },
           }),
       permissions.canReadDocuments
-        ? prisma.document.count({ where: { tenantId } })
+        ? prisma.document.count({ where: { tenantId, ...distributableDocumentsWhere } })
         : 0,
       permissions.canReadDocuments
         ? prisma.document.findMany({
             where: {
               tenantId,
               status: { not: "ARCHIVED" },
+              ...distributableDocumentsWhere,
             },
             orderBy: { updatedAt: "desc" },
             take: 5,

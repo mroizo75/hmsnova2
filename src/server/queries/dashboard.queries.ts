@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { getPermissions, getVisibleNavItems } from "@/lib/permissions";
 import { getSetupGuideProgress } from "@/server/actions/onboarding.actions";
+import { distributableDocumentsWhere } from "@/lib/document-module-scope";
 
 export async function fetchDashboardData() {
   const session = await getServerSession(authOptions);
@@ -39,7 +40,7 @@ export async function fetchDashboardData() {
 
   const [documents, risks, incidents, measures, audits, trainings, goals, inspections, forms, routines] = await Promise.all([
     permissions.canReadDocuments
-      ? prisma.document.findMany({ where: { tenantId } })
+      ? prisma.document.findMany({ where: { tenantId, ...distributableDocumentsWhere } })
       : [],
     permissions.canReadRisks
       ? prisma.risk.findMany({ where: { tenantId } })

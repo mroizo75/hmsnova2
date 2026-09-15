@@ -30,7 +30,9 @@ export function StoffkartotekClient({ chemicals }: StoffkartotekClientProps) {
       (chemical) =>
         chemical.productName.toLowerCase().includes(lowerSearch) ||
         chemical.supplier?.toLowerCase().includes(lowerSearch) ||
-        chemical.casNumber?.toLowerCase().includes(lowerSearch)
+        chemical.casNumber?.toLowerCase().includes(lowerSearch) ||
+        chemical.gtin?.includes(searchTerm.replace(/\s/g, "")) ||
+        chemical.supplierProductCode?.toLowerCase().includes(lowerSearch)
     );
   }, [chemicals, searchTerm]);
 
@@ -96,6 +98,11 @@ export function StoffkartotekClient({ chemicals }: StoffkartotekClientProps) {
                         {chemical.casNumber && (
                           <Badge variant="outline" className="text-xs">
                             CAS: {chemical.casNumber}
+                          </Badge>
+                        )}
+                        {chemical.gtin && (
+                          <Badge variant="outline" className="text-xs">
+                            GTIN: {chemical.gtin}
                           </Badge>
                         )}
                       </div>

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/server-action";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { distributableDocumentsWhere } from "@/lib/document-module-scope";
 
 export async function fetchDocuments() {
   const user = await getCurrentUser();
@@ -18,7 +19,7 @@ export async function fetchDocuments() {
   }
 
   const documents = await prisma.document.findMany({
-    where: { tenantId: userTenant.tenantId },
+    where: { tenantId: userTenant.tenantId, ...distributableDocumentsWhere },
     orderBy: { createdAt: "desc" },
     include: {
       owner: {

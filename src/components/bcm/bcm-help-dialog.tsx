@@ -18,14 +18,14 @@ export function BcmHelpDialog() {
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" className="h-8 w-8">
           <HelpCircle className="h-5 w-5 text-muted-foreground hover:text-foreground" />
-          <span className="sr-only">Hjelp om BCM</span>
+          <span className="sr-only">Hjelp om beredskap</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Hva er BCM (Beredskap og kontinuitetsstyring)?</DialogTitle>
+          <DialogTitle>Beredskap</DialogTitle>
           <DialogDescription>
-            ISO 22301: Business Continuity Management System (BCMS)
+            AML § 3-2, IK-HMS § 5 og ISO 22301 – evakuering, hendelser og kontinuitet
           </DialogDescription>
         </DialogHeader>
         

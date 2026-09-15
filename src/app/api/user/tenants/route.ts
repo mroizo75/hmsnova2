@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
                 employeeCount: true,
                 industry: true,
                 moduleVisibilityConfig: true,
+                mocModuleEnabled: true,
               },
             },
           },
@@ -46,7 +47,10 @@ export async function GET(request: NextRequest) {
       role: ut.role,
       employeeCount: ut.tenant.employeeCount,
       industry: ut.tenant.industry,
-      features: getTenantFeaturesForIndustry(ut.tenant.industry),
+      features: [
+        ...getTenantFeaturesForIndustry(ut.tenant.industry),
+        ...(ut.tenant.mocModuleEnabled ? (["moc"] as const) : []),
+      ],
       moduleVisibilityConfig: parseModuleVisibilityConfig(ut.tenant.moduleVisibilityConfig),
     }));
 

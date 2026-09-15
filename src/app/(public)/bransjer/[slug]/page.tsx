@@ -200,14 +200,14 @@ const SOLUTIONS: Record<string, { title: string; description: string }[]> = {
     { title: "Mobil avviksrapportering", description: "Rapporter hendelser direkte fra skipet mens detaljene er ferske." },
   ],
   "olje-og-gass": [
-    { title: "Sporbar endringskontroll", description: "Alle endringer i prosessanlegg dokumenteres med risikovurdering og godkjenningsprosess." },
-    { title: "Alltid oppdatert stoffkartotek", description: "Sikkerhetsdatablad oppdateres og knyttes til eksponeringsvurderinger automatisk." },
+    { title: "Sporbar endringskontroll", description: "MoC-saker dokumenterer konsekvensvurdering, godkjenning og verifikasjon før endringer iverksettes." },
+    { title: "Stoffkartotek med SDS", description: "Registrer kjemikalier, last opp sikkerhetsdatablad og knytt dem til eksponeringsregister. Systemet minner om gjennomgang; ny SDS hentes fra leverandør." },
     { title: "Digital beredskapsdokumentasjon", description: "Øvelser dokumenteres med deltakerliste, evaluering og forbedringstiltak som følges opp." },
     { title: "Komplett eksponeringsregister", description: "Full historikk over kjemisk eksponering for alle arbeidstakere -- sporbart i tiår." },
   ],
   "fiskeri-og-havbruk": [
     { title: "SJA for merd og fartøy", description: "Digitale SJA-maler tilpasset dykking, notskifte og merdarbeid. Godkjenning på mobil." },
-    { title: "Kjemikalieoversikt", description: "Alle avlusnings- og behandlingskjemikalier med oppdaterte sikkerhetsdatablad." },
+    { title: "Kjemikalieoversikt", description: "Alle avlusnings- og behandlingskjemikalier med sikkerhetsdatablad." },
     { title: "Sertifikatstyring", description: "Full oversikt over maritime sertifikater med automatisk varsling ved utløp." },
     { title: "Mobil hendelsesrapportering", description: "Rapporter avvik og nestenulykker direkte fra båt eller merd -- med bilde og GPS." },
   ],
@@ -225,14 +225,14 @@ const SOLUTIONS: Record<string, { title: string; description: string }[]> = {
   ],
   "utdanning": [
     { title: "Digital brannøvelsesdokumentasjon", description: "Planlegg, gjennomfør og evaluer brannøvelser. Evakueringstid, observasjoner og tiltak -- alt dokumentert." },
-    { title: "Stoffkartotek for lab og verksted", description: "Alle kjemikalier med oppdaterte sikkerhetsdatablad. Lærere ser riktig verneutstyr for hvert forsøk." },
+    { title: "Stoffkartotek for lab og verksted", description: "Alle kjemikalier med sikkerhetsdatablad. Lærere ser riktig verneutstyr for hvert forsøk." },
     { title: "Enkel avviksmelding", description: "Ansatte melder avvik i skolemiljøet på 2 minutter via mobil. Tiltak opprettes automatisk." },
     { title: "HMS-håndbok for skolen", description: "Ferdig mal tilpasset utdanningssektoren. Signering og versjonskontroll inkludert." },
   ],
   "hotell-og-restaurant": [
     { title: "Digital temperaturlogg", description: "Registrer temperatur i kjølerom og frysere via mobil. Avvik flagges automatisk med tiltak." },
     { title: "Komplett allergenoversikt", description: "Alle 14 EU-allergener per rett. Tilgjengelig for servitører på mobil i sanntid." },
-    { title: "Stoffkartotek for kjøkken", description: "Rengjøringsmidler og kjemikalier med sikkerhetsdatablad -- alltid oppdatert." },
+    { title: "Stoffkartotek for kjøkken", description: "Rengjøringsmidler og kjemikalier med sikkerhetsdatablad og påminnelse om gjennomgang." },
     { title: "BHT for nattarbeid", description: "Automatisk oppfølging av helseundersøkelser for ansatte i kvelds- og nattskift." },
   ],
   "aktivitet-og-opplevelse": [
@@ -250,7 +250,7 @@ const SOLUTIONS: Record<string, { title: string; description: string }[]> = {
   "industri-og-produksjon": [
     { title: "Digital LOTO-dokumentasjon", description: "Sporbar Lock-Out/Tag-Out med hvem som har låst ut hva, når og hvorfor." },
     { title: "Eksponeringsregister for støy", description: "Daglig støyeksponering logges mot 85 dB(A) grenseverdi. Akkumulert dose beregnes automatisk." },
-    { title: "Stoffkartotek med SDS", description: "Alle kjemikalier med oppdaterte sikkerhetsdatablad. Risikovurdering gjøres før ny kjemikalie tas i bruk." },
+    { title: "Stoffkartotek med SDS", description: "Alle kjemikalier med sikkerhetsdatablad. Risikovurdering gjøres før ny kjemikalie tas i bruk." },
     { title: "Tiltaksoppfølging fra vernerunder", description: "Tiltak fra vernerunder tildeles ansvarlig med frist og automatisk purring." },
   ],
   "handel-og-service": [

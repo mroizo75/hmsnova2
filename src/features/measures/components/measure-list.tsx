@@ -23,6 +23,7 @@ import type { ActionEffectiveness, Measure } from "@prisma/client";
 interface MeasureWithSources extends Measure {
   risk?: { id: string; title: string } | null;
   incident?: { id: string; title: string; avviksnummer?: string | null } | null;
+  moc?: { id: string; number: string; title: string } | null;
   audit?: { id: string; title: string } | null;
   goal?: { id: string; title: string } | null;
   inspectionFindings?: { id: string; title: string; inspection: { id: string; title: string } }[];
@@ -150,6 +151,13 @@ export function MeasureList({ measures, showSourceBadges }: MeasureListProps) {
                           <Link href={`/dashboard/incidents/${measure.incident.id}`}>
                             <Badge className="bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200 text-xs">
                               Avvik {measure.incident.avviksnummer || measure.incident.title}
+                            </Badge>
+                          </Link>
+                        )}
+                        {measure.moc && (
+                          <Link href={`/dashboard/moc/${measure.moc.id}`}>
+                            <Badge className="bg-teal-100 text-teal-800 border-teal-200 hover:bg-teal-200 text-xs">
+                              MoC {measure.moc.number}
                             </Badge>
                           </Link>
                         )}

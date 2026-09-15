@@ -28,6 +28,10 @@ import { createRoutineFromTemplate } from "@/server/actions/routine.actions";
 import { copyGlobalFormTemplate } from "@/server/actions/form.actions";
 import { copyDocumentTemplateToTenant } from "@/server/actions/template-library.actions";
 import { matchesIndustryScope } from "@/lib/industry-scope";
+import {
+  filterDistributableDocumentTemplates,
+  filterDistributableFormTemplates,
+} from "@/lib/document-module-scope";
 
 interface RoutineItem {
   id: string;
@@ -121,7 +125,7 @@ export function TemplateHubContent({
 
   const filteredForms = useMemo(
     () =>
-      forms.filter(
+      filterDistributableFormTemplates(forms).filter(
         (f) =>
           matchesIndustryScope(f.industryScope, tenantIndustry) &&
           (!q || f.title.toLowerCase().includes(q) || f.description?.toLowerCase().includes(q)),
@@ -131,7 +135,7 @@ export function TemplateHubContent({
 
   const filteredDocuments = useMemo(
     () =>
-      documents.filter(
+      filterDistributableDocumentTemplates(documents).filter(
         (d) =>
           matchesIndustryScope(d.industryScope, tenantIndustry) &&
           (!q || d.name.toLowerCase().includes(q) || d.description?.toLowerCase().includes(q)),

@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { fetchAuditDetail } from "@/server/queries/audit.queries";
+import { BCM_PATH, bcmAuditEditHref, isBcmReturnContext } from "@/lib/bcm-audit";
 
 type AuditDetailData = NonNullable<Awaited<ReturnType<typeof fetchAuditDetail>>>;
 
@@ -34,9 +35,10 @@ interface AuditDetailContentProps {
   initialData: AuditDetailData;
   auditId: string;
   locale: string;
+  from?: string | null;
 }
 
-export function AuditDetailContent({ initialData, auditId, locale }: AuditDetailContentProps) {
+export function AuditDetailContent({ initialData, auditId, locale, from }: AuditDetailContentProps) {
   const t = useTranslations("dashboardAuditDetailPage");
 
   const { data } = useQuery({
@@ -48,6 +50,7 @@ export function AuditDetailContent({ initialData, auditId, locale }: AuditDetail
   if (!data) return null;
 
   const { audit, leadAuditor, teamMembers, tenantUsers } = data;
+  const fromBcm = isBcmReturnContext(from, audit);
 
   const typeLabel = getAuditTypeLabel(audit.auditType);
   const typeColor = getAuditTypeColor(audit.auditType);
@@ -70,8 +73,8 @@ export function AuditDetailContent({ initialData, auditId, locale }: AuditDetail
     <div className="space-y-6">
       <div>
         <Button variant="ghost" asChild className="mb-4">
-          <Link href="/dashboard/audits">
-            <ArrowLeft className="mr-2 h-4 w-4" /> {t("actions.back")}
+          <Link href={fromBcm ? BCM_PATH : "/dashboard/audits"}>
+            <ArrowLeft className="mr-2 h-4 w-4" /> {fromBcm ? t("actions.backToBcm") : t("actions.back")}
           </Link>
         </Button>
         <div className="flex items-start justify-between">
@@ -90,7 +93,7 @@ export function AuditDetailContent({ initialData, auditId, locale }: AuditDetail
                 currentConclusion={audit.conclusion}
               />
             )}
-            <Link href={`/dashboard/audits/${audit.id}/edit`}>
+            <Link href={fromBcm ? bcmAuditEditHref(audit.id) : `/dashboard/audits/${audit.id}/edit`}>
               <Button variant="outline" size="sm">
                 <Edit className="mr-2 h-4 w-4" />
                 {t("actions.edit")}

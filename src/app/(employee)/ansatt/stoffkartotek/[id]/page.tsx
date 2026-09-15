@@ -167,6 +167,18 @@ export default async function AnsattChemicalDetailPage({ params }: { params: Pro
                 <p className="font-medium">{chemical.casNumber}</p>
               </div>
             )}
+            {chemical.gtin && (
+              <div>
+                <p className="text-sm text-muted-foreground">GTIN / EAN</p>
+                <p className="font-medium font-mono">{chemical.gtin}</p>
+              </div>
+            )}
+            {chemical.supplierProductCode && (
+              <div>
+                <p className="text-sm text-muted-foreground">Varenummer</p>
+                <p className="font-medium font-mono">{chemical.supplierProductCode}</p>
+              </div>
+            )}
 
 
             {chemical.location && (

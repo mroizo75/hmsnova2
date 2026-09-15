@@ -39,6 +39,7 @@ function normalizeDashboardWidgets(input: DashboardWidgetConfig[]): DashboardWid
   const seenIds = new Set<string>();
   const normalized = input
     .filter((widget) => typeof widget.id === "string" && widget.id.trim().length > 0)
+    .map((widget) => (widget.id === "beredskap" ? { ...widget, id: "bcm" } : widget))
     .filter((widget) => {
       if (seenIds.has(widget.id)) return false;
       seenIds.add(widget.id);

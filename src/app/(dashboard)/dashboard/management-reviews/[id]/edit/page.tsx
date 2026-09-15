@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Sparkles, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { WellbeingSummaryCard } from "@/components/wellbeing/wellbeing-summary-card";
 import {
@@ -49,6 +49,7 @@ export default function EditManagementReviewPage() {
   const [deleting, setDeleting] = useState(false);
   const [users, setUsers] = useState<TenantUser[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
+  const [loadingEnvPrefill, setLoadingEnvPrefill] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     period: "",
@@ -63,6 +64,7 @@ export default function EditManagementReviewPage() {
     resourcesReview: "",
     externalChanges: "",
     wellbeingSummary: "",
+    environmentSummary: "",
     conclusions: "",
     notes: "",
     nextReviewDate: "",
@@ -116,6 +118,7 @@ export default function EditManagementReviewPage() {
           resourcesReview: review.resourcesReview || "",
           externalChanges: review.externalChanges || "",
           wellbeingSummary: review.wellbeingSummary || "",
+          environmentSummary: review.environmentSummary || "",
           conclusions: review.conclusions || "",
           notes: review.notes || "",
           nextReviewDate: review.nextReviewDate
@@ -137,6 +140,33 @@ export default function EditManagementReviewPage() {
     fetchReview();
   }, [params.id, router, toast]);
 
+  const handlePrefillEnvironment = async () => {
+    setLoadingEnvPrefill(true);
+    try {
+      const response = await fetch("/api/management-reviews/prefill-data?months=3");
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Kunne ikke hente miljødata");
+      }
+      setFormData((prev) => ({
+        ...prev,
+        environmentSummary: data.data.environmentSummary || prev.environmentSummary,
+      }));
+      toast({
+        title: "Miljødata hentet",
+        description: "Oppsummeringen er fylt inn fra aspekter, målinger og miljømål. ISO 14001:2026 9.3.",
+      });
+    } catch (error: unknown) {
+      toast({
+        title: "Feil",
+        description: error instanceof Error ? error.message : "Kunne ikke hente miljødata",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingEnvPrefill(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -156,6 +186,7 @@ export default function EditManagementReviewPage() {
         resourcesReview: formData.resourcesReview,
         externalChanges: formData.externalChanges,
         wellbeingSummary: formData.wellbeingSummary,
+        environmentSummary: formData.environmentSummary,
         conclusions: formData.conclusions,
         notes: formData.notes,
       };
@@ -509,6 +540,42 @@ export default function EditManagementReviewPage() {
               <p className="text-xs text-muted-foreground">
                 Oppsummeringen kan redigeres manuelt om nødvendig
               </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Miljøprestasjon</CardTitle>
+            <CardDescription>
+              Input til ledelsens gjennomgåelse av miljøstyringssystemet (ISO 14001:2026 9.3)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={loadingEnvPrefill}
+              onClick={handlePrefillEnvironment}
+            >
+              {loadingEnvPrefill ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="mr-2 h-4 w-4" />
+              )}
+              Last inn miljødata
+            </Button>
+            <div className="space-y-2">
+              <Label htmlFor="environmentSummary">Oppsummering</Label>
+              <Textarea
+                id="environmentSummary"
+                value={formData.environmentSummary}
+                onChange={(e) =>
+                  setFormData({ ...formData, environmentSummary: e.target.value })
+                }
+                rows={10}
+                placeholder="Klikk «Last inn miljødata» for å generere oppsummering"
+              />
             </div>
           </CardContent>
         </Card>

@@ -42,20 +42,31 @@ export async function fetchSjaDetail(id: string) {
   if (!auth) return null;
   const { tenantId } = auth;
 
-  const analysis = await prisma.sjaAnalysis.findUnique({
-    where: { id, tenantId },
-    include: {
-      hazards: {
-        orderBy: { sortOrder: "asc" },
-        include: {
-          linkedRisk: { select: { id: true, title: true, score: true } },
+  const [analysis, tenant] = await Promise.all([
+    prisma.sjaAnalysis.findUnique({
+      where: { id, tenantId },
+      include: {
+        hazards: {
+          orderBy: { sortOrder: "asc" },
+          include: {
+            linkedRisk: { select: { id: true, title: true, score: true } },
+          },
+        },
+        attachments: true,
+        mocLinks: {
+          include: {
+            moc: { select: { id: true, number: true, title: true, status: true } },
+          },
         },
       },
-      attachments: true,
-    },
-  });
+    }),
+    prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { mocModuleEnabled: true },
+    }),
+  ]);
 
   if (!analysis) return null;
 
-  return JSON.parse(JSON.stringify(analysis));
+  return JSON.parse(JSON.stringify({ ...analysis, mocModuleEnabled: tenant?.mocModuleEnabled ?? false }));
 }

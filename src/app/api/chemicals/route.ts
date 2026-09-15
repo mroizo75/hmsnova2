@@ -3,6 +3,7 @@ import { ChemicalStatus } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
 import { getRequiredTenantContext } from "@/lib/tenant-context";
+import { readChemicalIdentity } from "@/lib/chemical-product-identity";
 
 const managerRoles = new Set(["ADMIN", "LEDER", "HMS"]);
 const allowedStatuses = new Set<ChemicalStatus>(["ACTIVE", "PHASED_OUT", "ARCHIVED"]);
@@ -111,6 +112,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "productName er obligatorisk" }, { status: 400 });
     }
 
+    let identity;
+    try {
+      identity = readChemicalIdentity(payload);
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Ugyldig produktidentitet" },
+        { status: 400 },
+      );
+    }
+
     const statusValue =
       typeof payload.status === "string" ? parseStatus(payload.status) ?? "ACTIVE" : "ACTIVE";
 
@@ -120,6 +131,8 @@ export async function POST(request: NextRequest) {
         productName,
         supplier: typeof payload.supplier === "string" ? payload.supplier.trim() || null : null,
         casNumber: typeof payload.casNumber === "string" ? payload.casNumber.trim() || null : null,
+        gtin: identity.gtin,
+        supplierProductCode: identity.supplierProductCode,
         hazardClass: typeof payload.hazardClass === "string" ? payload.hazardClass.trim() || null : null,
         hazardStatements:
           typeof payload.hazardStatements === "string" ? payload.hazardStatements.trim() || null : null,
