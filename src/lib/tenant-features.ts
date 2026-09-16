@@ -74,6 +74,8 @@ const INDUSTRY_SCOPE_MAP: Record<string, string[]> = {
   eiendom: ["GENERELL", "EIENDOM"],
   education: ["GENERELL", "IT"],
   fiskeri: ["GENERELL", "OFFSHORE"],
+  automotive: ["GENERELL", "INDUSTRI"],
+  bilverksted: ["GENERELL", "INDUSTRI"],
 };
 
 /** Bransjekoder som brukes på hendelses-underkategorier, inkl. RUH-modus. */

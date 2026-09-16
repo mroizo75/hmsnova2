@@ -8,6 +8,42 @@ import { seedIncidentSubcategories } from "./seed-incident-subcategories";
 
 const prisma = new PrismaClient();
 
+type SeedFormFieldRow = {
+  fieldType: "TEXT" | "TEXTAREA" | "NUMBER" | "DATE" | "DATETIME" | "PROJECT" | "CHECKBOX" | "RADIO" | "SELECT" | "FILE" | "SIGNATURE" | "LIKERT_SCALE" | "SECTION_HEADER";
+  label: string;
+  helpText: string | null;
+  placeholder: string | null;
+  isRequired: boolean;
+  order: number;
+  options: string | null;
+};
+
+/** FormFieldValue har ON DELETE RESTRICT – verdier må vekk før felt kan erstattes. */
+async function replaceFormTemplateFields(formTemplateId: string, fields: SeedFormFieldRow[]) {
+  const existingFields = await prisma.formField.findMany({
+    where: { formTemplateId },
+    select: { id: true },
+  });
+  const fieldIds = existingFields.map((field) => field.id);
+  if (fieldIds.length > 0) {
+    await prisma.formFieldValue.deleteMany({
+      where: { fieldId: { in: fieldIds } },
+    });
+  }
+  await prisma.formField.deleteMany({
+    where: { formTemplateId },
+  });
+  if (fields.length === 0) {
+    return;
+  }
+  await prisma.formField.createMany({
+    data: fields.map((field) => ({
+      formTemplateId,
+      ...field,
+    })),
+  });
+}
+
 async function ensureAgricultureLegalReferences() {
   const agriculturePackage = getIndustryPackage("agriculture");
   if (!agriculturePackage) {
@@ -1830,6 +1866,7 @@ async function main() {
   console.log("🔒 Varslinger:               1 (med 4 meldinger)");
   console.log("💬 Tilbakemeldinger:         4");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  await seedEmptyAutomotiveWorkshop();
   console.log("\n📝 Test pålogginger:");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.log("🛡️  Superadmin:     superadmin@hmsnova.com / superadmin123");
@@ -1843,6 +1880,9 @@ async function main() {
   console.log("🔒 Varsling:       varsling@test.no / varsling123");
   console.log("🏥 BHT:            bht@test.no / bht123");
   console.log("📋 Revisor:        revisor@test.no / revisor123");
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  console.log("🔧 Test Bilverksted: admin@bilverksted.test / verksted123");
+  console.log("   (tom tenant – kjør veiviseren fra /dashboard/welcome)");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.log("\n🔗 Varslingssiden for Test Bedrift AS:");
   console.log("   https://hmsnova.com/varsling/test-bedrift");
@@ -2292,22 +2332,7 @@ async function seedGlobalInspectionTemplates(createdById: string) {
         },
       });
 
-      await prisma.formField.deleteMany({
-        where: { formTemplateId: existingFormTemplate.id },
-      });
-
-      await prisma.formField.createMany({
-        data: formFields.map((field) => ({
-          formTemplateId: existingFormTemplate.id,
-          fieldType: field.fieldType,
-          label: field.label,
-          helpText: field.helpText,
-          placeholder: field.placeholder,
-          isRequired: field.isRequired,
-          order: field.order,
-          options: field.options,
-        })),
-      });
+      await replaceFormTemplateFields(existingFormTemplate.id, formFields);
     } else {
       await prisma.formTemplate.create({
         data: {
@@ -2379,16 +2404,7 @@ async function seedGlobalFormTemplateLibrary(createdById: string) {
         },
       });
 
-      await prisma.formField.deleteMany({
-        where: { formTemplateId: existing.id },
-      });
-
-      await prisma.formField.createMany({
-        data: fieldRows.map((row) => ({
-          formTemplateId: existing.id,
-          ...row,
-        })),
-      });
+      await replaceFormTemplateFields(existing.id, fieldRows);
     } else {
       await prisma.formTemplate.create({
         data: {
@@ -2460,6 +2476,82 @@ async function seedGlobalRoutineTemplates() {
   }
 
   console.log(`✅ Globale rutinemaler oppdatert: ${created} opprettet, ${updated} oppdatert`);
+}
+
+async function seedEmptyAutomotiveWorkshop() {
+  if (process.env.NODE_ENV === "production") {
+    return;
+  }
+
+  const existing = await prisma.tenant.findUnique({
+    where: { slug: "test-bilverksted" },
+    select: { id: true },
+  });
+
+  if (existing) {
+    await prisma.tenant.delete({ where: { id: existing.id } });
+    console.log("♻️  Slettet eksisterende Test Bilverksted AS (cascade) for ny veiviser-test");
+  }
+
+  const workshopTenant = await prisma.tenant.create({
+    data: {
+      name: "Test Bilverksted AS",
+      orgNumber: "998877665",
+      slug: "test-bilverksted",
+      status: "ACTIVE",
+      industry: null,
+      subIndustry: null,
+      startpakkeCompleted: false,
+      setupGuideHidden: false,
+      onboardingStatus: "NOT_STARTED",
+      contactEmail: "post@testbilverksted.no",
+      contactPhone: "99887766",
+      address: "Verkstedveien 1",
+      city: "Oslo",
+      postalCode: "0150",
+      subscription: {
+        create: {
+          plan: "PROFESSIONAL",
+          price: 1990,
+          billingInterval: "MONTHLY",
+          status: "ACTIVE",
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+      },
+    },
+  });
+
+  const hashedPassword = await bcrypt.hash("verksted123", 10);
+  const workshopAdmin = await prisma.user.upsert({
+    where: { email: "admin@bilverksted.test" },
+    update: {
+      password: hashedPassword,
+      emailVerified: new Date(),
+      failedLoginAttempts: 0,
+      lockedUntil: null,
+    },
+    create: {
+      email: "admin@bilverksted.test",
+      name: "Verksted Admin",
+      password: hashedPassword,
+      emailVerified: new Date(),
+    },
+  });
+
+  await prisma.userTenant.upsert({
+    where: {
+      userId_tenantId: { userId: workshopAdmin.id, tenantId: workshopTenant.id },
+    },
+    update: { role: "ADMIN" },
+    create: {
+      userId: workshopAdmin.id,
+      tenantId: workshopTenant.id,
+      role: "ADMIN",
+    },
+  });
+
+  console.log("✅ Tom test-tenant opprettet:", workshopTenant.name, "–", workshopAdmin.email);
 }
 
 main()

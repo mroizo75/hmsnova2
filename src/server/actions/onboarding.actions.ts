@@ -13,6 +13,7 @@ import { createOnboardingInvoice } from "@/server/actions/invoice.actions";
 import { getBindingPrice } from "@/lib/subscription";
 import { provisionIndustryPackage } from "@/server/actions/industry-provision.actions";
 import { BASE_SIMPLE_MODULES, BRANSJE_MODULES } from "@/lib/bransje-modules";
+import { serializeWorkshopTypes } from "@/lib/automotive-workshop-types";
 import { menuPathsToWidgetIds } from "@/lib/menu-widget-sync";
 import type { Role } from "@prisma/client";
 
@@ -67,20 +68,20 @@ export type SetupGuideProgress = {
 const completeStartpakkeSchema = z.object({
   tenantId: z.string().min(1),
   bransje: z.string().min(1),
+  subIndustry: z.array(z.string()).optional(),
 });
 
 // ── Actions ──────────────────────────────────────────────────────────────────
 
 /**
  * Fullfør startpakke-wizard.
- * Setter simpleMenuItems basert på bransjevalg, markerer startpakkeCompleted = true.
- * Fyller IKKE inn innhold – bedriften gjør det selv.
+ * Setter simpleMenuItems basert på bransjevalg og provisjonerer bransjepakke.
  */
 export async function completeStartpakkeSetup(
   input: z.infer<typeof completeStartpakkeSchema>
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { tenantId, bransje } = completeStartpakkeSchema.parse(input);
+    const { tenantId, bransje, subIndustry } = completeStartpakkeSchema.parse(input);
 
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || session.user.tenantId !== tenantId) {
@@ -97,19 +98,30 @@ export async function completeStartpakkeSetup(
       return { success: false, error: "Ukjent bransje" };
     }
 
+    const serializedSubIndustry =
+      bransje === "automotive" ? serializeWorkshopTypes(subIndustry ?? []) : undefined;
+
     await prisma.tenant.update({
       where: { id: tenantId },
       data: {
         simpleMenuItems: bransjeConfig.modules,
-        startpakkeCompleted: true,
         industry: bransje,
         onboardingStatus: "IN_PROGRESS",
         setupGuideHidden: false,
+        ...(serializedSubIndustry !== undefined ? { subIndustry: serializedSubIndustry } : {}),
       },
     });
 
-    // Opprett DashboardConfig for admin-brukeren basert på bransje.
-    // Flisene speiler enkel meny ved oppstart.
+    const provisionResult = await provisionIndustryPackage(tenantId);
+    if (!provisionResult.success) {
+      return { success: false, error: provisionResult.error || "Kunne ikke aktivere bransjepakke" };
+    }
+
+    await prisma.tenant.update({
+      where: { id: tenantId },
+      data: { startpakkeCompleted: true },
+    });
+
     const widgetIds = menuPathsToWidgetIds(bransjeConfig.modules);
     await prisma.dashboardConfig.upsert({
       where: {

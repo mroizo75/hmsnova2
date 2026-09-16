@@ -4,10 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Hotel,
-  UtensilsCrossed,
   Mountain,
   Bus,
   Building2,
@@ -35,12 +34,15 @@ import {
   ShoppingCart,
   Tractor,
   Monitor,
+  Wrench,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { completeStartpakkeSetup, skipStartpakke } from "@/server/actions/onboarding.actions";
 import { BRANSJE_MODULES } from "@/lib/bransje-modules";
+import { AUTOMOTIVE_WORKSHOP_TYPES } from "@/lib/automotive-workshop-types";
 
 type Bransje = string;
+type WizardStep = 1 | 2 | 3;
 
 const BRANSJE_OPTIONS: { id: string; label: string; description: string; icon: React.ReactNode }[] = [
   { id: "construction", label: "Bygg og anlegg", description: "Byggeplasser, entreprenører, håndverkere og anleggsarbeid", icon: <Hammer className="h-6 w-6" /> },
@@ -56,6 +58,7 @@ const BRANSJE_OPTIONS: { id: string; label: string; description: string; icon: R
   { id: "aktivitet", label: "Aktivitet og opplevelse", description: "Aktivitetsparker, guider, sport og friluftsliv", icon: <Mountain className="h-6 w-6" /> },
   { id: "transport", label: "Transport og logistikk", description: "Busser, båter, taxier, gods og reisearrangører", icon: <Bus className="h-6 w-6" /> },
   { id: "manufacturing", label: "Industri og produksjon", description: "Fabrikker, produksjonsanlegg og verksted", icon: <Factory className="h-6 w-6" /> },
+  { id: "automotive", label: "Bilverksted og kjøretøy", description: "Mekanisk, skade/lakk, EU-kontroll, dekk og elbil", icon: <Wrench className="h-6 w-6" /> },
   { id: "retail", label: "Handel og service", description: "Butikker, kjeder, service og kundebehandling", icon: <ShoppingCart className="h-6 w-6" /> },
   { id: "agriculture", label: "Landbruk", description: "Gårdsdrift, skogbruk, dyrehold og planteproduksjon", icon: <Tractor className="h-6 w-6" /> },
   { id: "technology", label: "Teknologi og IT", description: "Programvare, IT-drift, konsulentvirksomhet og kontor", icon: <Monitor className="h-6 w-6" /> },
@@ -80,6 +83,9 @@ const MODULE_LABELS: Record<string, string> = {
   "/dashboard/inspections": "Vernerunde",
   "/dashboard/fire-drills": "Brannøvelser",
   "/dashboard/chemicals": "Stoffkartotek",
+  "/dashboard/exposure-register": "Eksponeringsregister",
+  "/dashboard/environment": "Ytre miljø",
+  "/dashboard/complaints": "Kundeklage og kvalitet",
   "/dashboard/ik-mat": "IK-mat og mattrygghet",
   "/dashboard/skjenking": "Internkontroll skjenking",
   "/dashboard/sja": "SJA",
@@ -99,26 +105,55 @@ const CORE_MODULES = [
   "/dashboard/inspections",
 ];
 
+const DEFAULT_AUTOMOTIVE_TYPES = ["mekanisk", "elbil"];
+
 interface StartpakkeWizardProps {
   tenantId: string;
   tenantName: string;
 }
 
 export function StartpakkeWizard({ tenantId, tenantName }: StartpakkeWizardProps) {
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<WizardStep>(1);
   const [selectedBransje, setSelectedBransje] = useState<Bransje | null>(null);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(DEFAULT_AUTOMOTIVE_TYPES);
   const [loading, setLoading] = useState(false);
   const [skipping, setSkipping] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
+  const isAutomotive = selectedBransje === "automotive";
+
+  function toggleType(value: string) {
+    setSelectedTypes((current) =>
+      current.includes(value) ? current.filter((item) => item !== value) : [...current, value]
+    );
+  }
+
+  function goNextFromBransje() {
+    if (!selectedBransje) return;
+    setStep(isAutomotive ? 2 : 3);
+  }
+
   async function handleComplete() {
     if (!selectedBransje) return;
+    if (isAutomotive && selectedTypes.length === 0) {
+      toast({ title: "Velg minst én type", description: "Huk av hva verkstedet gjør.", variant: "destructive" });
+      return;
+    }
     setLoading(true);
-    const result = await completeStartpakkeSetup({ tenantId, bransje: selectedBransje });
+    const result = await completeStartpakkeSetup({
+      tenantId,
+      bransje: selectedBransje,
+      subIndustry: isAutomotive ? selectedTypes : undefined,
+    });
     setLoading(false);
     if (result.success) {
-      toast({ title: "Oppsett fullført!", description: "HMS-systemet ditt er klart til bruk." });
+      toast({
+        title: "Oppsett fullført!",
+        description: isAutomotive
+          ? "Startpakken er aktivert. Teknisk leder: sjekk neste steg i årshjulet."
+          : "HMS-systemet ditt er klart til bruk.",
+      });
       router.push("/dashboard/hms-handbok");
       router.refresh();
     } else {
@@ -135,11 +170,13 @@ export function StartpakkeWizard({ tenantId, tenantName }: StartpakkeWizardProps
   }
 
   const activeModules = selectedBransje ? BRANSJE_MODULES[selectedBransje]?.modules ?? [] : [];
+  const optionalLabels = AUTOMOTIVE_WORKSHOP_TYPES.filter((item) => selectedTypes.includes(item.value)).map(
+    (item) => item.label
+  );
 
   return (
     <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl">
-        {/* Logo + progress */}
         <div className="mb-6 text-center">
           <div className="flex items-center justify-center gap-3 mb-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-black text-lg">
@@ -147,14 +184,24 @@ export function StartpakkeWizard({ tenantId, tenantName }: StartpakkeWizardProps
             </div>
             <span className="text-xl font-bold">HMS Nova</span>
           </div>
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground flex-wrap">
             <span className={step === 1 ? "text-primary font-medium" : ""}>1. Velg bransje</span>
-            <ChevronRight className="h-3 w-3" />
-            <span className={step === 2 ? "text-primary font-medium" : ""}>2. Bekreft oppsett</span>
+            {isAutomotive || step === 2 ? (
+              <>
+                <ChevronRight className="h-3 w-3" />
+                <span className={step === 2 ? "text-primary font-medium" : ""}>2. Hva gjør dere</span>
+                <ChevronRight className="h-3 w-3" />
+                <span className={step === 3 ? "text-primary font-medium" : ""}>3. Bekreft</span>
+              </>
+            ) : (
+              <>
+                <ChevronRight className="h-3 w-3" />
+                <span className={step === 3 ? "text-primary font-medium" : ""}>2. Bekreft oppsett</span>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Steg 1: Bransjevalg */}
         {step === 1 && (
           <Card>
             <CardHeader>
@@ -197,7 +244,7 @@ export function StartpakkeWizard({ tenantId, tenantName }: StartpakkeWizardProps
                   Hopp over
                 </Button>
                 <Button
-                  onClick={() => setStep(2)}
+                  onClick={goNextFromBransje}
                   disabled={!selectedBransje}
                   className="gap-2"
                 >
@@ -209,19 +256,76 @@ export function StartpakkeWizard({ tenantId, tenantName }: StartpakkeWizardProps
           </Card>
         )}
 
-        {/* Steg 2: Bekreft */}
-        {step === 2 && selectedBransje && (
+        {step === 2 && isAutomotive && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">Hva gjør verkstedet?</CardTitle>
+              <CardDescription>
+                Huk av det som passer. Kjernen (løfter, avvik, kjemikalier, kvalitetsstyring) aktiveres for alle.
+                Lakk, EU-kontroll og høyvolt-SJA kommer kun for det du huker av. Resten ligger i malbiblioteket.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {AUTOMOTIVE_WORKSHOP_TYPES.map((item) => {
+                const checked = selectedTypes.includes(item.value);
+                return (
+                  <label
+                    key={item.value}
+                    className={`flex items-start gap-3 rounded-lg border p-4 cursor-pointer transition-colors hover:bg-muted/50 ${
+                      checked ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border"
+                    }`}
+                  >
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={() => toggleType(item.value)}
+                      className="mt-0.5"
+                    />
+                    <span>
+                      <span className="block font-medium">{item.label}</span>
+                      <span className="block text-sm text-muted-foreground">{item.description}</span>
+                    </span>
+                  </label>
+                );
+              })}
+              <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
+                Bilverksted (NACE 45.2) er BHT-pliktig. Avtal bedriftshelsetjeneste og helseundersøkelse ved støy/kjemikalier.
+              </p>
+              <div className="flex items-center justify-between pt-2">
+                <Button variant="outline" onClick={() => setStep(1)} className="gap-2">
+                  <ChevronLeft className="h-4 w-4" />
+                  Tilbake
+                </Button>
+                <Button onClick={() => setStep(3)} disabled={selectedTypes.length === 0} className="gap-2">
+                  Neste
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {step === 3 && selectedBransje && (
           <Card>
             <CardHeader>
               <CardTitle className="text-xl">Din startpakke er klar</CardTitle>
               <CardDescription>
                 Disse modulene aktiveres i menyen for{" "}
                 <strong>{BRANSJE_OPTIONS.find((b) => b.id === selectedBransje)?.label}</strong>.
-                Alt innhold starter tomt – du fyller inn risikovurderinger, rutiner og mer selv.
+                {isAutomotive
+                  ? " Vi fyller inn kjerne-rutiner, risiko, SJA og sjekklister tilpasset valgte verkstedtyper. Resten henter du fra malbiblioteket."
+                  : " Alt innhold starter tomt – du fyller inn risikovurderinger, rutiner og mer selv."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Kjernemoduler */}
+              {isAutomotive && optionalLabels.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                    Valgte verkstedtyper
+                  </p>
+                  <p className="text-sm">{optionalLabels.join(", ")}</p>
+                </div>
+              )}
+
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
                   Kjernemoduler
@@ -240,7 +344,6 @@ export function StartpakkeWizard({ tenantId, tenantName }: StartpakkeWizardProps
                 </div>
               </div>
 
-              {/* Bransje-spesifikke */}
               {activeModules.filter((m) => !CORE_MODULES.includes(m) && m !== "/dashboard/settings" && m !== "/dashboard/annual-hms-plan").length > 0 && (
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
@@ -254,20 +357,37 @@ export function StartpakkeWizard({ tenantId, tenantName }: StartpakkeWizardProps
                           <span className="text-muted-foreground">
                             {MODULE_ICONS[m] ?? <Check className="h-4 w-4" />}
                           </span>
-                          <span className="text-sm">{MODULE_LABELS[m] ?? m}</span>
+                          <span className="text-sm">
+                            {selectedBransje === "automotive" && m === "/dashboard/annual-hms-plan"
+                              ? "Hold verkstedet godkjent"
+                              : MODULE_LABELS[m] ?? m}
+                          </span>
                         </div>
                       ))}
                   </div>
                 </div>
               )}
 
-              <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
-                Andre moduler (revisjon, ISO-rapporter, benchmark m.m.) er tilgjengelige i innstillinger
-                når du er klar for mer.
-              </p>
+              {isAutomotive && (
+                <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
+                  Neste steg denne uken: teknisk leder gjennomgår roller, billøfter-opplæring og kalibreringsstatus.
+                  Årshjulet heter «Hold verkstedet godkjent» og dekker både Arbeidstilsynet og Statens vegvesen.
+                </p>
+              )}
+
+              {!isAutomotive && (
+                <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
+                  Andre moduler (revisjon, ISO-rapporter, benchmark m.m.) er tilgjengelige i innstillinger
+                  når du er klar for mer.
+                </p>
+              )}
 
               <div className="flex items-center justify-between pt-2">
-                <Button variant="outline" onClick={() => setStep(1)} className="gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setStep(isAutomotive ? 2 : 1)}
+                  className="gap-2"
+                >
                   <ChevronLeft className="h-4 w-4" />
                   Tilbake
                 </Button>

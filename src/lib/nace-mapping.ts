@@ -144,6 +144,13 @@ const naceToSubIndustry: Record<string, string> = {
   "85.59": "annen_undervisning",
   "85.60": "utdanningsstoette",
 
+  // Bilverksted og kjøretøy (NACE 45.2 / 45.403 – BHT-plikt)
+  "45.20": "mekanisk",
+  "45.201": "mekanisk",
+  "45.202": "mekanisk",
+  "45.40": "motorsykkel",
+  "45.403": "motorsykkel",
+
   // Personlig tjenesteyting
   "96.01": "vaskeri",
   "96.02": "frisor",

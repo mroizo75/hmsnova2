@@ -171,6 +171,18 @@ export const BRANSJE_MODULES: Record<
       "/dashboard/exposure-register",
     ],
   },
+  automotive: {
+    label: "Bilverksted og kjøretøy",
+    description: "Mekanisk, skade/lakk, EU-kontroll, dekk og elbil",
+    modules: [
+      ...BASE_SIMPLE_MODULES,
+      "/dashboard/sja",
+      "/dashboard/chemicals",
+      "/dashboard/exposure-register",
+      "/dashboard/environment",
+      "/dashboard/complaints",
+    ],
+  },
   retail: {
     label: "Handel og service",
     description: "Butikker, kjeder, service og kundebehandling",

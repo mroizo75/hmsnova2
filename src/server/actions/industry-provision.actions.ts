@@ -3,6 +3,11 @@
 import { prisma } from "@/lib/db";
 import { getIndustryPackage } from "@/lib/industry-packages";
 import { matchesIndustryScope } from "@/lib/industry-scope";
+import {
+  itemMatchesSelectedWorkshopTypes,
+  parseWorkshopTypes,
+  routineScopeMatchesAutomotiveProvision,
+} from "@/lib/automotive-workshop-types";
 import { ensureGlobalRoutineTemplateLibrarySeeded } from "@/server/actions/routine-library.actions";
 
 interface ProvisionIndustryPackageResult {
@@ -25,6 +30,7 @@ export async function provisionIndustryPackage(
       select: {
         id: true,
         industry: true,
+        subIndustry: true,
         simpleMenuItems: true,
       },
     });
@@ -63,6 +69,23 @@ export async function provisionIndustryPackage(
 
     const currentYear = new Date().getFullYear();
     const assessmentTitle = `${packageConfig.displayName} risikovurdering ${currentYear}`;
+    const selectedWorkshopTypes =
+      packageConfig.industry === "automotive" ? parseWorkshopTypes(tenant.subIndustry) : [];
+    const risksToProvision = packageConfig.risks.filter((risk) =>
+      itemMatchesSelectedWorkshopTypes(risk.workshopTypes, selectedWorkshopTypes)
+    );
+    const sjaToProvision = packageConfig.sjaTemplates.filter((template) =>
+      itemMatchesSelectedWorkshopTypes(template.workshopTypes, selectedWorkshopTypes)
+    );
+    const inspectionsToProvision = packageConfig.inspectionTemplates.filter((template) =>
+      itemMatchesSelectedWorkshopTypes(template.workshopTypes, selectedWorkshopTypes)
+    );
+    const coursesToProvision = packageConfig.courseTemplates.filter((course) =>
+      itemMatchesSelectedWorkshopTypes(course.workshopTypes, selectedWorkshopTypes)
+    );
+    const exposureAgentsToProvision = (packageConfig.exposureAgents ?? []).filter((agent) =>
+      itemMatchesSelectedWorkshopTypes(agent.workshopTypes, selectedWorkshopTypes)
+    );
 
     await prisma.$transaction(async (tx) => {
       let assessment = await tx.riskAssessment.findFirst({
@@ -85,7 +108,7 @@ export async function provisionIndustryPackage(
         });
       }
 
-      for (const risk of packageConfig.risks) {
+      for (const risk of risksToProvision) {
         const existingRisk = await tx.risk.findFirst({
           where: {
             tenantId,
@@ -114,7 +137,7 @@ export async function provisionIndustryPackage(
         }
       }
 
-      for (const template of packageConfig.sjaTemplates) {
+      for (const template of sjaToProvision) {
         const existingTemplate = await tx.sjaTemplate.findFirst({
           where: {
             tenantId,
@@ -148,7 +171,7 @@ export async function provisionIndustryPackage(
         }
       }
 
-      for (const inspectionTemplate of packageConfig.inspectionTemplates) {
+      for (const inspectionTemplate of inspectionsToProvision) {
         const existingInspectionTemplate = await tx.inspectionTemplate.findFirst({
           where: {
             tenantId,
@@ -180,7 +203,7 @@ export async function provisionIndustryPackage(
         }
       }
 
-      for (const course of packageConfig.courseTemplates) {
+      for (const course of coursesToProvision) {
         const existingCourseTemplate = await tx.courseTemplate.findFirst({
           where: {
             tenantId,
@@ -200,6 +223,31 @@ export async function provisionIndustryPackage(
               validityYears: course.validityYears,
               isGlobal: false,
               isActive: true,
+            },
+          });
+        }
+      }
+
+      for (const agent of exposureAgentsToProvision) {
+        const existingChemical = await tx.chemical.findFirst({
+          where: {
+            tenantId,
+            productName: agent.productName,
+          },
+          select: { id: true },
+        });
+
+        if (!existingChemical) {
+          await tx.chemical.create({
+            data: {
+              tenantId,
+              productName: agent.productName,
+              casNumber: agent.casNumber ?? null,
+              hazardClass: agent.hazardClass ?? null,
+              notes: agent.notes,
+              containsIsocyanates: agent.containsIsocyanates ?? false,
+              isCMR: agent.isCMR ?? false,
+              status: "ACTIVE",
             },
           });
         }
@@ -261,7 +309,12 @@ export async function provisionIndustryPackage(
     });
 
     // Provisjoner rutinemaler som faktiske Routine-poster for tenanten
-    await provisionRoutinesForTenant(tenantId, packageConfig.industry, ownerCandidate.userId);
+    await provisionRoutinesForTenant(
+      tenantId,
+      packageConfig.industry,
+      ownerCandidate.userId,
+      tenant.subIndustry
+    );
 
     return {
       success: true,
@@ -284,7 +337,8 @@ export async function provisionIndustryPackage(
 async function provisionRoutinesForTenant(
   tenantId: string,
   industry: string,
-  createdByUserId: string
+  createdByUserId: string,
+  subIndustry?: string | null
 ): Promise<void> {
   await ensureGlobalRoutineTemplateLibrarySeeded();
 
@@ -301,9 +355,15 @@ async function provisionRoutinesForTenant(
     },
   });
 
-  const matchingTemplates = globalTemplates.filter((tpl) =>
-    matchesIndustryScope(tpl.industryScope, industry)
-  );
+  const selectedWorkshopTypes =
+    industry === "automotive" ? parseWorkshopTypes(subIndustry) : [];
+
+  const matchingTemplates = globalTemplates.filter((tpl) => {
+    if (industry === "automotive") {
+      return routineScopeMatchesAutomotiveProvision(tpl.industryScope, selectedWorkshopTypes);
+    }
+    return matchesIndustryScope(tpl.industryScope, industry);
+  });
 
   for (const template of matchingTemplates) {
     const exists = await prisma.routine.findFirst({

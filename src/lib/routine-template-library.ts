@@ -2067,11 +2067,14 @@ const hotelRestaurantTemplates: RoutineTemplateLibraryEntry[] = [
   },
 ];
 
+import { AUTOMOTIVE_ROUTINE_TEMPLATES } from "@/lib/automotive-routines";
+
 export const GLOBAL_ROUTINE_TEMPLATE_LIBRARY: ReadonlyArray<RoutineTemplateLibraryEntry> = [
   ...commonTemplates,
   ...industrySpecificTemplates,
   ...newIndustryTemplates,
   ...hotelRestaurantTemplates,
+  ...AUTOMOTIVE_ROUTINE_TEMPLATES,
 ];
 
 export function getGlobalRoutineTemplateLibrary(): RoutineTemplateLibraryEntry[] {

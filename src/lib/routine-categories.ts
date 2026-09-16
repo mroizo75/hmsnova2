@@ -23,6 +23,8 @@ const CATEGORY_LABELS_NB: Record<string, string> = {
   ALENEARBEID: "Alenearbeid",
   PERSONVERN: "Personvern",
   MILJO: "Ytre miljø",
+  BILVERKSTED: "Bilverksted – HMS",
+  KVALITET_SVV: "Kvalitet (Statens vegvesen)",
 };
 
 export function getRoutineCategoryLabel(category: string | null | undefined): string {

@@ -12,6 +12,7 @@ export interface AnnualHmsPlanStep {
   order: number;
   href: string | null;
   legalRef?: string;
+  industries?: string[];
 }
 
 export const ANNUAL_HMS_PLAN_STEPS: AnnualHmsPlanStep[] = [
@@ -191,6 +192,40 @@ export const ANNUAL_HMS_PLAN_STEPS: AnnualHmsPlanStep[] = [
     order: 19,
     href: "/dashboard/medarbeidersamtale",
     legalRef: "GDPR art. 5 (konfidensialitet og dokumentasjon)",
+  },
+
+  {
+    key: "automotive_svv_quality",
+    title: "Hold verkstedet godkjent – SVV § 16 gjennomgått",
+    description:
+      "Teknisk leder har gjennomgått roller, kompetanse, arbeidsprosedyre, stikkprøver, kalibrering og avvik/kundeklage. Attester er gyldige.",
+    category: "kontroll",
+    order: 20,
+    href: "/dashboard/inspections",
+    legalRef: "Verkstedforskriften §§ 15–17",
+    industries: ["automotive"],
+  },
+  {
+    key: "automotive_exposure_register",
+    title: "Eksponeringsregister oppdatert (60 år)",
+    description:
+      "Ansatte eksponert for dieseleksos, sveiserøyk, mineralolje, løsemidler og diisocyanater er registrert. FuA kap. 31.",
+    category: "personell",
+    order: 21,
+    href: "/dashboard/exposure-register",
+    legalRef: "FuA kap. 31",
+    industries: ["automotive"],
+  },
+  {
+    key: "automotive_lift_training",
+    title: "Billøfter-opplæring dokumentert",
+    description:
+      "Alle som bruker løfter har dokumentert og utstyrsspesifikk opplæring (FuA §§ 10-2 og 10-4).",
+    category: "opplæring",
+    order: 22,
+    href: "/dashboard/training",
+    legalRef: "FuA §§ 10-2 og 10-4",
+    industries: ["automotive"],
   },
 ];
 

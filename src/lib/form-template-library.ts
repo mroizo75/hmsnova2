@@ -1,4 +1,5 @@
 import type { FieldType, FormCategory } from "@prisma/client";
+import { AUTOMOTIVE_FORM_TEMPLATES } from "@/lib/automotive-forms";
 
 /** Globale skjemamaler med bransje-scope (JSON i FormTemplate.industryScope). */
 export interface FormTemplateLibraryFieldDef {
@@ -1102,5 +1103,6 @@ export function getGlobalFormTemplateLibrary(): FormTemplateLibraryEntry[] {
     ...agricultureTemplates,
     ...otherTemplates,
     ...inspectionTemplates,
+    ...AUTOMOTIVE_FORM_TEMPLATES,
   ];
 }

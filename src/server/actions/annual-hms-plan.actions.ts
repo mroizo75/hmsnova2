@@ -59,6 +59,15 @@ export async function getAnnualPlanChecklist(
   year: number
 ): Promise<{ success: true; data: AnnualPlanChecklistData } | { success: false; error: string }> {
   try {
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { industry: true },
+    });
+    const industry = (tenant?.industry ?? "").trim().toLowerCase();
+    const applicableSteps = ANNUAL_HMS_PLAN_STEPS.filter(
+      (step) => !step.industries || step.industries.includes(industry)
+    );
+
     const completions = await prisma.hmsAnnualPlanCompletion.findMany({
       where: { tenantId, year },
     });
@@ -73,7 +82,7 @@ export async function getAnnualPlanChecklist(
       ])
     );
 
-    const steps: AnnualPlanStepWithCompletion[] = ANNUAL_HMS_PLAN_STEPS.map((step) => {
+    const steps: AnnualPlanStepWithCompletion[] = applicableSteps.map((step) => {
       const c = completionByKey.get(step.key);
       return {
         ...step,

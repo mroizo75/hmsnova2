@@ -570,6 +570,64 @@ const INDUSTRY_OVERRIDES: Record<string, Partial<Record<string, string>>> = {
 </ul>`,
   },
 
+  automotive: {
+    s2: `${UNIVERSAL_CONTENT.s2}
+<h3>Teknisk leder (verkstedforskriften §§ 10–11 og § 16 a)</h3>
+<p>Teknisk leder fører tilsyn med at kvalitetsstyringssystemet følges i praksis, jf. verkstedforskriften § 16. Rollen krever fagbrev/praksis etter §§ 10–11. Teknisk leder er navngitt i kompetansemodulen og i organisasjonskartet.</p>
+<h3>Stedfortreder</h3>
+<p>Stedfortreder trer inn når teknisk leder ikke er til stede, med samme kompetansekrav etter verkstedforskriften §§ 10–11. Navn og kompetanse dokumenteres i HMS Nova → Kompetanse.</p>
+<h3>Mekaniker og lærling</h3>
+<p>Mekaniker utfører reparasjon etter produsentanvisning og egenkontroll før utlevering (§ 16 d). Lærling og unge under 18 arbeider under tilsyn, jf. OLM kap. 12. De skal ikke arbeide alene med høyvolt eller visse kjemikalier.</p>`,
+    s2c: `${UNIVERSAL_CONTENT.s2c}
+<h4>Bransjespesifikk lovgivning – Bilverksted</h4>
+<ul>
+  <li><strong>Verkstedforskriften</strong> FOR-2020-10-28-2170 §§ 15–17 — Kvalitetsstyring (SVV). 1978-forskriften er opphevet.</li>
+  <li><strong>Arbeidsplassforskriften §§ 7-1–7-3</strong> — Ventilasjon og eksosavsug</li>
+  <li><strong>Forskrift om utførelse av arbeid</strong> kap. 3, 5, 10, 12, 14 og 31 — Kjemikalier, sveising, løfter, støy, eksponeringsregister</li>
+  <li><strong>Forskrift om tiltaks- og grenseverdier</strong> — Dieseleksos 0,05 mg/m³ EC (K/G)</li>
+  <li><strong>BHT-plikt</strong> — NACE 45.2 og 45.403</li>
+  <li><strong>Avfallsforskriften</strong> kap. 11, 3 og 5 — Farlig avfall, batteri og dekk</li>
+  <li><strong>DSB farlig stoff / ATEX</strong> — Løsemidler og sprøyteboks der aktuelt</li>
+</ul>`,
+    s5: `${UNIVERSAL_CONTENT.s5}
+<h4>Bransjespesifikke kompetansekrav – Bilverksted</h4>
+<ul>
+  <li><strong>Billøfter</strong> — Dokumentert opplæring (FuA § 10-2) og utstyrsspesifikk opplæring på den enkelte løfteren (FuA § 10-4)</li>
+  <li><strong>Teknisk leder / stedfortreder</strong> — Fagbrev og praksis etter verkstedforskriften §§ 10–11</li>
+  <li><strong>El-/hybrid</strong> — Merkespesifikk opplæring og årlig repetisjon (§ 11, NBF-praksis)</li>
+  <li><strong>Varmt arbeid</strong> — Sveising og skjæring</li>
+  <li><strong>Diisocyanater</strong> — Når stoffkartotek har treff (FuA § 3-12)</li>
+  <li><strong>F-gass</strong> — Personlig opplæringsbevis for AC-service (sertifisering hos Isovator/Incert)</li>
+  <li><strong>Førstehjelp strømskade og batteribrann</strong> — Der det arbeides med elbil</li>
+</ul>`,
+    s6: `${UNIVERSAL_CONTENT.s6}
+<h4>Kvalitetsstyring etter verkstedforskriften §§ 15–17</h4>
+<p>{{bedriftsnavn}} har dokumentert kvalitetsstyring for reparasjonsarbeid. Formålet er trafikksikre kjøretøy (PDCA), ikke et arbeidsordesystem. Statens vegvesen kan kreve systemet fremlagt (§ 17). Vesentlige avvik kan gi tilbakekall av godkjenning (§ 19).</p>
+<ul>
+  <li><strong>§ 16 a</strong> — Organisering: daglig leder, teknisk leder, stedfortreder, mekaniker, lærling</li>
+  <li><strong>§ 16 b</strong> — Kompetanse: fagbrev, kurs, førerrett og oppfriskning i kompetansemodulen</li>
+  <li><strong>§ 16 c</strong> — Én overordnet arbeidsprosedyre (kundemottak → reparasjon → kontroll → utlevering). Produsentanvisning gjelder for detaljer</li>
+  <li><strong>§ 16 d</strong> — Egenkontroll og stikkprøver. Énmannsverksted har innleid kvalitetskontroll</li>
+  <li><strong>§ 16 e</strong> — Kalibrering og vedlikehold av godkjenningspliktig utstyr. Attester i dokumentarkiv</li>
+  <li><strong>§ 16 f</strong> — Avvik inkludert kundeklage og SVV-/AT-pålegg</li>
+</ul>
+<p>EU-kontrollresultat, skaderapport og godkjenningssøknad rapporteres på vegvesen.no. HMS Nova er kvalitetsstyringssystemet, ikke Vegvesenets innrapportering.</p>
+<h4>Bransjespesifikke prosedyrer – HMS på gulvet</h4>
+<ul>
+  <li><strong>Før jobb</strong> — Løfterkontroll, SJA ved høyvolt/sveising, prøvekjøringssjekk</li>
+  <li><strong>I jobb</strong> — Avsug ved motor inne, PPE, avvik/kundeklage</li>
+  <li><strong>Uke / år</strong> — Vernerunde, stikkprøve, kalibrering, årshjul «Hold verkstedet godkjent»</li>
+</ul>`,
+    s12: `${UNIVERSAL_CONTENT.s12}
+<h4>Ytre miljø – bilverksted</h4>
+<ul>
+  <li><strong>Farlig avfall</strong> — Spillolje, filtre, bremsevæske, frostvæske, spraybokser og absorbenter leveres til godkjent mottak (avfallsforskriften kap. 11)</li>
+  <li><strong>Returplikt</strong> — Batteri og dekk (kap. 3 og 5)</li>
+  <li><strong>Oljeutskiller</strong> — Drift og tømming dokumenteres</li>
+  <li><strong>F-gass</strong> — Unngå utslipp; kun personell med gyldig bevis</li>
+</ul>`,
+  },
+
   retail: {
     s2c: `${UNIVERSAL_CONTENT.s2c}
 <h4>Bransjespesifikk lovgivning – Handel og service</h4>
@@ -765,6 +823,7 @@ export function getAvailableTemplates(): Array<{
     { key: "transport", label: "Transport og logistikk" },
     { key: "technology", label: "Teknologi og IT" },
     { key: "agriculture", label: "Landbruk" },
+    { key: "automotive", label: "Bilverksted og kjøretøy" },
     { key: "manufacturing", label: "Industri og produksjon" },
     { key: "retail", label: "Handel og service" },
     { key: "education", label: "Utdanning" },

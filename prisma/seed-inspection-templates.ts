@@ -35,6 +35,16 @@ async function main() {
     });
 
     if (existing) {
+      const existingFields = await prisma.formField.findMany({
+        where: { formTemplateId: existing.id },
+        select: { id: true },
+      });
+      const fieldIds = existingFields.map((field) => field.id);
+      if (fieldIds.length > 0) {
+        await prisma.formFieldValue.deleteMany({
+          where: { fieldId: { in: fieldIds } },
+        });
+      }
       await prisma.formField.deleteMany({
         where: { formTemplateId: existing.id },
       });

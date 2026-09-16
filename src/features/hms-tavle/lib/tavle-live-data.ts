@@ -200,11 +200,19 @@ async function hentOpplaring(tenantId: string, now: Date): Promise<TavleOpplarin
 
 async function hentAarshjul(tenantId: string, now: Date): Promise<TavleAarshjulData> {
   const year = now.getFullYear();
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { industry: true },
+  });
+  const industry = (tenant?.industry ?? "").trim().toLowerCase();
+  const applicableSteps = ANNUAL_HMS_PLAN_STEPS.filter(
+    (step) => !step.industries || step.industries.includes(industry)
+  );
   const completed = await prisma.hmsAnnualPlanCompletion.count({
-    where: { tenantId, year },
+    where: { tenantId, year, stepKey: { in: applicableSteps.map((step) => step.key) } },
   });
 
-  return { year, completed, total: ANNUAL_HMS_PLAN_STEPS.length };
+  return { year, completed, total: applicableSteps.length };
 }
 
 async function hentKpi(

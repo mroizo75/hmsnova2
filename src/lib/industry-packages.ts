@@ -1,3 +1,5 @@
+import { automotivePackage } from "@/lib/automotive-package";
+
 export interface SupportedIndustryOption {
   value: string;
   label: string;
@@ -11,6 +13,7 @@ export interface IndustryRiskSeed {
   likelihood: number;
   consequence: number;
   controls: string;
+  workshopTypes?: ReadonlyArray<string>;
 }
 
 export interface IndustrySjaHazardSeed {
@@ -27,6 +30,7 @@ export interface IndustrySjaTemplateSeed {
   description: string;
   workLocation: string;
   hazards: IndustrySjaHazardSeed[];
+  workshopTypes?: ReadonlyArray<string>;
 }
 
 export interface IndustryInspectionTemplateSeed {
@@ -37,6 +41,7 @@ export interface IndustryInspectionTemplateSeed {
   checklist: {
     items: Array<{ type: "heading" | "item"; title: string; checked?: boolean }>;
   };
+  workshopTypes?: ReadonlyArray<string>;
 }
 
 export interface IndustryCourseTemplateSeed {
@@ -45,6 +50,7 @@ export interface IndustryCourseTemplateSeed {
   description: string;
   isRequired: boolean;
   validityYears: number | null;
+  workshopTypes?: ReadonlyArray<string>;
 }
 
 export interface IndustryLegalReferenceSeed {
@@ -52,6 +58,16 @@ export interface IndustryLegalReferenceSeed {
   paragraphRef: string;
   description: string;
   sourceUrl: string;
+}
+
+export interface IndustryExposureAgentSeed {
+  productName: string;
+  casNumber?: string;
+  hazardClass?: string;
+  notes: string;
+  containsIsocyanates?: boolean;
+  isCMR?: boolean;
+  workshopTypes?: ReadonlyArray<string>;
 }
 
 export interface IndustryPackage {
@@ -64,6 +80,7 @@ export interface IndustryPackage {
   inspectionTemplates: ReadonlyArray<IndustryInspectionTemplateSeed>;
   courseTemplates: ReadonlyArray<IndustryCourseTemplateSeed>;
   legalReferences: ReadonlyArray<IndustryLegalReferenceSeed>;
+  exposureAgents?: ReadonlyArray<IndustryExposureAgentSeed>;
 }
 
 export const SUPPORTED_INDUSTRIES: ReadonlyArray<SupportedIndustryOption> = [
@@ -96,6 +113,7 @@ export const SUPPORTED_INDUSTRIES: ReadonlyArray<SupportedIndustryOption> = [
   { value: "culture_sport", label: "Kultur, idrett og underholdning", templates: 10 },
   { value: "personal_services", label: "Frisør, velvære og personlig tjenesteyting", templates: 8 },
   { value: "agriculture", label: "Landbruk", templates: 16 },
+  { value: "automotive", label: "Bilverksted og kjøretøy", templates: 34 },
   { value: "other", label: "Annet", templates: 8 },
 ];
 
@@ -188,6 +206,11 @@ const INDUSTRY_ALIASES: Readonly<Record<string, string>> = {
   frisør: "personal_services",
   velvære: "personal_services",
   spa: "personal_services",
+  bilverksted: "automotive",
+  billakk: "automotive",
+  karosseri: "automotive",
+  automester: "automotive",
+  "bilverksted og kjøretøy": "automotive",
 };
 
 export const AGRICULTURE_FARM_TYPES: ReadonlyArray<{ value: string; label: string }> = [
@@ -198,6 +221,8 @@ export const AGRICULTURE_FARM_TYPES: ReadonlyArray<{ value: string; label: strin
   { value: "vegetables_fruit_berries", label: "Grønnsaker / frukt / bær" },
   { value: "mixed_farm", label: "Kombinasjonsgård" },
 ];
+
+export { AUTOMOTIVE_WORKSHOP_TYPES } from "@/lib/automotive-workshop-types";
 
 const agriculturePackage: IndustryPackage = {
   industry: "agriculture",
@@ -1467,6 +1492,7 @@ export const INDUSTRY_PACKAGES: Readonly<Record<string, IndustryPackage>> = {
   offshore: offshorePackage,
   marine: marinePackage,
   hospitality: hospitalityPackage,
+  automotive: automotivePackage,
 };
 
 export function getIndustryPackage(industry: string | null | undefined): IndustryPackage | null {
