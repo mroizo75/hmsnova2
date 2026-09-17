@@ -10,6 +10,12 @@ import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import type { SessionUser } from "@/types";
 import type { InvoiceStatus } from "@prisma/client";
+import {
+  AI_ADDON_GROSS_MONTHLY_NOK,
+  AI_ADDON_INVOICE_DESCRIPTION,
+  AI_ADDON_NET_MONTHLY_NOK,
+  buildAiAddonFikenLine,
+} from "@/lib/ai-addon";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -165,8 +171,31 @@ export async function createOnboardingInvoice(tenantId: string) {
 
     // Beregn beløp basert på interval
     const isMonthly = tenant.subscription.billingInterval === "MONTHLY";
-    const amount = isMonthly ? Math.round(tenant.subscription.price / 12) : tenant.subscription.price;
-    const netAmount = Math.round(amount / 1.25); // Pris ekskl. MVA
+    const baseAmount = isMonthly ? Math.round(tenant.subscription.price / 12) : tenant.subscription.price;
+    const netAmount = Math.round(baseAmount / 1.25);
+    const aiEnabled = tenant.aiEnabled === true;
+    const amount = baseAmount + (aiEnabled ? (isMonthly ? AI_ADDON_GROSS_MONTHLY_NOK : AI_ADDON_GROSS_MONTHLY_NOK * 12) : 0);
+    const subscriptionLine = {
+      description: isMonthly
+        ? `HMS Nova - ${tenant.subscription.plan} - Månedsabonnement`
+        : `HMS Nova - ${tenant.subscription.plan} - Årlig abonnement`,
+      netAmount,
+      vatType: "HIGH",
+      account: "3000",
+    };
+    const fikenLines = aiEnabled
+      ? [
+          subscriptionLine,
+          isMonthly
+            ? buildAiAddonFikenLine()
+            : {
+                description: `${AI_ADDON_INVOICE_DESCRIPTION} – ${AI_ADDON_NET_MONTHLY_NOK} kr/mnd × 12`,
+                netAmount: AI_ADDON_NET_MONTHLY_NOK * 12,
+                vatType: "HIGH",
+                account: "3000",
+              },
+        ]
+      : [subscriptionLine];
 
     const dueDate = new Date(withdrawalDeadline);
     dueDate.setDate(dueDate.getDate() + 1);
@@ -189,14 +218,7 @@ export async function createOnboardingInvoice(tenantId: string) {
             date: new Date().toISOString().split('T')[0],
             kind: "CASH_SALE",
             customerId: tenant.fikenCompanyId,
-            lines: [
-              {
-                description: `HMS Nova - ${tenant.subscription.plan} - Månedsabonnement`,
-                netAmount,
-                vatType: "HIGH",
-                account: "3000",
-              },
-            ],
+            lines: fikenLines,
             dueDate: dueDate.toISOString().split('T')[0],
             // Recurring: Hver måned
             recurring: {
@@ -212,14 +234,7 @@ export async function createOnboardingInvoice(tenantId: string) {
             customerId: tenant.fikenCompanyId,
             issueDate: new Date().toISOString().split('T')[0],
             dueDate: dueDate.toISOString().split('T')[0],
-            lines: [
-              {
-                description: `HMS Nova - ${tenant.subscription.plan} - Årlig abonnement`,
-                netAmount,
-                vatType: "HIGH",
-                account: "3000",
-              },
-            ],
+            lines: fikenLines,
           });
 
           fikenInvoiceId = (fikenInvoice as any)?.invoiceId;
@@ -239,8 +254,8 @@ export async function createOnboardingInvoice(tenantId: string) {
         dueDate,
         status: "PENDING",
         description: isMonthly 
-          ? `HMS Nova ${tenant.subscription.plan} - Måned 1`
-          : `HMS Nova ${tenant.subscription.plan} - Årlig abonnement`,
+          ? `HMS Nova ${tenant.subscription.plan} - Måned 1${aiEnabled ? ` + ${AI_ADDON_INVOICE_DESCRIPTION}` : ""}`
+          : `HMS Nova ${tenant.subscription.plan} - Årlig abonnement${aiEnabled ? ` + ${AI_ADDON_INVOICE_DESCRIPTION}` : ""}`,
       },
     });
 

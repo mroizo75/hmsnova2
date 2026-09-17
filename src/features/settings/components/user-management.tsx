@@ -283,7 +283,7 @@ export function UserManagement({
         : `${result.imported} brukere importert. Invitasjon er sendt på e-post.`;
     const warningMsg =
       result.errors.length > 0
-        ? ` ${result.errors.length} rad${result.errors.length === 1 ? "" : "er"} fikk ikke leder: ${result.errors[0]}`
+        ? ` ${result.errors.length} merknad${result.errors.length === 1 ? "" : "er"}: ${result.errors[0]}`
         : "";
     toast({
       title: "Import fullført",
@@ -498,10 +498,10 @@ export function UserManagement({
                     Hvordan importere brukere?
                   </summary>
                   <div className="mt-3 space-y-2 border-t pt-3 text-muted-foreground">
-                    <p><strong>1. Last ned eksempelfil</strong> – Klikk «Last ned Excel-eksempel» for å få en ferdig mal.</p>
-                    <p><strong>2. Fyll ut Excel-filen</strong> – Bruk kolonnene <code className="rounded bg-muted px-1">email</code>, <code className="rounded bg-muted px-1">navn</code> og <code className="rounded bg-muted px-1">rolle</code>. Gyldige roller: ANSATT, LEDER, HMS, VARSLINGSANSVARLIG, VERNEOMBUD, BHT, REVISOR, ADMIN.</p>
-                    <p><strong>2b. Valgfritt: organisasjon</strong> – Kolonnene <code className="rounded bg-muted px-1">ansattnummer</code>, <code className="rounded bg-muted px-1">stilling</code>, <code className="rounded bg-muted px-1">avdeling</code> og <code className="rounded bg-muted px-1">leder</code> kan fylles ut. Avdeling må treffe et avdelingsnavn som allerede finnes. Leder tar e-postadressen til nærmeste leder og kan stå hvor som helst i filen. Ukjent avdeling eller leder-e-post gir en advarsel, men stopper ikke importen.</p>
-                    <p><strong>3. Importer filen</strong> – Velg din fil og klikk «Importer». Brukere legges til og får invitasjon på e-post.</p>
+                    <p><strong>1. Last ned eksempelfil</strong> – Klikk «Last ned Excel-eksempel» for å få en ferdig mal. Blå kolonner er påkrevd, grå er valgfrie.</p>
+                    <p><strong>2. Påkrevd</strong> – Bare <code className="rounded bg-muted px-1">e-post</code> og <code className="rounded bg-muted px-1">navn</code>. Resten kan stå tomt. Du kan også bruke <code className="rounded bg-muted px-1">fornavn</code> og <code className="rounded bg-muted px-1">etternavn</code> i stedet for navn.</p>
+                    <p><strong>3. Valgfritt</strong> – <code className="rounded bg-muted px-1">rolle</code> (tomt = ANSATT), <code className="rounded bg-muted px-1">ansattnummer</code>, <code className="rounded bg-muted px-1">stilling</code>, <code className="rounded bg-muted px-1">avdeling</code> og <code className="rounded bg-muted px-1">leder</code>. Avdeling må treffe et avdelingsnavn som allerede finnes. Leder er e-post til nærmeste leder. Ukjent avdeling eller leder gir en merknad, men stopper ikke importen. Pårørende, fødselsdato og adresse hører til HR-import, ikke her.</p>
+                    <p><strong>4. Importer filen</strong> – Velg din fil og klikk «Importer». Brukere legges til og får invitasjon på e-post.</p>
                     <p className="text-xs pt-1">Støtter både .csv og .xlsx (Excel). Maks 500 brukere per import, filstørrelse inntil 2 MB.</p>
                   </div>
                 </details>

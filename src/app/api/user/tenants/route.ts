@@ -28,6 +28,10 @@ export async function GET(request: NextRequest) {
                 industry: true,
                 moduleVisibilityConfig: true,
                 mocModuleEnabled: true,
+                ruhModuleEnabled: true,
+                timeRegistrationEnabled: true,
+                aiEnabled: true,
+                speechToTextEnabled: true,
               },
             },
           },
@@ -52,6 +56,11 @@ export async function GET(request: NextRequest) {
         ...(ut.tenant.mocModuleEnabled ? (["moc"] as const) : []),
       ],
       moduleVisibilityConfig: parseModuleVisibilityConfig(ut.tenant.moduleVisibilityConfig),
+      ruhModuleEnabled: ut.tenant.ruhModuleEnabled,
+      mocModuleEnabled: ut.tenant.mocModuleEnabled,
+      timeRegistrationEnabled: ut.tenant.timeRegistrationEnabled,
+      aiEnabled: ut.tenant.aiEnabled,
+      speechToTextEnabled: ut.tenant.speechToTextEnabled,
     }));
 
     return NextResponse.json({

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ai/voice-textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { closeIncident } from "@/server/actions/incident.actions";
@@ -95,7 +95,7 @@ export function CloseIncidentForm({ incidentId, userId, routines = [], currentRo
 
           <div className="space-y-2">
             <Label htmlFor="effectivenessReview">{t("fields.effectivenessReview")}</Label>
-            <Textarea
+            <VoiceTextarea
               id="effectivenessReview"
               name="effectivenessReview"
               placeholder={t("placeholders.effectivenessReview")}
@@ -129,7 +129,7 @@ export function CloseIncidentForm({ incidentId, userId, routines = [], currentRo
 
           <div className="space-y-2">
             <Label htmlFor="lessonsLearned">{t("fields.lessonsLearned")}</Label>
-            <Textarea
+            <VoiceTextarea
               id="lessonsLearned"
               name="lessonsLearned"
               placeholder={t("placeholders.lessonsLearned")}

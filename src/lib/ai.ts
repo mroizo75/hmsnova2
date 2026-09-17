@@ -27,7 +27,7 @@ const memoryAiEnabledCache = new Map<string, { enabled: boolean; expiresAt: numb
 const AI_ENABLED_CACHE_TTL_MS = 30_000;
 
 /**
- * Kastes når en tenant har slått av AI-funksjoner (selvbetjent innstilling, testfase).
+ * Kastes når en tenant ikke har aktivert betalt AI-tillegg.
  * Fanges opp ved server actions-grensen og vises som en nøytral melding i UI.
  */
 export class AiDisabledError extends Error {
@@ -38,9 +38,13 @@ export class AiDisabledError extends Error {
   }
 }
 
+export function invalidateAiEnabledCache(tenantId: string): void {
+  memoryAiEnabledCache.delete(tenantId);
+}
+
 /**
- * Sentralt knutepunkt: sjekker om AI er slått på for en tenant (tenant.aiEnabled).
- * Kort mellomlagring i minnet for å unngå ett DB-oppslag per AI-kall.
+ * Sentralt knutepunkt: sjekker om betalt AI-tillegg er slått på (tenant.aiEnabled).
+ * Fail-closed: manglende tenant eller DB-feil gir av.
  */
 export async function isAiEnabledForTenant(tenantId: string): Promise<boolean> {
   const cached = memoryAiEnabledCache.get(tenantId);
@@ -53,15 +57,15 @@ export async function isAiEnabledForTenant(tenantId: string): Promise<boolean> {
       where: { id: tenantId },
       select: { aiEnabled: true },
     });
-    const enabled = tenant?.aiEnabled ?? true;
+    const enabled = tenant?.aiEnabled ?? false;
     memoryAiEnabledCache.set(tenantId, { enabled, expiresAt: Date.now() + AI_ENABLED_CACHE_TTL_MS });
     return enabled;
   } catch {
-    return true; // fail-open ved DB-feil - ikke blokker AI pga. midlertidig oppslagsfeil
+    return false;
   }
 }
 
-async function assertAiEnabledForTenant(tenantId?: string): Promise<void> {
+export async function assertAiEnabledForTenant(tenantId?: string): Promise<void> {
   if (!tenantId) return;
   const enabled = await isAiEnabledForTenant(tenantId);
   if (!enabled) {
@@ -98,6 +102,10 @@ interface GenerateAIResponseOptions {
   bypassCache?: boolean;
   /** Tenant-ID for AI-av/på-sjekk (tenant.aiEnabled). Utelates kallet fra gaten hvis ikke satt. */
   tenantId?: string;
+  /** Hopp over tenant.aiEnabled. Brukes kun av interne kall som har egen autorisering. */
+  skipTenantAiGate?: boolean;
+  /** Overstyr standard HMS-systemprompt. */
+  systemPrompt?: string;
   /** Søkefritekst mot AI-kunnskapsbasen (RAG - lovtekst/rutinemaler). Gir mer presise, lovforankrede svar. Utelates hvis ikke satt. */
   ragQuery?: string;
 }
@@ -248,14 +256,17 @@ export async function generateAIResponse(
     throw new Error("AI er ikke konfigurert");
   }
 
-  await assertAiEnabledForTenant(options?.tenantId);
+  if (!options?.skipTenantAiGate) {
+    await assertAiEnabledForTenant(options?.tenantId);
+  }
 
   const ragContext = await buildRagContextBlock(options?.ragQuery);
-  const systemPrompt = `Du er en erfaren HMS-rådgiver og yrkeshygieniker som jobber for en godkjent bedriftshelsetjeneste i Norge. 
+  const defaultSystemPrompt = `Du er en erfaren HMS-rådgiver og yrkeshygieniker som jobber for en godkjent bedriftshelsetjeneste i Norge. 
 Du gir faglige råd basert på norsk arbeidsmiljølovgivning (AML), forskrift om organisering, ledelse og medvirkning, 
 internkontrollforskriften, og BHT-forskriften. Svar alltid på norsk. Vær konkret og praktisk orientert.${
     ragContext ? `\n\n${ragContext}` : ""
   }`;
+  const systemPrompt = options?.systemPrompt ?? defaultSystemPrompt;
 
   const messages: ChatMessage[] = [
     {

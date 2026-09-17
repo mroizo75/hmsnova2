@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ai/voice-textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Sparkles, AlertCircle } from "lucide-react";
 import { PROJECT_REFERENCE_MAX_LENGTH } from "@/lib/incident-project-reference";
@@ -657,7 +657,7 @@ export function IncidentTreatmentForm({
             ))}
           </ul>
         )}
-        <Textarea
+        <VoiceTextarea
           value={treatmentComment}
           onChange={(event) => setTreatmentComment(event.target.value)}
           placeholder="Intern merknad til saken"
@@ -723,7 +723,7 @@ export function IncidentTreatmentForm({
 
         <div className="space-y-2">
           <Label htmlFor="injuryDescription">Beskrivelse av skade</Label>
-          <Textarea
+          <VoiceTextarea
             id="injuryDescription"
             value={injuryDescription}
             onChange={(event) => setInjuryDescription(event.target.value)}
@@ -734,7 +734,7 @@ export function IncidentTreatmentForm({
 
         <div className="space-y-2">
           <Label htmlFor="suggestedActions">Foreslåtte tiltak</Label>
-          <Textarea
+          <VoiceTextarea
             id="suggestedActions"
             value={suggestedActions}
             onChange={(event) => setSuggestedActions(event.target.value)}

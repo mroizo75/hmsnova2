@@ -1,47 +1,7 @@
-import ExcelJS from "exceljs";
+import { buildUserImportExampleWorkbook } from "@/lib/user-import-example";
 
 export async function GET() {
-  const workbook = new ExcelJS.Workbook();
-  workbook.creator = "HMS Nova";
-  workbook.created = new Date();
-
-  const sheet = workbook.addWorksheet("Brukere", {
-    headerFooter: {
-      firstHeader: "Brukerimport – Last ned, fyll ut og importer",
-    },
-  });
-
-  sheet.columns = [
-    { header: "email", key: "email", width: 30 },
-    { header: "navn", key: "navn", width: 25 },
-    { header: "rolle", key: "rolle", width: 18 },
-    { header: "ansattnummer", key: "ansattnummer", width: 16 },
-    { header: "stilling", key: "stilling", width: 22 },
-    { header: "avdeling", key: "avdeling", width: 18 },
-    { header: "leder", key: "leder", width: 30 },
-  ];
-
-  sheet.addRow({
-    email: "ola.nordmann@example.com",
-    navn: "Ola Nordmann",
-    rolle: "ANSATT",
-    ansattnummer: "A-0042",
-    stilling: "Tømrer",
-    avdeling: "Bygg",
-    leder: "kari.leder@example.com",
-  });
-  sheet.addRow({
-    email: "kari.leder@example.com",
-    navn: "Kari Leder",
-    rolle: "LEDER",
-    ansattnummer: "A-0001",
-    stilling: "Prosjektleder",
-    avdeling: "Bygg",
-    leder: "",
-  });
-
-  sheet.getRow(1).font = { bold: true };
-
+  const workbook = await buildUserImportExampleWorkbook();
   const buffer = await workbook.xlsx.writeBuffer();
 
   return new Response(buffer, {

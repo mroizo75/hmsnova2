@@ -5,7 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ai/voice-textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, Plus, Sparkles, X } from "lucide-react";
 import { generateAiInspectionSummary } from "@/server/actions/ai-assistant.actions";
@@ -473,7 +473,7 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
                       </div>
                       <div className="space-y-2">
                         <Label>{t("fields.findingDescription")}</Label>
-                        <Textarea
+                        <VoiceTextarea
                           value={finding.description}
                           onChange={(event) =>
                             updateFindingField(index, findingIndex, "description", event.target.value)
@@ -578,7 +578,7 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
         <Button type="button" size="sm" variant="outline" onClick={handleGenerateSummary} disabled={isGeneratingSummary}>
           {isGeneratingSummary ? t("ai.generating") : t("ai.generate")}
         </Button>
-        <Textarea
+        <VoiceTextarea
           value={aiSummary}
           onChange={(event) => setAiSummary(event.target.value)}
           placeholder={t("ai.placeholder")}

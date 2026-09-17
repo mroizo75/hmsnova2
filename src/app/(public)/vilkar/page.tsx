@@ -114,6 +114,7 @@ export default function VilkarPage() {
                 </p>
                 <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
                   <li><strong>12 mnd binding:</strong> 300 kr/mnd + mva (3 600 kr/år + mva)</li>
+                  <li><strong>Valgfritt AI-tillegg:</strong> 99 kr/mnd + mva. Alltid av som standard. Aktiveres av administrator under Innstillinger. Slås av med en gang; ingen refusjon for inneværende måned.</li>
                 </ul>
                 <p className="text-sm text-muted-foreground mt-2">
                   Alle planer inkluderer ubegrenset antall brukere.

@@ -7,7 +7,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ai/voice-textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
@@ -702,7 +702,7 @@ export function IncidentForm({
 
           <div className="space-y-2">
             <Label htmlFor="description">{t("fields.description.label")}</Label>
-            <Textarea
+            <VoiceTextarea
               id="description"
               name="description"
               placeholder={t("fields.description.placeholder")}
@@ -715,7 +715,7 @@ export function IncidentForm({
 
           <div className="space-y-2">
             <Label htmlFor="submitterComment">Kommentar (valgfritt)</Label>
-            <Textarea
+            <VoiceTextarea
               id="submitterComment"
               name="submitterComment"
               placeholder="Tilleggsopplysninger til behandler"
@@ -839,7 +839,7 @@ export function IncidentForm({
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="involvedPersons">{t("fields.involvedPersons.label")}</Label>
-              <Textarea
+              <VoiceTextarea
                 id="involvedPersons"
                 name="involvedPersons"
                 placeholder={t("fields.involvedPersons.placeholder")}
@@ -850,7 +850,7 @@ export function IncidentForm({
 
             <div className="space-y-2">
               <Label htmlFor="injuryDescription">{t("fields.injuryDescription.label")}</Label>
-              <Textarea
+              <VoiceTextarea
                 id="injuryDescription"
                 name="injuryDescription"
                 placeholder={t("fields.injuryDescription.placeholder")}
@@ -900,7 +900,7 @@ export function IncidentForm({
 
             <div className="space-y-2">
               <Label htmlFor="suggestedActions">{t("fields.suggestedActions.label")}</Label>
-              <Textarea
+              <VoiceTextarea
                 id="suggestedActions"
                 name="suggestedActions"
                 placeholder={t("fields.suggestedActions.placeholder")}
@@ -1006,7 +1006,7 @@ export function IncidentForm({
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="immediateAction">{t("fields.immediateAction.label")}</Label>
-            <Textarea
+            <VoiceTextarea
               id="immediateAction"
               name="immediateAction"
               placeholder={t("fields.immediateAction.placeholder")}

@@ -17,8 +17,15 @@ import {
   mapUserImportRow,
   parseUserImportCsv,
   type UserImportColumnIndex,
+  type UserImportParseResult,
   type UserImportRow,
 } from "@/lib/user-import-rows";
+import { sendEmail } from "@/lib/email";
+import { invalidateAiEnabledCache } from "@/lib/ai";
+import {
+  AI_ADDON_BILLING_EMAIL,
+  AI_ADDON_NET_MONTHLY_NOK,
+} from "@/lib/ai-addon";
 
 async function getSessionContext() {
   const tenantContext = await getRequiredTenantContext();
@@ -69,19 +76,47 @@ async function sendInvitationEmail(input: {
   }
 }
 
+function excelCellToString(cell: unknown): string {
+  if (cell == null) return "";
+  if (typeof cell === "string" || typeof cell === "number" || typeof cell === "boolean") {
+    return String(cell).trim();
+  }
+  if (cell instanceof Date) return "";
+  if (typeof cell === "object") {
+    const value = cell as {
+      text?: unknown;
+      result?: unknown;
+      hyperlink?: unknown;
+      richText?: Array<{ text?: string }>;
+    };
+    if (typeof value.text === "string") return value.text.trim();
+    if (typeof value.result === "string" || typeof value.result === "number") {
+      return String(value.result).trim();
+    }
+    if (Array.isArray(value.richText)) {
+      return value.richText.map((part) => part.text ?? "").join("").trim();
+    }
+    if (typeof value.hyperlink === "string" && value.hyperlink.toLowerCase().startsWith("mailto:")) {
+      return value.hyperlink.replace(/^mailto:/i, "").split("?")[0].trim();
+    }
+  }
+  return "";
+}
+
 function excelRowCells(row: ExcelJS.Row): string[] {
   const values = row.values;
   if (!Array.isArray(values)) return [];
-  return values.slice(1).map((cell) => String(cell ?? "").trim());
+  return values.slice(1).map((cell) => excelCellToString(cell));
 }
 
-async function parseExcelToRows(buffer: Buffer): Promise<UserImportRow[]> {
+async function parseExcelToRows(buffer: Buffer): Promise<UserImportParseResult> {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer as unknown as Parameters<ExcelJS.Workbook["xlsx"]["load"]>[0]);
-  const sheet = workbook.worksheets[0];
-  if (!sheet) return [];
+  const sheet = workbook.worksheets.find((item) => item.name === "Brukere") ?? workbook.worksheets[0];
+  if (!sheet) return { rows: [], errors: [] };
 
   const rows: UserImportRow[] = [];
+  const errors: string[] = [];
   let columns: UserImportColumnIndex = DEFAULT_USER_IMPORT_COLUMNS;
 
   sheet.eachRow((row, rowNumber) => {
@@ -93,11 +128,12 @@ async function parseExcelToRows(buffer: Buffer): Promise<UserImportRow[]> {
         return;
       }
     }
-    const mapped = mapUserImportRow(cells, columns);
-    if (mapped) rows.push(mapped);
+    const mapped = mapUserImportRow(cells, columns, `rad ${rowNumber}`);
+    if (mapped.status === "ok") rows.push(mapped.row);
+    else if (mapped.status === "error") errors.push(mapped.message);
   });
 
-  return rows;
+  return { rows, errors };
 }
 
 export async function updateTenantSettings(data: {
@@ -625,19 +661,25 @@ export async function importUsersFromFile(formData: FormData): Promise<ImportUse
     const { getSubscriptionLimits } = await import("@/lib/subscription");
     const limits = getSubscriptionLimits(tenant.pricingTier as any);
 
-    let rows: UserImportRow[];
+    let parsed: UserImportParseResult;
     const buffer = Buffer.from(await file.arrayBuffer());
 
     if (ext === ".csv") {
-      rows = parseUserImportCsv(buffer.toString("utf-8"));
+      parsed = parseUserImportCsv(buffer.toString("utf-8"));
     } else {
-      rows = await parseExcelToRows(buffer);
+      parsed = await parseExcelToRows(buffer);
     }
+
+    const rows = parsed.rows;
+    const errors: string[] = [...parsed.errors];
 
     if (rows.length === 0) {
       return {
         success: false,
-        error: "Ingen gyldige rader i filen. Bruk kolonner: e-post, navn, rolle, og valgfritt ansattnummer, stilling, avdeling og leder.",
+        error:
+          errors.length > 0
+            ? errors.slice(0, 5).join(" ")
+            : "Ingen gyldige rader i filen. Påkrevd er bare e-post og navn. Rolle, ansattnummer, stilling, avdeling og leder kan stå tomme.",
       };
     }
 
@@ -657,7 +699,6 @@ export async function importUsersFromFile(formData: FormData): Promise<ImportUse
 
     let imported = 0;
     let skipped = 0;
-    const errors: string[] = [];
 
     const departments = await prisma.department.findMany({
       where: { tenantId },
@@ -1248,8 +1289,8 @@ export async function updateMocModuleEnabled(enabled: boolean) {
 }
 
 /**
- * Selvbetjent av/på for AI-funksjoner (testfase). Ingen prisendring - kun styrer
- * om tenant.aiEnabled respekteres av den sentrale AI-gaten i src/lib/ai.ts.
+ * Selvbetjent av/på for betalt AI-tillegg (99 kr/mnd + mva).
+ * Aktivering varsler faktura; deaktivering slår av AI med en gang.
  */
 export async function updateAiSettings(enabled: boolean) {
   try {
@@ -1262,16 +1303,93 @@ export async function updateAiSettings(enabled: boolean) {
 
     const previous = await prisma.tenant.findUnique({
       where: { id: tenantId },
-      select: { aiEnabled: true },
+      select: {
+        aiEnabled: true,
+        name: true,
+        orgNumber: true,
+        contactEmail: true,
+        invoiceEmail: true,
+      },
+    });
+
+    const now = new Date();
+    await prisma.tenant.update({
+      where: { id: tenantId },
+      data: enabled
+        ? {
+            aiEnabled: true,
+            speechToTextEnabled: true,
+            aiAddonActivatedAt: now,
+            aiAddonCanceledAt: null,
+          }
+        : {
+            aiEnabled: false,
+            speechToTextEnabled: false,
+            aiAddonCanceledAt: now,
+          },
+    });
+
+    invalidateAiEnabledCache(tenantId);
+
+    await AuditLog.log(tenantId, user.id, "AI_SETTINGS_UPDATED", "Tenant", tenantId, {
+      before: previous?.aiEnabled ?? false,
+      after: enabled,
+    });
+
+    try {
+      await sendEmail({
+        to: AI_ADDON_BILLING_EMAIL,
+        subject: enabled
+          ? `HMS Nova AI aktivert: ${previous?.name ?? "Ukjent"}`
+          : `HMS Nova AI deaktivert: ${previous?.name ?? "Ukjent"}`,
+        html: `<h2>HMS Nova AI ${enabled ? "aktivert" : "deaktivert"}</h2>
+<table style="font-family:sans-serif;font-size:14px;border-collapse:collapse;">
+  <tr><td style="padding:4px 12px 4px 0;font-weight:600;">Bedrift:</td><td>${previous?.name ?? "Ukjent"}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;font-weight:600;">Org.nr:</td><td>${previous?.orgNumber ?? "–"}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;font-weight:600;">Pris:</td><td>kr ${AI_ADDON_NET_MONTHLY_NOK}/mnd + mva</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;font-weight:600;">Endret av:</td><td>${user.name ?? user.email}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;font-weight:600;">Kontakt-e-post:</td><td>${previous?.invoiceEmail ?? previous?.contactEmail ?? "–"}</td></tr>
+</table>
+<p style="margin-top:16px;font-size:13px;color:#666;">${
+          enabled
+            ? `Faktura: kr ${AI_ADDON_NET_MONTHLY_NOK}/mnd + mva legges til neste HMS Nova-faktura.`
+            : "AI er slått av med en gang. Ingen AI-linje på neste faktura. Ingen refusjon for inneværende måned."
+        }</p>`,
+      });
+    } catch {
+      // Ikke blokker aktiveringen om intern varsel feiler
+    }
+
+    revalidatePath("/dashboard/settings");
+    triggerRealtimeEvent(tenantId, "settings-updated");
+    return { success: true };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Kunne ikke oppdatere AI-innstillinger";
+    return { success: false, error: message };
+  }
+}
+
+export async function updateSpeechToTextSettings(enabled: boolean) {
+  try {
+    const { user, tenantId } = await getSessionContext();
+
+    const userTenant = user.tenants.find((t) => t.tenantId === tenantId);
+    if (!userTenant || userTenant.role !== "ADMIN") {
+      return { success: false, error: "Kun administratorer kan endre tale-til-tekst" };
+    }
+
+    const previous = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { speechToTextEnabled: true },
     });
 
     await prisma.tenant.update({
       where: { id: tenantId },
-      data: { aiEnabled: enabled },
+      data: { speechToTextEnabled: enabled },
     });
 
-    await AuditLog.log(tenantId, user.id, "AI_SETTINGS_UPDATED", "Tenant", tenantId, {
-      before: previous?.aiEnabled ?? true,
+    await AuditLog.log(tenantId, user.id, "SPEECH_TO_TEXT_SETTINGS_UPDATED", "Tenant", tenantId, {
+      before: previous?.speechToTextEnabled ?? false,
       after: enabled,
     });
 
@@ -1279,7 +1397,7 @@ export async function updateAiSettings(enabled: boolean) {
     triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true };
   } catch (error: any) {
-    return { success: false, error: error.message || "Kunne ikke oppdatere AI-innstillinger" };
+    return { success: false, error: error.message || "Kunne ikke oppdatere tale-til-tekst" };
   }
 }
 

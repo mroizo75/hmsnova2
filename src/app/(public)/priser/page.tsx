@@ -264,6 +264,26 @@ export default function PriserPage() {
             />
           </div>
 
+          <div className="mt-10 max-w-md mx-auto">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl">Valgfritt AI-tillegg</CardTitle>
+                <CardDescription>
+                  Chat-hjelp, tale-til-tekst og forslag i avvik, SJA og risikovurdering
+                </CardDescription>
+                <div className="mt-4">
+                  <span className="text-4xl font-bold">99 kr</span>
+                  <span className="text-2xl text-muted-foreground">/mnd</span>
+                  <span className="block text-sm text-muted-foreground mt-1">+ mva</span>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm text-muted-foreground">
+                <p>Alltid av som standard. Administrator aktiverer under Innstillinger.</p>
+                <p>99 kr/mnd + mva kommer ekstra på fakturaen når AI er slått på.</p>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Lovpålagt HMS-håndbok til deres bedrift – gunstig fastpris */}
           <div className="mt-12 max-w-2xl mx-auto">
             <Card className="border-primary/30 bg-primary/5">

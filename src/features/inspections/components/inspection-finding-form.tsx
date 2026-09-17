@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ai/voice-textarea";
 import {
   Select,
   SelectContent,
@@ -186,7 +186,7 @@ export function InspectionFindingForm({ inspectionId, users }: InspectionFinding
             <Label htmlFor="description">
               {t("fields.description")} <span className="text-destructive">*</span>
             </Label>
-            <Textarea
+            <VoiceTextarea
               id="description"
               name="description"
               placeholder={t("placeholders.description")}

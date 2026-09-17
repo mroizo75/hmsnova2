@@ -42,6 +42,7 @@ interface InvoiceWithTenant {
     name: string;
     contactEmail: string | null;
     invoiceEmail: string | null;
+    aiEnabled: boolean;
   };
 }
 
@@ -191,6 +192,11 @@ export function InvoiceTable({ invoices, exportedInvoiceIds = [] }: InvoiceTable
                   <TableCell>
                     <div>
                       <span className="font-medium">{invoice.tenant.name}</span>
+                      {invoice.tenant.aiEnabled && (
+                        <Badge variant="secondary" className="ml-2 align-middle">
+                          AI
+                        </Badge>
+                      )}
                       {(invoice.tenant.invoiceEmail || invoice.tenant.contactEmail) && (
                         <span className="block text-xs text-muted-foreground">
                           {invoice.tenant.invoiceEmail || invoice.tenant.contactEmail}

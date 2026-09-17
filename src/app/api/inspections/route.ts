@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { Prisma } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { createErrorResponse, createSuccessResponse, ErrorCodes } from "@/lib/validations/api";
@@ -64,8 +64,29 @@ export async function GET(request: NextRequest) {
       return createErrorResponse(ErrorCodes.FORBIDDEN, "Ingen tenant tilgang", 403);
     }
 
+    const membership = await prisma.userTenant.findUnique({
+      where: {
+        userId_tenantId: {
+          userId: session.user.id,
+          tenantId,
+        },
+      },
+      select: { role: true },
+    });
+
+    const managerRoles: Role[] = [Role.ADMIN, Role.HMS, Role.LEDER, Role.VERNEOMBUD];
+    const canManage = Boolean(membership && managerRoles.includes(membership.role));
+
     const inspections = await prisma.inspection.findMany({
-      where: { tenantId },
+      where: canManage
+        ? { tenantId }
+        : {
+            tenantId,
+            OR: [
+              { conductedBy: session.user.id },
+              { participants: { contains: session.user.id } },
+            ],
+          },
       include: {
         findings: true,
       },

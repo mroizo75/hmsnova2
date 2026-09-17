@@ -35,6 +35,29 @@ export const PRICING_SCHEMA = {
         description: "Komplett HMS-system med ubegrenset brukere. 3 600 kr/år.",
       },
     },
+    {
+      "@type": "Offer",
+      position: 2,
+      name: "AI-tillegg",
+      description: "Valgfritt AI-tillegg: chat-hjelp, tale-til-tekst og forslag. Alltid av som standard.",
+      price: "99",
+      priceCurrency: "NOK",
+      priceSpecification: {
+        "@type": "UnitPriceSpecification",
+        price: "99",
+        priceCurrency: "NOK",
+        unitText: "MONTH",
+      },
+      seller: {
+        "@type": "Organization",
+        name: SITE_CONFIG.name,
+      },
+      itemOffered: {
+        "@type": "Service",
+        name: "HMS Nova AI",
+        description: "Valgfritt tillegg 99 kr/mnd + mva.",
+      },
+    },
   ],
 } as const;
 

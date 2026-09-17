@@ -9,9 +9,11 @@ import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
 import { helpContent } from "@/lib/help-content";
 import { getPermissions } from "@/lib/permissions";
 import { AiRiskSuggestionsCard } from "@/features/risks/components/ai-risk-suggestions-card";
+import { IndustryRiskTemplateCard } from "@/features/risks/components/industry-risk-template-card";
 import { RisksContent } from "@/features/risks/components/risks-content";
 import { getTranslations } from "next-intl/server";
 import { fetchRisks, fetchRiskAssessments } from "@/server/queries/risk.queries";
+import { getIndustryLabel, getIndustryPackage } from "@/lib/industry-packages";
 
 export default async function RisksPage() {
   const t = await getTranslations("dashboardRisksPage");
@@ -42,10 +44,19 @@ export default async function RisksPage() {
   const canUseAiSuggestions = permissions.canCreateRisks;
   const canDeleteRiskAssessments = permissions.canDeleteRisks;
 
-  const [initialRisks, initialAssessments] = await Promise.all([
+  const [initialRisks, initialAssessments, tenant] = await Promise.all([
     fetchRisks(),
     fetchRiskAssessments(),
+    prisma.tenant.findUnique({
+      where: { id: selectedMembership.tenantId },
+      select: { industry: true, aiEnabled: true },
+    }),
   ]);
+
+  const industry = tenant?.industry ?? null;
+  const hasIndustryTemplate = Boolean(getIndustryPackage(industry));
+  const industryLabel = industry ? getIndustryLabel(industry) : "deres bransje";
+  const showAiSuggestions = canUseAiSuggestions && Boolean(tenant?.aiEnabled) && Boolean(process.env.OPENAI_API_KEY);
 
   return (
     <div className="space-y-6">
@@ -67,7 +78,14 @@ export default async function RisksPage() {
         </Button>
       </div>
 
-      {canUseAiSuggestions && <AiRiskSuggestionsCard />}
+      {hasIndustryTemplate && (
+        <IndustryRiskTemplateCard
+          industryLabel={industryLabel}
+          isEmpty={initialAssessments.length === 0 && initialRisks.length === 0}
+        />
+      )}
+
+      {showAiSuggestions && <AiRiskSuggestionsCard />}
 
       <RisksContent
         initialRisks={initialRisks}

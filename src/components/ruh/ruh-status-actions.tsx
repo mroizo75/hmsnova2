@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ai/voice-textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { updateRuhReport } from "@/server/actions/ruh.actions";
@@ -78,7 +78,7 @@ export function RuhStatusActions({ reportId, currentStatus }: RuhStatusActionsPr
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="comment">Kommentar</Label>
-          <Textarea
+          <VoiceTextarea
             id="comment"
             value={comment}
             onChange={(e) => setComment(e.target.value)}

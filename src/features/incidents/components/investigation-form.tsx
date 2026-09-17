@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ai/voice-textarea";
 import {
   Select,
   SelectContent,
@@ -179,7 +179,7 @@ export function InvestigationForm({ incidentId, users, routines = [] }: Investig
                 {aiLoading ? t("aiSuggest.loading") : t("aiSuggest.button")}
               </Button>
             </div>
-            <Textarea
+            <VoiceTextarea
               ref={rootCauseRef}
               id="rootCause"
               name="rootCause"
@@ -198,7 +198,7 @@ export function InvestigationForm({ incidentId, users, routines = [] }: Investig
 
           <div className="space-y-2">
             <Label htmlFor="contributingFactors">{t("fields.contributingFactors")}</Label>
-            <Textarea
+            <VoiceTextarea
               ref={contributingFactorsRef}
               id="contributingFactors"
               name="contributingFactors"

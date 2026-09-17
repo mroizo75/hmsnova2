@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ai/voice-textarea";
 import {
   Select,
   SelectContent,
@@ -345,7 +345,7 @@ export function MobileFindingForm({ inspectionId, onSuccess }: MobileFindingForm
 
             <div className="space-y-2">
               <Label htmlFor="description" className="text-base">{t("fields.description")}</Label>
-              <Textarea
+              <VoiceTextarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}

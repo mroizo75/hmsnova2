@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ai/voice-textarea";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -167,7 +167,7 @@ function UpdateFindingStatusDialog({ finding }: { finding: Finding }) {
 
           <div className="space-y-2">
             <Label htmlFor="resolutionNotes">{t("labels.resolutionNotes")}</Label>
-            <Textarea
+            <VoiceTextarea
               id="resolutionNotes"
               name="resolutionNotes"
               defaultValue={finding.resolutionNotes || ""}

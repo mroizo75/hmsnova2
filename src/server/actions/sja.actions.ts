@@ -10,7 +10,7 @@ import {
   updateSjaSchema,
   createSjaTemplateSchema,
 } from "@/features/sja/schemas/sja.schema";
-import { SjaStatus, SjaConclusion } from "@prisma/client";
+import { RoutineStatus, SjaStatus, SjaConclusion } from "@prisma/client";
 import { AuditLog } from "@/lib/audit-log";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
@@ -99,6 +99,43 @@ export async function createSjaAnalysis(input: any) {
   try {
     const { user, tenantId } = await getSessionContext();
 
+    const rawLinkedRoutineIds: unknown[] = Array.isArray(input.linkedRoutineIds)
+      ? input.linkedRoutineIds
+      : [];
+    const linkedRoutineIds = Array.from(
+      new Set<string>(
+        rawLinkedRoutineIds.filter(
+          (id: unknown): id is string => typeof id === "string" && id.trim().length > 5,
+        ),
+      ),
+    ).slice(0, 20);
+
+    let additionalConditions =
+      typeof input.additionalConditions === "string" ? input.additionalConditions.trim() : "";
+
+    if (linkedRoutineIds.length > 0) {
+      const routines = await prisma.routine.findMany({
+        where: {
+          tenantId,
+          id: { in: linkedRoutineIds },
+          status: { in: [RoutineStatus.ACTIVE, RoutineStatus.NEEDS_REVIEW] },
+        },
+        select: { title: true },
+        take: 20,
+      });
+      if (
+        routines.length > 0 &&
+        !additionalConditions.includes("Knyttede rutiner (lest før jobb)")
+      ) {
+        const block = `Knyttede rutiner (lest før jobb):\n${routines
+          .map((routine) => `- ${routine.title}`)
+          .join("\n")}`;
+        additionalConditions = [block, additionalConditions]
+          .filter((part) => part.length > 0)
+          .join("\n\n");
+      }
+    }
+
     const sanitizedHazards = (input.hazards ?? []).map((h: any, i: number) => ({
       activity: String(h.activity ?? "").trim(),
       hazard: String(h.hazard ?? "").trim(),
@@ -117,6 +154,7 @@ export async function createSjaAnalysis(input: any) {
       ...input,
       tenantId,
       plannedDate: new Date(input.plannedDate),
+      additionalConditions: additionalConditions.length > 0 ? additionalConditions : undefined,
       hazards: sanitizedHazards,
     };
 

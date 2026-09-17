@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getAuthContext } from "@/lib/server-authorization";
 import { AuditLog } from "@/lib/audit-log";
@@ -74,6 +74,21 @@ function parseOptionalDate(value: string | null | undefined): Date | null | unde
   if (value === null || value.trim() === "") return null;
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+async function getMocApproverIds(
+  tenantId: string,
+  classification: "MINOR" | "SIGNIFICANT" | "MAJOR",
+): Promise<string[]> {
+  const roles: Role[] =
+    classification === "MINOR"
+      ? [Role.ADMIN, Role.HMS, Role.LEDER]
+      : [Role.ADMIN, Role.HMS, Role.LEDER, Role.VERNEOMBUD];
+  const members = await prisma.userTenant.findMany({
+    where: { tenantId, role: { in: roles } },
+    select: { userId: true },
+  });
+  return members.map((member) => member.userId);
 }
 
 async function notifyMocWatchers(opts: {
@@ -278,13 +293,25 @@ export async function transitionMoc(input: unknown) {
       from: moc.status,
       to,
     });
+
+    const extraUserIds = to === "PENDING_APPROVAL" ? await getMocApproverIds(auth.tenantId, moc.classification) : [];
+    const statusMessage =
+      to === "APPROVED"
+        ? "Endringen er godkjent"
+        : to === "REJECTED"
+          ? `Endringen er avvist${validated.rejectedReason?.trim() ? `: ${validated.rejectedReason.trim()}` : ""}`
+          : to === "PENDING_APPROVAL"
+            ? "Endringen venter på godkjenning"
+            : `Status endret til ${MOC_STATUS_LABELS[to]}`;
+
     await notifyMocWatchers({
       tenantId: auth.tenantId,
       mocId: moc.id,
       number: moc.number,
       title: moc.title,
-      message: `Status endret til ${MOC_STATUS_LABELS[to]}`,
+      message: statusMessage,
       actorId: auth.userId,
+      extraUserIds,
     });
     revalidatePath(`/dashboard/moc/${moc.id}`);
     revalidatePath("/dashboard/moc");

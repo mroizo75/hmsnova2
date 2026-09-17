@@ -163,17 +163,25 @@ export default function PersonvernPage() {
                 <div className="border-l-4 border-orange-400 pl-4">
                   <h4 className="font-semibold">3c. AI-forslag og forbedring av tjenesten</h4>
                   <p className="text-sm text-muted-foreground">
-                    HMS Nova kan i utvalgte funksjoner (avviksutkast, årsaksanalyse, risikoforslag, 
-                    SDS-tolkning m.m.) bruke kunstig intelligens (OpenAI) til å foreslå tekst og 
-                    vurderinger. Alle AI-funksjoner er i testfase, og administrator kan når som helst 
-                    slå AI av for egen virksomhet under Innstillinger &gt; AI - da brukes ikke 
-                    tjenesten i det hele tatt. Data som sendes til AI-funksjonen brukes ikke til å 
-                    trene OpenAIs modeller.
+                    HMS Nova kan i utvalgte funksjoner (avviksutkast, årsaksanalyse, risikoforslag,
+                    SDS-tolkning, tale-til-tekst m.m.) bruke kunstig intelligens (OpenAI) til å
+                    foreslå tekst og vurderinger. AI er et valgfritt, betalt tillegg (99 kr/mnd + mva)
+                    og er alltid av som standard. Administrator aktiverer tillegget under
+                    Innstillinger &gt; AI. Da brukes tjenesten kun for deres virksomhet.
+                    Data som sendes til AI-funksjonen brukes ikke til å trene OpenAIs modeller.
                   </p>
                   <p className="text-sm text-muted-foreground mt-2">
-                    <strong>Kunnskapsbase (RAG):</strong> For å gi mer presise og lovforankrede 
-                    AI-forslag henter systemet relevant kontekst fra en egen, kuratert kunnskapsbase 
-                    (lovtekst og rutinemaler) - ingen egen språkmodell trenes, og ingen 
+                    <strong>Tale-til-tekst:</strong> Når AI-tillegget er aktivert, kan dere diktere
+                    tekst i skjemaer (avvik, SJA, RUH, vernerunder m.m.). Lydopptaket sendes til
+                    OpenAI Whisper for transkripsjon og kastes umiddelbart etterpå – vi lagrer ikke
+                    lydfiler. Kun den transkriberte teksten dere ser og lagrer i skjemaet blir
+                    stående. Tale kan inneholde personopplysninger (art. 6). Unngå å diktere
+                    helseopplysninger utover det som er nødvendig for HMS-registreringen (art. 9).
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    <strong>Kunnskapsbase (RAG):</strong> For å gi mer presise og lovforankrede
+                    AI-forslag henter systemet relevant kontekst fra en egen, kuratert kunnskapsbase
+                    (lovtekst og rutinemaler) - ingen egen språkmodell trenes, og ingen
                     personopplysninger inngår i denne kunnskapsbasen.
                   </p>
                   <p className="text-sm text-muted-foreground mt-2">

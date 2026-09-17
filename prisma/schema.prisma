@@ -261,8 +261,11 @@ model Tenant {
   azureAdDomain      String?   @unique // Primary domain (f.eks. "firma.no")
   azureAdAutoRole    Role? // Standard rolle for nye brukere fra Azure AD
 
-  // AI-funksjoner (testfase) – selvbetjent av/på per bedrift, ingen prisendring
-  aiEnabled Boolean @default(true) // Om AI-funksjoner (avviksutkast, risikoforslag, SDS-parsing m.m.) er slått på for denne tenanten
+  // AI-tillegg 99 kr/mnd + mva – alltid av som standard
+  aiEnabled Boolean @default(false) // Om betalt AI-tillegg er aktivt (avviksutkast, tale-til-tekst, valgfrie risikoforslag m.m.)
+  aiAddonActivatedAt DateTime? // Når AI-tillegget sist ble aktivert
+  aiAddonCanceledAt DateTime? // Når AI-tillegget sist ble slått av (ingen linje på neste faktura)
+  speechToTextEnabled Boolean @default(false) // On-device tale-til-tekst i skjemaer for denne tenanten
 
   // Avtaleaksept ved registrering
   termsAcceptedAt         DateTime? // Tidspunkt kunden godtok vilkår og abonnementsavtale

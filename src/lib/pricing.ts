@@ -308,3 +308,9 @@ export const ONBOARDING_STEPS = [
  */
 export { SUPPORTED_INDUSTRIES };
 
+export {
+  AI_ADDON_NET_MONTHLY_NOK,
+  AI_ADDON_GROSS_MONTHLY_NOK,
+  AI_ADDON_INVOICE_DESCRIPTION,
+} from "@/lib/ai-addon";
+

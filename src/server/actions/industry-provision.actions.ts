@@ -9,6 +9,7 @@ import {
   routineScopeMatchesAutomotiveProvision,
 } from "@/lib/automotive-workshop-types";
 import { ensureGlobalRoutineTemplateLibrarySeeded } from "@/server/actions/routine-library.actions";
+import { getRequiredTenantContext } from "@/lib/tenant-context";
 
 interface ProvisionIndustryPackageResult {
   success: boolean;
@@ -392,3 +393,20 @@ async function provisionRoutinesForTenant(
     }
   }
 }
+
+/**
+ * Admin/HMS kan legge inn bransjemal for risikovurdering.
+ * AML § 3-1 / IK-HMS § 5: malen er utgangspunkt, ikke ferdig vurdering.
+ */
+export async function applyIndustryRiskTemplate(): Promise<ProvisionIndustryPackageResult> {
+  try {
+    const { tenantId } = await getRequiredTenantContext();
+    return provisionIndustryPackage(tenantId);
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Ikke autorisert",
+    };
+  }
+}
+

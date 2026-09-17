@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ai/voice-textarea";
 import {
   Select,
   SelectContent,
@@ -380,7 +380,7 @@ export function ReportIncidentForm({
         <Label htmlFor="description" className="text-base">
           {t("fields.description.label")}
         </Label>
-        <Textarea
+        <VoiceTextarea
           id="description"
           name="description"
           placeholder={t("fields.description.placeholder")}
@@ -399,7 +399,7 @@ export function ReportIncidentForm({
         <Label htmlFor="submitterComment" className="text-base">
           Kommentar (valgfritt)
         </Label>
-        <Textarea
+        <VoiceTextarea
           id="submitterComment"
           name="submitterComment"
           placeholder="Tilleggsopplysninger til behandler"
@@ -519,7 +519,7 @@ export function ReportIncidentForm({
         <Label htmlFor="immediateAction" className="text-base">
           {t("fields.immediateAction.label")}
         </Label>
-        <Textarea
+        <VoiceTextarea
           id="immediateAction"
           name="immediateAction"
           placeholder={t("fields.immediateAction.placeholder")}

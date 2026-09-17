@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ai/voice-textarea";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -146,7 +146,7 @@ export function DashboardRuhForm({ tenantId, reportedBy }: DashboardRuhFormProps
 
       <div className="space-y-2">
         <Label htmlFor="description">Detaljert beskrivelse *</Label>
-        <Textarea
+        <VoiceTextarea
           id="description"
           name="description"
           placeholder="Beskriv hendelsen i detalj: hva skjedde, hvordan, under hvilke omstendigheter..."
@@ -157,7 +157,7 @@ export function DashboardRuhForm({ tenantId, reportedBy }: DashboardRuhFormProps
 
       <div className="space-y-2">
         <Label htmlFor="involvedPersons">Involverte personer</Label>
-        <Textarea
+        <VoiceTextarea
           id="involvedPersons"
           name="involvedPersons"
           placeholder="Navn og rolle på involverte"
@@ -193,7 +193,7 @@ export function DashboardRuhForm({ tenantId, reportedBy }: DashboardRuhFormProps
       {injuryOccurred && (
         <div className="space-y-2">
           <Label htmlFor="injuryDescription">Beskriv skaden</Label>
-          <Textarea
+          <VoiceTextarea
             id="injuryDescription"
             name="injuryDescription"
             placeholder="Type skade, kroppsdel, behandling gitt..."
@@ -204,7 +204,7 @@ export function DashboardRuhForm({ tenantId, reportedBy }: DashboardRuhFormProps
 
       <div className="space-y-2">
         <Label htmlFor="immediateAction">Umiddelbare tiltak</Label>
-        <Textarea
+        <VoiceTextarea
           id="immediateAction"
           name="immediateAction"
           placeholder="Hva ble gjort på stedet for å håndtere situasjonen?"
@@ -214,7 +214,7 @@ export function DashboardRuhForm({ tenantId, reportedBy }: DashboardRuhFormProps
 
       <div className="space-y-2">
         <Label htmlFor="suggestedActions">Foreslåtte forebyggende tiltak</Label>
-        <Textarea
+        <VoiceTextarea
           id="suggestedActions"
           name="suggestedActions"
           placeholder="Hva kan gjøres for å unngå at dette skjer igjen?"

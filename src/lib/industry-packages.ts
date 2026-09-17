@@ -1,4 +1,5 @@
 import { automotivePackage } from "@/lib/automotive-package";
+import { buildLibraryIndustryPackages } from "@/lib/industry-risk-library";
 
 export interface SupportedIndustryOption {
   value: string;
@@ -1486,13 +1487,18 @@ const hospitalityPackage: IndustryPackage = {
   ],
 };
 
-export const INDUSTRY_PACKAGES: Readonly<Record<string, IndustryPackage>> = {
+const CORE_INDUSTRY_PACKAGES: Readonly<Record<string, IndustryPackage>> = {
   agriculture: agriculturePackage,
   elektro: elektroPackage,
   offshore: offshorePackage,
   marine: marinePackage,
   hospitality: hospitalityPackage,
   automotive: automotivePackage,
+};
+
+export const INDUSTRY_PACKAGES: Readonly<Record<string, IndustryPackage>> = {
+  ...buildLibraryIndustryPackages(Object.keys(CORE_INDUSTRY_PACKAGES)),
+  ...CORE_INDUSTRY_PACKAGES,
 };
 
 export function getIndustryPackage(industry: string | null | undefined): IndustryPackage | null {

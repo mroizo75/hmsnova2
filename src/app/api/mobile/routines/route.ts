@@ -36,19 +36,20 @@ export async function GET() {
       return NextResponse.json({ routines: [], uploads: [] }, { status: 200 });
     }
 
-    const [routines, uploads] = await Promise.all([
+    const [routines, uploads, acknowledgements] = await Promise.all([
       prisma.routine.findMany({
         where: {
           tenantId: session.user.tenantId,
           status: { in: employeeVisibleRoutineStatuses },
         },
         orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
-        take: 100,
         select: {
           id: true,
           title: true,
           status: true,
           category: true,
+          description: true,
+          legalReference: true,
           updatedAt: true,
         },
       }),
@@ -57,7 +58,6 @@ export async function GET() {
           tenantId: session.user.tenantId,
         },
         orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-        take: 100,
         select: {
           id: true,
           title: true,
@@ -68,9 +68,47 @@ export async function GET() {
           createdAt: true,
         },
       }),
+      prisma.auditLog.findMany({
+        where: {
+          tenantId: session.user.tenantId,
+          userId: session.user.id,
+          action: "ROUTINE_ACKNOWLEDGED",
+        },
+        orderBy: { createdAt: "desc" },
+        take: 300,
+        select: {
+          resource: true,
+          createdAt: true,
+        },
+      }),
     ]);
 
-    return NextResponse.json({ routines, uploads }, { status: 200 });
+    const acknowledgedAtByRoutineId = new Map<string, string>();
+    for (const entry of acknowledgements) {
+      const resource = entry.resource ?? "";
+      const prefix = "Routine:";
+      if (!resource.startsWith(prefix)) {
+        continue;
+      }
+      const routineId = resource.slice(prefix.length);
+      if (!routineId || acknowledgedAtByRoutineId.has(routineId)) {
+        continue;
+      }
+      acknowledgedAtByRoutineId.set(routineId, entry.createdAt.toISOString());
+    }
+
+    const routinesWithAck = routines.map((routine) => {
+      const acknowledgedAt = acknowledgedAtByRoutineId.get(routine.id) ?? null;
+      const acknowledgedCurrent =
+        acknowledgedAt !== null && new Date(acknowledgedAt).getTime() >= routine.updatedAt.getTime();
+      return {
+        ...routine,
+        acknowledgedAt,
+        acknowledgedCurrent,
+      };
+    });
+
+    return NextResponse.json({ routines: routinesWithAck, uploads }, { status: 200 });
   } catch (error) {
     console.error("[Mobile Routines] Error:", error);
     return NextResponse.json({ error: "Kunne ikke hente rutiner" }, { status: 500 });

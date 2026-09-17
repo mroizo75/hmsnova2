@@ -144,8 +144,12 @@ export function SettingsContent({
         />
       </TabsContent>
 
-      <TabsContent value="ai">
-        <AiSettings initialEnabled={(tenant as any).aiEnabled ?? true} isAdmin={isAdmin} />
+      <TabsContent value="ai" className="space-y-6">
+        <AiSettings
+          initialEnabled={Boolean(tenant.aiEnabled)}
+          activatedAt={tenant.aiAddonActivatedAt ?? null}
+          isAdmin={isAdmin}
+        />
       </TabsContent>
 
       <TabsContent value="profile" className="space-y-6">

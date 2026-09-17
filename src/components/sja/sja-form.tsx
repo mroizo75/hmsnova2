@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ai/voice-textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -463,7 +463,7 @@ export function SjaForm({
           <Label htmlFor="description" className="text-base">
             {t("fields.description.label")}
           </Label>
-          <Textarea
+          <VoiceTextarea
             id="description"
             name="description"
             placeholder={t("fields.description.placeholder")}
@@ -485,7 +485,7 @@ export function SjaForm({
           <Label htmlFor="participants" className="text-base">
             {t("fields.participants.label")} *
           </Label>
-          <Textarea
+          <VoiceTextarea
             id="participants"
             name="participants"
             placeholder={t("fields.participants.placeholder")}
@@ -512,7 +512,7 @@ export function SjaForm({
             <p className="text-sm text-orange-900 mb-3">
               <strong>{t("fields.additionalConditions.title")}</strong> {t("fields.additionalConditions.help")}
             </p>
-            <Textarea
+            <VoiceTextarea
               id="additionalConditions"
               name="additionalConditions"
               placeholder={t("fields.additionalConditions.placeholder")}
@@ -653,7 +653,7 @@ export function SjaForm({
 
               <div className="space-y-1">
                 <Label className="text-sm">{t("hazards.measures")} *</Label>
-                <Textarea
+                <VoiceTextarea
                   value={hazard.measures}
                   onChange={(e) => updateHazard(index, "measures", e.target.value)}
                   placeholder={t("hazards.measuresPlaceholder")}
@@ -793,7 +793,7 @@ export function SjaForm({
           <Button type="button" variant="outline" onClick={handleGenerateSummary} disabled={isGeneratingSummary}>
             {isGeneratingSummary ? t("ai.generating") : t("ai.generate")}
           </Button>
-          <Textarea
+          <VoiceTextarea
             value={aiSummary}
             onChange={(event) => setAiSummary(event.target.value)}
             placeholder={t("ai.placeholder")}

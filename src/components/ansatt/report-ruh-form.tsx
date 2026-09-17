@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ai/voice-textarea";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -266,7 +266,7 @@ export function ReportRuhForm({
         <Label htmlFor="description" className="text-base">
           {t("fields.description.label")}
         </Label>
-        <Textarea
+        <VoiceTextarea
           id="description"
           name="description"
           placeholder={t("fields.description.placeholder")}
@@ -284,7 +284,7 @@ export function ReportRuhForm({
           <Label htmlFor="contextDetails" className="text-base">
             {contextPresets[ruhContext].detailsLabel}
           </Label>
-          <Textarea
+          <VoiceTextarea
             id="contextDetails"
             name="contextDetails"
             value={contextDetails}
@@ -303,7 +303,7 @@ export function ReportRuhForm({
         <Label htmlFor="involvedPersons" className="text-base">
           {t("fields.involvedPersons.label")}
         </Label>
-        <Textarea
+        <VoiceTextarea
           id="involvedPersons"
           name="involvedPersons"
           placeholder={t("fields.involvedPersons.placeholder")}
@@ -345,7 +345,7 @@ export function ReportRuhForm({
           <Label htmlFor="injuryDescription" className="text-base">
             {t("fields.injuryDescription.label")}
           </Label>
-          <Textarea
+          <VoiceTextarea
             id="injuryDescription"
             name="injuryDescription"
             placeholder={t("fields.injuryDescription.placeholder")}
@@ -359,7 +359,7 @@ export function ReportRuhForm({
         <Label htmlFor="immediateAction" className="text-base">
           {t("fields.immediateAction.label")}
         </Label>
-        <Textarea
+        <VoiceTextarea
           id="immediateAction"
           name="immediateAction"
           placeholder={t("fields.immediateAction.placeholder")}
@@ -372,7 +372,7 @@ export function ReportRuhForm({
         <Label htmlFor="suggestedActions" className="text-base">
           {t("fields.suggestedActions.label")}
         </Label>
-        <Textarea
+        <VoiceTextarea
           id="suggestedActions"
           name="suggestedActions"
           placeholder={t("fields.suggestedActions.placeholder")}

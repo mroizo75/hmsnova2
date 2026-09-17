@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ai/voice-textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -593,7 +593,7 @@ export function FormFiller({
 
                 {/* TEXTAREA */}
                 {field.type === "TEXTAREA" && (
-                  <Textarea
+                  <VoiceTextarea
                     value={formValues[field.id] || ""}
                     onChange={(e) => handleFieldChange(field.id, e.target.value)}
                     placeholder={field.placeholder}
@@ -875,7 +875,7 @@ export function FormFiller({
                           <Label className="text-xs">
                             Beskrivelse av funn <span className="text-destructive">*</span>
                           </Label>
-                          <Textarea
+                          <VoiceTextarea
                             value={draft.description}
                             onChange={(event) =>
                               updateInlineFindingDraft(field.id, field.label, findingIndex, {
@@ -991,7 +991,7 @@ export function FormFiller({
                         <MessageSquare className="h-3 w-3" />
                         Merknad (valgfritt)
                       </Label>
-                      <Textarea
+                      <VoiceTextarea
                         value={fieldComments[field.id] || ""}
                         onChange={(e) => handleCommentChange(field.id, e.target.value)}
                         placeholder="Skriv inn merknad, avvik eller observasjon for dette punktet…"

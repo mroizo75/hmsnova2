@@ -182,13 +182,14 @@ export function AiRiskSuggestionsCard() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <Sparkles className="h-4 w-4" />
-          AI-forslag for risikovurdering
+          Valgfrie AI-forslag for risikovurdering
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-sm text-muted-foreground">
           Hent forslag basert på bransje og historikk. Juster tittel på årsvurderingen og hvert
-          risikopunkt før du lagrer – AI er kun et utgangspunkt.
+          risikopunkt før du lagrer – AI er kun et valgfritt utgangspunkt og erstatter ikke
+          kartleggingen dere selv skal gjøre (AML § 3-1 / internkontrollforskriften § 5).
         </p>
 
         <Button type="button" variant="secondary" onClick={handlePreview} disabled={isPreviewing || isApplying}>
