@@ -72,7 +72,20 @@ export async function GET(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ data: meeting });
+    const files = await db.attachment.findMany({
+      where: { tenantId, objectType: "MEETING", objectId: id },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        fileKey: true,
+        name: true,
+        mime: true,
+        size: true,
+        createdAt: true,
+      },
+    });
+
+    return NextResponse.json({ data: { ...meeting, files } });
   } catch (error: any) {
     console.error("[MEETING_GET]", error);
     return NextResponse.json(
@@ -155,7 +168,20 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json({ data: meeting });
+    const files = await db.attachment.findMany({
+      where: { tenantId, objectType: "MEETING", objectId: id },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        fileKey: true,
+        name: true,
+        mime: true,
+        size: true,
+        createdAt: true,
+      },
+    });
+
+    return NextResponse.json({ data: { ...meeting, files } });
   } catch (error: any) {
     console.error("[MEETING_PATCH]", error);
     if (error instanceof z.ZodError) {

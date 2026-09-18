@@ -3562,7 +3562,7 @@
     "status": {
       "planned": "Planlagt",
       "inProgress": "Pågår",
-      "completed": "Fullført",
+      "completed": "Gjennomført",
       "cancelled": "Avlyst"
     },
     "actions": {
@@ -3573,7 +3573,7 @@
     "stats": {
       "total": "Totalt",
       "planned": "Planlagt",
-      "completed": "Fullført",
+      "completed": "Gjennomført",
       "decisions": "Vedtak"
     },
     "empty": {
@@ -3915,12 +3915,19 @@
       "add": "Legg til",
       "cancel": "Avbryt",
       "newDecision": "Nytt vedtak",
-      "addDecision": "Legg til vedtak"
+      "addDecision": "Legg til vedtak",
+      "changeStatus": "Endre møtestatus",
+      "markCompleted": "Merk som gjennomført",
+      "saving": "Lagrer...",
+      "saveMinutes": "Lagre referat",
+      "uploading": "Laster opp...",
+      "deleteFile": "Slett fil",
+      "markAllAttended": "Merk alle som deltatt"
     },
     "status": {
       "planned": "Planlagt",
       "inProgress": "Pågår",
-      "completed": "Fullført",
+      "completed": "Gjennomført",
       "cancelled": "Avlyst"
     },
     "decisionStatus": {
@@ -3936,15 +3943,20 @@
       "observer": "Observatør"
     },
     "attendance": {
-      "present": "Til stede",
-      "absent": "Ikke møtt"
+      "present": "Deltatt",
+      "absent": "Ikke deltatt",
+      "toggle": "Endre oppmøte for {name}"
     },
     "errors": {
       "fetchMeeting": "Kunne ikke hente møte",
       "participantRequired": "Fyll inn enten bruker-ID eller eksternt navn",
       "addParticipant": "Kunne ikke legge til deltaker",
       "decisionRequired": "Fyll inn tittel og beskrivelse",
-      "addDecision": "Kunne ikke legge til vedtak"
+      "addDecision": "Kunne ikke legge til vedtak",
+      "updateMeeting": "Kunne ikke oppdatere møtet",
+      "updateAttendance": "Kunne ikke oppdatere oppmøte",
+      "uploadMinutes": "Kunne ikke laste opp referat",
+      "deleteMinutes": "Kunne ikke slette fil"
     },
     "toasts": {
       "participantAdded": {
@@ -3954,6 +3966,26 @@
       "decisionAdded": {
         "title": "Vedtak lagt til",
         "description": "Vedtaket er lagt til møtet"
+      },
+      "statusUpdated": {
+        "title": "Status oppdatert",
+        "description": "Møtestatus er lagret"
+      },
+      "minutesSaved": {
+        "title": "Referat lagret",
+        "description": "Det skriftlige referatet er lagret"
+      },
+      "minutesUploaded": {
+        "title": "Referat lastet opp",
+        "description": "Filen er lagt ved møtet"
+      },
+      "minutesDeleted": {
+        "title": "Fil slettet",
+        "description": "Vedlegget er fjernet"
+      },
+      "attendanceUpdated": {
+        "title": "Oppmøte oppdatert",
+        "description": "Alle deltakere er merket som deltatt"
       }
     },
     "sections": {
@@ -3967,9 +3999,20 @@
         "summary": "Oppsummering",
         "notes": "Notater"
       },
+      "minutes": {
+        "title": "Møtereferat",
+        "description": "AML § 7-2 krever skriftlig referat fra AMU-møter. Skriv referatet her eller last opp en fil.",
+        "written": "Skriftlig referat",
+        "writtenPlaceholder": "Skriv møtereferat, vedtak og oppfølgingspunkter...",
+        "upload": "Last opp referat",
+        "uploadHint": "PDF, Word eller bilde. Maks 20 MB per fil.",
+        "acceptedTypes": "PDF, DOC, DOCX, ODT, TXT, JPG, PNG",
+        "emptyFiles": "Ingen filer lastet opp ennå",
+        "missingWarning": "Møtet er merket som gjennomført, men referat mangler. AML § 7-2 krever skriftlig protokoll."
+      },
       "participants": {
         "title": "Deltakere",
-        "description": "Oversikt over møtedeltakere",
+        "description": "Oversikt over møtedeltakere. Bruk bryteren for å merke oppmøte.",
         "empty": "Ingen deltakere lagt til"
       },
       "decisions": {

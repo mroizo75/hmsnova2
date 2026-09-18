@@ -76,3 +76,58 @@ export async function POST(
   }
 }
 
+const bulkAttendanceSchema = z.object({
+  attended: z.boolean(),
+  participantIds: z.array(z.string().min(1)).optional(),
+});
+
+// PATCH /api/meetings/[id]/participants — oppdater oppmøte for én, flere eller alle
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.tenantId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const validatedData = bulkAttendanceSchema.parse(body);
+
+    const meeting = await db.meeting.findFirst({
+      where: {
+        id,
+        tenantId: session.user.tenantId,
+      },
+      select: { id: true },
+    });
+
+    if (!meeting) {
+      return NextResponse.json({ error: "Meeting not found" }, { status: 404 });
+    }
+
+    const result = await db.meetingParticipant.updateMany({
+      where: {
+        meetingId: id,
+        ...(validatedData.participantIds
+          ? { id: { in: validatedData.participantIds } }
+          : {}),
+      },
+      data: { attended: validatedData.attended },
+    });
+
+    return NextResponse.json({ data: { updated: result.count } });
+  } catch (error: any) {
+    console.error("[MEETING_PARTICIPANT_PATCH_BULK]", error);
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.issues }, { status: 400 });
+    }
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+

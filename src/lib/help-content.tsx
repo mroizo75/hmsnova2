@@ -922,9 +922,9 @@ export const helpContent: Record<string, HelpContent> = {
               "Skriv inn saker, beslutninger og tiltak direkte i systemet under møtet.",
           },
           {
-            title: "3. Generer referat",
+            title: "3. Registrer referat og oppmøte",
             description:
-              "Systemet lager automatisk strukturert møtereferat som kan deles.",
+              "Merk møtet som gjennomført, registrer hvem som deltok, og skriv eller last opp referat (AML § 7-2).",
           },
           {
             title: "4. Følg opp tiltak",

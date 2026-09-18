@@ -9,18 +9,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft,
-  Edit,
   Calendar,
   MapPin,
   Video,
   Users,
-  FileText,
   Plus,
   Check,
   X,
   Trash2,
   ClipboardList,
   ExternalLink,
+  CheckCircle2,
+  Save,
+  Paperclip,
 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -53,6 +54,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useLocale, useTranslations } from "next-intl";
 
 type MeetingStatus = "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
@@ -83,8 +85,18 @@ interface Meeting {
   minuteTaker?: string;
   participants: Participant[];
   decisions: Decision[];
+  files: MeetingFile[];
   createdAt: string;
   updatedAt: string;
+}
+
+interface MeetingFile {
+  id: string;
+  fileKey: string;
+  name: string;
+  mime: string;
+  size: number | null;
+  createdAt: string;
 }
 
 interface Participant {
@@ -117,6 +129,19 @@ interface Decision {
   notes?: string;
   measureId?: string;
   measure?: { id: string; title: string; status: string };
+}
+
+function getStatusLabel(status: MeetingStatus, t: ReturnType<typeof useTranslations>) {
+  switch (status) {
+    case "PLANNED":
+      return t("status.planned");
+    case "IN_PROGRESS":
+      return t("status.inProgress");
+    case "COMPLETED":
+      return t("status.completed");
+    case "CANCELLED":
+      return t("status.cancelled");
+  }
 }
 
 function getStatusBadge(status: MeetingStatus, t: ReturnType<typeof useTranslations>) {
@@ -159,6 +184,14 @@ function getRoleLabel(role: ParticipantRole, t: ReturnType<typeof useTranslation
 }
 
 const NO_DECISION_RESPONSIBLE_VALUE = "__none_decision_responsible__";
+const MEETING_STATUSES: MeetingStatus[] = ["PLANNED", "IN_PROGRESS", "COMPLETED", "CANCELLED"];
+
+function formatFileSize(size: number | null): string {
+  if (!size || size <= 0) return "—";
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 export default function MeetingDetailPage() {
   const t = useTranslations("dashboardMeetingDetailPage");
@@ -185,6 +218,13 @@ export default function MeetingDetailPage() {
     responsibleId: NO_DECISION_RESPONSIBLE_VALUE,
     dueDate: "",
   });
+  const [summaryDraft, setSummaryDraft] = useState("");
+  const [savingSummary, setSavingSummary] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [updatingParticipantId, setUpdatingParticipantId] = useState<string | null>(null);
+  const [markingAllAttended, setMarkingAllAttended] = useState(false);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
+  const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchMeeting();
@@ -220,7 +260,11 @@ export default function MeetingDetailPage() {
         throw new Error(data.error || t("errors.fetchMeeting"));
       }
 
-      setMeeting(data.data);
+      setMeeting({
+        ...data.data,
+        files: data.data.files ?? [],
+      });
+      setSummaryDraft(data.data.summary ?? "");
     } catch (error: any) {
       toast({
         title: t("common.error"),
@@ -230,6 +274,191 @@ export default function MeetingDetailPage() {
       router.push("/dashboard/meetings");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const patchMeeting = async (payload: Record<string, unknown>) => {
+    const response = await fetch(`/api/meetings/${params.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || t("errors.updateMeeting"));
+    }
+    setMeeting({
+      ...data.data,
+      files: data.data.files ?? meeting?.files ?? [],
+    });
+    return data.data as Meeting;
+  };
+
+  const updateStatus = async (status: MeetingStatus) => {
+    if (!meeting || status === meeting.status) return;
+    setUpdatingStatus(true);
+    try {
+      await patchMeeting({ status });
+      toast({
+        title: t("toasts.statusUpdated.title"),
+        description: t("toasts.statusUpdated.description"),
+      });
+    } catch (error: any) {
+      toast({
+        title: t("common.error"),
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const saveSummary = async () => {
+    setSavingSummary(true);
+    try {
+      const updated = await patchMeeting({ summary: summaryDraft });
+      setSummaryDraft(updated.summary ?? "");
+      toast({
+        title: t("toasts.minutesSaved.title"),
+        description: t("toasts.minutesSaved.description"),
+      });
+    } catch (error: any) {
+      toast({
+        title: t("common.error"),
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSavingSummary(false);
+    }
+  };
+
+  const toggleAttendance = async (participant: Participant) => {
+    setUpdatingParticipantId(participant.id);
+    try {
+      const response = await fetch(`/api/meetings/${params.id}/participants/${participant.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ attended: !participant.attended }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || t("errors.updateAttendance"));
+      }
+      setMeeting((current) =>
+        current
+          ? {
+              ...current,
+              participants: current.participants.map((p) =>
+                p.id === participant.id ? { ...p, attended: !p.attended } : p
+              ),
+            }
+          : current
+      );
+    } catch (error: any) {
+      toast({
+        title: t("common.error"),
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingParticipantId(null);
+    }
+  };
+
+  const markAllAttended = async () => {
+    setMarkingAllAttended(true);
+    try {
+      const response = await fetch(`/api/meetings/${params.id}/participants`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ attended: true }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || t("errors.updateAttendance"));
+      }
+      setMeeting((current) =>
+        current
+          ? {
+              ...current,
+              participants: current.participants.map((p) => ({ ...p, attended: true })),
+            }
+          : current
+      );
+      toast({
+        title: t("toasts.attendanceUpdated.title"),
+        description: t("toasts.attendanceUpdated.description"),
+      });
+    } catch (error: any) {
+      toast({
+        title: t("common.error"),
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setMarkingAllAttended(false);
+    }
+  };
+
+  const uploadMinutesFiles = async (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return;
+    setUploadingFiles(true);
+    try {
+      const formData = new FormData();
+      Array.from(fileList).forEach((file) => formData.append("files", file));
+      const response = await fetch(`/api/meetings/${params.id}/attachments`, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || t("errors.uploadMinutes"));
+      }
+      toast({
+        title: t("toasts.minutesUploaded.title"),
+        description: t("toasts.minutesUploaded.description"),
+      });
+      await fetchMeeting();
+    } catch (error: any) {
+      toast({
+        title: t("common.error"),
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingFiles(false);
+    }
+  };
+
+  const deleteMinutesFile = async (fileId: string) => {
+    setDeletingFileId(fileId);
+    try {
+      const response = await fetch(`/api/meetings/${params.id}/attachments/${fileId}`, {
+        method: "DELETE",
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || t("errors.deleteMinutes"));
+      }
+      setMeeting((current) =>
+        current
+          ? { ...current, files: current.files.filter((file) => file.id !== fileId) }
+          : current
+      );
+      toast({
+        title: t("toasts.minutesDeleted.title"),
+        description: t("toasts.minutesDeleted.description"),
+      });
+    } catch (error: any) {
+      toast({
+        title: t("common.error"),
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingFileId(null);
     }
   };
 
@@ -379,10 +608,12 @@ export default function MeetingDetailPage() {
     return null;
   }
 
+  const files = meeting.files ?? [];
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <Link href="/dashboard/meetings">
             <Button variant="ghost" size="icon">
@@ -396,7 +627,32 @@ export default function MeetingDetailPage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={meeting.status}
+            onValueChange={(value: MeetingStatus) => updateStatus(value)}
+            disabled={updatingStatus}
+          >
+            <SelectTrigger className="w-[180px]" aria-label={t("actions.changeStatus")}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {MEETING_STATUSES.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {getStatusLabel(status, t)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {(meeting.status === "PLANNED" || meeting.status === "IN_PROGRESS") && (
+            <Button
+              onClick={() => updateStatus("COMPLETED")}
+              disabled={updatingStatus}
+            >
+              <CheckCircle2 className="mr-2 h-4 w-4" />
+              {updatingStatus ? t("actions.saving") : t("actions.markCompleted")}
+            </Button>
+          )}
           {getStatusBadge(meeting.status, t)}
         </div>
       </div>
@@ -466,18 +722,6 @@ export default function MeetingDetailPage() {
             </>
           )}
 
-          {meeting.summary && (
-            <>
-              <Separator />
-              <div>
-                <h3 className="mb-2 font-semibold">{t("sections.details.summary")}</h3>
-                <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-                  {meeting.summary}
-                </p>
-              </div>
-            </>
-          )}
-
           {meeting.notes && (
             <>
               <Separator />
@@ -492,6 +736,100 @@ export default function MeetingDetailPage() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("sections.minutes.title")}</CardTitle>
+          <CardDescription>{t("sections.minutes.description")}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {meeting.status === "COMPLETED" && !summaryDraft.trim() && files.length === 0 && (
+            <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              {t("sections.minutes.missingWarning")}
+            </p>
+          )}
+          <div className="space-y-2">
+            <Label htmlFor="meeting-summary">{t("sections.minutes.written")}</Label>
+            <Textarea
+              id="meeting-summary"
+              value={summaryDraft}
+              onChange={(e) => setSummaryDraft(e.target.value)}
+              placeholder={t("sections.minutes.writtenPlaceholder")}
+              rows={8}
+            />
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                onClick={saveSummary}
+                disabled={savingSummary || summaryDraft === (meeting.summary ?? "")}
+              >
+                <Save className="mr-2 h-4 w-4" />
+                {savingSummary ? t("actions.saving") : t("actions.saveMinutes")}
+              </Button>
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="meeting-minutes-upload">{t("sections.minutes.upload")}</Label>
+              <p className="text-xs text-muted-foreground">{t("sections.minutes.uploadHint")}</p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <Input
+                id="meeting-minutes-upload"
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx,.odt,.txt,.jpg,.jpeg,.png"
+                disabled={uploadingFiles}
+                onChange={(event) => {
+                  void uploadMinutesFiles(event.target.files);
+                  event.target.value = "";
+                }}
+              />
+              <p className="text-xs text-muted-foreground whitespace-nowrap">
+                {uploadingFiles ? t("actions.uploading") : t("sections.minutes.acceptedTypes")}
+              </p>
+            </div>
+            {files.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t("sections.minutes.emptyFiles")}</p>
+            ) : (
+              <div className="divide-y rounded-lg border">
+                {files.map((file) => (
+                  <div key={file.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <a
+                          href={`/api/files/${file.fileKey}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="truncate text-sm font-medium hover:underline"
+                        >
+                          {file.name}
+                        </a>
+                      </div>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {formatFileSize(file.size)}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteMinutesFile(file.id)}
+                      disabled={deletingFileId === file.id}
+                      aria-label={t("actions.deleteFile")}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Deltakere */}
       <Card>
         <CardHeader>
@@ -500,6 +838,18 @@ export default function MeetingDetailPage() {
               <CardTitle>{t("sections.participants.title")}</CardTitle>
               <CardDescription>{t("sections.participants.description")}</CardDescription>
             </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {meeting.participants.length > 0 && meeting.participants.some((p) => !p.attended) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={markAllAttended}
+                  disabled={markingAllAttended}
+                >
+                  <Users className="mr-2 h-4 w-4" />
+                  {markingAllAttended ? t("actions.saving") : t("actions.markAllAttended")}
+                </Button>
+              )}
             <Dialog open={showParticipantDialog} onOpenChange={setShowParticipantDialog}>
               <DialogTrigger asChild>
                 <Button size="sm">
@@ -593,6 +943,7 @@ export default function MeetingDetailPage() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -620,17 +971,27 @@ export default function MeetingDetailPage() {
                     </TableCell>
                     <TableCell>{getRoleLabel(p.role, t)}</TableCell>
                     <TableCell>
-                      {p.attended ? (
-                        <Badge className="bg-green-600 hover:bg-green-600">
-                          <Check className="mr-1 h-3 w-3" />
-                          {t("attendance.present")}
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary">
-                          <X className="mr-1 h-3 w-3" />
-                          {t("attendance.absent")}
-                        </Badge>
-                      )}
+                      <div className="flex items-center gap-3">
+                        <Switch
+                          checked={p.attended}
+                          disabled={updatingParticipantId === p.id}
+                          onCheckedChange={() => toggleAttendance(p)}
+                          aria-label={t("attendance.toggle", {
+                            name: p.user ? (p.user.name || p.user.email) : p.externalName || "",
+                          })}
+                        />
+                        {p.attended ? (
+                          <Badge className="bg-green-600 hover:bg-green-600">
+                            <Check className="mr-1 h-3 w-3" />
+                            {t("attendance.present")}
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary">
+                            <X className="mr-1 h-3 w-3" />
+                            {t("attendance.absent")}
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

@@ -3915,7 +3915,14 @@
       "add": "Add",
       "cancel": "Cancel",
       "newDecision": "New decision",
-      "addDecision": "Add decision"
+      "addDecision": "Add decision",
+      "changeStatus": "Change meeting status",
+      "markCompleted": "Mark as completed",
+      "saving": "Saving...",
+      "saveMinutes": "Save minutes",
+      "uploading": "Uploading...",
+      "deleteFile": "Delete file",
+      "markAllAttended": "Mark all as attended"
     },
     "status": {
       "planned": "Planned",
@@ -3936,15 +3943,20 @@
       "observer": "Observer"
     },
     "attendance": {
-      "present": "Present",
-      "absent": "Absent"
+      "present": "Attended",
+      "absent": "Did not attend",
+      "toggle": "Change attendance for {name}"
     },
     "errors": {
       "fetchMeeting": "Could not fetch meeting",
       "participantRequired": "Fill in either user ID or external name",
       "addParticipant": "Could not add participant",
       "decisionRequired": "Fill in title and description",
-      "addDecision": "Could not add decision"
+      "addDecision": "Could not add decision",
+      "updateMeeting": "Could not update the meeting",
+      "updateAttendance": "Could not update attendance",
+      "uploadMinutes": "Could not upload minutes",
+      "deleteMinutes": "Could not delete file"
     },
     "toasts": {
       "participantAdded": {
@@ -3954,6 +3966,26 @@
       "decisionAdded": {
         "title": "Decision added",
         "description": "The decision has been added to the meeting"
+      },
+      "statusUpdated": {
+        "title": "Status updated",
+        "description": "The meeting status has been saved"
+      },
+      "minutesSaved": {
+        "title": "Minutes saved",
+        "description": "The written minutes have been saved"
+      },
+      "minutesUploaded": {
+        "title": "Minutes uploaded",
+        "description": "The file has been attached to the meeting"
+      },
+      "minutesDeleted": {
+        "title": "File deleted",
+        "description": "The attachment has been removed"
+      },
+      "attendanceUpdated": {
+        "title": "Attendance updated",
+        "description": "All participants have been marked as attended"
       }
     },
     "sections": {
@@ -3967,9 +3999,20 @@
         "summary": "Summary",
         "notes": "Notes"
       },
+      "minutes": {
+        "title": "Meeting minutes",
+        "description": "The Working Environment Act section 7-2 requires written minutes from AMU meetings. Write them here or upload a file.",
+        "written": "Written minutes",
+        "writtenPlaceholder": "Write meeting minutes, decisions and follow-up items...",
+        "upload": "Upload minutes",
+        "uploadHint": "PDF, Word or image. Max 20 MB per file.",
+        "acceptedTypes": "PDF, DOC, DOCX, ODT, TXT, JPG, PNG",
+        "emptyFiles": "No files uploaded yet",
+        "missingWarning": "The meeting is marked as completed, but minutes are missing. Section 7-2 of the Working Environment Act requires written minutes."
+      },
       "participants": {
         "title": "Participants",
-        "description": "Overview of meeting participants",
+        "description": "Overview of meeting participants. Use the switch to record attendance.",
         "empty": "No participants added"
       },
       "decisions": {
