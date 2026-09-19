@@ -2,6 +2,7 @@ import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } fro
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import path from "path";
 import type { StorageAdapter } from "@/lib/storage-types";
+import { isNotFoundStorageError } from "@/lib/storage-key";
 
 export type { StorageAdapter } from "@/lib/storage-types";
 
@@ -21,7 +22,7 @@ export class R2Storage implements StorageAdapter {
       },
       forcePathStyle: true,
     });
-    this.bucket = process.env.R2_BUCKET || process.env.S3_BUCKET || "hmsnova";
+    this.bucket = process.env.R2_BUCKET_NAME || process.env.R2_BUCKET || process.env.S3_BUCKET || "hmsnova";
   }
 
   async upload(key: string, file: Blob | Buffer, metadata?: Record<string, string>): Promise<string> {
@@ -69,7 +70,12 @@ export class R2Storage implements StorageAdapter {
 
       return Buffer.concat(chunks);
     } catch (error) {
-      console.error("Error getting file from R2:", error);
+      if (!isNotFoundStorageError(error)) {
+        console.error(
+          "Error getting file from R2:",
+          error instanceof Error ? error.message : "ukjent feil"
+        );
+      }
       return null;
     }
   }

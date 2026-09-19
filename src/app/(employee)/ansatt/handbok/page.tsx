@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/server-authorization";
 import { BookOpen } from "lucide-react";
 import { fetchHmsHandbok } from "@/server/queries/hms-handbok.queries";
-import { HandbokViewer } from "@/features/hms-handbok/components/handbok-viewer";
+import { EmployeeHandbookView } from "@/features/hms-handbok/components/employee-handbook-view";
 import { Card, CardContent } from "@/components/ui/card";
 
 export const metadata = { title: "HMS- og personalhåndbok" };
@@ -19,7 +19,8 @@ export default async function AnsattHandbokPage() {
     redirect("/ansatt");
   }
 
-  const approved = data.handbook.currentVersion?.status === "APPROVED";
+  const version = data.handbook.currentVersion;
+  const hasContent = Boolean(version && version.sections.length > 0);
 
   return (
     <div className="space-y-6">
@@ -29,30 +30,24 @@ export default async function AnsattHandbokPage() {
           HMS- og personalhåndbok
         </h1>
         <p className="text-muted-foreground mt-1">
-          Les bedriftens håndbok og bekreft at du har lest og forstått innholdet.
+          Finn det du trenger: avvik, varsling, beredskap og personal. Bekreft at du har lest innholdet.
         </p>
       </div>
 
-      {!approved ? (
+      {!hasContent ? (
         <Card className="border-dashed">
           <CardContent className="py-12 text-center text-sm text-muted-foreground">
-            Det er ikke publisert en godkjent håndbok ennå. Kontakt leder eller HMS-ansvarlig.
+            Håndboken er under utarbeidelse. Når det ligger innhold her, skal du lese og bekrefte
+            det — samme krav som i dashboard (IK-HMS § 5).
           </CardContent>
         </Card>
       ) : (
-        <HandbokViewer
-          tenantId={data.tenantId}
+        <EmployeeHandbookView
           tenantName={data.tenantName}
-          orgNumber={data.orgNumber}
-          industry={data.industry}
           hmsContactName={data.hmsContactName}
           hmsContactPhone={data.hmsContactPhone}
           handbook={data.handbook}
-          stats={data.stats}
           currentUserId={data.currentUserId}
-          canManage={false}
-          canApprove={false}
-          isEmployee
         />
       )}
     </div>

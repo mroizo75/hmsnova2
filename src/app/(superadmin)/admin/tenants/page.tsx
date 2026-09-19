@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/tooltip";
 import Link from "next/link";
 import { Plus, CheckCircle2, Circle, AlertTriangle } from "lucide-react";
+import { AdminAiIncludedSwitch } from "@/features/admin/components/admin-ai-included-switch";
 import { AdminPagination, AdminPaginationSearch } from "@/components/admin-pagination";
 import type { Prisma } from "@prisma/client";
 
@@ -70,19 +71,16 @@ export default async function TenantsPage({
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const searchFilter: Prisma.TenantWhereInput = {
-    users: { some: {} },
-    ...(searchTerm
-      ? {
-          OR: [
-            { name: { contains: searchTerm } },
-            { orgNumber: { contains: searchTerm } },
-            { contactEmail: { contains: searchTerm } },
-            { contactPerson: { contains: searchTerm } },
-          ],
-        }
-      : {}),
-  };
+  const searchFilter: Prisma.TenantWhereInput = searchTerm
+    ? {
+        OR: [
+          { name: { contains: searchTerm } },
+          { orgNumber: { contains: searchTerm } },
+          { contactEmail: { contains: searchTerm } },
+          { contactPerson: { contains: searchTerm } },
+        ],
+      }
+    : {};
 
   const totalItems = await prisma.tenant.count({ where: searchFilter });
   const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
@@ -218,6 +216,7 @@ export default async function TenantsPage({
                   <TableHead>Status</TableHead>
                   {isSuperAdmin && <TableHead>Avtale</TableHead>}
                   {isSuperAdmin && <TableHead>Abonnement</TableHead>}
+                  {isSuperAdmin && <TableHead>AI</TableHead>}
                   {isSuperAdmin && <TableHead className="text-center">Brukere</TableHead>}
                   {isSuperAdmin && <TableHead>Siste innlogging</TableHead>}
                   <TableHead className="text-center">Aktivitet (30d)</TableHead>
@@ -294,6 +293,15 @@ export default async function TenantsPage({
                         ) : (
                           <span className="text-sm text-muted-foreground">-</span>
                         )}
+                      </TableCell>
+                    )}
+                    {isSuperAdmin && (
+                      <TableCell>
+                        <AdminAiIncludedSwitch
+                          tenantId={tenant.id}
+                          tenantName={tenant.name}
+                          included={tenant.aiIncludedInAgreement}
+                        />
                       </TableCell>
                     )}
                     {isSuperAdmin && (

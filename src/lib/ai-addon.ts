@@ -30,9 +30,17 @@ export function buildAiAddonFikenLine(): FikenInvoiceLine {
   };
 }
 
+export function shouldBillAiAddon(input: {
+  aiEnabled: boolean;
+  aiIncludedInAgreement?: boolean;
+}): boolean {
+  return input.aiEnabled && !input.aiIncludedInAgreement;
+}
+
 export function buildSubscriptionInvoiceTotals(input: {
   subscriptionGrossAmount: number;
   aiEnabled: boolean;
+  aiIncludedInAgreement?: boolean;
 }): {
   grossTotal: number;
   netSubscription: number;
@@ -49,7 +57,7 @@ export function buildSubscriptionInvoiceTotals(input: {
   ];
 
   let grossTotal = input.subscriptionGrossAmount;
-  if (input.aiEnabled) {
+  if (shouldBillAiAddon(input)) {
     lines.push(buildAiAddonFikenLine());
     grossTotal += AI_ADDON_GROSS_MONTHLY_NOK;
   }

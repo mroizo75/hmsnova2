@@ -40,7 +40,7 @@ export default async function AdminCorporateGroupDetailPage({
         </Link>
       </div>
 
-      <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold">{group.name}</h1>
           <div className="mt-1 flex flex-wrap items-center gap-4 text-sm text-gray-500">
@@ -49,7 +49,14 @@ export default async function AdminCorporateGroupDetailPage({
             <span>Slug: {group.slug}</span>
           </div>
         </div>
-        <DeleteGroupButton groupId={group.id} groupName={group.name} />
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" className="bg-transparent">
+            <Link href={`/admin/hms-handbok?groupId=${group.id}`}>
+              Fyll HMS-håndbok for alle bedrifter
+            </Link>
+          </Button>
+          <DeleteGroupButton groupId={group.id} groupName={group.name} />
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-4">

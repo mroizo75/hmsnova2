@@ -5,6 +5,10 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { encryptField } from "@/lib/field-encryption";
 import { TripletexApiError, TripletexClient } from "@/lib/accounting/tripletex/client";
+import {
+  getTripletexApplicationName,
+  isTripletexConsumerConfigured,
+} from "@/lib/accounting/tripletex/env";
 import { hashWebhookSecret } from "@/lib/accounting/security";
 import { assertTripletexCompanyAvailable } from "@/lib/accounting/webhook-auth";
 import { getAuthContext, requirePermission } from "@/lib/server-authorization";
@@ -14,11 +18,34 @@ import { activityIdForTimeType } from "@/lib/accounting/timesheet";
 import { filterProductsByAndQuery } from "@/lib/time/product-search";
 import { jobKindAfterPromote } from "@/lib/accounting/job-kind";
 
+function tripletexPublicErrorMessage(body?: string): string | null {
+  if (!body) return null;
+  try {
+    const parsed = JSON.parse(body) as {
+      message?: unknown;
+      validationMessages?: Array<{ message?: string }>;
+    };
+    const message = typeof parsed.message === "string" ? parsed.message.trim() : "";
+    const validation = parsed.validationMessages
+      ?.map((item) => item.message)
+      .filter((item): item is string => Boolean(item))
+      .join("; ");
+    const combined = [message, validation].filter(Boolean).join(" — ");
+    if (combined.length > 0 && combined.length < 300) return combined;
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 function formatActionError(error: unknown, fallback: string): string {
   if (error instanceof TripletexApiError) {
     if (error.status === 401 || error.status === 403) {
       return "Ugyldig Tripletex-token eller manglende tilgang for denne virksomheten";
     }
+    const fromBody = tripletexPublicErrorMessage(error.body);
+    if (fromBody) return fromBody;
+    if (error.status === 500) return error.message;
     return fallback;
   }
   if (error instanceof Error) return error.message;
@@ -98,6 +125,8 @@ export async function getAccountingSettings() {
       })),
       unmatchedCount: employees.filter((e) => !e.externalEmployeeId).length,
       projects,
+      consumerConfigured: isTripletexConsumerConfigured(),
+      applicationName: getTripletexApplicationName(),
     },
   };
 }
@@ -105,6 +134,12 @@ export async function getAccountingSettings() {
 export async function connectTripletex(employeeToken: string) {
   try {
     const ctx = await requirePermission("canUpdateSettings");
+    if (!isTripletexConsumerConfigured()) {
+      return {
+        success: false as const,
+        error: "HMS Nova sin Tripletex-integrasjon er ikke konfigurert på serveren",
+      };
+    }
     const token = employeeToken.trim();
     if (token.length < 8) {
       return { success: false as const, error: "Ugyldig employee token" };
@@ -368,6 +403,7 @@ export async function createFieldJob(input: {
     }
 
     revalidatePath("/ansatt/jobber");
+    revalidatePath("/ansatt/timeregistrering");
     revalidatePath("/dashboard/projects");
     return { success: true as const, data: project };
   } catch (error: unknown) {

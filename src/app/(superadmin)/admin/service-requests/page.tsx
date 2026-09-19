@@ -21,11 +21,13 @@ export default async function ServiceRequestsPage({
   const currentUser = session?.user?.email
     ? await prisma.user.findUnique({
         where: { email: session.user.email },
-        select: { isSuperAdmin: true },
+        select: { isSuperAdmin: true, isSupport: true },
       })
     : null;
 
-  if (!currentUser?.isSuperAdmin) redirect("/dashboard");
+  if (!currentUser?.isSuperAdmin && !currentUser?.isSupport) {
+    redirect("/admin");
+  }
 
   const searchFilter: Prisma.ServiceRequestWhereInput = searchTerm
     ? {

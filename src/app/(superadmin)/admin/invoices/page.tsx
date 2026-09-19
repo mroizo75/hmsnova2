@@ -56,6 +56,7 @@ export default async function InvoicesPage({
             contactEmail: true,
             invoiceEmail: true,
             aiEnabled: true,
+            aiIncludedInAgreement: true,
           },
         },
       },

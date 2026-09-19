@@ -6,6 +6,7 @@ import {
   GraduationCap,
   FileWarning,
   HardHat,
+  BookOpen,
   BookOpenCheck,
   Plug,
   ShieldAlert,
@@ -82,13 +83,14 @@ export const EMPLOYEE_WIDGET_REGISTRY: EmployeeWidgetDefinition[] = [
   {
     id: "emp-handbook",
     label: "Håndbok",
-    description: "Les og signer HMS- og personalhåndboken",
-    icon: BookOpenCheck,
+    description: "Det du må vite om HMS, avvik og personal",
+    icon: BookOpen,
     href: "/ansatt/handbok",
     color: "text-blue-700",
     bgColor: "bg-blue-100",
     borderColor: "border-blue-300",
     adminWidgetId: "hms-handbok",
+    showInBottomNav: true,
   },
   {
     id: "emp-electrical",
@@ -144,7 +146,6 @@ export const EMPLOYEE_WIDGET_REGISTRY: EmployeeWidgetDefinition[] = [
     bgColor: "bg-purple-100",
     borderColor: "border-purple-300",
     adminWidgetId: "chemicals",
-    showInBottomNav: true,
   },
   {
     id: "emp-training",
@@ -156,7 +157,6 @@ export const EMPLOYEE_WIDGET_REGISTRY: EmployeeWidgetDefinition[] = [
     bgColor: "bg-blue-100",
     borderColor: "border-blue-300",
     adminWidgetId: "training",
-    showInBottomNav: true,
   },
   {
     id: "emp-fire-safety",
@@ -302,24 +302,24 @@ export const EMPLOYEE_WIDGET_REGISTRY: EmployeeWidgetDefinition[] = [
   },
   {
     id: "emp-time",
-    label: "Timeføring",
-    description: "Registrer timer og kjøring",
+    label: "Timer",
+    description: "Registrer timer, fravær og prosjekt til Tripletex",
     icon: Clock,
     href: "/ansatt/timeregistrering",
     color: "text-emerald-600",
     bgColor: "bg-emerald-100",
     borderColor: "border-emerald-300",
+    showInBottomNav: true,
   },
   {
     id: "emp-jobs",
     label: "Jobber",
-    description: "Aktive jobber og dagsregistrering av timer",
+    description: "Aktive jobber hos kunden",
     icon: Briefcase,
     href: "/ansatt/jobber",
     color: "text-emerald-700",
     bgColor: "bg-emerald-100",
     borderColor: "border-emerald-300",
-    showInBottomNav: true,
   },
   {
     id: "emp-support",
@@ -343,9 +343,16 @@ export const EMPLOYEE_HR_WIDGET_IDS = new Set([
 
 export const DEFAULT_EMPLOYEE_WIDGET_IDS = EMPLOYEE_WIDGET_REGISTRY.map((w) => w.id);
 
+const ALWAYS_VISIBLE_EMPLOYEE_WIDGET_IDS = new Set([
+  "emp-whistleblowing",
+  "emp-handbook",
+  "emp-support",
+]);
+
 /**
  * Filtrerer ansatt-widgets basert på admin-dashboardets lockedDashboardConfig.
- * Widgets uten adminWidgetId (varsling, timeføring) vises alltid.
+ * Håndbok vises alltid (IK-HMS § 5: dokumentasjon skal være tilgjengelig for ansatte).
+ * Widgets uten adminWidgetId vises alltid.
  */
 export function getEmployeeWidgetsFromLockedConfig(
   lockedConfig: Array<{ id: string }> | null | undefined
@@ -358,6 +365,7 @@ export function getEmployeeWidgetsFromLockedConfig(
 
   return EMPLOYEE_WIDGET_REGISTRY.filter((empWidget) => {
     if (!empWidget.adminWidgetId) return true;
+    if (ALWAYS_VISIBLE_EMPLOYEE_WIDGET_IDS.has(empWidget.id)) return true;
     return adminWidgetIds.has(empWidget.adminWidgetId);
   });
 }

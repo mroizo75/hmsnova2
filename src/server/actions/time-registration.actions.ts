@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
 import { enqueueAccountingJob } from "@/lib/accounting/sync";
+import { isAccountingEnabled } from "@/lib/accounting/factory";
 import { canEnqueueTimesheetSync } from "@/lib/time/approval";
 import {
   startOfWeek,
@@ -181,10 +182,6 @@ export async function updateTimeRegistrationConfig(
       },
     });
 
-    if (data.timeRegistrationEnabled) {
-      await ensureDefaultProject(tenantId, user.id);
-    }
-
     revalidatePath("/dashboard/time-registration");
     revalidatePath("/dashboard/settings");
     revalidatePath("/ansatt/timeregistrering");
@@ -242,6 +239,11 @@ export async function createProject(input: {
       return { success: false, error: "Kun admin/HMS/leder kan opprette prosjekter" };
     }
 
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: input.tenantId },
+      select: { accountingProvider: true },
+    });
+
     const project = await prisma.project.create({
       data: {
         tenantId: input.tenantId,
@@ -249,9 +251,24 @@ export async function createProject(input: {
         code: input.code?.trim() || null,
         description: input.description?.trim() || null,
         createdById: user.id,
+        jobKind: "SERVICE",
+        billingStatus: "OPEN",
+        status: "ACTIVE",
+        startDate: new Date(),
       },
     });
+    if (isAccountingEnabled(tenant?.accountingProvider)) {
+      await enqueueAccountingJob({
+        tenantId: input.tenantId,
+        entityType: "Project",
+        entityId: project.id,
+        action: "CREATE_PROJECT",
+        payload: {},
+      });
+    }
     revalidatePath("/dashboard/time-registration");
+    revalidatePath("/ansatt/timeregistrering");
+    revalidatePath("/ansatt/jobber");
     triggerRealtimeEvent(tenantId, "time-registration-updated");
     return { success: true, data: project };
   } catch (e) {
@@ -304,31 +321,6 @@ export async function deleteProject(id: string) {
   } catch (e) {
     const err = e as Error;
     return { success: false, error: err.message };
-  }
-}
-
-// ============================================================================
-// DEFAULT PROJECT
-// ============================================================================
-
-async function ensureDefaultProject(tenantId: string, createdById?: string): Promise<void> {
-  const existing = await prisma.project.findFirst({
-    where: { tenantId, status: "ACTIVE" },
-  });
-  if (!existing) {
-    const adminUser = createdById
-      ? createdById
-      : (await prisma.userTenant.findFirst({ where: { tenantId, role: "ADMIN" } }))?.userId;
-    if (!adminUser) return;
-    await prisma.project.create({
-      data: {
-        tenantId,
-        name: "Generelt",
-        code: "GEN",
-        description: "Standard prosjekt for timeregistrering",
-        createdById: adminUser,
-      },
-    });
   }
 }
 

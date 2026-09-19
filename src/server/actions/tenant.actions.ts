@@ -18,10 +18,11 @@ import {
 import { isMocDefaultIndustry } from "@/lib/moc-industry";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { generateRiskAnalysis } from "@/lib/ai";
+import { generateRiskAnalysis, invalidateAiEnabledCache } from "@/lib/ai";
 import { mapAiSeverityToValues, mapAiCategoryToRiskCategory, normalizeAiMeasures } from "@/lib/risk-ai-mapping";
 import { brregClient } from "@/lib/brreg";
 import { getSubIndustryFromNace } from "@/lib/nace-mapping";
+import { AuditLog } from "@/lib/audit-log";
 
 // Valideringsskjemaer
 const updateTenantSchema = z.object({
@@ -1451,6 +1452,65 @@ export async function toggleBransjekursAvtale(tenantId: string, enabled: boolean
   } catch (error) {
     console.error("Toggle bransjekurs avtale error:", error);
     return { success: false, error: "Kunne ikke oppdatere kursavtale" };
+  }
+}
+
+/**
+ * Superadmin/support: inkluder AI i avtalen (NHO m.m.) uten 99 kr/mnd tillegg.
+ */
+export async function toggleAiIncludedInAgreement(tenantId: string, included: boolean) {
+  try {
+    const privilegedUser = await requirePrivilegedUser();
+    if (!privilegedUser) {
+      return { success: false, error: "Ingen tilgang" };
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { id: true, name: true, aiEnabled: true },
+    });
+
+    if (!tenant) {
+      return { success: false, error: "Bedrift ikke funnet" };
+    }
+
+    const now = new Date();
+    await prisma.tenant.update({
+      where: { id: tenantId },
+      data: included
+        ? {
+            aiIncludedInAgreement: true,
+            aiEnabled: true,
+            speechToTextEnabled: true,
+            aiAddonActivatedAt: now,
+            aiAddonCanceledAt: null,
+          }
+        : {
+            aiIncludedInAgreement: false,
+            aiEnabled: false,
+            speechToTextEnabled: false,
+            aiAddonCanceledAt: now,
+          },
+    });
+
+    invalidateAiEnabledCache(tenantId);
+
+    await AuditLog.log(tenantId, privilegedUser.id, "AI_INCLUDED_IN_AGREEMENT_UPDATED", "Tenant", tenantId, {
+      included,
+      aiEnabled: included,
+    });
+
+    revalidatePath(`/admin/tenants/${tenantId}`);
+    revalidatePath("/admin/tenants");
+    revalidatePath("/admin/invoices");
+    revalidatePath("/dashboard/settings");
+
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Kunne ikke oppdatere AI-avtale",
+    };
   }
 }
 

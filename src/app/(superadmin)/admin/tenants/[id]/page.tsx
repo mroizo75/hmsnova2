@@ -20,9 +20,11 @@ import { TenantActivityTimeline } from "@/features/admin/components/tenant-activ
 import { TenantOfferCard } from "@/features/admin/components/tenant-offer-card";
 import { IndustryPackageActions } from "@/features/admin/components/industry-package-actions";
 import { KursavtaleCard } from "@/features/admin/components/kursavtale-card";
+import { AdminAiIncludedCard } from "@/features/admin/components/admin-ai-included-card";
 import { GdprExportButton } from "@/features/admin/components/gdpr-export-button";
 import { BreakGlassRequestCard } from "@/features/whistleblowing/components/break-glass-request-card";
-import { HandbookTemplateImport } from "@/features/admin/components/handbook-template-import";
+import { HandbookServiceFillForm } from "@/features/admin/components/handbook-service-fill-form";
+import { AdminTenantUsersCard } from "@/features/admin/components/admin-tenant-users-card";
 import { 
   ArrowLeft,
   Building2, 
@@ -336,46 +338,7 @@ async function TenantDetails({ id }: { id: string }) {
             </Card>
           )}
 
-          {/* Users - kun superadmin (persondata) */}
-          {isSuperAdmin && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Brukere ({tenant.users.length})</CardTitle>
-                <CardDescription>
-                  Alle brukere tilknyttet denne bedriften
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {tenant.users.map((userTenant) => (
-                    <div
-                      key={userTenant.id}
-                      className="flex items-center justify-between p-3 border rounded-lg"
-                    >
-                      <div>
-                        <p className="font-medium">{userTenant.user.name || "Ukjent"}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {userTenant.user.email}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Opprettet: {new Date(userTenant.user.createdAt).toLocaleDateString("nb-NO")}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {userTenant.user.emailVerified && (
-                          <Badge variant="outline" className="text-green-600">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Verifisert
-                          </Badge>
-                        )}
-                        <Badge variant="secondary">{userTenant.role}</Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          <AdminTenantUsersCard tenantId={tenant.id} users={tenant.users} />
         </div>
 
         {/* Right column - Actions */}
@@ -557,12 +520,26 @@ async function TenantDetails({ id }: { id: string }) {
           </Card>
 
           {/* HMS-hånbok oppsett */}
-          <HandbookTemplateImport
+          <HandbookServiceFillForm
+            tenants={[{
+              id: tenant.id,
+              name: tenant.name,
+              orgNumber: tenant.orgNumber,
+              address: tenant.address,
+              postalCode: tenant.postalCode,
+              city: tenant.city,
+              industry: tenant.industry,
+              contactPerson: tenant.contactPerson ?? adminUser?.name ?? null,
+              hmsContactName: tenant.hmsContactName,
+            }]}
+            lockedTenantId={tenant.id}
+          />
+
+          <AdminAiIncludedCard
             tenantId={tenant.id}
             tenantName={tenant.name}
-            tenantIndustry={tenant.industry}
-            orgNumber={tenant.orgNumber}
-            adminName={adminUser?.name}
+            aiEnabled={tenant.aiEnabled}
+            aiIncludedInAgreement={tenant.aiIncludedInAgreement}
           />
 
           {/* Bransjekurs.no kursavtale */}

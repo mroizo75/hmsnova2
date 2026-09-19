@@ -60,7 +60,7 @@ export default function CreateCorporateGroupContentPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center gap-4">
         <Link href="/konsern/innhold">
           <Button variant="ghost" size="sm">
@@ -68,22 +68,28 @@ export default function CreateCorporateGroupContentPage() {
             Tilbake
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">Nytt innhold</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Nytt innhold</h1>
+          <p className="text-sm text-gray-500">Opprett innhold som kan distribueres til bedriftene i konsernet</p>
+        </div>
       </div>
 
       <Card>
-        <CardContent className="p-6">
-          <form action={handleSubmit} className="space-y-6">
+        <CardHeader>
+          <CardTitle className="text-base">Innholdsdetaljer</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form action={handleSubmit} className="space-y-5">
             {error && (
               <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>
             )}
 
-            <div>
+            <div className="space-y-1.5">
               <label className="block text-sm font-medium text-gray-700">Type *</label>
               <select
                 name="contentType"
                 required
-                className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               >
                 <option value="">Velg type...</option>
                 {contentTypes.map((ct) => (
@@ -94,52 +100,54 @@ export default function CreateCorporateGroupContentPage() {
               </select>
             </div>
 
-            <div>
+            <div className="space-y-1.5">
               <label className="block text-sm font-medium text-gray-700">Tittel *</label>
               <input
                 name="title"
                 type="text"
                 required
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 placeholder="F.eks. Brannvernrutine for hoteller"
               />
             </div>
 
-            <div>
+            <div className="space-y-1.5">
               <label className="block text-sm font-medium text-gray-700">Beskrivelse</label>
               <textarea
                 name="description"
                 rows={4}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 placeholder="Beskriv innholdet..."
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Kategori</label>
-              <input
-                name="category"
-                type="text"
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                placeholder="F.eks. Brannvern, HMS, Internkontroll"
-              />
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-gray-700">Kategori</label>
+                <input
+                  name="category"
+                  type="text"
+                  className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder="F.eks. Brannvern, HMS"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-gray-700">Lovhjemmel</label>
+                <input
+                  name="legalReference"
+                  type="text"
+                  className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder="F.eks. IK-HMS § 5, AML § 3-1"
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Lovhjemmel</label>
-              <input
-                name="legalReference"
-                type="text"
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                placeholder="F.eks. IK-HMS § 5, AML § 3-1"
-              />
-            </div>
-
-            <div>
+            <div className="space-y-1.5">
               <label className="block text-sm font-medium text-gray-700">Distribusjonsmodus</label>
               <select
                 name="distributionMode"
-                className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               >
                 <option value="CUSTOMIZABLE">Tilpassbar – bedriften kan redigere lokalt</option>
                 <option value="LOCKED">Låst – styrt fra konsernet, read-only for bedriften</option>
@@ -150,7 +158,7 @@ export default function CreateCorporateGroupContentPage() {
               </p>
             </div>
 
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-end gap-3 border-t border-gray-100 pt-5">
               <Link href="/konsern/innhold">
                 <Button type="button" variant="outline">Avbryt</Button>
               </Link>

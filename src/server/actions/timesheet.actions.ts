@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getAuthContext, requirePermission } from "@/lib/server-authorization";
 import { enqueueAccountingJob } from "@/lib/accounting/sync";
+import { isAccountingEnabled } from "@/lib/accounting/factory";
 import { activityIdForTimeType } from "@/lib/accounting/timesheet";
 import { canEnqueueTimesheetSync, isTimesheetEditableByEmployee } from "@/lib/time/approval";
 import { splitDayHours, type DayRules } from "@/lib/time/split-day";
@@ -50,7 +51,7 @@ export async function getDayTimesheetContext(dateIso: string, projectId?: string
   if (!ctx) return { success: false as const, error: "Ikke autentisert" };
 
   const date = new Date(`${dateIso.slice(0, 10)}T12:00:00`);
-  const [projects, entries, usage, products, tenantSettings, salaryTypes, assignments, absences] =
+  const [projects, entries, usage, products, tenantSettings, salaryTypes, assignments, absences, customers] =
     await Promise.all([
       prisma.project.findMany({
         where: { tenantId: ctx.tenantId, status: { in: ["ACTIVE", "PLANNING"] } },
@@ -61,6 +62,7 @@ export async function getDayTimesheetContext(dateIso: string, projectId?: string
           clientName: true,
           jobKind: true,
           status: true,
+          externalProjectId: true,
         },
         orderBy: { name: "asc" },
       }),
@@ -123,6 +125,12 @@ export async function getDayTimesheetContext(dateIso: string, projectId?: string
         },
         orderBy: { startDate: "asc" },
       }),
+      prisma.accountingCustomer.findMany({
+        where: { tenantId: ctx.tenantId, isInactive: false },
+        select: { externalId: true, name: true, organizationNumber: true },
+        orderBy: { name: "asc" },
+        take: 80,
+      }),
     ]);
 
   const suggested = assignments.find((a) => assignmentCoversDate(a, date));
@@ -151,6 +159,9 @@ export async function getDayTimesheetContext(dateIso: string, projectId?: string
         dayEndHour: tenantSettings?.dayEndHour ?? 15.5,
         canApprove: ctx.permissions.canApproveTimesheet,
         canCreateAbsence: ctx.permissions.canCreateAbsence,
+        canCreateFieldProject: ctx.permissions.canCreateFieldProject,
+        accountingConnected: isAccountingEnabled(tenantSettings?.accountingProvider),
+        customers,
         absences,
       })
     ),
@@ -224,6 +235,7 @@ export async function submitDayTimesheet(input: {
         tripletexActivityOt100Id: true,
         tripletexProductKmId: true,
         defaultKmRate: true,
+        accountingProvider: true,
       },
     });
 
@@ -283,8 +295,19 @@ export async function submitDayTimesheet(input: {
       return rows;
     });
 
+    if (isAccountingEnabled(tenant?.accountingProvider) && !project.externalProjectId) {
+      await enqueueAccountingJob({
+        tenantId: ctx.tenantId,
+        entityType: "Project",
+        entityId: project.id,
+        action: "CREATE_PROJECT",
+        payload: { customerExternalId: project.externalCustomerId },
+      });
+    }
+
     revalidateTimesheet();
-    return { success: true as const, data: created };
+    const hours = created.reduce((sum, row) => sum + Number(row.hours), 0);
+    return { success: true as const, data: { hours, date: input.date.slice(0, 10) } };
   } catch (error: unknown) {
     return { success: false as const, error: formatActionError(error, "Kunne ikke lagre dagen") };
   }

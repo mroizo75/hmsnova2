@@ -262,9 +262,10 @@ model Tenant {
   azureAdAutoRole    Role? // Standard rolle for nye brukere fra Azure AD
 
   // AI-tillegg 99 kr/mnd + mva – alltid av som standard
-  aiEnabled Boolean @default(false) // Om betalt AI-tillegg er aktivt (avviksutkast, tale-til-tekst, valgfrie risikoforslag m.m.)
-  aiAddonActivatedAt DateTime? // Når AI-tillegget sist ble aktivert
-  aiAddonCanceledAt DateTime? // Når AI-tillegget sist ble slått av (ingen linje på neste faktura)
+  aiEnabled Boolean @default(false) // Om AI-funksjoner er slått på (avviksutkast, tale-til-tekst, valgfrie risikoforslag m.m.)
+  aiIncludedInAgreement Boolean @default(false) // Superadmin: AI er inkludert i avtalen (f.eks. NHO) – ingen 99 kr-linje
+  aiAddonActivatedAt DateTime? // Når AI sist ble aktivert
+  aiAddonCanceledAt DateTime? // Når AI sist ble slått av (ingen linje på neste faktura hvis det var betalt tillegg)
   speechToTextEnabled Boolean @default(false) // On-device tale-til-tekst i skjemaer for denne tenanten
 
   // Avtaleaksept ved registrering

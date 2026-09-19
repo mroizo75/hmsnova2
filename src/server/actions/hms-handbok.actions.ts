@@ -492,17 +492,8 @@ export async function getHandbookData(
       });
     }
 
-    if (options?.forEmployee && currentVersion && currentVersion.status !== "APPROVED") {
-      currentVersion = await prisma.handbookVersion.findFirst({
-        where: { handbookId: fullHandbook.id, status: "APPROVED" },
-        orderBy: { publishedAt: "desc" },
-        include: {
-          approvedBy: { select: { name: true } },
-          sections: { orderBy: { sortOrder: "asc" } },
-          signatures: true,
-        },
-      });
-    }
+    // Ansatte ser samme gjeldende versjon som dashboard, også utkast.
+    // Lesebekreftelse gjelder innholdet de faktisk får se (IK-HMS § 5).
 
     const totalEmployees = await prisma.userTenant.count({
       where: { tenantId },
@@ -1062,6 +1053,8 @@ export async function signHandbook(
     });
 
     revalidatePath("/dashboard/hms-handbok");
+    revalidatePath("/ansatt/handbok");
+    revalidatePath("/ansatt");
     triggerRealtimeEvent(tenantId, "settings-updated");
     return { success: true };
   } catch {
@@ -1142,7 +1135,7 @@ export async function getHandbookSuggestions(tenantId: string) {
   });
 }
 
-// ── Mal-import (superadmin) ──────────────────────────────────────────────────
+// ── Mal-import (superadmin/support) ──────────────────────────────────────────
 
 const applyTemplateSchema = z.object({
   tenantId: z.string().min(1),
@@ -1150,128 +1143,214 @@ const applyTemplateSchema = z.object({
   variables: z.record(z.string(), z.string()),
 });
 
+const applyTemplateBulkSchema = z.object({
+  tenantIds: z.array(z.string().min(1)).min(1),
+  industryKey: z.string().min(1),
+  sharedVariables: z.record(z.string(), z.string()),
+  perTenantOverrides: z.record(z.string(), z.record(z.string(), z.string())).optional(),
+});
+
+async function requireHandbookStaff() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return null;
+
+  const currentUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true, isSuperAdmin: true, isSupport: true },
+  });
+  if (!currentUser?.isSuperAdmin && !currentUser?.isSupport) {
+    return null;
+  }
+  return currentUser;
+}
+
+async function applyHandbookTemplateToTenant(input: {
+  tenantId: string;
+  industryKey: string;
+  variables: Record<string, string>;
+  actorId: string;
+}): Promise<{ success: true; sectionsUpdated: number } | { success: false; error: string }> {
+  const { tenantId, industryKey, variables, actorId } = input;
+  const { buildIndustryTemplate, replaceTemplateVariables: replaceVars } = await import(
+    "@/lib/handbook-templates"
+  );
+
+  const bransjeModules = (await import("@/lib/bransje-modules")).BRANSJE_MODULES;
+  const bransjeLabel = bransjeModules[industryKey]?.label ?? industryKey;
+  const template = buildIndustryTemplate(industryKey, bransjeLabel);
+
+  const handbook = await getOrCreateHandbook(tenantId);
+
+  let draftVersion = await prisma.handbookVersion.findFirst({
+    where: { handbookId: handbook.id, status: "DRAFT" },
+    include: { sections: true },
+  });
+
+  if (!draftVersion) {
+    const currentVersion = handbook.currentVersionId
+      ? await prisma.handbookVersion.findUnique({
+          where: { id: handbook.currentVersionId },
+        })
+      : null;
+
+    const newVersionNumber = currentVersion
+      ? bumpVersion(currentVersion.version)
+      : "1.0";
+
+    draftVersion = await prisma.handbookVersion.create({
+      data: {
+        handbookId: handbook.id,
+        version: newVersionNumber,
+        status: "DRAFT",
+        changeNote: `Importert bransjemal: ${bransjeLabel}`,
+      },
+      include: { sections: true },
+    });
+
+    if (currentVersion) {
+      const existingSections = await prisma.handbookSection.findMany({
+        where: { versionId: currentVersion.id },
+      });
+      if (existingSections.length > 0) {
+        await prisma.handbookSection.createMany({
+          data: existingSections.map((s) => ({
+            versionId: draftVersion!.id,
+            sectionKey: s.sectionKey,
+            sectionNumber: s.sectionNumber,
+            title: s.title,
+            content: s.content,
+            legalRef: s.legalRef,
+            category: s.category ?? (s.sectionKey.startsWith("hr-") ? "HR" : "HMS"),
+            sortOrder: s.sortOrder,
+            moduleLink: s.moduleLink,
+            parentId: null,
+          })),
+        });
+
+        draftVersion = await prisma.handbookVersion.findUniqueOrThrow({
+          where: { id: draftVersion.id },
+          include: { sections: true },
+        });
+      }
+    }
+  }
+
+  let updatedCount = 0;
+  for (const tplSection of template.sections) {
+    const processedContent = replaceVars(tplSection.content, variables);
+
+    const existing = draftVersion.sections.find(
+      (s) => s.sectionKey === tplSection.sectionKey,
+    );
+
+    if (existing) {
+      await prisma.handbookSection.update({
+        where: { id: existing.id },
+        data: { content: processedContent },
+      });
+    } else {
+      const defaultSection = DEFAULT_SECTIONS.find(
+        (ds) => ds.sectionKey === tplSection.sectionKey,
+      );
+      if (defaultSection) {
+        await prisma.handbookSection.create({
+          data: {
+            versionId: draftVersion.id,
+            sectionKey: tplSection.sectionKey,
+            sectionNumber: defaultSection.sectionNumber,
+            title: defaultSection.title,
+            content: processedContent,
+            legalRef: defaultSection.legalRef,
+            category: "HMS",
+            sortOrder: defaultSection.sortOrder,
+            moduleLink: defaultSection.moduleLink,
+          },
+        });
+      }
+    }
+    updatedCount++;
+  }
+
+  await AuditLog.log(tenantId, actorId, "HANDBOOK_TEMPLATE_IMPORTED", "HmsHandbook", handbook.id, {
+    industryKey,
+    sectionsUpdated: updatedCount,
+  });
+
+  return { success: true, sectionsUpdated: updatedCount };
+}
+
 export async function applyHandbookTemplate(
   input: z.infer<typeof applyTemplateSchema>,
 ): Promise<{ success: boolean; error?: string; sectionsUpdated?: number }> {
   try {
     const { tenantId, industryKey, variables } = applyTemplateSchema.parse(input);
-
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) return { success: false, error: "Ikke autorisert" };
-
-    const currentUser = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { isSuperAdmin: true, isSupport: true },
-    });
-    if (!currentUser?.isSuperAdmin && !currentUser?.isSupport) {
+    const actor = await requireHandbookStaff();
+    if (!actor) {
       return { success: false, error: "Kun superadmin/support kan importere maler" };
     }
 
-    const { buildIndustryTemplate, replaceTemplateVariables } = await import(
-      "@/lib/handbook-templates"
-    );
-
-    const bransjeModules = (await import("@/lib/bransje-modules")).BRANSJE_MODULES;
-    const bransjeLabel = bransjeModules[industryKey]?.label ?? industryKey;
-    const template = buildIndustryTemplate(industryKey, bransjeLabel);
-
-    const handbook = await getOrCreateHandbook(tenantId);
-
-    let draftVersion = await prisma.handbookVersion.findFirst({
-      where: { handbookId: handbook.id, status: "DRAFT" },
-      include: { sections: true },
+    return applyHandbookTemplateToTenant({
+      tenantId,
+      industryKey,
+      variables,
+      actorId: actor.id,
     });
-
-    if (!draftVersion) {
-      const currentVersion = handbook.currentVersionId
-        ? await prisma.handbookVersion.findUnique({
-            where: { id: handbook.currentVersionId },
-          })
-        : null;
-
-      const newVersionNumber = currentVersion
-        ? bumpVersion(currentVersion.version)
-        : "1.0";
-
-      draftVersion = await prisma.handbookVersion.create({
-        data: {
-          handbookId: handbook.id,
-          version: newVersionNumber,
-          status: "DRAFT",
-          changeNote: `Importert bransjemal: ${bransjeLabel}`,
-        },
-        include: { sections: true },
-      });
-
-      if (currentVersion) {
-        const existingSections = await prisma.handbookSection.findMany({
-          where: { versionId: currentVersion.id },
-        });
-        if (existingSections.length > 0) {
-          await prisma.handbookSection.createMany({
-            data: existingSections.map((s) => ({
-              versionId: draftVersion!.id,
-              sectionKey: s.sectionKey,
-              sectionNumber: s.sectionNumber,
-              title: s.title,
-              content: s.content,
-              legalRef: s.legalRef,
-              category: s.category ?? (s.sectionKey.startsWith("hr-") ? "HR" : "HMS"),
-              sortOrder: s.sortOrder,
-              moduleLink: s.moduleLink,
-              parentId: null,
-            })),
-          });
-
-          draftVersion = await prisma.handbookVersion.findUniqueOrThrow({
-            where: { id: draftVersion.id },
-            include: { sections: true },
-          });
-        }
-      }
-    }
-
-    let updatedCount = 0;
-    for (const tplSection of template.sections) {
-      const processedContent = replaceTemplateVariables(
-        tplSection.content,
-        variables,
-      );
-
-      const existing = draftVersion.sections.find(
-        (s) => s.sectionKey === tplSection.sectionKey,
-      );
-
-      if (existing) {
-        await prisma.handbookSection.update({
-          where: { id: existing.id },
-          data: { content: processedContent },
-        });
-      } else {
-        const defaultSection = DEFAULT_SECTIONS.find(
-          (ds) => ds.sectionKey === tplSection.sectionKey,
-        );
-        if (defaultSection) {
-          await prisma.handbookSection.create({
-            data: {
-              versionId: draftVersion.id,
-              sectionKey: tplSection.sectionKey,
-              sectionNumber: defaultSection.sectionNumber,
-              title: defaultSection.title,
-              content: processedContent,
-              legalRef: defaultSection.legalRef,
-              category: "HMS",
-              sortOrder: defaultSection.sortOrder,
-              moduleLink: defaultSection.moduleLink,
-            },
-          });
-        }
-      }
-      updatedCount++;
-    }
-
-    return { success: true, sectionsUpdated: updatedCount };
   } catch (e) {
+    if (e instanceof z.ZodError) {
+      return { success: false, error: e.issues.map((issue) => issue.message).join(". ") };
+    }
+    const message = e instanceof Error ? e.message : "Ukjent feil";
+    return { success: false, error: message };
+  }
+}
+
+export async function applyHandbookTemplateToTenants(
+  input: z.infer<typeof applyTemplateBulkSchema>,
+): Promise<{
+  success: boolean;
+  error?: string;
+  results?: Array<{ tenantId: string; success: boolean; sectionsUpdated?: number; error?: string }>;
+}> {
+  try {
+    const parsed = applyTemplateBulkSchema.parse(input);
+    const actor = await requireHandbookStaff();
+    if (!actor) {
+      return { success: false, error: "Kun superadmin/support kan importere maler" };
+    }
+
+    const uniqueTenantIds = [...new Set(parsed.tenantIds)];
+    const results: Array<{
+      tenantId: string;
+      success: boolean;
+      sectionsUpdated?: number;
+      error?: string;
+    }> = [];
+
+    for (const tenantId of uniqueTenantIds) {
+      const variables = {
+        ...parsed.sharedVariables,
+        ...(parsed.perTenantOverrides?.[tenantId] ?? {}),
+      };
+      const result = await applyHandbookTemplateToTenant({
+        tenantId,
+        industryKey: parsed.industryKey,
+        variables,
+        actorId: actor.id,
+      });
+      if (result.success === true) {
+        results.push({ tenantId, success: true, sectionsUpdated: result.sectionsUpdated });
+      } else {
+        results.push({ tenantId, success: false, error: result.error });
+      }
+    }
+
+    revalidatePath("/admin/hms-handbok");
+    revalidatePath("/dashboard/hms-handbok");
+    return { success: true, results };
+  } catch (e) {
+    if (e instanceof z.ZodError) {
+      return { success: false, error: e.issues.map((issue) => issue.message).join(". ") };
+    }
     const message = e instanceof Error ? e.message : "Ukjent feil";
     return { success: false, error: message };
   }

@@ -30,6 +30,7 @@ import {
 import { updateServiceRequest } from "@/server/actions/admin-service-request.actions";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type ServiceRequest = {
   id: string;
@@ -216,14 +217,29 @@ export function ServiceRequestsTable({
                   {new Date(request.createdAt).toLocaleDateString("nb-NO")}
                 </TableCell>
                 <TableCell className="text-right">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        Rediger
+                  <div className="flex justify-end gap-2">
+                    {request.type === "HANDBOOK_SETUP" ? (
+                      <Button asChild variant="outline" size="sm" className="bg-transparent">
+                        <Link href={`/admin/hms-handbok?tenantId=${request.tenant.id}`}>
+                          Fyll håndbok
+                        </Link>
                       </Button>
-                    </DialogTrigger>
-                    <EditDialog request={request} />
-                  </Dialog>
+                    ) : (
+                      <Button asChild variant="outline" size="sm" className="bg-transparent">
+                        <Link href={`/admin/tenants/${request.tenant.id}`}>
+                          Åpne bedrift
+                        </Link>
+                      </Button>
+                    )}
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="bg-transparent">
+                          Rediger
+                        </Button>
+                      </DialogTrigger>
+                      <EditDialog request={request} />
+                    </Dialog>
+                  </div>
                 </TableCell>
               </TableRow>
             ))

@@ -180,7 +180,7 @@ export function AdminUserList({ users, currentPage, totalPages }: AdminUserListP
                     ) : user.tenants.length > 0 ? (
                       <Badge variant="default">Aktiv</Badge>
                     ) : (
-                      <Badge variant="secondary">Uten tenant</Badge>
+                      <Badge variant="secondary">Uten bedrift</Badge>
                     )}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">

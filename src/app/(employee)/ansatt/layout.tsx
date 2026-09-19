@@ -5,6 +5,7 @@ import { Home } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { AppBreadcrumbs } from "@/components/app-breadcrumbs";
+import { Toaster } from "@/components/ui/toaster";
 import { prisma } from "@/lib/db";
 import { LogoutButton } from "@/components/ansatt/logout-button";
 import { NotificationBell } from "@/components/notifications/notification-bell";
@@ -146,6 +147,7 @@ export default async function EmployeeLayout({
             ))}
           </div>
         </nav>
+        <Toaster />
       </div>
     </NotificationsProvider>
   );

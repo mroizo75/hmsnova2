@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +17,7 @@ import {
   submitDayTimesheet,
   updateOwnTimesheetEntry,
 } from "@/server/actions/timesheet.actions";
+import { createFieldJob } from "@/server/actions/accounting.actions";
 import { hoursToClock } from "@/lib/time/split-day";
 import { DayAbsenceForm } from "./day-absence-form";
 
@@ -43,6 +45,8 @@ function todayIso() {
 
 export function DayTimesheetScreen() {
   const t = useTranslations("timesheet");
+  const locale = useLocale();
+  const dateLocale = locale === "en" ? "en-US" : "nb-NO";
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -62,10 +66,19 @@ export function DayTimesheetScreen() {
     Array<{ kind: "PRODUCT" | "MACHINE" | "KM"; productExternalId: string; quantity: number; name: string; unit: string | null }>
   >([]);
   const [loading, setLoading] = useState(false);
+  const [creatingProject, setCreatingProject] = useState(false);
+  const [showCreateProject, setShowCreateProject] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [newProjectCustomer, setNewProjectCustomer] = useState("");
+  const [newProjectLocation, setNewProjectLocation] = useState("");
   const [ctx, setCtx] = useState<Awaited<ReturnType<typeof getDayTimesheetContext>> | null>(null);
   const [mode, setMode] = useState<"work" | "absence">(
     searchParams.get("mode") === "absence" ? "absence" : "work"
   );
+  const [submittedNotice, setSubmittedNotice] = useState<{ hours: string; date: string } | null>(
+    null
+  );
+  const noticeRef = useRef<HTMLDivElement>(null);
 
   async function reloadDay(nextDate = date, nextProjectId = projectId) {
     const res = await getDayTimesheetContext(nextDate, nextProjectId || undefined);
@@ -82,6 +95,7 @@ export function DayTimesheetScreen() {
 
   useEffect(() => {
     reloadDay(date, searchParams.get("projectId") || projectId);
+    setSubmittedNotice(null);
   }, [date]);
 
   useEffect(() => {
@@ -95,6 +109,9 @@ export function DayTimesheetScreen() {
   const projects = ctx?.success ? ctx.data.projects : [];
   const entries: Entry[] = ctx?.success ? ctx.data.entries : [];
   const salaryTypes = ctx?.success ? ctx.data.salaryTypes : [];
+  const customers = ctx?.success ? ctx.data.customers ?? [] : [];
+  const canCreateProject = Boolean(ctx?.success && ctx.data.canCreateFieldProject);
+  const accountingConnected = Boolean(ctx?.success && ctx.data.accountingConnected);
   const parents = projects.filter((p: { parentId: string | null }) => !p.parentId);
   const children = projects.filter((p: { parentId: string | null }) => p.parentId === projectId);
 
@@ -109,6 +126,32 @@ export function DayTimesheetScreen() {
     }),
     [t]
   );
+
+  async function onCreateProject() {
+    const name = newProjectName.trim();
+    if (name.length < 2) return;
+    setCreatingProject(true);
+    const res = await createFieldJob({
+      name,
+      customerExternalId: newProjectCustomer || undefined,
+      location: newProjectLocation.trim() || undefined,
+      jobKind: "SERVICE",
+    });
+    setCreatingProject(false);
+    if (!res.success) {
+      toast({ title: t("error"), description: res.error, variant: "destructive" });
+      return;
+    }
+    setProjectId(res.data.id);
+    setNewProjectName("");
+    setNewProjectCustomer("");
+    setNewProjectLocation("");
+    setShowCreateProject(false);
+    toast({
+      title: accountingConnected ? t("projectCreated") : t("projectCreatedLocal"),
+    });
+    await reloadDay(date, res.data.id);
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -132,11 +175,24 @@ export function DayTimesheetScreen() {
       toast({ title: t("error"), description: res.error, variant: "destructive" });
       return;
     }
-    toast({ title: t("saved") });
+    const hours = res.data.hours.toLocaleString(dateLocale, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    });
+    const submittedDate = new Date(`${res.data.date}T12:00:00`).toLocaleDateString(dateLocale);
+    setSubmittedNotice({ hours, date: submittedDate });
+    toast({
+      title: t("saved"),
+      description: t("savedDescription", { hours, date: submittedDate }),
+      duration: 8000,
+    });
     setComment("");
     setPendingLines([]);
     router.refresh();
     await reloadDay();
+    requestAnimationFrame(() => {
+      noticeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   const absences = ctx?.success ? ctx.data.absences ?? [] : [];
@@ -144,6 +200,25 @@ export function DayTimesheetScreen() {
 
   return (
     <div className="space-y-4">
+      {submittedNotice && (
+        <div
+          ref={noticeRef}
+          role="status"
+          className="rounded-lg border-2 border-green-600 bg-green-50 p-4 text-green-950"
+        >
+          <p className="flex items-start gap-2 text-base font-semibold">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-green-700" />
+            {t("saved")}
+          </p>
+          <p className="mt-1 pl-7 text-sm">
+            {t("savedDescription", {
+              hours: submittedNotice.hours,
+              date: submittedNotice.date,
+            })}
+          </p>
+        </div>
+      )}
+
       {canCreateAbsence && (
         <div className="flex gap-2">
           <Button
@@ -217,22 +292,87 @@ export function DayTimesheetScreen() {
           />
         </div>
         <div className="space-y-1">
-          <Label>{t("project")}</Label>
-          <select
-            required
-            className="h-10 w-full rounded-md border bg-transparent px-3 text-sm"
-            value={projectId}
-            onChange={(e) => setProjectId(e.target.value)}
-          >
-            <option value="">{t("selectProject")}</option>
-            {parents.map((p: { id: string; name: string; clientName: string | null }) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-                {p.clientName ? ` · ${p.clientName}` : ""}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center justify-between gap-2">
+            <Label>{t("project")}</Label>
+            {canCreateProject && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="bg-transparent"
+                onClick={() => setShowCreateProject((open) => !open)}
+              >
+                {t("newProject")}
+              </Button>
+            )}
+          </div>
+          {parents.length === 0 && !showCreateProject ? (
+            <p className="text-sm text-muted-foreground">{t("noProjects")}</p>
+          ) : (
+            <select
+              required
+              className="h-10 w-full rounded-md border bg-transparent px-3 text-sm"
+              value={projectId}
+              onChange={(e) => setProjectId(e.target.value)}
+            >
+              <option value="">{t("selectProject")}</option>
+              {parents.map((p: { id: string; name: string; clientName: string | null; externalProjectId?: string | null }) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                  {p.clientName ? ` · ${p.clientName}` : ""}
+                  {p.externalProjectId ? ` · ${t("inTripletex")}` : accountingConnected ? ` · ${t("notInTripletex")}` : ""}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
+        {(showCreateProject || (canCreateProject && parents.length === 0)) && (
+          <div className="space-y-2 rounded-md border p-3">
+            <div className="space-y-1">
+              <Label htmlFor="tx-new-project">{t("projectName")}</Label>
+              <Input
+                id="tx-new-project"
+                value={newProjectName}
+                onChange={(e) => setNewProjectName(e.target.value)}
+                placeholder={t("projectName")}
+              />
+            </div>
+            {customers.length > 0 && (
+              <div className="space-y-1">
+                <Label htmlFor="tx-new-customer">{t("projectCustomer")}</Label>
+                <select
+                  id="tx-new-customer"
+                  className="h-10 w-full rounded-md border bg-transparent px-3 text-sm"
+                  value={newProjectCustomer}
+                  onChange={(e) => setNewProjectCustomer(e.target.value)}
+                >
+                  <option value="">{t("projectNoCustomer")}</option>
+                  {customers.map((c: { externalId: string; name: string; organizationNumber: string | null }) => (
+                    <option key={c.externalId} value={c.externalId}>
+                      {c.name}
+                      {c.organizationNumber ? ` (${c.organizationNumber})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div className="space-y-1">
+              <Label htmlFor="tx-new-location">{t("projectLocation")}</Label>
+              <Input
+                id="tx-new-location"
+                value={newProjectLocation}
+                onChange={(e) => setNewProjectLocation(e.target.value)}
+              />
+            </div>
+            <Button
+              type="button"
+              onClick={onCreateProject}
+              disabled={creatingProject || newProjectName.trim().length < 2}
+            >
+              {creatingProject ? t("creatingProject") : t("createProject")}
+            </Button>
+          </div>
+        )}
         {children.length > 0 && (
           <div className="space-y-1">
             <Label>{t("subproject")}</Label>

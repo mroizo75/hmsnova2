@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getStorage } from "@/lib/storage";
 import { convertDocumentToPDF } from "@/lib/adobe-pdf";
+import { loadDocumentFile } from "@/lib/document-file";
 
 const DOCX_MIMES = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -44,11 +45,11 @@ export async function GET(
     let pdfBuffer: Buffer;
 
     if (document.mime === "application/pdf") {
-      const buffer = await storage.get(document.fileKey);
+      const buffer = await loadDocumentFile(document);
       if (!buffer) {
         return NextResponse.json(
-          { error: "Kunne ikke hente dokument" },
-          { status: 500 }
+          { error: "Dokumentfilen finnes ikke i lagring. Last opp filen på nytt." },
+          { status: 404 }
         );
       }
       pdfBuffer = buffer;
@@ -59,18 +60,21 @@ export async function GET(
       if (cached) {
         pdfBuffer = cached;
       } else {
-        const docBuffer = await storage.get(document.fileKey);
+        const docBuffer = await loadDocumentFile(document);
         if (!docBuffer) {
           return NextResponse.json(
-            { error: "Kunne ikke hente dokument" },
-            { status: 500 }
+            { error: "Dokumentfilen finnes ikke i lagring. Last opp filen på nytt." },
+            { status: 404 }
           );
         }
 
         try {
           pdfBuffer = await convertDocumentToPDF(docBuffer, document.mime);
         } catch (err) {
-          console.error("Adobe DOCX->PDF conversion error:", err);
+          console.error(
+            "Adobe DOCX->PDF conversion error:",
+            err instanceof Error ? err.message : "ukjent feil"
+          );
           return NextResponse.json(
             { error: "Kunne ikke konvertere dokument til PDF. Sjekk at Adobe PDF Services er konfigurert." },
             { status: 502 }
@@ -99,7 +103,10 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("Feil ved visning av dokument:", error);
+    console.error(
+      "Feil ved visning av dokument:",
+      error instanceof Error ? error.message : "ukjent feil"
+    );
     return NextResponse.json(
       { error: "Kunne ikke vise dokument" },
       { status: 500 }

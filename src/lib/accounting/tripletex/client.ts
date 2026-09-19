@@ -1,4 +1,5 @@
 import { isTripletexSessionKeyForTenant, tripletexSessionCacheKey } from "../security";
+import { getTripletexConsumerToken } from "./env";
 
 type SessionCache = {
   token: string;
@@ -34,6 +35,21 @@ function formatExpirationDate(daysAhead = 2): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** Offisiell API 2.0: PUT /token/session/:create med query-parametre. */
+export function tripletexSessionCreateUrl(input: {
+  baseUrl: string;
+  consumerToken: string;
+  employeeToken: string;
+  expirationDate: string;
+}): string {
+  const params = new URLSearchParams({
+    consumerToken: input.consumerToken,
+    employeeToken: input.employeeToken,
+    expirationDate: input.expirationDate,
+  });
+  return `${input.baseUrl.replace(/\/$/, "")}/token/session/:create?${params.toString()}`;
+}
+
 export async function createSessionToken(input: {
   consumerToken: string;
   employeeToken: string;
@@ -43,15 +59,16 @@ export async function createSessionToken(input: {
 }): Promise<{ token: string; expirationDate?: string }> {
   const fetchImpl = input.fetchImpl ?? fetch;
   const baseUrl = input.baseUrl ?? tripletexBaseUrl();
-  const res = await fetchImpl(`${baseUrl}/token/session/:create`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+  const expirationDate = input.expirationDate ?? formatExpirationDate();
+  const res = await fetchImpl(
+    tripletexSessionCreateUrl({
+      baseUrl,
       consumerToken: input.consumerToken,
       employeeToken: input.employeeToken,
-      expirationDate: input.expirationDate ?? formatExpirationDate(),
+      expirationDate,
     }),
-  });
+    { method: "PUT" }
+  );
 
   if (!res.ok) {
     const body = await res.text();
@@ -85,9 +102,9 @@ export class TripletexClient {
   }
 
   private consumerToken(): string {
-    const token = process.env.TRIPLETEX_CONSUMER_TOKEN;
+    const token = getTripletexConsumerToken();
     if (!token) {
-      throw new TripletexApiError("TRIPLETEX_CONSUMER_TOKEN mangler", 500);
+      throw new TripletexApiError("Tripletex consumer-token mangler på serveren", 500);
     }
     return token;
   }

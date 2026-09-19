@@ -15,6 +15,7 @@ import {
   AI_ADDON_INVOICE_DESCRIPTION,
   AI_ADDON_NET_MONTHLY_NOK,
   buildAiAddonFikenLine,
+  shouldBillAiAddon,
 } from "@/lib/ai-addon";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -173,8 +174,11 @@ export async function createOnboardingInvoice(tenantId: string) {
     const isMonthly = tenant.subscription.billingInterval === "MONTHLY";
     const baseAmount = isMonthly ? Math.round(tenant.subscription.price / 12) : tenant.subscription.price;
     const netAmount = Math.round(baseAmount / 1.25);
-    const aiEnabled = tenant.aiEnabled === true;
-    const amount = baseAmount + (aiEnabled ? (isMonthly ? AI_ADDON_GROSS_MONTHLY_NOK : AI_ADDON_GROSS_MONTHLY_NOK * 12) : 0);
+    const billAiAddon = shouldBillAiAddon({
+      aiEnabled: tenant.aiEnabled === true,
+      aiIncludedInAgreement: tenant.aiIncludedInAgreement === true,
+    });
+    const amount = baseAmount + (billAiAddon ? (isMonthly ? AI_ADDON_GROSS_MONTHLY_NOK : AI_ADDON_GROSS_MONTHLY_NOK * 12) : 0);
     const subscriptionLine = {
       description: isMonthly
         ? `HMS Nova - ${tenant.subscription.plan} - Månedsabonnement`
@@ -183,7 +187,7 @@ export async function createOnboardingInvoice(tenantId: string) {
       vatType: "HIGH",
       account: "3000",
     };
-    const fikenLines = aiEnabled
+    const fikenLines = billAiAddon
       ? [
           subscriptionLine,
           isMonthly
@@ -254,8 +258,8 @@ export async function createOnboardingInvoice(tenantId: string) {
         dueDate,
         status: "PENDING",
         description: isMonthly 
-          ? `HMS Nova ${tenant.subscription.plan} - Måned 1${aiEnabled ? ` + ${AI_ADDON_INVOICE_DESCRIPTION}` : ""}`
-          : `HMS Nova ${tenant.subscription.plan} - Årlig abonnement${aiEnabled ? ` + ${AI_ADDON_INVOICE_DESCRIPTION}` : ""}`,
+          ? `HMS Nova ${tenant.subscription.plan} - Måned 1${billAiAddon ? ` + ${AI_ADDON_INVOICE_DESCRIPTION}` : ""}`
+          : `HMS Nova ${tenant.subscription.plan} - Årlig abonnement${billAiAddon ? ` + ${AI_ADDON_INVOICE_DESCRIPTION}` : ""}`,
       },
     });
 

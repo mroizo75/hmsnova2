@@ -24,6 +24,7 @@ import { Building2, User, CreditCard, Cloud, Bell, PanelLeft, Lock, BarChart3, M
 import { getAccountingSettings } from "@/server/actions/accounting.actions";
 import { IntelligenceConsentToggle } from "@/features/intelligence/components/consent-toggle";
 import { SetupGuideToggle } from "@/features/settings/components/setup-guide-toggle";
+import { HmsServiceRequestCard } from "@/features/settings/components/hms-service-request-card";
 import { TavleSettingsPane } from "@/features/hms-tavle/components/tavle-settings-pane";
 import { fetchSettingsData } from "@/server/queries/settings.queries";
 import type { MicrosoftConsentResult } from "@/lib/microsoft-admin-consent";
@@ -54,6 +55,7 @@ export function SettingsContent({
   if (!data) return null;
 
   const { user, tenant, userTenant, isAdmin, intelligenceConsent, tavleSubscription, tavleCount, tenantId } = data;
+  const canRequestHmsService = isAdmin || userTenant.role === "HMS";
 
   return (
     <Tabs defaultValue={consentResult ? "sso" : defaultTab || "company"} className="space-y-6">
@@ -112,6 +114,7 @@ export function SettingsContent({
           currentlyHidden={(tenant as any).setupGuideHidden ?? false}
           isAdmin={isAdmin}
         />
+        {canRequestHmsService && <HmsServiceRequestCard />}
         <DataExportCard isAdmin={isAdmin} />
       </TabsContent>
 
@@ -147,6 +150,7 @@ export function SettingsContent({
       <TabsContent value="ai" className="space-y-6">
         <AiSettings
           initialEnabled={Boolean(tenant.aiEnabled)}
+          includedInAgreement={Boolean(tenant.aiIncludedInAgreement)}
           activatedAt={tenant.aiAddonActivatedAt ?? null}
           isAdmin={isAdmin}
         />
@@ -232,6 +236,8 @@ function TripletexSettingsPane({ isAdmin }: { isAdmin: boolean }) {
     <TripletexIntegration
       isAdmin={isAdmin}
       connected={Boolean(s.connected)}
+      consumerConfigured={Boolean(s.consumerConfigured)}
+      applicationName={s.applicationName}
       companyId={s.tripletexCompanyId}
       lastPullAt={s.accountingLastPullAt}
       mapping={{

@@ -14,6 +14,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { PenLine, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { signHandbook } from "@/server/actions/hms-handbok.actions";
 
@@ -24,6 +25,7 @@ interface HandbokSignButtonProps {
 }
 
 export function HandbokSignButton({ tenantId, alreadySigned, versionId }: HandbokSignButtonProps) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(false);
@@ -37,6 +39,7 @@ export function HandbokSignButton({ tenantId, alreadySigned, versionId }: Handbo
       toast({ title: "Håndbok signert", description: "Din signatur er registrert." });
       setOpen(false);
       setComment("");
+      router.refresh();
     } else {
       toast({ title: "Feil", description: result.error, variant: "destructive" });
     }
@@ -45,7 +48,11 @@ export function HandbokSignButton({ tenantId, alreadySigned, versionId }: Handbo
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant={alreadySigned ? "outline" : "default"} size="sm" className="gap-2">
+        <Button
+          variant={alreadySigned ? "outline" : "default"}
+          size="sm"
+          className={alreadySigned ? "gap-2 bg-transparent" : "gap-2"}
+        >
           <PenLine className="h-4 w-4" />
           {alreadySigned ? "Signer på nytt" : "Signer håndbok"}
         </Button>
@@ -70,7 +77,7 @@ export function HandbokSignButton({ tenantId, alreadySigned, versionId }: Handbo
           />
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+          <Button variant="outline" className="bg-transparent" onClick={() => setOpen(false)} disabled={loading}>
             Avbryt
           </Button>
           <Button onClick={handleSign} disabled={loading} className="gap-2">

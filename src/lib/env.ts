@@ -64,6 +64,10 @@ interface EnvConfig {
 
   // Tripletex (optional — tenant kundefaktura / feltjobber)
   TRIPLETEX_CONSUMER_TOKEN?: string;
+  TRIPLETEX_TOKEN?: string;
+  TRIPELTEX_TOKEN?: string;
+  TRIPLETEX_APP_NAME?: string;
+  TRIPELTEX_APP_NAME?: string;
   TRIPLETEX_API_BASE?: string;
   FIELD_ENCRYPTION_KEY?: string;
 
@@ -147,7 +151,12 @@ export function validateEnv(): void {
     warnings.push("Upstash Redis ikke konfigurert - bruker in-memory rate limiting (ikke anbefalt for produksjon)");
   }
 
-  if (process.env.TRIPLETEX_CONSUMER_TOKEN && (!process.env.FIELD_ENCRYPTION_KEY || process.env.FIELD_ENCRYPTION_KEY.length !== 64)) {
+  const hasTripletexConsumer = Boolean(
+    process.env.TRIPLETEX_CONSUMER_TOKEN?.trim() ||
+      process.env.TRIPLETEX_TOKEN?.trim() ||
+      process.env.TRIPELTEX_TOKEN?.trim()
+  );
+  if (hasTripletexConsumer && (!process.env.FIELD_ENCRYPTION_KEY || process.env.FIELD_ENCRYPTION_KEY.length !== 64)) {
     warnings.push("FIELD_ENCRYPTION_KEY (64 hex) må være satt for å lagre Tripletex-token kryptert per virksomhet");
   }
 

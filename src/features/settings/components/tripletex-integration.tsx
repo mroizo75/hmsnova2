@@ -29,6 +29,8 @@ type Employee = {
 interface TripletexIntegrationProps {
   isAdmin: boolean;
   connected: boolean;
+  consumerConfigured?: boolean;
+  applicationName?: string;
   companyId?: string | null;
   lastPullAt?: Date | string | null;
   mapping: {
@@ -49,6 +51,8 @@ interface TripletexIntegrationProps {
 export function TripletexIntegration({
   isAdmin,
   connected,
+  consumerConfigured = false,
+  applicationName = "HMS Nova",
   companyId,
   lastPullAt,
   mapping,
@@ -111,9 +115,9 @@ export function TripletexIntegration({
               Tripletex
             </CardTitle>
             <CardDescription>
-              Administrator limer inn virksomhetens employee token fra Tripletex.
-              Tokenet lagres kryptert og brukes bare for denne bedriften. HMS Nova sitt
-              integrasjonstoken ligger i serveren — kunden trenger ikke mer enn nøkkelen under.
+              Kommersiell integrasjon «{applicationName}» mot Tripletex API 2.0.
+              Administrator limer inn virksomhetens employee token. Tokenet lagres kryptert
+              og brukes bare for denne bedriften.
             </CardDescription>
           </div>
           {connected ? (
@@ -132,16 +136,39 @@ export function TripletexIntegration({
       <CardContent className="space-y-6">
         {!connected && (
           <div className="space-y-3">
+            {consumerConfigured ? (
+              <p className="text-sm text-muted-foreground">
+                Integrasjonen {applicationName} er klar på serveren. Opprett et employee token
+                i Tripletex (API-tilgang for denne bedriften) og lim det inn under. Se{" "}
+                <a
+                  href="https://developer.tripletex.no/docs/documentation/authentication-and-tokens/"
+                  className="underline"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Tripletex-dokumentasjonen
+                </a>
+                .
+              </p>
+            ) : (
+              <p className="text-sm text-destructive">
+                Consumer-token fra Tripletex mangler på serveren. Integrasjonen kan ikke
+                kobles før det er lagt inn.
+              </p>
+            )}
             <Label htmlFor="tx-token">Employee token (selskapseid integrasjonsnøkkel fra Tripletex)</Label>
             <Input
               id="tx-token"
               type="password"
               value={token}
               onChange={(e) => setToken(e.target.value)}
-              disabled={!isAdmin || loading}
+              disabled={!isAdmin || loading || !consumerConfigured}
               placeholder="Lim inn token"
             />
-            <Button onClick={handleConnect} disabled={!isAdmin || loading || token.length < 8}>
+            <Button
+              onClick={handleConnect}
+              disabled={!isAdmin || loading || !consumerConfigured || token.length < 8}
+            >
               {loading ? "Kobler til…" : "Koble til Tripletex"}
             </Button>
           </div>

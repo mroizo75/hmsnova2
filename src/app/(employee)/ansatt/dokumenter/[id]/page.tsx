@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Download, Eye, Clock, Calendar, User, FileText } from "lucide-react";
 import Link from "next/link";
-import { getStorage } from "@/lib/storage";
 import { DocumentConfirmReadButton } from "@/features/documents/components/document-confirm-read-button";
 
 export default async function AnsattDocumentDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -73,9 +72,6 @@ export default async function AnsattDocumentDetailPage({ params }: { params: Pro
     }
   }
 
-  const storage = getStorage();
-  const downloadUrl = await storage.getUrl(document.fileKey, 3600);
-
   const existingConfirmation = await prisma.documentConfirmation.findUnique({
     where: {
       documentId_userId_documentVersion: {
@@ -90,6 +86,7 @@ export default async function AnsattDocumentDetailPage({ params }: { params: Pro
     document.mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
     document.mime === "application/msword";
   const viewUrl = `/api/documents/${document.id}/view`;
+  const downloadUrl = `/api/documents/${document.id}/download`;
 
   const getKindLabel = (kind: string) => {
     const labels: Record<string, string> = {
@@ -152,12 +149,12 @@ export default async function AnsattDocumentDetailPage({ params }: { params: Pro
               {t("documentCard.view")} {isWord ? "(PDF)" : ""}
             </Button>
           </Link>
-          <Link href={downloadUrl} target="_blank" rel="noopener noreferrer">
-            <Button size="lg" variant="outline" className="w-full md:w-auto">
+          <a href={downloadUrl}>
+            <Button size="lg" variant="outline" className="w-full md:w-auto bg-transparent">
               <Download className="mr-2 h-5 w-5" />
               {isWord ? t("documentCard.downloadOriginal") : t("documentCard.download")}
             </Button>
-          </Link>
+          </a>
         </CardContent>
       </Card>
 

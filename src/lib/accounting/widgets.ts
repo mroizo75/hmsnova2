@@ -8,5 +8,5 @@ export function filterEmployeeWidgetsForAccounting<T extends { id: string }>(
   if (!options.timeRegistrationEnabled) {
     return widgets.filter((w) => w.id !== "emp-time" && w.id !== "emp-jobs");
   }
-  return widgets.filter((w) => w.id !== "emp-time");
+  return widgets;
 }

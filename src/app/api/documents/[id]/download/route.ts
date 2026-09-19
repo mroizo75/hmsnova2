@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getStorage } from "@/lib/storage";
+import { loadDocumentFile } from "@/lib/document-file";
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -16,7 +16,6 @@ export async function GET(
       return NextResponse.json({ error: "Ikke autorisert" }, { status: 401 });
     }
 
-    // Hent dokument og sjekk tilgang
     const document = await prisma.document.findUnique({
       where: {
         id,
@@ -28,14 +27,30 @@ export async function GET(
       return NextResponse.json({ error: "Dokument ikke funnet" }, { status: 404 });
     }
 
-    // Generer signert URL fra storage
-    const storage = getStorage();
-    const signedUrl = await storage.getUrl(document.fileKey, 3600); // 1 time
+    const buffer = await loadDocumentFile(document);
+    if (!buffer) {
+      return NextResponse.json(
+        { error: "Dokumentfilen finnes ikke i lagring. Last opp filen på nytt." },
+        { status: 404 }
+      );
+    }
 
-    // Redirect til signert URL
-    return NextResponse.redirect(signedUrl);
+    const ext = document.mime === "application/pdf" ? ".pdf" : "";
+    const filename = document.title.replace(/[^a-zA-Z0-9æøåÆØÅ._\s-]/g, "_") + ext;
+
+    return new NextResponse(new Uint8Array(buffer), {
+      status: 200,
+      headers: {
+        "Content-Type": document.mime || "application/octet-stream",
+        "Content-Disposition": `attachment; filename="${filename}"`,
+        "Cache-Control": "private, max-age=3600",
+      },
+    });
   } catch (error) {
-    console.error("Feil ved nedlasting av dokument:", error);
+    console.error(
+      "Feil ved nedlasting av dokument:",
+      error instanceof Error ? error.message : "ukjent feil"
+    );
     return NextResponse.json(
       { error: "Kunne ikke laste ned dokument" },
       { status: 500 }

@@ -48,7 +48,7 @@ export default async function CorporateGroupTenantsPage() {
   const sortedTenants = [...tenants].sort((a, b) => {
     const scoreA = scoreMap.get(a.tenant.id)?.overallScore ?? 0;
     const scoreB = scoreMap.get(b.tenant.id)?.overallScore ?? 0;
-    return scoreA - scoreB;
+    return scoreB - scoreA;
   });
 
   return (

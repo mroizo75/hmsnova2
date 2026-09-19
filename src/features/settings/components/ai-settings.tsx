@@ -30,11 +30,17 @@ import { Info, Mic, Sparkles } from "lucide-react";
 
 interface AiSettingsProps {
   initialEnabled: boolean;
+  includedInAgreement?: boolean;
   activatedAt?: string | Date | null;
   isAdmin: boolean;
 }
 
-export function AiSettings({ initialEnabled, activatedAt, isAdmin }: AiSettingsProps) {
+export function AiSettings({
+  initialEnabled,
+  includedInAgreement = false,
+  activatedAt,
+  isAdmin,
+}: AiSettingsProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [enabled, setEnabled] = useState(initialEnabled);
@@ -51,10 +57,14 @@ export function AiSettings({ initialEnabled, activatedAt, isAdmin }: AiSettingsP
     if (result.success) {
       invalidateTenantNavCache();
       toast({
-        title: next ? "AI-tillegg er aktivert" : "AI-tillegg er slått av",
+        title: next ? "AI er aktivert" : "AI er slått av",
         description: next
-          ? `${AI_ADDON_NET_MONTHLY_NOK} kr/mnd + mva legges til neste faktura.`
-          : "AI er av med en gang. Ingen AI-linje på neste faktura.",
+          ? includedInAgreement
+            ? "AI inngår i avtalen. Ingen ekstra kostnad."
+            : `${AI_ADDON_NET_MONTHLY_NOK} kr/mnd + mva legges til neste faktura.`
+          : includedInAgreement
+            ? "AI er av. Dere kan slå det på igjen uten ekstra kostnad."
+            : "AI er av med en gang. Ingen AI-linje på neste faktura.",
       });
       router.refresh();
     } else {
@@ -87,16 +97,18 @@ export function AiSettings({ initialEnabled, activatedAt, isAdmin }: AiSettingsP
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5" />
             Kunstig intelligens (AI)
-            {enabled ? (
+            {includedInAgreement ? (
+              <Badge>Inkludert i avtalen</Badge>
+            ) : enabled ? (
               <Badge>Aktivt tillegg</Badge>
             ) : (
               <Badge variant="secondary">Av</Badge>
             )}
           </CardTitle>
           <CardDescription>
-            Valgfritt tillegg: {AI_ADDON_NET_MONTHLY_NOK} kr/mnd + mva. Inkluderer chat-hjelp,
-            avviksutkast, oppsummeringer, SDS-tolkning, tale-til-tekst og valgfrie risikoforslag.
-            Alltid av som standard.
+            {includedInAgreement
+              ? "AI inngår i avtalen deres. Ingen 99 kr/mnd tillegg. Dere kan slå av bruken uten å miste inkluderingen."
+              : `Valgfritt tillegg: ${AI_ADDON_NET_MONTHLY_NOK} kr/mnd + mva. Inkluderer chat-hjelp, avviksutkast, oppsummeringer, SDS-tolkning, tale-til-tekst og valgfrie risikoforslag. Alltid av som standard.`}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -107,8 +119,12 @@ export function AiSettings({ initialEnabled, activatedAt, isAdmin }: AiSettingsP
               </Label>
               <p className="text-sm text-muted-foreground">
                 {enabled
-                  ? `AI er på. ${AI_ADDON_NET_MONTHLY_NOK} kr/mnd + mva på fakturaen.${activatedLabel ? ` Aktivert ${activatedLabel}.` : ""}`
-                  : "AI er av. Ingen OpenAI-kall og ingen ekstra kostnad."}
+                  ? includedInAgreement
+                    ? `AI er på og inngår i avtalen. Ingen ekstra fakturalinje.${activatedLabel ? ` Aktivert ${activatedLabel}.` : ""}`
+                    : `AI er på. ${AI_ADDON_NET_MONTHLY_NOK} kr/mnd + mva på fakturaen.${activatedLabel ? ` Aktivert ${activatedLabel}.` : ""}`
+                  : includedInAgreement
+                    ? "AI er av. Dere kan slå det på uten ekstra kostnad."
+                    : "AI er av. Ingen OpenAI-kall og ingen ekstra kostnad."}
               </p>
             </div>
             <Switch
@@ -142,12 +158,16 @@ export function AiSettings({ initialEnabled, activatedAt, isAdmin }: AiSettingsP
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {pendingEnabled ? "Aktiver AI-tillegg?" : "Slå av AI?"}
+              {pendingEnabled ? "Aktiver AI?" : "Slå av AI?"}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {pendingEnabled
-                ? `Aktiver AI – da kommer det ${AI_ADDON_NET_MONTHLY_NOK} kr/mnd + mva ekstra på fakturaen din. Du får chat-hjelp, tale-til-tekst og valgfrie forslag i avvik, SJA og risikovurdering.`
-                : "AI slås av med en gang. Ingen AI-linje på neste faktura. Det gis ikke refusjon for inneværende måned."}
+                ? includedInAgreement
+                  ? "Aktiver AI – det inngår i avtalen og gir ingen ekstra kostnad. Du får chat-hjelp, tale-til-tekst og valgfrie forslag i avvik, SJA og risikovurdering."
+                  : `Aktiver AI – da kommer det ${AI_ADDON_NET_MONTHLY_NOK} kr/mnd + mva ekstra på fakturaen din. Du får chat-hjelp, tale-til-tekst og valgfrie forslag i avvik, SJA og risikovurdering.`
+                : includedInAgreement
+                  ? "AI slås av med en gang. Inkluderingen i avtalen beholdes, så dere kan slå det på igjen uten ekstra kostnad."
+                  : "AI slås av med en gang. Ingen AI-linje på neste faktura. Det gis ikke refusjon for inneværende måned."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

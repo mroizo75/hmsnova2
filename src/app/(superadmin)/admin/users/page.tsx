@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/db";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { UserPlus, Shield, Building2 } from "lucide-react";
 import Link from "next/link";
@@ -48,34 +47,39 @@ export default async function AdminUsersPage({
       }
     : {};
 
-  // Tell totalt antall brukere (med filter)
-  const totalUsers = await prisma.user.count({
-    where: searchFilter,
-  });
-
-  // Hent brukere med paginering (og filter)
-  const users = await prisma.user.findMany({
-    where: searchFilter,
-    include: {
-      tenants: {
-        include: {
-          tenant: true,
+  const [
+    totalUsers,
+    superAdminCount,
+    usersWithCompany,
+    usersWithoutCompany,
+    totalCompanies,
+    users,
+  ] = await Promise.all([
+    prisma.user.count({ where: searchFilter }),
+    prisma.user.count({ where: { ...searchFilter, isSuperAdmin: true } }),
+    prisma.user.count({
+      where: { ...searchFilter, tenants: { some: {} } },
+    }),
+    prisma.user.count({
+      where: { ...searchFilter, tenants: { none: {} } },
+    }),
+    prisma.tenant.count(),
+    prisma.user.findMany({
+      where: searchFilter,
+      include: {
+        tenants: {
+          include: {
+            tenant: true,
+          },
         },
       },
-    },
-    orderBy: { createdAt: "desc" },
-    skip: (currentPage - 1) * ITEMS_PER_PAGE,
-    take: ITEMS_PER_PAGE,
-  });
+      orderBy: { createdAt: "desc" },
+      skip: (currentPage - 1) * ITEMS_PER_PAGE,
+      take: ITEMS_PER_PAGE,
+    }),
+  ]);
 
   const totalPages = Math.ceil(totalUsers / ITEMS_PER_PAGE);
-
-  const stats = {
-    total: users.length,
-    superAdmins: users.filter((u) => u.isSuperAdmin).length,
-    withTenants: users.filter((u) => u.tenants.length > 0).length,
-    withoutTenants: users.filter((u) => u.tenants.length === 0).length,
-  };
 
   return (
     <div className="space-y-6">
@@ -94,13 +98,13 @@ export default async function AdminUsersPage({
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Totalt brukere</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
+            <div className="text-2xl font-bold">{totalUsers}</div>
           </CardContent>
         </Card>
 
@@ -110,28 +114,38 @@ export default async function AdminUsersPage({
             <Shield className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">{stats.superAdmins}</div>
+            <div className="text-2xl font-bold text-primary">{superAdminCount}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Med tenant</CardTitle>
+            <CardTitle className="text-sm font-medium">Med bedrift</CardTitle>
             <Building2 className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.withTenants}</div>
+            <div className="text-2xl font-bold text-green-600">{usersWithCompany}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Uten tenant</CardTitle>
+            <CardTitle className="text-sm font-medium">Uten bedrift</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-muted-foreground">
-              {stats.withoutTenants}
+              {usersWithoutCompany}
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Bedrifter</CardTitle>
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalCompanies}</div>
           </CardContent>
         </Card>
       </div>

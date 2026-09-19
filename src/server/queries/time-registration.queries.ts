@@ -1,31 +1,11 @@
 "use server";
 
 import { getTenantContextSafe } from "@/lib/tenant-context";
-import { prisma } from "@/lib/db";
 import {
   getProjects,
   getTimeRegistrationOverview,
   getTimeRegistrationConfig,
 } from "@/server/actions/time-registration.actions";
-
-async function ensureDefaultProject(tenantId: string): Promise<void> {
-  const existing = await prisma.project.findFirst({
-    where: { tenantId, status: "ACTIVE" },
-  });
-  if (!existing) {
-    const adminUser = await prisma.userTenant.findFirst({ where: { tenantId, role: "ADMIN" } });
-    if (!adminUser) return;
-    await prisma.project.create({
-      data: {
-        tenantId,
-        name: "Generelt",
-        code: "GEN",
-        description: "Standard prosjekt for timeregistrering",
-        createdById: adminUser.userId,
-      },
-    });
-  }
-}
 
 export async function fetchTimeRegistrationData() {
   const ctx = await getTenantContextSafe();
@@ -38,14 +18,8 @@ export async function fetchTimeRegistrationData() {
   ]);
 
   const config = configRes.success ? configRes.data : null;
-  let projects = projectsRes.success ? projectsRes.data : [];
+  const projects = projectsRes.success ? projectsRes.data : [];
   const enabled = config?.timeRegistrationEnabled ?? false;
-
-  if (enabled && projects.filter((p) => p.status === "ACTIVE").length === 0) {
-    await ensureDefaultProject(tenantId);
-    const refreshed = await getProjects(tenantId, false);
-    projects = refreshed.success ? refreshed.data : projects;
-  }
 
   let overviewData = null;
   if (enabled) {
