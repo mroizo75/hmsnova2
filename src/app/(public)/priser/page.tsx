@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { RegisterDialog } from "@/components/register-dialog";
 import { RingMegDialog } from "@/components/ring-meg-dialog";
 import { PRICING_SCHEMA } from "@/lib/seo-schemas";
+import { AI_ADDON_NET_MONTHLY_NOK } from "@/lib/ai-addon";
 import { getBreadcrumbSchema } from "@/lib/seo-config";
 import { 
   CheckCircle2, 
@@ -272,14 +273,14 @@ export default function PriserPage() {
                   Chat-hjelp, tale-til-tekst og forslag i avvik, SJA og risikovurdering
                 </CardDescription>
                 <div className="mt-4">
-                  <span className="text-4xl font-bold">99 kr</span>
+                  <span className="text-4xl font-bold">{AI_ADDON_NET_MONTHLY_NOK} kr</span>
                   <span className="text-2xl text-muted-foreground">/mnd</span>
                   <span className="block text-sm text-muted-foreground mt-1">+ mva</span>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3 text-sm text-muted-foreground">
                 <p>Alltid av som standard. Administrator aktiverer under Innstillinger.</p>
-                <p>99 kr/mnd + mva kommer ekstra på fakturaen når AI er slått på.</p>
+                <p>{AI_ADDON_NET_MONTHLY_NOK} kr/mnd + mva kommer ekstra på fakturaen når AI er slått på.</p>
               </CardContent>
             </Card>
           </div>

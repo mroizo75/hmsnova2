@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Shield, Mail, Phone, MapPin } from "lucide-react";
+import { AI_ADDON_NET_MONTHLY_NOK } from "@/lib/ai-addon";
 
 export const metadata: Metadata = {
   title: "Personvernerklæring | GDPR | HMS Nova AS",
@@ -165,7 +166,7 @@ export default function PersonvernPage() {
                   <p className="text-sm text-muted-foreground">
                     HMS Nova kan i utvalgte funksjoner (avviksutkast, årsaksanalyse, risikoforslag,
                     SDS-tolkning, tale-til-tekst m.m.) bruke kunstig intelligens (OpenAI) til å
-                    foreslå tekst og vurderinger. AI er et valgfritt, betalt tillegg (99 kr/mnd + mva)
+                    foreslå tekst og vurderinger. AI er et valgfritt, betalt tillegg ({AI_ADDON_NET_MONTHLY_NOK} kr/mnd + mva)
                     og er alltid av som standard. Administrator aktiverer tillegget under
                     Innstillinger &gt; AI. Da brukes tjenesten kun for deres virksomhet.
                     Data som sendes til AI-funksjonen brukes ikke til å trene OpenAIs modeller.

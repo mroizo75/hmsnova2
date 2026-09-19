@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toggleAiIncludedInAgreement } from "@/server/actions/tenant.actions";
+import { AI_ADDON_NET_MONTHLY_NOK } from "@/lib/ai-addon";
 import { useToast } from "@/hooks/use-toast";
 import { Sparkles, Loader2 } from "lucide-react";
 
@@ -36,7 +37,7 @@ export function AdminAiIncludedCard({
       toast({
         title: included ? "AI inkludert i avtalen" : "AI-inkludering fjernet",
         description: included
-          ? `${tenantName} har AI som standard uten 99 kr/mnd tillegg.`
+          ? `${tenantName} har AI som standard uten ${AI_ADDON_NET_MONTHLY_NOK} kr/mnd tillegg.`
           : "AI er slått av. Bedriften kan aktivere det som betalt tillegg i innstillinger.",
       });
       router.refresh();
@@ -64,7 +65,7 @@ export function AdminAiIncludedCard({
           )}
         </CardTitle>
         <CardDescription>
-          Overstyr for NHO- og andre avtaler der AI inngår som standard. Ingen 99 kr/mnd på
+          Overstyr for NHO- og andre avtaler der AI inngår som standard. Ingen {AI_ADDON_NET_MONTHLY_NOK} kr/mnd på
           fakturaen når dette er på.
         </CardDescription>
       </CardHeader>
@@ -76,7 +77,7 @@ export function AdminAiIncludedCard({
             </Label>
             <p className="text-sm text-muted-foreground">
               {aiIncludedInAgreement
-                ? "AI er på og inngår i avtalen. Kunden belastes ikke 99 kr/mnd."
+                ? `AI er på og inngår i avtalen. Kunden belastes ikke ${AI_ADDON_NET_MONTHLY_NOK} kr/mnd.`
                 : "Standard: kunden må selv aktivere AI som betalt tillegg."}
             </p>
           </div>

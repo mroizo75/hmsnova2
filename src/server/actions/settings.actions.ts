@@ -778,7 +778,7 @@ export async function updateMocModuleEnabled(enabled: boolean) {
 }
 
 /**
- * Selvbetjent av/på for betalt AI-tillegg (99 kr/mnd + mva).
+ * Selvbetjent av/på for betalt AI-tillegg (49 kr/mnd + mva).
  * Aktivering varsler faktura; deaktivering slår av AI med en gang.
  */
 export async function updateAiSettings(enabled: boolean) {

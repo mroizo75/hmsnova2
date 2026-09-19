@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Switch } from "@/components/ui/switch";
 import { toggleAiIncludedInAgreement } from "@/server/actions/tenant.actions";
 import { useToast } from "@/hooks/use-toast";
+import { AI_ADDON_NET_MONTHLY_NOK } from "@/lib/ai-addon";
 
 interface AdminAiIncludedSwitchProps {
   tenantId: string;
@@ -32,7 +33,7 @@ export function AdminAiIncludedSwitch({
       toast({
         title: next ? "AI inkludert" : "AI-inkludering fjernet",
         description: next
-          ? `${tenantName}: AI uten 99 kr/mnd tillegg.`
+          ? `${tenantName}: AI uten ${AI_ADDON_NET_MONTHLY_NOK} kr/mnd tillegg.`
           : `${tenantName}: AI er slått av.`,
       });
       router.refresh();

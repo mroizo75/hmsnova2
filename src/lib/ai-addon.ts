@@ -1,9 +1,9 @@
 /**
  * Betalt AI-tillegg for HMS Nova.
- * 99 kr/mnd + mva (AML/IK-HMS-hjelp, tale-til-tekst, valgfrie forslag).
+ * 49 kr/mnd + mva (AML/IK-HMS-hjelp, tale-til-tekst, valgfrie forslag).
  */
 
-export const AI_ADDON_NET_MONTHLY_NOK = 99;
+export const AI_ADDON_NET_MONTHLY_NOK = 49;
 export const AI_ADDON_VAT_RATE = 0.25;
 export const AI_ADDON_GROSS_MONTHLY_NOK = AI_ADDON_NET_MONTHLY_NOK * (1 + AI_ADDON_VAT_RATE);
 export const AI_ADDON_INVOICE_DESCRIPTION = "HMS Nova AI";

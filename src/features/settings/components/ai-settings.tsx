@@ -107,7 +107,7 @@ export function AiSettings({
           </CardTitle>
           <CardDescription>
             {includedInAgreement
-              ? "AI inngår i avtalen deres. Ingen 99 kr/mnd tillegg. Dere kan slå av bruken uten å miste inkluderingen."
+              ? `AI inngår i avtalen deres. Ingen ${AI_ADDON_NET_MONTHLY_NOK} kr/mnd tillegg. Dere kan slå av bruken uten å miste inkluderingen.`
               : `Valgfritt tillegg: ${AI_ADDON_NET_MONTHLY_NOK} kr/mnd + mva. Inkluderer chat-hjelp, avviksutkast, oppsummeringer, SDS-tolkning, tale-til-tekst og valgfrie risikoforslag. Alltid av som standard.`}
           </CardDescription>
         </CardHeader>

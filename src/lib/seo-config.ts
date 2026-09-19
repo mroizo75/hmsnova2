@@ -7,6 +7,8 @@
  * - Optimalisert for både tradisjonelle søkemotorer og AI (ChatGPT, Perplexity, etc.)
  */
 
+import { AI_ADDON_NET_MONTHLY_NOK } from "./ai-addon";
+
 const rawBaseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://hmsnova.no";
 const normalizedBaseUrl = rawBaseUrl.startsWith("http") ? rawBaseUrl : `https://${rawBaseUrl}`;
 
@@ -253,7 +255,7 @@ export const PAGE_METADATA = {
   },
   priser: {
     title: "Priser - HMS Nova | 300 kr/mnd | Ingen Skjulte Kostnader",
-    description: "Transparente priser: 300 kr/mnd (3 600 kr/år) med 12 mnd abonnement. Valgfritt AI-tillegg 99 kr/mnd + mva. Ubegrenset brukere, digital signatur inkludert og 0 kr oppstart.",
+    description: `Transparente priser: 300 kr/mnd (3 600 kr/år) med 12 mnd abonnement. Valgfritt AI-tillegg ${AI_ADDON_NET_MONTHLY_NOK} kr/mnd + mva. Ubegrenset brukere, digital signatur inkludert og 0 kr oppstart.`,
     keywords: "hms system pris, hms programvare kostnad, billig hms system, hms system alle bedrifter, beste hms system pris",
   },
   kurs: {

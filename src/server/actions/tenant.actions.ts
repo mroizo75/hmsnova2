@@ -1456,7 +1456,7 @@ export async function toggleBransjekursAvtale(tenantId: string, enabled: boolean
 }
 
 /**
- * Superadmin/support: inkluder AI i avtalen (NHO m.m.) uten 99 kr/mnd tillegg.
+ * Superadmin/support: inkluder AI i avtalen (NHO m.m.) uten 49 kr/mnd tillegg.
  */
 export async function toggleAiIncludedInAgreement(tenantId: string, included: boolean) {
   try {

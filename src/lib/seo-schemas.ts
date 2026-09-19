@@ -4,6 +4,7 @@
  */
 
 import { SITE_CONFIG } from "./seo-config";
+import { AI_ADDON_NET_MONTHLY_NOK } from "./ai-addon";
 
 // Pricing Schema for HMS Nova – én pakke 12 mnd binding
 export const PRICING_SCHEMA = {
@@ -40,11 +41,11 @@ export const PRICING_SCHEMA = {
       position: 2,
       name: "AI-tillegg",
       description: "Valgfritt AI-tillegg: chat-hjelp, tale-til-tekst og forslag. Alltid av som standard.",
-      price: "99",
+      price: String(AI_ADDON_NET_MONTHLY_NOK),
       priceCurrency: "NOK",
       priceSpecification: {
         "@type": "UnitPriceSpecification",
-        price: "99",
+        price: String(AI_ADDON_NET_MONTHLY_NOK),
         priceCurrency: "NOK",
         unitText: "MONTH",
       },
@@ -55,7 +56,7 @@ export const PRICING_SCHEMA = {
       itemOffered: {
         "@type": "Service",
         name: "HMS Nova AI",
-        description: "Valgfritt tillegg 99 kr/mnd + mva.",
+        description: `Valgfritt tillegg ${AI_ADDON_NET_MONTHLY_NOK} kr/mnd + mva.`,
       },
     },
   ],
