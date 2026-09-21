@@ -10,9 +10,11 @@ import {
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getAggregatedHmsStats } from "@/server/actions/admin-hms-stats.actions";
+import { getOnlinePresenceSnapshot } from "@/lib/presence";
 import { HmsStatsTable } from "@/features/admin/components/hms-stats-table";
 import { HmsTrendChart } from "@/features/admin/components/hms-trend-chart";
 import { NhoExportButton } from "@/features/admin/components/nho-export-button";
+import { OnlinePresenceCard } from "@/features/admin/components/online-presence-card";
 import { redirect } from "next/navigation";
 
 export default async function SuperAdminDashboard() {
@@ -28,6 +30,8 @@ export default async function SuperAdminDashboard() {
   const data = await getAggregatedHmsStats();
   if (!data) redirect("/login");
 
+  const presence = await getOnlinePresenceSnapshot();
+
   const { kpi, rows, trends } = data;
 
   return (
@@ -41,6 +45,8 @@ export default async function SuperAdminDashboard() {
         </div>
         {isSuperAdmin && <NhoExportButton />}
       </div>
+
+      <OnlinePresenceCard initial={presence} />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>

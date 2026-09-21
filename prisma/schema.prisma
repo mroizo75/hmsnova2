@@ -81,6 +81,7 @@ model User {
   failedLoginAttempts Int       @default(0)
   lockedUntil         DateTime?
   lastLoginAttempt    DateTime?
+  lastSeenAt          DateTime? // Sist aktiv i appen (for oppgraderingsvindu)
 
   // TOTP step-up for varslingsbehandling (AML kap. 2 A / GDPR art. 32)
   totpSecret    String?   @db.Text // AES-256-GCM
@@ -183,6 +184,7 @@ model User {
   @@index([isSupport])
   @@index([lockedUntil])
   @@index([emailVerified])
+  @@index([lastSeenAt])
 }
 
 model VerificationToken {

@@ -30,6 +30,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { Badge } from "./ui/badge";
+import { AdminOnlineBadge } from "@/components/admin-online-badge";
 
 const allNavItems = [
   { href: "/admin", label: "Oversikt", icon: LayoutDashboard, supportAccess: true },
@@ -104,7 +105,8 @@ function NavLinks({
 function NavFooter({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="border-t p-4 space-y-2">
-      <Button asChild variant="outline" className="w-full justify-start">
+      <AdminOnlineBadge />
+      <Button asChild variant="outline" className="w-full justify-start bg-transparent">
         <Link href="/dashboard" onClick={onNavigate}>
           <LayoutDashboard className="mr-3 h-4 w-4" />
           Til kundedashboard

@@ -8,6 +8,7 @@ import { NextIntlClientProvider, type AbstractIntlMessages } from "next-intl";
 import { useState } from "react";
 import { PusherSync } from "@/components/pusher-sync";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
+import { PresenceBeacon } from "@/components/presence-beacon";
 
 type ProvidersProps = {
   children: React.ReactNode;
@@ -44,6 +45,7 @@ export function Providers({ children, locale, messages, session, nowISO }: Provi
         <QueryClientProvider client={queryClient}>
           <PusherSync />
           <PwaInstallPrompt />
+          <PresenceBeacon />
           {children}
           <ReactQueryDevtools initialIsOpen={false} />
         </QueryClientProvider>
