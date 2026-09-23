@@ -18,14 +18,15 @@ const STATUS_BADGE: Record<string, { label: string; className: string }> = {
 };
 
 const TYPE_LABEL: Record<string, string> = {
-  SICK_LEAVE: "Sykefravær",
-  SICK_LEAVE_CHILD: "Sykt barn",
+  SELF_CERTIFIED: "Egenmelding",
+  SICK_LEAVE: "Sykmelding",
+  CARE_DAYS: "Omsorgsdager / sykt barn",
   VACATION: "Ferie",
+  COMPENSATORY: "Avspasering",
   LEAVE_OF_ABSENCE: "Permisjon",
   PARENTAL_LEAVE: "Foreldrepermisjon",
-  COMPASSIONATE_LEAVE: "Velferdspermisjon",
-  EDUCATIONAL_LEAVE: "Utdanningspermisjon",
-  MILITARY_LEAVE: "Militærtjeneste",
+  BEREAVEMENT: "Velferdspermisjon",
+  MILITARY: "Militærtjeneste",
   OTHER: "Annet",
 };
 

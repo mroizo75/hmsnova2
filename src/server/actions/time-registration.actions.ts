@@ -5,9 +5,11 @@ import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
-import { enqueueAccountingJob } from "@/lib/accounting/sync";
+import { enqueueAccountingJob, ensureDefaultKmProducts, syncProjectToAccounting } from "@/lib/accounting/sync";
 import { isAccountingEnabled } from "@/lib/accounting/factory";
 import { canEnqueueTimesheetSync } from "@/lib/time/approval";
+import { getAuthContext } from "@/lib/server-authorization";
+import { dayIndexInWeek, weekDateRange } from "@/lib/time/week-range";
 import {
   startOfWeek,
   endOfWeek,
@@ -132,6 +134,7 @@ export async function updateTimeRegistrationConfig(
   tenantId: string,
   data: {
     timeRegistrationEnabled?: boolean;
+    employeesCanCreateProjects?: boolean;
     weeklyHoursNorm?: number;
     overtime50Multiplier?: number;
     overtime40Multiplier?: number;
@@ -163,6 +166,7 @@ export async function updateTimeRegistrationConfig(
       where: { id: tenantId },
       data: {
         timeRegistrationEnabled: data.timeRegistrationEnabled,
+        employeesCanCreateProjects: data.employeesCanCreateProjects,
         weeklyHoursNorm: data.weeklyHoursNorm,
         overtime50Multiplier: data.overtime50Multiplier,
         overtime40Multiplier: data.overtime40Multiplier,
@@ -185,6 +189,7 @@ export async function updateTimeRegistrationConfig(
     revalidatePath("/dashboard/time-registration");
     revalidatePath("/dashboard/settings");
     revalidatePath("/ansatt/timeregistrering");
+    revalidatePath("/ansatt/jobber");
     revalidatePath("/ansatt");
     triggerRealtimeEvent(tenantId, "time-registration-updated");
     return { success: true };
@@ -229,14 +234,19 @@ export async function createProject(input: {
   description?: string;
 }) {
   try {
-    const { user, tenantId } = await getSessionContext();
-    if (tenantId !== input.tenantId) {
-      return { success: false, error: "Ingen tilgang" };
+    const ctx = await getAuthContext();
+    if (!ctx) return { success: false, error: "Ikke autentisert" };
+    if (!ctx.permissions.canAccessTimeRegistration) {
+      return { success: false, error: "Ingen tilgang til å opprette prosjekt" };
     }
-
-    const role = user.tenants.find((t) => t.tenantId === tenantId)?.role;
-    if (role !== "ADMIN" && role !== "HMS" && role !== "LEDER") {
-      return { success: false, error: "Kun admin/HMS/leder kan opprette prosjekter" };
+    if (ctx.role === "ANSATT" && !ctx.permissions.canCreateFieldProject) {
+      return {
+        success: false,
+        error: "Ansatte kan ikke opprette prosjekt. Administrator slår det på under Innstillinger → Regnskap.",
+      };
+    }
+    if (ctx.tenantId !== input.tenantId) {
+      return { success: false, error: "Ingen tilgang" };
     }
 
     const tenant = await prisma.tenant.findUnique({
@@ -250,7 +260,7 @@ export async function createProject(input: {
         name: input.name.trim(),
         code: input.code?.trim() || null,
         description: input.description?.trim() || null,
-        createdById: user.id,
+        createdById: ctx.userId,
         jobKind: "SERVICE",
         billingStatus: "OPEN",
         status: "ACTIVE",
@@ -269,7 +279,7 @@ export async function createProject(input: {
     revalidatePath("/dashboard/time-registration");
     revalidatePath("/ansatt/timeregistrering");
     revalidatePath("/ansatt/jobber");
-    triggerRealtimeEvent(tenantId, "time-registration-updated");
+    triggerRealtimeEvent(ctx.tenantId, "time-registration-updated");
     return { success: true, data: project };
   } catch (e) {
     const err = e as Error;
@@ -297,6 +307,7 @@ export async function updateProject(
         status: input.status,
       },
     });
+    await syncProjectToAccounting(tenantId, id);
     revalidatePath("/dashboard/time-registration");
     triggerRealtimeEvent(tenantId, "time-registration-updated");
     return { success: true };
@@ -755,18 +766,23 @@ export async function createMileageEntry(input: {
     revalidatePath("/ansatt/timeregistrering");
     triggerRealtimeEvent(tenantId, "time-registration-updated");
 
-    if (tenant.accountingProvider === "TRIPLETEX" && tenant.tripletexProductKmId) {
+    if (tenant.accountingProvider === "TRIPLETEX") {
+      const mapping = await ensureDefaultKmProducts(tenantId);
+      const productId = mapping.taxable ?? tenant.tripletexProductKmId;
       const line = await prisma.projectUsageLine.create({
         data: {
           tenantId,
           projectId: input.projectId,
           userId: user.id,
+          date: new Date(input.date),
           kind: "KM",
-          productExternalId: tenant.tripletexProductKmId,
-          productName: "Km-tillegg",
+          productExternalId: productId || "km",
+          productName: "Km privatbil",
           quantity: input.kilometers,
           unitPrice: rate,
           comment: input.comment?.trim() || null,
+          isPrivateCar: true,
+          kmTaxable: true,
           syncStatus: "PENDING",
         },
       });
@@ -975,15 +991,14 @@ export async function getWeekEntries(weekStartDate: string, userId?: string) {
     const isAdmin = ["ADMIN", "HMS", "LEDER"].includes(role);
     const targetUserId = userId && isAdmin ? userId : user.id;
 
-    const weekStart = startOfWeek(new Date(weekStartDate), { weekStartsOn: 1, locale: nb });
-    const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1, locale: nb });
+    const week = weekDateRange(weekStartDate);
 
-    const [timeEntries, mileageEntries, projects, tenant] = await Promise.all([
+    const [timeEntries, mileageEntries, projects, tenant, assignments] = await Promise.all([
       prisma.timeEntry.findMany({
         where: {
           tenantId,
           userId: targetUserId,
-          date: { gte: weekStart, lte: weekEnd },
+          date: { gte: week.from, lte: week.to },
         },
         include: {
           project: { select: { id: true, name: true, code: true } },
@@ -994,7 +1009,7 @@ export async function getWeekEntries(weekStartDate: string, userId?: string) {
         where: {
           tenantId,
           userId: targetUserId,
-          date: { gte: weekStart, lte: weekEnd },
+          date: { gte: week.from, lte: week.to },
         },
         include: {
           project: { select: { id: true, name: true, code: true } },
@@ -1002,7 +1017,7 @@ export async function getWeekEntries(weekStartDate: string, userId?: string) {
         orderBy: [{ date: "asc" }],
       }),
       prisma.project.findMany({
-        where: { tenantId, status: "ACTIVE" },
+        where: { tenantId, status: { in: ["ACTIVE", "PLANNING"] } },
         select: { id: true, name: true, code: true },
         orderBy: { name: "asc" },
       }),
@@ -1017,6 +1032,18 @@ export async function getWeekEntries(weekStartDate: string, userId?: string) {
           defaultKmRate: true,
         },
       }),
+      prisma.resourceAssignment.findMany({
+        where: {
+          tenantId,
+          userId: targetUserId,
+          startDate: { lte: week.to },
+          endDate: { gte: week.from },
+        },
+        include: {
+          project: { select: { id: true, name: true, code: true, clientName: true } },
+        },
+        orderBy: { startDate: "asc" },
+      }),
     ]);
 
     return {
@@ -1024,9 +1051,23 @@ export async function getWeekEntries(weekStartDate: string, userId?: string) {
       data: {
         timeEntries: JSON.parse(JSON.stringify(timeEntries)),
         mileageEntries: JSON.parse(JSON.stringify(mileageEntries)),
-        projects,
-        weekStart: weekStart.toISOString(),
-        weekEnd: weekEnd.toISOString(),
+        assignments: JSON.parse(JSON.stringify(assignments)),
+        projects: (() => {
+          const map = new Map(projects.map((p) => [p.id, p]));
+          for (const a of assignments) {
+            if (!map.has(a.projectId)) {
+              map.set(a.projectId, {
+                id: a.project.id,
+                name: a.project.name,
+                code: a.project.code,
+              });
+            }
+          }
+          return Array.from(map.values());
+        })(),
+        weekStart: week.days[0],
+        weekEnd: week.days[6],
+        days: week.days,
         config: tenant,
         userId: targetUserId,
       },
@@ -1171,12 +1212,11 @@ export async function getAllUsersWeekSummary(weekStartDate: string) {
       return { success: false, error: "Ingen tilgang" };
     }
 
-    const ws = startOfWeek(new Date(weekStartDate), { weekStartsOn: 1, locale: nb });
-    const we = endOfWeek(ws, { weekStartsOn: 1, locale: nb });
+    const week = weekDateRange(weekStartDate);
 
     const [timeEntries, users] = await Promise.all([
       prisma.timeEntry.findMany({
-        where: { tenantId, date: { gte: ws, lte: we } },
+        where: { tenantId, date: { gte: week.from, lte: week.to } },
         select: { userId: true, date: true, hours: true, timeType: true },
       }),
       prisma.userTenant.findMany({
@@ -1199,9 +1239,8 @@ export async function getAllUsersWeekSummary(weekStartDate: string) {
         const info = userMap.get(entry.userId);
         summary[entry.userId] = { name: info?.name || "Ukjent", days: [0, 0, 0, 0, 0, 0, 0] };
       }
-      const entryDate = new Date(entry.date);
-      const idx = Math.round((entryDate.getTime() - ws.getTime()) / (1000 * 60 * 60 * 24));
-      if (idx >= 0 && idx <= 6) summary[entry.userId].days[idx] += entry.hours;
+      const idx = dayIndexInWeek(entry.date, week.days);
+      if (idx >= 0) summary[entry.userId].days[idx] += entry.hours;
     }
 
     for (const [userId, info] of userMap) {
@@ -1212,7 +1251,7 @@ export async function getAllUsersWeekSummary(weekStartDate: string) {
       .map(([userId, v]) => ({ userId, ...v }))
       .sort((a, b) => a.name.localeCompare(b.name, "nb"));
 
-    return { success: true, data: { users: sorted, weekStart: ws.toISOString(), weekEnd: we.toISOString() } };
+    return { success: true, data: { users: sorted, weekStart: week.days[0], weekEnd: week.days[6] } };
   } catch (e) {
     return { success: false, error: (e as Error).message };
   }

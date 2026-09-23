@@ -36,6 +36,7 @@ export const BRANSJE_MODULES: Record<
       "/dashboard/chemicals",
       "/dashboard/exposure-register",
       "/dashboard/construction-compliance",
+      "/dashboard/utstyr",
     ],
   },
   elektro: {
@@ -47,6 +48,7 @@ export const BRANSJE_MODULES: Record<
       "/dashboard/moc",
       "/dashboard/chemicals",
       "/dashboard/samsvarserklaringer",
+      "/dashboard/utstyr",
     ],
   },
   offshore: {
@@ -58,6 +60,7 @@ export const BRANSJE_MODULES: Record<
       "/dashboard/moc",
       "/dashboard/chemicals",
       "/dashboard/exposure-register",
+      "/dashboard/utstyr",
     ],
   },
   marine: {
@@ -69,6 +72,7 @@ export const BRANSJE_MODULES: Record<
       "/dashboard/moc",
       "/dashboard/chemicals",
       "/dashboard/exposure-register",
+      "/dashboard/utstyr",
     ],
   },
   oil_gas: {
@@ -80,6 +84,7 @@ export const BRANSJE_MODULES: Record<
       "/dashboard/moc",
       "/dashboard/chemicals",
       "/dashboard/exposure-register",
+      "/dashboard/utstyr",
     ],
   },
   fiskeri: {
@@ -90,6 +95,7 @@ export const BRANSJE_MODULES: Record<
       "/dashboard/sja",
       "/dashboard/moc",
       "/dashboard/chemicals",
+      "/dashboard/utstyr",
     ],
   },
   bergverk: {
@@ -101,6 +107,7 @@ export const BRANSJE_MODULES: Record<
       "/dashboard/moc",
       "/dashboard/chemicals",
       "/dashboard/exposure-register",
+      "/dashboard/utstyr",
     ],
   },
 
@@ -156,6 +163,7 @@ export const BRANSJE_MODULES: Record<
       "/dashboard/transport",
       "/dashboard/sja",
       "/dashboard/moc",
+      "/dashboard/utstyr",
     ],
   },
 
@@ -169,6 +177,7 @@ export const BRANSJE_MODULES: Record<
       "/dashboard/moc",
       "/dashboard/chemicals",
       "/dashboard/exposure-register",
+      "/dashboard/utstyr",
     ],
   },
   automotive: {
@@ -181,6 +190,7 @@ export const BRANSJE_MODULES: Record<
       "/dashboard/exposure-register",
       "/dashboard/environment",
       "/dashboard/complaints",
+      "/dashboard/utstyr",
     ],
   },
   retail: {
@@ -201,6 +211,7 @@ export const BRANSJE_MODULES: Record<
       "/dashboard/sja",
       "/dashboard/moc",
       "/dashboard/chemicals",
+      "/dashboard/utstyr",
     ],
   },
 

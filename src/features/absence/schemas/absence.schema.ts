@@ -48,6 +48,7 @@ export const CreateAbsenceSchema = z
     userId: z.string().optional(),
     attachmentUrl: z.string().optional(),
     attachmentName: z.string().optional(),
+    projectId: z.string().optional(),
   })
   .refine((data) => data.endDate >= data.startDate, {
     message: "Sluttdato kan ikke være før startdato",

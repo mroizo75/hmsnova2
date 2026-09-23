@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { AdminOnlineBadge } from "@/components/admin-online-badge";
+import { ADMIN_TENANTS_LIST_STORAGE_KEY } from "@/lib/admin-list-url";
 
 const allNavItems = [
   { href: "/admin", label: "Oversikt", icon: LayoutDashboard, supportAccess: true },
@@ -70,17 +71,29 @@ function NavLinks({
   openSupportCount: number;
   onNavigate?: () => void;
 }) {
+  const router = useRouter();
+
   return (
     <>
       {navItems.map((item) => {
         const Icon = item.icon;
-        const isActive = pathname === item.href;
+        const isActive =
+          item.href === "/admin"
+            ? pathname === "/admin"
+            : pathname === item.href || pathname.startsWith(`${item.href}/`);
         const showBadge = item.href === "/admin/support" && openSupportCount > 0;
         return (
           <Link
             key={item.href}
             href={item.href}
-            onClick={onNavigate}
+            onClick={(event) => {
+              onNavigate?.();
+              if (item.href !== "/admin/tenants") return;
+              const saved = sessionStorage.getItem(ADMIN_TENANTS_LIST_STORAGE_KEY);
+              if (!saved) return;
+              event.preventDefault();
+              router.push(saved);
+            }}
             className={cn(
               "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
               isActive

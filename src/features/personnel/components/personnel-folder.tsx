@@ -6,10 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PersonnelDocumentList } from "./personnel-document-list";
 import { PersonnelUploadForm } from "./personnel-upload-form";
+import { PersonnelFromTemplateForm } from "./personnel-from-template-form";
 import { HrProfileForm } from "./hr-profile-form";
-import type { PersonnelFolder } from "@/server/queries/personnel.queries";
+import type { PersonnelFolder, HrPersonnelTemplate } from "@/server/queries/personnel.queries";
 import { EmployeeHrThreadCard } from "@/features/hr/components/employee-hr-thread";
 import type { EmployeeHrThread } from "@/server/queries/hr-overview.queries";
+import { PersonnelReviewsSection } from "./personnel-reviews-section";
+import { PersonnelCompetenceSection } from "./personnel-competence-section";
+import type { PersonnelDevelopment } from "@/server/queries/personnel.queries";
 
 interface PersonnelFolderViewProps {
   folder: PersonnelFolder;
@@ -21,6 +25,9 @@ interface PersonnelFolderViewProps {
   canEditKin?: boolean;
   canEditBirthDate?: boolean;
   hrThread?: EmployeeHrThread | null;
+  hrTemplates?: HrPersonnelTemplate[];
+  development?: PersonnelDevelopment | null;
+  reviewBaseHref?: string;
 }
 
 export function PersonnelFolderView({
@@ -33,6 +40,9 @@ export function PersonnelFolderView({
   canEditKin = false,
   canEditBirthDate = false,
   hrThread = null,
+  hrTemplates = [],
+  development = null,
+  reviewBaseHref,
 }: PersonnelFolderViewProps) {
   return (
     <div className="space-y-6">
@@ -63,6 +73,24 @@ export function PersonnelFolderView({
         />
       )}
 
+      {development && (
+        <>
+          <PersonnelReviewsSection
+            userId={folder.userId}
+            reviews={development.reviews}
+            canCreate={development.canCreateReview}
+            reviewBaseHref={reviewBaseHref}
+          />
+          <PersonnelCompetenceSection
+            userId={folder.userId}
+            statements={development.statements}
+            reviews={development.reviews}
+            canEdit={development.canEditCompetence}
+            hasProfileStatements={development.hasProfileStatements}
+          />
+        </>
+      )}
+
       {folder.hrProfile && (canEditHrFields || canEditNotes || canEditKin || folder.hrProfile.nextOfKin.length > 0) && (
         <Card>
           <CardHeader>
@@ -86,7 +114,13 @@ export function PersonnelFolderView({
           <CardHeader>
             <CardTitle>Last opp dokument</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
+            {hrTemplates.length > 0 && (
+              <>
+                <PersonnelFromTemplateForm userId={folder.userId} templates={hrTemplates} />
+                <div className="border-t" />
+              </>
+            )}
             <PersonnelUploadForm userId={folder.userId} />
           </CardContent>
         </Card>

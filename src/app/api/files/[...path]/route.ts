@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { getStorage } from "@/lib/storage";
+import { getStorage, isPersonnelStorageKey } from "@/lib/storage";
 import { getLocalStorageRoot } from "@/lib/storage-local";
 import path from "path";
 import fs from "fs/promises";
@@ -33,6 +33,10 @@ export async function GET(
           fileKey.startsWith(`${sessionTenantId}/`) ||
           fileKey.startsWith(`logos/${sessionTenantId}/`);
         if (!ownedByTenant) {
+          return new NextResponse("Forbidden", { status: 403 });
+        }
+        // GDPR art. 5: personalmapper lastes kun via /api/personnel/[id]/download.
+        if (isPersonnelStorageKey(fileKey)) {
           return new NextResponse("Forbidden", { status: 403 });
         }
       }

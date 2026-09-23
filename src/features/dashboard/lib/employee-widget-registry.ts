@@ -83,7 +83,7 @@ export const EMPLOYEE_WIDGET_REGISTRY: EmployeeWidgetDefinition[] = [
   {
     id: "emp-handbook",
     label: "Håndbok",
-    description: "Det du må vite om HMS, avvik og personal",
+    description: "Kvalitet, HMS og personal i ett system",
     icon: BookOpen,
     href: "/ansatt/handbok",
     color: "text-blue-700",
@@ -303,7 +303,7 @@ export const EMPLOYEE_WIDGET_REGISTRY: EmployeeWidgetDefinition[] = [
   {
     id: "emp-time",
     label: "Timer",
-    description: "Registrer timer, fravær og prosjekt til Tripletex",
+    description: "Registrer timer, fravær og prosjekt",
     icon: Clock,
     href: "/ansatt/timeregistrering",
     color: "text-emerald-600",

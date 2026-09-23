@@ -6,7 +6,7 @@ import { HmsHandbokContent } from "@/features/hms-handbok/components/hms-handbok
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
 import { helpContent } from "@/lib/help-content";
 
-export const metadata = { title: "HMS- og personalhåndbok" };
+export const metadata = { title: "Kvalitet, HMS og personal" };
 
 export default async function HmsHandbokPage() {
   const auth = await getAuthContext();
@@ -26,10 +26,10 @@ export default async function HmsHandbokPage() {
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <BookOpen className="h-7 w-7 text-primary" />
-            HMS- og personalhåndbok
+            Kvalitet, HMS og personal
           </h1>
           <p className="text-muted-foreground mt-1">
-            Versjonskontrollert håndbok med HMS- og personal-kapitler.
+            Ett styringssystem med kvalitet, HMS og personalhåndbok.
             Endringer krever godkjenning, og alle ansatte signerer per versjon.
           </p>
         </div>

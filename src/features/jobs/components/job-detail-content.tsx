@@ -47,6 +47,7 @@ export function JobDetailContent({ initialData }: { initialData: JobDetail }) {
   const [qty, setQty] = useState("1");
   const [productId, setProductId] = useState(products[0]?.externalId ?? "");
   const [km, setKm] = useState("");
+  const [carKind, setCarKind] = useState<"COMPANY" | "PRIVATE" | "">("");
   const [machineHours, setMachineHours] = useState("");
   const [loading, setLoading] = useState(false);
   const active = project.status === "ACTIVE";
@@ -94,24 +95,51 @@ export function JobDetailContent({ initialData }: { initialData: JobDetail }) {
       {active && (
         <Card>
           <CardContent className="space-y-3 py-4">
-            <p className="font-medium">Km-tillegg</p>
+            <p className="font-medium">Reise (km)</p>
+            <p className="text-xs text-muted-foreground">
+              Privatbil: kjøregodtgjørelse. Firmabil: kun på fakturagrunnlaget.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={carKind === "COMPANY" ? "default" : "outline"}
+                className={carKind === "COMPANY" ? "" : "bg-transparent"}
+                onClick={() => setCarKind("COMPANY")}
+              >
+                Firmabil
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={carKind === "PRIVATE" ? "default" : "outline"}
+                className={carKind === "PRIVATE" ? "" : "bg-transparent"}
+                onClick={() => setCarKind("PRIVATE")}
+              >
+                Privatbil
+              </Button>
+            </div>
             <Input type="number" min="1" value={km} onChange={(e) => setKm(e.target.value)} placeholder="Antall km" />
             <Button
               variant="outline"
               className="w-full bg-transparent"
-              disabled={loading || !km}
-              onClick={() =>
-                run(
+              disabled={loading || !km || !carKind}
+              onClick={() => {
+                if (carKind !== "COMPANY" && carKind !== "PRIVATE") return;
+                const selectedCar = carKind;
+                void run(
                   () =>
                     addUsageLine({
                       projectId: project.id,
                       kind: "KM",
                       productExternalId: tenant?.tripletexProductKmId ?? productId,
                       quantity: Number(km),
+                      isPrivateCar: selectedCar === "PRIVATE",
+                      carKind: selectedCar,
                     }),
                   "Km lagt til"
-                )
-              }
+                );
+              }}
             >
               Legg til km
             </Button>
@@ -235,8 +263,8 @@ export function JobDetailContent({ initialData }: { initialData: JobDetail }) {
           ))}
           {project.usageLines.map((l) => (
             <div key={l.id} className="flex justify-between">
-              <span>{l.productName}</span>
-              <span>{l.quantity}</span>
+              <span>{l.kind === "KM" ? `Reise · ${l.quantity} km` : l.productName}</span>
+              <span>{l.kind === "KM" ? "" : l.quantity}</span>
             </div>
           ))}
         </CardContent>

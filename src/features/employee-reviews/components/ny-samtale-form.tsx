@@ -40,9 +40,14 @@ type Employee = {
 
 interface NySamtaleFormProps {
   employees: Employee[];
+  defaultEmployeeId?: string;
 }
 
-export function NySamtaleForm({ employees }: NySamtaleFormProps) {
+export function NySamtaleForm({ employees, defaultEmployeeId }: NySamtaleFormProps) {
+  const presetEmployeeId =
+    defaultEmployeeId && employees.some((employee) => employee.id === defaultEmployeeId)
+      ? defaultEmployeeId
+      : "";
   const router = useRouter();
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
@@ -50,7 +55,7 @@ export function NySamtaleForm({ employees }: NySamtaleFormProps) {
   const form = useForm<CreateEmployeeReviewInput>({
     resolver: zodResolver(CreateEmployeeReviewSchema) as Resolver<CreateEmployeeReviewInput>,
     defaultValues: {
-      employeeId: "",
+      employeeId: presetEmployeeId,
       scheduledDate: undefined,
       nextReviewDate: null,
       konfidensielt: true,

@@ -807,7 +807,7 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canExportReports: false,
     canViewAllReports: false,
     canAccessTimeRegistration: true,
-    canCreateFieldProject: false,
+    canCreateFieldProject: true,
     canInvoiceProject: false,
     canApproveTimesheet: false,
     canReadLegalRegister: true,
@@ -1447,6 +1447,19 @@ export type VisibleNavItems = ReturnType<typeof getVisibleNavItems>;
 export function emptyVisibleNavItems(): VisibleNavItems {
   const keys = Object.keys(getVisibleNavItems("ANSATT")) as Array<keyof VisibleNavItems>;
   return Object.fromEntries(keys.map((key) => [key, false])) as VisibleNavItems;
+}
+
+/**
+ * ANSATT kan opprette prosjekt bare når bedriften har slått det på.
+ * Leder, HMS og admin følger rollematrisen.
+ */
+export function withEmployeeProjectCreateSetting(
+  role: Role,
+  permissions: RolePermissions,
+  employeesCanCreateProjects: boolean
+): RolePermissions {
+  if (role !== "ANSATT") return permissions;
+  return { ...permissions, canCreateFieldProject: employeesCanCreateProjects };
 }
 
 /**

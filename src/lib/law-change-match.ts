@@ -77,6 +77,22 @@ const HMS_KEYWORDS: Array<{ keyword: string; industries: string[] }> = [
   { keyword: "periodisk kjøretøykontroll", industries: ["automotive"] },
   { keyword: "billøfter", industries: ["automotive"] },
   { keyword: "eksosavsug", industries: ["automotive"] },
+  {
+    keyword: "sakkyndig kontroll",
+    industries: [
+      "automotive",
+      "manufacturing",
+      "construction",
+      "marine",
+      "offshore",
+      "oil_gas",
+      "elektro",
+      "fiskeri",
+      "bergverk",
+      "agriculture",
+      "transport",
+    ],
+  },
 ];
 
 function normalize(value: string): string {

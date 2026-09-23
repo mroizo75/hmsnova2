@@ -5,7 +5,7 @@ import { fetchHmsHandbok } from "@/server/queries/hms-handbok.queries";
 import { EmployeeHandbookView } from "@/features/hms-handbok/components/employee-handbook-view";
 import { Card, CardContent } from "@/components/ui/card";
 
-export const metadata = { title: "HMS- og personalhåndbok" };
+export const metadata = { title: "Kvalitet, HMS og personal" };
 
 export default async function AnsattHandbokPage() {
   const auth = await getAuthContext();
@@ -27,10 +27,10 @@ export default async function AnsattHandbokPage() {
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <BookOpen className="h-7 w-7 text-primary" />
-          HMS- og personalhåndbok
+          Kvalitet, HMS og personal
         </h1>
         <p className="text-muted-foreground mt-1">
-          Finn det du trenger: avvik, varsling, beredskap og personal. Bekreft at du har lest innholdet.
+          Kvalitet, HMS og personal i ett system. Les kapitlene og bekreft at du har lest innholdet.
         </p>
       </div>
 
@@ -48,6 +48,8 @@ export default async function AnsattHandbokPage() {
           hmsContactPhone={data.hmsContactPhone}
           handbook={data.handbook}
           currentUserId={data.currentUserId}
+          participationMeetings={data.stats.participationMeetings}
+          wasteDeliveries={data.stats.wasteDeliveries}
         />
       )}
     </div>

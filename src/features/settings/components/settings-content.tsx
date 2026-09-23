@@ -180,6 +180,7 @@ export function SettingsContent({
           isAdmin={isAdmin}
           config={{
             timeRegistrationEnabled: Boolean(tenant.timeRegistrationEnabled),
+            employeesCanCreateProjects: tenant.employeesCanCreateProjects !== false,
             weeklyHoursNorm: tenant.weeklyHoursNorm ?? 37.5,
             lunchBreakMinutes: tenant.lunchBreakMinutes ?? 30,
             dayStartHour: tenant.dayStartHour ?? 7,
@@ -245,8 +246,12 @@ function TripletexSettingsPane({ isAdmin }: { isAdmin: boolean }) {
         activityOt50Id: s.tripletexActivityOt50Id,
         activityOt100Id: s.tripletexActivityOt100Id,
         productKmId: s.tripletexProductKmId,
+        productKmNonTaxableId: s.tripletexProductKmNonTaxableId,
         productMachineHoursId: s.tripletexProductMachineHoursId,
         absenceProjectId: s.absenceProjectId,
+        absencePayrollTypes: Array.isArray(s.absencePayrollTypes)
+          ? s.absencePayrollTypes.filter((v): v is string => typeof v === "string")
+          : null,
       }}
       activities={s.activities}
       products={s.products}

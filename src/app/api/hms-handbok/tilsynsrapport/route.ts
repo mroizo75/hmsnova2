@@ -94,12 +94,44 @@ export async function GET(request: NextRequest) {
     ],
   });
 
-  // ── Relevante seksjoner fra HMS-håndboken ─────────────────────────────────
-  // KUN de seksjonene som tilsynet faktisk krever dokumentasjon på
+  if (type === "vegvesen") {
+    sections.push({
+      title: "Hva Statens vegvesen kan be om",
+      legalRef: "Verkstedforskriften § 16 og § 18",
+      content: [
+        {
+          type: "paragraph",
+          text: "Rapporten samler kvalitetsstyringen som skal være skriftlig, ajour og tilgjengelig ved tilsyn (verkstedforskriften § 17). Den erstatter ikke befaring av lokaler, eller innrapportering som skal skje på vegvesen.no.",
+        },
+        {
+          type: "table" as const,
+          headers: ["Krav", "Hjemmel", "Hvor det ligger"],
+          rows: [
+            ["Organisering, roller og arbeidsinstruks", "§ 16 a", "Organisasjon i styringssystemet"],
+            ["Kompetansekrav og registrert kompetanse", "§ 16 b", "Kompetanse og opplæring"],
+            ["Tjenester, samarbeid og arbeidsprosedyre", "§ 16 c", "Leverandører, operasjonell kontroll og rutiner"],
+            ["Kontroll med kvaliteten på utført arbeid", "§ 16 d", "Kunder og reklamasjon, kvalitetsavvik"],
+            ["Kalibrering og vedlikehold av utstyr", "§ 16 e", "Utstyr med godkjenning"],
+            ["Avvikshåndtering", "§ 16 f", "Avvik, hendelser og forbedring"],
+          ],
+        },
+        {
+          type: "alert" as const,
+          text: "Skaderapport, EU-kontroll og melding om endring som påvirker godkjenning skal registreres på vegvesen.no. De ligger ikke i denne rapporten.",
+          severity: "info" as const,
+        },
+      ],
+    });
+  }
+
+  // ── Relevante seksjoner ───────────────────────────────────────────────────
   if (currentVersion && currentVersion.sections.length > 0) {
-    const filteredSections = currentVersion.sections.filter(
-      (s) => !s.parentId && config.sectionKeys.includes(s.sectionKey) && (s.isEnabled !== false || !!s.externalRef),
-    );
+    const sectionOrder = new Map(config.sectionKeys.map((key, index) => [key, index]));
+    const filteredSections = currentVersion.sections
+      .filter(
+        (s) => !s.parentId && config.sectionKeys.includes(s.sectionKey) && (s.isEnabled !== false || !!s.externalRef),
+      )
+      .sort((a, b) => (sectionOrder.get(a.sectionKey) ?? 99) - (sectionOrder.get(b.sectionKey) ?? 99));
 
     for (const section of filteredSections) {
       if (section.isEnabled === false && section.externalRef) {
@@ -416,6 +448,123 @@ async function getLiveDataForSection(
         type: "table" as const,
         headers: ["Rutine", "Kategori", "Status", "Sist gjennomgått", "Neste"],
         rows: routines.map((r) => [r.title, r.category ?? "–", r.status === "ACTIVE" ? "Aktiv" : "Trenger gjennomgang", fmtDate(r.lastReviewedAt), fmtDate(r.nextReviewAt)]),
+      });
+    }
+  }
+
+  if (sectionKey === "s6" && enabledData.includes("equipment")) {
+    const equipment = await prisma.equipmentApproval.findMany({
+      where: { tenantId },
+      select: {
+        name: true,
+        category: true,
+        approvalBody: true,
+        certificateNumber: true,
+        validTo: true,
+        operationalStatus: true,
+      },
+      orderBy: { validTo: "asc" },
+      take: 40,
+    });
+
+    const equipmentLabel: Record<string, string> = {
+      BILLOFTER: "Billøfter",
+      KALIBRERT_KONTROLLUTSTYR: "Kalibrert kontrollutstyr",
+      TRYKKUTSTYR: "Trykkutstyr",
+      ANNET: "Annet",
+    };
+
+    if (equipment.length === 0) {
+      content.push({
+        type: "alert" as const,
+        text: "Ingen utstyr med godkjenning eller kalibrering er registrert. Verkstedforskriften § 16 e krever registrering av periodisk kalibrering og vedlikehold.",
+        severity: "warning" as const,
+      });
+    } else {
+      const expired = equipment.filter((item) => new Date(item.validTo) < now).length;
+      content.push({
+        type: "paragraph",
+        text: `Registrert utstyr: ${equipment.length}. Utløpt gyldighet: ${expired}.`,
+      });
+      content.push({
+        type: "table" as const,
+        headers: ["Utstyr", "Kategori", "Godkjenner", "Sertifikat", "Gyldig til", "Status"],
+        rows: equipment.map((item) => [
+          item.name,
+          equipmentLabel[item.category] ?? item.category,
+          item.approvalBody,
+          item.certificateNumber ?? "–",
+          fmtDate(item.validTo),
+          item.operationalStatus === "IN_USE" ? "I bruk" : "Ute av drift",
+        ]),
+      });
+    }
+  }
+
+  if (sectionKey === "s4" && enabledData.includes("quality_incidents")) {
+    const incidents = await prisma.incident.findMany({
+      where: { tenantId, occurredAt: { gte: twelveMonthsAgo }, type: { in: ["KVALITET", "CUSTOMER"] } },
+      select: { avviksnummer: true, title: true, type: true, status: true, occurredAt: true },
+      orderBy: { occurredAt: "desc" },
+      take: 30,
+    });
+    const openCount = incidents.filter((item) => item.status !== "CLOSED").length;
+    content.push({
+      type: "keyvalue",
+      pairs: [
+        ["Kvalitetsavvik og kundeklager (12 mnd)", incidents.length.toString()],
+        ["Åpne", openCount.toString()],
+      ],
+    });
+    if (incidents.length > 0) {
+      content.push({
+        type: "table" as const,
+        headers: ["Ref.", "Sak", "Type", "Status", "Dato"],
+        rows: incidents.slice(0, 15).map((item) => [
+          item.avviksnummer ?? "–",
+          item.title,
+          item.type === "CUSTOMER" ? "Kundeklage" : "Kvalitetsavvik",
+          item.status,
+          fmtDate(item.occurredAt),
+        ]),
+      });
+    } else {
+      content.push({
+        type: "alert" as const,
+        text: "Ingen kvalitetsavvik eller kundeklager er registrert siste 12 måneder. Verkstedforskriften § 16 f krever registrering av avvikshåndtering.",
+        severity: "info" as const,
+      });
+    }
+  }
+
+  if (sectionKey === "s15" && enabledData.includes("quality_routines")) {
+    const routines = await prisma.routine.findMany({
+      where: {
+        tenantId,
+        status: { in: ["ACTIVE", "NEEDS_REVIEW"] },
+        category: { in: ["KVALITET_SVV", "BILVERKSTED"] },
+      },
+      select: { title: true, category: true, status: true, lastReviewedAt: true, nextReviewAt: true },
+      orderBy: { title: "asc" },
+      take: 30,
+    });
+    if (routines.length === 0) {
+      content.push({
+        type: "alert" as const,
+        text: "Ingen verksted- eller kvalitetsrutiner er aktive. Verkstedforskriften § 16 c–e krever prosedyre for arbeid, kvalitetskontroll og kalibrering.",
+        severity: "warning" as const,
+      });
+    } else {
+      content.push({
+        type: "table" as const,
+        headers: ["Rutine", "Kategori", "Status", "Sist gjennomgått", "Neste"],
+        rows: routines.map((routine) => [
+          routine.title,
+          routine.category === "KVALITET_SVV" ? "Kvalitet (Statens vegvesen)" : "Bilverksted",
+          routine.status === "ACTIVE" ? "Aktiv" : "Trenger gjennomgang",
+          fmtDate(routine.lastReviewedAt),
+          fmtDate(routine.nextReviewAt),
+        ]),
       });
     }
   }

@@ -111,6 +111,7 @@ const assertTenantScopedRelations = async (input: {
   projectId?: string | null;
   riskReferenceId?: string | null;
   reportedForUserId?: string | null;
+  equipmentApprovalId?: string | null;
 }): Promise<void> => {
   if (input.projectId) {
     const project = await prisma.project.findFirst({
@@ -150,6 +151,16 @@ const assertTenantScopedRelations = async (input: {
     });
     if (!membership) {
       throw new Error("Rapportert for-bruker finnes ikke i valgt tenant");
+    }
+  }
+
+  if (input.equipmentApprovalId) {
+    const equipment = await prisma.equipmentApproval.findFirst({
+      where: { id: input.equipmentApprovalId, tenantId: input.tenantId },
+      select: { id: true },
+    });
+    if (!equipment) {
+      throw new Error("Arbeidsutstyr finnes ikke i valgt tenant");
     }
   }
 };
@@ -337,6 +348,12 @@ export async function createIncident(input: any) {
       subcategoryKeys: Array.isArray(input.subcategoryKeys) ? input.subcategoryKeys : [],
       submitterComment: typeof input.submitterComment === "string" ? input.submitterComment : undefined,
       aiSuggestedMeasures: normalizeSuggestedMeasures(input.aiSuggestedMeasures),
+      equipmentApprovalId:
+        typeof input.equipmentApprovalId === "string" &&
+        input.equipmentApprovalId.trim().length > 0 &&
+        input.equipmentApprovalId !== "__none__"
+          ? input.equipmentApprovalId.trim()
+          : undefined,
     };
     const validated = createIncidentSchema.parse(normalizedInput);
     await assertTenantScopedRelations({
@@ -344,6 +361,7 @@ export async function createIncident(input: any) {
       projectId: validated.projectId ?? null,
       riskReferenceId: validated.riskReferenceId ?? null,
       reportedForUserId: validated.reportedForUserId ?? null,
+      equipmentApprovalId: validated.equipmentApprovalId ?? null,
     });
 
     const avviksnummer = await generateSequenceNumber(
@@ -378,6 +396,7 @@ export async function createIncident(input: any) {
         medicalAttentionRequired: validated.medicalAttentionRequired ?? false,
         lostTimeMinutes: validated.lostTimeMinutes,
         riskReferenceId: validated.riskReferenceId ?? null,
+        equipmentApprovalId: validated.equipmentApprovalId ?? null,
         customerName: sanitizeString(validated.customerName),
         customerEmail: sanitizeString(validated.customerEmail),
         customerPhone: sanitizeString(validated.customerPhone),

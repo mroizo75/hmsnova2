@@ -8,18 +8,21 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { IncidentType } from "@prisma/client";
 import { hasTenantFeature } from "@/lib/tenant-features";
+import { listEquipmentChoices } from "@/server/queries/equipment-approval.queries";
 import { getTranslations } from "next-intl/server";
 
 type PageSearchParams =
   | Promise<{
       type?: IncidentType;
       projectId?: string;
+      equipmentId?: string;
       tablet?: string;
       template?: "homeVisitRisk" | "violenceThreat" | "infectionExposure";
     }>
   | {
       type?: IncidentType;
       projectId?: string;
+      equipmentId?: string;
       tablet?: string;
       template?: "homeVisitRisk" | "violenceThreat" | "infectionExposure";
     }
@@ -61,6 +64,7 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
     : (searchParams as {
         type?: IncidentType;
         projectId?: string;
+        equipmentId?: string;
         tablet?: string;
         template?: "homeVisitRisk" | "violenceThreat" | "infectionExposure";
       } | undefined);
@@ -105,7 +109,7 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
   );
   const isTabletMode = resolvedSearchParams?.tablet === "1" && isHealthcareTenant;
 
-  const [users, projects] = await Promise.all([
+  const [users, projects, equipment] = await Promise.all([
     prisma.userTenant.findMany({
       where: { tenantId },
       include: { user: { select: { id: true, name: true, email: true } } },
@@ -116,6 +120,7 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
       select: { id: true, name: true, code: true, status: true },
       orderBy: { name: "asc" },
     }),
+    listEquipmentChoices(tenantId, selectedMembership.tenant.industry),
   ]);
 
   const userList = users
@@ -129,6 +134,7 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
   const defaultValues = {
     type: resolvedSearchParams?.type ?? preset?.type,
     projectId: resolvedSearchParams?.projectId,
+    equipmentId: resolvedSearchParams?.equipmentId,
     title: preset ? tForm(preset.titleKey) : undefined,
     description: preset ? tForm(preset.descriptionKey) : undefined,
     location: preset ? tForm(preset.locationKey) : undefined,
@@ -159,6 +165,7 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
         tenantId={tenantId}
         reportedBy={user.id}
         projects={projects}
+        equipment={equipment}
         users={userList}
         successRedirectPath="/dashboard/incidents"
         ruhModuleEnabled={selectedMembership.tenant.ruhModuleEnabled}

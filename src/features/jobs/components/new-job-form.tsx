@@ -52,7 +52,7 @@ export function NewJobForm({ customers }: { customers: Customer[] }) {
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Søk i Tripletex-cache"
+          placeholder="Søk kunde"
         />
         <select
           className="h-11 w-full rounded-md border bg-transparent px-3"

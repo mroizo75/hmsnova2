@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getRequiredTenantContext } from "@/lib/tenant-context";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { completeAnnualPlanForMeeting } from "@/lib/hms-annual-plan-meeting";
 
 export const dynamic = "force-dynamic";
 
@@ -103,9 +104,11 @@ export async function PATCH(
   try {
     const { id } = await params;
     let tenantId = "";
+    let userId = "";
     try {
       const tenantContext = await getRequiredTenantContext();
       tenantId = tenantContext.tenantId;
+      userId = tenantContext.userId;
     } catch {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -134,6 +137,16 @@ export async function PATCH(
     }
     if (validatedData.status === "COMPLETED" && !existing.completedAt) {
       updateData.completedAt = new Date();
+    }
+
+    if (validatedData.status === "COMPLETED" && existing.status !== "COMPLETED") {
+      await completeAnnualPlanForMeeting({
+        tenantId,
+        meetingTitle: validatedData.title ?? existing.title,
+        meetingType: validatedData.type ?? existing.type,
+        scheduledDate: existing.scheduledDate,
+        completedByUserId: userId,
+      });
     }
 
     const meeting = await db.meeting.update({

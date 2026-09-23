@@ -30,6 +30,7 @@ export default async function AnsattAvvikDetalj({
         include: { author: { select: { name: true } } },
         orderBy: { createdAt: "asc" },
       },
+      equipmentApproval: { select: { name: true } },
     },
   });
 
@@ -64,6 +65,9 @@ export default async function AnsattAvvikDetalj({
           <p className="whitespace-pre-wrap">{incident.description}</p>
           {incident.location && (
             <p className="text-muted-foreground">Sted: {incident.location}</p>
+          )}
+          {incident.equipmentApproval && (
+            <p className="text-muted-foreground">Utstyr: {incident.equipmentApproval.name}</p>
           )}
           <p className="text-muted-foreground">
             Behandlingsnotater er interne og vises ikke her. Du ser status og dine egne kommentarer.

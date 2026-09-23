@@ -13,9 +13,10 @@ import { hashWebhookSecret } from "@/lib/accounting/security";
 import { assertTripletexCompanyAvailable } from "@/lib/accounting/webhook-auth";
 import { getAuthContext, requirePermission } from "@/lib/server-authorization";
 import { getAccountingProvider, getTripletexAdapterForToken, isAccountingEnabled } from "@/lib/accounting/factory";
-import { enqueueAccountingJob, pullAccountingMaster } from "@/lib/accounting/sync";
+import { enqueueAccountingJob, ensureDefaultKmProducts, ensureDefaultTimesheetActivities, pullAccountingMaster, refreshAccountingCatalogIfStale } from "@/lib/accounting/sync";
 import { activityIdForTimeType } from "@/lib/accounting/timesheet";
 import { filterProductsByAndQuery } from "@/lib/time/product-search";
+import { buildKmRegistration, type CarKind } from "@/lib/time/km-product";
 import { jobKindAfterPromote } from "@/lib/accounting/job-kind";
 
 function tripletexPublicErrorMessage(body?: string): string | null {
@@ -40,12 +41,14 @@ function tripletexPublicErrorMessage(body?: string): string | null {
 
 function formatActionError(error: unknown, fallback: string): string {
   if (error instanceof TripletexApiError) {
+    const fromBody = tripletexPublicErrorMessage(error.body);
+    if (fromBody) return fromBody;
+    if (error.message && !error.message.startsWith("Tripletex API-feil")) {
+      return error.message;
+    }
     if (error.status === 401 || error.status === 403) {
       return "Ugyldig Tripletex-token eller manglende tilgang for denne virksomheten";
     }
-    const fromBody = tripletexPublicErrorMessage(error.body);
-    if (fromBody) return fromBody;
-    if (error.status === 500) return error.message;
     return fallback;
   }
   if (error instanceof Error) return error.message;
@@ -69,10 +72,12 @@ export async function getAccountingSettings() {
       tripletexActivityOt50Id: true,
       tripletexActivityOt100Id: true,
       tripletexProductKmId: true,
+      tripletexProductKmNonTaxableId: true,
       tripletexProductMachineHoursId: true,
       accountingLastPullAt: true,
       timeRegistrationEnabled: true,
       absenceProjectId: true,
+      absencePayrollTypes: true,
     },
   });
 
@@ -81,12 +86,7 @@ export async function getAccountingSettings() {
     : null;
 
   if (provider) {
-    const linked = await prisma.project.count({
-      where: { tenantId: ctx.tenantId, externalProjectId: { not: null } },
-    });
-    if (linked === 0) {
-      await pullAccountingMaster(ctx.tenantId).catch(() => undefined);
-    }
+    await refreshAccountingCatalogIfStale(ctx.tenantId, 60_000).catch(() => undefined);
   }
 
   const [products, activities, txEmployees, employees, projects] = await Promise.all([
@@ -189,6 +189,15 @@ export async function connectTripletex(employeeToken: string) {
         });
       }
     }
+    if (who.employeeId) {
+      await prisma.userTenant.updateMany({
+        where: { tenantId: ctx.tenantId, userId: ctx.userId, externalEmployeeId: null },
+        data: { externalEmployeeId: who.employeeId },
+      });
+    }
+
+    await ensureDefaultTimesheetActivities(ctx.tenantId, adapter);
+    await ensureDefaultKmProducts(ctx.tenantId);
 
     const targetUrl = `${appBaseUrl()}/api/webhooks/tripletex`;
     try {
@@ -205,6 +214,19 @@ export async function connectTripletex(employeeToken: string) {
     return { success: true as const, data: { companyName: who.companyName, companyId: who.companyId } };
   } catch (error: unknown) {
     return { success: false as const, error: formatActionError(error, "Kunne ikke koble til Tripletex") };
+  }
+}
+
+export async function refreshTripletexCatalog() {
+  try {
+    const ctx = await requirePermission("canAccessTimeRegistration");
+    await pullAccountingMaster(ctx.tenantId);
+    revalidatePath("/dashboard/settings");
+    revalidatePath("/dashboard/time-registration");
+    revalidatePath("/ansatt/timeregistrering");
+    return { success: true as const };
+  } catch (error: unknown) {
+    return { success: false as const, error: formatActionError(error, "Kunne ikke hente fra Tripletex") };
   }
 }
 
@@ -233,8 +255,10 @@ export async function saveTripletexMapping(input: {
   activityOt50Id?: string | null;
   activityOt100Id?: string | null;
   productKmId?: string | null;
+  productKmNonTaxableId?: string | null;
   productMachineHoursId?: string | null;
   absenceProjectId?: string | null;
+  absencePayrollTypes?: string[] | null;
 }) {
   try {
     const ctx = await requirePermission("canUpdateSettings");
@@ -255,8 +279,10 @@ export async function saveTripletexMapping(input: {
         tripletexActivityOt50Id: input.activityOt50Id || null,
         tripletexActivityOt100Id: input.activityOt100Id || null,
         tripletexProductKmId: input.productKmId || null,
+        tripletexProductKmNonTaxableId: input.productKmNonTaxableId || null,
         tripletexProductMachineHoursId: input.productMachineHoursId || null,
         absenceProjectId,
+        absencePayrollTypes: input.absencePayrollTypes ?? undefined,
       },
     });
     if (absenceProjectId) {
@@ -330,9 +356,21 @@ export async function createFieldJob(input: {
   jobKind?: "SERVICE" | "HMS";
   parentId?: string;
   contactExternalId?: string;
+  reference?: string;
+  startDate?: string;
 }) {
   try {
-    const ctx = await requirePermission("canCreateFieldProject");
+    const ctx = await getAuthContext();
+    if (!ctx) return { success: false as const, error: "Ikke autentisert" };
+    if (!ctx.permissions.canAccessTimeRegistration) {
+      return { success: false as const, error: "Ingen tilgang til timeregistrering" };
+    }
+    if (!ctx.permissions.canCreateFieldProject) {
+      return {
+        success: false as const,
+        error: "Ansatte kan ikke opprette prosjekt. Administrator slår det på under Innstillinger → Regnskap.",
+      };
+    }
     const tenant = await prisma.tenant.findUnique({
       where: { id: ctx.tenantId },
       select: { accountingProvider: true },
@@ -380,9 +418,10 @@ export async function createFieldJob(input: {
         name,
         location: input.location?.trim() || null,
         description: input.description?.trim() || null,
+        orderNumber: input.reference?.trim() || null,
         clientName,
         status: "ACTIVE",
-        startDate: new Date(),
+        startDate: input.startDate ? new Date(input.startDate) : new Date(),
         jobKind: input.jobKind ?? "SERVICE",
         billingStatus: "OPEN",
         externalCustomerId,
@@ -468,11 +507,13 @@ export async function addUsageLine(input: {
   productExternalId: string;
   quantity: number;
   comment?: string;
+  isPrivateCar?: boolean;
+  carKind?: CarKind;
 }) {
   try {
     const ctx = await requirePermission("canCreateFieldProject");
     if (input.quantity <= 0) {
-      return { success: false as const, error: "Antall må være større enn 0" };
+      return { success: false as const, error: input.kind === "KM" ? "Antall km må være over 0" : "Antall må være større enn 0" };
     }
 
     const project = await prisma.project.findFirst({
@@ -484,18 +525,85 @@ export async function addUsageLine(input: {
 
     const tenant = await prisma.tenant.findUnique({
       where: { id: ctx.tenantId },
-      select: { tripletexProductKmId: true, defaultKmRate: true },
+      select: {
+        tripletexProductKmId: true,
+        tripletexProductKmNonTaxableId: true,
+        defaultKmRate: true,
+        kmAllowanceTaxable: true,
+      },
     });
 
-    const productId =
-      input.kind === "KM" && tenant?.tripletexProductKmId
-        ? tenant.tripletexProductKmId
-        : input.productExternalId;
+    if (input.kind === "KM") {
+      const mapping = await ensureDefaultKmProducts(ctx.tenantId);
+      const carKind: CarKind =
+        input.carKind === "PRIVATE" || input.carKind === "COMPANY"
+          ? input.carKind
+          : input.isPrivateCar
+            ? "PRIVATE"
+            : "COMPANY";
+      const built = buildKmRegistration({
+        carKind,
+        tenantKmAllowanceTaxable: Boolean(tenant?.kmAllowanceTaxable),
+        taxableProductId: mapping.taxable ?? tenant?.tripletexProductKmId,
+        nonTaxableProductId: mapping.nonTaxable ?? tenant?.tripletexProductKmNonTaxableId,
+        defaultKmRate: tenant?.defaultKmRate,
+      });
+      const product =
+        built.productExternalId !== "km"
+          ? await prisma.accountingProduct.findUnique({
+              where: {
+                tenantId_externalId: { tenantId: ctx.tenantId, externalId: built.productExternalId },
+              },
+            })
+          : null;
+      const line = await prisma.projectUsageLine.create({
+        data: {
+          tenantId: ctx.tenantId,
+          projectId: input.projectId,
+          userId: ctx.userId,
+          date: new Date(),
+          kind: "KM",
+          productExternalId: built.productExternalId,
+          productName: product?.name ?? built.productName,
+          quantity: input.quantity,
+          unitPrice: product?.priceExclVat ?? built.unitPrice,
+          comment: input.comment?.trim() || null,
+          isPrivateCar: built.isPrivateCar,
+          kmTaxable: built.kmTaxable,
+          syncStatus: "PENDING",
+        },
+      });
+      if (built.createMileage) {
+        const rate = product?.priceExclVat ?? tenant?.defaultKmRate;
+        await prisma.mileageEntry.create({
+          data: {
+            tenantId: ctx.tenantId,
+            projectId: input.projectId,
+            userId: ctx.userId,
+            date: new Date(),
+            kilometers: input.quantity,
+            ratePerKm: rate,
+            amount: (rate ?? 0) * input.quantity,
+            comment: input.comment?.trim() || null,
+            syncStatus: "PENDING",
+          },
+        });
+      }
+      await enqueueAccountingJob({
+        tenantId: ctx.tenantId,
+        entityType: "ProjectUsageLine",
+        entityId: line.id,
+        action: "UPSERT_LINE",
+        payload: {},
+      });
+      revalidatePath(`/ansatt/jobber/${input.projectId}`);
+      return { success: true as const, data: line };
+    }
 
     const product = await prisma.accountingProduct.findUnique({
-      where: { tenantId_externalId: { tenantId: ctx.tenantId, externalId: productId } },
+      where: { tenantId_externalId: { tenantId: ctx.tenantId, externalId: input.productExternalId } },
     });
-    if (!product && input.kind !== "KM") {
+    if (!product) {
       return { success: false as const, error: "Produkt ikke funnet" };
     }
 
@@ -504,31 +612,16 @@ export async function addUsageLine(input: {
         tenantId: ctx.tenantId,
         projectId: input.projectId,
         userId: ctx.userId,
+        date: new Date(),
         kind: input.kind,
-        productExternalId: productId,
-        productName: product?.name ?? (input.kind === "KM" ? "Km-tillegg" : "Produkt"),
+        productExternalId: input.productExternalId,
+        productName: product.name,
         quantity: input.quantity,
-        unitPrice: product?.priceExclVat ?? (input.kind === "KM" ? tenant?.defaultKmRate : null),
+        unitPrice: product.priceExclVat,
         comment: input.comment?.trim() || null,
         syncStatus: "PENDING",
       },
     });
-
-    if (input.kind === "KM") {
-      await prisma.mileageEntry.create({
-        data: {
-          tenantId: ctx.tenantId,
-          projectId: input.projectId,
-          userId: ctx.userId,
-          date: new Date(),
-          kilometers: input.quantity,
-          ratePerKm: tenant?.defaultKmRate ?? product?.priceExclVat,
-          amount: (tenant?.defaultKmRate ?? product?.priceExclVat ?? 0) * input.quantity,
-          comment: input.comment?.trim() || null,
-          syncStatus: "PENDING",
-        },
-      });
-    }
 
     await enqueueAccountingJob({
       tenantId: ctx.tenantId,

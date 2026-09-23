@@ -6,9 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import { ReportIncidentForm } from "@/components/ansatt/report-incident-form";
 import { prisma } from "@/lib/db";
+import { listEquipmentChoices } from "@/server/queries/equipment-approval.queries";
 
 interface PageProps {
-  searchParams: Promise<{ projectId?: string }>;
+  searchParams: Promise<{ projectId?: string; equipmentId?: string }>;
 }
 
 export default async function NyttAvvik({ searchParams }: PageProps) {
@@ -19,7 +20,7 @@ export default async function NyttAvvik({ searchParams }: PageProps) {
     redirect("/login");
   }
 
-  const { projectId } = await searchParams;
+  const { projectId, equipmentId } = await searchParams;
 
   const [projects, tenant] = await Promise.all([
     prisma.project.findMany({
@@ -29,9 +30,10 @@ export default async function NyttAvvik({ searchParams }: PageProps) {
     }),
     prisma.tenant.findUnique({
       where: { id: session.user.tenantId },
-      select: { ruhModuleEnabled: true },
+      select: { ruhModuleEnabled: true, industry: true },
     }),
   ]);
+  const equipment = await listEquipmentChoices(session.user.tenantId, tenant?.industry);
 
   return (
     <div className="space-y-6">
@@ -65,8 +67,12 @@ export default async function NyttAvvik({ searchParams }: PageProps) {
             tenantId={session.user.tenantId}
             reportedBy={session.user.name || session.user.email || t("employeeFallback")}
             projects={projects}
+            equipment={equipment}
             ruhModuleEnabled={tenant?.ruhModuleEnabled ?? true}
-            defaultValues={projectId ? { projectId } : undefined}
+            defaultValues={{
+              ...(projectId ? { projectId } : {}),
+              ...(equipmentId ? { equipmentId } : {}),
+            }}
           />
         </CardContent>
       </Card>

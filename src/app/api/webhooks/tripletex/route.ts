@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getAccountingProvider } from "@/lib/accounting/factory";
-import { upsertCustomers, upsertProducts } from "@/lib/jobs/accounting-outbox";
+import { upsertCustomers, upsertProducts } from "@/lib/accounting/cache";
 import { upsertPulledProjects } from "@/lib/accounting/project-pull";
 import { findTenantIdByWebhookAuth } from "@/lib/accounting/webhook-auth";
 

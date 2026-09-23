@@ -12,7 +12,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { buildAdminListUrl } from "@/lib/admin-list-url";
 
 interface AdminPaginationProps {
   currentPage: number;
@@ -20,14 +21,6 @@ interface AdminPaginationProps {
   totalItems: number;
   basePath: string;
   searchTerm?: string;
-}
-
-function buildUrl(basePath: string, page: number, search?: string): string {
-  const params = new URLSearchParams();
-  if (page > 1) params.set("page", String(page));
-  if (search) params.set("search", search);
-  const qs = params.toString();
-  return qs ? `${basePath}?${qs}` : basePath;
 }
 
 export function AdminPaginationSearch({
@@ -42,9 +35,13 @@ export function AdminPaginationSearch({
   const router = useRouter();
   const [value, setValue] = useState(searchTerm);
 
+  useEffect(() => {
+    setValue(searchTerm);
+  }, [searchTerm]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    router.push(buildUrl(basePath, 1, value.trim() || undefined));
+    router.push(buildAdminListUrl(basePath, 1, value.trim() || undefined));
   };
 
   return (
@@ -69,13 +66,15 @@ export function AdminPagination({
 }: AdminPaginationProps) {
   if (totalPages <= 1) return null;
 
+  const hrefFor = (page: number) => buildAdminListUrl(basePath, page, searchTerm);
+
   return (
     <div className="mt-6">
       <Pagination>
         <PaginationContent>
           <PaginationItem>
             <PaginationPrevious
-              href={currentPage > 1 ? buildUrl(basePath, currentPage - 1, searchTerm) : "#"}
+              href={currentPage > 1 ? hrefFor(currentPage - 1) : hrefFor(currentPage)}
               aria-disabled={currentPage === 1}
               className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
             />
@@ -83,9 +82,7 @@ export function AdminPagination({
 
           {currentPage > 2 && (
             <PaginationItem>
-              <PaginationLink href={buildUrl(basePath, 1, searchTerm)}>
-                1
-              </PaginationLink>
+              <PaginationLink href={hrefFor(1)}>1</PaginationLink>
             </PaginationItem>
           )}
 
@@ -97,21 +94,21 @@ export function AdminPagination({
 
           {currentPage > 1 && (
             <PaginationItem>
-              <PaginationLink href={buildUrl(basePath, currentPage - 1, searchTerm)}>
+              <PaginationLink href={hrefFor(currentPage - 1)}>
                 {currentPage - 1}
               </PaginationLink>
             </PaginationItem>
           )}
 
           <PaginationItem>
-            <PaginationLink href={buildUrl(basePath, currentPage, searchTerm)} isActive>
+            <PaginationLink href={hrefFor(currentPage)} isActive>
               {currentPage}
             </PaginationLink>
           </PaginationItem>
 
           {currentPage < totalPages && (
             <PaginationItem>
-              <PaginationLink href={buildUrl(basePath, currentPage + 1, searchTerm)}>
+              <PaginationLink href={hrefFor(currentPage + 1)}>
                 {currentPage + 1}
               </PaginationLink>
             </PaginationItem>
@@ -125,7 +122,7 @@ export function AdminPagination({
 
           {currentPage < totalPages - 1 && (
             <PaginationItem>
-              <PaginationLink href={buildUrl(basePath, totalPages, searchTerm)}>
+              <PaginationLink href={hrefFor(totalPages)}>
                 {totalPages}
               </PaginationLink>
             </PaginationItem>
@@ -133,7 +130,7 @@ export function AdminPagination({
 
           <PaginationItem>
             <PaginationNext
-              href={currentPage < totalPages ? buildUrl(basePath, currentPage + 1, searchTerm) : "#"}
+              href={currentPage < totalPages ? hrefFor(currentPage + 1) : hrefFor(currentPage)}
               aria-disabled={currentPage === totalPages}
               className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
             />

@@ -30,3 +30,22 @@ export function assignmentCoversDate(
   const t = asTime(date);
   return t >= asTime(assignment.startDate) && t <= asTime(assignment.endDate);
 }
+
+export function inclusiveDayCount(startDate: Date | string, endDate: Date | string): number {
+  const days = Math.round((asTime(endDate) - asTime(startDate)) / 86400000) + 1;
+  return Math.max(1, days);
+}
+
+export function dailyPlannedHours(
+  assignment: { plannedHours: number | null | undefined; startDate: Date | string; endDate: Date | string },
+  dailyCapacity: number
+): number {
+  if (assignment.plannedHours != null && assignment.plannedHours > 0) {
+    return Math.round((assignment.plannedHours / inclusiveDayCount(assignment.startDate, assignment.endDate)) * 100) / 100;
+  }
+  return dailyCapacity;
+}
+
+export function remainingCapacity(planned: number, dailyCapacity: number): number {
+  return Math.round((dailyCapacity - planned) * 100) / 100;
+}

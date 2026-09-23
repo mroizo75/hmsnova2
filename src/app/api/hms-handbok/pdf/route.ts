@@ -4,6 +4,12 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getPermissions } from "@/lib/permissions";
 import { generateBrandedPdf, type PdfSection } from "@/lib/pdf-brand";
+import {
+  HANDBOOK_PART_DESCRIPTIONS,
+  HANDBOOK_PART_LABELS,
+  HANDBOOK_PARTS,
+  groupHandbookSections,
+} from "@/lib/handbook-parts";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
 import type { Role } from "@prisma/client";
@@ -156,7 +162,7 @@ export async function GET() {
   } else {
     statusContent.push({
       type: "alert",
-      text: "Denne HMS-håndboken er ikke versjonskontrollert. Opprett og godkjenn en versjon for å oppfylle kravene i IK-HMS § 5.",
+      text: "Styringssystemet er ikke versjonskontrollert. Opprett og godkjenn en versjon for å oppfylle kravene i IK-HMS § 5.",
       severity: "warning",
     });
   }
@@ -167,11 +173,25 @@ export async function GET() {
     content: statusContent,
   });
 
-  // Dynamiske seksjoner fra versjonskontroll (ekskluder deaktiverte)
+  // Dynamiske seksjoner, gruppert i kvalitet, HMS og personal
   if (currentVersion && currentVersion.sections.length > 0) {
-    for (const section of currentVersion.sections) {
-      if (section.parentId) continue;
-      if (section.isEnabled === false && !section.externalRef) continue;
+    const grouped = groupHandbookSections(
+      currentVersion.sections.filter((section) => !section.parentId),
+    );
+    for (const part of HANDBOOK_PARTS) {
+      const partSections = grouped[part].filter(
+        (section) => section.isEnabled !== false || !!section.externalRef,
+      );
+      if (partSections.length === 0) continue;
+
+      sections.push({
+        title: HANDBOOK_PART_LABELS[part],
+        legalRef:
+          part === "KS" ? "ISO 9001:2015" : part === "HMS" ? "IK-HMS § 5" : "AML, ferieloven og GDPR",
+        content: [{ type: "paragraph", text: HANDBOOK_PART_DESCRIPTIONS[part] }],
+      });
+
+    for (const section of partSections) {
 
       const contentBlocks: PdfSection["content"] = [];
 
@@ -242,6 +262,7 @@ export async function GET() {
         legalRef: section.legalRef ?? undefined,
         content: contentBlocks,
       });
+    }
     }
   } else {
     // Fallback: live data som før
@@ -369,16 +390,16 @@ export async function GET() {
     });
   }
 
-  const headerText = branding?.headerText ?? `HMS Håndbok ${new Date().getFullYear()}`;
+  const headerText = branding?.headerText ?? `Kvalitet, HMS og personal ${new Date().getFullYear()}`;
   const footerText = branding?.footerText ?? `Konfidensielt – ${tenant.name}`;
 
   const pdfBuffer = await generateBrandedPdf({
     type: "formal",
-    reportLabel: "HMS-HÅNDBOK",
+    reportLabel: "STYRINGSSYSTEM",
     title: `${headerText} – ${tenant.name}`,
     subtitle: currentVersion
-      ? `Versjon ${currentVersion.version} · ${statusLabel[currentVersion.status] ?? currentVersion.status} · Generert ${fmtDate(now)} · IK-HMS § 5`
-      : `Generert ${fmtDate(now)} · IK-HMS § 5`,
+      ? `Versjon ${currentVersion.version} · ${statusLabel[currentVersion.status] ?? currentVersion.status} · Generert ${fmtDate(now)} · ISO 9001 og IK-HMS § 5`
+      : `Generert ${fmtDate(now)} · ISO 9001 og IK-HMS § 5`,
     tenant: {
       name: tenant.name,
       orgNumber: tenant.orgNumber,

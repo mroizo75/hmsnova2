@@ -3,7 +3,12 @@ import { getAuthContext } from "@/lib/server-authorization";
 import { prisma } from "@/lib/db";
 import { NySamtaleForm } from "@/features/employee-reviews/components/ny-samtale-form";
 
-export default async function NyMedarbeidersamtalePage() {
+export default async function NyMedarbeidersamtalePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ansatt?: string }>;
+}) {
+  const { ansatt } = await searchParams;
   const auth = await getAuthContext();
 
   if (!auth.permissions.canCreateEmployeeReviews) redirect("/dashboard/medarbeidersamtale");
@@ -26,7 +31,7 @@ export default async function NyMedarbeidersamtalePage() {
         </p>
       </div>
 
-      <NySamtaleForm employees={employees} />
+      <NySamtaleForm employees={employees} defaultEmployeeId={ansatt} />
     </div>
   );
 }

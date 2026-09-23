@@ -10,7 +10,8 @@ import { AuditLog } from "@/lib/audit-log";
 import { notifyUsersByRoles } from "@/server/actions/notification.actions";
 import type { HandbookVersionStatus } from "@prisma/client";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
-import { DEFAULT_HR_SECTIONS, replaceTemplateVariables } from "@/lib/handbook-templates";
+import { DEFAULT_HR_SECTIONS, DEFAULT_KS_SECTIONS, replaceTemplateVariables } from "@/lib/handbook-templates";
+import { canonicalHandbookCategory } from "@/lib/handbook-parts";
 import { repairDashboardRoute } from "@/lib/legal-link-repair";
 
 // ── Standard seksjoner (IK-HMS § 5, AML kap. 3) ─────────────────────────────
@@ -41,7 +42,7 @@ const DEFAULT_SECTIONS = [
     content: "<p>Hvordan ansatte medvirker i HMS-arbeidet. Verneombudets rolle, arbeidsmiljøutvalg (AMU) der det er påkrevd, og prosesser for at samlet kunnskap og erfaring utnyttes i HMS-arbeidet.</p>",
     legalRef: "IK-HMS § 5 nr. 3, AML § 6-1, § 6-2, § 7-1, § 7-2",
     sortOrder: 3,
-    moduleLink: null,
+    moduleLink: "/dashboard/meetings",
   },
   {
     sectionKey: "s2c",
@@ -146,10 +147,10 @@ const DEFAULT_SECTIONS = [
     sectionKey: "s12",
     sectionNumber: "15",
     title: "Ytre miljø og avfall",
-    content: "<p>Miljørisiko, avfallshåndtering, kjemikaliehåndtering og beredskap.</p>",
-    legalRef: "Forurensningsloven, Produktkontrolloven, AML § 4-5",
+    content: "<p>Miljørisiko, avfallshåndtering, kjemikaliehåndtering og beredskap. Farlig avfall, inkludert kjølevæske, skal deklareres før levering til godkjent mottak.</p>",
+    legalRef: "Forurensningsloven, avfallsforskriften kap. 11, AML § 4-5",
     sortOrder: 15,
-    moduleLink: "/dashboard/chemicals",
+    moduleLink: "/dashboard/environment",
   },
   {
     sectionKey: "s13",
@@ -256,6 +257,24 @@ export type LegalRequirementForHandbook = {
   hasOverride?: boolean;
 };
 
+export type HandbookParticipationMeeting = {
+  id: string;
+  title: string;
+  type: string;
+  status: string;
+  scheduledDate: string;
+};
+
+export type HandbookWasteDelivery = {
+  id: string;
+  wasteType: string;
+  customType: string | null;
+  amountKg: number;
+  deliveredAt: string;
+  declarationNumber: string;
+  recipient: string;
+};
+
 export type LiveHandbookStats = {
   activeRiskAssessments: number;
   activeRoutines: number;
@@ -266,6 +285,8 @@ export type LiveHandbookStats = {
   lastRoutineReviewAt: Date | string | null;
   annualPlanProgress: AnnualPlanProgress | null;
   legalRequirements: LegalRequirementForHandbook[];
+  participationMeetings: HandbookParticipationMeeting[];
+  wasteDeliveries: HandbookWasteDelivery[];
 };
 
 // ── Hjelpefunksjoner ─────────────────────────────────────────────────────────
@@ -292,6 +313,22 @@ async function getOrCreateHandbook(tenantId: string) {
         version: { handbook: { tenantId } },
       },
       data: { moduleLink: "/dashboard/juridisk-register" },
+    });
+    await prisma.handbookSection.updateMany({
+      where: {
+        sectionKey: "s2b",
+        moduleLink: null,
+        version: { handbook: { tenantId } },
+      },
+      data: { moduleLink: "/dashboard/meetings" },
+    });
+    await prisma.handbookSection.updateMany({
+      where: {
+        sectionKey: "s12",
+        OR: [{ moduleLink: null }, { moduleLink: "/dashboard/chemicals" }],
+        version: { handbook: { tenantId } },
+      },
+      data: { moduleLink: "/dashboard/environment" },
     });
     return existing;
   }
@@ -350,6 +387,17 @@ async function ensureMissingDefaultSections(versionId: string, tenantId: string)
   };
 
   const missing = [
+    ...DEFAULT_KS_SECTIONS.map((s) => ({
+      versionId,
+      sectionKey: s.sectionKey,
+      sectionNumber: s.sectionNumber,
+      title: s.title,
+      content: replaceTemplateVariables(s.content, variables),
+      legalRef: s.legalRef,
+      category: "KS",
+      sortOrder: s.sortOrder,
+      moduleLink: s.moduleLink,
+    })),
     ...DEFAULT_SECTIONS.map((s) => ({
       versionId,
       sectionKey: s.sectionKey,
@@ -357,7 +405,7 @@ async function ensureMissingDefaultSections(versionId: string, tenantId: string)
       title: s.title,
       content: s.content,
       legalRef: s.legalRef,
-      category: "HMS",
+      category: canonicalHandbookCategory(s.sectionKey) ?? "HMS",
       sortOrder: s.sortOrder,
       moduleLink: s.moduleLink,
     })),
@@ -374,9 +422,43 @@ async function ensureMissingDefaultSections(versionId: string, tenantId: string)
     })),
   ].filter((s) => !keys.has(s.sectionKey));
 
-  if (missing.length === 0) return;
+  if (missing.length > 0) {
+    await prisma.handbookSection.createMany({ data: missing });
+  }
 
-  await prisma.handbookSection.createMany({ data: missing });
+  await syncHandbookPartCategories(versionId);
+}
+
+const STORED_SECTION_NUMBERS: Record<string, string> = {
+  "ks-policy": "1",
+  "ks-kunder": "2",
+  "ks-leverandor": "3",
+  "hr-arbeidsforhold": "1",
+  "hr-arbeidstid": "2",
+  "hr-ferie": "3",
+  "hr-sykefravaer": "4",
+  "hr-permisjon": "5",
+  "hr-kompetanse": "6",
+  "hr-personvern": "7",
+  "hr-opphor": "8",
+};
+
+/** Setter del-merking og løpende nummer på kjente kapitler uten å endre tekst. */
+async function syncHandbookPartCategories(versionId: string) {
+  const sections = await prisma.handbookSection.findMany({
+    where: { versionId },
+    select: { id: true, sectionKey: true, category: true, sectionNumber: true },
+  });
+  const updates = sections.flatMap((section) => {
+    const nextCategory = canonicalHandbookCategory(section.sectionKey);
+    const nextNumber = STORED_SECTION_NUMBERS[section.sectionKey];
+    const data: { category?: string; sectionNumber?: string } = {};
+    if (nextCategory && nextCategory !== section.category) data.category = nextCategory;
+    if (nextNumber && nextNumber !== section.sectionNumber) data.sectionNumber = nextNumber;
+    if (!data.category && !data.sectionNumber) return [];
+    return [prisma.handbookSection.update({ where: { id: section.id }, data })];
+  });
+  if (updates.length > 0) await Promise.all(updates);
 }
 
 function buildSectionTree(sections: Array<{
@@ -404,7 +486,7 @@ function buildSectionTree(sections: Array<{
       title: s.title,
       content: s.content,
       legalRef: s.legalRef,
-      category: s.category ?? (s.sectionKey.startsWith("hr-") ? "HR" : "HMS"),
+      category: canonicalHandbookCategory(s.sectionKey) ?? s.category ?? "HMS",
       sortOrder: s.sortOrder,
       isEnabled: s.isEnabled ?? true,
       externalRef: s.externalRef ?? null,
@@ -474,7 +556,7 @@ export async function getHandbookData(
         })
       : fullHandbook.versions[0] ?? null;
 
-    if (currentVersion && !options?.forEmployee) {
+    if (currentVersion) {
       await ensureMissingDefaultSections(currentVersion.id, tenantId);
       if (!fullHandbook.currentVersionId) {
         await prisma.hmsHandbook.update({
@@ -583,11 +665,60 @@ export async function getHandbookData(
         lastRoutineReviewAt: lastRoutineReview?.lastReviewedAt ?? null,
         annualPlanProgress: await getAnnualPlanProgress(tenantId),
         legalRequirements: await getLegalRequirementsForHandbook(tenantId),
+        participationMeetings: await getParticipationMeetings(tenantId),
+        wasteDeliveries: await getHandbookWasteDeliveries(tenantId),
       },
     };
   } catch {
     return { success: false, error: "Kunne ikke laste HMS Håndbok" };
   }
+}
+
+async function getParticipationMeetings(tenantId: string): Promise<HandbookParticipationMeeting[]> {
+  const yearStart = new Date(new Date().getFullYear(), 0, 1);
+  const meetings = await prisma.meeting.findMany({
+    where: {
+      tenantId,
+      type: { in: ["AMU", "VO"] },
+      scheduledDate: { gte: yearStart },
+    },
+    orderBy: { scheduledDate: "desc" },
+    take: 12,
+    select: { id: true, title: true, type: true, status: true, scheduledDate: true },
+  });
+  return meetings.map((meeting) => ({
+    id: meeting.id,
+    title: meeting.title,
+    type: meeting.type,
+    status: meeting.status,
+    scheduledDate: meeting.scheduledDate.toISOString(),
+  }));
+}
+
+async function getHandbookWasteDeliveries(tenantId: string): Promise<HandbookWasteDelivery[]> {
+  const deliveries = await prisma.hazardousWasteDelivery.findMany({
+    where: { tenantId },
+    orderBy: { deliveredAt: "desc" },
+    take: 8,
+    select: {
+      id: true,
+      wasteType: true,
+      customType: true,
+      amountKg: true,
+      deliveredAt: true,
+      declarationNumber: true,
+      recipient: true,
+    },
+  });
+  return deliveries.map((delivery) => ({
+    id: delivery.id,
+    wasteType: delivery.wasteType,
+    customType: delivery.customType,
+    amountKg: delivery.amountKg,
+    deliveredAt: delivery.deliveredAt.toISOString(),
+    declarationNumber: delivery.declarationNumber,
+    recipient: delivery.recipient,
+  }));
 }
 
 async function getAnnualPlanProgress(
@@ -705,7 +836,7 @@ export async function createNewDraft(
           title: s.title,
           content: s.content,
           legalRef: s.legalRef,
-          category: s.category ?? (s.sectionKey.startsWith("hr-") ? "HR" : "HMS"),
+          category: canonicalHandbookCategory(s.sectionKey) ?? s.category ?? "HMS",
           sortOrder: s.sortOrder,
           moduleLink: s.moduleLink,
         })),
@@ -1220,7 +1351,7 @@ async function applyHandbookTemplateToTenant(input: {
             title: s.title,
             content: s.content,
             legalRef: s.legalRef,
-            category: s.category ?? (s.sectionKey.startsWith("hr-") ? "HR" : "HMS"),
+            category: canonicalHandbookCategory(s.sectionKey) ?? s.category ?? "HMS",
             sortOrder: s.sortOrder,
             moduleLink: s.moduleLink,
             parentId: null,
@@ -1261,7 +1392,7 @@ async function applyHandbookTemplateToTenant(input: {
             title: defaultSection.title,
             content: processedContent,
             legalRef: defaultSection.legalRef,
-            category: "HMS",
+            category: canonicalHandbookCategory(tplSection.sectionKey) ?? "HMS",
             sortOrder: defaultSection.sortOrder,
             moduleLink: defaultSection.moduleLink,
           },

@@ -4,6 +4,8 @@
  * og vite at alle krav er oppfylt når listen er fullført.
  */
 
+import { EQUIPMENT_APPROVAL_INDUSTRIES } from "@/lib/equipment-approval";
+
 export interface AnnualHmsPlanStep {
   key: string;
   title: string;
@@ -226,6 +228,17 @@ export const ANNUAL_HMS_PLAN_STEPS: AnnualHmsPlanStep[] = [
     href: "/dashboard/training",
     legalRef: "FuA §§ 10-2 og 10-4",
     industries: ["automotive"],
+  },
+  {
+    key: "equipment_approval_register",
+    title: "Godkjenning av arbeidsutstyr er gyldig",
+    description:
+      "Utstyr med sakkyndig kontroll eller annen godkjenning har gyldig attest, leverandør og dokumentasjon. Utstyr med feil er tatt ut av bruk.",
+    category: "kontroll",
+    order: 23,
+    href: "/dashboard/utstyr",
+    legalRef: "FuA § 12-5, § 12-8, § 13-1 og § 13-4",
+    industries: [...EQUIPMENT_APPROVAL_INDUSTRIES],
   },
 ];
 

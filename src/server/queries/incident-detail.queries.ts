@@ -45,6 +45,9 @@ export async function fetchIncidentDetail(id: string) {
           score: true,
         },
       },
+      equipmentApproval: {
+        select: { id: true, name: true, supplierName: true },
+      },
     },
   });
 

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -19,10 +20,17 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import Link from "next/link";
-import { Plus, CheckCircle2, Circle, AlertTriangle } from "lucide-react";
+import { Plus, CheckCircle2, Circle, AlertTriangle, Landmark } from "lucide-react";
 import { AdminAiIncludedSwitch } from "@/features/admin/components/admin-ai-included-switch";
 import { AdminPagination, AdminPaginationSearch } from "@/components/admin-pagination";
+import { RememberAdminListUrl } from "@/components/admin-list-position";
+import {
+  parsePageParam,
+  tenantDetailHref,
+} from "@/lib/admin-list-url";
 import type { Prisma } from "@prisma/client";
+
+export const dynamic = "force-dynamic";
 
 const ITEMS_PER_PAGE = 25;
 
@@ -56,7 +64,7 @@ export default async function TenantsPage({
   searchParams: Promise<{ page?: string; search?: string }>;
 }) {
   const params = await searchParams;
-  const currentPage = Math.max(1, parseInt(params.page || "1", 10));
+  const currentPage = parsePageParam(params.page);
   const searchTerm = params.search?.trim() || "";
 
   const session = await getServerSession(authOptions);
@@ -104,6 +112,15 @@ export default async function TenantsPage({
             select: {
               lastLoginAttempt: true,
             },
+          },
+        },
+      },
+      corporateGroupMemberships: {
+        where: { status: "ACTIVE" },
+        take: 1,
+        select: {
+          group: {
+            select: { id: true, name: true },
           },
         },
       },
@@ -171,6 +188,9 @@ export default async function TenantsPage({
 
   return (
     <div className="space-y-6">
+      <Suspense fallback={null}>
+        <RememberAdminListUrl />
+      </Suspense>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Bedrifter</h1>
@@ -225,18 +245,34 @@ export default async function TenantsPage({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {enrichedTenants.map((tenant) => (
-                  <TableRow key={tenant.id} className="cursor-pointer hover:bg-muted/50">
+                {enrichedTenants.map((tenant) => {
+                  const group = tenant.corporateGroupMemberships[0]?.group;
+
+                  return (
+                  <TableRow key={tenant.id} className="hover:bg-muted/50">
                     <TableCell>
-                      <Link
-                        href={`/admin/tenants/${tenant.id}`}
-                        className="block -m-4 p-4"
-                      >
-                        <p className="font-medium hover:underline">{tenant.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {tenant.orgNumber || tenant.slug}
-                        </p>
-                      </Link>
+                      <div className="flex items-start gap-2">
+                        <Link
+                          href={tenantDetailHref(tenant.id, currentPage, searchTerm || undefined)}
+                          className="min-w-0 flex-1"
+                        >
+                          <p className="font-medium hover:underline">{tenant.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {tenant.orgNumber || tenant.slug}
+                          </p>
+                        </Link>
+                        {group && (
+                          <Link href={`/admin/konsern/${group.id}`} className="shrink-0">
+                            <Badge variant="secondary" className="gap-1">
+                              <Landmark className="h-3 w-3" />
+                              Konsern
+                            </Badge>
+                          </Link>
+                        )}
+                      </div>
+                      {group && (
+                        <p className="mt-1 text-xs text-muted-foreground">{group.name}</p>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge
@@ -362,7 +398,8 @@ export default async function TenantsPage({
                       </TableCell>
                     )}
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </TooltipProvider>

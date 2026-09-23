@@ -26,9 +26,11 @@ const EMPLOYEE_TYPES: AbsenceType[] = [
 interface DayAbsenceFormProps {
   date: string;
   onSaved: () => Promise<void> | void;
+  projects?: Array<{ id: string; name: string }>;
+  absenceProjectId?: string | null;
 }
 
-export function DayAbsenceForm({ date, onSaved }: DayAbsenceFormProps) {
+export function DayAbsenceForm({ date, onSaved, projects = [], absenceProjectId }: DayAbsenceFormProps) {
   const t = useTranslations("timesheet.absence");
   const { toast } = useToast();
   const [type, setType] = useState<AbsenceType>("SELF_CERTIFIED");
@@ -36,12 +38,17 @@ export function DayAbsenceForm({ date, onSaved }: DayAbsenceFormProps) {
   const [endDate, setEndDate] = useState(date);
   const [percentage, setPercentage] = useState("100");
   const [reason, setReason] = useState("");
+  const [projectId, setProjectId] = useState(absenceProjectId ?? "");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     setStartDate(date);
     setEndDate(date);
   }, [date]);
+
+  useEffect(() => {
+    if (absenceProjectId) setProjectId(absenceProjectId);
+  }, [absenceProjectId]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -52,6 +59,7 @@ export function DayAbsenceForm({ date, onSaved }: DayAbsenceFormProps) {
       endDate,
       percentage: Number(percentage) || 100,
       reason: reason.trim() || undefined,
+      projectId: projectId || undefined,
     });
     setLoading(false);
     if (!res.success) {
@@ -82,6 +90,24 @@ export function DayAbsenceForm({ date, onSaved }: DayAbsenceFormProps) {
           ))}
         </select>
       </div>
+      {projects.length > 0 && (
+        <div className="space-y-1">
+          <Label htmlFor="absence-project">{t("project")}</Label>
+          <select
+            id="absence-project"
+            className="h-10 w-full rounded-md border bg-transparent px-3 text-sm"
+            value={projectId}
+            onChange={(e) => setProjectId(e.target.value)}
+          >
+            <option value="">{t("defaultProject")}</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
           <Label htmlFor="absence-start">{t("from")}</Label>

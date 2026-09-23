@@ -15,6 +15,7 @@ export function UsersContent({ initialData }: UsersContentProps) {
     queryKey: ["settings", "users"],
     queryFn: () => fetchUsers(),
     initialData,
+    refetchOnMount: "always",
   });
 
   if (!data) return null;

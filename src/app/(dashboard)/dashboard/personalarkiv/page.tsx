@@ -33,7 +33,8 @@ export default async function PersonalarkivPage() {
             Personalarkiv
           </h1>
           <p className="mt-1 text-muted-foreground">
-            Personalmapper i Cloudflare R2 – GDPR art. 5, 6 og 15. Helseopplysninger hører ikke hjemme her.
+            Personalmapper i Cloudflare R2 – GDPR art. 5, 6 og 15. Arbeidsavtale og attest
+            hører hjemme her (AML § 14-5/14-6 og § 15-15), ikke i Dokumenter.
           </p>
         </div>
         <PageHelpDialog content={helpContent.personnelArchive} />

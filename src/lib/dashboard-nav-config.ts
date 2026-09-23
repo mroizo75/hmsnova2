@@ -6,6 +6,7 @@
  * risiko → bransjeskjema. Innstillinger og hjelp ligger alltid nederst.
  */
 
+import { EQUIPMENT_APPROVAL_INDUSTRIES, EQUIPMENT_APPROVAL_PATH } from "@/lib/equipment-approval";
 import type { TenantFeature } from "@/lib/tenant-features";
 
 export type NavPermission =
@@ -134,6 +135,14 @@ export const DASHBOARD_NAV_CONFIG: DashboardNavItemConfig[] = [
   { href: "/dashboard/audits", label: "nav.audits", permission: "audits", defaultSimple: false, coreHub: "risiko" },
 
   { href: "/dashboard/construction-compliance", label: "nav.constructionCompliance", permission: "constructionCompliance", defaultSimple: true, coreHub: "skjema" },
+  {
+    href: EQUIPMENT_APPROVAL_PATH,
+    label: "nav.equipmentApproval",
+    permission: "inspections",
+    defaultSimple: true,
+    industries: [...EQUIPMENT_APPROVAL_INDUSTRIES],
+    coreHub: "skjema",
+  },
   { href: "/dashboard/samsvarserklaringer", label: "nav.electro", permission: "documents", defaultSimple: true, coreHub: "skjema" },
   { href: "/dashboard/ik-mat", label: "nav.ikMat", permission: "ikMat", defaultSimple: false, coreHub: "skjema" },
   { href: "/dashboard/skjenking", label: "nav.skjenking", permission: "skjenking", defaultSimple: false, coreHub: "skjema" },

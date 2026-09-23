@@ -1,19 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslations } from "next-intl";
 import { CheckCircle2, AlertCircle, Link2 } from "lucide-react";
 import {
   connectTripletex,
   disconnectTripletex,
   saveTripletexMapping,
   mapTenantEmployee,
+  refreshTripletexCatalog,
 } from "@/server/actions/accounting.actions";
 
 type Activity = { externalId: string; name: string; number?: string | null };
@@ -38,8 +41,10 @@ interface TripletexIntegrationProps {
     activityOt50Id?: string | null;
     activityOt100Id?: string | null;
     productKmId?: string | null;
+    productKmNonTaxableId?: string | null;
     productMachineHoursId?: string | null;
     absenceProjectId?: string | null;
+    absencePayrollTypes?: string[] | null;
   };
   activities: Activity[];
   products: Product[];
@@ -63,34 +68,47 @@ export function TripletexIntegration({
   projects = [],
 }: TripletexIntegrationProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
+  const tAbsence = useTranslations("timesheet.absence");
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [mapState, setMapState] = useState(mapping);
 
+  useEffect(() => {
+    setMapState(mapping);
+  }, [connected, companyId, lastPullAt]);
+
+  async function reloadSettings() {
+    await queryClient.invalidateQueries({ queryKey: ["accounting-settings"] });
+    router.refresh();
+  }
+
   async function handleConnect() {
     setLoading(true);
     const res = await connectTripletex(token);
-    setLoading(false);
     if (!res.success) {
+      setLoading(false);
       toast({ title: "Kunne ikke koble til", description: res.error, variant: "destructive" });
       return;
     }
     toast({ title: "Koblet til Tripletex", description: res.data.companyName ?? res.data.companyId });
     setToken("");
-    router.refresh();
+    await reloadSettings();
+    setLoading(false);
   }
 
   async function handleDisconnect() {
     setLoading(true);
     const res = await disconnectTripletex();
-    setLoading(false);
     if (!res.success) {
+      setLoading(false);
       toast({ title: "Feil", description: res.error, variant: "destructive" });
       return;
     }
     toast({ title: "Frakoblet Tripletex" });
-    router.refresh();
+    await reloadSettings();
+    setLoading(false);
   }
 
   async function handleSaveMapping() {
@@ -101,8 +119,8 @@ export function TripletexIntegration({
       toast({ title: "Feil", description: res.error, variant: "destructive" });
       return;
     }
-    toast({ title: "Mapping lagret" });
-    router.refresh();
+    toast({ title: "Innstillingene er lagret" });
+    await reloadSettings();
   }
 
   return (
@@ -138,8 +156,9 @@ export function TripletexIntegration({
           <div className="space-y-3">
             {consumerConfigured ? (
               <p className="text-sm text-muted-foreground">
-                Integrasjonen {applicationName} er klar på serveren. Opprett et employee token
-                i Tripletex (API-tilgang for denne bedriften) og lim det inn under. Se{" "}
+                Integrasjonen {applicationName} er klar på serveren. Lim inn{" "}
+                <strong>employee token</strong> for testkontoen (ikke consumer-tokenet som ligger i
+                .env). Testkonto treffer Tripletex sitt testmiljø automatisk. Se{" "}
                 <a
                   href="https://developer.tripletex.no/docs/documentation/authentication-and-tokens/"
                   className="underline"
@@ -182,7 +201,30 @@ export function TripletexIntegration({
                 ? ` · Sist oppdatert ${new Date(lastPullAt).toLocaleString("nb-NO")}`
                 : ""}
             </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="bg-transparent"
+              disabled={loading}
+              onClick={async () => {
+                setLoading(true);
+                const res = await refreshTripletexCatalog();
+                setLoading(false);
+                if (!res.success) {
+                  toast({ title: "Kunne ikke hente", description: res.error, variant: "destructive" });
+                  return;
+                }
+                toast({ title: "Produkter og kunder er oppdatert" });
+                await reloadSettings();
+              }}
+            >
+              {loading ? "Henter…" : "Hent produkter og kunder på nytt"}
+            </Button>
 
+            <p className="text-sm font-medium">Hvordan timer og kjøring skal føres</p>
+            <p className="text-xs text-muted-foreground">
+              Velg hvilke aktiviteter og produkter i Tripletex som skal brukes. Dette styrer faktura og lønn.
+            </p>
             <div className="grid gap-3 sm:grid-cols-2">
               <SelectField
                 label="Ordinær tid"
@@ -203,9 +245,15 @@ export function TripletexIntegration({
                 options={activities.map((a) => ({ value: a.externalId, label: a.name }))}
               />
               <SelectField
-                label="Km-tillegg (produkt)"
+                label="Km-tillegg skattbar"
                 value={mapState.productKmId ?? ""}
                 onChange={(v) => setMapState((s) => ({ ...s, productKmId: v || null }))}
+                options={products.map((p) => ({ value: p.externalId, label: p.name }))}
+              />
+              <SelectField
+                label="Km-tillegg ikke skattbar"
+                value={mapState.productKmNonTaxableId ?? ""}
+                onChange={(v) => setMapState((s) => ({ ...s, productKmNonTaxableId: v || null }))}
                 options={products.map((p) => ({ value: p.externalId, label: p.name }))}
               />
               <SelectField
@@ -221,8 +269,46 @@ export function TripletexIntegration({
                 options={projects.map((p) => ({ value: p.id, label: p.name }))}
               />
             </div>
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Fraværstyper som skal til lønn</p>
+              <p className="text-xs text-muted-foreground">
+                Huk av det som skal sendes til lønn. Ingen avkrysning betyr alle unntatt avspasering.
+              </p>
+              {(
+                [
+                  "SELF_CERTIFIED",
+                  "SICK_LEAVE",
+                  "CARE_DAYS",
+                  "VACATION",
+                  "COMPENSATORY",
+                  "LEAVE_OF_ABSENCE",
+                  "PARENTAL_LEAVE",
+                  "BEREAVEMENT",
+                  "MILITARY",
+                  "OTHER",
+                ] as const
+              ).map((type) => {
+                const selected = mapState.absencePayrollTypes ?? [];
+                const checked = selected.includes(type);
+                return (
+                  <label key={type} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => {
+                        const next = e.target.checked
+                          ? [...selected, type]
+                          : selected.filter((v) => v !== type);
+                        setMapState((s) => ({ ...s, absencePayrollTypes: next }));
+                      }}
+                    />
+                    {tAbsence(`types.${type}`)}
+                  </label>
+                );
+              })}
+            </div>
             <Button onClick={handleSaveMapping} disabled={!isAdmin || loading} variant="outline" className="bg-transparent">
-              Lagre mapping
+              Lagre innstillinger
             </Button>
 
             <div className="space-y-2">
@@ -241,7 +327,7 @@ export function TripletexIntegration({
                       if (!res.success) {
                         toast({ title: "Feil", description: res.error, variant: "destructive" });
                       } else {
-                        router.refresh();
+                        await reloadSettings();
                       }
                     }}
                   >

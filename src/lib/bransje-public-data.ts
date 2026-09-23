@@ -35,6 +35,7 @@ import {
   FlaskConical,
   Scale,
   Wine,
+  Wrench,
 } from "lucide-react";
 
 // ── Modulbeskrivelser ────────────────────────────────────────────────────────
@@ -139,6 +140,13 @@ export const MODULE_DESCRIPTIONS: Record<string, ModuleDescription> = {
     description: "Elektroniske samsvarserklæringer iht. NEK 400 og FEL",
     icon: Scale,
   },
+  "/dashboard/utstyr": {
+    path: "/dashboard/utstyr",
+    name: "Utstyr med godkjenning",
+    shortName: "Utstyr",
+    description: "Sakkyndig kontroll, leverandør og gyldig attest for arbeidsutstyr",
+    icon: Wrench,
+  },
   "/dashboard/ik-mat": {
     path: "/dashboard/ik-mat",
     name: "IK-mat og HACCP",
@@ -229,7 +237,7 @@ export const BRANSJE_PUBLIC_DATA: BransjePublicData[] = [
       { title: "Vernerunde pa byggeplass", description: "Verneombudet gjennomforer vernerunde med digital sjekkliste. Tar bilder av avvik, og tiltak opprettes automatisk til ansvarlig bas." },
       { title: "Avvikshåndtering med rotarsak", description: "En nestenulykke rapporteres pa 2 minutter via mobil. HMS-ansvarlig varsles automatisk, utfører årsaksanalyse og oppdaterer HMS-handboken med nye tiltak." },
     ],
-    extraModulePaths: ["/dashboard/sja", "/dashboard/chemicals", "/dashboard/exposure-register", "/dashboard/construction-compliance"],
+    extraModulePaths: ["/dashboard/sja", "/dashboard/chemicals", "/dashboard/exposure-register", "/dashboard/construction-compliance", "/dashboard/utstyr"],
   },
   {
     key: "elektro",
@@ -260,7 +268,7 @@ export const BRANSJE_PUBLIC_DATA: BransjePublicData[] = [
       { title: "Samsvarserklæring", description: "Etter ferdigstilt installasjon genereres samsvarserklæring digitalt med alle relevante referanser til NEK 400." },
       { title: "Kompetanseoversikt", description: "Daglig leder ser hvilke sertifikater som utloper snart og planlegger oppfriskningskurs i god tid." },
     ],
-    extraModulePaths: ["/dashboard/sja", "/dashboard/chemicals", "/dashboard/samsvarserklaringer"],
+    extraModulePaths: ["/dashboard/sja", "/dashboard/chemicals", "/dashboard/samsvarserklaringer", "/dashboard/utstyr"],
   },
   {
     key: "offshore",
@@ -291,7 +299,7 @@ export const BRANSJE_PUBLIC_DATA: BransjePublicData[] = [
       { title: "Beredskapsovelse", description: "Beredskapsleder planlegger og dokumenterer mønstring og evakueringsovelse med full sporbarhet." },
       { title: "Eksponeringsregistrering", description: "Arbeidstaker logger eksponering for boreslamkjemikalier. Systemet varsler dersom grenseverdier naermer seg." },
     ],
-    extraModulePaths: ["/dashboard/sja", "/dashboard/chemicals", "/dashboard/exposure-register"],
+    extraModulePaths: ["/dashboard/sja", "/dashboard/chemicals", "/dashboard/exposure-register", "/dashboard/utstyr"],
   },
   {
     key: "marine",
@@ -322,7 +330,7 @@ export const BRANSJE_PUBLIC_DATA: BransjePublicData[] = [
       { title: "Eksponering for stoy", description: "Maskinist registrerer daglig stoyeksponering. Systemet beregner akkumulert dose og varsler ved grenseverdier." },
       { title: "Verfts-vernerunde", description: "HMS-koordinator gjennomforer vernerunde pa verft med digitale sjekklister for stillas, brannvern og orden." },
     ],
-    extraModulePaths: ["/dashboard/sja", "/dashboard/chemicals", "/dashboard/exposure-register"],
+    extraModulePaths: ["/dashboard/sja", "/dashboard/chemicals", "/dashboard/exposure-register", "/dashboard/utstyr"],
   },
   {
     key: "oil_gas",
@@ -353,7 +361,7 @@ export const BRANSJE_PUBLIC_DATA: BransjePublicData[] = [
       { title: "Kjemikaliehandtering", description: "Ny kjemikalie tas i bruk. Stoffkartotek oppdateres, risikovurdering gjennomfores og eksponeringsregisteret knyttes til berørte ansatte." },
       { title: "Beredskapsovelse", description: "Årlig storulykkeovelse dokumenteres med deltakerliste, evalueringspunkter og forbedringstiltak i HMS-handboken." },
     ],
-    extraModulePaths: ["/dashboard/sja", "/dashboard/moc", "/dashboard/chemicals", "/dashboard/exposure-register"],
+    extraModulePaths: ["/dashboard/sja", "/dashboard/moc", "/dashboard/chemicals", "/dashboard/exposure-register", "/dashboard/utstyr"],
   },
   {
     key: "fiskeri",
@@ -384,7 +392,7 @@ export const BRANSJE_PUBLIC_DATA: BransjePublicData[] = [
       { title: "Avlusningsbehandling", description: "Ved bruk av avlusningskjemikalier oppdateres stoffkartotek, og eksponerte ansatte registreres manuelt i eksponeringsregisteret." },
       { title: "Sjøfartsdokumentasjon", description: "Kompetanseoversikten viser hvilke sertifikater som utloper og genererer rapporter for myndigheter." },
     ],
-    extraModulePaths: ["/dashboard/sja", "/dashboard/chemicals"],
+    extraModulePaths: ["/dashboard/sja", "/dashboard/chemicals", "/dashboard/utstyr"],
   },
   {
     key: "bergverk",
@@ -415,7 +423,7 @@ export const BRANSJE_PUBLIC_DATA: BransjePublicData[] = [
       { title: "Stovmaling", description: "Daglige stovmalinger registreres mot grenseverdier. Ved overskridelse varsles HMS-ansvarlig automatisk." },
       { title: "Maskinvedlikehold", description: "Planlagt vedlikehold av borerigger og knusere dokumenteres med sjekklister og reservedelslogg." },
     ],
-    extraModulePaths: ["/dashboard/sja", "/dashboard/chemicals", "/dashboard/exposure-register"],
+    extraModulePaths: ["/dashboard/sja", "/dashboard/chemicals", "/dashboard/exposure-register", "/dashboard/utstyr"],
   },
   {
     key: "healthcare",
@@ -572,7 +580,7 @@ export const BRANSJE_PUBLIC_DATA: BransjePublicData[] = [
       { title: "SJA for farlig gods", description: "Transport av farlig gods krever SJA med ADR-klassifisering, verneutstyr og nødprosedyrer dokumentert." },
       { title: "Sjåforoppfølging", description: "Kompetanseoversikten viser hvilke ADR-sertifikater som utloper og planlegger oppfriskningskurs." },
     ],
-    extraModulePaths: ["/dashboard/transport", "/dashboard/sja"],
+    extraModulePaths: ["/dashboard/transport", "/dashboard/sja", "/dashboard/utstyr"],
   },
   {
     key: "manufacturing",
@@ -603,7 +611,7 @@ export const BRANSJE_PUBLIC_DATA: BransjePublicData[] = [
       { title: "Stoyeksponering", description: "Ansatte i produksjonen registrerer daglig stoyeksponering. Akkumulert dose beregnes mot 85 dB(A) grenseverdi." },
       { title: "Ny kjemikalie", description: "Ved innforing av nytt rengjoringsmiddel oppdateres stoffkartotek, SDS lastes opp og berørte ansatte far opplaering." },
     ],
-    extraModulePaths: ["/dashboard/sja", "/dashboard/chemicals", "/dashboard/exposure-register"],
+    extraModulePaths: ["/dashboard/sja", "/dashboard/chemicals", "/dashboard/exposure-register", "/dashboard/utstyr"],
   },
   {
     key: "retail",
@@ -665,7 +673,7 @@ export const BRANSJE_PUBLIC_DATA: BransjePublicData[] = [
       { title: "Plantevernsprøyting", description: "Ved sprøyting registreres preparat, mengde og vaerforhold. Systemet sjekker at sprøytesertifikat er gyldig." },
       { title: "Sesongarbeidere", description: "Innleid arbeidskraft far automatisk HMS-opplaering og kvitterer for leste rutiner for de starter arbeidet." },
     ],
-    extraModulePaths: ["/dashboard/sja", "/dashboard/chemicals"],
+    extraModulePaths: ["/dashboard/sja", "/dashboard/chemicals", "/dashboard/utstyr"],
   },
   {
     key: "technology",

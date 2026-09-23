@@ -3,7 +3,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DocumentList } from "@/features/documents/components/document-list";
-import { FileText } from "lucide-react";
+import { AlertTriangle, FileText } from "lucide-react";
+import { isDocumentAttention } from "@/lib/document-attention";
 import { useTranslations } from "next-intl";
 import { fetchDocuments } from "@/server/queries/document.queries";
 
@@ -28,6 +29,7 @@ export function DocumentsContent({ initialData }: DocumentsContentProps) {
 
   const stats = {
     total: documents.length,
+    attention: documents.filter((d: any) => isDocumentAttention(d)).length,
     draft: documents.filter((d: any) => d.status === "DRAFT").length,
     approved: documents.filter((d: any) => d.status === "APPROVED").length,
     archived: documents.filter((d: any) => d.status === "ARCHIVED").length,
@@ -35,7 +37,7 @@ export function DocumentsContent({ initialData }: DocumentsContentProps) {
 
   return (
     <>
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{t("stats.total")}</CardTitle>
@@ -43,6 +45,15 @@ export function DocumentsContent({ initialData }: DocumentsContentProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">{t("stats.attention")}</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-destructive" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-destructive">{stats.attention}</div>
           </CardContent>
         </Card>
         <Card>

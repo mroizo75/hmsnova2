@@ -8,6 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, UserPlus, Pencil, ArrowLeft } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  createProfileCompetenceStatement,
+  deleteProfileCompetenceStatement,
+} from "@/server/actions/personnel-competence.actions";
 import {
   assignProfileToUser,
   removeProfileFromUser,
@@ -39,6 +44,12 @@ interface AssignedUser {
   user: { id: string; name: string | null; email: string };
 }
 
+interface ProfileStatement {
+  id: string;
+  dimension: string;
+  statement: string;
+}
+
 interface Profile {
   id: string;
   name: string;
@@ -46,6 +57,7 @@ interface Profile {
   industry: string | null;
   isDefault: boolean;
   requirements: Requirement[];
+  statements?: ProfileStatement[];
   users: AssignedUser[];
 }
 
@@ -65,6 +77,9 @@ export function CompetenceProfileDetail({ profile, availableUsers, canEdit }: Co
   const router = useRouter();
   const [selectedUserId, setSelectedUserId] = useState("");
   const [assigning, setAssigning] = useState(false);
+  const [dimension, setDimension] = useState("KUNNSKAP");
+  const [statement, setStatement] = useState("");
+  const statements = profile.statements ?? [];
 
   const assignedIds = new Set(profile.users.map((u) => u.user.id));
   const unassignedUsers = availableUsers.filter((u) => !assignedIds.has(u.id));
@@ -195,6 +210,91 @@ export function CompetenceProfileDetail({ profile, availableUsers, canEdit }: Co
           )}
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Konkret kompetanse ({statements.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Kunnskaper, ferdigheter, evner og holdninger. Setningene kan hentes inn i personalmappen til ansatte som har denne profilen.
+          </p>
+          {statements.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Ingen konkretiseringer på profilen ennå.</p>
+          ) : (
+            <ul className="divide-y rounded-md border">
+              {statements.map((row) => (
+                <li key={row.id} className="flex items-start justify-between gap-2 px-3 py-2 text-sm">
+                  <span>
+                    <span className="text-muted-foreground">{DIMENSION_LABELS[row.dimension] ?? row.dimension}: </span>
+                    {row.statement}
+                  </span>
+                  {canEdit && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={async () => {
+                        if (!confirm("Slette denne konkretiseringen?")) return;
+                        await deleteProfileCompetenceStatement({ profileId: profile.id, statementId: row.id });
+                        router.refresh();
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          {canEdit && (
+            <form
+              className="flex flex-col gap-2 sm:flex-row"
+              onSubmit={async (event) => {
+                event.preventDefault();
+                const result = await createProfileCompetenceStatement({
+                  profileId: profile.id,
+                  dimension,
+                  statement,
+                });
+                if (result.success) {
+                  setStatement("");
+                  router.refresh();
+                }
+              }}
+            >
+              <Select value={dimension} onValueChange={setDimension}>
+                <SelectTrigger className="sm:w-44">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(DIMENSION_LABELS).map(([id, label]) => (
+                    <SelectItem key={id} value={id}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                value={statement}
+                onChange={(event) => setStatement(event.target.value)}
+                placeholder="Konkret, observerbar setning"
+                maxLength={500}
+              />
+              <Button type="submit" disabled={statement.trim().length < 3}>
+                Legg til
+              </Button>
+            </form>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
+
+const DIMENSION_LABELS: Record<string, string> = {
+  KUNNSKAP: "Kunnskaper",
+  FERDIGHET: "Ferdigheter",
+  EVNE: "Evner",
+  HOLDNING: "Holdninger",
+};

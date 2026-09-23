@@ -7,7 +7,8 @@
 import { prisma } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { resolveEffectivePermissions } from "@/lib/server-authorization";
+import { revalidatePath } from "next/cache";
+import { getAuthContext, resolveEffectivePermissions } from "@/lib/server-authorization";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
 
 /**
@@ -15,9 +16,9 @@ import { triggerRealtimeEvent } from "@/lib/pusher-server";
  */
 export async function copyGlobalFormTemplate(formId: string) {
   try {
-    const session = await getServerSession(authOptions);
+    const context = await getAuthContext();
 
-    if (!session?.user?.tenantId) {
+    if (!context) {
       return { success: false, error: "Ikke autentisert" };
     }
 
@@ -46,7 +47,7 @@ export async function copyGlobalFormTemplate(formId: string) {
     // Sjekk om tenanten allerede har en kopi
     const existingCopy = await prisma.formTemplate.findFirst({
       where: {
-        tenantId: session.user.tenantId,
+        tenantId: context.tenantId,
         title: {
           startsWith: globalForm.title,
         },
@@ -59,7 +60,7 @@ export async function copyGlobalFormTemplate(formId: string) {
     if (existingCopy) {
       const copyCount = await prisma.formTemplate.count({
         where: {
-          tenantId: session.user.tenantId,
+          tenantId: context.tenantId,
           title: {
             contains: globalForm.title,
           },
@@ -71,7 +72,7 @@ export async function copyGlobalFormTemplate(formId: string) {
     // Opprett kopi med alle felt
     const copiedForm = await prisma.formTemplate.create({
       data: {
-        tenantId: session.user.tenantId,
+        tenantId: context.tenantId,
         title: copyTitle,
         description: globalForm.description,
         numberPrefix: globalForm.numberPrefix,
@@ -85,8 +86,10 @@ export async function copyGlobalFormTemplate(formId: string) {
         accessType: globalForm.accessType,
         allowedRoles: globalForm.allowedRoles,
         allowedUsers: globalForm.allowedUsers,
+        allowAnonymousResponses: globalForm.allowAnonymousResponses,
+        industryScope: globalForm.industryScope ?? undefined,
         allowTenantDeletion: true,
-        createdBy: session.user.id,
+        createdBy: context.userId,
         fields: {
           create: globalForm.fields.map((field) => ({
             fieldType: field.fieldType,
@@ -104,11 +107,13 @@ export async function copyGlobalFormTemplate(formId: string) {
       },
     });
 
-    triggerRealtimeEvent(session.user.tenantId, "form-updated");
+    revalidatePath("/dashboard/maler");
+    revalidatePath("/dashboard/forms");
+    triggerRealtimeEvent(context.tenantId, "form-updated");
     return { success: true, data: copiedForm };
-  } catch (error: any) {
-    console.error("Feil ved kopiering av skjema:", error);
-    return { success: false, error: error.message || "Kunne ikke kopiere skjema" };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Kunne ikke kopiere skjema";
+    return { success: false, error: message };
   }
 }
 

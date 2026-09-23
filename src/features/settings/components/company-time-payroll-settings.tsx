@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { Banknote, Car, Clock } from "lucide-react";
+import { Banknote, Briefcase, Car, Clock } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,7 @@ import { hoursToClock, parseClockToHours, weekdayNormHours } from "@/lib/time/sp
 
 export type CompanyTimePayrollConfig = {
   timeRegistrationEnabled: boolean;
+  employeesCanCreateProjects: boolean;
   weeklyHoursNorm: number;
   lunchBreakMinutes: number;
   dayStartHour: number;
@@ -61,6 +62,9 @@ export function CompanyTimePayrollSettings({
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [enabled, setEnabled] = useState(config.timeRegistrationEnabled);
+  const [employeesCanCreateProjects, setEmployeesCanCreateProjects] = useState(
+    config.employeesCanCreateProjects
+  );
   const [weeklyNorm, setWeeklyNorm] = useState(config.weeklyHoursNorm === 40 ? "40" : "37.5");
   const [lunch, setLunch] = useState(String(config.lunchBreakMinutes));
   const [clockFrom, setClockFrom] = useState(hoursToClock(config.dayStartHour));
@@ -79,6 +83,7 @@ export function CompanyTimePayrollSettings({
 
   useEffect(() => {
     setEnabled(config.timeRegistrationEnabled);
+    setEmployeesCanCreateProjects(config.employeesCanCreateProjects);
     setWeeklyNorm(config.weeklyHoursNorm === 40 ? "40" : "37.5");
     setLunch(String(config.lunchBreakMinutes));
     setClockFrom(hoursToClock(config.dayStartHour));
@@ -134,6 +139,13 @@ export function CompanyTimePayrollSettings({
     setEnabled(next);
     const ok = await save({ timeRegistrationEnabled: next });
     if (!ok) setEnabled(prev);
+  };
+
+  const handleEmployeesCanCreate = async (next: boolean) => {
+    const prev = employeesCanCreateProjects;
+    setEmployeesCanCreateProjects(next);
+    const ok = await save({ employeesCanCreateProjects: next });
+    if (!ok) setEmployeesCanCreateProjects(prev);
   };
 
   const handleSaveWork = async () => {
@@ -216,6 +228,32 @@ export function CompanyTimePayrollSettings({
               onCheckedChange={handleEnable}
             />
             <Label htmlFor="time-reg-enabled">{t("enableLabel")}</Label>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Briefcase className="h-5 w-5" />
+            {t("employeesCreateTitle")}
+          </CardTitle>
+          <CardDescription>{t("employeesCreateDescription")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
+            <div className="space-y-0.5 pr-4">
+              <Label htmlFor="employees-create-projects" className="text-sm">
+                {t("employeesCreateLabel")}
+              </Label>
+              <p className="text-xs text-muted-foreground">{t("employeesCreateHelp")}</p>
+            </div>
+            <Switch
+              id="employees-create-projects"
+              checked={employeesCanCreateProjects}
+              disabled={disableFields}
+              onCheckedChange={handleEmployeesCanCreate}
+            />
           </div>
         </CardContent>
       </Card>

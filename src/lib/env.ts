@@ -69,6 +69,7 @@ interface EnvConfig {
   TRIPLETEX_APP_NAME?: string;
   TRIPELTEX_APP_NAME?: string;
   TRIPLETEX_API_BASE?: string;
+  TRIPELTEX_API_BASE?: string;
   FIELD_ENCRYPTION_KEY?: string;
 
   // AI (optional)

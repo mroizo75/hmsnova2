@@ -16,6 +16,14 @@ import { HandbokVersionBar } from "./handbok-version-bar";
 import { HandbokSignButton } from "./handbok-sign-button";
 import { HandbokReviewButton } from "./handbok-review-button";
 import { ensureHrSections, toggleSectionEnabled, updateSectionExternalRef } from "@/server/actions/hms-handbok.actions";
+import {
+  HANDBOOK_PART_DESCRIPTIONS,
+  HANDBOOK_PART_LABELS,
+  HANDBOOK_PARTS,
+  groupHandbookSections,
+  handbookSectionInPart,
+  type HandbookPart,
+} from "@/lib/handbook-parts";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -84,7 +92,7 @@ export function HandbokViewer({
   const router = useRouter();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [filter, setFilter] = useState<"ALL" | "HMS" | "HR">("ALL");
+  const [filter, setFilter] = useState<"ALL" | HandbookPart>("ALL");
   const [addingHr, setAddingHr] = useState(false);
   const [togglingSection, setTogglingSection] = useState<string | null>(null);
   const [editingRef, setEditingRef] = useState<Record<string, string>>({});
@@ -92,18 +100,16 @@ export function HandbokViewer({
   const currentVersion = handbook.currentVersion;
   const alreadySigned = handbook.signatures.some((s) => s.userId === currentUserId);
   const isDraft = currentVersion?.status === "DRAFT";
-  const hasHrSections = currentVersion?.sections.some(
-    (s) => s.category === "HR" || s.sectionKey.startsWith("hr-"),
+  const hasHrSections = currentVersion?.sections.some((s) =>
+    handbookSectionInPart(s.sectionKey, s.category, "HR"),
   ) ?? false;
 
   const visibleSections = (currentVersion?.sections ?? [])
     .filter((section) => !isEmployee || !ADMIN_ONLY_SECTIONS.has(section.sectionKey))
-    .filter((section) => !isEmployee || section.isEnabled !== false || !!section.externalRef)
-    .filter((section) => {
-      if (filter === "ALL") return true;
-      const category = section.category ?? (section.sectionKey.startsWith("hr-") ? "HR" : "HMS");
-      return category === filter;
-    });
+    .filter((section) => !isEmployee || section.isEnabled !== false || !!section.externalRef);
+
+  const groupedSections = groupHandbookSections(visibleSections);
+  const visibleParts = filter === "ALL" ? HANDBOOK_PARTS : [filter];
 
   async function handleToggleSection(sectionId: string, enabled: boolean) {
     setTogglingSection(sectionId);
@@ -266,11 +272,12 @@ export function HandbokViewer({
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              Innhold i HMS- og personalhåndbok – v{currentVersion.version}
+              Innhold – v{currentVersion.version}
             </h2>
-            <div className="flex gap-1">
+            <div className="flex flex-wrap gap-1">
               {([
                 { id: "ALL", label: "Alle" },
+                { id: "KS", label: "Kvalitet" },
                 { id: "HMS", label: "HMS" },
                 { id: "HR", label: "Personal" },
               ] as const).map((tab) => (
@@ -287,12 +294,21 @@ export function HandbokViewer({
               ))}
             </div>
           </div>
-          {visibleSections.map((section) => {
+          {visibleParts.map((part) => {
+            const partSections = groupedSections[part];
+            if (partSections.length === 0) return null;
+            return (
+              <div key={part} className="space-y-3">
+                <div className="pt-2">
+                  <h3 className="text-base font-semibold">{HANDBOOK_PART_LABELS[part]}</h3>
+                  <p className="text-sm text-muted-foreground">{HANDBOOK_PART_DESCRIPTIONS[part]}</p>
+                </div>
+                {partSections.map((section) => {
             const isDisabled = section.isEnabled === false;
             const showRefOnly = isEmployee && isDisabled && !!section.externalRef;
 
             return (
-              <div key={section.id} className={cn(isDisabled && !showRefOnly && "opacity-60")}>
+              <div key={`${part}-${section.id}`} className={cn(isDisabled && !showRefOnly && "opacity-60")}>
                 {isDraft && canManage && (
                   <div className="space-y-0">
                     <div className="flex items-center justify-between rounded-t-lg border border-b-0 bg-muted/50 px-4 py-2">
@@ -365,11 +381,16 @@ export function HandbokViewer({
                     canEdit={canManage}
                     annualPlanProgress={stats.annualPlanProgress}
                     legalRequirements={stats.legalRequirements}
+                    participationMeetings={stats.participationMeetings}
+                    wasteDeliveries={stats.wasteDeliveries}
                     suggestions={suggestions.filter(
                       (s) => s.targetSectionKey === section.sectionKey,
                     )}
                   />
                 )}
+              </div>
+            );
+                })}
               </div>
             );
           })}
@@ -380,7 +401,7 @@ export function HandbokViewer({
             <BookOpen className="mx-auto h-8 w-8 text-muted-foreground/40" />
             <p className="mt-3 text-sm font-medium">Ingen seksjoner ennå</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              HMS Håndboken har ikke fått innhold ennå. Kontakt support for å importere en bransje-mal.
+              Styringssystemet har ikke fått innhold ennå. Kontakt support for å importere en bransje-mal.
             </p>
           </CardContent>
         </Card>

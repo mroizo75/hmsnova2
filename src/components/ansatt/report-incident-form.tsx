@@ -30,6 +30,7 @@ import { PsychosocialIncidentHint } from "@/features/incidents/components/psycho
 
 const NO_REPORTED_FOR = "__none__";
 const NO_PROJECT = "__none__";
+const NO_EQUIPMENT = "__none__";
 
 function getCurrentLocalDateTimeValue(): string {
   const now = new Date();
@@ -46,6 +47,7 @@ export function ReportIncidentForm({
   reportedBy,
   users = [],
   projects = [],
+  equipment = [],
   successRedirectPath = "/ansatt/avvik/takk",
   ruhModuleEnabled = true,
   aiEnabled = false,
@@ -55,6 +57,7 @@ export function ReportIncidentForm({
   reportedBy: string;
   users?: Array<{ id: string; name: string | null; email: string }>;
   projects?: Array<{ id: string; name: string; code: string | null }>;
+  equipment?: Array<{ id: string; name: string; serialNumber: string | null }>;
   successRedirectPath?: string;
   ruhModuleEnabled?: boolean;
   aiEnabled?: boolean;
@@ -65,6 +68,7 @@ export function ReportIncidentForm({
     location?: string;
     immediateAction?: string;
     projectId?: string;
+    equipmentId?: string;
   };
 }) {
   const t = useTranslations("employeeIncidentForm");
@@ -86,6 +90,7 @@ export function ReportIncidentForm({
   );
   const [reportedForUserId, setReportedForUserId] = useState<string>(NO_REPORTED_FOR);
   const [projectId, setProjectId] = useState<string>(defaultValues?.projectId ?? NO_PROJECT);
+  const [equipmentId, setEquipmentId] = useState<string>(defaultValues?.equipmentId ?? NO_EQUIPMENT);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<{
     rootCause: string;
@@ -190,6 +195,9 @@ export function ReportIncidentForm({
     }
     if (projectId !== NO_PROJECT) {
       formData.set("projectId", projectId);
+    }
+    if (equipmentId !== NO_EQUIPMENT) {
+      formData.set("equipmentApprovalId", equipmentId);
     }
 
     try {
@@ -372,6 +380,28 @@ export function ReportIncidentForm({
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">{t("fields.project.help")}</p>
+        </div>
+      )}
+
+      {equipment.length > 0 && (
+        <div className="space-y-2">
+          <Label htmlFor="equipmentApprovalId" className="text-base">
+            {t("fields.equipment.label")}
+          </Label>
+          <Select value={equipmentId} onValueChange={setEquipmentId} disabled={isSubmitting}>
+            <SelectTrigger id="equipmentApprovalId" className="h-11 text-base">
+              <SelectValue placeholder={t("fields.equipment.placeholder")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NO_EQUIPMENT}>{t("fields.equipment.none")}</SelectItem>
+              {equipment.map((item) => (
+                <SelectItem key={item.id} value={item.id}>
+                  {item.serialNumber ? `${item.name} · ${item.serialNumber}` : item.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">{t("fields.equipment.help")}</p>
         </div>
       )}
 

@@ -582,6 +582,16 @@ export async function generateBrandedPdf(config: PdfReportConfig): Promise<Buffe
   }
 }
 
+/** PDF for dokumentmal uten Word-rapportmal (HTML → PDF, deretter jsPDF). */
+export async function generateDocumentPdf(config: PdfReportConfig): Promise<Buffer> {
+  try {
+    const html = await buildReportHtml(config);
+    return await htmlToPdf(html);
+  } catch {
+    return generateFallbackPdf(config);
+  }
+}
+
 async function toReportMergeData(config: PdfReportConfig) {
   const tenantRaw = await resolveImageToBase64(config.tenant.logoUrl);
   return buildReportMergeData(config, {

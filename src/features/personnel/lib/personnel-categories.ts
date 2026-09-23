@@ -36,6 +36,20 @@ export const PERSONNEL_CATEGORY_LEGAL: Record<PersonnelCategory, string> = {
   OTHER: "GDPR art. 6",
 };
 
+export function personnelCategoryFromHrTemplate(name: string): PersonnelCategory {
+  const normalized = name.toLowerCase();
+  if (normalized.includes("sluttattest") || normalized.includes("attest")) {
+    return "CERTIFICATE";
+  }
+  if (normalized.includes("arbeidsavtale") || normalized.includes("kontrakt")) {
+    return "CONTRACT";
+  }
+  if (normalized.includes("jobbtilbud") || normalized.includes("tilbud")) {
+    return "CORRESPONDENCE";
+  }
+  return "OTHER";
+}
+
 export function canAccessPersonnelFile(opts: {
   viewerId: string;
   employeeId: string;

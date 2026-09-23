@@ -41,13 +41,20 @@ import {
   TrendingUp,
   CreditCard,
   Boxes,
+  Landmark,
 } from "lucide-react";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
+import { AdminBackLink } from "@/components/admin-list-position";
+import { tenantsListHrefFromReturn } from "@/lib/admin-list-url";
 
 interface PageProps {
   params: Promise<{
     id: string;
+  }>;
+  searchParams: Promise<{
+    returnPage?: string;
+    returnSearch?: string;
   }>;
 }
 
@@ -55,7 +62,13 @@ export const metadata = {
   title: "Bedriftsdetaljer | HMS Nova Admin",
 };
 
-async function TenantDetails({ id }: { id: string }) {
+async function TenantDetails({
+  id,
+  backHref,
+}: {
+  id: string;
+  backHref: string;
+}) {
   const session = await getServerSession(authOptions);
   const currentUser = session?.user?.email
     ? await prisma.user.findUnique({
@@ -77,17 +90,18 @@ async function TenantDetails({ id }: { id: string }) {
   const lastManagementReview = tenant.managementReviews?.[0];
   const packageStatusResult = await getTenantIndustryPackageStatus(tenant.id);
   const packageStatus = packageStatusResult.success ? packageStatusResult.data : null;
+  const group = tenant.corporateGroupMemberships[0]?.group;
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href="/admin/tenants">
-          <Button variant="outline" size="sm">
+        <Button asChild variant="outline" size="sm" className="bg-transparent">
+          <AdminBackLink fallbackHref={backHref}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Tilbake
-          </Button>
-        </Link>
+          </AdminBackLink>
+        </Button>
         <div className="flex-1">
           <h1 className="text-3xl font-bold mb-1">{tenant.name}</h1>
           <p className="text-muted-foreground">
@@ -95,6 +109,14 @@ async function TenantDetails({ id }: { id: string }) {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {group && (
+            <Link href={`/admin/konsern/${group.id}`}>
+              <Badge variant="secondary" className="gap-1">
+                <Landmark className="h-3 w-3" />
+                {group.name}
+              </Badge>
+            </Link>
+          )}
           <Badge
             variant={
               tenant.status === "ACTIVE"
@@ -651,8 +673,10 @@ async function TenantDetails({ id }: { id: string }) {
   );
 }
 
-export default async function TenantDetailsPage({ params }: PageProps) {
+export default async function TenantDetailsPage({ params, searchParams }: PageProps) {
   const { id } = await params;
+  const query = await searchParams;
+  const backHref = tenantsListHrefFromReturn(query.returnPage, query.returnSearch);
   
   return (
     <Suspense
@@ -664,7 +688,7 @@ export default async function TenantDetailsPage({ params }: PageProps) {
         </Card>
       }
     >
-      <TenantDetails id={id} />
+      <TenantDetails id={id} backHref={backHref} />
     </Suspense>
   );
 }

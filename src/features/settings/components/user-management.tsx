@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -45,6 +44,7 @@ import { assignUserDepartment } from "@/server/actions/department.actions";
 import { getRoleDisplayName } from "@/lib/permissions";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import { useRefreshAfterSave } from "@/hooks/use-refresh-after-save";
 
 interface UserManagementProps {
   users: Array<{
@@ -82,7 +82,7 @@ export function UserManagement({
   pricingTier,
   maxUsers,
 }: UserManagementProps) {
-  const router = useRouter();
+  const refreshAfterSave = useRefreshAfterSave();
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
   const defaultInviteRole =
@@ -168,7 +168,8 @@ export function UserManagement({
         className: "bg-green-50 border-green-200",
       });
       setInviteOpen(false);
-      router.refresh();
+      setCurrentPage(1);
+      await refreshAfterSave();
     } else {
       toast({
         variant: "destructive",
@@ -190,7 +191,7 @@ export function UserManagement({
         description: "Brukerens rolle er endret",
         className: "bg-green-50 border-green-200",
       });
-      router.refresh();
+      await refreshAfterSave();
     } else {
       toast({
         variant: "destructive",
@@ -213,7 +214,7 @@ export function UserManagement({
       });
     } else {
       toast({ title: "Avdeling oppdatert", className: "bg-green-50 border-green-200" });
-      router.refresh();
+      await refreshAfterSave();
     }
     setLoading(null);
   };
@@ -231,7 +232,7 @@ export function UserManagement({
         title: "🗑️ Bruker fjernet",
         description: `${userName} er fjernet fra bedriften`,
       });
-      router.refresh();
+      await refreshAfterSave();
     } else {
       toast({
         variant: "destructive",
@@ -290,7 +291,8 @@ export function UserManagement({
       description: baseMsg + warningMsg,
       className: "bg-green-50 border-green-200",
     });
-    router.refresh();
+    setCurrentPage(1);
+    await refreshAfterSave();
   };
 
   const handleEmployeeNumberSave = async (userId: string) => {
@@ -301,7 +303,7 @@ export function UserManagement({
         className: "bg-green-50 border-green-200",
       });
       setEditingEmployeeNumber(null);
-      router.refresh();
+      await refreshAfterSave();
     } else {
       toast({
         variant: "destructive",
@@ -319,7 +321,7 @@ export function UserManagement({
         className: "bg-green-50 border-green-200",
       });
       setEditingPosition(null);
-      router.refresh();
+      await refreshAfterSave();
     } else {
       toast({
         variant: "destructive",
@@ -342,7 +344,7 @@ export function UserManagement({
         title: "Nærmeste leder oppdatert",
         className: "bg-green-50 border-green-200",
       });
-      router.refresh();
+      await refreshAfterSave();
     } else {
       toast({
         variant: "destructive",
@@ -385,7 +387,7 @@ export function UserManagement({
         className: "bg-green-50 border-green-200",
       });
       setSelectedUserIds([]);
-      router.refresh();
+      await refreshAfterSave();
     } else {
       toast({
         variant: "destructive",

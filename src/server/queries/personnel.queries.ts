@@ -3,6 +3,8 @@
 import { prisma } from "@/lib/db";
 import { getAuthContext } from "@/lib/server-authorization";
 import { canAccessPersonnelFile } from "@/features/personnel/lib/personnel-categories";
+import { isHrDocumentCategory } from "@/lib/document-module-scope";
+import { matchesIndustryScope } from "@/lib/industry-scope";
 
 export type PersonnelEmployeeRow = {
   userId: string;
@@ -203,6 +205,138 @@ export async function fetchPersonnelFolder(userId: string): Promise<PersonnelFol
           : [],
       canReadHrNotes,
     },
+  };
+}
+
+export type HrPersonnelTemplate = {
+  id: string;
+  name: string;
+  description: string | null;
+};
+
+export async function fetchHrDocumentTemplates(): Promise<HrPersonnelTemplate[]> {
+  const auth = await getAuthContext();
+  if (!auth) return [];
+
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: auth.tenantId },
+    select: { industry: true },
+  });
+  const industry = tenant?.industry ?? null;
+
+  const templates = await prisma.documentTemplate.findMany({
+    where: {
+      OR: [{ tenantId: auth.tenantId, isGlobal: false }, { tenantId: null, isGlobal: true }],
+    },
+    select: { id: true, name: true, description: true, category: true, industryScope: true, tenantId: true },
+    orderBy: [{ isGlobal: "asc" }, { name: "asc" }],
+  });
+
+  const hrTemplates = templates.filter(
+    (template) =>
+      isHrDocumentCategory(template.category) &&
+      (template.tenantId === auth.tenantId || matchesIndustryScope(template.industryScope, industry)),
+  );
+
+  const seen = new Set<string>();
+  const unique: HrPersonnelTemplate[] = [];
+  for (const template of hrTemplates) {
+    if (seen.has(template.name)) continue;
+    seen.add(template.name);
+    unique.push({ id: template.id, name: template.name, description: template.description });
+  }
+  return unique;
+}
+
+export type PersonnelReviewRow = {
+  id: string;
+  scheduledDate: string;
+  status: string;
+  reviewerName: string | null;
+};
+
+export type PersonnelCompetenceRow = {
+  id: string;
+  dimension: "KUNNSKAP" | "FERDIGHET" | "EVNE" | "HOLDNING";
+  statement: string;
+  level: "MANGLER" | "DELVIS" | "INNFRIDD" | null;
+  comment: string | null;
+  reviewId: string | null;
+};
+
+export type PersonnelDevelopment = {
+  reviews: PersonnelReviewRow[];
+  statements: PersonnelCompetenceRow[];
+  canCreateReview: boolean;
+  canEditCompetence: boolean;
+  hasProfileStatements: boolean;
+};
+
+export async function fetchPersonnelDevelopment(userId: string): Promise<PersonnelDevelopment | null> {
+  const auth = await getAuthContext();
+  if (!auth) return null;
+
+  const membership = await prisma.userTenant.findUnique({
+    where: { userId_tenantId: { userId, tenantId: auth.tenantId } },
+    select: { departmentId: true },
+  });
+  if (!membership) return null;
+
+  const allowed = canAccessPersonnelFile({
+    viewerId: auth.userId,
+    employeeId: userId,
+    canReadOwn: auth.permissions.canReadOwnPersonnelFile,
+    canReadAll: auth.permissions.canReadAllPersonnelFiles,
+    canReadDepartment: auth.permissions.canReadDepartmentPersonnelFiles,
+    viewerDepartmentId: auth.departmentId,
+    employeeDepartmentId: membership.departmentId,
+  });
+  if (!allowed) return null;
+
+  const [reviews, statements, profileStatementCount] = await Promise.all([
+    prisma.employeeReview.findMany({
+      where: { tenantId: auth.tenantId, employeeId: userId },
+      include: { reviewer: { select: { name: true, email: true } } },
+      orderBy: { scheduledDate: "desc" },
+    }),
+    prisma.competenceStatement.findMany({
+      where: { tenantId: auth.tenantId, userId },
+      include: {
+        ratings: {
+          where: { userId },
+          select: { level: true, comment: true, reviewId: true },
+        },
+      },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    }),
+    prisma.competenceStatement.count({
+      where: {
+        tenantId: auth.tenantId,
+        userId: null,
+        profile: { users: { some: { userId, tenantId: auth.tenantId } } },
+      },
+    }),
+  ]);
+
+  return {
+    reviews: reviews.map((review) => ({
+      id: review.id,
+      scheduledDate: review.scheduledDate.toISOString(),
+      status: review.status,
+      reviewerName: review.reviewer.name ?? review.reviewer.email,
+    })),
+    statements: statements.map((row) => ({
+      id: row.id,
+      dimension: row.dimension,
+      statement: row.statement,
+      level: row.ratings[0]?.level ?? null,
+      comment: row.ratings[0]?.comment ?? null,
+      reviewId: row.ratings[0]?.reviewId ?? null,
+    })),
+    canCreateReview: auth.permissions.canCreateEmployeeReviews,
+    canEditCompetence:
+      auth.permissions.canCreateEmployeeReviews || auth.permissions.canReadHrNotes,
+    hasProfileStatements: profileStatementCount > 0,
   };
 }
 

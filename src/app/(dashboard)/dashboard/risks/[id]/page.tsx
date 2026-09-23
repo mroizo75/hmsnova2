@@ -6,6 +6,7 @@ import { fetchRiskDetail } from "@/server/queries/risk-register.queries";
 import { getTrainingRequirementsForRisk } from "@/server/actions/risk-training.actions";
 import { getResourceHistory } from "@/server/actions/activity-history.actions";
 import { RiskDetailContent } from "@/features/risks/components/risk-detail-content";
+import { getPermissions } from "@/lib/permissions";
 
 export default async function EditRiskPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -52,6 +53,7 @@ export default async function EditRiskPage({ params }: { params: Promise<{ id: s
       userId={user.id}
       trainingRequirements={trainingRequirements}
       history={history}
+      canSuggestMeasures={getPermissions(selectedMembership.role).canCreateActions}
     />
   );
 }

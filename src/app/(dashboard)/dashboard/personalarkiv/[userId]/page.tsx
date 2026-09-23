@@ -1,6 +1,10 @@
 import { redirect } from "next/navigation";
 import { getAuthContext } from "@/lib/server-authorization";
-import { fetchPersonnelFolder } from "@/server/queries/personnel.queries";
+import {
+  fetchPersonnelFolder,
+  fetchHrDocumentTemplates,
+  fetchPersonnelDevelopment,
+} from "@/server/queries/personnel.queries";
 import { fetchEmployeeHrThread } from "@/server/queries/hr-overview.queries";
 import { PersonnelFolderView } from "@/features/personnel/components/personnel-folder";
 import { HrWorkspaceNav } from "@/features/hr/components/hr-workspace-nav";
@@ -18,7 +22,11 @@ export default async function PersonalmappePage({
   const folder = await fetchPersonnelFolder(userId);
   if (!folder) redirect("/dashboard/personalarkiv");
 
-  const hrThread = await fetchEmployeeHrThread(userId);
+  const [hrThread, hrTemplates, development] = await Promise.all([
+    fetchEmployeeHrThread(userId),
+    auth.permissions.canUploadPersonnelFile ? fetchHrDocumentTemplates() : Promise.resolve([]),
+    fetchPersonnelDevelopment(userId),
+  ]);
 
   return (
     <div className="space-y-6 p-6">
@@ -39,6 +47,8 @@ export default async function PersonalmappePage({
         canEditKin={auth.userId === userId || auth.permissions.canReadHrNotes}
         canEditBirthDate={auth.userId === userId || auth.permissions.canReadHrNotes}
         hrThread={hrThread}
+        hrTemplates={hrTemplates}
+        development={development}
       />
     </div>
   );

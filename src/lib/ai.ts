@@ -576,3 +576,93 @@ Krav:
   };
 }
 
+/**
+ * Utkast til tiltak for én allerede registrert risiko.
+ *
+ * AML § 3-1 (2) c og internkontrollforskriften § 5 (2) c krever at arbeidsgiver
+ * planlegger og iverksetter tiltak. ISO 45001 kap. 8.1.2 krever tiltakshierarkiet.
+ * Svaret er et utkast — det blir ikke et tiltak før en person godkjenner det
+ * og setter ansvarlig og frist (ISO 9001 kap. 10.2).
+ */
+export async function generateRiskMeasureSuggestions(
+  input: {
+    industry: string;
+    title: string;
+    context: string;
+    riskStatement: string;
+    existingControls: string;
+    category: string;
+    likelihood: number;
+    consequence: number;
+    location: string;
+    existingMeasureTitles: string[];
+  },
+  options?: GenerateAIResponseOptions
+): Promise<unknown> {
+  const prompt = `Du er HMS-rådgiver og skal foreslå konkrete tiltak for ÉN allerede kartlagt risiko i en norsk virksomhet.
+Tiltakene skal kunne inngå i handlingsplanen etter AML § 3-1 (2) bokstav c og internkontrollforskriften § 5 andre ledd bokstav c.
+Prioriter etter tiltakshierarkiet i ISO 45001:2018 kap. 8.1.2:
+1. eliminere faren
+2. erstatte med noe mindre farlig
+3. tekniske eller fysiske barrierer
+4. administrative tiltak (rutine, opplæring, skilting, tilsyn)
+5. personlig verneutstyr bare som siste barriere, aldri som eneste tiltak
+
+Virksomhet:
+- Bransje: ${input.industry}
+- Risiko: ${input.title}
+- Kategori: ${input.category}
+- Sannsynlighet ${input.likelihood} av 5, konsekvens ${input.consequence} av 5
+- Situasjon: ${input.context || "Ikke beskrevet"}
+- Konsekvens dersom risikoen inntreffer: ${input.riskStatement || "Ikke beskrevet"}
+- Eksisterende barrierer: ${input.existingControls || "Ingen beskrevet"}
+- Sted/område: ${input.location || "Ikke oppgitt"}
+- Tiltak som allerede er registrert (ikke gjenta disse): ${input.existingMeasureTitles.join("; ") || "Ingen"}
+
+Foreslå 3 eller 4 nye, gjennomførbare tiltak. Ikke foreslå «følg rutinene» eller andre generiske fraser.
+
+Vurder også restrisiko etter at de foreslåtte tiltakene er gjennomført (ISO 45001:2018 kap. 6.1.2).
+Bruk samme skala 1–5 som dagens vurdering. Restrisiko skal være lik eller lavere. Sett den bare lavt når tiltakene faktisk fjerner eller tydelig reduserer faren.
+
+Svar KUN med gyldig JSON:
+{
+  "residualLikelihood": 2,
+  "residualConsequence": 3,
+  "residualRationale": "én setning om hvilken risiko som gjenstår etter tiltakene",
+  "measures": [
+    {
+      "title": "kort imperativ, maks 12 ord",
+      "description": "2-4 setninger: hva som skal gjøres, hvordan det reduserer risikoen, og hva som er ferdig når tiltaket er gjennomført",
+      "category": "MITIGATION|PREVENTIVE|CORRECTIVE|IMPROVEMENT",
+      "followUpFrequency": "WEEKLY|MONTHLY|QUARTERLY|ANNUAL|BIENNIAL",
+      "suggestedDueDays": 30,
+      "rationale": "én setning om hvorfor tiltaket treffer denne risikoen, og hvilket trinn i tiltakshierarkiet det tilhører"
+    }
+  ]
+}
+
+Krav:
+- category MITIGATION reduserer kjent risiko, PREVENTIVE hindrer at faren oppstår, CORRECTIVE retter en manglende barriere, IMPROVEMENT er forbedring utover minimum.
+- followUpFrequency er hvor ofte effekten skal kontrolleres etter at tiltaket er gjennomført, ikke implementeringsfristen.
+- suggestedDueDays er et heltall mellom 14 og 90.
+- residualLikelihood og residualConsequence er heltall fra 1 til 5, og ikke høyere enn dagens vurdering (${input.likelihood} og ${input.consequence}).
+- Norsk språk, presist og praktisk.`;
+
+  const response = await generateAIResponse(prompt, "gpt-4o-mini", {
+    ...options,
+    ragQuery:
+      options?.ragQuery ??
+      `Risikoreduserende tiltak og tiltakshierarki for ${input.category}: ${input.title}`,
+  });
+  const jsonMatch = response.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error("AI-svaret kunne ikke leses. Prøv igjen.");
+  }
+
+  try {
+    return JSON.parse(jsonMatch[0]) as unknown;
+  } catch {
+    throw new Error("AI-svaret kunne ikke leses. Prøv igjen.");
+  }
+}
+

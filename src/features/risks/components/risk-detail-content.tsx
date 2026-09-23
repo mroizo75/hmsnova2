@@ -18,6 +18,7 @@ import { RiskRoutineLinker } from "@/features/risks/components/risk-routine-link
 import { RiskTrainingRequirements } from "@/components/risk-training-requirements";
 import { ResourceHistory } from "@/components/shared/resource-history";
 import { MocRelatedCard } from "@/features/moc/components/moc-related-card";
+import { AiRiskMeasureSuggestions } from "@/features/risks/components/ai-risk-measure-suggestions";
 
 type RiskDetailData = NonNullable<Awaited<ReturnType<typeof fetchRiskDetail>>>;
 
@@ -27,6 +28,7 @@ interface RiskDetailContentProps {
   userId: string;
   trainingRequirements: any[];
   history: any[];
+  canSuggestMeasures: boolean;
 }
 
 export function RiskDetailContent({
@@ -35,6 +37,7 @@ export function RiskDetailContent({
   userId,
   trainingRequirements,
   history,
+  canSuggestMeasures,
 }: RiskDetailContentProps) {
   const t = useTranslations("dashboardRiskDetailPage");
 
@@ -62,6 +65,7 @@ export function RiskDetailContent({
       </div>
 
       <RiskForm
+        key={`${risk.id}-${String(risk.updatedAt)}-${risk.residualLikelihood ?? ""}-${risk.residualConsequence ?? ""}`}
         tenantId={tenantId}
         userId={userId}
         risk={risk}
@@ -72,14 +76,23 @@ export function RiskDetailContent({
         slotBetweenRisikonivaAndResidual={
           <Card id="tiltak">
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <CardTitle>{t("measures.title")}</CardTitle>
                   <CardDescription>
                     {t("measures.description")}
                   </CardDescription>
                 </div>
-                <MeasureForm tenantId={tenantId} riskId={risk.id} users={tenantUsers} />
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <AiRiskMeasureSuggestions
+                    riskId={risk.id}
+                    riskTitle={risk.title}
+                    ownerId={risk.ownerId}
+                    users={tenantUsers}
+                    enabled={canSuggestMeasures}
+                  />
+                  <MeasureForm tenantId={tenantId} riskId={risk.id} users={tenantUsers} />
+                </div>
               </div>
             </CardHeader>
             <CardContent>

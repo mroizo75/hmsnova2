@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { getPermissions, getVisibleNavItems } from "@/lib/permissions";
 import { getSetupGuideProgress } from "@/server/actions/onboarding.actions";
 import { distributableDocumentsWhere } from "@/lib/document-module-scope";
+import { isDocumentAttention } from "@/lib/document-attention";
 
 export async function fetchDashboardData() {
   const session = await getServerSession(authOptions);
@@ -133,6 +134,7 @@ export async function fetchDashboardData() {
       r.status === "NEEDS_REVIEW" ||
       (r.nextReviewAt && new Date(r.nextReviewAt) <= now)
   );
+  const documentsNeedingAttention = documents.filter((doc) => isDocumentAttention(doc, now));
 
   const tenWeeksAgo = new Date(now);
   tenWeeksAgo.setDate(tenWeeksAgo.getDate() - 70);
@@ -192,7 +194,7 @@ export async function fetchDashboardData() {
     actions: measures.filter((m) => m.status !== "DONE").length,
     inspections: inspections.filter((i) => i.status !== "COMPLETED").length,
     training: trainings.filter((t) => !t.completedAt).length,
-    documents: documents.length,
+    documents: documentsNeedingAttention.length,
     chemicals: 0,
     audits: audits.filter((a) => a.status !== "COMPLETED").length,
     goals: goals.filter((g) => g.status === "ACTIVE" || g.status === "AT_RISK").length,
@@ -214,6 +216,13 @@ export async function fetchDashboardData() {
       title: "Kritiske risikoer",
       count: criticalRisks.length,
       href: "/dashboard/risks",
+      level: "critical" as const,
+    },
+    {
+      id: "documents-attention",
+      title: "Dokumenter til gjennomgang",
+      count: documentsNeedingAttention.length,
+      href: "/dashboard/documents?sort=red",
       level: "critical" as const,
     },
     {

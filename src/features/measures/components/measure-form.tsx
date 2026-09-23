@@ -124,7 +124,7 @@ export function MeasureForm({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button>
+          <Button type="button">
             <Plus className="mr-2 h-4 w-4" />
             Nytt tiltak
           </Button>

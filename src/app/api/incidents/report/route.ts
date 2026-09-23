@@ -74,6 +74,9 @@ export async function POST(request: NextRequest) {
     const rawSubcategoryKeys = formData.get("subcategoryKeys") as string | null;
     const projectId = (formData.get("projectId") as string | null) || null;
     const projectReference = normalizeProjectReference(formData.get("projectReference"));
+    const rawEquipmentId = (formData.get("equipmentApprovalId") as string | null)?.trim() || null;
+    const equipmentApprovalId =
+      rawEquipmentId && rawEquipmentId !== "__none__" ? rawEquipmentId : null;
     const subcategoryKeys =
       rawSubcategoryKeys && rawSubcategoryKeys.trim().startsWith("[")
         ? rawSubcategoryKeys
@@ -139,6 +142,18 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    let validatedEquipmentId: string | null = null;
+    if (equipmentApprovalId) {
+      const equipment = await prisma.equipmentApproval.findFirst({
+        where: { id: equipmentApprovalId, tenantId },
+        select: { id: true },
+      });
+      if (!equipment) {
+        return NextResponse.json({ error: "Arbeidsutstyr ikke funnet" }, { status: 400 });
+      }
+      validatedEquipmentId = equipment.id;
+    }
+
     // Opprett avvik
     const incident = await prisma.incident.create({
       data: {
@@ -164,6 +179,7 @@ export async function POST(request: NextRequest) {
         subcategoryKeys,
         projectId: validatedProjectId,
         projectReference,
+        equipmentApprovalId: validatedEquipmentId,
         customerName,
         customerEmail,
         customerPhone,

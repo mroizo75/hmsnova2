@@ -15,6 +15,7 @@ import {
 import { Plus } from "lucide-react";
 import { upsertWeekEntry } from "@/server/actions/time-registration.actions";
 import { useToast } from "@/hooks/use-toast";
+import { dayIndexInWeek, weekDateRange } from "@/lib/time/week-range";
 
 interface Project {
   id: string;
@@ -38,6 +39,7 @@ interface WeekGridProps {
   dailyNorm: number;
   onEntryChanged: () => void;
   userId?: string;
+  pinnedProjectIds?: string[];
 }
 
 type CellKey = `${string}_${number}`;
@@ -47,13 +49,13 @@ function buildGridData(
   weekStart: Date
 ): Map<string, number[]> {
   const grid = new Map<string, number[]>();
+  const weekDays = weekDateRange(format(weekStart, "yyyy-MM-dd")).days;
 
   for (const entry of timeEntries) {
     if (!["NORMAL", "OVERTIME_50", "OVERTIME_40", "OVERTIME_100", "WEEKEND"].includes(entry.timeType)) continue;
 
-    const entryDate = new Date(entry.date);
-    const dayIndex = Math.round((entryDate.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24));
-    if (dayIndex < 0 || dayIndex > 6) continue;
+    const dayIndex = dayIndexInWeek(entry.date, weekDays);
+    if (dayIndex < 0) continue;
 
     const key = entry.projectId;
     if (!grid.has(key)) grid.set(key, [0, 0, 0, 0, 0, 0, 0]);
@@ -142,22 +144,29 @@ export function WeekGrid({
   dailyNorm,
   onEntryChanged,
   userId,
+  pinnedProjectIds = [],
 }: WeekGridProps) {
   const { toast } = useToast();
   const [saving, setSaving] = useState<CellKey | null>(null);
   const [addingProject, setAddingProject] = useState(false);
-  const [gridData, setGridData] = useState(() => buildGridData(timeEntries, weekStart));
+  const pinnedKey = pinnedProjectIds.join(",");
 
-  useEffect(() => {
-    setGridData(buildGridData(timeEntries, weekStart));
-  }, [timeEntries, weekStart]);
-
-  // Auto-vis standard-prosjekt (første) hvis gridet er tomt
-  useEffect(() => {
-    if (gridData.size === 0 && projects.length > 0) {
-      setGridData(new Map([[projects[0].id, [0, 0, 0, 0, 0, 0, 0]]]));
+  const [gridData, setGridData] = useState(() => {
+    const next = buildGridData(timeEntries, weekStart);
+    for (const id of pinnedProjectIds) {
+      if (!next.has(id)) next.set(id, [0, 0, 0, 0, 0, 0, 0]);
     }
-  }, [projects, gridData.size]);
+    return next;
+  });
+
+  useEffect(() => {
+    const next = buildGridData(timeEntries, weekStart);
+    const ids = pinnedKey ? pinnedKey.split(",") : [];
+    for (const id of ids) {
+      if (!next.has(id)) next.set(id, [0, 0, 0, 0, 0, 0, 0]);
+    }
+    setGridData(next);
+  }, [timeEntries, weekStart, pinnedKey]);
 
   const activeProjectIds = Array.from(gridData.keys());
   const gridProjects = projects.filter((p) => activeProjectIds.includes(p.id));
@@ -278,7 +287,7 @@ export function WeekGrid({
             {gridProjects.length === 0 && !addingProject && (
               <tr>
                 <td colSpan={9} className="text-center py-6 text-muted-foreground text-sm">
-                  Ingen timer registrert denne uken. Legg til et prosjekt for å starte.
+                  Ingen timer registrert denne uken.
                 </td>
               </tr>
             )}

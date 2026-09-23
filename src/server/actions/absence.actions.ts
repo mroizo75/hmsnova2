@@ -157,6 +157,7 @@ export async function createAbsence(input: CreateAbsenceInput) {
         selfCertifiedDays,
         attachmentUrl: validated.attachmentUrl ?? null,
         attachmentName: validated.attachmentName ?? null,
+        projectId: validated.projectId ?? null,
       },
       include: {
         user: { select: { id: true, name: true, email: true } },
@@ -270,9 +271,13 @@ export async function approveAbsence(input: ApproveAbsenceInput) {
 
     const tenant = await prisma.tenant.findUnique({
       where: { id: auth.tenantId },
-      select: { accountingProvider: true, absenceProjectId: true },
+      select: { accountingProvider: true, absenceProjectId: true, absencePayrollTypes: true },
     });
-    if (tenant?.accountingProvider === "TRIPLETEX") {
+    const { shouldSyncAbsenceToPayroll } = await import("@/lib/time/absence-payroll");
+    if (
+      tenant?.accountingProvider === "TRIPLETEX" &&
+      shouldSyncAbsenceToPayroll(absence.type, tenant.absencePayrollTypes)
+    ) {
       await prisma.absence.update({
         where: { id: validated.id },
         data: {

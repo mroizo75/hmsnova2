@@ -9,6 +9,7 @@ import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
 import { helpContent } from "@/lib/help-content";
 import { fetchEnvironmentList } from "@/server/queries/environment.queries";
 import { EnvironmentContent } from "@/features/environment/components/environment-content";
+import { getPermissions } from "@/lib/permissions";
 
 export default async function EnvironmentPage() {
   const session = await getServerSession(authOptions);
@@ -67,7 +68,10 @@ export default async function EnvironmentPage() {
         </div>
       </div>
 
-      <EnvironmentContent initialData={initialData} />
+      <EnvironmentContent
+        initialData={initialData}
+        canUpdate={getPermissions(selectedMembership.role).canUpdateEnvironment}
+      />
     </div>
   );
 }

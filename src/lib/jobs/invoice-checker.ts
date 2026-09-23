@@ -1,15 +1,11 @@
 import { Queue, Worker } from "bullmq";
-import IORedis from "ioredis";
 import { 
   checkOverdueInvoices, 
   sendTrialExpiringReminders,
 } from "@/server/actions/invoice.actions";
+import { createJobsRedis } from "@/lib/jobs/redis";
 
-const connection = new IORedis({
-  host: process.env.REDIS_HOST || "localhost",
-  port: parseInt(process.env.REDIS_PORT || "6379"),
-  maxRetriesPerRequest: null,
-});
+const connection = createJobsRedis();
 
 // Opprett queue for faktura-sjekk
 export const invoiceQueue = new Queue("invoice-check", {

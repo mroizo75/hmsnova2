@@ -6,9 +6,10 @@
  * - Arbeidstilsynet: IK-HMS § 5 nr. 1–8 (skriftlig dokumentasjon nr. 4–8)
  * - Mattilsynet: IK-mat, HACCP-prinsippene, næringsmiddelhygieneforskriften
  * - Brannvesenet: Forskrift om brannforebygging §§ 4–13, brann- og eksplosjonsvernloven § 13
+ * - Statens vegvesen: verkstedforskriften §§ 15–18 (kvalitetsstyring for godkjent verksted)
  */
 
-export type TilsynType = "arbeidstilsynet" | "mattilsynet" | "brannvesenet" | "revisjon";
+export type TilsynType = "arbeidstilsynet" | "mattilsynet" | "brannvesenet" | "vegvesen" | "revisjon";
 
 export interface TilsynTypeConfig {
   id: TilsynType;
@@ -31,7 +32,10 @@ export type LiveDataType =
   | "routines"
   | "fire_drills"
   | "employee_reviews"
-  | "measures";
+  | "measures"
+  | "equipment"
+  | "quality_incidents"
+  | "quality_routines";
 
 /**
  * Seksjoner i HMS-håndboken og hva de dekker (for referanse):
@@ -59,8 +63,8 @@ export const TILSYN_TYPES: TilsynTypeConfig[] = [
   {
     id: "arbeidstilsynet",
     label: "Arbeidstilsynet",
-    description: "IK-HMS § 5: HMS-mål, organisasjon, risikovurdering, avvikshåndtering, opplæring, verneombud og internrevisjon",
-    legalBasis: "IK-HMS § 5 nr. 4–8, AML kap. 3, 5 og 6",
+    description: "IK-HMS § 5: mål, organisasjon, risiko, avvik, opplæring, rutiner, stoffkartotek, verneombud og gjennomgang",
+    legalBasis: "IK-HMS § 5 nr. 4–8, AML kap. 3, 4, 5 og 6",
     sectionKeys: [
       "s1",   // HMS-mål (§ 5 nr. 4)
       "s2",   // Organisasjon og ansvarsfordeling (§ 5 nr. 5)
@@ -73,9 +77,11 @@ export const TILSYN_TYPES: TilsynTypeConfig[] = [
       "s9",   // Ledelsens gjennomgang (§ 5 nr. 8)
       "s11",  // Arbeidsmiljø fysisk/psykososialt (AML §§ 4-2, 4-3)
       "s11b", // Varsling (AML § 2A-1)
+      "s12",  // Stoffkartotek (AML § 4-5)
       "s14",  // Intern revisjon (§ 5 nr. 8)
+      "s15",  // Rutiner (§ 5 nr. 7)
     ],
-    liveData: ["risks", "incidents", "training", "inspections", "measures", "employee_reviews"],
+    liveData: ["risks", "incidents", "training", "inspections", "measures", "employee_reviews", "chemicals", "routines"],
   },
   {
     id: "mattilsynet",
@@ -105,13 +111,36 @@ export const TILSYN_TYPES: TilsynTypeConfig[] = [
     liveData: ["fire_drills", "inspections", "training", "routines"],
   },
   {
+    id: "vegvesen",
+    label: "Statens vegvesen",
+    description: "Kvalitetsstyring for godkjent verksted: organisering, kompetanse, prosedyrer, kvalitetskontroll, kalibrering og avvik. Skaderapport og EU-kontroll meldes på vegvesen.no.",
+    legalBasis: "Verkstedforskriften §§ 15–18. PKK-forskriften §§ 13–15 dersom virksomheten er kontrollorgan.",
+    sectionKeys: [
+      "ks-policy",
+      "ks-leverandor",
+      "ks-kunder",
+      "s2",   // § 16 a organisering og roller
+      "s5",   // § 16 b kompetanse
+      "s6",   // § 16 c arbeidsprosedyre
+      "s15",  // § 16 c–e prosedyrer
+      "s4",   // § 16 f avvik
+      "s9",   // ajourhold
+      "s10",  // § 17 dokumentasjon
+      "s14",  // systematisk gjennomgang
+    ],
+    liveData: ["training", "equipment", "quality_routines", "quality_incidents"],
+  },
+  {
     id: "revisjon",
     label: "Intern revisjon (komplett)",
-    description: "Fullstendig HMS-dokumentasjon for egenkontroll eller ekstern revisjon",
-    legalBasis: "IK-HMS § 5, AML kap. 3",
+    description: "Hele styringssystemet: kvalitet, HMS og personal, til egenkontroll eller ekstern revisjon",
+    legalBasis: "ISO 9001:2015, IK-HMS § 5, AML kap. 3, 10, 12, 14 og 15",
     sectionKeys: [
+      "ks-policy", "ks-kunder", "ks-leverandor",
       "s1", "s2", "s2b", "s2c", "s3", "s4", "s5", "s6", "s7", "s8",
       "s9", "s10", "s11", "s11b", "s12", "s13", "s14", "s15",
+      "hr-arbeidsforhold", "hr-arbeidstid", "hr-ferie", "hr-sykefravaer",
+      "hr-permisjon", "hr-kompetanse", "hr-personvern", "hr-opphor",
     ],
     liveData: ["risks", "incidents", "training", "inspections", "chemicals", "routines", "fire_drills", "employee_reviews", "measures"],
   },

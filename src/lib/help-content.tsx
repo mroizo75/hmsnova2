@@ -674,42 +674,42 @@ export const helpContent: Record<string, HelpContent> = {
   },
 
   hmsHandbok: {
-    title: "HMS- og personalhåndbok",
-    description: "Én versjonskontrollert håndbok for HMS og personalrutiner",
+    title: "Kvalitet, HMS og personal",
+    description: "Ett versjonskontrollert styringssystem med tre deler",
     sections: [
       {
-        heading: "Hva er håndboken?",
+        heading: "Hva er styringssystemet?",
         emoji: "📖",
         content:
-          "Håndboken samler HMS-krav (IK-HMS § 5) og personalrutiner (arbeidsavtale, arbeidstid, ferie, sykefravær, permisjon, personvern og opphør) i ett dokument. Ansatte leser og signerer per versjon.",
+          "Håndboken samler kvalitet (ISO 9001), HMS (IK-HMS § 5) og personal (arbeidsavtale, arbeidstid, ferie, sykefravær, permisjon, personvern og opphør) i ett dokument. Ansatte leser og signerer per versjon. Avvik, dokumentstyring, rutiner, internrevisjon og ledelsens gjennomgang gjelder både kvalitet og HMS.",
       },
       {
-        heading: "Personal-kapitler",
+        heading: "De tre delene",
         emoji: "👤",
         items: [
-          { title: "Arbeidsavtale", description: "AML § 14-5 og § 14-6 – skriftlig avtale innen sju dager." },
-          { title: "Arbeidstid og ferie", description: "AML kap. 10 og ferieloven." },
-          { title: "Sykefravær og permisjon", description: "AML § 4-6, folketrygdloven § 8-7 og AML kap. 12." },
-          { title: "Personvern og opphør", description: "GDPR og AML kap. 15, inkludert sluttattest." },
+          { title: "Kvalitet", description: "Kvalitetspolicy og mål, kundeklager og leverandører (ISO 9001:2015 pkt. 5.2, 6.2, 8.2, 8.4 og 9.1.2)." },
+          { title: "HMS", description: "Internkontroll etter IK-HMS § 5, inkludert ytre miljø og beredskap." },
+          { title: "Personal", description: "AML § 14-5 og § 14-6, arbeidstid, ferieloven, sykefravær og GDPR art. 13." },
         ],
       },
       {
         heading: "Slik bruker du den",
         emoji: "🔧",
         items: [
-          { title: "1. Legg til personal-kapitler", description: "På eksisterende håndbøker: bruk knappen «Legg til personal-kapitler»." },
-          { title: "2. Tilpass teksten", description: "Rediger utkastet og sett inn bedriftens egne regler." },
-          { title: "3. Godkjenn og be ansatte signere", description: "Ny versjon krever godkjenning. Ansatte signerer i ansattportalen." },
+          { title: "1. Tilpass teksten", description: "Rediger utkastet og sett inn bedriftens egne regler og mål." },
+          { title: "2. Godkjenn versjonen", description: "Ny versjon krever godkjenning før den er gjeldende." },
+          { title: "3. Be ansatte signere", description: "Ansatte signerer i ansattportalen per versjon." },
         ],
       },
     ],
     isoStandards: [
+      "ISO 9001: kvalitetsstyring",
       "ISO 45001: dokumentert HMS-styring",
       "IK-HMS § 5: internkontroll og kjente rutiner",
     ],
     tips: [
-      "Bruk filteret Alle / HMS / Personal for å lese det som er relevant",
-      "Koble kapitlene til modulene (fravær, onboarding, kompetanse)",
+      "Bruk filteret Alle / Kvalitet / HMS / Personal",
+      "Felles kapitler vises i både Kvalitet og HMS",
       "Be alle ansatte signere etter hver publisert versjon",
     ],
   },

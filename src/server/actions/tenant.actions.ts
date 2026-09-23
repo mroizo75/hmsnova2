@@ -802,6 +802,15 @@ export async function getTenantDetails(tenantId: string) {
           },
           take: 50,
         },
+        corporateGroupMemberships: {
+          where: { status: "ACTIVE" },
+          take: 1,
+          select: {
+            group: {
+              select: { id: true, name: true },
+            },
+          },
+        },
         _count: {
           select: {
             users: true,

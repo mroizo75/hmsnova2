@@ -21,6 +21,7 @@ const PATH_TO_WIDGET: Record<string, string> = {
   "/dashboard/chemicals": "chemicals",
   "/dashboard/exposure-register": "exposure-register",
   "/dashboard/construction-compliance": "construction-compliance",
+  "/dashboard/utstyr": "equipment-approval",
   "/dashboard/ik-mat": "ik-mat",
   "/dashboard/skjenking": "skjenking",
   "/dashboard/aktivitetssikkerhet": "aktivitetssikkerhet",

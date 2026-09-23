@@ -1,5 +1,6 @@
 "use server";
 
+import { ZodError, z } from "zod";
 import { prisma } from "@/lib/db";
 import { getIndustryPackage } from "@/lib/industry-packages";
 import { matchesIndustryScope } from "@/lib/industry-scope";
@@ -18,12 +19,35 @@ interface ProvisionIndustryPackageResult {
   error?: string;
 }
 
+interface ProvisionIndustryPackageOptions {
+  /** IK-HMS § 5 nr. 3 + AML § 3-1: hvem som deltok da malen ble tatt i bruk. */
+  participants?: string;
+}
+
+/** Påkrevd når bruker selv legger inn bransjemal. Malen er ikke en ferdig vurdering. */
+const applyIndustryRiskTemplateSchema = z.object({
+  participants: z
+    .string()
+    .trim()
+    .min(3, "Deltakere i vurderingen må fylles ut (IK-HMS § 5 nr. 3 og AML § 3-1).")
+    .max(4000, "Deltakerlisten er for lang."),
+});
+
+function formatActionError(error: unknown, fallback: string): string {
+  if (error instanceof ZodError) {
+    return error.issues.map((issue) => issue.message).join(". ");
+  }
+  if (error instanceof Error) return error.message;
+  return fallback;
+}
+
 function calculateRiskScore(likelihood: number, consequence: number): number {
   return likelihood * consequence;
 }
 
 export async function provisionIndustryPackage(
-  tenantId: string
+  tenantId: string,
+  options?: ProvisionIndustryPackageOptions
 ): Promise<ProvisionIndustryPackageResult> {
   try {
     const tenant = await prisma.tenant.findUnique({
@@ -70,6 +94,7 @@ export async function provisionIndustryPackage(
 
     const currentYear = new Date().getFullYear();
     const assessmentTitle = `${packageConfig.displayName} risikovurdering ${currentYear}`;
+    const participants = options?.participants?.trim() || null;
     const selectedWorkshopTypes =
       packageConfig.industry === "automotive" ? parseWorkshopTypes(tenant.subIndustry) : [];
     const risksToProvision = packageConfig.risks.filter((risk) =>
@@ -104,8 +129,15 @@ export async function provisionIndustryPackage(
             tenantId,
             title: assessmentTitle,
             assessmentYear: currentYear,
+            // IK-HMS § 5 nr. 3 + AML § 3-1: dokumenter hvem som deltok.
+            ...(participants ? { participants } : {}),
           },
           select: { id: true },
+        });
+      } else if (participants) {
+        await tx.riskAssessment.update({
+          where: { id: assessment.id },
+          data: { participants },
         });
       }
 
@@ -397,15 +429,19 @@ async function provisionRoutinesForTenant(
 /**
  * Admin/HMS kan legge inn bransjemal for risikovurdering.
  * AML § 3-1 / IK-HMS § 5: malen er utgangspunkt, ikke ferdig vurdering.
+ * Deltakere er påkrevd (IK-HMS § 5 nr. 3 + AML § 3-1) — systemet skal ikke finne på hvem som deltok.
  */
-export async function applyIndustryRiskTemplate(): Promise<ProvisionIndustryPackageResult> {
+export async function applyIndustryRiskTemplate(
+  participants: string
+): Promise<ProvisionIndustryPackageResult> {
   try {
+    const parsed = applyIndustryRiskTemplateSchema.parse({ participants });
     const { tenantId } = await getRequiredTenantContext();
-    return provisionIndustryPackage(tenantId);
+    return provisionIndustryPackage(tenantId, { participants: parsed.participants });
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Ikke autorisert",
+      error: formatActionError(error, "Ikke autorisert"),
     };
   }
 }

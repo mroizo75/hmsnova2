@@ -31,6 +31,7 @@ export async function fetchProfileById(id: string) {
     where: { id, tenantId },
     include: {
       requirements: { orderBy: { priority: "desc" } },
+      statements: { orderBy: [{ dimension: "asc" }, { sortOrder: "asc" }, { createdAt: "asc" }] },
       users: {
         include: {
           user: { select: { id: true, name: true, email: true } },

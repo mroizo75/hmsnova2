@@ -1,45 +1,56 @@
 import { Queue, Worker } from "bullmq";
-import IORedis from "ioredis";
 import { processAccountingJob, processPendingOutbox, pullAccountingMaster } from "@/lib/accounting/sync";
 import { nextRetryDelayMs } from "@/lib/accounting/outbox";
 import { prisma } from "@/lib/db";
 import { isAccountingEnabled } from "@/lib/accounting/factory";
+import { createJobsRedis, isJobsRedisConfigured } from "@/lib/jobs/redis";
 
-const redisConnection = new IORedis({
-  host: process.env.REDIS_HOST || "localhost",
-  port: parseInt(process.env.REDIS_PORT || "6379", 10),
-  username: process.env.REDIS_USERNAME,
-  password: process.env.REDIS_PASSWORD,
-  maxRetriesPerRequest: null,
-});
+let queue: Queue | null = null;
+let worker: Worker | null = null;
 
-export const accountingQueue = new Queue("accounting-outbox", {
-  connection: redisConnection,
-  defaultJobOptions: {
-    attempts: 1,
-    removeOnComplete: true,
-    removeOnFail: false,
-  },
-});
+function getAccountingQueue(): Queue | null {
+  if (!isJobsRedisConfigured()) return null;
+  if (queue) return queue;
+  const connection = createJobsRedis();
+  queue = new Queue("accounting-outbox", {
+    connection,
+    defaultJobOptions: {
+      attempts: 1,
+      removeOnComplete: true,
+      removeOnFail: false,
+    },
+  });
+  queue.on("error", () => undefined);
+  return queue;
+}
 
-export const accountingWorker = new Worker(
-  "accounting-outbox",
-  async (job) => {
-    if (job.name === "process-job") {
-      return processAccountingJob(String(job.data.jobId));
-    }
-    if (job.name === "drain-pending") {
-      return { processed: await processPendingOutbox(50) };
-    }
-    if (job.name === "nightly-reconcile") {
-      return nightlyReconcile();
-    }
-    throw new Error(`Unknown accounting job: ${job.name}`);
-  },
-  { connection: redisConnection, concurrency: 2 }
-);
+function getAccountingWorker(): Worker | null {
+  if (!isJobsRedisConfigured()) return null;
+  if (worker) return worker;
+  const connection = createJobsRedis();
+  worker = new Worker(
+    "accounting-outbox",
+    async (job) => {
+      if (job.name === "process-job") {
+        return processAccountingJob(String(job.data.jobId));
+      }
+      if (job.name === "drain-pending") {
+        return { processed: await processPendingOutbox(50) };
+      }
+      if (job.name === "nightly-reconcile") {
+        return nightlyReconcile();
+      }
+      throw new Error(`Unknown accounting job: ${job.name}`);
+    },
+    { connection, concurrency: 2 }
+  );
+  worker.on("error", () => undefined);
+  return worker;
+}
 
-export async function enqueueOutboxJob(jobId: string, delayMs = 0) {
+export async function enqueueOutboxJob(jobId: string, delayMs = 0): Promise<void> {
+  const accountingQueue = getAccountingQueue();
+  if (!accountingQueue) return;
   await accountingQueue.add(
     "process-job",
     { jobId },
@@ -48,6 +59,10 @@ export async function enqueueOutboxJob(jobId: string, delayMs = 0) {
 }
 
 export async function scheduleAccountingJobs() {
+  const accountingQueue = getAccountingQueue();
+  getAccountingWorker();
+  if (!accountingQueue) return;
+
   const repeatable = await accountingQueue.getRepeatableJobs();
   for (const job of repeatable) {
     await accountingQueue.removeRepeatableByKey(job.key);
@@ -88,6 +103,18 @@ async function nightlyReconcile() {
   await processPendingOutbox(100);
   return { tenants: pulled };
 }
+
+export const accountingQueue = {
+  get instance() {
+    return getAccountingQueue();
+  },
+};
+
+export const accountingWorker = {
+  get instance() {
+    return getAccountingWorker();
+  },
+};
 
 export { upsertContacts, upsertCustomers, upsertProducts, upsertSalaryTypes } from "@/lib/accounting/cache";
 export { nextRetryDelayMs };

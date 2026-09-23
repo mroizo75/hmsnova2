@@ -4,6 +4,7 @@ import { getRosterRetentionUntil } from "@/lib/construction-compliance-rules";
 import { prisma } from "@/lib/db";
 import { getStorage } from "@/lib/storage";
 import { z } from "zod";
+import { syncProjectToAccounting } from "@/lib/accounting/sync";
 
 const updateProjectSchema = z.object({
   name: z.string().min(2).optional(),
@@ -121,16 +122,22 @@ export async function PATCH(
         ...(validated.description !== undefined && { description: validated.description }),
         ...(validated.status !== undefined && { status: validated.status }),
         ...(validated.startDate !== undefined && {
-          startDate: validated.startDate ? new Date(validated.startDate) : null,
+          startDate: validated.startDate
+            ? new Date(`${validated.startDate.slice(0, 10)}T12:00:00`)
+            : null,
         }),
         ...(validated.endDate !== undefined && {
-          endDate: validated.endDate ? new Date(validated.endDate) : null,
+          endDate: validated.endDate
+            ? new Date(`${validated.endDate.slice(0, 10)}T12:00:00`)
+            : null,
         }),
         ...(validatedProjectManagerId !== undefined && {
           projectManagerId: validatedProjectManagerId,
         }),
       },
     });
+
+    await syncProjectToAccounting(tenantId, id);
 
     return NextResponse.json({ project });
   } catch (error: any) {

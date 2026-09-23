@@ -90,6 +90,7 @@ export type CreateAccountingProjectInput = {
   startDate: string;
   customerExternalId?: string | null;
   parentExternalId?: string | null;
+  contactExternalId?: string | null;
   description?: string | null;
   location?: string | null;
   reference?: string | null;
@@ -97,9 +98,12 @@ export type CreateAccountingProjectInput = {
 
 export type UpdateAccountingProjectInput = {
   name?: string;
+  startDate?: string;
+  endDate?: string | null;
   isReadyForInvoicing?: boolean;
   isClosed?: boolean;
   description?: string | null;
+  reference?: string | null;
 };
 
 export type UpsertTimeEntryInput = {

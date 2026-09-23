@@ -8,7 +8,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Role } from "@prisma/client";
-import { type RolePermissions } from "@/lib/permissions";
+import { type RolePermissions, withEmployeeProjectCreateSetting } from "@/lib/permissions";
 import {
   parseModuleVisibilityConfig,
   getEffectivePermissions,
@@ -36,12 +36,13 @@ export async function resolveEffectivePermissions(
 ): Promise<RolePermissions> {
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
-    select: { moduleVisibilityConfig: true },
+    select: { moduleVisibilityConfig: true, employeesCanCreateProjects: true },
   });
 
-  return getEffectivePermissions(
+  return withEmployeeProjectCreateSetting(
     role,
-    parseModuleVisibilityConfig(tenant?.moduleVisibilityConfig)
+    getEffectivePermissions(role, parseModuleVisibilityConfig(tenant?.moduleVisibilityConfig)),
+    tenant?.employeesCanCreateProjects ?? true
   );
 }
 
@@ -89,14 +90,18 @@ export async function getAuthContext(): Promise<AuthContext | null> {
 
   const tenant = await prisma.tenant.findUnique({
     where: { id: userTenant.tenantId },
-    select: { moduleVisibilityConfig: true },
+    select: { moduleVisibilityConfig: true, employeesCanCreateProjects: true },
   });
 
   const moduleVisibilityConfig = parseModuleVisibilityConfig(
     tenant?.moduleVisibilityConfig
   );
 
-  const permissions = getEffectivePermissions(role, moduleVisibilityConfig);
+  const permissions = withEmployeeProjectCreateSetting(
+    role,
+    getEffectivePermissions(role, moduleVisibilityConfig),
+    tenant?.employeesCanCreateProjects ?? true
+  );
 
   return {
     userId: user.id,

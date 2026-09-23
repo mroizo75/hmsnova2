@@ -15,7 +15,11 @@ import {
   groupEmployeeHandbookSections,
   handbookSectionMatchesQuery,
 } from "@/lib/employee-handbook";
-import type { HandbookData } from "@/server/actions/hms-handbok.actions";
+import type {
+  HandbookData,
+  HandbookParticipationMeeting,
+  HandbookWasteDelivery,
+} from "@/server/actions/hms-handbok.actions";
 
 interface EmployeeHandbookViewProps {
   tenantName: string;
@@ -23,6 +27,8 @@ interface EmployeeHandbookViewProps {
   hmsContactPhone?: string | null;
   handbook: HandbookData;
   currentUserId: string;
+  participationMeetings?: HandbookParticipationMeeting[];
+  wasteDeliveries?: HandbookWasteDelivery[];
 }
 
 export function EmployeeHandbookView({
@@ -31,6 +37,8 @@ export function EmployeeHandbookView({
   hmsContactPhone,
   handbook,
   currentUserId,
+  participationMeetings = [],
+  wasteDeliveries = [],
 }: EmployeeHandbookViewProps) {
   const [query, setQuery] = useState("");
   const currentVersion = handbook.currentVersion;
@@ -94,7 +102,7 @@ export function EmployeeHandbookView({
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Søk: avvik, ferie, brann, verneombud…"
+              placeholder="Søk: kvalitet, avvik, ferie, brann…"
               className="h-11 pl-9"
             />
           </div>
@@ -150,10 +158,12 @@ export function EmployeeHandbookView({
             </div>
             {group.sections.map((section) => (
               <HandbokSectionExpanded
-                key={section.id}
+                key={`${group.id}-${section.id}`}
                 section={section}
                 versionStatus={currentVersion?.status ?? "APPROVED"}
                 canEdit={false}
+                participationMeetings={participationMeetings}
+                wasteDeliveries={wasteDeliveries}
               />
             ))}
           </div>

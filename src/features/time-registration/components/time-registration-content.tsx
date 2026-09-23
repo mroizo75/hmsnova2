@@ -3,13 +3,14 @@
 import { useState, useCallback, Suspense } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { startOfWeek } from "date-fns";
+import { startOfWeek, format } from "date-fns";
 import { nb } from "date-fns/locale";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, History, Users, CheckSquare, Wallet } from "lucide-react";
 import { WeekNavigation } from "./week-navigation";
 import { WeekSummary } from "./week-summary";
+import { WeekGrid } from "./week-grid";
 import { AdminTeamOverview } from "./admin-team-overview";
 import { TimeRegistrationOverview } from "./time-registration-overview";
 import { ReportExportDropdown } from "./report-export-dropdown";
@@ -49,21 +50,22 @@ export function TimeRegistrationContent({
   });
 
   const { data: weekData, refetch: refetchWeek } = useQuery({
-    queryKey: ["time-registration-week", weekStart.toISOString()],
-    queryFn: () => getWeekEntries(weekStart.toISOString()),
+    queryKey: ["time-registration-week", format(weekStart, "yyyy-MM-dd")],
+    queryFn: () => getWeekEntries(format(weekStart, "yyyy-MM-dd")),
   });
 
   const canSeeTeam = ["ADMIN", "HMS", "LEDER"].includes(role);
 
   const { data: teamData, refetch: refetchTeam } = useQuery({
-    queryKey: ["time-registration-team", weekStart.toISOString()],
-    queryFn: () => getAllUsersWeekSummary(weekStart.toISOString()),
+    queryKey: ["time-registration-team", format(weekStart, "yyyy-MM-dd")],
+    queryFn: () => getAllUsersWeekSummary(format(weekStart, "yyyy-MM-dd")),
     enabled: canSeeTeam,
   });
 
   const { config, projects, enabled, overviewData, tenantId } = data;
   const activeProjects = projects.filter((p: any) => p.status === "ACTIVE");
   const dailyNorm = (config?.weeklyHoursNorm ?? 37.5) / 5;
+  const isEmployee = role === "ANSATT";
 
   const handleEntryChanged = useCallback(() => {
     refetchWeek();
@@ -76,7 +78,7 @@ export function TimeRegistrationContent({
       <>
         <div>
           <h1 className="text-3xl font-bold">{t("title")}</h1>
-          <p className="text-muted-foreground">{t("subtitle")}</p>
+          <p className="text-muted-foreground">{isEmployee ? t("subtitleEmployee") : t("subtitle")}</p>
         </div>
         <Card>
           <CardHeader>
@@ -120,7 +122,7 @@ export function TimeRegistrationContent({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold">{t("title")}</h1>
-          <p className="text-muted-foreground">{t("subtitle")}</p>
+          <p className="text-muted-foreground">{isEmployee ? t("subtitleEmployee") : t("subtitle")}</p>
         </div>
         <ReportExportDropdown
           projects={activeProjects}
@@ -169,7 +171,7 @@ export function TimeRegistrationContent({
 
         <TabsContent value="day">
           <Suspense fallback={<p className="text-sm text-muted-foreground">{t("loading")}</p>}>
-            <DayTimesheetScreen />
+            <DayTimesheetScreen isEmployee={isEmployee} />
           </Suspense>
         </TabsContent>
 
@@ -181,6 +183,62 @@ export function TimeRegistrationContent({
             weeklyNorm={config?.weeklyHoursNorm ?? 37.5}
             defaultKmRate={config?.defaultKmRate ?? 4.5}
           />
+          {(weekEntries?.assignments ?? []).length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">{t("assignedThisWeek")}</CardTitle>
+                <CardDescription>{t("assignedThisWeekHelp")}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {weekEntries!.assignments.map(
+                  (a: {
+                    id: string;
+                    projectId: string;
+                    plannedHours: number | null;
+                    startDate: string;
+                    endDate: string;
+                    project: { name: string; clientName?: string | null };
+                  }) => (
+                    <div
+                      key={a.id}
+                      className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{a.project.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(`${a.startDate.slice(0, 10)}T12:00:00`).toLocaleDateString("nb-NO")}
+                          {" – "}
+                          {new Date(`${a.endDate.slice(0, 10)}T12:00:00`).toLocaleDateString("nb-NO")}
+                          {a.project.clientName ? ` · ${a.project.clientName}` : ""}
+                        </p>
+                      </div>
+                      {a.plannedHours != null ? (
+                        <span className="text-sm text-muted-foreground shrink-0">
+                          {a.plannedHours} t
+                        </span>
+                      ) : null}
+                    </div>
+                  )
+                )}
+              </CardContent>
+            </Card>
+          )}
+          <WeekGrid
+            weekStart={weekStart}
+            timeEntries={weekEntries?.timeEntries ?? []}
+            projects={
+              weekEntries?.projects?.length
+                ? weekEntries.projects
+                : activeProjects.map((p: { id: string; name: string; code: string | null }) => ({
+                    id: p.id,
+                    name: p.name,
+                    code: p.code,
+                  }))
+            }
+            dailyNorm={dailyNorm}
+            onEntryChanged={handleEntryChanged}
+            pinnedProjectIds={(weekEntries?.assignments ?? []).map((a: { projectId: string }) => a.projectId)}
+          />
         </TabsContent>
 
         <TabsContent value="history" className="space-y-4">
@@ -188,7 +246,9 @@ export function TimeRegistrationContent({
             <CardHeader>
               <CardTitle>Alle registreringer</CardTitle>
               <CardDescription>
-                Filtrer på periode, prosjekt og ansatt – rediger eller slett
+                {isEmployee
+                  ? t("historyOwn")
+                  : "Filtrer på periode, prosjekt og ansatt – rediger eller slett"}
               </CardDescription>
             </CardHeader>
             <CardContent>

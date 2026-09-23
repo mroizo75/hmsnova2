@@ -5,7 +5,7 @@ import { getTenantContextSafe } from "@/lib/tenant-context";
 
 export async function fetchEnvironmentList() {
   const ctx = await getTenantContextSafe();
-  if (!ctx) return { aspects: [], nonCompliantCount: 0, allMeasurements: [], tenant: null };
+  if (!ctx) return { aspects: [], nonCompliantCount: 0, allMeasurements: [], wasteDeliveries: [], tenant: null };
   const { tenantId } = ctx;
 
   const tenant = await prisma.tenant.findUnique({
@@ -13,7 +13,7 @@ export async function fetchEnvironmentList() {
     select: { id: true, name: true },
   });
 
-  const [aspects, nonCompliantCount, allMeasurements] = await Promise.all([
+  const [aspects, nonCompliantCount, allMeasurements, wasteDeliveries] = await Promise.all([
     prisma.environmentalAspect.findMany({
       where: { tenantId },
       include: {
@@ -46,9 +46,23 @@ export async function fetchEnvironmentList() {
       },
       orderBy: { measurementDate: "desc" },
     }),
+    prisma.hazardousWasteDelivery.findMany({
+      where: { tenantId },
+      orderBy: { deliveredAt: "desc" },
+      take: 20,
+      select: {
+        id: true,
+        wasteType: true,
+        customType: true,
+        amountKg: true,
+        deliveredAt: true,
+        declarationNumber: true,
+        recipient: true,
+      },
+    }),
   ]);
 
-  return JSON.parse(JSON.stringify({ aspects, nonCompliantCount, allMeasurements, tenant }));
+  return JSON.parse(JSON.stringify({ aspects, nonCompliantCount, allMeasurements, wasteDeliveries, tenant }));
 }
 
 export async function fetchEnvironmentDetail(id: string) {

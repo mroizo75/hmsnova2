@@ -75,7 +75,7 @@ const MODULE_ICONS: Record<string, React.ReactNode> = {
 };
 
 const MODULE_LABELS: Record<string, string> = {
-  "/dashboard/hms-handbok": "HMS Håndbok",
+  "/dashboard/hms-handbok": "Kvalitet, HMS og personal",
   "/dashboard/incidents": "Avvik og hendelser",
   "/dashboard/risks": "Risikovurderinger",
   "/dashboard/rutiner": "Rutiner og prosedyrer",
@@ -91,6 +91,7 @@ const MODULE_LABELS: Record<string, string> = {
   "/dashboard/sja": "SJA",
   "/dashboard/aktivitetssikkerhet": "Aktivitetssikkerhet",
   "/dashboard/transport": "Transport",
+  "/dashboard/utstyr": "Utstyr med godkjenning",
   "/dashboard/bht-nattarbeid": "BHT og nattarbeid",
   "/dashboard/annual-hms-plan": "Årlig HMS-plan",
   "/dashboard/settings": "Innstillinger",
@@ -151,8 +152,8 @@ export function StartpakkeWizard({ tenantId, tenantName }: StartpakkeWizardProps
       toast({
         title: "Oppsett fullført!",
         description: isAutomotive
-          ? "Startpakken er aktivert. Teknisk leder: sjekk neste steg i årshjulet."
-          : "HMS-systemet ditt er klart til bruk.",
+          ? "Startpakken er aktivert. Tilpass kvalitet, HMS og personal, og sjekk årshjulet."
+          : "Standardkapitler er lagt inn. Tilpass dem før systemet er deres dokumentasjon.",
       });
       router.push("/dashboard/hms-handbok");
       router.refresh();
@@ -311,9 +312,8 @@ export function StartpakkeWizard({ tenantId, tenantName }: StartpakkeWizardProps
               <CardDescription>
                 Disse modulene aktiveres i menyen for{" "}
                 <strong>{BRANSJE_OPTIONS.find((b) => b.id === selectedBransje)?.label}</strong>.
-                {isAutomotive
-                  ? " Vi fyller inn kjerne-rutiner, risiko, SJA og sjekklister tilpasset valgte verkstedtyper. Resten henter du fra malbiblioteket."
-                  : " Alt innhold starter tomt – du fyller inn risikovurderinger, rutiner og mer selv."}
+                {" "}
+                Styringssystemet får standardkapitler for kvalitet, HMS og personal. Det er et utgangspunkt dere må tilpasse, ikke ferdig dokumentasjon.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -368,17 +368,17 @@ export function StartpakkeWizard({ tenantId, tenantName }: StartpakkeWizardProps
                 </div>
               )}
 
+              <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
+                Kvalitet dekker policy, kunder og leverandører (ISO 9001). HMS dekker internkontrollforskriften § 5
+                og arbeidsmiljøloven. Personal dekker arbeidsavtale, arbeidstid, ferie og sykefravær, men erstatter
+                ikke den skriftlige arbeidsavtalen. Arbeidstilsynet fører tilsyn med HMS-delen, ikke med ISO-sertifisering.
+              </p>
+
               {isAutomotive && (
                 <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
-                  Neste steg denne uken: teknisk leder gjennomgår roller, billøfter-opplæring og kalibreringsstatus.
-                  Årshjulet heter «Hold verkstedet godkjent» og dekker både Arbeidstilsynet og Statens vegvesen.
-                </p>
-              )}
-
-              {!isAutomotive && (
-                <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
-                  Andre moduler (revisjon, ISO-rapporter, benchmark m.m.) er tilgjengelige i innstillinger
-                  når du er klar for mer.
+                  Godkjent verksted må i tillegg ha kvalitetsstyring etter verkstedforskriften §§ 15–17.
+                  Neste steg: teknisk leder fyller roller, kompetanse og kalibrering. Tilsynsrapporten
+                  «Statens vegvesen» samler det som er registrert. Skaderapport og EU-kontroll meldes på vegvesen.no.
                 </p>
               )}
 
@@ -386,7 +386,7 @@ export function StartpakkeWizard({ tenantId, tenantName }: StartpakkeWizardProps
                 <Button
                   variant="outline"
                   onClick={() => setStep(isAutomotive ? 2 : 1)}
-                  className="gap-2"
+                  className="gap-2 bg-transparent"
                 >
                   <ChevronLeft className="h-4 w-4" />
                   Tilbake
@@ -402,7 +402,7 @@ export function StartpakkeWizard({ tenantId, tenantName }: StartpakkeWizardProps
         )}
 
         <p className="mt-4 text-center text-xs text-muted-foreground">
-          {tenantName} · HMS Nova sikrer at du oppfyller kravene i IK-HMS og Arbeidsmiljøloven
+          {tenantName} · Systemet hjelper dere å dokumentere kravene. Det oppfyller dem ikke av seg selv.
         </p>
       </div>
     </div>

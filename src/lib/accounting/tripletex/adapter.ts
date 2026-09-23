@@ -19,6 +19,12 @@ import type {
 import { buildOrderInvoicePath } from "../invoice";
 import { mergedTimesheetHours, timesheetKeysMatch } from "../timesheet";
 import { paginatedGet, TripletexClient } from "./client";
+import {
+  buildTripletexOrderLinePayload,
+  buildTripletexOrderPayload,
+} from "./order-payload";
+import { buildTripletexProjectPayload, buildTripletexProjectUpdatePayload } from "./project-payload";
+import { buildTripletexTimesheetPayload } from "./timesheet-payload";
 
 type TxId = { id?: number };
 type TxCustomer = TxId & {
@@ -83,6 +89,8 @@ function idStr(value?: number | string | null): string {
 
 const PROJECT_FIELDS =
   "id,name,number,description,startDate,endDate,isClosed,isReadyForInvoicing,isOffer,reference,mainProject(id),customer(id,name),contact(id),deliveryAddress(addressLine1)";
+const PRODUCT_FIELDS =
+  "id,name,number,priceExcludingVatCurrency,priceIncludingVatCurrency,productUnit(id,name),isStockItem,isInactive";
 
 function mapTxProject(p: TxProject): AccountingProjectDto | null {
   const externalId = idStr(p.id);
@@ -112,18 +120,20 @@ export class TripletexAdapter implements AccountingProvider {
 
   async testConnection(): Promise<WhoAmIResult> {
     const data = await this.client.request<TxValue<{
-      employee?: { id?: number; company?: { id?: number; name?: string } };
+      employeeId?: number;
+      companyId?: number;
+      employee?: { id?: number };
       company?: { id?: number; name?: string };
-    }>>("/token/session/>whoAmI?fields=employee(id,company(id,name)),company(id,name)");
+    }>>("/token/session/>whoAmI?fields=employeeId,companyId,employee(id),company(id,name)");
     const companyId =
-      idStr(data.value?.company?.id) || idStr(data.value?.employee?.company?.id);
+      idStr(data.value?.companyId) || idStr(data.value?.company?.id);
     if (!companyId) {
       throw new Error("Fant ikke Tripletex-selskap på sesjonen");
     }
     return {
       companyId,
-      employeeId: idStr(data.value?.employee?.id) || undefined,
-      companyName: data.value?.company?.name ?? data.value?.employee?.company?.name,
+      employeeId: idStr(data.value?.employeeId) || idStr(data.value?.employee?.id) || undefined,
+      companyName: data.value?.company?.name,
     };
   }
 
@@ -165,7 +175,7 @@ export class TripletexAdapter implements AccountingProvider {
     const rows = await paginatedGet<TxProduct>(
       this.client,
       "/product?isInactive=false",
-      "id,name,number,priceExcludingVatCurrency,priceIncludingVatCurrency,productUnit(*),productCategory(id,name),isStockItem,isInactive"
+      PRODUCT_FIELDS
     );
     return rows.map((p) => ({
       externalId: idStr(p.id),
@@ -183,7 +193,7 @@ export class TripletexAdapter implements AccountingProvider {
 
   async getProduct(externalId: string): Promise<AccountingProductDto | null> {
     const data = await this.client.request<TxValue<TxProduct>>(
-      `/product/${externalId}?fields=id,name,number,priceExcludingVatCurrency,priceIncludingVatCurrency,productUnit(*),productCategory(id,name),isStockItem,isInactive`
+      `/product/${externalId}?fields=${PRODUCT_FIELDS}`
     );
     const p = data.value;
     if (!p?.id) return null;
@@ -337,26 +347,8 @@ export class TripletexAdapter implements AccountingProvider {
   }
 
   async createProject(input: CreateAccountingProjectInput): Promise<{ externalId: string; number?: string }> {
-    const hasCustomer = Boolean(input.customerExternalId);
-    const body: Record<string, unknown> = {
-      name: input.name,
-      startDate: input.startDate,
-      isInternal: !hasCustomer,
-      isClosed: false,
-      isReadyForInvoicing: false,
-    };
-    if (hasCustomer) {
-      body.customer = { id: Number(input.customerExternalId) };
-    }
-    if (input.parentExternalId) {
-      body.parent = { id: Number(input.parentExternalId) };
-    }
-    if (input.description) body.description = input.description;
-    if (input.reference) body.reference = input.reference;
-    if (input.location) {
-      body.deliveryAddress = { addressLine1: input.location };
-    }
-
+    const who = await this.testConnection();
+    const body = buildTripletexProjectPayload(input, who.employeeId);
     const created = await this.client.request<TxValue<TxId & { number?: string }>>("/project", {
       method: "POST",
       body: JSON.stringify(body),
@@ -367,11 +359,7 @@ export class TripletexAdapter implements AccountingProvider {
   }
 
   async updateProject(externalId: string, input: UpdateAccountingProjectInput): Promise<void> {
-    const body: Record<string, unknown> = {};
-    if (input.name) body.name = input.name;
-    if (input.description !== undefined) body.description = input.description;
-    if (input.isReadyForInvoicing !== undefined) body.isReadyForInvoicing = input.isReadyForInvoicing;
-    if (input.isClosed !== undefined) body.isClosed = input.isClosed;
+    const body = buildTripletexProjectUpdatePayload(input);
     await this.client.request(`/project/${externalId}`, {
       method: "PUT",
       body: JSON.stringify(body),
@@ -379,19 +367,17 @@ export class TripletexAdapter implements AccountingProvider {
   }
 
   async upsertTimeEntry(input: UpsertTimeEntryInput): Promise<{ externalId: string }> {
-    const salaryType = input.salaryTypeExternalId
-      ? { id: Number(input.salaryTypeExternalId) }
-      : undefined;
+    const body = buildTripletexTimesheetPayload(input);
 
     if (input.existingExternalId) {
       await this.client.request(`/timesheet/entry/${input.existingExternalId}`, {
         method: "PUT",
         body: JSON.stringify({
           hours: input.hours,
-          chargeable: true,
           chargeableHours: input.hours,
+          chargeable: true,
           comment: input.comment ?? undefined,
-          ...(salaryType ? { salaryType } : {}),
+          ...(body.salaryType ? { salaryType: body.salaryType } : {}),
         }),
       });
       return { externalId: input.existingExternalId };
@@ -431,10 +417,10 @@ export class TripletexAdapter implements AccountingProvider {
         method: "PUT",
         body: JSON.stringify({
           hours,
-          chargeable: true,
           chargeableHours: hours,
+          chargeable: true,
           comment: input.comment ?? undefined,
-          ...(salaryType ? { salaryType } : {}),
+          ...(body.salaryType ? { salaryType: body.salaryType } : {}),
         }),
       });
       return { externalId: idStr(match.id) };
@@ -442,17 +428,7 @@ export class TripletexAdapter implements AccountingProvider {
 
     const created = await this.client.request<TxValue<TxId>>("/timesheet/entry", {
       method: "POST",
-      body: JSON.stringify({
-        project: { id: Number(input.projectExternalId) },
-        activity: { id: Number(input.activityExternalId) },
-        employee: { id: Number(input.employeeExternalId) },
-        date: input.date,
-        hours: input.hours,
-        chargeable: true,
-        chargeableHours: input.hours,
-        comment: input.comment ?? undefined,
-        ...(salaryType ? { salaryType } : {}),
-      }),
+      body: JSON.stringify(body),
     });
     const id = created.value?.id;
     if (!id) throw new Error("Tripletex returnerte ikke timeførings-ID");
@@ -468,12 +444,14 @@ export class TripletexAdapter implements AccountingProvider {
     if (!orderId) {
       const created = await this.client.request<TxValue<TxId>>("/order", {
         method: "POST",
-        body: JSON.stringify({
-          customer: { id: Number(input.customerExternalId) },
-          project: { id: Number(input.projectExternalId) },
-          orderDate: input.orderDate,
-          orderLines: [],
-        }),
+        body: JSON.stringify(
+          buildTripletexOrderPayload({
+            customerExternalId: input.customerExternalId,
+            projectExternalId: input.projectExternalId,
+            orderDate: input.orderDate,
+            deliveryDate: input.orderDate,
+          })
+        ),
       });
       orderId = idStr(created.value?.id);
       if (!orderId) throw new Error("Tripletex returnerte ikke ordre-ID");
@@ -493,13 +471,15 @@ export class TripletexAdapter implements AccountingProvider {
 
     const line = await this.client.request<TxValue<TxId>>("/order/orderline", {
       method: "POST",
-      body: JSON.stringify({
-        order: { id: Number(orderId) },
-        product: { id: Number(input.productExternalId) },
-        count: input.count,
-        description: input.description ?? undefined,
-        unitPriceExcludingVatCurrency: input.unitPriceExclVat ?? undefined,
-      }),
+      body: JSON.stringify(
+        buildTripletexOrderLinePayload({
+          orderId,
+          productExternalId: input.productExternalId,
+          count: input.count,
+          description: input.description,
+          unitPriceExclVat: input.unitPriceExclVat,
+        })
+      ),
     });
     const lineId = idStr(line.value?.id);
     if (!lineId) throw new Error("Tripletex returnerte ikke ordrelinje-ID");
@@ -515,17 +495,20 @@ export class TripletexAdapter implements AccountingProvider {
     if (!orderId) {
       const created = await this.client.request<TxValue<TxId>>("/order", {
         method: "POST",
-        body: JSON.stringify({
-          customer: { id: Number(input.customerExternalId) },
-          project: { id: Number(input.projectExternalId) },
-          orderDate: input.invoiceDate,
-          orderLines: input.lines.map((line) => ({
-            product: line.productExternalId ? { id: Number(line.productExternalId) } : undefined,
-            count: line.count,
-            description: line.description,
-            unitPriceExcludingVatCurrency: line.unitPriceExclVat ?? undefined,
-          })),
-        }),
+        body: JSON.stringify(
+          buildTripletexOrderPayload({
+            customerExternalId: input.customerExternalId,
+            projectExternalId: input.projectExternalId,
+            orderDate: input.invoiceDate,
+            deliveryDate: input.invoiceDate,
+            orderLines: input.lines.map((line) => ({
+              product: line.productExternalId ? { id: Number(line.productExternalId) } : undefined,
+              count: line.count,
+              description: line.description,
+              unitPriceExcludingVatCurrency: line.unitPriceExclVat ?? undefined,
+            })),
+          })
+        ),
       });
       orderId = idStr(created.value?.id);
       if (!orderId) throw new Error("Tripletex returnerte ikke ordre-ID");
@@ -534,12 +517,14 @@ export class TripletexAdapter implements AccountingProvider {
         if (line.productExternalId) continue;
         await this.client.request("/order/orderline", {
           method: "POST",
-          body: JSON.stringify({
-            order: { id: Number(orderId) },
-            count: line.count,
-            description: line.description,
-            unitPriceExcludingVatCurrency: line.unitPriceExclVat ?? undefined,
-          }),
+          body: JSON.stringify(
+            buildTripletexOrderLinePayload({
+              orderId,
+              count: line.count,
+              description: line.description,
+              unitPriceExclVat: line.unitPriceExclVat,
+            })
+          ),
         });
       }
     }

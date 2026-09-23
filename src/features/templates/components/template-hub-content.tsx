@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -27,9 +26,10 @@ import {
 import { createRoutineFromTemplate } from "@/server/actions/routine.actions";
 import { copyGlobalFormTemplate } from "@/server/actions/form.actions";
 import { copyDocumentTemplateToTenant } from "@/server/actions/template-library.actions";
+import { useRefreshAfterSave } from "@/hooks/use-refresh-after-save";
 import { matchesIndustryScope } from "@/lib/industry-scope";
 import {
-  filterDistributableDocumentTemplates,
+  filterMalerHubDocumentTemplates,
   filterDistributableFormTemplates,
 } from "@/lib/document-module-scope";
 
@@ -107,7 +107,7 @@ export function TemplateHubContent({
   tenantIndustry,
 }: TemplateHubContentProps) {
   const t = useTranslations("dashboardTemplateLibraryPage");
-  const router = useRouter();
+  const refreshAfterSave = useRefreshAfterSave();
   const { toast } = useToast();
   const [query, setQuery] = useState("");
 
@@ -135,7 +135,7 @@ export function TemplateHubContent({
 
   const filteredDocuments = useMemo(
     () =>
-      filterDistributableDocumentTemplates(documents).filter(
+      filterMalerHubDocumentTemplates(documents).filter(
         (d) =>
           matchesIndustryScope(d.industryScope, tenantIndustry) &&
           (!q || d.name.toLowerCase().includes(q) || d.description?.toLowerCase().includes(q)),
@@ -144,32 +144,56 @@ export function TemplateHubContent({
   );
 
   const handleCopyRoutine = async (id: string) => {
-    const result = await createRoutineFromTemplate(id);
-    if (result.success) {
-      toast({ title: t("copySuccess", { name: (result as { data?: { title?: string } }).data?.title ?? "" }) });
-      router.refresh();
-    } else {
-      toast({ variant: "destructive", title: t("copyError"), description: (result as { error?: string }).error });
+    try {
+      const result = await createRoutineFromTemplate(id);
+      if (result.success && result.data) {
+        toast({ title: t("copySuccess", { name: result.data.title }) });
+        await refreshAfterSave(`/dashboard/rutiner/${result.data.id}`);
+      } else {
+        toast({ variant: "destructive", title: t("copyError"), description: result.error });
+      }
+    } catch (error: unknown) {
+      toast({
+        variant: "destructive",
+        title: t("copyError"),
+        description: error instanceof Error ? error.message : undefined,
+      });
     }
   };
 
   const handleCopyForm = async (id: string) => {
-    const result = await copyGlobalFormTemplate(id);
-    if (result.success) {
-      toast({ title: t("copySuccess", { name: "" }) });
-      router.refresh();
-    } else {
-      toast({ variant: "destructive", title: t("copyError"), description: (result as { error?: string }).error });
+    try {
+      const result = await copyGlobalFormTemplate(id);
+      if (result.success && result.data) {
+        toast({ title: t("copySuccess", { name: result.data.title }) });
+        await refreshAfterSave(`/dashboard/forms/${result.data.id}/edit`);
+      } else {
+        toast({ variant: "destructive", title: t("copyError"), description: result.error });
+      }
+    } catch (error: unknown) {
+      toast({
+        variant: "destructive",
+        title: t("copyError"),
+        description: error instanceof Error ? error.message : undefined,
+      });
     }
   };
 
   const handleCopyDocument = async (id: string) => {
-    const result = await copyDocumentTemplateToTenant(id);
-    if (result.success) {
-      toast({ title: t("copySuccess", { name: result.data?.name ?? "" }) });
-      router.refresh();
-    } else {
-      toast({ variant: "destructive", title: t("copyError"), description: result.error });
+    try {
+      const result = await copyDocumentTemplateToTenant(id);
+      if (result.success && result.data) {
+        toast({ title: t("copySuccess", { name: result.data.name }) });
+        await refreshAfterSave(result.data.href);
+      } else {
+        toast({ variant: "destructive", title: t("copyError"), description: result.error });
+      }
+    } catch (error: unknown) {
+      toast({
+        variant: "destructive",
+        title: t("copyError"),
+        description: error instanceof Error ? error.message : undefined,
+      });
     }
   };
 

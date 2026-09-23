@@ -15,10 +15,18 @@ import {
 import { FileText, Download, CheckCircle, Trash2, Upload, Calendar, Edit, FileDown } from "lucide-react";
 import Link from "next/link";
 import { deleteDocument, getDocumentDownloadUrl, approveDocument, convertDocumentToPDFAction } from "@/server/actions/document.actions";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocale, useTranslations } from "next-intl";
+import { compareDocuments, isDocumentAttention, parseDocumentSort } from "@/lib/document-attention";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type DocumentWithMeta = Document & {
   owner?: {
@@ -55,8 +63,21 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
   const t = useTranslations("dashboardDocumentsList");
   const locale = useLocale();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
+  const sort = parseDocumentSort(searchParams.get("sort"));
+  const sortedDocuments = useMemo(
+    () => [...documents].sort((a, b) => compareDocuments(a, b, sort)),
+    [documents, sort],
+  );
+
+  const handleSortChange = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("sort", parseDocumentSort(value));
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
 
   const handleDownload = async (id: string) => {
     const result = await getDocumentDownloadUrl(id);
@@ -169,6 +190,20 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
 
   return (
     <>
+      <div className="flex items-center justify-end gap-2">
+        <span className="text-sm text-muted-foreground">{t("sort.label")}</span>
+        <Select value={sort} onValueChange={handleSortChange}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="red">{t("sort.red")}</SelectItem>
+            <SelectItem value="number">{t("sort.number")}</SelectItem>
+            <SelectItem value="origin">{t("sort.origin")}</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Desktop - Tabell */}
       <div className="hidden md:block rounded-lg border">
         <Table>
@@ -186,16 +221,22 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
           </TableRow>
         </TableHeader>
         <TableBody>
-          {documents.map((doc) => {
+          {sortedDocuments.map((doc) => {
             const nextReviewDate = doc.nextReviewDate ? new Date(doc.nextReviewDate) : null;
             const isReviewOverdue = nextReviewDate ? nextReviewDate < new Date() : false;
+            const needsAttention = isDocumentAttention(doc);
 
             return (
             <TableRow key={doc.id}>
               <TableCell>
                 <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{doc.title}</span>
+                  <FileText className={`h-4 w-4 ${needsAttention ? "text-destructive" : "text-muted-foreground"}`} />
+                  <span className={`font-medium ${needsAttention ? "text-destructive" : ""}`}>{doc.title}</span>
+                  {needsAttention && (
+                    <Badge variant="destructive" className="text-xs">
+                      {t("attention")}
+                    </Badge>
+                  )}
                   {doc.template?.name && (
                     <Badge variant="outline" className="text-xs">
                       {doc.template.name}
@@ -345,9 +386,10 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
 
       {/* Mobile - Kort */}
       <div className="md:hidden space-y-3">
-        {documents.map((doc) => {
+        {sortedDocuments.map((doc) => {
           const nextReviewDate = doc.nextReviewDate ? new Date(doc.nextReviewDate) : null;
           const isReviewOverdue = nextReviewDate ? nextReviewDate < new Date() : false;
+          const needsAttention = isDocumentAttention(doc);
 
           return (
           <Card key={doc.id}>
@@ -355,9 +397,14 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
               <div className="space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-start gap-2 flex-1 min-w-0">
-                    <FileText className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                    <FileText className={`h-5 w-5 shrink-0 mt-0.5 ${needsAttention ? "text-destructive" : "text-muted-foreground"}`} />
                     <div className="min-w-0">
-                      <h3 className="font-medium line-clamp-2">{doc.title}</h3>
+                      <h3 className={`font-medium line-clamp-2 ${needsAttention ? "text-destructive" : ""}`}>{doc.title}</h3>
+                      {needsAttention && (
+                        <Badge variant="destructive" className="mt-1 text-xs">
+                          {t("attention")}
+                        </Badge>
+                      )}
                       <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                         <span>v{doc.version}</span>
                         <span>•</span>

@@ -114,6 +114,12 @@ export function generateFileKey(tenantId: string, folder: string, filename: stri
 }
 
 /** Personalmappe i R2: tenant/personnel/userId/category/fil */
+export function isPersonnelStorageKey(fileKey: string): boolean {
+  const parts = fileKey.split("/").filter(Boolean);
+  return parts.length >= 3 && parts[1] === "personnel";
+}
+
+/** Personalmappe i R2: tenant/personnel/userId/category/fil */
 export function generatePersonnelFileKey(
   tenantId: string,
   userId: string,

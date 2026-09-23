@@ -49,6 +49,7 @@ import {
   Headphones,
   HeartHandshake,
   GitBranch,
+  Wrench,
 } from "lucide-react";
 import { BRANSJE_MODULES } from "@/lib/bransje-modules";
 import { menuPathsToWidgetIds } from "@/lib/menu-widget-sync";
@@ -472,8 +473,8 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
   },
   {
     id: "hms-handbok",
-    label: "HMS- og personalhåndbok",
-    description: "Levende HMS- og personalhåndbok med lesebekreftelse (IK-HMS § 5)",
+    label: "Kvalitet, HMS og personal",
+    description: "Styringssystem med kvalitet, HMS og personal. Lesebekreftelse per versjon (ISO 9001, IK-HMS § 5)",
     icon: BookOpenCheck,
     href: "/dashboard/hms-handbok",
     category: "dokumenter",
@@ -630,6 +631,18 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
     bgColor: "bg-amber-50",
     borderColor: "border-amber-200",
     permission: "constructionCompliance",
+  },
+  {
+    id: "equipment-approval",
+    label: "Utstyr med godkjenning",
+    description: "Sakkyndig kontroll, attest og gyldig periode for arbeidsutstyr",
+    icon: Wrench,
+    href: "/dashboard/utstyr",
+    category: "sikkerhet",
+    color: "text-slate-700",
+    bgColor: "bg-slate-50",
+    borderColor: "border-slate-200",
+    permission: "inspections",
   },
   {
     id: "ik-mat",

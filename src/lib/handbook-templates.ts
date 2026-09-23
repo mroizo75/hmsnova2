@@ -652,8 +652,6 @@ const INDUSTRY_OVERRIDES: Record<string, Partial<Record<string, string>>> = {
   },
 };
 
-// ── Personalhåndbok-kapitler (AML, ferieloven, GDPR) ──────────────────────
-
 export type HandbookHrSectionDef = {
   sectionKey: string;
   sectionNumber: string;
@@ -664,10 +662,72 @@ export type HandbookHrSectionDef = {
   content: string;
 };
 
+// ── Kvalitetskapitler (ISO 9001:2015) ─────────────────────────────────────
+// Ikke lovpålagt for alle virksomheter. Nødvendig for at styringssystemet
+// faktisk er et kvalitetssystem, ikke bare HMS og personal.
+
+export const DEFAULT_KS_SECTIONS: HandbookHrSectionDef[] = [
+  {
+    sectionKey: "ks-policy",
+    sectionNumber: "1",
+    title: "Kvalitetspolicy og mål",
+    legalRef: "ISO 9001:2015 pkt. 5.2 og 6.2",
+    sortOrder: 1,
+    moduleLink: "/dashboard/goals",
+    content: `<h3>Kvalitetspolitikk</h3>
+<p>{{bedriftsnavn}} skal levere produkter og tjenester som oppfyller avtalte krav og gjeldende regelverk. Kvalitetsarbeidet inngår i det samme styringssystemet som HMS og personal.</p>
+<p><strong>Vi forplikter oss til å:</strong></p>
+<ul>
+  <li>Forstå og oppfylle kundekrav og lovkrav som gjelder leveransen</li>
+  <li>Sette målbare kvalitetsmål og følge dem opp</li>
+  <li>Behandle avvik og reklamasjoner slik at årsaken rettes og ikke gjentar seg</li>
+  <li>Forbedre prosesser ut fra erfaring, kundetilbakemelding og revisjon</li>
+</ul>
+<h3>Kvalitetsmål</h3>
+<p>Kvalitetsmålene skal være konkrete, målbare og kjent i virksomheten, jf. ISO 9001:2015 pkt. 6.2. Målene gjennomgås minst årlig i ledelsens gjennomgang.</p>
+<ol>
+  <li><strong>Kundeklager behandlet innen avtalt frist</strong></li>
+  <li><strong>Avvik lukket med korrigerende tiltak</strong> der årsaken kan gjenta seg</li>
+  <li><strong>Leveranser i tråd med avtale</strong> — avvik fra krav registreres og følges opp</li>
+</ol>
+<p>Konkrete tall for året settes av daglig leder og dokumenteres i målstyringen.</p>`,
+  },
+  {
+    sectionKey: "ks-kunder",
+    sectionNumber: "2",
+    title: "Kunder, reklamasjon og tilbakemelding",
+    legalRef: "ISO 9001:2015 pkt. 8.2.1, 9.1.2 og 10.2",
+    sortOrder: 2,
+    moduleLink: "/dashboard/complaints",
+    content: `<h3>Kundekommunikasjon</h3>
+<p>{{bedriftsnavn}} skal gjøre det tydelig hvordan kunder kan melde feil, mangler og andre tilbakemeldinger, jf. ISO 9001:2015 pkt. 8.2.1.</p>
+<h3>Reklamasjon</h3>
+<p>Kundeklager registreres i klagemodulen. Saken skal beskrive hva som er levert, hva kunden mener er feil, og hvilket krav som gjelder. Forhold som kan gjenta seg behandles som avvik med årsaksanalyse og korrigerende tiltak, jf. ISO 9001:2015 pkt. 10.2.</p>
+<h3>Kundetilfredshet</h3>
+<p>Tilbakemeldinger, klager og gjentakende feil brukes som grunnlag for forbedring, jf. ISO 9001:2015 pkt. 9.1.2. Resultatet tas med i ledelsens gjennomgang.</p>`,
+  },
+  {
+    sectionKey: "ks-leverandor",
+    sectionNumber: "3",
+    title: "Leverandørstyring",
+    legalRef: "ISO 9001:2015 pkt. 8.4",
+    sortOrder: 3,
+    moduleLink: null,
+    content: `<h3>Styring av leverandører</h3>
+<p>Varer og tjenester som påvirker kvaliteten på det {{bedriftsnavn}} leverer, skal kjøpes fra leverandører som kan oppfylle kravene, jf. ISO 9001:2015 pkt. 8.4.</p>
+<h3>Vurdering</h3>
+<p>Før innkjøp av kritiske varer eller tjenester vurderes leverandøren ut fra kravene til leveransen, tidligere erfaring og eventuelle lovpålagte godkjenninger. Vurderingen tilpasses risiko og omfang.</p>
+<h3>Oppfølging</h3>
+<p>Feil fra leverandør registreres som avvik. Gjentakende feil tas opp med leverandøren og vurderes på nytt før neste innkjøp.</p>`,
+  },
+];
+
+// ── Personalhåndbok-kapitler (AML, ferieloven, GDPR) ──────────────────────
+
 export const DEFAULT_HR_SECTIONS: HandbookHrSectionDef[] = [
   {
     sectionKey: "hr-arbeidsforhold",
-    sectionNumber: "19",
+    sectionNumber: "1",
     title: "Ansettelse og arbeidsavtale",
     legalRef: "AML § 14-5, § 14-6",
     sortOrder: 19,
@@ -681,7 +741,7 @@ export const DEFAULT_HR_SECTIONS: HandbookHrSectionDef[] = [
   },
   {
     sectionKey: "hr-arbeidstid",
-    sectionNumber: "20",
+    sectionNumber: "2",
     title: "Arbeidstid og overtid",
     legalRef: "AML kap. 10",
     sortOrder: 20,
@@ -695,7 +755,7 @@ export const DEFAULT_HR_SECTIONS: HandbookHrSectionDef[] = [
   },
   {
     sectionKey: "hr-ferie",
-    sectionNumber: "21",
+    sectionNumber: "3",
     title: "Ferie og feriepenger",
     legalRef: "Ferieloven",
     sortOrder: 21,
@@ -709,7 +769,7 @@ export const DEFAULT_HR_SECTIONS: HandbookHrSectionDef[] = [
   },
   {
     sectionKey: "hr-sykefravaer",
-    sectionNumber: "22",
+    sectionNumber: "4",
     title: "Sykefravær og egenmelding",
     legalRef: "AML § 4-6, Folketrygdloven § 8-7",
     sortOrder: 22,
@@ -724,7 +784,7 @@ export const DEFAULT_HR_SECTIONS: HandbookHrSectionDef[] = [
   },
   {
     sectionKey: "hr-permisjon",
-    sectionNumber: "23",
+    sectionNumber: "5",
     title: "Permisjon",
     legalRef: "AML kap. 12",
     sortOrder: 23,
@@ -736,7 +796,7 @@ export const DEFAULT_HR_SECTIONS: HandbookHrSectionDef[] = [
   },
   {
     sectionKey: "hr-kompetanse",
-    sectionNumber: "24",
+    sectionNumber: "6",
     title: "Kompetansekrav i stillingen",
     legalRef: "AML § 3-2, IK-HMS § 5 nr. 2 og nr. 5",
     sortOrder: 24,
@@ -748,7 +808,7 @@ export const DEFAULT_HR_SECTIONS: HandbookHrSectionDef[] = [
   },
   {
     sectionKey: "hr-personvern",
-    sectionNumber: "25",
+    sectionNumber: "7",
     title: "Personopplysninger i ansettelsesforholdet",
     legalRef: "GDPR art. 5, 6 og 13, personopplysningsloven",
     sortOrder: 25,
@@ -761,7 +821,7 @@ export const DEFAULT_HR_SECTIONS: HandbookHrSectionDef[] = [
   },
   {
     sectionKey: "hr-opphor",
-    sectionNumber: "26",
+    sectionNumber: "8",
     title: "Opphør av arbeidsforhold",
     legalRef: "AML kap. 15, AML § 15-15, GDPR art. 17",
     sortOrder: 26,

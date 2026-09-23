@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getAuthContext, requirePermission } from "@/lib/server-authorization";
 import { findOverlappingAssignments } from "@/lib/time/resource-overlap";
+import { calendarDateUtc, weekDateRange } from "@/lib/time/week-range";
+import { format } from "date-fns";
 
 function formatActionError(error: unknown, fallback: string): string {
   if (error instanceof Error) return error.message;
@@ -12,11 +14,11 @@ function formatActionError(error: unknown, fallback: string): string {
 
 export async function listResourceWeek(weekStartIso: string) {
   const ctx = await requirePermission("canApproveTimesheet");
-  const from = new Date(`${weekStartIso.slice(0, 10)}T00:00:00`);
-  const to = new Date(from);
-  to.setDate(to.getDate() + 6);
+  const week = weekDateRange(weekStartIso);
+  const from = week.from;
+  const to = week.to;
 
-  const [assignments, users, projects] = await Promise.all([
+  const [assignments, users, projects, tenant] = await Promise.all([
     prisma.resourceAssignment.findMany({
       where: {
         tenantId: ctx.tenantId,
@@ -37,9 +39,15 @@ export async function listResourceWeek(weekStartIso: string) {
       select: { id: true, name: true, parentId: true },
       orderBy: { name: "asc" },
     }),
+    prisma.tenant.findUnique({
+      where: { id: ctx.tenantId },
+      select: { weeklyHoursNorm: true },
+    }),
   ]);
 
-  return JSON.parse(JSON.stringify({ assignments, users, projects, from, to }));
+  const weeklyHoursNorm = tenant?.weeklyHoursNorm ?? 37.5;
+  const dailyCapacity = Math.round((weeklyHoursNorm / 5) * 100) / 100;
+  return JSON.parse(JSON.stringify({ assignments, users, projects, from, to, weeklyHoursNorm, dailyCapacity }));
 }
 
 export async function upsertResourceAssignment(input: {
@@ -81,6 +89,8 @@ export async function upsertResourceAssignment(input: {
 
     revalidatePath("/dashboard/projects");
     revalidatePath("/dashboard/time-registration");
+    revalidatePath("/ansatt/timeregistrering");
+    revalidatePath("/ansatt/jobber");
     return {
       success: true as const,
       data: row,
@@ -97,6 +107,9 @@ export async function deleteResourceAssignment(id: string) {
     const ctx = await requirePermission("canApproveTimesheet");
     await prisma.resourceAssignment.deleteMany({ where: { id, tenantId: ctx.tenantId } });
     revalidatePath("/dashboard/projects");
+    revalidatePath("/dashboard/time-registration");
+    revalidatePath("/ansatt/timeregistrering");
+    revalidatePath("/ansatt/jobber");
     return { success: true as const };
   } catch (error: unknown) {
     return { success: false as const, error: formatActionError(error, "Kunne ikke slette") };
@@ -106,7 +119,7 @@ export async function deleteResourceAssignment(id: string) {
 export async function suggestedProjectForToday() {
   const ctx = await getAuthContext();
   if (!ctx) return null;
-  const today = new Date();
+  const today = calendarDateUtc(format(new Date(), "yyyy-MM-dd"));
   const assignment = await prisma.resourceAssignment.findFirst({
     where: {
       tenantId: ctx.tenantId,

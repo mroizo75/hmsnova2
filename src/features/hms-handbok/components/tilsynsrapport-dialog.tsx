@@ -11,13 +11,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { TILSYN_TYPES, type TilsynType } from "@/lib/tilsynsrapport-config";
-import { FileText, Loader2, Shield, UtensilsCrossed, Flame, ClipboardCheck } from "lucide-react";
+import { FileText, Loader2, Shield, UtensilsCrossed, Flame, ClipboardCheck, Truck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const TILSYN_ICONS: Record<TilsynType, React.ReactNode> = {
   arbeidstilsynet: <Shield className="h-6 w-6" />,
   mattilsynet: <UtensilsCrossed className="h-6 w-6" />,
   brannvesenet: <Flame className="h-6 w-6" />,
+  vegvesen: <Truck className="h-6 w-6" />,
   revisjon: <ClipboardCheck className="h-6 w-6" />,
 };
 
@@ -57,7 +58,7 @@ export function TilsynsrapportDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="outline" size="sm" className="gap-2 bg-transparent">
           <FileText className="h-4 w-4" />
           Tilsynsrapport
         </Button>
@@ -66,7 +67,7 @@ export function TilsynsrapportDialog() {
         <DialogHeader>
           <DialogTitle>Generer tilsynsrapport</DialogTitle>
           <DialogDescription>
-            Velg type tilsyn for å generere en komplett PDF med relevante HMS-data fra håndboken.
+            Velg tilsyn. Rapporten tar med kapitlene og registreringene det tilsynet faktisk spør etter.
           </DialogDescription>
         </DialogHeader>
 
@@ -98,7 +99,7 @@ export function TilsynsrapportDialog() {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Rapporten inkluderer HMS-håndbokens seksjoner, aktive risikoer, avvik, opplæring og annen relevant dokumentasjon filtrert for valgt tilsynstype.
+          Arbeidstilsynet får internkontrollen. Statens vegvesen får kvalitetsstyringen etter verkstedforskriften §§ 15–18. Det som skal meldes på vegvesen.no, ligger ikke i PDF-en.
         </p>
       </DialogContent>
     </Dialog>

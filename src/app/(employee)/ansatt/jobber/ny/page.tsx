@@ -1,14 +1,14 @@
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { NewJobForm } from "@/features/jobs/components/new-job-form";
 import { listCachedCustomers } from "@/server/actions/accounting.actions";
+import { getAuthContext } from "@/lib/server-authorization";
 
 export default async function NyJobbPage() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.tenantId) redirect("/login");
+  const ctx = await getAuthContext();
+  if (!ctx) redirect("/login");
+  if (!ctx.permissions.canCreateFieldProject) redirect("/ansatt/jobber");
 
   const customers = await listCachedCustomers();
 

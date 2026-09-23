@@ -23,9 +23,23 @@ import type {
   HandbookSectionData,
   AnnualPlanProgress,
   LegalRequirementForHandbook,
+  HandbookParticipationMeeting,
+  HandbookWasteDelivery,
 } from "@/server/actions/hms-handbok.actions";
+import { hazardousWasteLabel } from "@/lib/hazardous-waste";
 import type { HandbookVersionStatus } from "@prisma/client";
 import { HandbokAnnualPlan } from "./handbok-annual-plan";
+
+const MEETING_STATUS_LABEL: Record<string, string> = {
+  PLANNED: "Planlagt",
+  IN_PROGRESS: "Pågår",
+  COMPLETED: "Gjennomført",
+  CANCELLED: "Avlyst",
+};
+
+function meetingStatusLabel(status: string): string {
+  return MEETING_STATUS_LABEL[status] ?? status;
+}
 
 interface HandbokSectionExpandedProps {
   section: HandbookSectionData;
@@ -33,6 +47,8 @@ interface HandbokSectionExpandedProps {
   canEdit: boolean;
   annualPlanProgress?: AnnualPlanProgress | null;
   legalRequirements?: LegalRequirementForHandbook[];
+  participationMeetings?: HandbookParticipationMeeting[];
+  wasteDeliveries?: HandbookWasteDelivery[];
   suggestions?: Array<{
     id: string;
     title: string;
@@ -48,6 +64,8 @@ export function HandbokSectionExpanded({
   canEdit,
   annualPlanProgress,
   legalRequirements = [],
+  participationMeetings = [],
+  wasteDeliveries = [],
   suggestions = [],
 }: HandbokSectionExpandedProps) {
   const [expanded, setExpanded] = useState(false);
@@ -93,7 +111,13 @@ export function HandbokSectionExpanded({
               <CardTitle className="flex items-center gap-2 text-base">
                 {section.title}
                 {section.category === "HR" && (
-                  <Badge variant="outline" className="text-xs font-normal">Personal</Badge>
+                  <Badge variant="outline" className="bg-transparent text-xs font-normal">Personal</Badge>
+                )}
+                {section.category === "KS" && (
+                  <Badge variant="outline" className="bg-transparent text-xs font-normal">Kvalitet</Badge>
+                )}
+                {section.category === "KS,HMS" && (
+                  <Badge variant="outline" className="bg-transparent text-xs font-normal">Kvalitet og HMS</Badge>
                 )}
                 {sectionSuggestions.length > 0 && (
                   <Badge variant="secondary" className="gap-1 text-xs">
@@ -183,6 +207,74 @@ export function HandbokSectionExpanded({
           )}
 
           {/* Live årshjul (kun for seksjon s13) */}
+          {section.sectionKey === "s2b" && (
+            <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium">AMU- og verneombudsmøter i år</p>
+                {canEdit && (
+                  <Link href="/dashboard/meetings" className="text-xs text-primary hover:underline flex items-center gap-1">
+                    Åpne møter
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                AML § 7-1 og § 7-2. Gjennomførte møter krysser av årshjulet.
+              </p>
+              {participationMeetings.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Ingen AMU- eller verneombudsmøter registrert i år.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {participationMeetings.map((meeting) => (
+                    <li key={meeting.id} className="flex items-center justify-between gap-2 text-sm">
+                      {canEdit ? (
+                        <Link href={`/dashboard/meetings/${meeting.id}`} className="hover:underline">
+                          {meeting.type === "AMU" ? "AMU" : "Verneombud"} · {meeting.title}
+                        </Link>
+                      ) : (
+                        <span>
+                          {meeting.type === "AMU" ? "AMU" : "Verneombud"} · {meeting.title}
+                        </span>
+                      )}
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(meeting.scheduledDate).toLocaleDateString("nb-NO")} · {meetingStatusLabel(meeting.status)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {section.sectionKey === "s12" && (
+            <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium">Deklarert farlig avfall</p>
+                {canEdit && (
+                  <Link href="/dashboard/environment" className="text-xs text-primary hover:underline flex items-center gap-1">
+                    Miljøstyring
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Avfallsforskriften kap. 11. Kjølevæske og annet farlig avfall deklareres før levering.
+              </p>
+              {wasteDeliveries.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Ingen leveranser registrert.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {wasteDeliveries.map((delivery) => (
+                    <li key={delivery.id} className="text-sm">
+                      {hazardousWasteLabel(delivery.wasteType, delivery.customType)} · {delivery.amountKg} kg ·{" "}
+                      {new Date(delivery.deliveredAt).toLocaleDateString("nb-NO")} · deklarasjon {delivery.declarationNumber}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
           {section.sectionKey === "s13" && annualPlanProgress && (
             <div className="rounded-lg border bg-muted/30 p-4">
               <HandbokAnnualPlan progress={annualPlanProgress} />
@@ -306,6 +398,10 @@ export function HandbokSectionExpanded({
                   versionStatus={versionStatus}
                   canEdit={canEdit}
                   suggestions={[]}
+                  annualPlanProgress={annualPlanProgress}
+                  legalRequirements={legalRequirements}
+                  participationMeetings={participationMeetings}
+                  wasteDeliveries={wasteDeliveries}
                 />
               ))}
             </div>

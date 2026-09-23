@@ -33,7 +33,7 @@ export async function createCustomerFromBrreg(input: {
   phone?: string;
 }) {
   try {
-    const ctx = await requirePermission("canCreateFieldProject");
+    const ctx = await requirePermission("canAccessTimeRegistration");
     const org = input.organizationNumber.replace(/\s/g, "");
     if (!/^\d{9}$/.test(org)) {
       return { success: false as const, error: "Organisasjonsnummer må være 9 siffer" };
@@ -99,7 +99,7 @@ export async function createCustomerContact(input: {
   phone?: string;
 }) {
   try {
-    const ctx = await requirePermission("canCreateFieldProject");
+    const ctx = await requirePermission("canAccessTimeRegistration");
     if (!input.firstName.trim()) {
       return { success: false as const, error: "Fornavn er påkrevd" };
     }
@@ -168,7 +168,17 @@ export async function createProjectWithOptionalCustomer(input: {
   jobKind?: "SERVICE" | "HMS";
 }) {
   try {
-    const ctx = await requirePermission("canCreateFieldProject");
+    const ctx = await getAuthContext();
+    if (!ctx) return { success: false as const, error: "Ikke autentisert" };
+    if (!ctx.permissions.canAccessTimeRegistration) {
+      return { success: false as const, error: "Ingen tilgang til timeregistrering" };
+    }
+    if (!ctx.permissions.canCreateFieldProject) {
+      return {
+        success: false as const,
+        error: "Ansatte kan ikke opprette prosjekt. Administrator slår det på under Innstillinger → Regnskap.",
+      };
+    }
     const tenant = await prisma.tenant.findUnique({
       where: { id: ctx.tenantId },
       select: { accountingProvider: true },

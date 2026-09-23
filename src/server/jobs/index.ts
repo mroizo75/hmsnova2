@@ -11,11 +11,9 @@
 
 import { Queue, Worker } from "bullmq";
 import { weeklySDSVersionCheck } from "./weekly-sds-check";
+import { createJobsRedis } from "@/lib/jobs/redis";
 
-const connection = {
-  host: process.env.REDIS_HOST || "localhost",
-  port: parseInt(process.env.REDIS_PORT || "6379"),
-};
+const connection = createJobsRedis();
 
 // Opprett queue
 export const sdsQueue = new Queue("sds-automation", { connection });

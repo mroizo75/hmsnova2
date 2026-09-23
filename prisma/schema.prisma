@@ -157,6 +157,10 @@ model User {
   boardingTasksAssigned           BoardingTask[]                 @relation("BoardingTaskAssignee")
   boardingTasksCompleted          BoardingTask[]                 @relation("BoardingTaskCompletedBy")
   competenceProfiles              UserCompetenceProfile[]
+  competenceStatements            CompetenceStatement[]          @relation("CompetenceStatementSubject")
+  competenceRatings               EmployeeCompetenceRating[]     @relation("CompetenceRatingSubject")
+  competenceRatingsGiven          EmployeeCompetenceRating[]     @relation("CompetenceRatingAssessor")
+  hazardousWasteDeliveries        HazardousWasteDelivery[]       @relation("HazardousWasteDeclaredBy")
   personnelDocuments              PersonnelDocument[]            @relation("PersonnelEmployee")
   personnelDocumentsUploaded      PersonnelDocument[]            @relation("PersonnelUploadedBy")
   whistleblowGrantsReceived       WhistleblowAccessGrant[]       @relation("WhistleblowGrantGrantee")
@@ -332,6 +336,7 @@ model Tenant {
   audits                              Audit[]
   goals                               Goal[]
   chemicals                           Chemical[]
+  equipmentApprovals                  EquipmentApproval[]
   attachments                         Attachment[]
   auditLogs                           AuditLog[]
   aiFeedbackLogs                      AiFeedbackLog[]
@@ -374,6 +379,7 @@ model Tenant {
   tripletexActivityOt50Id             String?
   tripletexActivityOt100Id            String?
   tripletexProductKmId                String?
+  tripletexProductKmNonTaxableId      String? // Km uten skattbar sats (krav: skattbar vs ikke skattbar)
   tripletexProductMachineHoursId      String?
   accountingWebhookSecret             String?
   accountingLastPullAt                DateTime?
@@ -390,6 +396,7 @@ model Tenant {
 
   // Timeregistrering (prosjekter, timer, kjøring)
   timeRegistrationEnabled             Boolean                        @default(false) // Aktiver modul per tenant
+  employeesCanCreateProjects          Boolean                        @default(true) // ANSATT kan opprette prosjekt fra timeliste/jobber
   weeklyHoursNorm                     Float                          @default(37.5) // Ordinær uke (timer)
   overtime50Multiplier                Float                          @default(1.5) // Overtid 50 % = 1.5x
   overtime40Multiplier                Float                          @default(1.4) // Overtid 40 % = 1.4x (kundespesifikk)
@@ -404,6 +411,9 @@ model Tenant {
   saturdayOt50UntilHour               Float                          @default(12) // Lørdag: OT 50 % frem til denne klokken
   timeCommentPresets                  Json? // Standard kommentarer for timeføring
   absenceProjectId                    String? // Fraværsprosjekt for Tripletex
+  absencePayrollTypes                 Json? // AbsenceType[] som skal til lønn; tom/null = alle unntatt avspasering
+  timeBankMaxBalance                  Float? // Maksimal timebanksaldo
+  timeBankMinBalance                  Float? // Minimumssaldo (kan være negativ)
   eveningOvertimeFromHour             Int? // Fra denne kl (man–fre) = 100 % overtid. Null = alt 50 %
   saturdayOvertime40LimitHours        Float? // Lørdag: første X t ved 40 %, resten 100 %. Null = alt 100 %
   defaultHourlyRate                   Float? // Valgfritt felles Excel-estimat, ikke individuell lønn. Null = skjul
@@ -470,6 +480,9 @@ model Tenant {
   boardings                           Boarding[]
   contractAcceptances                 ContractAcceptance[]
   competenceProfiles                  CompetenceProfile[]
+  competenceStatements                CompetenceStatement[]
+  competenceRatings                   EmployeeCompetenceRating[]
+  hazardousWasteDeliveries            HazardousWasteDelivery[]
   userCompetenceProfiles              UserCompetenceProfile[]
   personnelDocuments                  PersonnelDocument[]
   managementOfChanges                 ManagementOfChange[]
@@ -1331,6 +1344,7 @@ model Risk {
   trainingRequirements RiskTrainingRequirement[]
   exposureRegisters    ExposureRegister[]
   routineLinks         RiskRoutineLink[]
+  equipmentLinks       EquipmentRiskLink[]
   mocLinks             MocRiskLink[]
 
   @@index([tenantId])
@@ -1908,6 +1922,7 @@ model EnvironmentalAspect {
   measurements EnvironmentalMeasurement[]
   measures     Measure[]
   mocLinks     MocEnvironmentalAspectLink[]
+  wasteDeliveries HazardousWasteDelivery[]
 
   @@index([tenantId])
   @@index([category])
@@ -2035,6 +2050,8 @@ model Incident {
   projectId                String?
   // Fritekst prosjektnummer/referanse for sporbarhet når prosjektet ikke er registrert
   projectReference         String?
+  // FuA § 13-4: avvik på arbeidsutstyr med godkjenning
+  equipmentApprovalId      String?
   // Kilde: INTERNAL (opprettet i systemet) eller EXTERNAL (mottatt utenfra, f.eks. PDF via e-post)
   source                   String               @default("INTERNAL")
   // HMS Intelligens-motor: kobling til rutine og standardisert område for mønstergjenkjenning
@@ -2053,6 +2070,7 @@ model Incident {
   customerFeedbacks  CustomerFeedback[]
   risk               Risk?               @relation("IncidentRiskReference", fields: [riskReferenceId], references: [id])
   project            Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  equipmentApproval  EquipmentApproval?  @relation(fields: [equipmentApprovalId], references: [id], onDelete: SetNull)
   relatedRoutine     Routine?            @relation("IncidentRelatedRoutine", fields: [relatedRoutineId], references: [id], onDelete: SetNull)
   inspectionFindings InspectionFinding[] @relation("InspectionFindingIncident")
   comments           IncidentComment[]
@@ -2068,6 +2086,7 @@ model Incident {
   @@index([reportedForUserId])
   @@index([riskReferenceId])
   @@index([projectId])
+  @@index([equipmentApprovalId])
   @@index([relatedRoutineId])
   @@index([areaTag])
 }
@@ -3143,6 +3162,7 @@ model Routine {
   relatedIncidents Incident[]        @relation("IncidentRelatedRoutine")
   versions         RoutineVersion[]
   riskLinks        RiskRoutineLink[]
+  equipmentLinks   EquipmentRoutineLink[]
   fireDrills       FireDrill[]       @relation("FireDrillRoutine")
   mocLinks         MocRoutineLink[]
 
@@ -4665,6 +4685,7 @@ model TimeEntry {
   approvedById    String?
   approvedAt      DateTime?
   comment         String?       @db.Text
+  rejectionReason String?       @db.Text
   editedById      String? // Hvis admin har rettet
   editedAt        DateTime?
   externalId      String?
@@ -4739,12 +4760,15 @@ model ProjectUsageLine {
   tenantId    String
   projectId   String
   userId      String
+  date        DateTime         @db.Date
   kind        ProjectUsageKind
   productExternalId String
   productName String
   quantity    Float
   unitPrice   Float?
   comment     String?          @db.Text
+  isPrivateCar Boolean         @default(false)
+  kmTaxable   Boolean          @default(false)
   externalId  String?
   syncStatus  AccountingSyncStatus @default(IDLE)
   invoicedAt  DateTime?
@@ -4756,6 +4780,7 @@ model ProjectUsageLine {
 
   @@index([tenantId])
   @@index([projectId])
+  @@index([tenantId, userId, date])
 }
 
 model ProjectInvoice {
@@ -4896,6 +4921,12 @@ enum TimeBankEntryKind {
   CORRECTION
 }
 
+enum TimeBankLedgerStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model TimeBankRule {
   id               String         @id @default(cuid())
   tenantId         String
@@ -4903,6 +4934,7 @@ model TimeBankRule {
   timeType         TimeEntryType?
   factor           Float          @default(1)
   appliesToUserIds Json?
+  maxTakeHours     Float?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
@@ -4916,6 +4948,7 @@ model TimeBankLedger {
   tenantId      String
   userId        String
   kind          TimeBankEntryKind
+  status        TimeBankLedgerStatus @default(APPROVED)
   hours         Float
   balanceAfter  Float
   timeEntryId   String?
@@ -5401,6 +5434,7 @@ model EmployeeReview {
 
   goals   EmployeeReviewGoal[]
   actions EmployeeReviewAction[]
+  competenceRatings EmployeeCompetenceRating[]
 
   @@index([tenantId])
   @@index([employeeId])
@@ -6157,7 +6191,7 @@ model HandbookSection {
   title         String // "HMS-styringssystem og omfang"
   content       String  @db.LongText // Rich text HTML fra Tiptap
   legalRef      String? // "AML § 3-1, IK-HMS § 5"
-  category      String  @default("HMS") // "HMS" | "HR"
+  category      String  @default("HMS") // "KS" | "HMS" | "HR" | "KS,HMS" (felles ISO 9001 og IK-HMS)
   sortOrder     Int
   isEnabled     Boolean @default(true) // Bedriften kan deaktivere seksjoner som ikke er relevante
   externalRef   String? @db.Text // Henvisning til eksternt system når seksjon er deaktivert, f.eks. "Se personalhåndbok i Simployer"
@@ -7123,6 +7157,7 @@ model CompetenceProfile {
   isDefault    Boolean                 @default(false)
   requirements CompetenceRequirement[]
   users        UserCompetenceProfile[]
+  statements   CompetenceStatement[]
   createdAt    DateTime                @default(now())
   updatedAt    DateTime                @updatedAt
 
@@ -7202,6 +7237,100 @@ model PersonnelDocument {
 
   @@index([tenantId, userId])
   @@index([tenantId, category])
+}
+
+// Konkret kompetanse (Linda Lai): kunnskaper, ferdigheter, evner, holdninger.
+// Lovkravet er AML § 4-2 og IK-HMS § 5 nr. 2. Dimensjonene er metoden, ikke et lovskjema.
+enum CompetenceDimension {
+  KUNNSKAP
+  FERDIGHET
+  EVNE
+  HOLDNING
+}
+
+enum CompetenceLevel {
+  MANGLER
+  DELVIS
+  INNFRIDD
+}
+
+model CompetenceStatement {
+  id        String              @id @default(cuid())
+  tenantId  String
+  profileId String?
+  userId    String?
+  dimension CompetenceDimension
+  statement String              @db.Text
+  sortOrder Int                 @default(0)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  tenant  Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  profile CompetenceProfile? @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  user    User?              @relation("CompetenceStatementSubject", fields: [userId], references: [id], onDelete: Cascade)
+  ratings EmployeeCompetenceRating[]
+
+  @@index([tenantId])
+  @@index([profileId])
+  @@index([userId])
+}
+
+model EmployeeCompetenceRating {
+  id           String          @id @default(cuid())
+  tenantId     String
+  userId       String
+  statementId  String
+  level        CompetenceLevel
+  comment      String?         @db.Text
+  assessedAt   DateTime        @default(now())
+  reviewId     String?
+  assessedById String?
+
+  tenant     Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user       User                @relation("CompetenceRatingSubject", fields: [userId], references: [id], onDelete: Cascade)
+  statement  CompetenceStatement @relation(fields: [statementId], references: [id], onDelete: Cascade)
+  review     EmployeeReview?     @relation(fields: [reviewId], references: [id], onDelete: SetNull)
+  assessedBy User?               @relation("CompetenceRatingAssessor", fields: [assessedById], references: [id], onDelete: SetNull)
+
+  @@unique([userId, statementId])
+  @@index([tenantId, userId])
+  @@index([reviewId])
+}
+
+// Avfallsforskriften kap. 11: farlig avfall skal deklareres før levering.
+// HMS Nova lagrer beviset. Selve deklarasjonen skjer hos Miljødirektoratet.
+enum HazardousWasteType {
+  KJOLEVAESKE
+  SPILLOLJE
+  OLJEFILTER
+  BREMSEVAESKE
+  BATTERI
+  SPRAYBOKS
+  MALING_LOSEMIDDEL
+  ANNET
+}
+
+model HazardousWasteDelivery {
+  id                String             @id @default(cuid())
+  tenantId          String
+  wasteType         HazardousWasteType
+  customType        String?
+  amountKg          Float
+  deliveredAt       DateTime
+  declarationNumber String
+  recipient         String
+  aspectId          String?
+  notes             String?            @db.Text
+  declaredById      String
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  tenant     Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  aspect     EnvironmentalAspect? @relation(fields: [aspectId], references: [id], onDelete: SetNull)
+  declaredBy User                 @relation("HazardousWasteDeclaredBy", fields: [declaredById], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, deliveredAt])
+  @@index([aspectId])
 }
 
 // ============================================
@@ -7431,6 +7560,102 @@ model MocEnvironmentalAspectLink {
 
   @@unique([mocId, environmentalAspectId])
   @@index([environmentalAspectId])
+}
+
+// Arbeidsutstyr med godkjenning. FuA § 12-5, § 12-8, § 13-1 og § 13-4.
+model EquipmentApproval {
+  id                 String                      @id @default(cuid())
+  tenantId           String
+  name               String
+  category           EquipmentCategory
+  supplierName       String
+  approvalBody       String
+  certificateNumber  String?
+  serialNumber       String?
+  location           String?
+  validFrom          DateTime
+  validTo            DateTime
+  operationalStatus  EquipmentOperationalStatus  @default(IN_USE)
+  notes              String?                     @db.Text
+  createdById        String
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
+
+  tenant     Tenant                       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  documents  EquipmentApprovalDocument[]
+  routines   EquipmentRoutineLink[]
+  risks      EquipmentRiskLink[]
+  incidents  Incident[]
+
+  @@index([tenantId])
+  @@index([tenantId, validTo])
+  @@index([operationalStatus])
+}
+
+enum EquipmentCategory {
+  BILLOFTER
+  LOFT_HENGENDE
+  LOFTEREDSKAP
+  LOFTE_STABLEVOGN
+  MASSEFORFLYTTING
+  BERGINGSVOGN
+  PERSONLOFTER
+  HENGESTILLAS
+  KLATRESTILLAS
+  SCENERIGG
+  BYGGEPLASSHEIS
+  TRALLEBANE
+  TRYKKUTSTYR
+  KALIBRERT_KONTROLLUTSTYR
+  ANNET
+}
+
+enum EquipmentOperationalStatus {
+  IN_USE
+  OUT_OF_SERVICE
+}
+
+model EquipmentApprovalDocument {
+  id            String   @id @default(cuid())
+  tenantId      String
+  equipmentId   String
+  fileKey       String
+  name          String
+  mime          String
+  size          Int?
+  uploadedById  String?
+  createdAt     DateTime @default(now())
+
+  equipment EquipmentApproval @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([equipmentId])
+}
+
+model EquipmentRoutineLink {
+  id          String   @id @default(cuid())
+  equipmentId String
+  routineId   String
+  createdAt   DateTime @default(now())
+
+  equipment EquipmentApproval @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  routine   Routine           @relation(fields: [routineId], references: [id], onDelete: Cascade)
+
+  @@unique([equipmentId, routineId])
+  @@index([routineId])
+}
+
+model EquipmentRiskLink {
+  id          String   @id @default(cuid())
+  equipmentId String
+  riskId      String
+  createdAt   DateTime @default(now())
+
+  equipment EquipmentApproval @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  risk      Risk              @relation(fields: [riskId], references: [id], onDelete: Cascade)
+
+  @@unique([equipmentId, riskId])
+  @@index([riskId])
 }
 
 model MocAffectedUser {

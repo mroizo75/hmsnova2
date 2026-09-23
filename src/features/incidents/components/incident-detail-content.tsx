@@ -36,6 +36,7 @@ import {
   Search,
   Shield,
   Lock,
+  Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchIncidentDetail } from "@/server/queries/incident-detail.queries";
@@ -335,6 +336,18 @@ export function IncidentDetailContent({
                     {t("sections.whatHappened.location")}
                   </h4>
                   <p className="text-sm text-muted-foreground">{incident.location}</p>
+                </div>
+              )}
+
+              {incident.equipmentApproval && (
+                <div>
+                  <h4 className="font-semibold mb-1 flex items-center gap-2">
+                    <Wrench className="h-4 w-4" />
+                    Arbeidsutstyr
+                  </h4>
+                  <Link href={`/dashboard/utstyr/${incident.equipmentApproval.id}`} className="text-sm text-muted-foreground hover:underline">
+                    {incident.equipmentApproval.name}
+                  </Link>
                 </div>
               )}
 

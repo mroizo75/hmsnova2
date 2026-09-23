@@ -5,22 +5,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Leaf, AlertTriangle, TimerReset, Activity } from "lucide-react";
 import { EnvironmentAspectList } from "@/features/environment/components/environment-aspect-list";
 import { CO2CalculatorCard } from "@/features/environment/components/co2-calculator-card";
+import { HazardousWasteCard } from "@/features/environment/components/hazardous-waste-card";
 import { fetchEnvironmentList } from "@/server/queries/environment.queries";
 
 type EnvironmentData = Awaited<ReturnType<typeof fetchEnvironmentList>>;
 
 interface EnvironmentContentProps {
   initialData: EnvironmentData;
+  canUpdate?: boolean;
 }
 
-export function EnvironmentContent({ initialData }: EnvironmentContentProps) {
+export function EnvironmentContent({ initialData, canUpdate = false }: EnvironmentContentProps) {
   const { data } = useQuery({
     queryKey: ["environment"],
     queryFn: () => fetchEnvironmentList(),
     initialData,
   });
 
-  const { aspects, nonCompliantCount, allMeasurements, tenant } = data;
+  const { aspects, nonCompliantCount, allMeasurements, wasteDeliveries = [], tenant } = data;
 
   const total = aspects.length;
   const critical = aspects.filter((aspect: any) => aspect.significanceScore >= 20).length;
@@ -76,6 +78,14 @@ export function EnvironmentContent({ initialData }: EnvironmentContentProps) {
           </CardContent>
         </Card>
       </div>
+
+      <HazardousWasteCard
+        deliveries={wasteDeliveries}
+        wasteAspects={aspects
+          .filter((aspect: { category?: string }) => aspect.category === "WASTE")
+          .map((aspect: { id: string; title: string }) => ({ id: aspect.id, title: aspect.title }))}
+        canUpdate={canUpdate}
+      />
 
       <CO2CalculatorCard
         measurements={allMeasurements}
