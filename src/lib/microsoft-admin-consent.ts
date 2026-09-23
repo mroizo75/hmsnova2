@@ -9,7 +9,7 @@
  */
 
 import { createHmac, timingSafeEqual } from "crypto";
-import { AZURE_AD_OIDC_SCOPE } from "./azure-ad-email";
+import { AZURE_AD_LOGIN_SCOPE } from "./azure-ad-email";
 
 // "organizations" og ikke "common": personlige Microsoft-kontoer kan ikke gi admin-samtykke.
 const ADMIN_CONSENT_ENDPOINT = "https://login.microsoftonline.com/organizations/v2.0/adminconsent";
@@ -79,7 +79,7 @@ export function buildMicrosoftAdminConsentUrl(input: {
 
   const params = new URLSearchParams({
     client_id: clientId,
-    scope: AZURE_AD_OIDC_SCOPE,
+    scope: AZURE_AD_LOGIN_SCOPE,
     redirect_uri: `${appUrl}${MICROSOFT_CONSENT_CALLBACK_PATH}`,
     state,
   });

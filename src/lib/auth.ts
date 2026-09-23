@@ -6,7 +6,7 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/lib/db";
 import { sanitizeAdapterAccount } from "@/lib/oauth-account";
 import {
-  AZURE_AD_OIDC_SCOPE,
+  AZURE_AD_LOGIN_SCOPE,
   azureAdLoginMayIssueSession,
   canonicalizeAzureAdEmail,
   type AzureAdIdTokenProfile,
@@ -16,6 +16,7 @@ import {
   getAzureAdJoinBlockReason,
   validateAzureAdLogin,
 } from "@/lib/azure-ad-login";
+import { syncAzureAdOrgProfile } from "@/lib/azure-ad-org-sync";
 import bcrypt from "bcryptjs";
 
 const prismaAdapter = PrismaAdapter(prisma);
@@ -51,7 +52,7 @@ export const authOptions: NextAuthOptions = {
             allowDangerousEmailAccountLinking: true,
             authorization: {
               params: {
-                scope: AZURE_AD_OIDC_SCOPE,
+                scope: AZURE_AD_LOGIN_SCOPE,
                 prompt: "select_account",
               },
             },
@@ -358,6 +359,14 @@ export const authOptions: NextAuthOptions = {
             })
           ) {
             throw new Error("AccessDenied");
+          }
+
+          if (isAzureAdLogin && account?.access_token && token.tenantId) {
+            await syncAzureAdOrgProfile({
+              userId: token.id as string,
+              tenantId: token.tenantId as string,
+              accessToken: account.access_token,
+            });
           }
         }
       }

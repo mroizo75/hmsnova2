@@ -166,9 +166,9 @@ export function AzureAdIntegration({
               <div className="bg-white rounded-md p-3 mt-3 border border-green-200">
                 <p className="text-green-900 font-medium mb-1">🔐 Hvordan fungerer det?</p>
                 <p className="text-green-700 text-xs">
-                  Når en ansatt logger inn med Microsoft for første gang, opprettes kontoen deres automatisk i HMS Nova.
-                  Du trenger ikke registrere noe i Azure Portal — men de fleste bedrifter må godkjenne HMS Nova én gang,
-                  og det gjør du med knappen under.
+                  Når en ansatt logger inn med Microsoft, opprettes kontoen automatisk. Stilling,
+                  avdeling, ansattnummer og nærmeste leder hentes fra Entra ID. Nærmeste leder
+                  kobles når lederen også finnes som bruker i HMS Nova.
                 </p>
               </div>
             </div>
@@ -195,7 +195,8 @@ export function AzureAdIntegration({
               De fleste bedrifter har slått på at nye apper må godkjennes av IT-avdelingen. Er det
               tilfellet hos dere, blir den første ansatte som prøver Microsoft-innlogging stoppet
               med feilkoden <code className="bg-muted px-1 rounded">AADSTS65001</code>. Godkjenner
-              du HMS Nova her, slipper alle ansatte den meldingen.
+              du HMS Nova her, slipper alle ansatte den meldingen. Godkjenningen dekker også
+              stilling, avdeling, ansattnummer og nærmeste leder fra Entra ID.
             </p>
             <Button
               asChild
@@ -207,8 +208,10 @@ export function AzureAdIntegration({
               </a>
             </Button>
             <p className="text-xs text-muted-foreground">
-              HMS Nova ber kun om navn og e-postadresse for den som logger inn. Er du
-              ikke global administrator, send denne siden videre til den som er det.
+              HMS Nova leser navn, e-post, stilling, avdeling, ansattnummer og nærmeste leder for
+              den som logger inn. Er du ikke global administrator, send denne siden videre til den
+              som er det. Har dere godkjent tidligere, må IT godkjenne én gang til etter denne
+              oppdateringen.
             </p>
           </CardContent>
         </Card>
@@ -361,8 +364,9 @@ export function AzureAdIntegration({
           <div>
             <p className="font-medium text-gray-900 mb-1">Hva skjer når en ansatt logger inn første gang?</p>
             <p className="text-gray-600">
-              Kontoen deres opprettes automatisk i HMS Nova med rollen du har valgt. 
-              De får umiddelbar tilgang til systemet.
+              Kontoen opprettes automatisk med rollen du har valgt. Ansattnummer, stilling og
+              avdeling hentes fra Entra ID. Nærmeste leder settes når lederen allerede er bruker i
+              HMS Nova — ellers ved neste innlogging etter at lederen har logget inn.
             </p>
           </div>
           

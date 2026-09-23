@@ -2,10 +2,12 @@ import type { Role } from "@prisma/client";
 
 /**
  * OIDC-scopes for Microsoft-innlogging.
- * Bevisst uten User.Read: NextAuths standard Azure-provider henter ellers
- * profilbilde fra Graph på hver login, som utløser AADSTS65001 hos mange bedrifter.
+ * User.Read brukes kun til org-felter via Graph (/me og /me/manager).
+ * Profilbilde hentes ikke — Azure-provideren overstyrer profile() uten Graph-foto.
  */
 export const AZURE_AD_OIDC_SCOPE = "openid profile email";
+export const AZURE_AD_ORG_SCOPE = "User.Read";
+export const AZURE_AD_LOGIN_SCOPE = `${AZURE_AD_OIDC_SCOPE} ${AZURE_AD_ORG_SCOPE}`;
 
 export const AZURE_AD_JIT_ROLES: Role[] = [
   "ANSATT",
