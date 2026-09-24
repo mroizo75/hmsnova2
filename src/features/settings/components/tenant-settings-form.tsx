@@ -9,8 +9,10 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { updateTenantSettings, updateDashboardLocked } from "@/server/actions/settings.actions";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, ShieldAlert, LayoutDashboard } from "lucide-react";
+import { Building2, ShieldAlert, LayoutDashboard, GraduationCap } from "lucide-react";
 import type { Tenant } from "@prisma/client";
+import { TRAINING_REMINDER_DAY_OPTIONS } from "@/lib/training-reminder";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface TenantSettingsFormProps {
   tenant: Tenant;
@@ -22,6 +24,9 @@ export function TenantSettingsForm({ tenant, isAdmin }: TenantSettingsFormProps)
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [dashboardLocked, setDashboardLocked] = useState(tenant.dashboardLocked);
+  const [trainingReminderDaysBefore, setTrainingReminderDaysBefore] = useState(
+    String(tenant.trainingReminderDaysBefore ?? 30),
+  );
   const [lockLoading, setLockLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -49,6 +54,7 @@ export function TenantSettingsForm({ tenant, isAdmin }: TenantSettingsFormProps)
       hmsContactName: formData.get("hmsContactName") as string || undefined,
       hmsContactPhone: formData.get("hmsContactPhone") as string || undefined,
       hmsContactEmail: formData.get("hmsContactEmail") as string || undefined,
+      trainingReminderDaysBefore: Number(trainingReminderDaysBefore),
     };
 
     const result = await updateTenantSettings(data);
@@ -219,6 +225,41 @@ export function TenantSettingsForm({ tenant, isAdmin }: TenantSettingsFormProps)
           </div>
         </CardContent>
       </Card>
+
+      {isAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <GraduationCap className="h-5 w-5 text-amber-600" />
+              Kompetansevarsel
+            </CardTitle>
+            <CardDescription>
+              E-post går til den ansatte så mange dager før kompetansen utløper. AML § 3-2 krever gyldig kompetanse før arbeidet utføres; fristen før utløp velger bedriften selv.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 max-w-xs">
+              <Label htmlFor="trainingReminderDaysBefore">Varsle på e-post</Label>
+              <Select
+                value={trainingReminderDaysBefore}
+                onValueChange={setTrainingReminderDaysBefore}
+                disabled={loading}
+              >
+                <SelectTrigger id="trainingReminderDaysBefore">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TRAINING_REMINDER_DAY_OPTIONS.map((days) => (
+                    <SelectItem key={days} value={String(days)}>
+                      {days} dager før utløp
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {isAdmin && (
         <Card>

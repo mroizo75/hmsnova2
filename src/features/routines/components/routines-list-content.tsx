@@ -1,21 +1,35 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CalendarClock, UserCircle2, Tag, ChevronRight, Pencil, CheckCircle2, AlertTriangle } from "lucide-react";
+import { CalendarClock, UserCircle2, Folder, ChevronRight, Pencil, CheckCircle2, AlertTriangle, Search } from "lucide-react";
+import {
+  createRoutineFolder,
+  deleteRoutineFolder,
+  renameRoutineFolder,
+} from "@/server/actions/routine.actions";
 import { CorporateGroupLockBadge } from "@/components/corporate-group-lock-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocale, useTranslations } from "next-intl";
 import { fetchRoutines } from "@/server/queries/routine.queries";
 
 type RoutinesData = NonNullable<Awaited<ReturnType<typeof fetchRoutines>>>;
 
+type FolderRow = {
+  id: string;
+  name: string;
+  _count: { routines: number };
+};
+
 interface RoutinesListContentProps {
   initialData: RoutinesData;
-  activeCategory: string | undefined;
-  categoryLabelMap: Map<string, string>;
+  folders: FolderRow[];
+  activeFolderId: string | undefined;
   routinePerms: { canCreateRoutines: boolean; canManageRoutines: boolean } | null;
   query?: string;
   hasRegulatorySuggestions?: boolean;
@@ -23,29 +37,37 @@ interface RoutinesListContentProps {
 
 export function RoutinesListContent({
   initialData,
-  activeCategory,
-  categoryLabelMap,
+  folders,
+  activeFolderId,
   routinePerms,
   query,
   hasRegulatorySuggestions = false,
 }: RoutinesListContentProps) {
   const t = useTranslations("dashboardRoutinesPage");
   const locale = useLocale();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [folderName, setFolderName] = useState("");
+  const [folderError, setFolderError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const { data: allRoutines } = useQuery({
-    queryKey: ["routines"],
+    queryKey: ["routines", query ?? ""],
     queryFn: () => fetchRoutines(query),
     initialData,
   });
 
   if (!allRoutines) return null;
 
-  const routines = activeCategory
-    ? allRoutines.filter((r: any) => r.category === activeCategory)
+  const activeFolder = folders.find((folder) => folder.id === activeFolderId);
+  const routines = activeFolderId
+    ? allRoutines.filter((r: { folderId?: string | null }) => r.folderId === activeFolderId)
     : allRoutines;
 
-  const usedCategories = [...new Set<string>(allRoutines.map((r: any) => r.category).filter(Boolean))];
-  const sortedCategories = usedCategories.sort();
+  async function refreshFolders() {
+    await queryClient.invalidateQueries({ queryKey: ["routines"] });
+    router.refresh();
+  }
 
   const needsReviewCount = allRoutines.filter((r: any) => r.status === "NEEDS_REVIEW").length;
   const activeCount = allRoutines.filter((r: any) => r.status === "ACTIVE").length;
@@ -112,35 +134,124 @@ export function RoutinesListContent({
               <CardTitle>{t("list.title")}</CardTitle>
               <CardDescription>{t("list.description")}</CardDescription>
             </div>
-            {sortedCategories.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                <Link href="/dashboard/rutiner">
-                  <Badge
-                    variant={!activeCategory ? "default" : "outline"}
-                    className="cursor-pointer text-xs"
-                  >
-                    Alle
-                  </Badge>
-                </Link>
-                {sortedCategories.map((cat) => (
-                  <Link key={cat} href={`/dashboard/rutiner?kategori=${cat}`}>
-                    <Badge
-                      variant={activeCategory === cat ? "default" : "outline"}
-                      className="cursor-pointer text-xs"
-                    >
-                      {categoryLabelMap.get(cat!) ?? cat}
-                    </Badge>
-                  </Link>
-                ))}
-              </div>
-            )}
           </div>
+          <form action="/dashboard/rutiner" className="flex flex-wrap items-center gap-2">
+            {activeFolderId ? <input type="hidden" name="mappe" value={activeFolderId} /> : null}
+            <div className="relative min-w-[220px] flex-1">
+              <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                name="q"
+                defaultValue={query ?? ""}
+                placeholder="Søk etter rutine eller prosedyre"
+                className="pl-8"
+              />
+            </div>
+            <Button type="submit" variant="outline" className="bg-transparent">
+              Søk
+            </Button>
+          </form>
+          <div className="flex flex-wrap gap-1.5">
+            <Link href={query ? `/dashboard/rutiner?q=${encodeURIComponent(query)}` : "/dashboard/rutiner"}>
+              <Badge variant={!activeFolderId ? "default" : "outline"} className="cursor-pointer text-xs">
+                Alle
+              </Badge>
+            </Link>
+            {folders.map((folder) => (
+              <Link
+                key={folder.id}
+                href={`/dashboard/rutiner?mappe=${folder.id}${query ? `&q=${encodeURIComponent(query)}` : ""}`}
+              >
+                <Badge
+                  variant={activeFolderId === folder.id ? "default" : "outline"}
+                  className="cursor-pointer text-xs"
+                >
+                  <Folder className="mr-1 inline h-3 w-3" />
+                  {folder.name}
+                </Badge>
+              </Link>
+            ))}
+          </div>
+          {routinePerms?.canCreateRoutines && (
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                value={folderName}
+                onChange={(event) => setFolderName(event.target.value)}
+                placeholder="Nytt mappenavn, f.eks. Verksted"
+                className="max-w-xs"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="bg-transparent"
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  setFolderError(null);
+                  const result = await createRoutineFolder(folderName);
+                  setBusy(false);
+                  if (!result.success) {
+                    setFolderError(result.error);
+                    return;
+                  }
+                  setFolderName("");
+                  await refreshFolders();
+                }}
+              >
+                Ny mappe
+              </Button>
+              {activeFolder && (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="bg-transparent"
+                    disabled={busy}
+                    onClick={async () => {
+                      const next = window.prompt("Nytt mappenavn", activeFolder.name);
+                      if (!next || next.trim() === activeFolder.name) return;
+                      setBusy(true);
+                      setFolderError(null);
+                      const result = await renameRoutineFolder(activeFolder.id, next);
+                      setBusy(false);
+                      if (!result.success) {
+                        setFolderError(result.error);
+                        return;
+                      }
+                      await refreshFolders();
+                    }}
+                  >
+                    Gi nytt navn
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="bg-transparent"
+                    disabled={busy || activeFolder._count.routines > 0}
+                    onClick={async () => {
+                      setBusy(true);
+                      setFolderError(null);
+                      const result = await deleteRoutineFolder(activeFolder.id);
+                      setBusy(false);
+                      if (!result.success) {
+                        setFolderError(result.error);
+                        return;
+                      }
+                      router.push("/dashboard/rutiner");
+                    }}
+                  >
+                    Slett tom mappe
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
+          {folderError && <p className="text-sm text-destructive">{folderError}</p>}
         </CardHeader>
         <CardContent>
           {routines.length === 0 ? (
             <div className="py-10 text-center text-muted-foreground">
-              {activeCategory
-                ? "Ingen rutiner i denne kategorien."
+              {activeFolderId
+                ? "Ingen rutiner eller prosedyrer i denne mappen."
                 : hasRegulatorySuggestions
                   ? "Ingen rutiner er publisert ennå. Velg fra regelverket over og klikk «Publiser valgte rutiner»."
                   : t("list.empty")}
@@ -179,10 +290,13 @@ export function RoutinesListContent({
                         <CorporateGroupLockBadge isLockedByGroup={(routine as any).isLockedByGroup ?? false} />
                       </div>
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
-                        {routine.category && (
+                        <Badge variant="outline" className="text-xs">
+                          {routine.documentKind === "PROSEDYRE" ? "Prosedyre" : "Rutine"}
+                        </Badge>
+                        {routine.folder?.name && (
                           <span className="inline-flex items-center gap-1">
-                            <Tag className="h-3 w-3" />
-                            {categoryLabelMap.get(routine.category) ?? routine.category}
+                            <Folder className="h-3 w-3" />
+                            {routine.folder.name}
                           </span>
                         )}
                         <span className="inline-flex items-center gap-1">

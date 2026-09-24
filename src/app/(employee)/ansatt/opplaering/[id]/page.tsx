@@ -40,12 +40,17 @@ export default async function AnsattTrainingDetailPage({ params }: { params: Pro
     downloadUrl = await storage.getUrl(training.proofDocKey, 3600); // 1 time
   }
 
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: session.user.tenantId },
+    select: { trainingReminderDaysBefore: true },
+  });
+  const reminderDays = tenant?.trainingReminderDaysBefore ?? 30;
   const isExpired = training.validUntil && new Date(training.validUntil) < new Date();
   const isExpiringSoon = training.validUntil && !isExpired && (() => {
     const daysUntilExpiry = Math.ceil(
       (new Date(training.validUntil).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
     );
-    return daysUntilExpiry > 0 && daysUntilExpiry <= 30;
+    return daysUntilExpiry > 0 && daysUntilExpiry <= reminderDays;
   })();
 
   return (

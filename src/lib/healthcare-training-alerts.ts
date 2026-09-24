@@ -16,8 +16,6 @@ export async function runHealthcareTrainingExpiryAlerts(options?: {
   results: AlertRunResult[];
 }> {
   const now = new Date();
-  const in30Days = new Date();
-  in30Days.setDate(now.getDate() + 30);
   const dayStart = new Date(now);
   dayStart.setHours(0, 0, 0, 0);
 
@@ -32,6 +30,7 @@ export async function runHealthcareTrainingExpiryAlerts(options?: {
       name: true,
       industry: true,
       status: true,
+      trainingReminderDaysBefore: true,
     },
   });
 
@@ -42,12 +41,15 @@ export async function runHealthcareTrainingExpiryAlerts(options?: {
   const results: AlertRunResult[] = [];
 
   for (const tenant of healthcareTenants) {
+    const reminderDays = tenant.trainingReminderDaysBefore ?? 30;
+    const horizon = new Date();
+    horizon.setDate(now.getDate() + reminderDays);
     const trainings = await prisma.training.findMany({
       where: {
         tenantId: tenant.id,
         isRequired: true,
         validUntil: {
-          lte: in30Days,
+          lte: horizon,
         },
       },
       orderBy: {

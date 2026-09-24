@@ -45,6 +45,7 @@ import { getRoleDisplayName } from "@/lib/permissions";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useRefreshAfterSave } from "@/hooks/use-refresh-after-save";
+import { UserOverviewDialog } from "@/features/settings/components/user-overview-dialog";
 
 interface UserManagementProps {
   users: Array<{
@@ -102,6 +103,7 @@ export function UserManagement({
   const [bulkManagerId, setBulkManagerId] = useState(NO_MANAGER_VALUE);
   const [bulkAssigning, setBulkAssigning] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [overviewUserId, setOverviewUserId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -787,7 +789,13 @@ export function UserManagement({
                         </TableCell>
                       )}
                       <TableCell className="font-medium">
-                        {userTenant.user.name || "Ingen navn"}
+                        <button
+                          type="button"
+                          className="text-left font-medium text-primary underline-offset-2 hover:underline"
+                          onClick={() => setOverviewUserId(userTenant.userId)}
+                        >
+                          {userTenant.user.name || "Ingen navn"}
+                        </button>
                         {isCurrentUser && (
                           <Badge variant="outline" className="ml-2">
                             Deg
@@ -1094,6 +1102,7 @@ export function UserManagement({
           </Card>
         )}
       </CardContent>
+      <UserOverviewDialog userId={overviewUserId} onClose={() => setOverviewUserId(null)} />
     </Card>
   );
 }

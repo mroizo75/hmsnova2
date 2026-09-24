@@ -55,7 +55,13 @@ export async function sendDigestEmails(type: "DAILY" | "WEEKLY" = "DAILY") {
       if (type === "WEEKLY" && !userTenant.weeklyDigest) continue;
 
       try {
-        const digestData = await gatherDigestData(user.id, tenant.id, tenant.name, type);
+        const digestData = await gatherDigestData(
+          user.id,
+          tenant.id,
+          tenant.name,
+          type,
+          tenant.trainingReminderDaysBefore,
+        );
         
         // Hopp over hvis ingenting å rapportere
         if (!hasContentToReport(digestData)) continue;
@@ -77,7 +83,8 @@ async function gatherDigestData(
   userId: string, 
   tenantId: string, 
   tenantName: string,
-  type: "DAILY" | "WEEKLY"
+  type: "DAILY" | "WEEKLY",
+  trainingReminderDaysBefore = 30,
 ): Promise<DigestData> {
   const now = new Date();
   const lookAhead = type === "DAILY" ? 7 : 14;
@@ -150,7 +157,7 @@ async function gatherDigestData(
         userId,
         validUntil: {
           gte: startOfDay(now),
-          lte: endOfDay(addDays(now, 30)),
+          lte: endOfDay(addDays(now, trainingReminderDaysBefore)),
         },
       },
       select: { title: true, validUntil: true },

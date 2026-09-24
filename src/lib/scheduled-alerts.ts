@@ -405,7 +405,12 @@ async function checkUpcomingMeasures(tenantId: string): Promise<AlertResult> {
 
 async function checkExpiringTraining(tenantId: string): Promise<AlertResult> {
   const now = new Date();
-  const in30Days = addDays(now, 30);
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { trainingReminderDaysBefore: true },
+  });
+  const reminderDays = tenant?.trainingReminderDaysBefore ?? 30;
+  const horizon = addDays(now, reminderDays);
   let notifications = 0;
 
   const expiringTraining = await prisma.training.findMany({
@@ -413,7 +418,7 @@ async function checkExpiringTraining(tenantId: string): Promise<AlertResult> {
       tenantId,
       validUntil: {
         gte: startOfDay(now),
-        lte: endOfDay(in30Days),
+        lte: endOfDay(horizon),
       },
     },
   });
@@ -444,7 +449,7 @@ async function checkExpiringTraining(tenantId: string): Promise<AlertResult> {
         userId,
         type: "TRAINING_DUE",
         title: "📚 Opplæring utløper snart",
-        message: `Følgende opplæring/sertifisering utløper innen 30 dager: ${titles}`,
+        message: `Følgende opplæring/sertifisering utløper innen ${reminderDays} dager: ${titles}`,
         link: `/dashboard/training`,
       });
       notifications++;

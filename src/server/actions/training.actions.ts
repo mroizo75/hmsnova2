@@ -263,10 +263,15 @@ export async function getTrainingStats(_tenantId: string) {
     });
     
     const now = new Date();
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { trainingReminderDaysBefore: true },
+    });
+    const reminderDays = tenant?.trainingReminderDaysBefore ?? 30;
     const expiringSoon = trainings.filter(t => {
       if (!t.validUntil) return false;
       const daysUntilExpiry = Math.ceil((new Date(t.validUntil).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-      return daysUntilExpiry > 0 && daysUntilExpiry <= 30;
+      return daysUntilExpiry > 0 && daysUntilExpiry <= reminderDays;
     }).length;
     
     const expired = trainings.filter(t => {

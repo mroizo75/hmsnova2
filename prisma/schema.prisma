@@ -296,6 +296,9 @@ model Tenant {
   setupGuideHidden     Boolean @default(false) // true = "Klar for tilsyn"-veiviseren er skjult av admin
   tavleBannerDismissed Boolean @default(false) // true = HMS Tavle promo-banner er permanent skjult
 
+  // AML § 3-2: bedriften velger selv hvor lenge før utløp kompetanse varsles på e-post
+  trainingReminderDaysBefore Int @default(30)
+
   // Brreg/NACE (lagres automatisk ved registrering)
   naceCode        String? // F.eks. "55.10" fra Brreg
   naceDescription String? // F.eks. "Hotellvirksomhet"
@@ -353,6 +356,7 @@ model Tenant {
   inspectionTemplates                 InspectionTemplate[]
   routineTemplates                    RoutineTemplate[]
   routines                            Routine[]
+  routineFolders                      RoutineFolder[]
   managementReviews                   ManagementReview[] // Ledelsens gjennomgang
   meetings                            Meeting[] // AMU/VO møter
   whistleblowings                     Whistleblowing[] // Varslinger
@@ -3135,10 +3139,31 @@ model RoutineTemplate {
   @@index([isActive])
 }
 
+model RoutineFolder {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  routines Routine[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+enum RoutineDocumentKind {
+  RUTINE
+  PROSEDYRE
+}
+
 model Routine {
   id                      String        @id @default(cuid())
   tenantId                String
   templateId              String?
+  folderId                String?
+  documentKind            RoutineDocumentKind @default(RUTINE)
   title                   String
   description             String?       @db.Text
   category                String?
@@ -3157,6 +3182,7 @@ model Routine {
   updatedAt               DateTime      @updatedAt
 
   tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  folder           RoutineFolder?    @relation(fields: [folderId], references: [id], onDelete: SetNull)
   template         RoutineTemplate?  @relation(fields: [templateId], references: [id], onDelete: SetNull)
   responsibleUser  User?             @relation("RoutineResponsible", fields: [responsibleId], references: [id], onDelete: SetNull)
   relatedIncidents Incident[]        @relation("IncidentRelatedRoutine")
@@ -3167,6 +3193,7 @@ model Routine {
   mocLinks         MocRoutineLink[]
 
   @@index([tenantId])
+  @@index([folderId])
   @@index([templateId])
   @@index([status])
   @@index([responsibleId])

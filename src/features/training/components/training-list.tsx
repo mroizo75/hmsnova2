@@ -60,9 +60,10 @@ interface TrainingListProps {
   trainings: (Training & { user?: { id: string; name: string | null; email: string } })[];
   tenantUsers?: Array<{ id: string; name: string | null; email: string }>;
   requiredCourseKeys?: string[];
+  reminderDays?: number;
 }
 
-export function TrainingList({ trainings, tenantUsers = [], requiredCourseKeys = [] }: TrainingListProps) {
+export function TrainingList({ trainings, tenantUsers = [], requiredCourseKeys = [], reminderDays = 30 }: TrainingListProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
@@ -146,7 +147,7 @@ export function TrainingList({ trainings, tenantUsers = [], requiredCourseKeys =
 
       if (!matchesSearch) return false;
       if (statusFilter === "all") return true;
-      return getTrainingStatus(training) === statusFilter;
+      return getTrainingStatus(training, reminderDays) === statusFilter;
     });
   }, [trainings, searchTerm, statusFilter]);
 
@@ -179,7 +180,7 @@ export function TrainingList({ trainings, tenantUsers = [], requiredCourseKeys =
         }
         case "status": {
           const order = { EXPIRED: 0, EXPIRING_SOON: 1, NOT_STARTED: 2, COMPLETED: 3, VALID: 4 };
-          cmp = (order[getTrainingStatus(a)] ?? 5) - (order[getTrainingStatus(b)] ?? 5);
+          cmp = (order[getTrainingStatus(a, reminderDays)] ?? 5) - (order[getTrainingStatus(b, reminderDays)] ?? 5);
           break;
         }
       }
@@ -381,7 +382,7 @@ export function TrainingList({ trainings, tenantUsers = [], requiredCourseKeys =
                   </TableRow>
                 ) : (
                   paginatedTrainings.map((training) => {
-                    const status = getTrainingStatus(training);
+                    const status = getTrainingStatus(training, reminderDays);
                     const statusLabel = getTrainingStatusLabel(status);
                     const statusColor = getTrainingStatusColor(status);
 
@@ -503,7 +504,7 @@ export function TrainingList({ trainings, tenantUsers = [], requiredCourseKeys =
               <p className="py-8 text-center text-muted-foreground">Ingen registreringer funnet</p>
             ) : (
               paginatedTrainings.map((training) => {
-                const status = getTrainingStatus(training);
+                const status = getTrainingStatus(training, reminderDays);
                 const statusLabel = getTrainingStatusLabel(status);
                 const statusColor = getTrainingStatusColor(status);
                 return (

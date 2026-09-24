@@ -20,7 +20,7 @@ export function MatrixContent({ initialData, tenantId }: MatrixContentProps) {
 
   return (
     <div className="print:pt-0">
-      <CompetenceMatrix matrix={data.matrix} courseTemplates={data.courseTemplates} tenantId={tenantId} />
+      <CompetenceMatrix matrix={data.matrix} courseTemplates={data.courseTemplates} tenantId={tenantId} reminderDays={data.reminderDays} />
     </div>
   );
 }

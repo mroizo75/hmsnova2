@@ -6,7 +6,6 @@ import { authOptions } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/server-action";
 import { getPermissions } from "@/lib/permissions";
 import { helpContent } from "@/lib/help-content";
-import { getRoutineCategoryPresets } from "@/lib/routine-categories";
 import { listRoutineUploadedDocumentsForDashboard } from "@/server/actions/routine-upload.actions";
 import { RoutineUploadsSection } from "@/features/routines/components/routine-uploads-section";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
@@ -14,13 +13,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTranslations } from "next-intl/server";
 import { fetchRoutines, fetchRegulatoryRoutineSuggestions } from "@/server/queries/routine.queries";
+import { listRoutineFolders } from "@/server/actions/routine.actions";
 import { RoutinesListContent } from "@/features/routines/components/routines-list-content";
 import { RegulatoryRoutinesSection } from "@/features/routines/components/regulatory-routines-section";
 
 export default async function RutinerPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; kategori?: string }>;
+  searchParams: Promise<{ q?: string; mappe?: string }>;
 }) {
   const t = await getTranslations("dashboardRoutinesPage");
   const session = await getServerSession(authOptions);
@@ -30,13 +30,14 @@ export default async function RutinerPage({
 
   const params = await searchParams;
   const query = params.q?.trim() || undefined;
-  const activeCategory = params.kategori?.trim() || undefined;
+  const activeFolderId = params.mappe?.trim() || undefined;
 
-  const [initialRoutines, user, uploadsResult, routineSuggestions] = await Promise.all([
+  const [initialRoutines, user, uploadsResult, routineSuggestions, foldersResult] = await Promise.all([
     fetchRoutines(query),
     getCurrentUser(),
     listRoutineUploadedDocumentsForDashboard(),
     fetchRegulatoryRoutineSuggestions(),
+    listRoutineFolders(),
   ]);
 
   if (!initialRoutines) {
@@ -49,9 +50,6 @@ export default async function RutinerPage({
       </Card>
     );
   }
-
-  const categoryPresets = getRoutineCategoryPresets();
-  const categoryLabelMap = new Map(categoryPresets.map((p) => [p.value, p.label]));
 
   const membership = user?.tenants.at(0);
   const routinePerms = membership ? getPermissions(membership.role) : null;
@@ -102,8 +100,8 @@ export default async function RutinerPage({
 
       <RoutinesListContent
         initialData={initialRoutines}
-        activeCategory={activeCategory}
-        categoryLabelMap={categoryLabelMap}
+        folders={foldersResult.success ? foldersResult.data : []}
+        activeFolderId={activeFolderId}
         routinePerms={routinePerms ? { canCreateRoutines: routinePerms.canCreateRoutines, canManageRoutines: routinePerms.canManageRoutines } : null}
         query={query}
         hasRegulatorySuggestions={routineSuggestions.length > 0}

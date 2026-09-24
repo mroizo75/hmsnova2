@@ -18,6 +18,7 @@ import {
 } from "@/lib/user-import";
 import { sendEmail } from "@/lib/email";
 import { invalidateAiEnabledCache } from "@/lib/ai";
+import { normalizeTrainingReminderDays } from "@/lib/training-reminder";
 import {
   AI_ADDON_BILLING_EMAIL,
   AI_ADDON_NET_MONTHLY_NOK,
@@ -50,6 +51,7 @@ export async function updateTenantSettings(data: {
   hmsContactName?: string;
   hmsContactPhone?: string;
   hmsContactEmail?: string;
+  trainingReminderDaysBefore?: number;
 }) {
   try {
     const { user, tenantId } = await getSessionContext();
@@ -72,6 +74,9 @@ export async function updateTenantSettings(data: {
         hmsContactName: data.hmsContactName,
         hmsContactPhone: data.hmsContactPhone,
         hmsContactEmail: data.hmsContactEmail,
+        ...(data.trainingReminderDaysBefore !== undefined
+          ? { trainingReminderDaysBefore: normalizeTrainingReminderDays(data.trainingReminderDaysBefore) }
+          : {}),
       },
     });
 

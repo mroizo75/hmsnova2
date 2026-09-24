@@ -23,8 +23,9 @@ import {
 } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { createTraining } from "@/server/actions/training.actions";
+import { CertificateFileDrop } from "@/features/training/components/certificate-file-drop";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Upload } from "lucide-react";
+import { Plus } from "lucide-react";
 import type { CourseTemplate } from "@prisma/client";
 
 interface TrainingFormProps {
@@ -253,20 +254,12 @@ export function TrainingForm({ tenantId, users, courseTemplates, trigger, open: 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="proofDoc">Dokumentert bevis (sertifikat)</Label>
-            <Input
-              id="proofDoc"
-              name="proofDoc"
-              type="file"
+            <Label>Dokumentert bevis (sertifikat)</Label>
+            <CertificateFileDrop
               disabled={loading}
-              onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-              accept=".pdf,.jpg,.jpeg,.png"
+              label={selectedFile ? `Valgt: ${selectedFile.name}` : "Dra fil hit eller klikk for å laste opp"}
+              onFile={(file) => setSelectedFile(file)}
             />
-            {selectedFile && (
-              <p className="text-sm text-muted-foreground">
-                Valgt: {selectedFile.name}
-              </p>
-            )}
             <p className="text-xs text-muted-foreground">
               Last opp sertifikat, kursbevis eller annet dokumentert bevis
             </p>

@@ -30,7 +30,7 @@ export function TrainingDetailContent({ initialData, currentUserId }: TrainingDe
   if (!data) return null;
 
   const { training, trainedUser } = data;
-  const status = getTrainingStatus(training);
+  const status = getTrainingStatus(training, data.reminderDays ?? 30);
   const statusLabel = getTrainingStatusLabel(status);
   const statusColor = getTrainingStatusColor(status);
 

@@ -114,6 +114,7 @@ export function IncidentTreatmentForm({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
+  const [treatmentFiles, setTreatmentFiles] = useState<File[]>([]);
   const [isForwarding, setIsForwarding] = useState(false);
   const [type, setType] = useState(currentType);
   const [source, setSource] = useState(currentSource || "INTERNAL");
@@ -262,6 +263,7 @@ export function IncidentTreatmentForm({
       return;
     }
 
+    setIsUpdating(true);
     try {
       const response = await fetch(`/api/incidents/${incidentId}/update`, {
         method: "PUT",
@@ -301,9 +303,22 @@ export function IncidentTreatmentForm({
         throw new Error(payload.error || "Kunne ikke oppdatere avvik");
       }
 
+      if (treatmentFiles.length > 0) {
+        const imgFormData = new FormData();
+        treatmentFiles.forEach((file) => imgFormData.append("images", file));
+        const uploadResponse = await fetch(`/api/incidents/${incidentId}/attachments`, {
+          method: "POST",
+          body: imgFormData,
+        });
+        if (!uploadResponse.ok) {
+          throw new Error("Avviket ble lagret, men dokumentene kunne ikke lastes opp");
+        }
+        setTreatmentFiles([]);
+      }
+
       toast({
         title: "Oppdatert",
-        description: "Avviket er oppdatert",
+        description: treatmentFiles.length > 0 ? "Avviket og dokumentene er lagret" : "Avviket er oppdatert",
       });
 
       await queryClient.invalidateQueries({ queryKey: ["incidents", incidentId] });
@@ -385,7 +400,8 @@ export function IncidentTreatmentForm({
     injuryDescription !== (currentInjuryDescription ?? "") ||
     suggestedActions !== (currentSuggestedActions ?? "") ||
     source !== (currentSource || "INTERNAL") ||
-    treatmentOtherText.trim() !== (currentTreatmentOtherText ?? "");
+    treatmentOtherText.trim() !== (currentTreatmentOtherText ?? "") ||
+    treatmentFiles.length > 0;
 
   return (
     <div className="space-y-4">
@@ -899,6 +915,25 @@ export function IncidentTreatmentForm({
             />
           </div>
         )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="treatmentDocuments">Dokumentasjon av behandling</Label>
+        <Input
+          id="treatmentDocuments"
+          type="file"
+          multiple
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.webp"
+          onChange={(event) => setTreatmentFiles(Array.from(event.target.files ?? []))}
+        />
+        {treatmentFiles.length > 0 && (
+          <p className="text-sm text-muted-foreground">
+            {treatmentFiles.map((file) => file.name).join(", ")}
+          </p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Last opp dokumenter som hører til behandlingen. De vises sammen med øvrige vedlegg. IK-HMS § 5.
+        </p>
       </div>
 
       {hasChanges && (

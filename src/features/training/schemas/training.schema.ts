@@ -46,10 +46,13 @@ export type EvaluateTrainingInput = z.infer<typeof evaluateTrainingSchema>;
 /**
  * Get training status
  */
-export function getTrainingStatus(training: {
-  completedAt: Date | null;
-  validUntil: Date | null;
-}): "NOT_STARTED" | "COMPLETED" | "VALID" | "EXPIRING_SOON" | "EXPIRED" {
+export function getTrainingStatus(
+  training: {
+    completedAt: Date | null;
+    validUntil: Date | null;
+  },
+  withinDays = 30,
+): "NOT_STARTED" | "COMPLETED" | "VALID" | "EXPIRING_SOON" | "EXPIRED" {
   if (!training.completedAt) {
     return "NOT_STARTED";
   }
@@ -64,7 +67,7 @@ export function getTrainingStatus(training: {
 
   if (daysUntilExpiry < 0) {
     return "EXPIRED";
-  } else if (daysUntilExpiry <= 30) {
+  } else if (daysUntilExpiry <= withinDays) {
     return "EXPIRING_SOON";
   } else {
     return "VALID";

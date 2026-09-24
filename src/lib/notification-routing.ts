@@ -59,6 +59,7 @@ const immediateEmailTypes = new Set<NotificationType>([
   "CONFIDENTIAL_ACCESS",
   "BREAK_GLASS_REQUEST",
   "TRAINING_EXPIRED",
+  "TRAINING_DUE",
   "SYSTEM_ALERT",
   "INSPECTION_FINDING",
   "GUEST_SUBMISSION",

@@ -1,9 +1,16 @@
-import { Shield, Lock } from "lucide-react";
+import {
+  Shield,
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  Wrench,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { getGroupTenantRiskAssessments } from "@/server/actions/corporate-group-read.actions";
 import { KonsernPagination } from "@/components/konsern-pagination";
+import { AssessmentList } from "./assessment-list";
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 15;
 
 interface PageProps {
   params: Promise<{ tenantId: string }>;
@@ -18,11 +25,71 @@ export default async function TenantRiskAssessmentsPage({ params, searchParams }
 
   const { assessments, total } = await getGroupTenantRiskAssessments(tenantId, { limit: PAGE_SIZE, offset });
 
+  const allRisks = assessments.flatMap((a) => a.risks);
+  const highRisks = allRisks.filter((r) => r.score >= 9);
+  const openRisks = allRisks.filter((r) => r.status === "OPEN" || r.status === "MITIGATING");
+  const allMeasures = allRisks.flatMap((r) => r.measures);
+  const overdueMeasures = allMeasures.filter((m) => m.status !== "DONE" && new Date(m.dueAt) < new Date());
+  const completedMeasures = allMeasures.filter((m) => m.status === "DONE");
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900">Risikovurderinger</h2>
-        <span className="text-sm text-gray-500">{total} totalt</span>
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">Risikovurderinger</h2>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Klikk en vurdering for å se risikoer og tiltak — ekspandér risiko for detaljer
+          </p>
+        </div>
+        <span className="text-sm text-gray-500">{total} vurderinger</span>
+      </div>
+
+      {/* Oppsummering */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Card className={highRisks.length > 0 ? "border-red-200" : ""}>
+          <CardContent className="flex items-center gap-3 p-3">
+            <div className="rounded-lg bg-red-100 p-2">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+            </div>
+            <div>
+              <p className="text-lg font-bold text-gray-900">{highRisks.length}</p>
+              <p className="text-xs text-gray-500">Høy/kritisk risiko</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 p-3">
+            <div className="rounded-lg bg-amber-100 p-2">
+              <Shield className="h-4 w-4 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-lg font-bold text-gray-900">{openRisks.length}</p>
+              <p className="text-xs text-gray-500">Åpne risikoer</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 p-3">
+            <div className="rounded-lg bg-blue-100 p-2">
+              <Wrench className="h-4 w-4 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-lg font-bold text-gray-900">{completedMeasures.length}/{allMeasures.length}</p>
+              <p className="text-xs text-gray-500">Tiltak fullført</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className={overdueMeasures.length > 0 ? "border-red-200" : ""}>
+          <CardContent className="flex items-center gap-3 p-3">
+            <div className="rounded-lg bg-red-100 p-2">
+              <Clock className="h-4 w-4 text-red-600" />
+            </div>
+            <div>
+              <p className="text-lg font-bold text-gray-900">{overdueMeasures.length}</p>
+              <p className="text-xs text-gray-500">Forfalte tiltak</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {assessments.length === 0 ? (
@@ -33,39 +100,7 @@ export default async function TenantRiskAssessmentsPage({ params, searchParams }
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-2">
-          {assessments.map((ra) => (
-            <Card key={ra.id}>
-              <CardContent className="flex items-center justify-between p-4">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-medium text-gray-900 truncate">{ra.title}</h3>
-                    {ra.isLockedByGroup && (
-                      <span className="flex shrink-0 items-center gap-1 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-600">
-                        <Lock className="h-2.5 w-2.5" />
-                        Konsern-styrt
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
-                    <span>{ra.assessmentYear}</span>
-                    <span>·</span>
-                    <span>{ra._count.risks} risikoer</span>
-                    {ra.approvedAt && (
-                      <>
-                        <span>·</span>
-                        <span className="text-emerald-600">Godkjent {ra.approvedAt.toLocaleDateString("nb-NO")}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <span className="shrink-0 ml-3 text-xs text-gray-400">
-                  Oppdatert {ra.updatedAt.toLocaleDateString("nb-NO")}
-                </span>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <AssessmentList assessments={assessments} />
       )}
 
       <KonsernPagination

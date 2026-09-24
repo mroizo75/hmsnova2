@@ -19,9 +19,10 @@ interface CompetenceMatrixProps {
   }>;
   courseTemplates: CourseTemplate[];
   tenantId: string;
+  reminderDays?: number;
 }
 
-export function CompetenceMatrix({ matrix, courseTemplates, tenantId }: CompetenceMatrixProps) {
+export function CompetenceMatrix({ matrix, courseTemplates, tenantId, reminderDays = 30 }: CompetenceMatrixProps) {
   const tableRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
@@ -49,7 +50,7 @@ export function CompetenceMatrix({ matrix, courseTemplates, tenantId }: Competen
               isRequired: course.isRequired,
             };
           }
-          const status = getTrainingStatus(training);
+          const status = getTrainingStatus(training, reminderDays);
           return {
             courseTitle: course.title,
             status,
@@ -140,7 +141,7 @@ export function CompetenceMatrix({ matrix, courseTemplates, tenantId }: Competen
             if (!training) {
               return course.isRequired ? "✗" : "-";
             }
-            const status = getTrainingStatus(training);
+            const status = getTrainingStatus(training, reminderDays);
             let statusText = "-";
             if (status === "VALID" || status === "COMPLETED") {
               statusText = "✓";
@@ -377,7 +378,7 @@ export function CompetenceMatrix({ matrix, courseTemplates, tenantId }: Competen
                       );
                     }
 
-                    const status = getTrainingStatus(training);
+                    const status = getTrainingStatus(training, reminderDays);
                     const validDate = training.validUntil 
                       ? new Date(training.validUntil).toLocaleDateString("nb-NO", {
                           day: "2-digit",

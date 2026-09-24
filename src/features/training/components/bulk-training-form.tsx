@@ -23,10 +23,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { createBulkTrainings } from "@/server/actions/training.actions";
+import { CertificateFileDrop } from "@/features/training/components/certificate-file-drop";
 import { useToast } from "@/hooks/use-toast";
 import {
   Users,
-  Upload,
   CheckCircle2,
   ChevronRight,
   ChevronLeft,
@@ -524,20 +524,11 @@ export function BulkTrainingForm({
                         </span>
                       )}
                     </div>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <div className="flex items-center gap-2 text-xs text-primary border border-dashed border-primary/40 rounded px-3 py-1.5 hover:bg-primary/5 transition-colors w-full justify-center">
-                        <Upload className="h-3 w-3" />
-                        {file ? "Bytt fil" : "Last opp diplom (PDF/bilde)"}
-                      </div>
-                      <input
-                        type="file"
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        className="sr-only"
-                        onChange={(e) =>
-                          handleFileChange(u.id, e.target.files?.[0] ?? null)
-                        }
-                      />
-                    </label>
+                    <CertificateFileDrop
+                      label={file ? "Bytt fil — dra hit eller klikk" : "Dra diplom hit eller klikk for å laste opp"}
+                      onFile={(next) => handleFileChange(u.id, next)}
+                      className="text-xs"
+                    />
                   </div>
                 );
               })}

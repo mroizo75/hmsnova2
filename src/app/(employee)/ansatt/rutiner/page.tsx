@@ -4,16 +4,27 @@ import { BookOpenCheck, ChevronRight, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { listTenantRoutines } from "@/server/actions/routine.actions";
+import { listRoutineFolders, listTenantRoutines } from "@/server/actions/routine.actions";
+import { Input } from "@/components/ui/input";
 import { listRoutineUploadedDocumentsForEmployee } from "@/server/actions/routine-upload.actions";
 
-export default async function AnsattRutinerPage() {
+export default async function AnsattRutinerPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; mappe?: string }>;
+}) {
   const t = await getTranslations("employeeRoutinesPage");
-  const [result, uploadsResult] = await Promise.all([
-    listTenantRoutines(undefined, { forEmployee: true }),
+  const params = await searchParams;
+  const query = params.q?.trim() || undefined;
+  const folderId = params.mappe?.trim() || undefined;
+  const [result, uploadsResult, foldersResult] = await Promise.all([
+    listTenantRoutines(query, { forEmployee: true }),
     listRoutineUploadedDocumentsForEmployee(),
+    listRoutineFolders(),
   ]);
-  const routines = result.success && result.data ? result.data : [];
+  const allRoutines = result.success && result.data ? result.data : [];
+  const routines = folderId ? allRoutines.filter((routine) => routine.folderId === folderId) : allRoutines;
+  const folders = foldersResult.success ? foldersResult.data : [];
   const fileUploads = uploadsResult.success === true ? uploadsResult.data : [];
 
   const nothingToShow = routines.length === 0 && fileUploads.length === 0;
@@ -37,6 +48,30 @@ export default async function AnsattRutinerPage() {
         </Link>
       </div>
 
+      <form action="/ansatt/rutiner" className="flex flex-wrap items-center gap-2">
+        {folderId ? <input type="hidden" name="mappe" value={folderId} /> : null}
+        <Input name="q" defaultValue={query ?? ""} placeholder="Søk etter rutine eller prosedyre" className="max-w-md" />
+        <Button type="submit" variant="outline" size="sm" className="bg-transparent">
+          Søk
+        </Button>
+      </form>
+
+      {folders.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          <Link href={query ? `/ansatt/rutiner?q=${encodeURIComponent(query)}` : "/ansatt/rutiner"}>
+            <Badge variant={!folderId ? "default" : "outline"}>Alle</Badge>
+          </Link>
+          {folders.map((folder) => (
+            <Link
+              key={folder.id}
+              href={`/ansatt/rutiner?mappe=${folder.id}${query ? `&q=${encodeURIComponent(query)}` : ""}`}
+            >
+              <Badge variant={folderId === folder.id ? "default" : "outline"}>{folder.name}</Badge>
+            </Link>
+          ))}
+        </div>
+      )}
+
       {nothingToShow ? (
         <Card className="border-dashed">
           <CardContent className="py-14 text-center text-sm text-muted-foreground">{t("emptyAll")}</CardContent>
@@ -59,11 +94,10 @@ export default async function AnsattRutinerPage() {
                       <CardContent className="flex h-full min-h-[140px] flex-col p-5">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0 flex-1 space-y-2">
-                            {routine.category && (
-                              <span className="inline-block rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-                                {routine.category}
-                              </span>
-                            )}
+                            <span className="inline-block rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                              {routine.documentKind === "PROSEDYRE" ? "Prosedyre" : "Rutine"}
+                              {routine.folder?.name ? ` · ${routine.folder.name}` : ""}
+                            </span>
                             <p className="font-semibold leading-snug text-foreground group-hover:text-primary">
                               {routine.title}
                             </p>

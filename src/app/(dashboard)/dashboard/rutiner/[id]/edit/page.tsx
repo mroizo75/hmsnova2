@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth/next";
 import { AlertCircle, ArrowLeft, BookOpen, Settings2, RefreshCw, FileText, History } from "lucide-react";
-import { RoutineStatus } from "@prisma/client";
+import { RoutineDocumentKind, RoutineStatus } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { calculateNextReviewDate, dateFromYmdInput } from "@/lib/document-utils";
@@ -22,6 +22,7 @@ import {
 import {
   assignRoutineResponsible,
   getRoutineById,
+  listRoutineFolders,
   updateRoutine,
 } from "@/server/actions/routine.actions";
 import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
@@ -94,6 +95,8 @@ export default async function EditRoutinePage({
     orderBy: [{ role: "asc" }],
   });
 
+  const foldersResult = await listRoutineFolders();
+  const folders = foldersResult.success ? foldersResult.data : [];
   const categoryPresets = getRoutineCategoryPresets();
   const { preset: categoryPreset, custom: categoryCustomDefault } = routineCategoryToPresetAndCustom(
     routine.category
@@ -123,6 +126,9 @@ export default async function EditRoutinePage({
     const categoryPresetRaw = String(formData.get("categoryPreset") || "").trim();
     const categoryCustomRaw = String(formData.get("categoryCustom") || "").trim();
     const category = resolveRoutineCategoryFromForm(categoryPresetRaw, categoryCustomRaw);
+    const folderIdRaw = String(formData.get("folderId") || "").trim();
+    const documentKindRaw = String(formData.get("documentKind") || "RUTINE");
+    const documentKind = documentKindRaw === "PROSEDYRE" ? RoutineDocumentKind.PROSEDYRE : RoutineDocumentKind.RUTINE;
     const legalReference = String(formData.get("legalReference") || "").trim();
     const reviewIntervalRaw = String(formData.get("reviewIntervalMonths") || "").trim();
     const nextReviewAtRaw = String(formData.get("nextReviewAt") || "").trim();
@@ -167,6 +173,8 @@ export default async function EditRoutinePage({
       title,
       description: description || null,
       category,
+      folderId: folderIdRaw || null,
+      documentKind,
       legalReference: legalReference || null,
       content,
       reviewIntervalMonths: interval,
@@ -263,6 +271,37 @@ export default async function EditRoutinePage({
                 rows={2}
                 placeholder="Beskriv hva denne rutinen handler om med noen få setninger."
               />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="documentKind">Type</Label>
+                <select
+                  id="documentKind"
+                  name="documentKind"
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                  defaultValue={routine.documentKind}
+                >
+                  <option value="RUTINE">Rutine</option>
+                  <option value="PROSEDYRE">Prosedyre</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="folderId">Mappe</Label>
+                <select
+                  id="folderId"
+                  name="folderId"
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                  defaultValue={routine.folderId ?? ""}
+                >
+                  <option value="">Ingen mappe</option>
+                  {folders.map((folder) => (
+                    <option key={folder.id} value={folder.id}>
+                      {folder.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">

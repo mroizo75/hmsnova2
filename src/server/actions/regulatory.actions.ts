@@ -14,6 +14,7 @@ import {
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
 import { requirePermission } from "@/lib/server-authorization";
 import { generateChangeNumber } from "@/lib/change-number";
+import { getRoutineCategoryLabel } from "@/lib/routine-categories";
 import { AuditLog } from "@/lib/audit-log";
 import { ensureGlobalRoutineTemplateLibrarySeeded } from "@/server/actions/routine-library.actions";
 import {
@@ -450,6 +451,12 @@ export type RegulatoryRoutineSuggestion = {
 
 export async function getRegulatoryRoutineSuggestions(): Promise<RegulatoryRoutineSuggestion[]> {
   const { tenantId } = await getActionContext();
+  const activityProfile = await prisma.tenantActivityProfile.findUnique({
+    where: { tenantId },
+    select: { completedAt: true },
+  });
+  if (activityProfile?.completedAt) return [];
+
   await ensureGlobalRoutineTemplateLibrarySeeded();
 
   const [status, tenant, templates, existingRoutines] = await Promise.all([
@@ -565,6 +572,16 @@ export async function publishRegulatoryRoutines(selectedTemplateIds: string[]) {
       continue;
     }
 
+    const folderLabel = getRoutineCategoryLabel(template.category);
+    const folderName = template.category?.trim() && folderLabel !== "Uten kategori" ? folderLabel : null;
+    const folder = folderName
+      ? await prisma.routineFolder.upsert({
+          where: { tenantId_name: { tenantId, name: folderName } },
+          update: {},
+          create: { tenantId, name: folderName },
+        })
+      : null;
+
     const routine = await prisma.routine.create({
       data: {
         tenantId,
@@ -572,6 +589,7 @@ export async function publishRegulatoryRoutines(selectedTemplateIds: string[]) {
         title: template.title,
         description: template.description,
         category: template.category,
+        folderId: folder?.id,
         content: template.content,
         legalReference: template.legalReference,
         createdBy: userId,

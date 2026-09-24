@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type CSSProperties } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,7 @@ import {
   deleteOrgChartNode,
 } from "@/server/actions/org-chart.actions";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Building2 } from "lucide-react";
+import { Plus, Edit, Trash2, Building2, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────
 
@@ -364,8 +364,9 @@ function NodeDialog({
 
 const chartStyles = `
   .org-chart-root {
-    overflow-x: auto;
+    overflow: auto;
     padding: 2rem 1rem;
+    max-height: 70vh;
   }
 
   .org-chart-node {
@@ -513,6 +514,7 @@ const chartStyles = `
 export function OrgChartTree({ nodes, canManage }: OrgChartTreeProps) {
   const tree = buildTree(nodes);
   const isEmpty = tree.length === 0;
+  const [scale, setScale] = useState(1);
 
   return (
     <>
@@ -569,8 +571,26 @@ export function OrgChartTree({ nodes, canManage }: OrgChartTreeProps) {
               ))}
             </ul>
 
+            <div className="mb-3 hidden items-center justify-end gap-2 lg:flex">
+              <Button type="button" variant="outline" size="sm" className="bg-transparent" onClick={() => setScale((value) => Math.max(0.4, Number((value - 0.1).toFixed(2))))}>
+                <ZoomOut className="mr-1 h-4 w-4" />
+                Mindre
+              </Button>
+              <Button type="button" variant="outline" size="sm" className="bg-transparent" onClick={() => setScale(1)}>
+                <Maximize2 className="mr-1 h-4 w-4" />
+                Tilpass
+              </Button>
+              <Button type="button" variant="outline" size="sm" className="bg-transparent" onClick={() => setScale((value) => Math.min(2, Number((value + 0.1).toFixed(2))))}>
+                <ZoomIn className="mr-1 h-4 w-4" />
+                Større
+              </Button>
+              <span className="text-xs text-muted-foreground">{Math.round(scale * 100)}%</span>
+            </div>
             <div className="org-chart-root hidden lg:block">
-              <div className="flex justify-center gap-8">
+              <div
+                className="flex justify-center gap-8"
+                style={{ zoom: scale } as CSSProperties}
+              >
                 {tree.map((root) => (
                   <ChartBox
                     key={root.id}

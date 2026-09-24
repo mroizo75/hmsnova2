@@ -5,10 +5,10 @@ import { getTenantContextSafe } from "@/lib/tenant-context";
 
 export async function fetchTrainingList() {
   const ctx = await getTenantContextSafe();
-  if (!ctx) return { trainingsRaw: [], tenantUsers: [], courseTemplates: [] };
+  if (!ctx) return { trainingsRaw: [], tenantUsers: [], courseTemplates: [], reminderDays: 30 };
   const { tenantId } = ctx;
 
-  const [trainingsRaw, tenantUsers, courseTemplates] = await Promise.all([
+  const [trainingsRaw, tenantUsers, courseTemplates, tenant] = await Promise.all([
     prisma.training.findMany({
       where: { tenantId },
       orderBy: { createdAt: "desc" },
@@ -26,9 +26,18 @@ export async function fetchTrainingList() {
       },
       orderBy: { title: "asc" },
     }),
+    prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { trainingReminderDaysBefore: true },
+    }),
   ]);
 
-  return JSON.parse(JSON.stringify({ trainingsRaw, tenantUsers, courseTemplates }));
+  return JSON.parse(JSON.stringify({
+    trainingsRaw,
+    tenantUsers,
+    courseTemplates,
+    reminderDays: tenant?.trainingReminderDaysBefore ?? 30,
+  }));
 }
 
 export async function fetchTrainingDetail(id: string) {
@@ -47,7 +56,16 @@ export async function fetchTrainingDetail(id: string) {
     select: { id: true, name: true, email: true },
   });
 
-  return JSON.parse(JSON.stringify({ training, trainedUser }));
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { trainingReminderDaysBefore: true },
+  });
+
+  return JSON.parse(JSON.stringify({
+    training,
+    trainedUser,
+    reminderDays: tenant?.trainingReminderDaysBefore ?? 30,
+  }));
 }
 
 export async function fetchTrainingCourses() {
@@ -71,7 +89,7 @@ export async function fetchTrainingCourses() {
 
 export async function fetchTrainingMatrix() {
   const ctx = await getTenantContextSafe();
-  if (!ctx) return { matrix: [], courseTemplates: [] };
+  if (!ctx) return { matrix: [], courseTemplates: [], reminderDays: 30 };
   const { tenantId } = ctx;
 
   const [users, trainings, courseTemplates] = await Promise.all([
@@ -99,5 +117,14 @@ export async function fetchTrainingMatrix() {
     trainings: trainings.filter((t) => t.userId === u.id),
   }));
 
-  return JSON.parse(JSON.stringify({ matrix, courseTemplates }));
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { trainingReminderDaysBefore: true },
+  });
+
+  return JSON.parse(JSON.stringify({
+    matrix,
+    courseTemplates,
+    reminderDays: tenant?.trainingReminderDaysBefore ?? 30,
+  }));
 }

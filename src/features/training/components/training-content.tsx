@@ -44,6 +44,7 @@ export function TrainingContent({ initialData, tema }: TrainingContentProps) {
     .filter((c: any) => c.isRequired)
     .map((c: any) => c.courseKey);
 
+  const reminderDays = data.reminderDays ?? 30;
   const now = new Date();
   const completed = trainingsRaw.filter((t: any) => t.completedAt).length;
 
@@ -52,7 +53,7 @@ export function TrainingContent({ initialData, tema }: TrainingContentProps) {
     const days = Math.ceil(
       (new Date(t.validUntil).getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
     );
-    return days > 0 && days <= 30;
+    return days > 0 && days <= reminderDays;
   }).length;
 
   const expired = trainingsRaw.filter((t: any) => {
@@ -79,7 +80,7 @@ export function TrainingContent({ initialData, tema }: TrainingContentProps) {
       const days = Math.ceil(
         (new Date(training.validUntil).getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
       );
-      return days <= 30;
+      return days <= reminderDays;
     })
     .sort((a: any, b: any) => {
       const aDate = a.validUntil ? new Date(a.validUntil).getTime() : Number.MAX_SAFE_INTEGER;
@@ -213,6 +214,7 @@ export function TrainingContent({ initialData, tema }: TrainingContentProps) {
             trainings={trainingsWithUser}
             tenantUsers={tenantUsers}
             requiredCourseKeys={requiredCourseKeys}
+            reminderDays={reminderDays}
           />
         </CardContent>
       </Card>

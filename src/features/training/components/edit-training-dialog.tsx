@@ -14,10 +14,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { updateTraining } from "@/server/actions/training.actions";
+import { CertificateFileDrop } from "@/features/training/components/certificate-file-drop";
 import { useToast } from "@/hooks/use-toast";
 import {
   Pencil,
-  Upload,
   FileText,
   X,
   Loader2,
@@ -233,25 +233,20 @@ export function EditTrainingDialog({ training, trigger }: EditTrainingDialogProp
               </div>
             )}
 
-            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-2.5 text-sm text-muted-foreground hover:border-primary hover:text-primary transition-colors">
-              <Upload className="h-4 w-4" />
-              {newFile
-                ? "Bytt diplom"
-                : hasDiploma && keepExisting
-                ? "Erstatt eksisterende diplom"
-                : "Last opp diplom (PDF/bilde)"}
-              <input
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png"
-                className="sr-only"
-                onChange={(e) => {
-                  const f = e.target.files?.[0] ?? null;
-                  setNewFile(f);
-                  if (f) setKeepExisting(false);
-                }}
-                disabled={loading}
-              />
-            </label>
+            <CertificateFileDrop
+              disabled={loading}
+              label={
+                newFile
+                  ? "Bytt diplom — dra fil hit eller klikk"
+                  : hasDiploma && keepExisting
+                    ? "Erstatt eksisterende diplom — dra fil hit eller klikk"
+                    : "Last opp diplom — dra fil hit eller klikk"
+              }
+              onFile={(file) => {
+                setNewFile(file);
+                if (file) setKeepExisting(false);
+              }}
+            />
           </div>
 
           <div className="flex justify-end gap-3 border-t pt-3">

@@ -22,12 +22,12 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { createEmployeeTrainings } from "@/server/actions/training.actions";
+import { CertificateFileDrop } from "@/features/training/components/certificate-file-drop";
 import { useToast } from "@/hooks/use-toast";
 import {
   User,
   Plus,
   Trash2,
-  Upload,
   FileText,
   X,
   ChevronRight,
@@ -453,21 +453,12 @@ export function PerEmployeeTrainingForm({
                           </button>
                         </div>
                       ) : (
-                        <label className="flex cursor-pointer items-center gap-2 rounded border border-dashed px-3 py-1.5 text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors">
-                          <Upload className="h-3.5 w-3.5" />
-                          Last opp diplom (valgfritt)
-                          <input
-                            type="file"
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            className="sr-only"
-                            onChange={(e) =>
-                              updateRow(row.rowId, {
-                                file: e.target.files?.[0] ?? null,
-                              })
-                            }
-                            disabled={loading}
-                          />
-                        </label>
+                        <CertificateFileDrop
+                          disabled={loading}
+                          label="Dra diplom hit eller klikk (valgfritt)"
+                          onFile={(file) => updateRow(row.rowId, { file })}
+                          className="text-xs"
+                        />
                       )}
                     </div>
 

@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { NotificationType, Role, RoutineStatus } from "@prisma/client";
+import { NotificationType, Role, RoutineDocumentKind, RoutineStatus } from "@prisma/client";
+import { getRoutineCategoryLabel } from "@/lib/routine-categories";
 import { prisma } from "@/lib/db";
 import { generateChangeNumber } from "@/lib/change-number";
 import { matchesIndustryScope, toIndustryScopeJson } from "@/lib/industry-scope";
@@ -23,6 +24,8 @@ type RoutineUpdateInput = {
   title?: string;
   description?: string | null;
   category?: string | null;
+  folderId?: string | null;
+  documentKind?: RoutineDocumentKind;
   content?: unknown;
   legalReference?: string | null;
   status?: RoutineStatus;
@@ -45,6 +48,103 @@ async function getTenantIndustry(tenantId: string): Promise<string | null> {
 function normalizeQuery(query?: string): string | undefined {
   const value = query?.trim();
   return value && value.length > 0 ? value : undefined;
+}
+
+async function ensureFolderForCategory(tenantId: string, category: string | null | undefined) {
+  const name = getRoutineCategoryLabel(category);
+  if (!category?.trim() || name === "Uten kategori") return null;
+  const existing = await prisma.routineFolder.findFirst({
+    where: { tenantId, name },
+    select: { id: true },
+  });
+  if (existing) return existing.id;
+  const created = await prisma.routineFolder.create({
+    data: { tenantId, name },
+    select: { id: true },
+  });
+  return created.id;
+}
+
+export async function listRoutineFolders() {
+  try {
+    const context = await requirePermission("canReadDocuments");
+    const folders = await prisma.routineFolder.findMany({
+      where: { tenantId: context.tenantId },
+      orderBy: { name: "asc" },
+      include: { _count: { select: { routines: true } } },
+    });
+    return { success: true as const, data: folders };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Kunne ikke hente mapper";
+    return { success: false as const, error: message };
+  }
+}
+
+export async function createRoutineFolder(name: string) {
+  try {
+    const context = await requirePermission("canCreateDocuments");
+    const trimmed = name.trim();
+    if (!trimmed) return { success: false as const, error: "Mappenavn kan ikke være tomt" };
+    const folder = await prisma.routineFolder.create({
+      data: { tenantId: context.tenantId, name: trimmed },
+    });
+    revalidatePath("/dashboard/rutiner");
+    revalidatePath("/ansatt/rutiner");
+    return { success: true as const, data: folder };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Kunne ikke opprette mappe";
+    if (message.includes("Unique constraint")) {
+      return { success: false as const, error: "En mappe med dette navnet finnes allerede" };
+    }
+    return { success: false as const, error: message };
+  }
+}
+
+export async function renameRoutineFolder(id: string, name: string) {
+  try {
+    const context = await requirePermission("canCreateDocuments");
+    const trimmed = name.trim();
+    if (!trimmed) return { success: false as const, error: "Mappenavn kan ikke være tomt" };
+    const existing = await prisma.routineFolder.findFirst({
+      where: { id, tenantId: context.tenantId },
+      select: { id: true },
+    });
+    if (!existing) return { success: false as const, error: "Mappe ikke funnet" };
+    const folder = await prisma.routineFolder.update({
+      where: { id },
+      data: { name: trimmed },
+    });
+    revalidatePath("/dashboard/rutiner");
+    revalidatePath("/ansatt/rutiner");
+    return { success: true as const, data: folder };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Kunne ikke gi mappen nytt navn";
+    if (message.includes("Unique constraint")) {
+      return { success: false as const, error: "En mappe med dette navnet finnes allerede" };
+    }
+    return { success: false as const, error: message };
+  }
+}
+
+export async function deleteRoutineFolder(id: string) {
+  try {
+    const context = await requirePermission("canCreateDocuments");
+    const existing = await prisma.routineFolder.findFirst({
+      where: { id, tenantId: context.tenantId },
+      include: { _count: { select: { routines: true } } },
+    });
+    if (!existing) return { success: false as const, error: "Mappe ikke funnet" };
+    if (existing._count.routines > 0) {
+      return { success: false as const, error: "Mappen må være tom før den kan slettes" };
+    }
+    await prisma.routineFolder.delete({ where: { id } });
+    revalidatePath("/dashboard/rutiner");
+    revalidatePath("/ansatt/rutiner");
+    return { success: true as const };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Kunne ikke slette mappe";
+    return { success: false as const, error: message };
+  }
 }
 
 async function notifyLeadersAndHms(
@@ -163,6 +263,9 @@ export async function listTenantRoutines(
             industryScope: true,
           },
         },
+        folder: {
+          select: { id: true, name: true },
+        },
       },
       orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
     });
@@ -234,6 +337,7 @@ export async function createRoutineFromTemplate(templateId: string) {
     });
 
     const title = existingCount === 0 ? template.title : `${template.title} (${existingCount + 1})`;
+    const folderId = await ensureFolderForCategory(context.tenantId, template.category);
 
     const routine = await prisma.routine.create({
       data: {
@@ -242,6 +346,7 @@ export async function createRoutineFromTemplate(templateId: string) {
         title,
         description: template.description,
         category: template.category,
+        folderId,
         content: template.content,
         legalReference: template.legalReference,
         createdBy: context.userId,
@@ -318,6 +423,8 @@ export async function updateRoutine(input: RoutineUpdateInput) {
           title: input.title,
           description: input.description,
           category: input.category,
+          ...(input.folderId !== undefined ? { folderId: input.folderId } : {}),
+          ...(input.documentKind !== undefined ? { documentKind: input.documentKind } : {}),
           content: input.content as any,
           legalReference: input.legalReference,
           ...(input.status !== undefined ? { status: input.status } : {}),
