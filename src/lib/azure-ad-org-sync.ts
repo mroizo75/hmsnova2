@@ -3,14 +3,22 @@ import { assertNoManagerCycle } from "@/lib/incident-notification-routing";
 import {
   mapEntraOrgProfile,
   pickDepartmentMatch,
+  pickManagerUserId,
   type EntraOrgProfile,
   type GraphManagerPayload,
   type GraphMePayload,
 } from "@/lib/azure-ad-org-profile";
 
 const GRAPH_BASE = "https://graph.microsoft.com/v1.0";
+const ME_SELECT = "jobTitle,department,employeeId,mail,userPrincipalName";
+const MANAGER_SELECT = "id,displayName,mail,userPrincipalName";
 
 export type { EntraOrgProfile };
+
+function graphPath(path: string, query: Record<string, string>): string {
+  const params = new URLSearchParams(query);
+  return `${path}?${params.toString()}`;
+}
 
 async function graphGet<T>(accessToken: string, path: string): Promise<T | null> {
   const response = await fetch(`${GRAPH_BASE}${path}`, {
@@ -28,14 +36,23 @@ export async function fetchEntraOrgProfile(accessToken: string): Promise<EntraOr
 
   const me = await graphGet<GraphMePayload>(
     token,
-    "/me?$select=jobTitle,department,employeeId,mail,userPrincipalName"
+    graphPath("/me", {
+      $select: ME_SELECT,
+      $expand: `manager($select=${MANAGER_SELECT})`,
+    })
   );
   if (!me) return null;
 
-  const manager = await graphGet<GraphManagerPayload>(
-    token,
-    "/me/manager?$select=mail,userPrincipalName"
-  );
+  let manager = me.manager ?? null;
+  if (!manager) {
+    manager = await graphGet<GraphManagerPayload>(
+      token,
+      graphPath("/me/manager", { $select: MANAGER_SELECT })
+    );
+  }
+  if (!manager) {
+    manager = await graphGet<GraphManagerPayload>(token, "/me/manager");
+  }
 
   return mapEntraOrgProfile(me, manager);
 }
@@ -81,6 +98,59 @@ async function ensureDepartment(
   }
 }
 
+async function resolveManagerUserId(input: {
+  userId: string;
+  tenantId: string;
+  profile: EntraOrgProfile;
+}): Promise<string | null> {
+  const memberships = await prisma.userTenant.findMany({
+    where: { tenantId: input.tenantId },
+    select: {
+      userId: true,
+      user: {
+        select: {
+          email: true,
+          name: true,
+          accounts: {
+            where: { provider: "azure-ad" },
+            select: { providerAccountId: true },
+            take: 1,
+          },
+        },
+      },
+    },
+  });
+
+  const managerId = pickManagerUserId(
+    memberships.map((membership) => ({
+      userId: membership.userId,
+      email: membership.user.email,
+      name: membership.user.name,
+      entraObjectId: membership.user.accounts[0]?.providerAccountId ?? null,
+    })),
+    {
+      entraObjectId: input.profile.managerObjectId,
+      emails: input.profile.managerEmails,
+      displayName: input.profile.managerDisplayName,
+    },
+    input.userId
+  );
+  if (!managerId) return null;
+
+  try {
+    await assertNoManagerCycle(input.userId, managerId, async (userId) => {
+      const row = await prisma.userTenant.findUnique({
+        where: { userId_tenantId: { userId, tenantId: input.tenantId } },
+        select: { managerId: true },
+      });
+      return row?.managerId ?? null;
+    });
+    return managerId;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Fyller ansattnummer, stilling, avdeling og nærmeste leder fra Entra ID.
  * AML § 3-1: HMS-ansvar skal kunne plasseres i linjen.
@@ -112,35 +182,11 @@ export async function syncAzureAdOrgProfile(input: {
       department = ensured.name;
     }
 
-    let managerId: string | null = null;
-    if (profile.managerEmail) {
-      const managerUser = await prisma.user.findUnique({
-        where: { email: profile.managerEmail },
-        select: { id: true },
-      });
-      if (managerUser && managerUser.id !== input.userId) {
-        const managerMembership = await prisma.userTenant.findUnique({
-          where: {
-            userId_tenantId: { userId: managerUser.id, tenantId: input.tenantId },
-          },
-          select: { userId: true },
-        });
-        if (managerMembership) {
-          try {
-            await assertNoManagerCycle(input.userId, managerUser.id, async (userId) => {
-              const row = await prisma.userTenant.findUnique({
-                where: { userId_tenantId: { userId, tenantId: input.tenantId } },
-                select: { managerId: true },
-              });
-              return row?.managerId ?? null;
-            });
-            managerId = managerUser.id;
-          } catch {
-            managerId = null;
-          }
-        }
-      }
-    }
+    const managerId = await resolveManagerUserId({
+      userId: input.userId,
+      tenantId: input.tenantId,
+      profile,
+    });
 
     await prisma.userTenant.update({
       where: { userId_tenantId: { userId: input.userId, tenantId: input.tenantId } },

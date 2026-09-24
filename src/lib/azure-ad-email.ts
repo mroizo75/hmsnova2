@@ -2,11 +2,11 @@ import type { Role } from "@prisma/client";
 
 /**
  * OIDC-scopes for Microsoft-innlogging.
- * User.Read brukes kun til org-felter via Graph (/me og /me/manager).
+ * User.Read.All trengs for nærmeste leder (Graph GET /me/manager).
  * Profilbilde hentes ikke — Azure-provideren overstyrer profile() uten Graph-foto.
  */
 export const AZURE_AD_OIDC_SCOPE = "openid profile email";
-export const AZURE_AD_ORG_SCOPE = "User.Read";
+export const AZURE_AD_ORG_SCOPE = "User.Read User.Read.All";
 export const AZURE_AD_LOGIN_SCOPE = `${AZURE_AD_OIDC_SCOPE} ${AZURE_AD_ORG_SCOPE}`;
 
 export const AZURE_AD_JIT_ROLES: Role[] = [

@@ -364,9 +364,10 @@ export function AzureAdIntegration({
           <div>
             <p className="font-medium text-gray-900 mb-1">Hva skjer når en ansatt logger inn første gang?</p>
             <p className="text-gray-600">
-              Kontoen opprettes automatisk med rollen du har valgt. Ansattnummer, stilling og
-              avdeling hentes fra Entra ID. Nærmeste leder settes når lederen allerede er bruker i
-              HMS Nova — ellers ved neste innlogging etter at lederen har logget inn.
+              Kontoen opprettes automatisk med rollen du har valgt. Ansattnummer, stilling,
+              avdeling og nærmeste leder hentes fra Entra ID. Lederen må allerede være bruker i
+              HMS Nova (samme person). Har dere godkjent appen tidligere, må IT godkjenne én gang
+              til for at lederfeltet skal synkes.
             </p>
           </div>
           
