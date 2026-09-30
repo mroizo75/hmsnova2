@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { BookTemplate } from "lucide-react";
 
 const NONE_VALUE = "__none__";
+const CHOOSE_VALUE = "__choose__";
 
 interface SjaTemplateOption {
   id: string;
@@ -36,8 +37,10 @@ export function SjaTemplatePicker({ templates, selectedTemplateId }: SjaTemplate
     const params = new URLSearchParams(searchParams.toString());
     if (value === NONE_VALUE) {
       params.delete("mal");
+      params.set("utenMal", "1");
     } else {
       params.set("mal", value);
+      params.delete("utenMal");
     }
     const query = params.toString();
     router.push(query ? `${pathname}?${query}` : pathname);
@@ -47,14 +50,15 @@ export function SjaTemplatePicker({ templates, selectedTemplateId }: SjaTemplate
     <div className="space-y-2 max-w-md">
       <Label htmlFor="sja-template-picker" className="text-base flex items-center gap-2">
         <BookTemplate className="h-4 w-4 text-purple-600" />
-        Start fra en SJA-mal (valgfritt)
+        Velg hvordan SJA-en skal startes
       </Label>
-      <Select value={selectedTemplateId ?? NONE_VALUE} onValueChange={handleChange}>
+      <Select value={selectedTemplateId ?? CHOOSE_VALUE} onValueChange={handleChange}>
         <SelectTrigger id="sja-template-picker" className="h-12 text-base">
           <SelectValue placeholder="Velg mal..." />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={NONE_VALUE}>Ingen mal – start blankt</SelectItem>
+          <SelectItem value={CHOOSE_VALUE} disabled>Velg en mal eller start blankt</SelectItem>
+          <SelectItem value={NONE_VALUE}>Start blankt uten mal</SelectItem>
           {templates.map((template) => (
             <SelectItem key={template.id} value={template.id}>
               {template.name}

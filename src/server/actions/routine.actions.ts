@@ -147,6 +147,48 @@ export async function deleteRoutineFolder(id: string) {
   }
 }
 
+/** IK-HMS § 5: gjeldende rutine skal være kjent for alle i virksomheten. */
+export async function notifyCompanyRoutineChanged(input: {
+  tenantId: string;
+  routineId: string;
+  title: string;
+  summary?: string | null;
+  actorUserId: string;
+  status: RoutineStatus;
+}) {
+  if (input.status === RoutineStatus.DRAFT) return;
+
+  const members = await prisma.userTenant.findMany({
+    where: {
+      tenantId: input.tenantId,
+      userId: { not: input.actorUserId },
+    },
+    select: { userId: true, role: true },
+  });
+
+  const archived = input.status === RoutineStatus.ARCHIVED;
+  const summary = input.summary?.trim();
+  const message = archived
+    ? `«${input.title}» er arkivert og gjelder ikke lenger.`
+    : `«${input.title}» er endret.${summary ? ` ${summary}` : " Les den oppdaterte rutinen."}`;
+
+  await Promise.all(
+    members.map((member) =>
+      createNotification({
+        tenantId: input.tenantId,
+        userId: member.userId,
+        type: NotificationType.ROUTINE_CHANGED,
+        title: archived ? "Rutine arkivert" : "Rutine er endret",
+        message,
+        link:
+          member.role === Role.ANSATT
+            ? `/ansatt/rutiner/${input.routineId}`
+            : `/dashboard/rutiner/${input.routineId}`,
+      }),
+    ),
+  );
+}
+
 async function notifyLeadersAndHms(
   tenantId: string,
   title: string,
@@ -457,6 +499,14 @@ export async function updateRoutine(input: RoutineUpdateInput) {
     triggerRealtimeEvent(context.tenantId, "routine-updated");
 
     onRoutineUpdated(context.tenantId, routine.id).catch(() => {});
+    notifyCompanyRoutineChanged({
+      tenantId: context.tenantId,
+      routineId: routine.id,
+      title: routine.title,
+      summary: input.changeSummary,
+      actorUserId: context.userId,
+      status: routine.status,
+    }).catch((error) => console.error("Routine change notification error:", error));
 
     return { success: true, data: routine };
   } catch (error: any) {

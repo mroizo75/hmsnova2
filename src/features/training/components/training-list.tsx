@@ -59,11 +59,11 @@ type ViewMode = "courses" | "employees";
 interface TrainingListProps {
   trainings: (Training & { user?: { id: string; name: string | null; email: string } })[];
   tenantUsers?: Array<{ id: string; name: string | null; email: string }>;
-  requiredCourseKeys?: string[];
+  requiredCourseKeysByUser?: Record<string, string[]>;
   reminderDays?: number;
 }
 
-export function TrainingList({ trainings, tenantUsers = [], requiredCourseKeys = [], reminderDays = 30 }: TrainingListProps) {
+export function TrainingList({ trainings, tenantUsers = [], requiredCourseKeysByUser = {}, reminderDays = 30 }: TrainingListProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
@@ -202,7 +202,7 @@ export function TrainingList({ trainings, tenantUsers = [], requiredCourseKeys =
             .filter((t) => !t.validUntil || new Date(t.validUntil) >= now)
             .map((t) => t.courseKey),
         );
-        const missingRequired = requiredCourseKeys.filter((k) => !validCourseKeys.has(k));
+        const missingRequired = (requiredCourseKeysByUser[user.id] ?? []).filter((k) => !validCourseKeys.has(k));
         const expiringCount = userTrainings.filter((t) => {
           if (!t.validUntil) return false;
           const days = Math.ceil(
@@ -238,7 +238,7 @@ export function TrainingList({ trainings, tenantUsers = [], requiredCourseKeys =
         if (aUrgent !== bUrgent) return bUrgent - aUrgent;
         return (a.user.name || a.user.email).localeCompare(b.user.name || b.user.email, "nb");
       });
-  }, [viewMode, tenantUsers, trainings, requiredCourseKeys, searchTerm]);
+  }, [viewMode, tenantUsers, trainings, requiredCourseKeysByUser, searchTerm, reminderDays]);
 
   const totalPages = Math.max(1, Math.ceil(sortedTrainings.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);

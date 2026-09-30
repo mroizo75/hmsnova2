@@ -24,6 +24,7 @@ import {
   CloudSun,
   ShieldAlert,
   Image as ImageIcon,
+  Zap,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -121,6 +122,43 @@ export function SjaDetailContent({ initialData, history }: SjaDetailContentProps
                   <div>
                     <p className="text-sm font-medium text-muted-foreground mb-1">Tilleggsforhold / endringer</p>
                     <p className="text-sm whitespace-pre-wrap">{analysis.additionalConditions}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {analysis.electricalWorkType !== "NOT_APPLICABLE" && (
+            <Card className="border-amber-300">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-amber-800">
+                  <Zap className="h-5 w-5" />
+                  FSE og arbeidsforutsetninger
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-2">
+                {[
+                  ["Arbeidsmetode", analysis.workMethod],
+                  ["Nødvendig utstyr", analysis.requiredEquipment],
+                  ["Personlig verneutstyr", analysis.requiredPpe],
+                  ["Krav til personell", analysis.personnelRequirements],
+                  ["Sikkerhetsbetingelser", analysis.safetyConditions],
+                ].map(([label, value]) =>
+                  value ? (
+                    <div key={label}>
+                      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+                      <p className="whitespace-pre-wrap text-sm">{value}</p>
+                    </div>
+                  ) : null,
+                )}
+                {analysis.requiresSecondPerson && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Person nummer to</p>
+                    <p className="text-sm">
+                      {analysis.participantRecords.length >= 2
+                        ? "Registrert"
+                        : analysis.secondPersonException || "Ikke dokumentert"}
+                    </p>
                   </div>
                 )}
               </CardContent>
@@ -306,6 +344,28 @@ export function SjaDetailContent({ initialData, history }: SjaDetailContentProps
                 </div>
               )}
 
+              {analysis.participantRecords.length > 0 && (
+                <div className="space-y-2 text-sm">
+                  <p className="text-muted-foreground">Deltakerbekreftelser</p>
+                  {analysis.participantRecords.map((participant: any) => (
+                    <div key={participant.id} className="rounded border p-2">
+                      <p className="font-medium">{participant.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Kompetanse: {participant.competenceStatus}
+                        {participant.isExternal
+                          ? " · Ekstern deltaker, manuelt kontrollert"
+                          : participant.acknowledgedAt &&
+                        participant.acknowledgedVersion &&
+                        new Date(participant.acknowledgedVersion).getTime() ===
+                          new Date(analysis.contentVersion).getTime()
+                          ? ` · Bekreftet ${formatDate(participant.acknowledgedAt)}`
+                          : " · Ikke bekreftet"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="text-sm">
                 <p className="text-muted-foreground">Opprettet</p>
                 <p className="font-medium">{formatDate(analysis.createdAt)}</p>
@@ -323,13 +383,15 @@ export function SjaDetailContent({ initialData, history }: SjaDetailContentProps
             </CardContent>
           </Card>
 
-          <SjaStatusActions
-            analysisId={analysis.id}
-            currentStatus={analysis.status}
-            currentConclusion={analysis.conclusion}
-          />
+          {analysis.canApproveSja && (
+            <SjaStatusActions
+              analysisId={analysis.id}
+              currentStatus={analysis.status}
+              currentConclusion={analysis.conclusion}
+            />
+          )}
 
-          <ResourceHistory entries={history} />
+          {history.length > 0 && <ResourceHistory entries={history} />}
         </div>
       </div>
     </>

@@ -20,9 +20,10 @@ interface CompetenceMatrixProps {
   courseTemplates: CourseTemplate[];
   tenantId: string;
   reminderDays?: number;
+  requiredCourseKeysByUser?: Record<string, string[]>;
 }
 
-export function CompetenceMatrix({ matrix, courseTemplates, tenantId, reminderDays = 30 }: CompetenceMatrixProps) {
+export function CompetenceMatrix({ matrix, courseTemplates, tenantId, reminderDays = 30, requiredCourseKeysByUser = {} }: CompetenceMatrixProps) {
   const tableRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
@@ -46,8 +47,10 @@ export function CompetenceMatrix({ matrix, courseTemplates, tenantId, reminderDa
           if (!training) {
             return {
               courseTitle: course.title,
-              status: course.isRequired ? "MISSING_REQUIRED" : "NOT_TAKEN",
-              isRequired: course.isRequired,
+              status: (requiredCourseKeysByUser[item.user.id] ?? []).includes(course.key)
+                ? "MISSING_REQUIRED"
+                : "NOT_TAKEN",
+              isRequired: (requiredCourseKeysByUser[item.user.id] ?? []).includes(course.key),
             };
           }
           const status = getTrainingStatus(training, reminderDays);
@@ -139,7 +142,7 @@ export function CompetenceMatrix({ matrix, courseTemplates, tenantId, reminderDa
           ...courses.map((course) => {
             const training = item.trainings.find((t) => t.courseKey === course.key);
             if (!training) {
-              return course.isRequired ? "✗" : "-";
+              return (requiredCourseKeysByUser[item.user.id] ?? []).includes(course.key) ? "✗" : "-";
             }
             const status = getTrainingStatus(training, reminderDays);
             let statusText = "-";
@@ -335,9 +338,6 @@ export function CompetenceMatrix({ matrix, courseTemplates, tenantId, reminderDa
                         }}
                       >
                         {course.title}
-                        {course.isRequired && (
-                          <span className="ml-1 text-red-600">*</span>
-                        )}
                       </div>
                     </div>
                   </th>
@@ -367,7 +367,7 @@ export function CompetenceMatrix({ matrix, courseTemplates, tenantId, reminderDa
                           className="p-1 text-center border-l"
                           style={{ minWidth: "40px", maxWidth: "50px" }}
                         >
-                          {course.isRequired ? (
+                          {(requiredCourseKeysByUser[item.user.id] ?? []).includes(course.key) ? (
                             <div className="flex flex-col items-center" title="Mangler påkrevd kompetanse">
                               <XCircle className="h-4 w-4 text-red-600" />
                             </div>

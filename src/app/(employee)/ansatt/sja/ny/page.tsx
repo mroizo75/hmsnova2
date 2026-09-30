@@ -7,9 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HardHat, BookTemplate } from "lucide-react";
 import { SjaForm } from "@/components/sja/sja-form";
 import { SjaTemplatePicker } from "@/components/sja/sja-template-picker";
+import type { ElectricalWorkType } from "@/features/sja/lib/sja-fse";
 
 interface PageProps {
-  searchParams: Promise<{ mal?: string; projectId?: string }>;
+  searchParams: Promise<{ mal?: string; projectId?: string; utenMal?: string }>;
 }
 
 export default async function NySja({ searchParams }: PageProps) {
@@ -20,9 +21,9 @@ export default async function NySja({ searchParams }: PageProps) {
     redirect("/login");
   }
 
-  const { mal: templateId, projectId } = await searchParams;
+  const { mal: templateId, projectId, utenMal } = await searchParams;
 
-  const [projects, selectedProject, risks, allTemplates] = await Promise.all([
+  const [projects, selectedProject, risks, allTemplates, memberships, training] = await Promise.all([
     prisma.project.findMany({
       where: {
         tenantId: session.user.tenantId,
@@ -57,6 +58,25 @@ export default async function NySja({ searchParams }: PageProps) {
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
+    prisma.userTenant.findMany({
+      where: { tenantId: session.user.tenantId },
+      include: { user: { select: { name: true, email: true } } },
+      orderBy: { displayName: "asc" },
+    }),
+    prisma.training.findMany({
+      where: {
+        tenantId: session.user.tenantId,
+        courseKey: {
+          in: [
+            "elektro-fse-grunnkurs",
+            "elektro-forstehjelp",
+            "elektro-fse-lavspenning",
+            "elektro-lysbue",
+          ],
+        },
+      },
+      select: { userId: true, courseKey: true, completedAt: true, validUntil: true },
+    }),
   ]);
 
   let templateData: {
@@ -66,6 +86,14 @@ export default async function NySja({ searchParams }: PageProps) {
     participants: string;
     templateId: string;
     templateName: string;
+    electricalWorkType: ElectricalWorkType;
+    workMethod: string;
+    requiredEquipment: string;
+    requiredPpe: string;
+    personnelRequirements: string;
+    safetyConditions: string;
+    requiresSecondPerson: boolean;
+    requiredCourseKeys: string[];
     hazards: {
       activity: string;
       hazard: string;
@@ -91,6 +119,23 @@ export default async function NySja({ searchParams }: PageProps) {
         participants: "",
         templateId: template.id,
         templateName: template.name,
+        electricalWorkType: template.electricalWorkType,
+        workMethod: template.workMethod || "",
+        requiredEquipment: template.requiredEquipment || "",
+        requiredPpe: template.requiredPpe || "",
+        personnelRequirements: template.personnelRequirements || "",
+        safetyConditions: template.safetyConditions || "",
+        requiresSecondPerson: template.requiresSecondPerson,
+        requiredCourseKeys: (() => {
+          try {
+            const parsed: unknown = JSON.parse(template.requiredCourseKeys || "[]");
+            return Array.isArray(parsed)
+              ? parsed.filter((value): value is string => typeof value === "string")
+              : [];
+          } catch {
+            return [];
+          }
+        })(),
         hazards: template.hazards.map((h) => ({
           activity: h.activity,
           hazard: h.hazard,
@@ -103,6 +148,40 @@ export default async function NySja({ searchParams }: PageProps) {
       };
     }
   }
+  const now = new Date();
+  const employees = memberships.map((membership) => {
+    const records = training.filter((record) => record.userId === membership.userId);
+    const annualKeys = new Set(["elektro-fse-grunnkurs", "elektro-forstehjelp"]);
+    const validCourseKeys = Array.from(
+      new Set(
+        records
+          .filter((record) => {
+            if (!record.completedAt) return false;
+            const annualExpiry = new Date(record.completedAt);
+            annualExpiry.setFullYear(annualExpiry.getFullYear() + 1);
+            if (annualKeys.has(record.courseKey) && annualExpiry < now) return false;
+            return !record.validUntil || record.validUntil >= now;
+          })
+          .map((record) => record.courseKey),
+      ),
+    );
+    return {
+      id: membership.userId,
+      name: membership.displayName || membership.user.name || membership.user.email,
+      validCourseKeys,
+      expiredCourseKeys: Array.from(
+        new Set(
+          records
+            .filter(
+              (record) =>
+                record.completedAt && !validCourseKeys.includes(record.courseKey),
+            )
+            .map((record) => record.courseKey),
+        ),
+      ),
+    };
+  });
+  const showForm = Boolean(templateData) || allTemplates.length === 0 || utenMal === "1";
 
   return (
     <div className="space-y-6">
@@ -154,21 +233,25 @@ export default async function NySja({ searchParams }: PageProps) {
         </Card>
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("formTitle")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <SjaForm
-            tenantId={session.user.tenantId}
-            userName={session.user.name || session.user.email || t("employeeFallback")}
-            projectId={selectedProject?.id}
-            projects={projects}
-            risks={risks}
-            initialData={templateData}
-          />
-        </CardContent>
-      </Card>
+      {showForm && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("formTitle")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <SjaForm
+              tenantId={session.user.tenantId}
+              currentUserId={session.user.id}
+              userName={session.user.name || session.user.email || t("employeeFallback")}
+              projectId={selectedProject?.id}
+              projects={projects}
+              risks={risks}
+              employees={employees}
+              initialData={templateData}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="border-l-4 border-l-blue-500 bg-blue-50">
         <CardHeader className="pb-3">

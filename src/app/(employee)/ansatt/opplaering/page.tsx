@@ -21,24 +21,6 @@ export default async function AnsattOpplaering() {
     redirect("/login");
   }
 
-  // Hent alle påkrevde kurs for denne tenanten
-  // (Vi viser unique kurs basert på courseKey)
-  const allTrainings = await prisma.training.findMany({
-    where: {
-      tenantId: session.user.tenantId,
-      isRequired: true,
-    },
-    orderBy: {
-      title: "asc",
-    },
-  });
-
-  // Finn unike kurs basert på courseKey
-  const availableTrainings = allTrainings.filter(
-    (training, index, self) =>
-      index === self.findIndex((t) => t.courseKey === training.courseKey)
-  );
-
   // Hent ansattes egne opplæringer (registrerte av ansatt selv)
   const myTrainings = await prisma.training.findMany({
     where: {
@@ -51,6 +33,7 @@ export default async function AnsattOpplaering() {
   });
 
   const gapAnalysis = await fetchUserGapAnalysis(session.user.id).catch(() => null);
+  const assignedRequirements = gapAnalysis?.items ?? [];
 
   return (
     <div className="space-y-6">
@@ -87,52 +70,47 @@ export default async function AnsattOpplaering() {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>{t("required.title")}</span>
-            <Badge variant="destructive">{t("required.count", { count: availableTrainings.length })}</Badge>
+            <Badge variant={assignedRequirements.some((item) => item.status !== "FULFILLED") ? "destructive" : "secondary"}>
+              {t("required.count", { count: assignedRequirements.filter((item) => item.status !== "FULFILLED").length })}
+            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {availableTrainings.length === 0 ? (
+          {assignedRequirements.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              {t("required.empty")}
+              Ingen kompetansekrav er tildelt deg. Krav følger stillingen, ikke alle ansatte. AML § 3-2.
             </div>
           ) : (
             <div className="space-y-3">
-              {availableTrainings.map((training) => {
-                const hasCompleted = myTrainings.some(
-                  (mt) => mt.title === training.title && mt.completedAt
-                );
-                
-                return (
-                  <div
-                    key={training.id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
-                  >
-                    <div className="flex items-start gap-3 flex-1">
-                      <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                        <GraduationCap className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold">{training.title}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {training.description}
-                        </p>
-                      </div>
+              {assignedRequirements.map((item) => (
+                <div
+                  key={item.courseKey}
+                  className="flex items-center justify-between p-4 border rounded-lg"
+                >
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                      <GraduationCap className="h-5 w-5 text-blue-600" />
                     </div>
-                    
-                    {hasCompleted ? (
-                      <Badge variant="secondary" className="bg-green-100 text-green-700">
-                        {t("required.completed")}
-                      </Badge>
-                    ) : (
-                      <Link href={`/ansatt/opplaering/registrer/${training.id}`}>
-                        <Button size="sm" variant="outline">
-                          {t("required.register")}
-                        </Button>
-                      </Link>
-                    )}
+                    <div>
+                      <h3 className="font-semibold">{item.courseTitle}</h3>
+                      {item.legalRef && (
+                        <p className="text-sm text-muted-foreground">{item.legalRef}</p>
+                      )}
+                    </div>
                   </div>
-                );
-              })}
+                  {item.status === "FULFILLED" ? (
+                    <Badge variant="secondary" className="bg-green-100 text-green-700">
+                      {t("required.completed")}
+                    </Badge>
+                  ) : (
+                    <Link href="/ansatt/opplaering/ny">
+                      <Button size="sm" variant="outline">
+                        {item.status === "EXPIRED" ? "Utløpt" : t("required.register")}
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </CardContent>

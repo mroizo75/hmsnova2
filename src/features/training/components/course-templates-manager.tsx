@@ -269,7 +269,7 @@ export function CourseTemplatesManager({ tenantId, globalCourses, tenantCourses 
                       defaultChecked={editingCourse?.isRequired || false}
                       disabled={loading}
                     />
-                    <Label htmlFor="isRequired">Obligatorisk kurs for alle ansatte</Label>
+                    <Label htmlFor="isRequired">Kan kreves i en kompetanseprofil</Label>
                   </div>
 
                   <div className="flex justify-end gap-2 pt-4">

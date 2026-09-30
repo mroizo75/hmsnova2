@@ -30,6 +30,14 @@ export interface IndustrySjaTemplateSeed {
   name: string;
   description: string;
   workLocation: string;
+  electricalWorkType?: "NOT_APPLICABLE" | "DE_ENERGIZED" | "NEAR_LIVE" | "LIVE_LOW_VOLTAGE" | "HIGH_VOLTAGE";
+  workMethod?: string;
+  requiredEquipment?: string;
+  requiredPpe?: string;
+  personnelRequirements?: string;
+  safetyConditions?: string;
+  requiresSecondPerson?: boolean;
+  requiredCourseKeys?: ReadonlyArray<string>;
   hazards: IndustrySjaHazardSeed[];
   workshopTypes?: ReadonlyArray<string>;
 }
@@ -514,7 +522,7 @@ const elektroPackage: IndustryPackage = {
       category: "SAFETY",
       likelihood: 3,
       consequence: 5,
-      controls: "FSE-opplæring, bruk av godkjent verneutstyr, spenningssetting og FU-prosedyrer.",
+      controls: "FSE-opplæring, frakobling og sikring mot innkobling, spenningskontroll og godkjent verneutstyr.",
     },
     {
       title: "Lysbueulykker (arc flash)",
@@ -559,55 +567,134 @@ const elektroPackage: IndustryPackage = {
   ],
   sjaTemplates: [
     {
-      name: "Arbeid på eller nær spenningssatte anlegg",
-      description: "SJA-mal for arbeid i spenningssatte lavspennings- og høyspenningsanlegg.",
-      workLocation: "Tavlerom / koplingsanlegg / mast",
+      name: "Arbeid på frakoblet lavspenningsanlegg",
+      description: "SJA-mal for arbeid etter FSE § 14 med de fem sikkerhetstiltakene.",
+      workLocation: "Tavlerom / fordeling / installasjon",
+      electricalWorkType: "DE_ENERGIZED",
+      workMethod: "Arbeidet utføres på frakoblet anlegg etter FSE § 14.",
+      requiredEquipment: "Godkjent spenningsprøver, lås og merking, samt jord- og kortslutningsutstyr ved behov.",
+      requiredPpe: "Arbeidstøy, vernehansker, vernebriller og annet PVU fastsatt i den konkrete risikovurderingen.",
+      personnelRequirements: "Årlig FSE-opplæring og førstehjelp ved strømulykker. Personellet skal være instruert for oppgaven.",
+      safetyConditions: "Frakobling, sikring mot innkobling, spenningskontroll, vurdering av jord- og kortslutning og beskyttelse mot nærliggende spenningssatte deler skal bekreftes.",
+      requiredCourseKeys: ["elektro-fse-grunnkurs", "elektro-forstehjelp"],
       hazards: [
         {
-          activity: "Åpning av tavle og koblingsutstyr",
-          hazard: "Direkte kontakt med spenningssatte deler",
-          consequence: "Elektrisk støt, lysbue, død",
+          activity: "Etablere sikkert arbeidssted",
+          hazard: "Utilsiktet innkobling eller restspenning",
+          consequence: "Elektrisk støt, lysbue eller dødsfall",
           probability: 2,
           severity: 5,
-          measures: "Spenningssetting, UT-prosedyre (5 trinn), bruk av godkjent verneutstyr (FSE).",
+          measures: "Følg de fem sikkerhetstiltakene i FSE § 14 og kontroller spenningsprøver før og etter måling.",
         },
+      ],
+    },
+    {
+      name: "Arbeid nær ved spenningssatt anlegg",
+      description: "SJA-mal for arbeid nær ved spenningssatte deler etter FSE § 17.",
+      workLocation: "Tavlerom / koblingsanlegg / teknisk rom",
+      electricalWorkType: "NEAR_LIVE",
+      workMethod: "Arbeid nær ved spenningssatte deler med sikkerhetsavstand, avskjerming eller avsperring.",
+      requiredEquipment: "Avskjerming, avsperringsmateriell, godkjent spenningsprøver og isolerende hjelpemidler.",
+      requiredPpe: "Lysbuebeskyttende bekledning og øvrig PVU fastsatt i risikovurderingen.",
+      personnelRequirements: "Årlig FSE-opplæring og førstehjelp ved strømulykker. Ansvarlig for arbeidet skal være utpekt.",
+      safetyConditions: "Sikkerhetsavstand og arbeidsavgrensning skal være kjent av alle deltakere før oppstart.",
+      requiredCourseKeys: ["elektro-fse-grunnkurs", "elektro-forstehjelp"],
+      hazards: [
         {
-          activity: "Kabling i grøft nær eksisterende kabler",
-          hazard: "Kutting av strømkabel",
-          consequence: "Elektrisk støt eller brann",
+          activity: "Arbeid nær spenningssatte deler",
+          hazard: "Brudd på sikkerhetsavstand",
+          consequence: "Elektrisk støt eller lysbue",
           probability: 2,
           severity: 5,
-          measures: "Kabelsøk, ledningskart og varsomhet ved graving.",
+          measures: "Etabler avskjerming eller avsperring, merk arbeidsområdet og instruer personellet.",
+        },
+      ],
+    },
+    {
+      name: "Arbeid under spenning – lavspenning",
+      description: "SJA-mal for AUS som bare skal brukes når frakobling ikke er mulig eller hensiktsmessig.",
+      workLocation: "Lavspenningsanlegg / tavle",
+      electricalWorkType: "LIVE_LOW_VOLTAGE",
+      workMethod: "Arbeid under spenning utføres etter anerkjent metode og virksomhetens godkjente AUS-prosedyre.",
+      requiredEquipment: "Isolert 1000 V-verktøy, godkjent spenningsprøver, avskjerming og egnet redningsutstyr.",
+      requiredPpe: "Lysbuebeskyttende bekledning, isolerende hansker, hjelm med visir og øvrig risikovurdert PVU.",
+      personnelRequirements: "Årlig FSE og førstehjelp samt dokumentert, oppgavespesifikk AUS-opplæring.",
+      safetyConditions: "Arbeidet skal avbrytes hvis forutsetningene endres eller barrierene ikke kan opprettholdes.",
+      requiresSecondPerson: true,
+      requiredCourseKeys: ["elektro-fse-grunnkurs", "elektro-forstehjelp", "elektro-fse-lavspenning"],
+      hazards: [
+        {
+          activity: "Arbeid i spenningssatt tavle",
+          hazard: "Berøring eller kortslutning",
+          consequence: "Elektrisk støt, lysbue, brannskade eller dødsfall",
+          probability: 2,
+          severity: 5,
+          measures: "Bruk godkjent AUS-metode, isolert verktøy, avskjerming og instruert person nummer to.",
+        },
+      ],
+    },
+    {
+      name: "Arbeid på eller nær høyspenningsanlegg",
+      description: "SJA-mal for høyspenningsarbeid med utpekt leder for sikkerhet.",
+      workLocation: "Høyspenningsanlegg / koblingsanlegg / nettstasjon",
+      electricalWorkType: "HIGH_VOLTAGE",
+      workMethod: "Arbeidet planlegges og ledes etter FSE med utpekt leder for sikkerhet.",
+      requiredEquipment: "Koblingsutstyr, spenningsprøver, jordingsutstyr, avsperring og kommunikasjonsutstyr.",
+      requiredPpe: "Lysbuebeskyttende bekledning og høyspennings-PVU fastsatt i risikovurderingen.",
+      personnelRequirements: "Årlig FSE og førstehjelp, anleggskunnskap og instruksjon fra leder for sikkerhet.",
+      safetyConditions: "To personer skal være til stede ved etablering og avvikling av sikkerhetstiltak, med mindre en dokumentert risikovurdering viser at fravik ikke øker risikoen.",
+      requiresSecondPerson: true,
+      requiredCourseKeys: ["elektro-fse-grunnkurs", "elektro-forstehjelp"],
+      hazards: [
+        {
+          activity: "Etablere og avvikle sikkerhetstiltak",
+          hazard: "Feil kobling, induksjon eller innmating",
+          consequence: "Elektrisk støt, lysbue eller dødsfall",
+          probability: 2,
+          severity: 5,
+          measures: "Følg koblingsordre, kontroller spenningsløs tilstand, etabler jord- og kortslutning og bruk person nummer to.",
+        },
+      ],
+    },
+    {
+      name: "Kabelgraving og arbeid nær jordkabler",
+      description: "SJA-mal for graving og kabelarbeid nær eksisterende elektriske anlegg.",
+      workLocation: "Grøft / utendørs anlegg",
+      electricalWorkType: "NEAR_LIVE",
+      workMethod: "Kabelpåvisning og forsiktig graving etter innhentede ledningskart og lokal instruks.",
+      requiredEquipment: "Oppdaterte ledningskart, kabelsøker, markeringsutstyr og egnet håndverktøy.",
+      requiredPpe: "Synlig arbeidstøy, hjelm, vernefottøy, hansker og øvrig risikovurdert PVU.",
+      personnelRequirements: "Personellet skal være instruert om kabeltrase, graveforbudssone og beredskap ved kabelskade.",
+      safetyConditions: "Stans arbeid ved avvik mellom kart og påvisning eller ved funn av ukjent kabel.",
+      requiredCourseKeys: ["elektro-fse-grunnkurs", "elektro-forstehjelp"],
+      hazards: [
+        {
+          activity: "Graving nær eksisterende kabel",
+          hazard: "Skade på spenningssatt kabel",
+          consequence: "Elektrisk støt, lysbue, brann eller strømbrudd",
+          probability: 2,
+          severity: 5,
+          measures: "Innhent ledningskart, utfør kabelpåvisning, marker trase og håndgrav i risikosonen.",
         },
       ],
     },
     {
       name: "Arbeid i høyden – elektromontasje",
-      description: "SJA-mal for arbeid i høyden på master, tak og trafokiosker.",
-      workLocation: "Mast / tak / stolpe",
+      description: "SJA-mal for elektromontasje på mast, tak, lift eller stige.",
+      workLocation: "Mast / tak / lift / stolpe",
+      workMethod: "Arbeidet utføres fra godkjent arbeidsplattform eller med kollektiv/personlig fallsikring.",
+      requiredEquipment: "Godkjent lift, stige eller fallsikringsutstyr med dokumentert kontroll.",
+      requiredPpe: "Hjelm med hakestropp, sele ved behov, vernefottøy og øvrig risikovurdert PVU.",
+      personnelRequirements: "Dokumentert opplæring i aktuelt arbeidsutstyr og redningsplan ved bruk av fallsikring.",
+      safetyConditions: "Vær, underlag, redning og avsperring under arbeidsstedet skal vurderes før oppstart.",
       hazards: [
         {
-          activity: "Klatring i mast",
-          hazard: "Fall fra høyde",
-          consequence: "Alvorlig personskade eller død",
+          activity: "Montasje i høyden",
+          hazard: "Fall eller fallende gjenstander",
+          consequence: "Alvorlig personskade eller dødsfall",
           probability: 2,
           severity: 5,
-          measures: "Godkjent fallsikring, sele og koblingspunkt på mast, to-mann-regelen.",
-        },
-      ],
-    },
-    {
-      name: "Vedlikehold av nødstrømsaggregat",
-      description: "SJA-mal for service og vedlikehold av diesel-/gassgeneratorer.",
-      workLocation: "Aggregatrom / teknisk rom",
-      hazards: [
-        {
-          activity: "Start og test av aggregat",
-          hazard: "Eksos, brann, lydbølger",
-          consequence: "Forgiftning, brannskade, hørselsskade",
-          probability: 2,
-          severity: 4,
-          measures: "Ventilasjon, hørselsvern, brann slukker tilgjengelig og varmespenning av.",
+          measures: "Bruk kollektiv sikring først, kontroller fallsikring, sperr området under og ha redningsplan.",
         },
       ],
     },
@@ -672,7 +759,7 @@ const elektroPackage: IndustryPackage = {
       title: "FSE-kurs – Sikkerhet ved arbeid på elektriske anlegg",
       description: "Grunnleggende opplæring i FSE (Forskrift om sikkerhet ved arbeid i og drift av elektriske anlegg).",
       isRequired: true,
-      validityYears: 3,
+      validityYears: 1,
     },
     {
       courseKey: "elektro-fse-lavspenning",
@@ -693,14 +780,14 @@ const elektroPackage: IndustryPackage = {
       title: "Førstehjelp ved elektrisk ulykke og brann",
       description: "Tilpasset førstehjelpskurs for el-bransjen inkl. hjerte-lunge-redning og brannslukking.",
       isRequired: true,
-      validityYears: 2,
+      validityYears: 1,
     },
   ],
   legalReferences: [
     {
       title: "Forskrift om sikkerhet ved arbeid i og drift av elektriske anlegg (FSE)",
-      paragraphRef: "§ 5 og § 10",
-      description: "Krav til kvalifikasjoner, risikovurdering og verneutstyr ved arbeid på elektriske anlegg.",
+      paragraphRef: "§§ 7, 10 og 14–17",
+      description: "Krav til årlig opplæring, konkret risikovurdering, arbeidsmetode, utstyr, verneutstyr, personell og sikkerhetstiltak.",
       sourceUrl: "https://lovdata.no/dokument/SF/forskrift/2006-04-28-458",
     },
     {

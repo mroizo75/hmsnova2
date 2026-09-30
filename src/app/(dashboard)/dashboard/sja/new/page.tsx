@@ -8,7 +8,7 @@ import { SjaForm } from "@/components/sja/sja-form";
 import { SjaTemplatePicker } from "@/components/sja/sja-template-picker";
 
 interface PageProps {
-  searchParams: Promise<{ mal?: string; projectId?: string }>;
+  searchParams: Promise<{ mal?: string; projectId?: string; utenMal?: string }>;
 }
 
 export default async function NewSjaPage({ searchParams }: PageProps) {
@@ -18,9 +18,9 @@ export default async function NewSjaPage({ searchParams }: PageProps) {
     redirect("/login");
   }
 
-  const { mal: templateId, projectId } = await searchParams;
+  const { mal: templateId, projectId, utenMal } = await searchParams;
 
-  const [project, projects, template, risks, allTemplates] = await Promise.all([
+  const [project, projects, template, risks, allTemplates, memberships, training] = await Promise.all([
     projectId
       ? prisma.project.findFirst({
           where: {
@@ -62,6 +62,25 @@ export default async function NewSjaPage({ searchParams }: PageProps) {
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
+    prisma.userTenant.findMany({
+      where: { tenantId: session.user.tenantId },
+      include: { user: { select: { id: true, name: true, email: true } } },
+      orderBy: { displayName: "asc" },
+    }),
+    prisma.training.findMany({
+      where: {
+        tenantId: session.user.tenantId,
+        courseKey: {
+          in: [
+            "elektro-fse-grunnkurs",
+            "elektro-forstehjelp",
+            "elektro-fse-lavspenning",
+            "elektro-lysbue",
+          ],
+        },
+      },
+      select: { userId: true, courseKey: true, completedAt: true, validUntil: true },
+    }),
   ]);
 
   const safeProjectId = project?.id;
@@ -74,6 +93,23 @@ export default async function NewSjaPage({ searchParams }: PageProps) {
         participants: "",
         templateId: template.id,
         templateName: template.name,
+        electricalWorkType: template.electricalWorkType,
+        workMethod: template.workMethod || "",
+        requiredEquipment: template.requiredEquipment || "",
+        requiredPpe: template.requiredPpe || "",
+        personnelRequirements: template.personnelRequirements || "",
+        safetyConditions: template.safetyConditions || "",
+        requiresSecondPerson: template.requiresSecondPerson,
+        requiredCourseKeys: (() => {
+          try {
+            const parsed: unknown = JSON.parse(template.requiredCourseKeys || "[]");
+            return Array.isArray(parsed)
+              ? parsed.filter((value): value is string => typeof value === "string")
+              : [];
+          } catch {
+            return [];
+          }
+        })(),
         hazards: template.hazards.map((hazard) => ({
           activity: hazard.activity,
           hazard: hazard.hazard,
@@ -101,10 +137,44 @@ export default async function NewSjaPage({ searchParams }: PageProps) {
           },
         ],
       };
+  const now = new Date();
+  const employees = memberships.map((membership) => {
+    const records = training.filter((record) => record.userId === membership.userId);
+    const annualKeys = new Set(["elektro-fse-grunnkurs", "elektro-forstehjelp"]);
+    const validCourseKeys = Array.from(
+      new Set(
+        records
+          .filter((record) => {
+            if (!record.completedAt) return false;
+            const annualExpiry = new Date(record.completedAt);
+            annualExpiry.setFullYear(annualExpiry.getFullYear() + 1);
+            if (annualKeys.has(record.courseKey) && annualExpiry < now) return false;
+            return !record.validUntil || record.validUntil >= now;
+          })
+          .map((record) => record.courseKey),
+      ),
+    );
+    return {
+      id: membership.userId,
+      name: membership.displayName || membership.user.name || membership.user.email,
+      validCourseKeys,
+      expiredCourseKeys: Array.from(
+        new Set(
+          records
+            .filter(
+              (record) =>
+                record.completedAt && !validCourseKeys.includes(record.courseKey),
+            )
+            .map((record) => record.courseKey),
+        ),
+      ),
+    };
+  });
 
   const successRedirectPath = safeProjectId
     ? `/dashboard/projects/${safeProjectId}`
     : "/dashboard/sja";
+  const showForm = Boolean(template) || allTemplates.length === 0 || utenMal === "1";
 
   return (
     <div className="space-y-6">
@@ -144,22 +214,26 @@ export default async function NewSjaPage({ searchParams }: PageProps) {
         </Card>
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>SJA-skjema</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <SjaForm
-            tenantId={session.user.tenantId}
-            userName={session.user.name || session.user.email || "Bruker"}
-            projectId={safeProjectId}
-            projects={projects}
-            risks={risks}
-            successRedirectPath={successRedirectPath}
-            initialData={templateData}
-          />
-        </CardContent>
-      </Card>
+      {showForm && (
+        <Card>
+          <CardHeader>
+            <CardTitle>SJA-skjema</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <SjaForm
+              tenantId={session.user.tenantId}
+              currentUserId={session.user.id}
+              userName={session.user.name || session.user.email || "Bruker"}
+              projectId={safeProjectId}
+              projects={projects}
+              risks={risks}
+              employees={employees}
+              successRedirectPath={successRedirectPath}
+              initialData={templateData}
+            />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

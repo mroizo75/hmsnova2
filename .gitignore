@@ -52,6 +52,10 @@ next-env.d.ts
 
 # tests (lokale enhetstester)
 /tests/
+!/tests/
+/tests/*
+!/tests/sja/
+!/tests/sja/*.test.ts
 
 # scripts (internal testing and utilities)
 /scripts/

@@ -17,7 +17,7 @@ export default async function SjaDashboardPage() {
   const t = await getTranslations("dashboardSjaPage");
 
   const auth = await getAuthContext();
-  const { permissions, tenantId } = auth;
+  const { permissions } = auth;
 
   const canReadAll  = permissions.canReadSja;
   const canReadOwn  = permissions.canReadOwnSja;
@@ -69,7 +69,10 @@ export default async function SjaDashboardPage() {
         </Alert>
       )}
 
-      <SjaListContent initialData={initialData} tenantId={tenantId} />
+      <SjaListContent
+        initialData={initialData}
+        canManageTemplates={permissions.canApproveSja}
+      />
     </div>
   );
 }

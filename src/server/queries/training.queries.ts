@@ -3,12 +3,41 @@
 import { prisma } from "@/lib/db";
 import { getTenantContextSafe } from "@/lib/tenant-context";
 
+/** AML § 3-2: krav gjelder arbeidet den ansatte er tildelt, ikke alle i bedriften. */
+async function requiredCourseKeysByUser(tenantId: string): Promise<Record<string, string[]>> {
+  const assignments = await prisma.userCompetenceProfile.findMany({
+    where: { tenantId },
+    select: {
+      userId: true,
+      profile: {
+        select: {
+          requirements: {
+            where: { requiredLevel: "REQUIRED" },
+            select: { courseKey: true },
+          },
+        },
+      },
+    },
+  });
+
+  const map = new Map<string, Set<string>>();
+  for (const row of assignments) {
+    const keys = map.get(row.userId) ?? new Set<string>();
+    for (const requirement of row.profile.requirements) {
+      keys.add(requirement.courseKey);
+    }
+    map.set(row.userId, keys);
+  }
+
+  return Object.fromEntries([...map].map(([userId, keys]) => [userId, [...keys]]));
+}
+
 export async function fetchTrainingList() {
   const ctx = await getTenantContextSafe();
-  if (!ctx) return { trainingsRaw: [], tenantUsers: [], courseTemplates: [], reminderDays: 30 };
+  if (!ctx) return { trainingsRaw: [], tenantUsers: [], courseTemplates: [], reminderDays: 30, requiredCourseKeysByUser: {} };
   const { tenantId } = ctx;
 
-  const [trainingsRaw, tenantUsers, courseTemplates, tenant] = await Promise.all([
+  const [trainingsRaw, tenantUsers, courseTemplates, tenant, requiredByUser] = await Promise.all([
     prisma.training.findMany({
       where: { tenantId },
       orderBy: { createdAt: "desc" },
@@ -30,6 +59,7 @@ export async function fetchTrainingList() {
       where: { id: tenantId },
       select: { trainingReminderDaysBefore: true },
     }),
+    requiredCourseKeysByUser(tenantId),
   ]);
 
   return JSON.parse(JSON.stringify({
@@ -37,6 +67,7 @@ export async function fetchTrainingList() {
     tenantUsers,
     courseTemplates,
     reminderDays: tenant?.trainingReminderDaysBefore ?? 30,
+    requiredCourseKeysByUser: requiredByUser,
   }));
 }
 
@@ -89,10 +120,10 @@ export async function fetchTrainingCourses() {
 
 export async function fetchTrainingMatrix() {
   const ctx = await getTenantContextSafe();
-  if (!ctx) return { matrix: [], courseTemplates: [], reminderDays: 30 };
+  if (!ctx) return { matrix: [], courseTemplates: [], reminderDays: 30, requiredCourseKeysByUser: {} };
   const { tenantId } = ctx;
 
-  const [users, trainings, courseTemplates] = await Promise.all([
+  const [users, trainings, courseTemplates, requiredByUser] = await Promise.all([
     prisma.user.findMany({
       where: { tenants: { some: { tenantId } } },
       select: { id: true, name: true, email: true },
@@ -110,6 +141,7 @@ export async function fetchTrainingMatrix() {
       },
       orderBy: { title: "asc" },
     }),
+    requiredCourseKeysByUser(tenantId),
   ]);
 
   const matrix = users.map((u) => ({
@@ -126,5 +158,6 @@ export async function fetchTrainingMatrix() {
     matrix,
     courseTemplates,
     reminderDays: tenant?.trainingReminderDaysBefore ?? 30,
+    requiredCourseKeysByUser: requiredByUser,
   }));
 }

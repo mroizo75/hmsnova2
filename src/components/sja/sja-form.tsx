@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { VoiceTextarea } from "@/components/ai/voice-textarea";
@@ -29,8 +30,17 @@ import {
   ShieldAlert,
   Sparkles,
   Save,
+  Zap,
 } from "lucide-react";
 import { getRiskColor } from "@/features/sja/schemas/sja.schema";
+import {
+  fseChecklistItems,
+  getRequiredChecklistKeys,
+  getRequiredCourseKeys,
+  requiresSecondPersonByFse,
+  type ElectricalWorkType,
+  type FseChecklist,
+} from "@/features/sja/lib/sja-fse";
 import Image from "next/image";
 import { generateAiSjaSummary } from "@/server/actions/ai-assistant.actions";
 
@@ -56,14 +66,36 @@ const emptyHazard: HazardRow = {
   linkedRiskId: null,
 };
 
+function parseExternalParticipantNames(value: string): string[] {
+  const seen = new Set<string>();
+  return value
+    .split(",")
+    .map((name) => name.trim())
+    .filter((name) => {
+      if (!name) return false;
+      const key = name.toLocaleLowerCase("nb-NO");
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
 interface RiskOption {
   id: string;
   title: string;
   score: number | null;
 }
 
+interface EmployeeOption {
+  id: string;
+  name: string;
+  validCourseKeys: string[];
+  expiredCourseKeys: string[];
+}
+
 interface SjaFormProps {
   tenantId: string;
+  currentUserId: string;
   userName: string;
   projectId?: string;
   projects?: Array<{
@@ -72,6 +104,7 @@ interface SjaFormProps {
     location?: string | null;
   }>;
   risks?: RiskOption[];
+  employees?: EmployeeOption[];
   onSuccess?: () => void;
   successRedirectPath?: string;
   initialData?: {
@@ -82,15 +115,25 @@ interface SjaFormProps {
     hazards: HazardRow[];
     templateId?: string;
     templateName?: string;
+    electricalWorkType?: ElectricalWorkType;
+    workMethod?: string;
+    requiredEquipment?: string;
+    requiredPpe?: string;
+    personnelRequirements?: string;
+    safetyConditions?: string;
+    requiresSecondPerson?: boolean;
+    requiredCourseKeys?: string[];
   };
 }
 
 export function SjaForm({
   tenantId,
+  currentUserId,
   userName,
   projectId,
   projects = [],
   risks = [],
+  employees = [],
   onSuccess,
   successRedirectPath = "/ansatt/sja",
   initialData,
@@ -109,6 +152,13 @@ export function SjaForm({
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [aiSummary, setAiSummary] = useState("");
+  const [electricalWorkType, setElectricalWorkType] = useState<ElectricalWorkType>(
+    initialData?.electricalWorkType ?? "NOT_APPLICABLE",
+  );
+  const [selectedParticipantIds, setSelectedParticipantIds] = useState<string[]>([currentUserId]);
+  const [externalParticipants, setExternalParticipants] = useState("");
+  const [externalCompetenceConfirmed, setExternalCompetenceConfirmed] = useState(false);
+  const [fseChecklist, setFseChecklist] = useState<FseChecklist>({});
 
   function addHazard() {
     setHazards([...hazards, { ...emptyHazard }]);
@@ -147,7 +197,14 @@ export function SjaForm({
     setIsSubmitting(true);
 
     const formData = new FormData(e.currentTarget);
-    const participants = (formData.get("participants") as string)?.trim();
+    const selectedEmployees = employees.filter((employee) =>
+      selectedParticipantIds.includes(employee.id),
+    );
+    const externalNames = parseExternalParticipantNames(externalParticipants);
+    const participants =
+      electricalWorkType === "NOT_APPLICABLE"
+        ? (formData.get("participants") as string)?.trim()
+        : [...selectedEmployees.map((employee) => employee.name), ...externalNames].join(", ");
 
     if (!participants) {
       toast({
@@ -197,6 +254,33 @@ export function SjaForm({
       weatherConditions: formData.get("weatherConditions") as string,
       templateId: initialData?.templateId,
       templateName: initialData?.templateName,
+      electricalWorkType,
+      workMethod: formData.get("workMethod") as string,
+      requiredEquipment: formData.get("requiredEquipment") as string,
+      requiredPpe: formData.get("requiredPpe") as string,
+      personnelRequirements: formData.get("personnelRequirements") as string,
+      safetyConditions: formData.get("safetyConditions") as string,
+      fseChecklist,
+      requiresSecondPerson:
+        Boolean(initialData?.requiresSecondPerson) ||
+        requiresSecondPersonByFse(electricalWorkType),
+      secondPersonException: formData.get("secondPersonException") as string,
+      participantRecords:
+        electricalWorkType === "NOT_APPLICABLE"
+          ? []
+          : [
+              ...selectedEmployees.map((employee) => ({
+                userId: employee.id,
+                name: employee.name,
+                isExternal: false,
+                competenceConfirmed: false,
+              })),
+              ...externalNames.map((name) => ({
+                name,
+                isExternal: true,
+                competenceConfirmed: externalCompetenceConfirmed,
+              })),
+            ],
       hazards: validHazards.map((h, i) => ({
         ...h,
         sortOrder: i,
@@ -261,7 +345,17 @@ export function SjaForm({
   async function handleGenerateSummary() {
     const title = (document.getElementById("title") as HTMLInputElement | null)?.value || "";
     const workLocation = (document.getElementById("workLocation") as HTMLInputElement | null)?.value || "";
-    const participants = (document.getElementById("participants") as HTMLTextAreaElement | null)?.value || "";
+    const participants =
+      electricalWorkType === "NOT_APPLICABLE"
+        ? (document.getElementById("participants") as HTMLTextAreaElement | null)?.value || ""
+        : [
+            ...employees
+              .filter((employee) => selectedParticipantIds.includes(employee.id))
+              .map((employee) => employee.name),
+            externalParticipants,
+          ]
+            .filter(Boolean)
+            .join(", ");
     const validHazards = hazards.filter(
       (item) => item.activity.trim() && item.hazard.trim() && item.measures.trim()
     );
@@ -311,6 +405,13 @@ export function SjaForm({
       const descriptionEl = document.getElementById("description") as HTMLTextAreaElement | null;
       const additionalEl = document.getElementById("additionalConditions") as HTMLTextAreaElement | null;
       const weatherEl = document.getElementById("weatherConditions") as HTMLInputElement | null;
+      const selectedEmployeeNames = employees
+        .filter((employee) => selectedParticipantIds.includes(employee.id))
+        .map((employee) => employee.name);
+      const draftParticipants =
+        electricalWorkType === "NOT_APPLICABLE"
+          ? participantsEl?.value || ""
+          : [...selectedEmployeeNames, externalParticipants].filter(Boolean).join(", ");
 
       const payload = {
         id: draftId || undefined,
@@ -321,11 +422,26 @@ export function SjaForm({
         workLocation: workLocationEl?.value || "",
         plannedDate: plannedDateEl?.value ? new Date(plannedDateEl.value).toISOString() : new Date().toISOString(),
         responsibleName: userName,
-        participants: participantsEl?.value || "",
+        participants: draftParticipants,
         additionalConditions: additionalEl?.value || "",
         weatherConditions: weatherEl?.value || "",
         templateId: initialData?.templateId,
         templateName: initialData?.templateName,
+        electricalWorkType,
+        workMethod: (document.getElementById("workMethod") as HTMLTextAreaElement | null)?.value || "",
+        requiredEquipment:
+          (document.getElementById("requiredEquipment") as HTMLTextAreaElement | null)?.value || "",
+        requiredPpe: (document.getElementById("requiredPpe") as HTMLTextAreaElement | null)?.value || "",
+        personnelRequirements:
+          (document.getElementById("personnelRequirements") as HTMLTextAreaElement | null)?.value || "",
+        safetyConditions:
+          (document.getElementById("safetyConditions") as HTMLTextAreaElement | null)?.value || "",
+        fseChecklist,
+        requiresSecondPerson:
+          Boolean(initialData?.requiresSecondPerson) ||
+          requiresSecondPersonByFse(electricalWorkType),
+        secondPersonException:
+          (document.getElementById("secondPersonException") as HTMLTextAreaElement | null)?.value || "",
         hazards: hazards.map((h, i) => ({
           ...h,
           sortOrder: i,
@@ -474,6 +590,88 @@ export function SjaForm({
         </div>
       </div>
 
+      <div className="space-y-4">
+        <h3 className="flex items-center gap-2 border-b pb-2 text-lg font-semibold">
+          <Zap className="h-5 w-5 text-amber-600" />
+          Arbeidsmetode og FSE
+        </h3>
+        <div className="space-y-2">
+          <Label>Type arbeid</Label>
+          <Select
+            value={electricalWorkType}
+            onValueChange={(value) => {
+              setElectricalWorkType(value as ElectricalWorkType);
+              setFseChecklist({});
+            }}
+          >
+            <SelectTrigger className="h-12"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="NOT_APPLICABLE">Ikke elektroarbeid</SelectItem>
+              <SelectItem value="DE_ENERGIZED">Frakoblet elektrisk anlegg</SelectItem>
+              <SelectItem value="NEAR_LIVE">Arbeid nær ved spenningssatt anlegg</SelectItem>
+              <SelectItem value="LIVE_LOW_VOLTAGE">Arbeid under spenning – lavspenning</SelectItem>
+              <SelectItem value="HIGH_VOLTAGE">Arbeid på eller nær høyspenningsanlegg</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {electricalWorkType !== "NOT_APPLICABLE" && (
+          <Card className="border-amber-300 bg-amber-50/60">
+            <CardContent className="grid gap-4 p-5 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="workMethod">Valgt arbeidsmetode *</Label>
+                <VoiceTextarea
+                  id="workMethod"
+                  name="workMethod"
+                  required
+                  defaultValue={initialData?.workMethod}
+                  rows={3}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="requiredEquipment">Nødvendig utstyr *</Label>
+                <VoiceTextarea
+                  id="requiredEquipment"
+                  name="requiredEquipment"
+                  required
+                  defaultValue={initialData?.requiredEquipment}
+                  rows={3}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="requiredPpe">Personlig verneutstyr *</Label>
+                <VoiceTextarea
+                  id="requiredPpe"
+                  name="requiredPpe"
+                  required
+                  defaultValue={initialData?.requiredPpe}
+                  rows={3}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="personnelRequirements">Krav og instruksjon til personell *</Label>
+                <VoiceTextarea
+                  id="personnelRequirements"
+                  name="personnelRequirements"
+                  required
+                  defaultValue={initialData?.personnelRequirements}
+                  rows={3}
+                />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="safetyConditions">Sikkerhetsbetingelser</Label>
+                <VoiceTextarea
+                  id="safetyConditions"
+                  name="safetyConditions"
+                  defaultValue={initialData?.safetyConditions}
+                  rows={3}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
       {/* === SEKSJON 2: Deltakere === */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold border-b pb-2 flex items-center gap-2">
@@ -481,23 +679,85 @@ export function SjaForm({
           {t("sections.participants")}
         </h3>
 
-        <div className="space-y-2">
-          <Label htmlFor="participants" className="text-base">
-            {t("fields.participants.label")} *
-          </Label>
-          <VoiceTextarea
-            id="participants"
-            name="participants"
-            placeholder={t("fields.participants.placeholder")}
-            defaultValue={initialData?.participants}
-            rows={3}
-            required
-            className="text-base resize-none"
-          />
-          <p className="text-xs text-muted-foreground">
-            {t("fields.participants.help")}
-          </p>
-        </div>
+        {electricalWorkType === "NOT_APPLICABLE" ? (
+          <div className="space-y-2">
+            <Label htmlFor="participants" className="text-base">
+              {t("fields.participants.label")} *
+            </Label>
+            <VoiceTextarea
+              id="participants"
+              name="participants"
+              placeholder={t("fields.participants.placeholder")}
+              defaultValue={initialData?.participants}
+              rows={3}
+              required
+              className="text-base resize-none"
+            />
+            <p className="text-xs text-muted-foreground">{t("fields.participants.help")}</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              {employees.map((employee) => {
+                const requiredKeys = Array.from(
+                  new Set([
+                    ...getRequiredCourseKeys(electricalWorkType),
+                    ...(initialData?.requiredCourseKeys ?? []),
+                  ]),
+                );
+                const missingKeys = requiredKeys.filter(
+                  (key) => !employee.validCourseKeys.includes(key),
+                );
+                const hasCompetenceGap =
+                  missingKeys.length > 0 ||
+                  employee.expiredCourseKeys.some((key) => requiredKeys.includes(key));
+                return (
+                  <label
+                    key={employee.id}
+                    className="flex items-start gap-3 rounded-lg border bg-card p-3"
+                  >
+                    <Checkbox
+                      checked={selectedParticipantIds.includes(employee.id)}
+                      onCheckedChange={(checked) =>
+                        setSelectedParticipantIds((current) =>
+                          checked === true
+                            ? Array.from(new Set([...current, employee.id]))
+                            : current.filter((id) => id !== employee.id),
+                        )
+                      }
+                    />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium">{employee.name}</span>
+                      <span className={hasCompetenceGap ? "text-xs text-destructive" : "text-xs text-green-700"}>
+                        {hasCompetenceGap ? "Mangler gyldig obligatorisk opplæring" : "Kompetanse kontrollert"}
+                      </span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="externalParticipants">Eksterne deltakere</Label>
+              <Input
+                id="externalParticipants"
+                value={externalParticipants}
+                onChange={(event) => setExternalParticipants(event.target.value)}
+                placeholder="Navn, separert med komma"
+              />
+              {externalParticipants.trim() && (
+                <label className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <Checkbox
+                    checked={externalCompetenceConfirmed}
+                    onCheckedChange={(checked) => setExternalCompetenceConfirmed(checked === true)}
+                  />
+                  <span className="text-sm">
+                    Jeg bekrefter at ekstern deltakers FSE- og førstehjelpskompetanse er kontrollert.
+                  </span>
+                </label>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* === SEKSJON 3: Spesielle forhold === */}
@@ -761,6 +1021,48 @@ export function SjaForm({
           )}
         </div>
       </div>
+
+      {electricalWorkType !== "NOT_APPLICABLE" && (
+        <Card className="border-2 border-amber-300">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Zap className="h-5 w-5 text-amber-600" />
+              FSE-kontroll før oppstart
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {/* FSE §§ 10 og 14: punktene må bekreftes for det konkrete arbeidet. */}
+            {getRequiredChecklistKeys(electricalWorkType).map((key) => (
+              <label key={key} className="flex items-start gap-3 rounded-lg border p-3">
+                <Checkbox
+                  checked={fseChecklist[key] === true}
+                  onCheckedChange={(checked) =>
+                    setFseChecklist((current) => ({ ...current, [key]: checked === true }))
+                  }
+                />
+                <span className="text-sm">{fseChecklistItems[key]}</span>
+              </label>
+            ))}
+            {(initialData?.requiresSecondPerson ||
+              requiresSecondPersonByFse(electricalWorkType)) &&
+              selectedParticipantIds.length +
+                parseExternalParticipantNames(externalParticipants).length <
+                2 && (
+                <div className="space-y-2 pt-2">
+                  <Label htmlFor="secondPersonException">
+                    Begrunnelse dersom person nummer to ikke benyttes
+                  </Label>
+                  <VoiceTextarea
+                    id="secondPersonException"
+                    name="secondPersonException"
+                    rows={3}
+                    placeholder="Dokumenter den konkrete risikovurderingen som viser at fravik ikke øker risikoen."
+                  />
+                </div>
+              )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* === SEKSJON 6: Bekreftelse og innsending === */}
       <Card className="border-2 border-green-300 bg-green-50">

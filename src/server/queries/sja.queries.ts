@@ -40,11 +40,20 @@ export async function fetchSjaList() {
 export async function fetchSjaDetail(id: string) {
   const auth = await getAuthContext();
   if (!auth) return null;
-  const { tenantId } = auth;
+  const { tenantId, userId, permissions } = auth;
+  if (!permissions.canReadSja && !permissions.canReadOwnSja) return null;
+  const ownerFilter = permissions.canReadSja
+    ? {}
+    : {
+        OR: [
+          { createdById: userId },
+          { participantRecords: { some: { userId } } },
+        ],
+      };
 
   const [analysis, tenant] = await Promise.all([
-    prisma.sjaAnalysis.findUnique({
-      where: { id, tenantId },
+    prisma.sjaAnalysis.findFirst({
+      where: { id, tenantId, ...ownerFilter },
       include: {
         hazards: {
           orderBy: { sortOrder: "asc" },
@@ -52,6 +61,7 @@ export async function fetchSjaDetail(id: string) {
             linkedRisk: { select: { id: true, title: true, score: true } },
           },
         },
+        participantRecords: { orderBy: { createdAt: "asc" } },
         attachments: true,
         mocLinks: {
           include: {
@@ -68,5 +78,9 @@ export async function fetchSjaDetail(id: string) {
 
   if (!analysis) return null;
 
-  return JSON.parse(JSON.stringify({ ...analysis, mocModuleEnabled: tenant?.mocModuleEnabled ?? false }));
+  return JSON.parse(JSON.stringify({
+    ...analysis,
+    mocModuleEnabled: tenant?.mocModuleEnabled ?? false,
+    canApproveSja: permissions.canApproveSja,
+  }));
 }

@@ -170,13 +170,29 @@ export async function provisionIndustryPackage(
         }
       }
 
+      if (packageConfig.industry === "elektro") {
+        await tx.sjaTemplate.updateMany({
+          where: {
+            tenantId,
+            createdByName: "System",
+            name: {
+              in: [
+                "Arbeid på eller nær spenningssatte anlegg",
+                "Vedlikehold av nødstrømsaggregat",
+              ],
+            },
+          },
+          data: { isActive: false },
+        });
+      }
+
       for (const template of sjaToProvision) {
         const existingTemplate = await tx.sjaTemplate.findFirst({
           where: {
             tenantId,
             name: template.name,
           },
-          select: { id: true },
+          select: { id: true, createdByName: true, isLockedByGroup: true },
         });
 
         if (!existingTemplate) {
@@ -186,8 +202,50 @@ export async function provisionIndustryPackage(
               name: template.name,
               description: template.description,
               workLocation: template.workLocation,
+              electricalWorkType: template.electricalWorkType ?? "NOT_APPLICABLE",
+              workMethod: template.workMethod ?? null,
+              requiredEquipment: template.requiredEquipment ?? null,
+              requiredPpe: template.requiredPpe ?? null,
+              personnelRequirements: template.personnelRequirements ?? null,
+              safetyConditions: template.safetyConditions ?? null,
+              requiresSecondPerson: template.requiresSecondPerson ?? false,
+              requiredCourseKeys: JSON.stringify(template.requiredCourseKeys ?? []),
               createdById: ownerCandidate.userId,
               createdByName: "System",
+              hazards: {
+                create: template.hazards.map((hazard, index) => ({
+                  sortOrder: index,
+                  activity: hazard.activity,
+                  hazard: hazard.hazard,
+                  consequence: hazard.consequence,
+                  probability: hazard.probability,
+                  severity: hazard.severity,
+                  measures: hazard.measures,
+                })),
+              },
+            },
+          });
+        } else if (
+          existingTemplate.createdByName === "System" &&
+          !existingTemplate.isLockedByGroup
+        ) {
+          await tx.sjaTemplateHazard.deleteMany({
+            where: { templateId: existingTemplate.id },
+          });
+          await tx.sjaTemplate.update({
+            where: { id: existingTemplate.id },
+            data: {
+              description: template.description,
+              workLocation: template.workLocation,
+              electricalWorkType: template.electricalWorkType ?? "NOT_APPLICABLE",
+              workMethod: template.workMethod ?? null,
+              requiredEquipment: template.requiredEquipment ?? null,
+              requiredPpe: template.requiredPpe ?? null,
+              personnelRequirements: template.personnelRequirements ?? null,
+              safetyConditions: template.safetyConditions ?? null,
+              requiresSecondPerson: template.requiresSecondPerson ?? false,
+              requiredCourseKeys: JSON.stringify(template.requiredCourseKeys ?? []),
+              isActive: true,
               hazards: {
                 create: template.hazards.map((hazard, index) => ({
                   sortOrder: index,
@@ -255,6 +313,17 @@ export async function provisionIndustryPackage(
               isRequired: course.isRequired,
               validityYears: course.validityYears,
               isGlobal: false,
+              isActive: true,
+            },
+          });
+        } else {
+          await tx.courseTemplate.update({
+            where: { id: existingCourseTemplate.id },
+            data: {
+              title: course.title,
+              description: course.description,
+              isRequired: course.isRequired,
+              validityYears: course.validityYears,
               isActive: true,
             },
           });

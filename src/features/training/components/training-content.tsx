@@ -40,9 +40,7 @@ export function TrainingContent({ initialData, tema }: TrainingContentProps) {
     .map((t: any) => ({ ...t, user: userMap.get(t.userId) }))
     .filter((t: any) => !!t.user);
 
-  const requiredCourseKeys = courseTemplates
-    .filter((c: any) => c.isRequired)
-    .map((c: any) => c.courseKey);
+  const requiredCourseKeysByUser: Record<string, string[]> = data.requiredCourseKeysByUser ?? {};
 
   const reminderDays = data.reminderDays ?? 30;
   const now = new Date();
@@ -71,7 +69,8 @@ export function TrainingContent({ initialData, tema }: TrainingContentProps) {
         })
         .map((t: any) => t.courseKey),
     );
-    return requiredCourseKeys.some((key: any) => !userCourseKeys.has(key));
+    const requiredKeys = requiredCourseKeysByUser[u.id] ?? [];
+    return requiredKeys.some((key) => !userCourseKeys.has(key));
   }).length;
 
   const expiringTrainings = trainingsWithUser
@@ -213,7 +212,7 @@ export function TrainingContent({ initialData, tema }: TrainingContentProps) {
           <TrainingList
             trainings={trainingsWithUser}
             tenantUsers={tenantUsers}
-            requiredCourseKeys={requiredCourseKeys}
+            requiredCourseKeysByUser={requiredCourseKeysByUser}
             reminderDays={reminderDays}
           />
         </CardContent>

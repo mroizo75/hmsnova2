@@ -3,12 +3,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   HardHat,
   FileText,
   CheckCircle,
   Clock,
   BookTemplate,
+  Settings2,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -16,8 +18,6 @@ import {
   getSjaConclusionColor,
   getRiskColor,
 } from "@/features/sja/schemas/sja.schema";
-import { SjaCreateTemplateButton } from "@/components/sja/sja-create-template-button";
-import { SjaDeleteTemplateButton } from "@/components/sja/sja-delete-template-button";
 import { SjaTemplateActions } from "@/components/sja/sja-template-actions";
 import { useLocale, useTranslations } from "next-intl";
 import { fetchSjaList } from "@/server/queries/sja.queries";
@@ -26,10 +26,10 @@ type SjaListData = Awaited<ReturnType<typeof fetchSjaList>>;
 
 interface SjaListContentProps {
   initialData: SjaListData;
-  tenantId: string;
+  canManageTemplates: boolean;
 }
 
-export function SjaListContent({ initialData, tenantId }: SjaListContentProps) {
+export function SjaListContent({ initialData, canManageTemplates }: SjaListContentProps) {
   const t = useTranslations("dashboardSjaPage");
   const locale = useLocale();
 
@@ -221,7 +221,14 @@ export function SjaListContent({ initialData, tenantId }: SjaListContentProps) {
               <BookTemplate className="h-5 w-5 text-purple-600" />
               {t("templates.title", { count: templates.length })}
             </CardTitle>
-            <SjaCreateTemplateButton tenantId={tenantId} />
+            {canManageTemplates && (
+              <Button variant="outline" asChild>
+                <Link href="/dashboard/sja/maler">
+                  <Settings2 className="mr-2 h-4 w-4" />
+                  Administrer maler
+                </Link>
+              </Button>
+            )}
           </div>
           <p className="text-sm text-muted-foreground">
             {t("templates.description")}
@@ -281,7 +288,6 @@ export function SjaListContent({ initialData, tenantId }: SjaListContentProps) {
                         templateName={template.name}
                         basePath="/dashboard/sja/new"
                       />
-                      <SjaDeleteTemplateButton templateId={template.id} templateName={template.name} />
                     </div>
                   </div>
                 </div>

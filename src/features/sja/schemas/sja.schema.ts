@@ -1,5 +1,10 @@
 import { z } from "zod";
 import { SjaStatus, SjaConclusion } from "@prisma/client";
+import {
+  electricalWorkTypes,
+  getMissingChecklistItems,
+  requiresSecondPersonByFse,
+} from "@/features/sja/lib/sja-fse";
 
 export const sjaHazardSchema = z.object({
   activity: z.string().min(1, "Aktivitet er påkrevd"),
@@ -12,6 +17,15 @@ export const sjaHazardSchema = z.object({
   sortOrder: z.number().default(0),
   linkedRiskId: z.string().cuid().optional().nullable(),
 });
+
+export const sjaParticipantSchema = z.object({
+  userId: z.string().cuid().optional(),
+  name: z.string().min(1, "Navn på deltaker er påkrevd"),
+  isExternal: z.boolean().default(false),
+  competenceConfirmed: z.boolean().default(false),
+});
+
+const fseChecklistSchema = z.record(z.string(), z.boolean()).default({});
 
 export const createSjaSchema = z.object({
   tenantId: z.string().cuid(),
@@ -26,7 +40,95 @@ export const createSjaSchema = z.object({
   weatherConditions: z.string().optional(),
   templateId: z.string().optional(),
   templateName: z.string().optional(),
+  electricalWorkType: z.enum(electricalWorkTypes).default("NOT_APPLICABLE"),
+  workMethod: z.string().optional(),
+  requiredEquipment: z.string().optional(),
+  requiredPpe: z.string().optional(),
+  personnelRequirements: z.string().optional(),
+  safetyConditions: z.string().optional(),
+  fseChecklist: fseChecklistSchema,
+  requiresSecondPerson: z.boolean().default(false),
+  secondPersonException: z.string().optional(),
+  participantRecords: z.array(sjaParticipantSchema).default([]),
   hazards: z.array(sjaHazardSchema).min(1, "Minst én fare må identifiseres"),
+}).superRefine((data, ctx) => {
+  if (data.electricalWorkType !== "NOT_APPLICABLE" && data.participantRecords.length === 0) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["participantRecords"],
+      message: "Elektroarbeid krever at deltakerne velges for kompetansekontroll",
+    });
+  }
+  if (data.electricalWorkType !== "NOT_APPLICABLE") {
+    const requiredTextFields = [
+      ["workMethod", data.workMethod],
+      ["requiredEquipment", data.requiredEquipment],
+      ["requiredPpe", data.requiredPpe],
+      ["personnelRequirements", data.personnelRequirements],
+    ] as const;
+    for (const [field, value] of requiredTextFields) {
+      if (!value?.trim()) {
+        ctx.addIssue({
+          code: "custom",
+          path: [field],
+          message: "Feltet er påkrevd for elektroarbeid etter FSE § 10",
+        });
+      }
+    }
+  }
+
+  const missingChecklistItems = getMissingChecklistItems(data.electricalWorkType, data.fseChecklist);
+  if (missingChecklistItems.length > 0) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["fseChecklist"],
+      message: "Alle relevante FSE-punkter må bekreftes før innsending",
+    });
+  }
+
+  const secondPersonRequired =
+    data.requiresSecondPerson || requiresSecondPersonByFse(data.electricalWorkType);
+  const internalParticipants = data.participantRecords.filter(
+    (participant) => !participant.isExternal && participant.userId,
+  );
+  const internalNames = new Set(
+    internalParticipants.map((participant) =>
+      participant.name.trim().toLocaleLowerCase("nb-NO"),
+    ),
+  );
+  const uniqueExternalNames = new Set(
+    data.participantRecords
+      .filter((participant) => participant.isExternal)
+      .map((participant) => participant.name.trim().toLocaleLowerCase("nb-NO"))
+      .filter((name) => !internalNames.has(name)),
+  );
+  const externalNames = data.participantRecords
+    .filter((participant) => participant.isExternal)
+    .map((participant) => participant.name.trim().toLocaleLowerCase("nb-NO"));
+  if (
+    new Set(externalNames).size !== externalNames.length ||
+    externalNames.some((name) => internalNames.has(name))
+  ) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["participantRecords"],
+      message: "Samme person kan ikke registreres flere ganger",
+    });
+  }
+  const uniqueParticipantCount =
+    new Set(internalParticipants.map((participant) => participant.userId)).size +
+    uniqueExternalNames.size;
+  if (
+    secondPersonRequired &&
+    uniqueParticipantCount < 2 &&
+    !data.secondPersonException?.trim()
+  ) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["participantRecords"],
+      message: "Arbeidet krever person nummer to eller en dokumentert risikovurdert begrunnelse",
+    });
+  }
 });
 
 export const updateSjaSchema = z.object({
@@ -48,13 +150,27 @@ export const createSjaTemplateSchema = z.object({
   name: z.string().min(3, "Malnavn må være minst 3 tegn"),
   description: z.string().optional(),
   workLocation: z.string().optional(),
+  electricalWorkType: z.enum(electricalWorkTypes).default("NOT_APPLICABLE"),
+  workMethod: z.string().optional(),
+  requiredEquipment: z.string().optional(),
+  requiredPpe: z.string().optional(),
+  personnelRequirements: z.string().optional(),
+  safetyConditions: z.string().optional(),
+  requiresSecondPerson: z.boolean().default(false),
+  requiredCourseKeys: z.array(z.string().min(1)).default([]),
   hazards: z.array(sjaHazardSchema).min(1, "Minst én fare må legges til i malen"),
+});
+
+export const updateSjaTemplateSchema = createSjaTemplateSchema.extend({
+  id: z.string().cuid(),
 });
 
 export type CreateSjaInput = z.infer<typeof createSjaSchema>;
 export type UpdateSjaInput = z.infer<typeof updateSjaSchema>;
 export type SjaHazardInput = z.infer<typeof sjaHazardSchema>;
+export type SjaParticipantInput = z.infer<typeof sjaParticipantSchema>;
 export type CreateSjaTemplateInput = z.infer<typeof createSjaTemplateSchema>;
+export type UpdateSjaTemplateInput = z.infer<typeof updateSjaTemplateSchema>;
 
 export function getSjaStatusLabel(status: SjaStatus): string {
   const labels: Record<SjaStatus, string> = {

@@ -34,7 +34,10 @@ export default async function AnsattSja() {
   const mySjas = await prisma.sjaAnalysis.findMany({
     where: {
       tenantId: session.user.tenantId,
-      createdById: session.user.id,
+      OR: [
+        { createdById: session.user.id },
+        { participantRecords: { some: { userId: session.user.id } } },
+      ],
     },
     include: {
       hazards: { select: { id: true, riskLevel: true } },
@@ -225,7 +228,11 @@ export default async function AnsattSja() {
                             </span>
                           )}
                         </div>
-                        <h3 className="font-semibold mb-2 truncate">{sja.title}</h3>
+                        <h3 className="font-semibold mb-2 truncate">
+                          <Link href={`/ansatt/sja/${sja.id}`} className="hover:underline">
+                            {sja.title}
+                          </Link>
+                        </h3>
 
                         <div className="flex flex-wrap items-center gap-2 mb-2">
                           <Badge
