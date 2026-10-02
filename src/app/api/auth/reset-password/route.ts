@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { validateResetToken, markTokenAsUsed } from "@/lib/password-reset";
-import { checkRateLimit, apiRateLimiter, getClientIp } from "@/lib/rate-limit";
+import {
+  checkRateLimitPolicy,
+  createRateLimitResponse,
+  getClientIp,
+} from "@/lib/rate-limit";
 import { resetPasswordSchema } from "@/lib/validations/auth";
 import { validateRequestBody, createErrorResponse, createSuccessResponse, ErrorCodes } from "@/lib/validations/api";
 import bcrypt from "bcryptjs";
@@ -13,16 +17,14 @@ import bcrypt from "bcryptjs";
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIp(request);
-    const identifier = `reset-password:${ip}`;
-
-    // Rate limit (FAIL CLOSED for sikkerhet)
-    const { success } = await checkRateLimit(identifier, apiRateLimiter, { failClosed: true });
-    if (!success) {
-      return createErrorResponse(
-        ErrorCodes.RATE_LIMIT_EXCEEDED,
-        "For mange forespørsler. Prøv igjen senere.",
-        429
-      );
+    const rateLimit = await checkRateLimitPolicy({
+      policy: "sensitiveLookup",
+      scope: "reset-password",
+      identifiers: [ip],
+      failClosed: true,
+    });
+    if (!rateLimit.success) {
+      return createRateLimitResponse(rateLimit);
     }
 
     // Valider input

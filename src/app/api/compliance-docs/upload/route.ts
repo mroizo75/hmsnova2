@@ -4,6 +4,10 @@ import { authOptions } from "@/lib/auth";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import crypto from "crypto";
 import { validatePdfFile, validateFileSize } from "@/lib/file-validation";
+import {
+  checkRateLimitPolicy,
+  createRateLimitResponse,
+} from "@/lib/rate-limit";
 
 const s3Client = new S3Client({
   region: "auto",
@@ -22,6 +26,19 @@ export async function POST(request: NextRequest) {
 
     if (!session?.user?.tenantId) {
       return NextResponse.json({ error: "Ikke autorisert" }, { status: 401 });
+    }
+
+    const rateLimit = await checkRateLimitPolicy({
+      policy: "upload",
+      scope: "compliance-document-upload",
+      identifiers: [
+        session.user.id,
+        session.user.tenantId,
+      ],
+      failClosed: true,
+    });
+    if (!rateLimit.success) {
+      return createRateLimitResponse(rateLimit);
     }
 
     const formData = await request.formData();

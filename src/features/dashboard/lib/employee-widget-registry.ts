@@ -350,9 +350,9 @@ const ALWAYS_VISIBLE_EMPLOYEE_WIDGET_IDS = new Set([
 ]);
 
 /**
- * Filtrerer ansatt-widgets basert på admin-dashboardets lockedDashboardConfig.
+ * Filtrerer og sorterer ansatt-widgets basert på admin-dashboardets lockedDashboardConfig.
  * Håndbok vises alltid (IK-HMS § 5: dokumentasjon skal være tilgjengelig for ansatte).
- * Widgets uten adminWidgetId vises alltid.
+ * Widgets uten adminWidgetId vises alltid etter de konfigurerte flisene.
  */
 export function getEmployeeWidgetsFromLockedConfig(
   lockedConfig: Array<{ id: string }> | null | undefined
@@ -361,13 +361,30 @@ export function getEmployeeWidgetsFromLockedConfig(
     return EMPLOYEE_WIDGET_REGISTRY;
   }
 
-  const adminWidgetIds = new Set(lockedConfig.map((w) => w.id));
+  const adminWidgetOrder = new Map(
+    lockedConfig.map((widget, index) => [
+      widget.id === "beredskap" ? "bcm" : widget.id,
+      index,
+    ])
+  );
 
-  return EMPLOYEE_WIDGET_REGISTRY.filter((empWidget) => {
-    if (!empWidget.adminWidgetId) return true;
-    if (ALWAYS_VISIBLE_EMPLOYEE_WIDGET_IDS.has(empWidget.id)) return true;
-    return adminWidgetIds.has(empWidget.adminWidgetId);
-  });
+  return EMPLOYEE_WIDGET_REGISTRY
+    .filter((empWidget) => {
+      if (!empWidget.adminWidgetId) return true;
+      if (ALWAYS_VISIBLE_EMPLOYEE_WIDGET_IDS.has(empWidget.id)) return true;
+      return adminWidgetOrder.has(empWidget.adminWidgetId);
+    })
+    .sort((left, right) => {
+      const leftOrder = left.adminWidgetId
+        ? adminWidgetOrder.get(left.adminWidgetId)
+        : undefined;
+      const rightOrder = right.adminWidgetId
+        ? adminWidgetOrder.get(right.adminWidgetId)
+        : undefined;
+
+      return (leftOrder ?? Number.MAX_SAFE_INTEGER) -
+        (rightOrder ?? Number.MAX_SAFE_INTEGER);
+    });
 }
 
 export function getEmployeeBottomNavItems(

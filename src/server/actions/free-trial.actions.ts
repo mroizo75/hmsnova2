@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { checkServerActionRateLimit } from "@/lib/server-action-rate-limit";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { createGeneratedDocument, generateDocuments, importGeneratedDocumentsToTenant } from "@/server/actions/generator.actions";
@@ -88,6 +89,17 @@ export async function createFreeTrialTenant(
   | { success: false; error: string }
 > {
   try {
+    const rateLimitAllowed = await checkServerActionRateLimit({
+      policy: "publicSignup",
+      scope: "free-trial-registration",
+    });
+    if (!rateLimitAllowed) {
+      return {
+        success: false,
+        error: "For mange registreringsforsøk. Prøv igjen senere.",
+      };
+    }
+
     const raw = {
       companyName: formData.get("companyName") as string,
       email: formData.get("email") as string,

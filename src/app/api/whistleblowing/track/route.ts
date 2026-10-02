@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { toPublicTrackView } from "@/lib/whistleblowing-case-access";
+import {
+  checkRateLimitPolicy,
+  createRateLimitResponse,
+  getClientIp,
+} from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +18,16 @@ const trackSchema = z.object({
 // POST /api/whistleblowing/track - Track report with access code
 export async function POST(req: NextRequest) {
   try {
+    const rateLimit = await checkRateLimitPolicy({
+      policy: "sensitiveLookup",
+      scope: "whistleblowing-track",
+      identifiers: [getClientIp(req)],
+      failClosed: true,
+    });
+    if (!rateLimit.success) {
+      return createRateLimitResponse(rateLimit);
+    }
+
     const body = await req.json();
     const { caseNumber, accessCode } = trackSchema.parse(body);
 

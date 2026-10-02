@@ -1,45 +1,101 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { NextResponse } from "next/server";
 
-// Sjekk om vi har Upstash credentials
-const hasUpstashConfig = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN;
+import { createErrorResponse, ErrorCodes } from "@/lib/validations/api";
 
-// Fallback in-memory rate limiter for development
+type RateLimitResult = {
+  success: boolean;
+  reset: number;
+  remaining?: number;
+  limit?: number;
+};
+
+type RateLimiter = {
+  limit(identifier: string): Promise<RateLimitResult>;
+};
+
+type RateLimitPolicyConfig = {
+  limit: number;
+  window: `${number} s` | `${number} m` | `${number} h`;
+  windowSeconds: number;
+};
+
+export const RATE_LIMIT_POLICIES = {
+  login: { limit: 5, window: "15 s", windowSeconds: 15 },
+  generalApi: { limit: 100, window: "1 m", windowSeconds: 60 },
+  authenticatedMutation: { limit: 120, window: "1 m", windowSeconds: 60 },
+  employeeSubmission: { limit: 30, window: "10 m", windowSeconds: 600 },
+  publicForm: { limit: 5, window: "10 m", windowSeconds: 600 },
+  publicSignup: { limit: 3, window: "1 h", windowSeconds: 3600 },
+  sensitiveLookup: { limit: 10, window: "10 m", windowSeconds: 600 },
+  upload: { limit: 20, window: "10 m", windowSeconds: 600 },
+  expensiveOperation: { limit: 10, window: "1 h", windowSeconds: 3600 },
+  strict: { limit: 3, window: "60 s", windowSeconds: 60 },
+} as const satisfies Record<string, RateLimitPolicyConfig>;
+
+export type RateLimitPolicyName = keyof typeof RATE_LIMIT_POLICIES;
+
+const hasUpstashConfig = Boolean(
+  process.env.UPSTASH_REDIS_REST_URL &&
+    process.env.UPSTASH_REDIS_REST_TOKEN
+);
+
+if (process.env.NODE_ENV === "production" && !hasUpstashConfig) {
+  throw new Error(
+    "UPSTASH_REDIS_REST_URL og UPSTASH_REDIS_REST_TOKEN er påkrevd i produksjon"
+  );
+}
+
 class MemoryRateLimiter {
-  private cache: Map<string, { count: number; reset: number }> = new Map();
-  private maxAttempts: number;
-  private window: number;
+  private readonly cache = new Map<string, { count: number; reset: number }>();
+  private requestCount = 0;
 
-  constructor(limit: number, windowSeconds: number) {
-    this.maxAttempts = limit;
-    this.window = windowSeconds * 1000; // Convert to ms
-  }
+  constructor(
+    private readonly maxAttempts: number,
+    private readonly windowMs: number
+  ) {}
 
-  async limit(identifier: string): Promise<{ success: boolean; reset: number }> {
+  async limit(identifier: string): Promise<RateLimitResult> {
     const now = Date.now();
-    const key = identifier;
-    const cached = this.cache.get(key);
+    this.requestCount += 1;
+    if (this.requestCount % 100 === 0) {
+      this.cleanup(now);
+    }
+
+    const cached = this.cache.get(identifier);
 
     if (!cached || cached.reset < now) {
-      // New window
-      this.cache.set(key, { count: 1, reset: now + this.window });
-      return { success: true, reset: now + this.window };
+      const reset = now + this.windowMs;
+      this.cache.set(identifier, { count: 1, reset });
+      return {
+        success: true,
+        reset,
+        remaining: this.maxAttempts - 1,
+        limit: this.maxAttempts,
+      };
     }
 
     if (cached.count >= this.maxAttempts) {
-      // Rate limit exceeded
-      return { success: false, reset: cached.reset };
+      return {
+        success: false,
+        reset: cached.reset,
+        remaining: 0,
+        limit: this.maxAttempts,
+      };
     }
 
-    // Increment count
-    cached.count++;
-    this.cache.set(key, cached);
-    return { success: true, reset: cached.reset };
+    const nextCount = cached.count + 1;
+    this.cache.set(identifier, { ...cached, count: nextCount });
+    return {
+      success: true,
+      reset: cached.reset,
+      remaining: this.maxAttempts - nextCount,
+      limit: this.maxAttempts,
+    };
   }
 
-  // Cleanup old entries periodically
-  cleanup() {
-    const now = Date.now();
+  private cleanup(now: number): void {
     for (const [key, value] of this.cache.entries()) {
       if (value.reset < now) {
         this.cache.delete(key);
@@ -48,78 +104,117 @@ class MemoryRateLimiter {
   }
 }
 
-// Auth rate limiter: 5 forsøk per 15 sekunder
-export const authRateLimiter = hasUpstashConfig
-  ? new Ratelimit({
-      redis: Redis.fromEnv(),
-      limiter: Ratelimit.slidingWindow(5, "15 s"),
-      analytics: true,
-      prefix: "@upstash/ratelimit/auth",
-    })
-  : new MemoryRateLimiter(5, 15);
+function createRateLimiter(
+  name: RateLimitPolicyName,
+  config: RateLimitPolicyConfig
+): RateLimiter {
+  if (!hasUpstashConfig) {
+    return new MemoryRateLimiter(config.limit, config.windowSeconds * 1000);
+  }
 
-// Generell API rate limiter: 100 requests per minutt
-export const apiRateLimiter = hasUpstashConfig
-  ? new Ratelimit({
-      redis: Redis.fromEnv(),
-      limiter: Ratelimit.slidingWindow(100, "1 m"),
-      analytics: true,
-      prefix: "@upstash/ratelimit/api",
-    })
-  : new MemoryRateLimiter(100, 60);
+  return new Ratelimit({
+    redis: Redis.fromEnv(),
+    limiter: Ratelimit.slidingWindow(config.limit, config.window),
+    analytics: true,
+    prefix: `@upstash/ratelimit/${name}`,
+  });
+}
 
-// Strict rate limiter for sensitive operations: 3 forsøk per 60 sekunder
-export const strictRateLimiter = hasUpstashConfig
-  ? new Ratelimit({
-      redis: Redis.fromEnv(),
-      limiter: Ratelimit.slidingWindow(3, "60 s"),
-      analytics: true,
-      prefix: "@upstash/ratelimit/strict",
-    })
-  : new MemoryRateLimiter(3, 60);
+export const rateLimiters = Object.fromEntries(
+  Object.entries(RATE_LIMIT_POLICIES).map(([name, config]) => [
+    name,
+    createRateLimiter(name as RateLimitPolicyName, config),
+  ])
+) as Record<RateLimitPolicyName, RateLimiter>;
 
-/**
- * Hent IP-adresse fra request
- */
-export function getClientIp(request: Request): string {
-  // Sjekk for proxied IP først
-  const forwardedFor = request.headers.get("x-forwarded-for");
+export function getClientIpFromHeaders(headers: Headers): string {
+  const forwardedFor = headers.get("x-forwarded-for");
   if (forwardedFor) {
-    return forwardedFor.split(",")[0].trim();
+    return forwardedFor.split(",")[0].trim().slice(0, 64);
   }
 
-  const realIp = request.headers.get("x-real-ip");
+  const realIp = headers.get("x-real-ip");
   if (realIp) {
-    return realIp;
+    return realIp.trim().slice(0, 64);
   }
 
-  // Fallback til "unknown" hvis vi ikke finner IP
   return "unknown";
 }
 
-/**
- * Rate limit middleware helper
- */
+export function getClientIp(request: Request): string {
+  return getClientIpFromHeaders(request.headers);
+}
+
+export async function createRateLimitIdentifier(
+  scope: string,
+  identifiers: Array<string | null | undefined>
+): Promise<string> {
+  const normalized = identifiers
+    .map((value) => value?.trim().toLowerCase())
+    .filter((value): value is string => Boolean(value))
+    .join("|");
+  const bytes = new TextEncoder().encode(normalized || "anonymous");
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const hash = Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+
+  return `${scope}:${hash}`;
+}
+
 export async function checkRateLimit(
   identifier: string,
-  limiter: typeof authRateLimiter | typeof apiRateLimiter | typeof strictRateLimiter = apiRateLimiter,
+  limiter: RateLimiter = rateLimiters.generalApi,
   options?: { failClosed?: boolean }
-): Promise<{ success: boolean; reset: number; remaining?: number }> {
+): Promise<RateLimitResult> {
   try {
-    const result = await limiter.limit(identifier);
-    return result;
-  } catch (error) {
-    console.error("Rate limit check failed:", error);
-    
-    // SIKKERHET: Fail closed for kritiske endepunkter hvis failClosed er true
+    return await limiter.limit(identifier);
+  } catch {
     if (options?.failClosed) {
-      console.warn("Rate limiting failed - denying request for safety (fail closed)");
       return { success: false, reset: Date.now() + 60000 };
     }
-    
-    // Fail open for mindre kritiske endepunkter (standard oppførsel)
-    console.warn("Rate limiting failed - allowing request (fail open)");
+
     return { success: true, reset: Date.now() + 60000 };
   }
 }
 
+export async function checkRateLimitPolicy(input: {
+  policy: RateLimitPolicyName;
+  scope: string;
+  identifiers: Array<string | null | undefined>;
+  failClosed?: boolean;
+}): Promise<RateLimitResult> {
+  const identifier = await createRateLimitIdentifier(
+    input.scope,
+    input.identifiers
+  );
+
+  return checkRateLimit(identifier, rateLimiters[input.policy], {
+    failClosed: input.failClosed ?? true,
+  });
+}
+
+export function createRateLimitResponse(
+  result: RateLimitResult,
+  message = "For mange forespørsler. Prøv igjen senere."
+): NextResponse {
+  const retryAfter = Math.max(
+    1,
+    Math.ceil((result.reset - Date.now()) / 1000)
+  );
+  const response = createErrorResponse(
+    ErrorCodes.RATE_LIMIT_EXCEEDED,
+    message,
+    429,
+    { retryAfter }
+  );
+  response.headers.set("Retry-After", String(retryAfter));
+  if (result.limit !== undefined) {
+    response.headers.set("X-RateLimit-Limit", String(result.limit));
+  }
+  if (result.remaining !== undefined) {
+    response.headers.set("X-RateLimit-Remaining", String(result.remaining));
+  }
+  response.headers.set("X-RateLimit-Reset", String(result.reset));
+  return response;
+}

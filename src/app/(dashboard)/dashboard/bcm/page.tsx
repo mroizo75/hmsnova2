@@ -20,7 +20,7 @@ export default async function BcmPage() {
 
   const tenant = await prisma.tenant.findUnique({
     where: { id: auth.tenantId },
-    select: { industry: true },
+    select: { industry: true, aiEnabled: true },
   });
   const industry = normalizeIndustryKey(tenant?.industry);
   const isReiseliv = industry ? REISELIV_INDUSTRIES.has(industry) : false;
@@ -40,7 +40,7 @@ export default async function BcmPage() {
           <div>
             <h1 className="text-3xl font-bold">Beredskap</h1>
             <p className="text-muted-foreground">
-              AML § 3-2 og IK-HMS § 5: evakuering og hendelser. ISO 22301: planer, krisehåndbok og øvelser.
+              Risikobasert beredskap etter AML §§ 3-1 og 3-2, internkontrollforskriften § 5 og relevante særkrav.
             </p>
           </div>
           <BcmHelpDialog />
@@ -57,6 +57,7 @@ export default async function BcmPage() {
         operational={operational}
         canEdit={auth.permissions.canCreateIncidents}
         isReiseliv={isReiseliv}
+        aiEnabled={tenant?.aiEnabled === true && Boolean(process.env.OPENAI_API_KEY)}
       />
     </div>
   );

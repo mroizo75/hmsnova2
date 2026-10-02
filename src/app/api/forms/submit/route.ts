@@ -10,6 +10,10 @@ import {
 import { notifyUsersByRoles } from "@/server/actions/notification.actions";
 import { analyzeWellbeingSubmission } from "@/server/actions/wellbeing.actions";
 import { tenantCanUseGlobalFormTemplate } from "@/lib/form-template-industry";
+import {
+  checkRateLimitPolicy,
+  createRateLimitResponse,
+} from "@/lib/rate-limit";
 
 interface SubmittedInspectionFindingInput {
   fieldId?: string;
@@ -28,6 +32,19 @@ export async function POST(request: NextRequest) {
 
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rateLimit = await checkRateLimitPolicy({
+      policy: "employeeSubmission",
+      scope: "form-submit",
+      identifiers: [
+        session.user.id,
+        session.user.tenantId,
+      ],
+      failClosed: true,
+    });
+    if (!rateLimit.success) {
+      return createRateLimitResponse(rateLimit);
     }
 
     const formData = await request.formData();

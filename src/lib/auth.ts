@@ -16,6 +16,10 @@ import {
   getAzureAdJoinBlockReason,
   validateAzureAdLogin,
 } from "@/lib/azure-ad-login";
+import {
+  checkRateLimitPolicy,
+  getClientIpFromHeaders,
+} from "@/lib/rate-limit";
 import { syncAzureAdOrgProfile } from "@/lib/azure-ad-org-sync";
 import bcrypt from "bcryptjs";
 
@@ -76,13 +80,33 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Ugyldig pålogging");
         }
 
         // SIKKERHET: Normaliser e-post til lowercase for konsistent lookup
         const normalizedEmail = credentials.email.toLowerCase().trim();
+        const requestHeaders = new Headers(request.headers as HeadersInit);
+        const clientIp = getClientIpFromHeaders(requestHeaders);
+        const [ipLimit, accountLimit] = await Promise.all([
+          checkRateLimitPolicy({
+            policy: "login",
+            scope: "login-ip",
+            identifiers: [clientIp],
+            failClosed: true,
+          }),
+          checkRateLimitPolicy({
+            policy: "sensitiveLookup",
+            scope: "login-account",
+            identifiers: [normalizedEmail],
+            failClosed: true,
+          }),
+        ]);
+
+        if (!ipLimit.success || !accountLimit.success) {
+          throw new Error("For mange påloggingsforsøk. Prøv igjen senere.");
+        }
 
         const user = await prisma.user.findUnique({
           where: { email: normalizedEmail },

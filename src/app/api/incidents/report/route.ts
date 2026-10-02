@@ -14,6 +14,10 @@ import {
   getNotifyRolesForModule,
 } from "@/lib/module-visibility";
 import { IncidentType } from "@prisma/client";
+import {
+  checkRateLimitPolicy,
+  createRateLimitResponse,
+} from "@/lib/rate-limit";
 
 const allowedEmployeeIncidentTypes: IncidentType[] = [
   "ULYKKE",
@@ -33,6 +37,19 @@ export async function POST(request: NextRequest) {
 
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rateLimit = await checkRateLimitPolicy({
+      policy: "employeeSubmission",
+      scope: "incident-report",
+      identifiers: [
+        session.user.id,
+        session.user.tenantId,
+      ],
+      failClosed: true,
+    });
+    if (!rateLimit.success) {
+      return createRateLimitResponse(rateLimit);
     }
 
     const formData = await request.formData();

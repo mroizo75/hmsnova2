@@ -3,6 +3,11 @@ import { prisma } from "@/lib/db";
 import { createErrorResponse, createSuccessResponse, handleApiError, ErrorCodes } from "@/lib/validations/api";
 import { z } from "zod";
 import { SubcontractorSubmissionType } from "@prisma/client";
+import {
+  checkRateLimitPolicy,
+  createRateLimitResponse,
+  getClientIp,
+} from "@/lib/rate-limit";
 
 const submitSchema = z.object({
   type: z.nativeEnum(SubcontractorSubmissionType),
@@ -20,6 +25,16 @@ export async function POST(
   { params }: { params: Promise<{ portalToken: string }> }
 ) {
   try {
+    const rateLimit = await checkRateLimitPolicy({
+      policy: "publicForm",
+      scope: "subcontractor-submit",
+      identifiers: [getClientIp(req)],
+      failClosed: true,
+    });
+    if (!rateLimit.success) {
+      return createRateLimitResponse(rateLimit);
+    }
+
     const { portalToken } = await params;
     const portal = await prisma.subcontractorPortal.findUnique({
       where: { portalToken },

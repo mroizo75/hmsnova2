@@ -7,6 +7,10 @@ import { AuditLog } from "@/lib/audit-log";
 import { getStorage, generateFileKey } from "@/lib/storage";
 import { createNotification, notifyUsersByRole } from "@/server/actions/notification.actions";
 import { RuhCategory } from "@prisma/client";
+import {
+  checkRateLimitPolicy,
+  createRateLimitResponse,
+} from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,6 +18,19 @@ export async function POST(request: NextRequest) {
 
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rateLimit = await checkRateLimitPolicy({
+      policy: "employeeSubmission",
+      scope: "ruh-report",
+      identifiers: [
+        session.user.id,
+        session.user.tenantId,
+      ],
+      failClosed: true,
+    });
+    if (!rateLimit.success) {
+      return createRateLimitResponse(rateLimit);
     }
 
     const formData = await request.formData();

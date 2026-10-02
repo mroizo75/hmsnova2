@@ -5,6 +5,10 @@ import { prisma } from "@/lib/db";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { generateFileKey } from "@/lib/storage";
 import { validatePdfFile, validateFileSize } from "@/lib/file-validation";
+import {
+  checkRateLimitPolicy,
+  createRateLimitResponse,
+} from "@/lib/rate-limit";
 
 const s3Client = new S3Client({
   region: "auto",
@@ -39,6 +43,16 @@ export async function POST(request: NextRequest) {
         { error: "Ingen tenant tilknyttet" },
         { status: 403 }
       );
+    }
+
+    const rateLimit = await checkRateLimitPolicy({
+      policy: "upload",
+      scope: "chemical-document-upload",
+      identifiers: [session.user.id, tenantId],
+      failClosed: true,
+    });
+    if (!rateLimit.success) {
+      return createRateLimitResponse(rateLimit);
     }
 
     const formData = await request.formData();

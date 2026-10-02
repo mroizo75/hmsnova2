@@ -5,6 +5,14 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
+import { logAiFeedback } from "@/lib/ai-feedback";
+import { requirePermission } from "@/lib/server-authorization";
+import { BCM_FORM_FIELD_LABELS } from "@/features/bcm/lib/bcm-wizard.constants";
+import { generateBcmPlanHtml } from "@/features/bcm/lib/bcm-plan-html";
+import {
+  bcmWizardSubmitSchema,
+  type BcmWizardSubmitInput,
+} from "@/features/bcm/schemas/bcm-wizard.schema";
 
 async function getSessionContext() {
   const session = await getServerSession(authOptions);
@@ -53,113 +61,134 @@ export async function activateBcmTemplate(templateId: string) {
   return { success: true, documentId: doc.id };
 }
 
-export async function submitBcmWizard(data: {
-  criticalProcesses: string[];
-  crisisTeam: Array<{ name: string; role: string; phone: string; email: string; substitute: string }>;
-  riskScenarios: string[];
-  recoveryPlan: string;
-  communicationPlan: string;
-  nextReviewDate: string;
-}) {
-  const ctx = await getSessionContext();
-  if (!ctx) return { success: false, error: "Unauthorized" };
-
-  const formTemplate = await prisma.formTemplate.findFirst({
-    where: { title: "Beredskapsplan — veiviser", isGlobal: true, category: "BCM" },
-    include: { fields: { orderBy: { order: "asc" } } },
-  });
-
-  if (!formTemplate) return { success: false, error: "BCM-veivisermal ikke funnet. Kjør seed først." };
-
-  const submission = await prisma.formSubmission.create({
-    data: {
-      formTemplateId: formTemplate.id,
-      tenantId: ctx.tenantId,
-      submittedById: ctx.userId!,
-      status: "SUBMITTED",
-    },
-  });
-
-  const fieldValues = [
-    { fieldId: formTemplate.fields[0]?.id, value: JSON.stringify(data.criticalProcesses) },
-    { fieldId: formTemplate.fields[1]?.id, value: JSON.stringify(data.crisisTeam) },
-    { fieldId: formTemplate.fields[2]?.id, value: JSON.stringify(data.riskScenarios) },
-    { fieldId: formTemplate.fields[3]?.id, value: data.recoveryPlan },
-    { fieldId: formTemplate.fields[4]?.id, value: data.communicationPlan || "" },
-    { fieldId: formTemplate.fields[5]?.id, value: data.nextReviewDate || "" },
-  ].filter((fv) => fv.fieldId);
-
-  for (const fv of fieldValues) {
-    await prisma.formFieldValue.create({
-      data: {
-        submissionId: submission.id,
-        fieldId: fv.fieldId!,
-        value: fv.value,
-      },
+export async function submitBcmWizard(input: BcmWizardSubmitInput) {
+  try {
+    const ctx = await requirePermission("canCreateIncidents");
+    const data = bcmWizardSubmitSchema.parse(input);
+    const formTemplate = await prisma.formTemplate.findFirst({
+      where: { title: "Beredskapsplan — veiviser", isGlobal: true, category: "BCM" },
+      include: { fields: true },
     });
+
+    if (!formTemplate) {
+      return { success: false as const, error: "BCM-veivisermal ikke funnet. Kjør seed først." };
+    }
+
+    const fieldByLabel = new Map(formTemplate.fields.map((field) => [field.label, field.id]));
+    const serializedValues = new Map<string, string>([
+      [
+        BCM_FORM_FIELD_LABELS.organization,
+        JSON.stringify({
+          organizationScope: data.organizationScope,
+          locationsAndWork: data.locationsAndWork,
+        }),
+      ],
+      [
+        BCM_FORM_FIELD_LABELS.legalScreening,
+        JSON.stringify({
+          worksInBuilding: data.worksInBuilding,
+          hasHazardousChemicals: data.hasHazardousChemicals,
+          handlesDangerousSubstances: data.handlesDangerousSubstances,
+          specialConditions: data.specialConditions,
+          specialistAssessment: data.specialistAssessment,
+        }),
+      ],
+      [
+        BCM_FORM_FIELD_LABELS.riskBasis,
+        JSON.stringify({
+          riskAssessmentReference: data.riskAssessmentReference,
+          employeeParticipation: data.employeeParticipation,
+        }),
+      ],
+      [BCM_FORM_FIELD_LABELS.criticalProcesses, JSON.stringify(data.criticalProcesses)],
+      [BCM_FORM_FIELD_LABELS.crisisTeam, JSON.stringify(data.crisisTeam)],
+      [BCM_FORM_FIELD_LABELS.riskScenarios, JSON.stringify(data.riskScenarios)],
+      [
+        BCM_FORM_FIELD_LABELS.responsePlans,
+        JSON.stringify({
+          alertingPlan: data.alertingPlan,
+          emergencyActions: data.emergencyActions,
+          evacuationPlan: data.evacuationPlan,
+          chemicalEmergencyPlan: data.chemicalEmergencyPlan,
+          dangerousSubstancePlan: data.dangerousSubstancePlan,
+        }),
+      ],
+      [BCM_FORM_FIELD_LABELS.resources, data.firstAidAndResources],
+      [BCM_FORM_FIELD_LABELS.recoveryPlan, data.recoveryPlan],
+      [BCM_FORM_FIELD_LABELS.communicationPlan, data.communicationPlan],
+      [
+        BCM_FORM_FIELD_LABELS.trainingAndExercises,
+        JSON.stringify({ trainingPlan: data.trainingPlan, exercisePlan: data.exercisePlan }),
+      ],
+      [BCM_FORM_FIELD_LABELS.confirmations, JSON.stringify(data.confirmations)],
+      [BCM_FORM_FIELD_LABELS.nextReview, data.nextReviewDate],
+    ]);
+
+    const missingFields = [...serializedValues.keys()].filter((label) => !fieldByLabel.has(label));
+    if (missingFields.length > 0) {
+      return {
+        success: false as const,
+        error: `BCM-veivisermalen må oppdateres. Mangler: ${missingFields.join(", ")}`,
+      };
+    }
+
+    const planTemplate = await prisma.documentTemplate.findFirst({
+      where: { name: "Gjenopprettingsplan", isGlobal: true, category: "BCM" },
+      select: { id: true },
+    });
+    const contentHtml = generateBcmPlanHtml(data);
+    const result = await prisma.$transaction(async (transaction) => {
+      const submission = await transaction.formSubmission.create({
+        data: {
+          formTemplateId: formTemplate.id,
+          tenantId: ctx.tenantId,
+          submittedById: ctx.userId,
+          status: "SUBMITTED",
+        },
+      });
+
+      await transaction.formFieldValue.createMany({
+        data: [...serializedValues.entries()].map(([label, value]) => ({
+          submissionId: submission.id,
+          fieldId: fieldByLabel.get(label)!,
+          value,
+        })),
+      });
+
+      const document = await transaction.document.create({
+        data: {
+          title: `Beredskapsplan — ${new Date().getFullYear()}`,
+          tenantId: ctx.tenantId,
+          status: "DRAFT",
+          kind: "PLAN",
+          slug: `beredskapsplan-${Date.now()}`,
+          fileKey: "",
+          ownerId: ctx.userId,
+          version: "1.0",
+          planSummary: contentHtml,
+          templateId: planTemplate?.id,
+          nextReviewDate: new Date(`${data.nextReviewDate}T12:00:00`),
+        },
+      });
+
+      return { submissionId: submission.id, documentId: document.id };
+    });
+
+    if (data.aiSuggestedText && data.aiSuggestedField) {
+      void logAiFeedback({
+        tenantId: ctx.tenantId,
+        feature: "bcm_guidance",
+        aiSuggestion: data.aiSuggestedText,
+        userFinalValue: data[data.aiSuggestedField],
+      });
+    }
+
+    revalidatePath("/dashboard/bcm");
+    revalidatePath(`/dashboard/bcm/planer/${result.documentId}`);
+    triggerRealtimeEvent(ctx.tenantId, "document-updated");
+
+    return { success: true as const, ...result };
+  } catch (error: any) {
+    return { success: false as const, error: error.message || "Kunne ikke opprette beredskapsplan" };
   }
-
-  const contentHtml = generateBcmPlanHtml(data);
-  const planTemplate = await prisma.documentTemplate.findFirst({
-    where: { name: "Gjenopprettingsplan", isGlobal: true, category: "BCM" },
-  });
-  await prisma.document.create({
-    data: {
-      title: `Beredskapsplan — ${new Date().getFullYear()}`,
-      tenantId: ctx.tenantId,
-      status: "DRAFT",
-      kind: "PLAN",
-      slug: `beredskapsplan-${Date.now()}`,
-      fileKey: "",
-      ownerId: ctx.userId!,
-      version: "1.0",
-      planSummary: contentHtml,
-      templateId: planTemplate?.id ?? undefined,
-    },
-  });
-
-  revalidatePath("/dashboard/bcm");
-  revalidatePath("/dashboard/documents");
-  triggerRealtimeEvent(ctx.tenantId, "document-updated");
-
-  return { success: true, submissionId: submission.id };
-}
-
-function generateBcmPlanHtml(data: {
-  criticalProcesses: string[];
-  crisisTeam: Array<{ name: string; role: string; phone: string; email: string; substitute: string }>;
-  riskScenarios: string[];
-  recoveryPlan: string;
-  communicationPlan: string;
-  nextReviewDate: string;
-}): string {
-  const teamRows = data.crisisTeam
-    .map(
-      (m) =>
-        `<tr><td>${m.name}</td><td>${m.role}</td><td>${m.phone}</td><td>${m.email}</td><td>${m.substitute}</td></tr>`,
-    )
-    .join("");
-
-  return `
-<h1>Beredskapsplan</h1>
-<p><strong>Opprettet:</strong> ${new Date().toLocaleDateString("nb-NO")}</p>
-${data.nextReviewDate ? `<p><strong>Neste gjennomgang:</strong> ${data.nextReviewDate}</p>` : ""}
-
-<h2>1. Kritiske prosesser</h2>
-<ul>${data.criticalProcesses.map((p) => `<li>${p}</li>`).join("")}</ul>
-
-<h2>2. Kriseteam</h2>
-<table>
-<thead><tr><th>Navn</th><th>Rolle</th><th>Mobil</th><th>E-post</th><th>Stedfortreder</th></tr></thead>
-<tbody>${teamRows}</tbody>
-</table>
-
-<h2>3. Risikoscenarier</h2>
-<ul>${data.riskScenarios.map((s) => `<li>${s}</li>`).join("")}</ul>
-
-<h2>4. Gjenopprettingstiltak</h2>
-${data.recoveryPlan.split("\n").map((line) => `<p>${line}</p>`).join("")}
-
-${data.communicationPlan ? `<h2>5. Kommunikasjonsplan</h2>${data.communicationPlan.split("\n").map((line) => `<p>${line}</p>`).join("")}` : ""}
-`.trim();
 }

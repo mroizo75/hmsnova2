@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,8 @@ import {
   Sparkles,
   Save,
   Zap,
+  LocateFixed,
+  RefreshCw,
 } from "lucide-react";
 import { getRiskColor } from "@/features/sja/schemas/sja.schema";
 import {
@@ -43,6 +45,10 @@ import {
 } from "@/features/sja/lib/sja-fse";
 import Image from "next/image";
 import { generateAiSjaSummary } from "@/server/actions/ai-assistant.actions";
+import {
+  formatSjaWeatherConditions,
+  isSjaWeatherData,
+} from "@/features/sja/lib/sja-weather";
 
 interface HazardRow {
   activity: string;
@@ -121,6 +127,7 @@ interface SjaFormProps {
     requiredPpe?: string;
     personnelRequirements?: string;
     safetyConditions?: string;
+    weatherConditions?: string;
     requiresSecondPerson?: boolean;
     requiredCourseKeys?: string[];
   };
@@ -141,11 +148,22 @@ export function SjaForm({
   const t = useTranslations("employeeSjaForm");
   const router = useRouter();
   const { toast } = useToast();
+  const initialProjectLocation =
+    projects.find((project) => project.id === projectId)?.location ?? "";
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState(projectId ?? "__none__");
+  const [workLocation, setWorkLocation] = useState(
+    initialData?.workLocation || initialProjectLocation,
+  );
+  const [weatherConditions, setWeatherConditions] = useState(
+    initialData?.weatherConditions ?? "",
+  );
+  const [isLoadingWeather, setIsLoadingWeather] = useState(false);
+  const [weatherStatus, setWeatherStatus] = useState("");
+  const lastWeatherQueryRef = useRef("");
   const [hazards, setHazards] = useState<HazardRow[]>(
     initialData?.hazards ?? [{ ...emptyHazard }]
   );
@@ -159,6 +177,92 @@ export function SjaForm({
   const [externalParticipants, setExternalParticipants] = useState("");
   const [externalCompetenceConfirmed, setExternalCompetenceConfirmed] = useState(false);
   const [fseChecklist, setFseChecklist] = useState<FseChecklist>({});
+
+  const fetchWeather = useCallback(async (
+    params: URLSearchParams,
+    options: { updateWorkLocation?: boolean } = {},
+  ) => {
+    setIsLoadingWeather(true);
+    setWeatherStatus("");
+    try {
+      const response = await fetch(`/api/weather?${params.toString()}`);
+      const data: unknown = await response.json();
+      if (!response.ok || !isSjaWeatherData(data)) {
+        const message =
+          data && typeof data === "object" && "error" in data && typeof data.error === "string"
+            ? data.error
+            : "Kunne ikke hente vær for stedet";
+        throw new Error(message);
+      }
+
+      setWeatherConditions(formatSjaWeatherConditions(data));
+      setWeatherStatus("Værdata hentet fra MET Norway.");
+      if (options.updateWorkLocation && data.displayName) {
+        lastWeatherQueryRef.current = data.displayName.trim().toLocaleLowerCase("nb-NO");
+        setWorkLocation(data.displayName);
+      }
+    } catch (error) {
+      lastWeatherQueryRef.current = "";
+      setWeatherStatus(error instanceof Error ? error.message : "Kunne ikke hente værdata");
+    } finally {
+      setIsLoadingWeather(false);
+    }
+  }, []);
+
+  const fetchWeatherForPlace = useCallback(async (location: string, force = false) => {
+    const trimmedLocation = location.trim();
+    const queryKey = trimmedLocation.toLocaleLowerCase("nb-NO");
+    if (
+      trimmedLocation.length < 2 ||
+      (!force && queryKey === lastWeatherQueryRef.current)
+    ) {
+      return;
+    }
+    lastWeatherQueryRef.current = queryKey;
+    await fetchWeather(new URLSearchParams({ q: trimmedLocation }));
+  }, [fetchWeather]);
+
+  useEffect(() => {
+    const initialLocation = initialData?.workLocation || initialProjectLocation;
+    if (initialLocation && !initialData?.weatherConditions) {
+      void fetchWeatherForPlace(initialLocation);
+    }
+  }, [
+    fetchWeatherForPlace,
+    initialData?.weatherConditions,
+    initialData?.workLocation,
+    initialProjectLocation,
+  ]);
+
+  function useCurrentPosition() {
+    if (!navigator.geolocation) {
+      setWeatherStatus("Posisjon støttes ikke av denne enheten.");
+      return;
+    }
+
+    setIsLoadingWeather(true);
+    setWeatherStatus("Henter posisjon …");
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        void fetchWeather(
+          new URLSearchParams({
+            lat: coords.latitude.toString(),
+            lon: coords.longitude.toString(),
+          }),
+          { updateWorkLocation: true },
+        );
+      },
+      (error) => {
+        setIsLoadingWeather(false);
+        setWeatherStatus(
+          error.code === error.PERMISSION_DENIED
+            ? "Posisjonstilgang ble ikke gitt. Søk på sted i stedet."
+            : "Kunne ikke hente posisjonen. Søk på sted i stedet.",
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 300_000 },
+    );
+  }
 
   function addHazard() {
     setHazards([...hazards, { ...emptyHazard }]);
@@ -530,7 +634,17 @@ export function SjaForm({
               <Label htmlFor="projectId" className="text-base">
                 {t("fields.project.label")}
               </Label>
-              <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+              <Select
+                value={selectedProjectId}
+                onValueChange={(value) => {
+                  setSelectedProjectId(value);
+                  const projectLocation = projects.find((project) => project.id === value)?.location;
+                  if (projectLocation) {
+                    setWorkLocation(projectLocation);
+                    void fetchWeatherForPlace(projectLocation);
+                  }
+                }}
+              >
                 <SelectTrigger id="projectId" className="h-12 text-base">
                   <SelectValue placeholder={t("fields.project.placeholder")} />
                 </SelectTrigger>
@@ -551,14 +665,32 @@ export function SjaForm({
             <Label htmlFor="workLocation" className="text-base">
               {t("fields.workLocation.label")} *
             </Label>
-            <Input
-              id="workLocation"
-              name="workLocation"
-              placeholder={t("fields.workLocation.placeholder")}
-              required
-              defaultValue={initialData?.workLocation}
-              className="h-12 text-base"
-            />
+            <div className="flex gap-2">
+              <Input
+                id="workLocation"
+                name="workLocation"
+                placeholder={t("fields.workLocation.placeholder")}
+                required
+                value={workLocation}
+                onChange={(event) => setWorkLocation(event.target.value)}
+                onBlur={() => void fetchWeatherForPlace(workLocation)}
+                className="h-12 text-base"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="h-12 shrink-0 bg-transparent"
+                onClick={useCurrentPosition}
+                disabled={isLoadingWeather}
+              >
+                {isLoadingWeather ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <LocateFixed className="h-4 w-4" />
+                )}
+                <span className="hidden sm:inline">Min posisjon</span>
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -566,12 +698,32 @@ export function SjaForm({
               <CloudSun className="h-4 w-4" />
               {t("fields.weatherConditions.label")}
             </Label>
-            <Input
-              id="weatherConditions"
-              name="weatherConditions"
-              placeholder={t("fields.weatherConditions.placeholder")}
-              className="h-12 text-base"
-            />
+            <div className="flex gap-2">
+              <Input
+                id="weatherConditions"
+                name="weatherConditions"
+                placeholder={t("fields.weatherConditions.placeholder")}
+                value={weatherConditions}
+                onChange={(event) => setWeatherConditions(event.target.value)}
+                className="h-12 text-base"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-12 w-12 shrink-0 bg-transparent"
+                onClick={() => void fetchWeatherForPlace(workLocation, true)}
+                disabled={isLoadingWeather || workLocation.trim().length < 2}
+                aria-label="Oppdater værdata"
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoadingWeather ? "animate-spin" : ""}`} />
+              </Button>
+            </div>
+            {weatherStatus ? (
+              <p className="text-xs text-muted-foreground" aria-live="polite">
+                {weatherStatus}
+              </p>
+            ) : null}
           </div>
         </div>
 

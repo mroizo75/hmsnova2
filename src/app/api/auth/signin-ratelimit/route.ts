@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { checkRateLimit, authRateLimiter, getClientIp } from "@/lib/rate-limit";
+import {
+  checkRateLimitPolicy,
+  createRateLimitResponse,
+  getClientIp,
+} from "@/lib/rate-limit";
 
 /**
  * Rate limit endpoint for signin
@@ -9,18 +13,17 @@ import { checkRateLimit, authRateLimiter, getClientIp } from "@/lib/rate-limit";
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIp(request);
-    const identifier = `signin:${ip}`;
-    
-    const { success } = await checkRateLimit(identifier, authRateLimiter, { failClosed: true });
+    const rateLimit = await checkRateLimitPolicy({
+      policy: "login",
+      scope: "signin",
+      identifiers: [ip],
+      failClosed: true,
+    });
 
-    if (!success) {
-      return NextResponse.json(
-        { 
-          error: "For mange påloggingsforsøk. Prøv igjen senere.",
-        },
-        { 
-          status: 429,
-        }
+    if (!rateLimit.success) {
+      return createRateLimitResponse(
+        rateLimit,
+        "For mange påloggingsforsøk. Prøv igjen senere."
       );
     }
 

@@ -2,7 +2,11 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { GuestSubmissionType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { getClientIp, strictRateLimiter } from "@/lib/rate-limit";
+import {
+  checkRateLimitPolicy,
+  createRateLimitResponse,
+  getClientIp,
+} from "@/lib/rate-limit";
 import { generateFileKey, getStorage } from "@/lib/storage";
 import { validateImageFile, validateFileSize } from "@/lib/file-validation";
 import { emitTavleUpdate } from "@/lib/tavle-events";
@@ -79,13 +83,16 @@ export async function POST(
   try {
     const { token } = await params;
 
-    const ip = getClientIp(req);
-    const rateLimit = await strictRateLimiter.limit(`tavle-gjest:${ip}`);
+    const rateLimit = await checkRateLimitPolicy({
+      policy: "publicForm",
+      scope: "hms-tavle-guest",
+      identifiers: [getClientIp(req)],
+      failClosed: true,
+    });
     if (!rateLimit.success) {
-      return createErrorResponse(
-        "RATE_LIMITED",
-        "For mange innsendinger. Vent litt før du sender en ny melding.",
-        429
+      return createRateLimitResponse(
+        rateLimit,
+        "For mange innsendinger. Vent litt før du sender en ny melding."
       );
     }
 

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { createVerificationToken } from "@/lib/email-verification";
-import { checkRateLimit, strictRateLimiter, getClientIp } from "@/lib/rate-limit";
+import {
+  checkRateLimitPolicy,
+  createRateLimitResponse,
+  getClientIp,
+} from "@/lib/rate-limit";
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -13,14 +17,16 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIp(request);
-    const identifier = `resend-verification:${ip}`;
-
-    // Rate limit: 3 forsøk per 60 sekunder (FAIL CLOSED for sikkerhet)
-    const { success } = await checkRateLimit(identifier, strictRateLimiter, { failClosed: true });
-    if (!success) {
-      return NextResponse.json(
-        { error: "For mange forespørsler. Prøv igjen om 1 minutt." },
-        { status: 429 }
+    const rateLimit = await checkRateLimitPolicy({
+      policy: "strict",
+      scope: "resend-verification",
+      identifiers: [ip],
+      failClosed: true,
+    });
+    if (!rateLimit.success) {
+      return createRateLimitResponse(
+        rateLimit,
+        "For mange forespørsler. Prøv igjen om 1 minutt."
       );
     }
 

@@ -25,7 +25,7 @@ export function BcmHelpDialog() {
         <DialogHeader>
           <DialogTitle>Beredskap</DialogTitle>
           <DialogDescription>
-            AML § 3-2, IK-HMS § 5 og ISO 22301 – evakuering, hendelser og kontinuitet
+            Risikobasert beredskap etter AML §§ 3-1 og 3-2, internkontrollforskriften § 5 og relevante særkrav
           </DialogDescription>
         </DialogHeader>
         
@@ -34,9 +34,9 @@ export function BcmHelpDialog() {
             <CardContent className="pt-6">
               <h3 className="font-semibold mb-2">📋 Formål</h3>
               <p className="text-sm text-muted-foreground">
-                BCM sikrer at din bedrift kan fortsette å levere kritiske tjenester og produkter
-                selv ved uforutsette hendelser som brann, strømbrudd, cyberangrep, pandemier eller
-                naturkatastrofer.
+                Planen skal bygge på virksomhetens faktiske risiko og beskrive ansvar, varsling,
+                umiddelbar innsats, opplæring og oppfølging. Kontinuitetsstyring etter ISO 22301 er
+                et frivillig tillegg eller et avtalekrav, ikke et generelt lovkrav.
               </p>
             </CardContent>
           </Card>
@@ -64,8 +64,8 @@ export function BcmHelpDialog() {
                 <div>
                   <h4 className="font-medium text-foreground">3. Risikovurdering (BIA)</h4>
                   <p className="text-muted-foreground">
-                    Gjennomfør en Business Impact Analysis (BIA) for å vurdere konsekvenser av
-                    driftsavbrudd og akseptabel nedetid (RTO - Recovery Time Objective).
+                    Koble planen til den skriftlige HMS-risikovurderingen. BIA og RTO kan i tillegg
+                    brukes når virksomheten ønsker eller er avtalt å følge ISO 22301.
                   </p>
                 </div>
 
@@ -137,7 +137,7 @@ export function BcmHelpDialog() {
                 <div>
                   <strong className="text-foreground">Check:</strong>
                   <span className="text-muted-foreground ml-2">
-                    Evaluer øvelser, test backup og gjennomgå planen årlig
+                    Evaluer øvelser, test tiltak og gjennomgå planen etter risiko og relevante endringer
                   </span>
                 </div>
                 <div>
@@ -159,7 +159,7 @@ export function BcmHelpDialog() {
                 <li>Lag en kontaktliste for kriseteam og nøkkelpersonell</li>
                 <li>Dokumenter backup-løsninger for IT, lokaler og utstyr</li>
                 <li>Planlegg en enkel bordøvelse for å teste planen</li>
-                <li>Oppdater planen minst én gang i året</li>
+                <li>Oppdater planen ved relevante endringer og etter hendelser eller øvelser</li>
               </ol>
             </CardContent>
           </Card>

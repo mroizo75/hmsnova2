@@ -2,6 +2,18 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { canAccessKonsernPortal } from "@/lib/konsern-access";
+import {
+  checkRateLimitPolicy,
+  createRateLimitResponse,
+  getClientIp,
+} from "@/lib/rate-limit";
+
+const MUTATION_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+const RATE_LIMIT_EXEMPT_API_PREFIXES = [
+  "/api/webhooks/",
+  "/api/cron/",
+  "/api/internal/",
+];
 
 const applySecurityHeaders = (response: NextResponse): NextResponse => {
   // Strict-Transport-Security (HSTS)
@@ -59,6 +71,12 @@ const applySecurityHeaders = (response: NextResponse): NextResponse => {
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  const isMutation =
+    MUTATION_METHODS.has(request.method) ||
+    request.headers.has("next-action");
+  const isRateLimitExempt = RATE_LIMIT_EXEMPT_API_PREFIXES.some((prefix) =>
+    pathname.startsWith(prefix)
+  );
 
   // Tving alltid prefiks-frie URL-er (/dashboard, ikke /en/dashboard)
   const localePrefixMatch = pathname.match(/^\/(nb|nn|en)(\/.*)?$/);
@@ -67,6 +85,27 @@ export async function proxy(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = normalizedPath;
     return NextResponse.redirect(url);
+  }
+
+  let token = null;
+
+  if (isMutation && !isRateLimitExempt) {
+    token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+    const rateLimit = await checkRateLimitPolicy({
+      policy: "authenticatedMutation",
+      scope: "mutation",
+      identifiers: token?.sub
+        ? [token.sub, token.tenantId as string | undefined]
+        : [getClientIp(request)],
+      failClosed: true,
+    });
+
+    if (!rateLimit.success) {
+      return applySecurityHeaders(createRateLimitResponse(rateLimit));
+    }
   }
 
   const response = NextResponse.next();
@@ -85,7 +124,7 @@ export async function proxy(request: NextRequest) {
   );
 
   if (isProtectedRoute) {
-    const token = await getToken({
+    token ??= await getToken({
       req: request,
       secret: process.env.NEXTAUTH_SECRET,
     });

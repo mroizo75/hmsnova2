@@ -5,6 +5,10 @@ import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client
 import { createErrorResponse, createSuccessResponse, ErrorCodes } from "@/lib/validations/api";
 import { buildInspectionImageKey } from "@/lib/inspection-image-upload";
 import { validateImageFile, validateFileSize } from "@/lib/file-validation";
+import {
+  checkRateLimitPolicy,
+  createRateLimitResponse,
+} from "@/lib/rate-limit";
 
 const s3Client = new S3Client({
   region: "auto",
@@ -27,6 +31,19 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || !session.user.tenantId) {
       return createErrorResponse(ErrorCodes.UNAUTHORIZED, "Ikke autentisert", 401);
+    }
+
+    const rateLimit = await checkRateLimitPolicy({
+      policy: "upload",
+      scope: "inspection-upload",
+      identifiers: [
+        session.user.id,
+        session.user.tenantId,
+      ],
+      failClosed: true,
+    });
+    if (!rateLimit.success) {
+      return createRateLimitResponse(rateLimit);
     }
 
     const formData = await request.formData();

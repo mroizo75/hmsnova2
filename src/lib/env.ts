@@ -139,6 +139,16 @@ export function validateEnv(): void {
     warnings.push("RESEND_API_KEY ikke satt - e-postvarsler vil ikke fungere");
   }
 
+  if (
+    process.env.NODE_ENV === "production" &&
+    (!process.env.UPSTASH_REDIS_REST_URL ||
+      !process.env.UPSTASH_REDIS_REST_TOKEN)
+  ) {
+    errors.push(
+      "UPSTASH_REDIS_REST_URL og UPSTASH_REDIS_REST_TOKEN er påkrevd i produksjon"
+    );
+  }
+
   const smsProvider = process.env.SMS_PROVIDER ?? "link_mobility";
   if (smsProvider === "link_mobility" && (!process.env.LINK_MOBILITY_USERNAME || !process.env.LINK_MOBILITY_PASSWORD)) {
     warnings.push("Link Mobility-credentials ikke satt (LINK_MOBILITY_USERNAME / LINK_MOBILITY_PASSWORD) - SMS-varsler vil ikke fungere");
@@ -148,7 +158,11 @@ export function validateEnv(): void {
     warnings.push("ProSMS API-nøkkel ikke satt (PROSMS_API_KEY) - SMS-varsler vil ikke fungere");
   }
 
-  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+  if (
+    process.env.NODE_ENV !== "production" &&
+    (!process.env.UPSTASH_REDIS_REST_URL ||
+      !process.env.UPSTASH_REDIS_REST_TOKEN)
+  ) {
     warnings.push("Upstash Redis ikke konfigurert - bruker in-memory rate limiting (ikke anbefalt for produksjon)");
   }
 

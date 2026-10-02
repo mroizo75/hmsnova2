@@ -4,12 +4,29 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { generateSequenceNumber, getFormSequenceType } from "@/lib/sequence";
+import {
+  checkRateLimitPolicy,
+  createRateLimitResponse,
+} from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.tenantId || !session.user.id) {
       return NextResponse.json({ error: "Ikke autorisert" }, { status: 401 });
+    }
+
+    const rateLimit = await checkRateLimitPolicy({
+      policy: "employeeSubmission",
+      scope: "mobile-form-submit",
+      identifiers: [
+        session.user.id,
+        session.user.tenantId,
+      ],
+      failClosed: true,
+    });
+    if (!rateLimit.success) {
+      return createRateLimitResponse(rateLimit);
     }
 
     const body = (await request.json()) as {

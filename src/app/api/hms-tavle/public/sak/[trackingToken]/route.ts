@@ -1,6 +1,10 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
-import { getClientIp, apiRateLimiter } from "@/lib/rate-limit";
+import {
+  checkRateLimitPolicy,
+  createRateLimitResponse,
+  getClientIp,
+} from "@/lib/rate-limit";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -25,9 +29,14 @@ export async function GET(
   try {
     const { trackingToken } = await params;
 
-    const rateLimit = await apiRateLimiter.limit(`tavle-sak:${getClientIp(req)}`);
+    const rateLimit = await checkRateLimitPolicy({
+      policy: "sensitiveLookup",
+      scope: "hms-tavle-case",
+      identifiers: [getClientIp(req)],
+      failClosed: true,
+    });
     if (!rateLimit.success) {
-      return createErrorResponse("RATE_LIMITED", "For mange forespørsler. Prøv igjen snart.", 429);
+      return createRateLimitResponse(rateLimit);
     }
 
     const submission = await prisma.tavleGuestSubmission.findUnique({

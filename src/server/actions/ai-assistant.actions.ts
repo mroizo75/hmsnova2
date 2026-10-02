@@ -7,6 +7,92 @@ import { getActionContext } from "./action-context";
 import { generateAIResponse, generateAIResponseWithVision } from "@/lib/ai";
 import { getStorage } from "@/lib/storage";
 import { getIndustryLabel } from "@/lib/industry-packages";
+import { requirePermission } from "@/lib/server-authorization";
+import {
+  BCM_PROCESS_OPTIONS,
+  BCM_RISK_OPTIONS,
+} from "@/features/bcm/lib/bcm-wizard.constants";
+import {
+  bcmAiGuidanceInputSchema,
+  parseBcmAiJson,
+  type BcmAiGuidanceStep,
+} from "@/features/bcm/lib/bcm-wizard-ai";
+
+export async function generateAiBcmGuidance(input: {
+  step: BcmAiGuidanceStep;
+  organizationScope: string;
+  locationsAndWork?: string;
+  legalModules?: string[];
+  criticalProcesses?: string[];
+  riskScenarios?: string[];
+  specialConditions?: string[];
+  currentText?: string;
+}) {
+  try {
+    const validated = bcmAiGuidanceInputSchema.parse(input);
+    const { tenantId } = await requirePermission("canCreateIncidents");
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { industry: true },
+    });
+    const industry = getIndustryLabel(tenant?.industry || "other");
+
+    const prompt = `Du er en veileder i et norsk HMS-system. Hjelp kunden med ett steg i en beredskapsplan.
+Du lager bare redigerbare forslag. Du skal ikke påstå at fysiske forhold, kontaktdata, myndighetsstatus,
+terskelverdier, medvirkning, opplæring eller øvelser er verifisert.
+
+Rettslig ramme:
+- Arbeidsmiljøloven §§ 3-1 og 3-2 og internkontrollforskriften § 5: risikobasert, dokumentert HMS-arbeid.
+- Forskrift om brannforebygging §§ 11–13: risikotilpassede rutiner for byggverk.
+- Forskrift om utførelse av arbeid § 3-15: kjemikalieberedskap når risikovurderingen utløser kravet.
+- Forskrift om håndtering av farlig stoff § 19: varsling, rømning, redning og slokking.
+- ISO 22301 er en frivillig standard eller et avtalekrav, ikke et generelt lovkrav.
+
+Steg: ${validated.step}
+Bransje: ${industry}
+Virksomhet og omfang: ${validated.organizationScope}
+Lokasjoner og arbeidsformer: ${validated.locationsAndWork || "ikke oppgitt"}
+Aktiverte lovmoduler: ${validated.legalModules.join(", ") || "generell HMS"}
+Valgte kritiske prosesser: ${validated.criticalProcesses.join(", ") || "ingen"}
+Valgte scenarioer: ${validated.riskScenarios.join(", ") || "ingen"}
+Særregulerte forhold: ${validated.specialConditions.join(", ") || "ingen"}
+Eksisterende tekst: ${validated.currentText || "ingen"}
+
+Svar KUN med gyldig JSON:
+{
+  "suggestedProcesses": ["kun eksakte verdier fra listen"],
+  "suggestedRisks": ["kun eksakte verdier fra listen"],
+  "suggestedRoles": ["kun roller, aldri navn eller kontaktdata"],
+  "suggestedText": "kort, konkret forslag til aktuelt steg",
+  "warnings": ["opplysninger kunden må kontrollere"],
+  "rationale": "kort forklaring"
+}
+
+Gyldige prosesser: ${JSON.stringify(BCM_PROCESS_OPTIONS)}
+Gyldige scenarioer: ${JSON.stringify(BCM_RISK_OPTIONS)}
+
+Tilpass innholdet til steget. Bruk norsk. Ikke finn opp faktiske navn, telefonnumre, lokasjoner,
+utstyr, kjemikalier, gjennomførte aktiviteter eller myndighetsavklaringer.`;
+
+    const response = await generateAIResponse(prompt, "gpt-4o-mini", {
+      cacheScope: `tenant:${tenantId}:bcmGuidance:${validated.step}`,
+      rateLimitScope: `tenant:${tenantId}`,
+      budgetScope: `tenant:${tenantId}`,
+      tenantId,
+      bypassCache: true,
+      ragQuery:
+        "beredskapsplan internkontrollforskriften § 5 arbeidsmiljøloven § 3-1 § 3-2 brannforebygging kjemikalier farlig stoff",
+    });
+    const guidance = parseBcmAiJson(response);
+    if (!guidance) {
+      return { success: false as const, error: "AI returnerte ugyldig format" };
+    }
+
+    return { success: true as const, data: guidance };
+  } catch (error: any) {
+    return { success: false as const, error: error.message || "Kunne ikke hente AI-veiledning" };
+  }
+}
 
 const incidentDraftSchema = z.object({
   mode: z.enum(["INCIDENT", "RUH"]).optional().default("INCIDENT"),

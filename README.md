@@ -38,10 +38,14 @@ R2_BUCKET=hmsnova
 # Resend (valgfritt nå)
 RESEND_API_KEY=
 
-# Upstash Redis (valgfritt nå)
+# Upstash Redis (påkrevd i produksjon for rate limiting)
 UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
 ```
+
+Produksjonsoppstart stopper dersom Upstash-variablene mangler. På Vercel skal
+det i tillegg opprettes en WAF-regel for `/api/*` som ytre volumvern. WAF
+erstatter ikke applikasjonens bruker-, tenant- og skjemaspesifikke grenser.
 
 For å generere NEXTAUTH_SECRET:
 ```bash

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { strictRateLimiter, getClientIp } from "@/lib/rate-limit";
+import {
+  checkRateLimitPolicy,
+  createRateLimitResponse,
+  getClientIp,
+} from "@/lib/rate-limit";
 import { sendRingMegSms } from "@/lib/sms";
 
 export const dynamic = "force-dynamic";
@@ -40,13 +44,14 @@ type PrismaWithPackageLead = typeof prisma & {
  */
 export async function POST(request: NextRequest) {
   try {
-    const ip = getClientIp(request);
-    const rateLimitResult = await strictRateLimiter.limit(`komplett-pakke:${ip}`);
+    const rateLimitResult = await checkRateLimitPolicy({
+      policy: "publicForm",
+      scope: "komplett-pakke",
+      identifiers: [getClientIp(request)],
+      failClosed: true,
+    });
     if (!rateLimitResult.success) {
-      return NextResponse.json(
-        { error: "For mange forespørsler. Prøv igjen om litt." },
-        { status: 429 }
-      );
+      return createRateLimitResponse(rateLimitResult);
     }
 
     const body = await request.json();

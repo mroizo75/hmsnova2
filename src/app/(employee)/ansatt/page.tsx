@@ -39,11 +39,12 @@ export default async function AnsattDashboard() {
     },
   });
   const isAgricultureTenant = tenant?.industry?.toLowerCase() === "agriculture";
+  const isDashboardLocked = tenant?.dashboardLocked === true && Boolean(tenant.lockedDashboardConfig);
   const tenantName = session.user.tenantName;
 
   let visibleWidgets: EmployeeWidgetDefinition[];
-  if (tenant?.dashboardLocked && tenant.lockedDashboardConfig) {
-    const lockedConfig = tenant.lockedDashboardConfig as Array<{ id: string }>;
+  if (isDashboardLocked) {
+    const lockedConfig = tenant?.lockedDashboardConfig as Array<{ id: string }>;
     visibleWidgets = getEmployeeWidgetsFromLockedConfig(lockedConfig);
   } else {
     visibleWidgets = [...EMPLOYEE_WIDGET_REGISTRY];
@@ -143,20 +144,26 @@ export default async function AnsattDashboard() {
         </Card>
       )}
 
-      {hrWidgets.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium text-muted-foreground">HR – profil, fravær, onboarding og samtaler</h3>
-          {renderWidgetGrid(hrWidgets)}
-        </div>
-      )}
-
-      {otherWidgets.length > 0 && (
-        <div className="space-y-3">
+      {isDashboardLocked ? (
+        visibleWidgets.length > 0 && renderWidgetGrid(visibleWidgets)
+      ) : (
+        <>
           {hrWidgets.length > 0 && (
-            <h3 className="text-sm font-medium text-muted-foreground">HMS og arbeid</h3>
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium text-muted-foreground">HR – profil, fravær, onboarding og samtaler</h3>
+              {renderWidgetGrid(hrWidgets)}
+            </div>
           )}
-          {renderWidgetGrid(otherWidgets)}
-        </div>
+
+          {otherWidgets.length > 0 && (
+            <div className="space-y-3">
+              {hrWidgets.length > 0 && (
+                <h3 className="text-sm font-medium text-muted-foreground">HMS og arbeid</h3>
+              )}
+              {renderWidgetGrid(otherWidgets)}
+            </div>
+          )}
+        </>
       )}
 
       <Card>

@@ -54,8 +54,16 @@ next-env.d.ts
 /tests/
 !/tests/
 /tests/*
+!/tests/dashboard-nav-config.test.ts
+!/tests/document-module-scope.test.ts
+!/tests/employee-handbook.test.ts
+!/tests/rate-limit.test.ts
+!/tests/rate-limit-coverage.test.ts
+!/tests/time-tripletex.test.ts
 !/tests/sja/
 !/tests/sja/*.test.ts
+!/tests/bcm/
+!/tests/bcm/*.test.ts
 
 # scripts (internal testing and utilities)
 /scripts/

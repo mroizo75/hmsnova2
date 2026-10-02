@@ -4,6 +4,10 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { AiDisabledError } from "@/lib/ai";
 import { transcribeAudioForTenant, TranscriptionError } from "@/lib/ai-transcribe";
+import {
+  checkRateLimitPolicy,
+  createRateLimitResponse,
+} from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -16,6 +20,16 @@ export async function POST(request: Request) {
         { code: "UNAUTHORIZED", message: "Ikke autorisert" },
         { status: 401 }
       );
+    }
+
+    const rateLimit = await checkRateLimitPolicy({
+      policy: "expensiveOperation",
+      scope: "ai-transcription",
+      identifiers: [session.user.id, tenantId],
+      failClosed: true,
+    });
+    if (!rateLimit.success) {
+      return createRateLimitResponse(rateLimit);
     }
 
     const form = await request.formData();

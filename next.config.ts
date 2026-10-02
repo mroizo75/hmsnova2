@@ -18,7 +18,13 @@ const nextConfig: NextConfig = {
     ],
   },
   // jsPDF → fflate bruker dynamisk Worker-sti; Turbopack klarer ikke å bundle det. Last fra node_modules på serveren.
-  serverExternalPackages: ["jspdf", "jspdf-autotable", "fflate"],
+  serverExternalPackages: [
+    "@adobe/pdfservices-node-sdk",
+    "fflate",
+    "jspdf",
+    "jspdf-autotable",
+    "log4js",
+  ],
   async redirects() {
     return [
       { source: "/gratis-hms-system", destination: "/registrer-bedrift", permanent: true },
@@ -36,7 +42,7 @@ const nextConfig: NextConfig = {
     ];
   },
   outputFileTracingExcludes: {
-    '/*': ['**/node_modules/@swc/**'],
+    "/*": ["**/node_modules/@swc/**", "**/storage/**"],
   },
   experimental: {
     staleTimes: {
@@ -46,12 +52,9 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "50mb",
     },
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore — outputFileTracingIgnores finnes i runtime men mangler i TS-typer for denne versjonen
-    outputFileTracingIgnores: ["**/storage/**"],
     workerThreads: false,
   },
-  output: "standalone",
+  output: process.platform === "win32" ? undefined : "standalone",
 };
 
 export default withNextIntl(nextConfig);

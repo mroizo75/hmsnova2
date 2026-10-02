@@ -1,4 +1,9 @@
 import { PrismaClient } from "@prisma/client";
+import {
+  BCM_FORM_FIELD_LABELS,
+  BCM_PROCESS_OPTIONS,
+  BCM_RISK_OPTIONS,
+} from "../src/features/bcm/lib/bcm-wizard.constants";
 
 /**
  * Seed BCM (Business Continuity Management) document templates and form templates.
@@ -59,75 +64,107 @@ export const BCM_WIZARD_FORM_TEMPLATE = {
   allowTenantDeletion: false,
   fields: [
     {
-      fieldType: "SELECT",
-      label: "Kritiske prosesser",
-      description: "Velg prosesser som er avgjørende for virksomhetens drift (flere kan velges)",
+      fieldType: "TEXTAREA",
+      label: BCM_FORM_FIELD_LABELS.organization,
+      description: "Virksomhetens omfang, lokasjoner, arbeidsformer og hvem planen gjelder for.",
       isRequired: true,
       order: 1,
-      options: JSON.stringify([
-        "Produksjon / leveranse",
-        "IT-systemer og infrastruktur",
-        "Kundeservice / support",
-        "Forsyningskjede / logistikk",
-        "Økonomi / fakturering",
-        "Personalforvaltning / lønn",
-        "Kommunikasjon (intern/ekstern)",
-        "Salg og markedsføring",
-        "Lager / varemottak",
-        "Annet (spesifiser i tiltak)",
-      ]),
+      options: null,
     },
     {
       fieldType: "TEXTAREA",
-      label: "Kriseteam — kontaktliste",
-      description: "Legg inn nøkkelpersonell med rolle, telefon og stedfortreder (ett medlem per linje: Navn | Rolle | Mobil | E-post | Stedfortreder)",
+      label: BCM_FORM_FIELD_LABELS.legalScreening,
+      description: "Bekreftede forhold som aktiverer generelle og særskilte beredskapskrav.",
       isRequired: true,
       order: 2,
       options: null,
     },
     {
-      fieldType: "SELECT",
-      label: "Risikoscenarier",
-      description: "Velg trusler som er relevante for virksomheten (flere kan velges)",
+      fieldType: "TEXTAREA",
+      label: BCM_FORM_FIELD_LABELS.riskBasis,
+      description: "Referanse til risikovurdering og dokumentasjon av arbeidstakermedvirkning.",
       isRequired: true,
       order: 3,
-      options: JSON.stringify([
-        "Brann i lokaler",
-        "IT-utfall / systemfeil",
-        "Cyberangrep / datainnbrudd",
-        "Strømbrudd (langvarig)",
-        "Leverandørsvikt",
-        "Pandemi / smitteutbrudd",
-        "Naturkatastrofe (flom, storm)",
-        "Nøkkelperson utilgjengelig",
-        "Vannlekkasje / bygningsskade",
-        "Transport- / logistikkbrudd",
-      ]),
-    },
-    {
-      fieldType: "TEXTAREA",
-      label: "Gjenopprettingstiltak",
-      description:
-        "Beskriv for hvert scenario: hva gjøres, hvem er ansvarlig, maks akseptabel nedetid (RTO), og prioritet.",
-      isRequired: true,
-      order: 4,
       options: null,
     },
     {
+      fieldType: "SELECT",
+      label: BCM_FORM_FIELD_LABELS.criticalProcesses,
+      description: "Prosesser som er avgjørende for virksomhetens drift.",
+      isRequired: true,
+      order: 4,
+      options: JSON.stringify(BCM_PROCESS_OPTIONS),
+    },
+    {
       fieldType: "TEXTAREA",
-      label: "Kommunikasjonsplan",
-      description:
-        "Hvordan informeres ansatte, kunder, leverandører og myndigheter ved en krise? Hvem uttaler seg til media?",
-      isRequired: false,
+      label: BCM_FORM_FIELD_LABELS.crisisTeam,
+      description: "Beredskapsroller med navn, fullmakt, kontaktdata og stedfortreder.",
+      isRequired: true,
       order: 5,
       options: null,
     },
     {
-      fieldType: "DATE",
-      label: "Neste gjennomgang",
-      description: "Dato for neste planlagte gjennomgang av beredskapsplanen",
-      isRequired: false,
+      fieldType: "SELECT",
+      label: BCM_FORM_FIELD_LABELS.riskScenarios,
+      description: "Scenarioer fra virksomhetens risikovurdering.",
+      isRequired: true,
       order: 6,
+      options: JSON.stringify(BCM_RISK_OPTIONS),
+    },
+    {
+      fieldType: "TEXTAREA",
+      label: BCM_FORM_FIELD_LABELS.responsePlans,
+      description: "Varslingsrekkefølge, umiddelbare handlinger og aktiverte særplaner.",
+      isRequired: true,
+      order: 7,
+      options: null,
+    },
+    {
+      fieldType: "TEXTAREA",
+      label: BCM_FORM_FIELD_LABELS.resources,
+      description: "Førstehjelp, utstyr, samband og andre beredskapsressurser.",
+      isRequired: true,
+      order: 8,
+      options: null,
+    },
+    {
+      fieldType: "TEXTAREA",
+      label: BCM_FORM_FIELD_LABELS.recoveryPlan,
+      description: "Prioritert gjenoppretting og kriterier for sikker normalisering.",
+      isRequired: true,
+      order: 9,
+      options: null,
+    },
+    {
+      fieldType: "TEXTAREA",
+      label: BCM_FORM_FIELD_LABELS.communicationPlan,
+      description: "Målgrupper, kanaler, talsperson og reservekommunikasjon.",
+      isRequired: true,
+      order: 10,
+      options: null,
+    },
+    {
+      fieldType: "TEXTAREA",
+      label: BCM_FORM_FIELD_LABELS.trainingAndExercises,
+      description: "Opplæring, øvelser, evaluering og forbedring.",
+      isRequired: true,
+      order: 11,
+      options: null,
+    },
+    {
+      fieldType: "TEXTAREA",
+      label: BCM_FORM_FIELD_LABELS.confirmations,
+      description: "Kundens eksplisitte bekreftelser av faktiske forhold.",
+      isRequired: true,
+      order: 12,
+      options: null,
+    },
+    {
+      fieldType: "DATE",
+      label: BCM_FORM_FIELD_LABELS.nextReview,
+      description: "Neste systematiske gjennomgang. Planen gjennomgås også ved relevante endringer.",
+      isRequired: true,
+      order: 13,
       options: null,
     },
   ],
@@ -155,19 +192,32 @@ export async function seedBcmTemplates(prisma: PrismaClient): Promise<void> {
     where: { title: BCM_WIZARD_FORM_TEMPLATE.title, isGlobal: true, category: "BCM" },
   });
 
-  let formCreated = 0;
-  if (!existingForm) {
-    const { fields, ...formData } = BCM_WIZARD_FORM_TEMPLATE;
-    const form = await prisma.formTemplate.create({
-      data: { ...formData, createdBy: "system" } as any,
+  const { fields, ...formData } = BCM_WIZARD_FORM_TEMPLATE;
+  const form = existingForm
+    ? await prisma.formTemplate.update({
+        where: { id: existingForm.id },
+        data: formData as any,
+      })
+    : await prisma.formTemplate.create({
+        data: { ...formData, createdBy: "system" } as any,
+      });
+
+  for (const field of fields) {
+    const existingField = await prisma.formField.findFirst({
+      where: { formTemplateId: form.id, label: field.label },
     });
-    for (const field of fields) {
+    if (existingField) {
+      await prisma.formField.update({
+        where: { id: existingField.id },
+        data: field as any,
+      });
+    } else {
       await prisma.formField.create({
         data: { ...field, formTemplateId: form.id } as any,
       });
     }
-    formCreated = 1;
   }
+  const formCreated = existingForm ? 0 : 1;
 
   console.log(
     `✅ BCM-maler: ${docCreated} dokumentmaler opprettet (${docSkipped} eksisterte), ${formCreated} skjemamal opprettet`,

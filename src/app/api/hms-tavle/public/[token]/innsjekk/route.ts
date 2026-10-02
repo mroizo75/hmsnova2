@@ -4,6 +4,11 @@ import { createErrorResponse, createSuccessResponse, handleApiError, ErrorCodes 
 import { z } from "zod";
 import { emitTavleUpdate } from "@/lib/tavle-events";
 import { normalizeOrgNr } from "@/features/hms-tavle/lib/oversiktsliste-config";
+import {
+  checkRateLimitPolicy,
+  createRateLimitResponse,
+  getClientIp,
+} from "@/lib/rate-limit";
 
 /**
  * Innsjekk og utsjekk til oversiktslisten – Byggherreforskriften § 15.
@@ -58,6 +63,16 @@ export async function POST(
   { params }: { params: Promise<{ token: string }> }
 ) {
   try {
+    const rateLimit = await checkRateLimitPolicy({
+      policy: "publicForm",
+      scope: "hms-tavle-checkin",
+      identifiers: [getClientIp(req)],
+      failClosed: true,
+    });
+    if (!rateLimit.success) {
+      return createRateLimitResponse(rateLimit);
+    }
+
     const { token } = await params;
     const { tavle, error } = await hentTilgjengeligTavle(token);
     if (error) return error;
@@ -97,6 +112,16 @@ export async function PATCH(
   { params }: { params: Promise<{ token: string }> }
 ) {
   try {
+    const rateLimit = await checkRateLimitPolicy({
+      policy: "publicForm",
+      scope: "hms-tavle-checkout",
+      identifiers: [getClientIp(req)],
+      failClosed: true,
+    });
+    if (!rateLimit.success) {
+      return createRateLimitResponse(rateLimit);
+    }
+
     const { token } = await params;
     const { tavle, error } = await hentTilgjengeligTavle(token);
     if (error) return error;

@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { createNotification, notifyUsersByRole } from "@/server/actions/notification.actions";
+import {
+  checkRateLimitPolicy,
+  createRateLimitResponse,
+  getClientIp,
+} from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +22,16 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const rateLimit = await checkRateLimitPolicy({
+      policy: "publicForm",
+      scope: "whistleblowing-message",
+      identifiers: [getClientIp(req)],
+      failClosed: true,
+    });
+    if (!rateLimit.success) {
+      return createRateLimitResponse(rateLimit);
+    }
+
     const { id } = await params;
     const body = await req.json();
     const { caseNumber, accessCode, message } = messageSchema.parse(body);

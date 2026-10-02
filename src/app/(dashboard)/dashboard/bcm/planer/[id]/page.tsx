@@ -8,6 +8,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { DocumentDetailContent } from "@/features/documents/components/document-detail-content";
 import { fetchDocumentDetail } from "@/server/queries/document.queries";
 import { BcmBackLink } from "@/features/bcm/components/bcm-back-link";
+import { BcmPlanSummary } from "@/features/bcm/components/bcm-plan-summary";
 import { bcmPlanEditHref, isBcmTemplateCategory } from "@/lib/bcm-audit";
 
 export default async function BcmPlanDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -67,6 +68,10 @@ export default async function BcmPlanDetailPage({ params }: { params: Promise<{ 
           </Button>
         </div>
       </div>
+
+      {initialData.document.planSummary && (
+        <BcmPlanSummary html={initialData.document.planSummary} />
+      )}
 
       <DocumentDetailContent
         initialData={initialData}

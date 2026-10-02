@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { createPasswordResetToken } from "@/lib/password-reset";
-import { checkRateLimit, strictRateLimiter, getClientIp } from "@/lib/rate-limit";
+import {
+  checkRateLimitPolicy,
+  createRateLimitResponse,
+  getClientIp,
+} from "@/lib/rate-limit";
 import { forgotPasswordSchema } from "@/lib/validations/auth";
 import { validateRequestBody, createErrorResponse, ErrorCodes } from "@/lib/validations/api";
 import { Resend } from "resend";
@@ -15,15 +19,16 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIp(request);
-    const identifier = `forgot-password:${ip}`;
-
-    // Rate limit: 3 forsøk per 60 sekunder (FAIL CLOSED for sikkerhet)
-    const { success } = await checkRateLimit(identifier, strictRateLimiter, { failClosed: true });
-    if (!success) {
-      return createErrorResponse(
-        ErrorCodes.RATE_LIMIT_EXCEEDED,
-        "For mange forespørsler. Prøv igjen om 1 minutt.",
-        429
+    const rateLimit = await checkRateLimitPolicy({
+      policy: "strict",
+      scope: "forgot-password",
+      identifiers: [ip],
+      failClosed: true,
+    });
+    if (!rateLimit.success) {
+      return createRateLimitResponse(
+        rateLimit,
+        "For mange forespørsler. Prøv igjen om 1 minutt."
       );
     }
 

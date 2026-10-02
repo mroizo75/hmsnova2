@@ -3,7 +3,11 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { nanoid } from "nanoid";
-import { strictRateLimiter, getClientIp } from "@/lib/rate-limit";
+import {
+  checkRateLimitPolicy,
+  createRateLimitResponse,
+  getClientIp,
+} from "@/lib/rate-limit";
 import { notifyUsersByRole } from "@/server/actions/notification.actions";
 import { encryptWhistleblowIdentity } from "@/lib/whistleblowing-crypto";
 import { CONFIDENTIAL_ACCESS_COPY } from "@/lib/whistleblowing-case-access";
@@ -39,18 +43,18 @@ const createWhistleblowSchema = z.object({
 // POST /api/whistleblowing - Submit anonymous report
 export async function POST(req: NextRequest) {
   try {
-    // Rate limiting: 3 varslinger per time per IP
     const ip = getClientIp(req);
-    try {
-      const rateLimitResult = await strictRateLimiter.limit(`whistleblow:${ip}`);
-      if (!rateLimitResult.success) {
-        return NextResponse.json(
-          { error: "For mange forsøk. Vennligst vent før du sender en ny varsling." },
-          { status: 429 }
-        );
-      }
-    } catch (rateLimitError) {
-      console.error("[WHISTLEBLOWING] Rate limit check failed, allowing request:", rateLimitError);
+    const rateLimitResult = await checkRateLimitPolicy({
+      policy: "publicForm",
+      scope: "whistleblowing-submit",
+      identifiers: [ip],
+      failClosed: true,
+    });
+    if (!rateLimitResult.success) {
+      return createRateLimitResponse(
+        rateLimitResult,
+        "For mange forsøk. Vent før du sender en ny varsling."
+      );
     }
 
     const body = await req.json();

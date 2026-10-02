@@ -1,4 +1,9 @@
 import { NextRequest } from "next/server";
+import {
+  checkRateLimitPolicy,
+  createRateLimitResponse,
+  getClientIp,
+} from "@/lib/rate-limit";
 import { prisma } from "@/lib/db";
 import {
   createErrorResponse,
@@ -187,6 +192,19 @@ function buildWelcomeEmail({
 
 export async function POST(req: NextRequest) {
   try {
+    const rateLimit = await checkRateLimitPolicy({
+      policy: "publicSignup",
+      scope: "hms-tavle-registration",
+      identifiers: [getClientIp(req)],
+      failClosed: true,
+    });
+    if (!rateLimit.success) {
+      return createRateLimitResponse(
+        rateLimit,
+        "For mange registreringsforsøk. Prøv igjen senere."
+      );
+    }
+
     const body = await req.json();
     const parsed = registerSchema.safeParse(body);
     if (!parsed.success) {

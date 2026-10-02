@@ -8,6 +8,10 @@ import {
   handleApiError,
   ErrorCodes,
 } from "@/lib/validations/api";
+import {
+  checkRateLimitPolicy,
+  createRateLimitResponse,
+} from "@/lib/rate-limit";
 
 const s3 = new S3Client({
   region: "auto",
@@ -38,6 +42,19 @@ export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.tenantId) {
       return createErrorResponse(ErrorCodes.UNAUTHORIZED, "Ikke autentisert", 401);
+    }
+
+    const rateLimit = await checkRateLimitPolicy({
+      policy: "upload",
+      scope: "hms-tavle-upload",
+      identifiers: [
+        session.user.id,
+        session.user.tenantId,
+      ],
+      failClosed: true,
+    });
+    if (!rateLimit.success) {
+      return createRateLimitResponse(rateLimit);
     }
 
     const formData = await req.formData();

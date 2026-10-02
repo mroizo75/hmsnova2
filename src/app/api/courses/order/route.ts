@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { Resend } from "resend";
+import {
+  checkRateLimitPolicy,
+  createRateLimitResponse,
+  getClientIp,
+} from "@/lib/rate-limit";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -18,6 +23,16 @@ interface CourseOrderData {
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimit = await checkRateLimitPolicy({
+      policy: "publicForm",
+      scope: "course-order",
+      identifiers: [getClientIp(request)],
+      failClosed: true,
+    });
+    if (!rateLimit.success) {
+      return createRateLimitResponse(rateLimit);
+    }
+
     const data: CourseOrderData = await request.json();
 
     // Validering

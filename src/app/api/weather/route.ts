@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 /**
  * GET /api/weather?q=Oslo&days=3
+ * GET /api/weather?lat=59.91&lon=10.75
  *
  * Proxyer:
  *  1. Nominatim (OpenStreetMap) for geocoding — ingen API-nøkkel
@@ -12,6 +13,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const APP_UA = "HMS-Nova-Digital-Tavle/1.0 (post@hmsnova.no)";
 const GEO_URL = "https://nominatim.openstreetmap.org/search";
+const REVERSE_GEO_URL = "https://nominatim.openstreetmap.org/reverse";
 const MET_URL = "https://api.met.no/weatherapi/locationforecast/2.0/compact";
 
 export const revalidate = 1800; // 30 min cache
@@ -70,6 +72,23 @@ async function geocode(q: string): Promise<{ lat: number; lon: number; displayNa
   return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), displayName: data[0].display_name };
 }
 
+async function reverseGeocode(lat: number, lon: number): Promise<string | null> {
+  const url = `${REVERSE_GEO_URL}?lat=${lat}&lon=${lon}&format=json&zoom=16`;
+  const res = await fetch(url, {
+    headers: { "User-Agent": APP_UA, "Accept-Language": "nb" },
+    next: { revalidate: 86400 },
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return typeof data?.display_name === "string" ? data.display_name : null;
+}
+
+function parseCoordinate(value: string | null, min: number, max: number): number | null {
+  if (!value) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= min && parsed <= max ? parsed : null;
+}
+
 function groupByDay(timeseries: any[]): any[] {
   const days: Record<string, { temps: number[]; symbols: string[]; precip: number }> = {};
   for (const ts of timeseries) {
@@ -99,13 +118,30 @@ function groupByDay(timeseries: any[]): any[] {
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q")?.trim();
+  const lat = parseCoordinate(searchParams.get("lat"), -90, 90);
+  const lon = parseCoordinate(searchParams.get("lon"), -180, 180);
+  const hasCoordinateParams = searchParams.has("lat") || searchParams.has("lon");
 
-  if (!q) {
-    return NextResponse.json({ error: "Mangler sted (?q=...)" }, { status: 400 });
+  if ((!q && !hasCoordinateParams) || (hasCoordinateParams && (lat === null || lon === null))) {
+    return NextResponse.json(
+      { error: "Oppgi et sted (?q=...) eller gyldig posisjon (?lat=...&lon=...)" },
+      { status: 400 },
+    );
+  }
+  if (q && q.length > 200) {
+    return NextResponse.json({ error: "Stedsnavnet er for langt" }, { status: 400 });
   }
 
   try {
-    const geo = await geocode(q);
+    const geo = q
+      ? await geocode(q)
+      : {
+          lat: lat as number,
+          lon: lon as number,
+          displayName:
+            (await reverseGeocode(lat as number, lon as number)) ??
+            `${(lat as number).toFixed(5)}, ${(lon as number).toFixed(5)}`,
+        };
     if (!geo) {
       return NextResponse.json({ error: `Fant ikke stedet "${q}"` }, { status: 404 });
     }
@@ -128,7 +164,7 @@ export async function GET(req: NextRequest) {
     const forecast = groupByDay(timeseries);
 
     return NextResponse.json({
-      location: q,
+      location: q ?? geo.displayName,
       displayName: geo.displayName,
       current: {
         temp: currentTemp,

@@ -6,12 +6,13 @@ import { fetchAnnualHmsPlanReport } from "@/server/queries/annual-hms-plan.queri
 import { AnnualHmsPlanReportContent } from "@/features/annual-hms-plan/components/annual-hms-plan-report-content";
 
 interface AnnualHmsPlanReportPageProps {
-  searchParams: {
+  searchParams: Promise<{
     year?: string;
-  };
+  }>;
 }
 
 export default async function AnnualHmsPlanReportPage({ searchParams }: AnnualHmsPlanReportPageProps) {
+  const { year: requestedYear } = await searchParams;
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.tenantId || !session.user.role) {
@@ -25,7 +26,7 @@ export default async function AnnualHmsPlanReportPage({ searchParams }: AnnualHm
   }
 
   const now = new Date();
-  const yearParam = Number.parseInt(searchParams.year ?? "", 10);
+  const yearParam = Number.parseInt(requestedYear ?? "", 10);
   const year = Number.isFinite(yearParam) && yearParam >= 2020 && yearParam <= now.getFullYear() + 1 ? yearParam : now.getFullYear();
 
   const initialData = await fetchAnnualHmsPlanReport(year);

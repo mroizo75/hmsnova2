@@ -22,6 +22,7 @@ interface BcmContentProps {
   operational: OperationalData;
   canEdit: boolean;
   isReiseliv: boolean;
+  aiEnabled: boolean;
 }
 
 function formatDate(date?: string | null) {
@@ -33,7 +34,7 @@ function formatDate(date?: string | null) {
   });
 }
 
-export function BcmContent({ initialData, operational, canEdit, isReiseliv }: BcmContentProps) {
+export function BcmContent({ initialData, operational, canEdit, isReiseliv, aiEnabled }: BcmContentProps) {
   const [showWizard, setShowWizard] = useState(false);
 
   const { data } = useQuery({
@@ -51,7 +52,7 @@ export function BcmContent({ initialData, operational, canEdit, isReiseliv }: Bc
   );
 
   if (showWizard) {
-    return <BcmWizard onComplete={() => setShowWizard(false)} />;
+    return <BcmWizard onComplete={() => setShowWizard(false)} aiEnabled={aiEnabled} />;
   }
 
   const showEmptyState = bcmDocuments.length === 0 && !hasWizardPlan;
@@ -66,8 +67,8 @@ export function BcmContent({ initialData, operational, canEdit, isReiseliv }: Bc
             </div>
             <h2 className="text-xl font-semibold mb-2">Kom i gang med beredskap</h2>
             <p className="text-muted-foreground max-w-md mb-6">
-              En beredskapsplan hjelper virksomheten å håndtere kriser. Bruk veiviseren for å lage din første plan
-              på noen minutter — ingen forhåndskunnskap nødvendig.
+              Veiviseren kobler planen til virksomhetens risiko, aktiverer relevante lovkrav og guider deg gjennom
+              ansvar, varsling, innsats, øvelser og kontroll.
             </p>
             <Button size="lg" onClick={() => setShowWizard(true)}>
               <Plus className="mr-2 h-5 w-5" /> Lag din beredskapsplan
