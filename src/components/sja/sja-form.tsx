@@ -49,6 +49,8 @@ import {
   formatSjaWeatherConditions,
   isSjaWeatherData,
 } from "@/features/sja/lib/sja-weather";
+import type { SjaAiDraft } from "@/features/sja/lib/sja-ai";
+import { useTenantNavContext } from "@/hooks/use-tenant-nav-context";
 
 interface HazardRow {
   activity: string;
@@ -118,6 +120,7 @@ interface SjaFormProps {
     description: string;
     workLocation: string;
     participants: string;
+    additionalConditions?: string;
     hazards: HazardRow[];
     templateId?: string;
     templateName?: string;
@@ -148,12 +151,34 @@ export function SjaForm({
   const t = useTranslations("employeeSjaForm");
   const router = useRouter();
   const { toast } = useToast();
+  const { aiEnabled } = useTenantNavContext();
   const initialProjectLocation =
     projects.find((project) => project.id === projectId)?.location ?? "";
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
+  const [workBriefing, setWorkBriefing] = useState("");
+  const [aiDraftUsed, setAiDraftUsed] = useState(false);
+  const [aiDraftWarnings, setAiDraftWarnings] = useState<string[]>([]);
+  const [aiVerification, setAiVerification] = useState({
+    actualWorksiteConfirmed: false,
+    workerParticipationConfirmed: false,
+    barriersConfirmed: false,
+    stopCriteriaConfirmed: false,
+    specialRequirementsConfirmed: false,
+  });
+  const [formValues, setFormValues] = useState({
+    title: initialData?.title ?? "",
+    description: initialData?.description ?? "",
+    additionalConditions: initialData?.additionalConditions ?? "",
+    workMethod: initialData?.workMethod ?? "",
+    requiredEquipment: initialData?.requiredEquipment ?? "",
+    requiredPpe: initialData?.requiredPpe ?? "",
+    personnelRequirements: initialData?.personnelRequirements ?? "",
+    safetyConditions: initialData?.safetyConditions ?? "",
+  });
   const [selectedProjectId, setSelectedProjectId] = useState(projectId ?? "__none__");
   const [workLocation, setWorkLocation] = useState(
     initialData?.workLocation || initialProjectLocation,
@@ -296,8 +321,107 @@ export function SjaForm({
     setImagePreviews(newPreviews);
   }
 
+  async function handleGenerateSjaDraft() {
+    if (workBriefing.trim().length < 10) {
+      toast({
+        title: "Beskriv arbeidet først",
+        description: "Fortell kort hva som skal gjøres, hvor og med hvilket utstyr.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeneratingDraft(true);
+    try {
+      const requestData = new FormData();
+      requestData.append("briefing", workBriefing);
+      requestData.append("workLocation", workLocation);
+      requestData.append("weatherConditions", weatherConditions);
+      requestData.append("templateHint", initialData?.templateName ?? "");
+      requestData.append("electricalWorkType", electricalWorkType);
+      imageFiles.slice(0, 3).forEach((file) => requestData.append("images", file));
+
+      const response = await fetch("/api/ai/sja-draft", {
+        method: "POST",
+        body: requestData,
+      });
+      const payload = (await response.json()) as {
+        data?: SjaAiDraft;
+        message?: string;
+      };
+      if (!response.ok || !payload.data) {
+        throw new Error(payload.message || "Kunne ikke generere SJA-utkast");
+      }
+
+      const draft = payload.data;
+      const requirementText =
+        draft.specialRequirementReview.length > 0
+          ? `\n\nSærkrav som må vurderes av ansvarlig:\n${draft.specialRequirementReview.map((item) => `- ${item}`).join("\n")}`
+          : "";
+      setFormValues({
+        title: draft.title,
+        description: draft.description,
+        additionalConditions: [
+          draft.additionalConditions,
+          `Stans-kriterier:\n${draft.stopCriteria}`,
+          requirementText.trim(),
+        ]
+          .filter(Boolean)
+          .join("\n\n"),
+        workMethod: draft.workMethod,
+        requiredEquipment: draft.requiredEquipment,
+        requiredPpe: draft.requiredPpe,
+        personnelRequirements: draft.personnelRequirements,
+        safetyConditions: draft.safetyConditions,
+      });
+      setHazards(
+        draft.hazards.map((hazard) => ({
+          ...hazard,
+          responsibleName: "",
+          linkedRiskId: null,
+        })),
+      );
+      setElectricalWorkType(draft.electricalWorkType);
+      setFseChecklist({});
+      setAiDraftWarnings([
+        ...draft.warnings,
+        ...(draft.requiresWrittenInstruction
+          ? ["Arbeidet kan kreve en egen skriftlig arbeidsinstruks. Dette må vurderes før oppstart."]
+          : []),
+      ]);
+      setAiDraftUsed(true);
+      setAiVerification({
+        actualWorksiteConfirmed: false,
+        workerParticipationConfirmed: false,
+        barriersConfirmed: false,
+        stopCriteriaConfirmed: false,
+        specialRequirementsConfirmed: false,
+      });
+      toast({
+        title: "SJA-utkast klart",
+        description: "Kontroller alle felt sammen med de som skal utføre arbeidet.",
+      });
+    } catch (error) {
+      toast({
+        title: "Kunne ikke generere SJA-utkast",
+        description: error instanceof Error ? error.message : "Ukjent feil",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingDraft(false);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (aiDraftUsed && Object.values(aiVerification).some((confirmed) => !confirmed)) {
+      toast({
+        title: "Kontroller AI-utkastet",
+        description: "Alle kontrollpunktene må bekreftes før innsending.",
+        variant: "destructive",
+      });
+      return;
+    }
     setIsSubmitting(true);
 
     const formData = new FormData(e.currentTarget);
@@ -385,6 +509,8 @@ export function SjaForm({
                 competenceConfirmed: externalCompetenceConfirmed,
               })),
             ],
+      aiGenerated: aiDraftUsed,
+      aiVerification: aiDraftUsed ? aiVerification : undefined,
       hazards: validHazards.map((h, i) => ({
         ...h,
         sortOrder: i,
@@ -477,7 +603,7 @@ export function SjaForm({
       const result = await generateAiSjaSummary({
         title,
         workLocation,
-        participants,
+        participantCount: Math.max(1, parseExternalParticipantNames(participants).length),
         hazards: validHazards.map((item) => ({
           activity: item.activity,
           hazard: item.hazard,
@@ -594,6 +720,111 @@ export function SjaForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {aiEnabled && (
+        <Card className="border-2 border-primary/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Lag SJA-utkast med AI
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Ta bilder og fortell med tekst eller tale hva som skal gjøres. AI fyller ut et forslag
+              som dere må kontrollere sammen på arbeidsstedet.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="workBriefing">Hva skal gjøres?</Label>
+              <VoiceTextarea
+                id="workBriefing"
+                value={workBriefing}
+                onChange={(event) => setWorkBriefing(event.target.value)}
+                placeholder="Eksempel: Vi skal skifte en ventil i teknisk rom. Røret må trykkavlastes, området er trangt og andre fag arbeider i nærheten."
+                rows={5}
+              />
+            </div>
+
+            <div className="space-y-3">
+              <Input
+                id="ai-sja-images"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                capture="environment"
+                multiple
+                onChange={handleImageChange}
+                disabled={imageFiles.length >= 5}
+                className="sr-only"
+              />
+              <Label
+                htmlFor="ai-sja-images"
+                className={`flex min-h-20 cursor-pointer items-center justify-center gap-3 rounded-lg border-2 border-dashed p-4 hover:bg-muted/50 ${
+                  imageFiles.length >= 5 ? "pointer-events-none opacity-50" : ""
+                }`}
+              >
+                <Camera className="h-5 w-5" />
+                <span className="text-sm">
+                  {imageFiles.length > 0
+                    ? `${imageFiles.length} bilde(r) valgt. AI analyserer de tre første.`
+                    : "Ta bilder eller velg fra enheten"}
+                </span>
+              </Label>
+              {imagePreviews.length > 0 && (
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                  {imagePreviews.map((preview, index) => (
+                    <div key={preview} className="relative aspect-square overflow-hidden rounded-lg border">
+                      <Image
+                        src={preview}
+                        alt={`Forhåndsvisning ${index + 1}`}
+                        fill
+                        className="object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="absolute right-1 top-1 rounded-full bg-destructive p-1 text-destructive-foreground"
+                        aria-label={`Fjern bilde ${index + 1}`}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <Button
+              type="button"
+              className="w-full sm:w-auto"
+              onClick={handleGenerateSjaDraft}
+              disabled={isGeneratingDraft}
+            >
+              {isGeneratingDraft ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="mr-2 h-4 w-4" />
+              )}
+              {isGeneratingDraft ? "Analyserer arbeid og bilder..." : "Lag komplett SJA-utkast"}
+            </Button>
+
+            <p className="text-xs text-muted-foreground">
+              Bilder brukes midlertidig til analysen. AI kan ikke kontrollere arbeidssted, utstyr,
+              opplæring eller at tiltak er gjennomført.
+            </p>
+
+            {aiDraftWarnings.length > 0 && (
+              <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-950">
+                <p className="mb-2 font-medium">Dette må kontrolleres:</p>
+                <ul className="list-disc space-y-1 pl-5 text-sm">
+                  {aiDraftWarnings.map((warning) => (
+                    <li key={warning}>{warning}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* === SEKSJON 1: Generell informasjon === */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold border-b pb-2">{t("sections.general")}</h3>
@@ -608,7 +839,10 @@ export function SjaForm({
               name="title"
               placeholder={t("fields.title.placeholder")}
               required
-              defaultValue={initialData?.title}
+              value={formValues.title}
+              onChange={(event) =>
+                setFormValues((current) => ({ ...current, title: event.target.value }))
+              }
               className="h-12 text-base"
             />
           </div>
@@ -735,7 +969,10 @@ export function SjaForm({
             id="description"
             name="description"
             placeholder={t("fields.description.placeholder")}
-            defaultValue={initialData?.description}
+            value={formValues.description}
+            onChange={(event) =>
+              setFormValues((current) => ({ ...current, description: event.target.value }))
+            }
             rows={3}
             className="text-base resize-none"
           />
@@ -776,7 +1013,10 @@ export function SjaForm({
                   id="workMethod"
                   name="workMethod"
                   required
-                  defaultValue={initialData?.workMethod}
+                  value={formValues.workMethod}
+                  onChange={(event) =>
+                    setFormValues((current) => ({ ...current, workMethod: event.target.value }))
+                  }
                   rows={3}
                 />
               </div>
@@ -786,7 +1026,10 @@ export function SjaForm({
                   id="requiredEquipment"
                   name="requiredEquipment"
                   required
-                  defaultValue={initialData?.requiredEquipment}
+                  value={formValues.requiredEquipment}
+                  onChange={(event) =>
+                    setFormValues((current) => ({ ...current, requiredEquipment: event.target.value }))
+                  }
                   rows={3}
                 />
               </div>
@@ -796,7 +1039,10 @@ export function SjaForm({
                   id="requiredPpe"
                   name="requiredPpe"
                   required
-                  defaultValue={initialData?.requiredPpe}
+                  value={formValues.requiredPpe}
+                  onChange={(event) =>
+                    setFormValues((current) => ({ ...current, requiredPpe: event.target.value }))
+                  }
                   rows={3}
                 />
               </div>
@@ -806,7 +1052,10 @@ export function SjaForm({
                   id="personnelRequirements"
                   name="personnelRequirements"
                   required
-                  defaultValue={initialData?.personnelRequirements}
+                  value={formValues.personnelRequirements}
+                  onChange={(event) =>
+                    setFormValues((current) => ({ ...current, personnelRequirements: event.target.value }))
+                  }
                   rows={3}
                 />
               </div>
@@ -815,7 +1064,10 @@ export function SjaForm({
                 <VoiceTextarea
                   id="safetyConditions"
                   name="safetyConditions"
-                  defaultValue={initialData?.safetyConditions}
+                  value={formValues.safetyConditions}
+                  onChange={(event) =>
+                    setFormValues((current) => ({ ...current, safetyConditions: event.target.value }))
+                  }
                   rows={3}
                 />
               </div>
@@ -928,6 +1180,10 @@ export function SjaForm({
               id="additionalConditions"
               name="additionalConditions"
               placeholder={t("fields.additionalConditions.placeholder")}
+              value={formValues.additionalConditions}
+              onChange={(event) =>
+                setFormValues((current) => ({ ...current, additionalConditions: event.target.value }))
+              }
               rows={3}
               className="text-base resize-none bg-white"
             />
@@ -1233,10 +1489,41 @@ export function SjaForm({
             <li>{t("confirm.points.p3")}</li>
             <li>{t("confirm.points.p4")}</li>
           </ul>
+          {aiDraftUsed && (
+            <div className="space-y-2 border-t border-green-300 pt-4">
+              <p className="font-medium text-green-950">
+                AI-utkastet må kontrolleres før innsending
+              </p>
+              {([
+                ["actualWorksiteConfirmed", "Arbeidssted, vær, utstyr og samtidige aktiviteter er kontrollert fysisk."],
+                ["workerParticipationConfirmed", "De som skal utføre arbeidet har medvirket og gitt innspill."],
+                ["barriersConfirmed", "Eksisterende barrierer og foreslåtte tiltak er kontrollert og gjennomførbare."],
+                ["stopCriteriaConfirmed", "Stans-kriteriene er gjennomgått og forstått av deltakerne."],
+                ["specialRequirementsConfirmed", "Særkrav, arbeidsinstruks, SHA/FSE og kompetansebehov er vurdert."],
+              ] as const).map(([key, label]) => (
+                <label key={key} className="flex items-start gap-3 rounded-lg border border-green-300 bg-white p-3">
+                  <Checkbox
+                    checked={aiVerification[key]}
+                    onCheckedChange={(checked) =>
+                      setAiVerification((current) => ({
+                        ...current,
+                        [key]: checked === true,
+                      }))
+                    }
+                  />
+                  <span className="text-sm text-green-950">{label}</span>
+                </label>
+              ))}
+              <p className="text-xs text-green-800">
+                SJA er en konkret risikovurdering og erstatter ikke SHA-plan, påkrevd arbeidsinstruks,
+                opplæring eller kontroll av utstyr.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      <Card>
+      {aiEnabled && <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Sparkles className="h-4 w-4" />
@@ -1254,7 +1541,7 @@ export function SjaForm({
             rows={4}
           />
         </CardContent>
-      </Card>
+      </Card>}
 
       <div className="flex flex-col gap-3 pt-2">
         <Button

@@ -287,6 +287,14 @@ export async function createSjaAnalysis(input: any) {
       };
     }
     const validated = parseResult.data;
+    const storedAdditionalConditions = validated.aiGenerated
+      ? [
+          "AI-generert utkast: Kontrollert og bearbeidet av ansvarlig bruker før innsending. AI har ikke verifisert arbeidssted, barrierer, kompetanse eller gjennomførte tiltak.",
+          validated.additionalConditions,
+        ]
+          .filter(Boolean)
+          .join("\n\n")
+      : validated.additionalConditions;
 
     const templateCourseKeys = parseStringArray(sourceTemplate?.requiredCourseKeys);
     const participantRecords = await buildParticipantRecords(
@@ -325,7 +333,7 @@ export async function createSjaAnalysis(input: any) {
         plannedDate: validated.plannedDate,
         responsibleName: validated.responsibleName,
         participants: validated.participants,
-        additionalConditions: validated.additionalConditions ?? null,
+        additionalConditions: storedAdditionalConditions ?? null,
         weatherConditions: validated.weatherConditions ?? null,
         createdById: user.id,
         createdByName: user.name || user.email,
@@ -367,7 +375,10 @@ export async function createSjaAnalysis(input: any) {
       include: { hazards: true, participantRecords: true },
     });
 
-    AuditLog.log(tenantId, user.id, "SJA_CREATED", "SjaAnalysis", analysis.id, { title: analysis.title }).catch(() => {});
+    AuditLog.log(tenantId, user.id, "SJA_CREATED", "SjaAnalysis", analysis.id, {
+      title: analysis.title,
+      aiGenerated: validated.aiGenerated,
+    }).catch(() => {});
 
     revalidatePath("/dashboard/sja");
     if (validated.projectId) {

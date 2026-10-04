@@ -46,6 +46,7 @@ test("representative offentlige og autentiserte skjemaer er beskyttet", () => {
     ],
     ["src/app/api/forms/submit/route.ts", 'policy: "employeeSubmission"'],
     ["src/app/api/ai/transcribe/route.ts", 'policy: "expensiveOperation"'],
+    ["src/app/api/ai/sja-draft/route.ts", 'policy: "expensiveOperation"'],
     ["src/app/api/sja/upload/route.ts", 'policy: "upload"'],
   ];
 

@@ -117,7 +117,7 @@ const incidentQualitySchema = z.object({
 const sjaSummarySchema = z.object({
   title: z.string().min(2),
   workLocation: z.string().min(2),
-  participants: z.string().min(2),
+  participantCount: z.number().int().min(1).max(100),
   hazards: z
     .array(
       z.object({
@@ -450,7 +450,7 @@ Gi maks 4 konkrete varsler, kun hvis viktig informasjon mangler/er uklar.`;
 export async function generateAiSjaSummary(input: {
   title: string;
   workLocation: string;
-  participants: string;
+  participantCount: number;
   hazards: Array<{ activity: string; hazard: string; consequence?: string; measures: string }>;
 }) {
   try {
@@ -462,7 +462,7 @@ Svar KUN med gyldig JSON:
 
 Arbeid: ${validated.title}
 Sted: ${validated.workLocation}
-Deltakere: ${validated.participants}
+Antall deltakere: ${validated.participantCount}
 Farer: ${JSON.stringify(validated.hazards)}`;
 
     const response = await generateAIResponse(prompt, "gpt-4o-mini", {

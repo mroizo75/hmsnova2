@@ -26,6 +26,13 @@ export const sjaParticipantSchema = z.object({
 });
 
 const fseChecklistSchema = z.record(z.string(), z.boolean()).default({});
+const aiVerificationSchema = z.object({
+  actualWorksiteConfirmed: z.boolean(),
+  workerParticipationConfirmed: z.boolean(),
+  barriersConfirmed: z.boolean(),
+  stopCriteriaConfirmed: z.boolean(),
+  specialRequirementsConfirmed: z.boolean(),
+});
 
 export const createSjaSchema = z.object({
   tenantId: z.string().cuid(),
@@ -50,8 +57,30 @@ export const createSjaSchema = z.object({
   requiresSecondPerson: z.boolean().default(false),
   secondPersonException: z.string().optional(),
   participantRecords: z.array(sjaParticipantSchema).default([]),
+  aiGenerated: z.boolean().default(false),
+  aiVerification: aiVerificationSchema.optional(),
   hazards: z.array(sjaHazardSchema).min(1, "Minst én fare må identifiseres"),
 }).superRefine((data, ctx) => {
+  if (data.aiGenerated) {
+    const verification = data.aiVerification;
+    const requiredConfirmations = [
+      ["actualWorksiteConfirmed", verification?.actualWorksiteConfirmed],
+      ["workerParticipationConfirmed", verification?.workerParticipationConfirmed],
+      ["barriersConfirmed", verification?.barriersConfirmed],
+      ["stopCriteriaConfirmed", verification?.stopCriteriaConfirmed],
+      ["specialRequirementsConfirmed", verification?.specialRequirementsConfirmed],
+    ] as const;
+    for (const [key, confirmed] of requiredConfirmations) {
+      if (confirmed !== true) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["aiVerification", key],
+          message: "AI-utkastet må kontrolleres av ansvarlig bruker før innsending",
+        });
+      }
+    }
+  }
+
   if (data.electricalWorkType !== "NOT_APPLICABLE" && data.participantRecords.length === 0) {
     ctx.addIssue({
       code: "custom",
