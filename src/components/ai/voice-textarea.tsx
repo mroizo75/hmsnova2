@@ -18,10 +18,12 @@ function appendTranscript(current: string, incoming: string): string {
   return `${trimmedCurrent}${needsSpace ? " " : " "}${trimmedIncoming}`;
 }
 
-type VoiceTextareaProps = React.ComponentProps<"textarea">;
+interface VoiceTextareaProps extends React.ComponentProps<"textarea"> {
+  microphoneEnabled?: boolean;
+}
 
 export const VoiceTextarea = React.forwardRef<HTMLTextAreaElement, VoiceTextareaProps>(
-  ({ className, onChange, value, defaultValue, disabled, ...props }, ref) => {
+  ({ className, onChange, value, defaultValue, disabled, microphoneEnabled = true, ...props }, ref) => {
     const innerRef = React.useRef<HTMLTextAreaElement | null>(null);
     const { aiEnabled } = useTenantNavContext();
     const { toast } = useToast();
@@ -74,7 +76,7 @@ export const VoiceTextarea = React.forwardRef<HTMLTextAreaElement, VoiceTextarea
     }, []);
 
     const startRecording = React.useCallback(async () => {
-      if (!aiEnabled || disabled || transcribing) return;
+      if (!aiEnabled || !microphoneEnabled || disabled || transcribing) return;
       if (typeof MediaRecorder === "undefined" || !navigator.mediaDevices?.getUserMedia) {
         toast({
           variant: "destructive",
@@ -133,14 +135,20 @@ export const VoiceTextarea = React.forwardRef<HTMLTextAreaElement, VoiceTextarea
         mediaRecorderRef.current = recorder;
         recorder.start();
         setRecording(true);
-      } catch {
+      } catch (error) {
+        const errorName = error instanceof DOMException ? error.name : "";
         toast({
           variant: "destructive",
-          title: "Ingen mikrofontilgang",
-          description: "Gi tillatelse til mikrofon for å diktere tekst.",
+          title: errorName === "NotFoundError" ? "Ingen mikrofon funnet" : "Ingen mikrofontilgang",
+          description:
+            errorName === "NotAllowedError"
+              ? "Tillat mikrofon i nettleserens innstillinger og prøv igjen."
+              : errorName === "NotFoundError"
+                ? "Koble til eller aktiver en mikrofon og prøv igjen."
+                : "Gi tillatelse til mikrofon for å diktere tekst.",
         });
       }
-    }, [aiEnabled, applyText, disabled, toast, transcribing]);
+    }, [aiEnabled, applyText, disabled, microphoneEnabled, toast, transcribing]);
 
     React.useEffect(() => {
       return () => {
@@ -155,14 +163,14 @@ export const VoiceTextarea = React.forwardRef<HTMLTextAreaElement, VoiceTextarea
       <div className="relative">
         <Textarea
           ref={setRefs}
-          className={cn(aiEnabled ? "pr-11" : undefined, className)}
+          className={cn(aiEnabled && microphoneEnabled ? "pr-11" : undefined, className)}
           onChange={onChange}
           value={value}
           defaultValue={defaultValue}
           disabled={disabled}
           {...props}
         />
-        {aiEnabled ? (
+        {aiEnabled && microphoneEnabled ? (
           <Button
             type="button"
             variant="ghost"

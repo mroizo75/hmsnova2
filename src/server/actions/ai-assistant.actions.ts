@@ -114,22 +114,6 @@ const incidentQualitySchema = z.object({
   severity: z.number().int().min(1).max(5).nullish(),
 });
 
-const sjaSummarySchema = z.object({
-  title: z.string().min(2),
-  workLocation: z.string().min(2),
-  participantCount: z.number().int().min(1).max(100),
-  hazards: z
-    .array(
-      z.object({
-        activity: z.string().min(1),
-        hazard: z.string().min(1),
-        consequence: z.string().optional(),
-        measures: z.string().min(1),
-      })
-    )
-    .min(1),
-});
-
 const inspectionSummarySchema = z.object({
   inspectionName: z.string().min(2),
   checklistItems: z.array(
@@ -444,39 +428,6 @@ Gi maks 4 konkrete varsler, kun hvis viktig informasjon mangler/er uklar.`;
     return { success: true, data: { warnings } };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke kjøre AI-kvalitetssjekk" };
-  }
-}
-
-export async function generateAiSjaSummary(input: {
-  title: string;
-  workLocation: string;
-  participantCount: number;
-  hazards: Array<{ activity: string; hazard: string; consequence?: string; measures: string }>;
-}) {
-  try {
-    const { tenantId } = await getActionContext();
-    const validated = sjaSummarySchema.parse(input);
-    const prompt = `Lag en kort oppsummering av denne SJA-en på norsk.
-Svar KUN med gyldig JSON:
-{ "summary": "kort oppsummering med hovedfarer, viktigste tiltak og hva som må følges opp" }
-
-Arbeid: ${validated.title}
-Sted: ${validated.workLocation}
-Antall deltakere: ${validated.participantCount}
-Farer: ${JSON.stringify(validated.hazards)}`;
-
-    const response = await generateAIResponse(prompt, "gpt-4o-mini", {
-      cacheScope: `tenant:${tenantId}:sjaSummary`,
-      rateLimitScope: `tenant:${tenantId}`,
-      budgetScope: `tenant:${tenantId}`,
-      tenantId,
-    });
-    const match = response.match(/\{[\s\S]*\}/);
-    if (!match) return { success: false, error: "AI returnerte ugyldig format" };
-    const parsed = JSON.parse(match[0]) as { summary?: string };
-    return { success: true, data: { summary: (parsed.summary || "").trim() } };
-  } catch (error: any) {
-    return { success: false, error: error.message || "Kunne ikke generere SJA-oppsummering" };
   }
 }
 

@@ -33,6 +33,8 @@ import {
   Zap,
   LocateFixed,
   RefreshCw,
+  CheckCircle2,
+  Mic,
 } from "lucide-react";
 import { getRiskColor } from "@/features/sja/schemas/sja.schema";
 import {
@@ -44,7 +46,6 @@ import {
   type FseChecklist,
 } from "@/features/sja/lib/sja-fse";
 import Image from "next/image";
-import { generateAiSjaSummary } from "@/server/actions/ai-assistant.actions";
 import {
   formatSjaWeatherConditions,
   isSjaWeatherData,
@@ -62,6 +63,13 @@ interface HazardRow {
   responsibleName: string;
   linkedRiskId?: string | null;
 }
+
+type DevicePermissionStatus =
+  | "unknown"
+  | "requesting"
+  | "granted"
+  | "denied"
+  | "unavailable";
 
 const emptyHazard: HazardRow = {
   activity: "",
@@ -157,9 +165,12 @@ export function SjaForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(null);
-  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
   const [workBriefing, setWorkBriefing] = useState("");
+  const [microphonePermission, setMicrophonePermission] =
+    useState<DevicePermissionStatus>("unknown");
+  const [positionPermission, setPositionPermission] =
+    useState<DevicePermissionStatus>("unknown");
   const [aiDraftUsed, setAiDraftUsed] = useState(false);
   const [aiDraftWarnings, setAiDraftWarnings] = useState<string[]>([]);
   const [aiVerification, setAiVerification] = useState({
@@ -194,7 +205,6 @@ export function SjaForm({
   );
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const [aiSummary, setAiSummary] = useState("");
   const [electricalWorkType, setElectricalWorkType] = useState<ElectricalWorkType>(
     initialData?.electricalWorkType ?? "NOT_APPLICABLE",
   );
@@ -259,16 +269,60 @@ export function SjaForm({
     initialProjectLocation,
   ]);
 
-  function useCurrentPosition() {
-    if (!navigator.geolocation) {
-      setWeatherStatus("Posisjon støttes ikke av denne enheten.");
+  async function requestMicrophoneAccess() {
+    if (
+      !window.isSecureContext ||
+      !navigator.mediaDevices?.getUserMedia ||
+      typeof MediaRecorder === "undefined"
+    ) {
+      setMicrophonePermission("unavailable");
+      toast({
+        variant: "destructive",
+        title: "Mikrofon er ikke tilgjengelig",
+        description:
+          "Mikrofon krever en støttet nettleser og en sikker HTTPS-forbindelse.",
+      });
       return;
     }
 
+    setMicrophonePermission("requesting");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach((track) => track.stop());
+      setMicrophonePermission("granted");
+      toast({
+        title: "Mikrofon er klar",
+        description: "Du kan nå beskrive arbeidet med tale.",
+      });
+    } catch (error) {
+      const errorName = error instanceof DOMException ? error.name : "";
+      const isDenied = errorName === "NotAllowedError" || errorName === "SecurityError";
+      setMicrophonePermission(isDenied ? "denied" : "unavailable");
+      toast({
+        variant: "destructive",
+        title: isDenied ? "Mikrofontilgang ble ikke gitt" : "Ingen mikrofon funnet",
+        description: isDenied
+          ? "Tillat mikrofon for HMS Nova i nettleserinnstillingene, og prøv igjen."
+          : "Koble til eller aktiver en mikrofon, og prøv igjen.",
+      });
+    }
+  }
+
+  function useCurrentPosition() {
+    if (!window.isSecureContext || !navigator.geolocation) {
+      setPositionPermission("unavailable");
+      setWeatherStatus(
+        "Posisjon krever en støttet nettleser og en sikker HTTPS-forbindelse.",
+      );
+      return;
+    }
+
+    setPositionPermission("requesting");
     setIsLoadingWeather(true);
-    setWeatherStatus("Henter posisjon …");
+    setWeatherStatus("Bekreft posisjonstilgang i nettleseren …");
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
+        setPositionPermission("granted");
         void fetchWeather(
           new URLSearchParams({
             lat: coords.latitude.toString(),
@@ -278,10 +332,12 @@ export function SjaForm({
         );
       },
       (error) => {
+        const isDenied = error.code === error.PERMISSION_DENIED;
+        setPositionPermission(isDenied ? "denied" : "unavailable");
         setIsLoadingWeather(false);
         setWeatherStatus(
-          error.code === error.PERMISSION_DENIED
-            ? "Posisjonstilgang ble ikke gitt. Søk på sted i stedet."
+          isDenied
+            ? "Posisjonstilgang ble ikke gitt. Tillat posisjon for HMS Nova i nettleserinnstillingene, eller søk på sted."
             : "Kunne ikke hente posisjonen. Søk på sted i stedet.",
         );
       },
@@ -572,59 +628,6 @@ export function SjaForm({
     }
   }
 
-  async function handleGenerateSummary() {
-    const title = (document.getElementById("title") as HTMLInputElement | null)?.value || "";
-    const workLocation = (document.getElementById("workLocation") as HTMLInputElement | null)?.value || "";
-    const participants =
-      electricalWorkType === "NOT_APPLICABLE"
-        ? (document.getElementById("participants") as HTMLTextAreaElement | null)?.value || ""
-        : [
-            ...employees
-              .filter((employee) => selectedParticipantIds.includes(employee.id))
-              .map((employee) => employee.name),
-            externalParticipants,
-          ]
-            .filter(Boolean)
-            .join(", ");
-    const validHazards = hazards.filter(
-      (item) => item.activity.trim() && item.hazard.trim() && item.measures.trim()
-    );
-    if (!title || !workLocation || !participants || validHazards.length === 0) {
-      toast({
-        variant: "destructive",
-        title: t("toast.aiMissingData.title"),
-        description: t("toast.aiMissingData.description"),
-      });
-      return;
-    }
-
-    setIsGeneratingSummary(true);
-    try {
-      const result = await generateAiSjaSummary({
-        title,
-        workLocation,
-        participantCount: Math.max(1, parseExternalParticipantNames(participants).length),
-        hazards: validHazards.map((item) => ({
-          activity: item.activity,
-          hazard: item.hazard,
-          consequence: item.consequence,
-          measures: item.measures,
-        })),
-      });
-      if (!result.success || !result.data) {
-        toast({
-          variant: "destructive",
-          title: t("toast.aiFailed.title"),
-          description: result.error || t("toast.aiFailed.description"),
-        });
-        return;
-      }
-      setAiSummary(result.data.summary);
-    } finally {
-      setIsGeneratingSummary(false);
-    }
-  }
-
   async function handleSaveDraft() {
     setIsSavingDraft(true);
     try {
@@ -733,6 +736,62 @@ export function SjaForm({
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2 rounded-lg border p-3">
+                <p className="text-sm font-medium">Tale</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full bg-transparent"
+                  onClick={() => void requestMicrophoneAccess()}
+                  disabled={microphonePermission === "requesting"}
+                >
+                  {microphonePermission === "requesting" ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : microphonePermission === "granted" ? (
+                    <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" />
+                  ) : (
+                    <Mic className="mr-2 h-4 w-4" />
+                  )}
+                  {microphonePermission === "granted"
+                    ? "Mikrofon er tillatt"
+                    : "Tillat mikrofon"}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  {microphonePermission === "granted"
+                    ? "Du kan bruke mikrofonknappen i feltet under."
+                    : "Nettleseren ber deg bekrefte før mikrofonen brukes."}
+                </p>
+              </div>
+
+              <div className="space-y-2 rounded-lg border p-3">
+                <p className="text-sm font-medium">Posisjon og vær</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full bg-transparent"
+                  onClick={useCurrentPosition}
+                  disabled={positionPermission === "requesting" || isLoadingWeather}
+                >
+                  {positionPermission === "requesting" || isLoadingWeather ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : positionPermission === "granted" ? (
+                    <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" />
+                  ) : (
+                    <LocateFixed className="mr-2 h-4 w-4" />
+                  )}
+                  {positionPermission === "granted"
+                    ? "Posisjon er tillatt"
+                    : "Tillat posisjon og hent vær"}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  {positionPermission === "granted"
+                    ? "Arbeidssted og vær er hentet fra enhetens posisjon."
+                    : "Nettleseren ber deg bekrefte før posisjonen brukes."}
+                </p>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="workBriefing">Hva skal gjøres?</Label>
               <VoiceTextarea
@@ -741,6 +800,7 @@ export function SjaForm({
                 onChange={(event) => setWorkBriefing(event.target.value)}
                 placeholder="Eksempel: Vi skal skifte en ventil i teknisk rom. Røret må trykkavlastes, området er trangt og andre fag arbeider i nærheten."
                 rows={5}
+                microphoneEnabled={microphonePermission === "granted"}
               />
             </div>
 
@@ -1522,26 +1582,6 @@ export function SjaForm({
           )}
         </CardContent>
       </Card>
-
-      {aiEnabled && <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Sparkles className="h-4 w-4" />
-            {t("ai.title")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Button type="button" variant="outline" onClick={handleGenerateSummary} disabled={isGeneratingSummary}>
-            {isGeneratingSummary ? t("ai.generating") : t("ai.generate")}
-          </Button>
-          <VoiceTextarea
-            value={aiSummary}
-            onChange={(event) => setAiSummary(event.target.value)}
-            placeholder={t("ai.placeholder")}
-            rows={4}
-          />
-        </CardContent>
-      </Card>}
 
       <div className="flex flex-col gap-3 pt-2">
         <Button
