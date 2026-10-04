@@ -34,7 +34,7 @@ const applySecurityHeaders = (response: NextResponse): NextResponse => {
   // Permissions-Policy
   response.headers.set(
     "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=()"
+    "camera=(self), microphone=(self), geolocation=(self)"
   );
 
   // X-DNS-Prefetch-Control

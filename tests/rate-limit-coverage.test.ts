@@ -17,6 +17,19 @@ test("proxy beskytter mutasjoner og unntar verifiserte integrasjoner", () => {
   assert.match(source, /"\/api\/internal\/"/);
 });
 
+test("permissions-policy tillater enhetstilgang kun fra eget nettsted", () => {
+  const source = readSource("src/proxy.ts");
+
+  assert.match(
+    source,
+    /camera=\(self\), microphone=\(self\), geolocation=\(self\)/
+  );
+  assert.doesNotMatch(
+    source,
+    /camera=\(\), microphone=\(\), geolocation=\(\)/
+  );
+});
+
 test("credentials-innlogging begrenses på både IP og konto", () => {
   const source = readSource("src/lib/auth.ts");
 
