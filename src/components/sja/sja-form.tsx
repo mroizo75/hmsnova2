@@ -35,6 +35,7 @@ import {
   RefreshCw,
   CheckCircle2,
   Mic,
+  ClipboardList,
 } from "lucide-react";
 import { getRiskColor } from "@/features/sja/schemas/sja.schema";
 import {
@@ -51,6 +52,10 @@ import {
   isSjaWeatherData,
 } from "@/features/sja/lib/sja-weather";
 import type { SjaAiDraft } from "@/features/sja/lib/sja-ai";
+import {
+  mapRiskToSjaHazard,
+  type SjaSourceRisk,
+} from "@/features/sja/lib/sja-risk-source";
 import { useTenantNavContext } from "@/hooks/use-tenant-nav-context";
 
 interface HazardRow {
@@ -102,6 +107,14 @@ interface RiskOption {
   score: number | null;
 }
 
+interface RiskAssessmentOption {
+  id: string;
+  title: string;
+  assessmentYear: number;
+  project: { id: string; name: string } | null;
+  risks: SjaSourceRisk[];
+}
+
 interface EmployeeOption {
   id: string;
   name: string;
@@ -120,6 +133,7 @@ interface SjaFormProps {
     location?: string | null;
   }>;
   risks?: RiskOption[];
+  riskAssessments?: RiskAssessmentOption[];
   employees?: EmployeeOption[];
   onSuccess?: () => void;
   successRedirectPath?: string;
@@ -151,6 +165,7 @@ export function SjaForm({
   projectId,
   projects = [],
   risks = [],
+  riskAssessments = [],
   employees = [],
   onSuccess,
   successRedirectPath = "/ansatt/sja",
@@ -212,6 +227,8 @@ export function SjaForm({
   const [externalParticipants, setExternalParticipants] = useState("");
   const [externalCompetenceConfirmed, setExternalCompetenceConfirmed] = useState(false);
   const [fseChecklist, setFseChecklist] = useState<FseChecklist>({});
+  const [sourceRiskAssessmentId, setSourceRiskAssessmentId] = useState<string | null>(null);
+  const [selectedSourceRiskIds, setSelectedSourceRiskIds] = useState<string[]>([]);
 
   const fetchWeather = useCallback(async (
     params: URLSearchParams,
@@ -360,6 +377,30 @@ export function SjaForm({
     setHazards(updated);
   }
 
+  function applySelectedSourceRisks() {
+    const assessment = riskAssessments.find(
+      (candidate) => candidate.id === sourceRiskAssessmentId,
+    );
+    if (!assessment || selectedSourceRiskIds.length === 0) {
+      toast({
+        title: "Velg risikopunkter",
+        description: "Velg minst ett punkt fra risikovurderingen.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setHazards(
+      assessment.risks
+        .filter((risk) => selectedSourceRiskIds.includes(risk.id))
+        .map(mapRiskToSjaHazard),
+    );
+    toast({
+      title: "Risikopunkter kopiert",
+      description: "Tilpass innholdet til den konkrete jobben før innsending.",
+    });
+  }
+
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files) {
       const files = Array.from(e.target.files);
@@ -437,6 +478,8 @@ export function SjaForm({
           linkedRiskId: null,
         })),
       );
+      setSourceRiskAssessmentId(null);
+      setSelectedSourceRiskIds([]);
       setElectricalWorkType(draft.electricalWorkType);
       setFseChecklist({});
       setAiDraftWarnings([
@@ -538,6 +581,7 @@ export function SjaForm({
       weatherConditions: formData.get("weatherConditions") as string,
       templateId: initialData?.templateId,
       templateName: initialData?.templateName,
+      sourceRiskAssessmentId,
       electricalWorkType,
       workMethod: formData.get("workMethod") as string,
       requiredEquipment: formData.get("requiredEquipment") as string,
@@ -660,6 +704,7 @@ export function SjaForm({
         weatherConditions: weatherEl?.value || "",
         templateId: initialData?.templateId,
         templateName: initialData?.templateName,
+        sourceRiskAssessmentId,
         electricalWorkType,
         workMethod: (document.getElementById("workMethod") as HTMLTextAreaElement | null)?.value || "",
         requiredEquipment:
@@ -1264,6 +1309,81 @@ export function SjaForm({
           </p>
         )}
 
+        {riskAssessments.length > 0 && (
+          <Card className="border-blue-200 bg-blue-50/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <ClipboardList className="h-5 w-5 text-blue-700" />
+                Bruk eksisterende risikovurdering
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Kopier relevante risikopunkter inn i SJA-en. Punktene blir redigerbare og
+                lagres med et sporbarhetssnapshot.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Select
+                value={sourceRiskAssessmentId ?? "__none__"}
+                onValueChange={(value) => {
+                  setSourceRiskAssessmentId(value === "__none__" ? null : value);
+                  setSelectedSourceRiskIds([]);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Velg risikovurdering" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Ingen – lag SJA selv</SelectItem>
+                  {riskAssessments.map((assessment) => (
+                    <SelectItem key={assessment.id} value={assessment.id}>
+                      {assessment.title} ({assessment.assessmentYear})
+                      {assessment.project ? ` – ${assessment.project.name}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {sourceRiskAssessmentId && (
+                <div className="space-y-3">
+                  {riskAssessments
+                    .find((assessment) => assessment.id === sourceRiskAssessmentId)
+                    ?.risks.map((risk) => (
+                      <label
+                        key={risk.id}
+                        className="flex items-start gap-3 rounded-lg border bg-card p-3"
+                      >
+                        <Checkbox
+                          checked={selectedSourceRiskIds.includes(risk.id)}
+                          onCheckedChange={(checked) =>
+                            setSelectedSourceRiskIds((current) =>
+                              checked === true
+                                ? Array.from(new Set([...current, risk.id]))
+                                : current.filter((id) => id !== risk.id),
+                            )
+                          }
+                        />
+                        <span className="min-w-0">
+                          <span className="block text-sm font-medium">{risk.title}</span>
+                          <span className="text-xs text-muted-foreground">
+                            Score {risk.score}: {risk.context}
+                          </span>
+                        </span>
+                      </label>
+                    ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="bg-transparent"
+                    onClick={applySelectedSourceRisks}
+                  >
+                    Kopier valgte punkter til SJA
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         <div className="space-y-6">
           {hazards.map((hazard, index) => (
             <div
@@ -1404,12 +1524,25 @@ export function SjaForm({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none__">Ingen kobling</SelectItem>
-                      {risks.map((risk) => (
+                      {risks
+                        .filter(
+                          (risk) =>
+                            !sourceRiskAssessmentId ||
+                            riskAssessments
+                              .find(
+                                (assessment) =>
+                                  assessment.id === sourceRiskAssessmentId,
+                              )
+                              ?.risks.some(
+                                (sourceRisk) => sourceRisk.id === risk.id,
+                              ),
+                        )
+                        .map((risk) => (
                         <SelectItem key={risk.id} value={risk.id}>
                           {risk.title}
                           {risk.score != null ? ` (score: ${risk.score})` : ""}
                         </SelectItem>
-                      ))}
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>

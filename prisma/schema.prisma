@@ -1275,6 +1275,15 @@ model RiskAssessment {
   reviewedById String?
   reviewedAt   DateTime?
 
+  // Sporbar import av eksisterende risikovurdering. AI-import må verifiseres av et menneske før godkjenning.
+  importSourceFileKey  String?
+  importSourceFileName String?
+  importSourceMimeType String?
+  importedAt           DateTime?
+  importedById         String?
+  importVerifiedAt     DateTime?
+  importVerifiedById   String?
+
   corporateGroupContentId String?
   isLockedByGroup         Boolean @default(false)
 
@@ -1286,12 +1295,15 @@ model RiskAssessment {
   tenant  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
   risks   Risk[]
+  sourceSjaAnalyses SjaAnalysis[] @relation("SjaSourceRiskAssessment")
 
   @@index([tenantId])
   @@index([projectId])
   @@index([assessmentYear])
   @@index([approvedById])
   @@index([reviewedById])
+  @@index([importedAt])
+  @@index([importVerifiedAt])
   @@index([corporateGroupContentId])
 }
 
@@ -2316,6 +2328,7 @@ model SjaAnalysis {
   approvedByName String?
   approvedAt     DateTime?
   projectId      String?
+  sourceRiskAssessmentId String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2325,6 +2338,7 @@ model SjaAnalysis {
   participantRecords SjaParticipant[]
   attachments Attachment[] @relation("SjaAttachments")
   project     Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  sourceRiskAssessment RiskAssessment? @relation("SjaSourceRiskAssessment", fields: [sourceRiskAssessmentId], references: [id], onDelete: SetNull)
   mocLinks    MocSjaLink[]
 
   @@index([tenantId])
@@ -2333,6 +2347,7 @@ model SjaAnalysis {
   @@index([plannedDate])
   @@index([createdById])
   @@index([projectId])
+  @@index([sourceRiskAssessmentId])
 }
 
 model SjaHazard {
@@ -2349,6 +2364,7 @@ model SjaHazard {
   responsibleName String?
   completed       Boolean @default(false)
   linkedRiskId    String?
+  riskSnapshot    Json?
 
   sjaAnalysis SjaAnalysis @relation(fields: [sjaAnalysisId], references: [id], onDelete: Cascade)
   linkedRisk  Risk?       @relation("SjaHazardRisk", fields: [linkedRiskId], references: [id], onDelete: SetNull)

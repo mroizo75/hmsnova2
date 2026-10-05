@@ -11,13 +11,14 @@ import {
   createSjaTemplateSchema,
   updateSjaTemplateSchema,
 } from "@/features/sja/schemas/sja.schema";
-import { RoutineStatus, SjaStatus, SjaConclusion } from "@prisma/client";
+import { Prisma, RoutineStatus, SjaStatus, SjaConclusion } from "@prisma/client";
 import { AuditLog } from "@/lib/audit-log";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
 import {
   evaluateFseCompetence,
   getRequiredCourseKeys,
 } from "@/features/sja/lib/sja-fse";
+import { createSjaRiskSnapshot } from "@/features/sja/lib/sja-risk-source";
 
 async function getSessionContext() {
   const context = await getRequiredTenantContext();
@@ -46,6 +47,75 @@ function parseStringArray(value: string | null | undefined): string[] {
   } catch {
     return [];
   }
+}
+
+interface LinkedHazardInput {
+  linkedRiskId?: string | null;
+}
+
+async function validateSjaRiskSources(
+  tenantId: string,
+  sourceRiskAssessmentId: string | null | undefined,
+  hazards: LinkedHazardInput[],
+) {
+  const linkedRiskIds = Array.from(
+    new Set(
+      hazards
+        .map((hazard) => hazard.linkedRiskId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  );
+
+  if (sourceRiskAssessmentId) {
+    const sourceAssessment = await prisma.riskAssessment.findFirst({
+      where: { id: sourceRiskAssessmentId, tenantId },
+      select: { id: true },
+    });
+    if (!sourceAssessment) {
+      throw new Error("Valgt risikovurdering finnes ikke i bedriften");
+    }
+    if (linkedRiskIds.length === 0) {
+      throw new Error("Velg minst ett risikopunkt fra risikovurderingen");
+    }
+  }
+
+  if (linkedRiskIds.length === 0) {
+    return new Map<string, Prisma.InputJsonValue>();
+  }
+
+  const risks = await prisma.risk.findMany({
+    where: { id: { in: linkedRiskIds }, tenantId },
+    select: {
+      id: true,
+      riskAssessmentId: true,
+      title: true,
+      context: true,
+      description: true,
+      riskStatement: true,
+      likelihood: true,
+      consequence: true,
+      score: true,
+      existingControls: true,
+      measures: { select: { title: true, status: true } },
+    },
+  });
+  if (risks.length !== linkedRiskIds.length) {
+    throw new Error("Ett eller flere risikopunkter finnes ikke i bedriften");
+  }
+  if (
+    sourceRiskAssessmentId &&
+    risks.some((risk) => risk.riskAssessmentId !== sourceRiskAssessmentId)
+  ) {
+    throw new Error("Alle valgte risikopunkter må tilhøre valgt risikovurdering");
+  }
+
+  const capturedAt = new Date();
+  return new Map(
+    risks.map((risk) => [
+      risk.id,
+      createSjaRiskSnapshot(risk, capturedAt) as unknown as Prisma.InputJsonValue,
+    ]),
+  );
 }
 
 async function buildParticipantRecords(
@@ -287,6 +357,11 @@ export async function createSjaAnalysis(input: any) {
       };
     }
     const validated = parseResult.data;
+    const riskSnapshots = await validateSjaRiskSources(
+      tenantId,
+      validated.sourceRiskAssessmentId,
+      validated.hazards,
+    );
     const storedAdditionalConditions = validated.aiGenerated
       ? [
           "AI-generert utkast: Kontrollert og bearbeidet av ansvarlig bruker før innsending. AI har ikke verifisert arbeidssted, barrierer, kompetanse eller gjennomførte tiltak.",
@@ -340,6 +415,7 @@ export async function createSjaAnalysis(input: any) {
         templateId: validated.templateId ?? null,
         templateName: validated.templateName ?? null,
         templateSnapshot: sourceTemplate ? JSON.stringify(sourceTemplate) : null,
+        sourceRiskAssessmentId: validated.sourceRiskAssessmentId ?? null,
         electricalWorkType: validated.electricalWorkType,
         workMethod: validated.workMethod ?? null,
         requiredEquipment: validated.requiredEquipment ?? null,
@@ -366,6 +442,9 @@ export async function createSjaAnalysis(input: any) {
             measures: h.measures,
             responsibleName: h.responsibleName ?? null,
             linkedRiskId: h.linkedRiskId ?? null,
+            riskSnapshot: h.linkedRiskId
+              ? riskSnapshots.get(h.linkedRiskId) ?? Prisma.JsonNull
+              : Prisma.JsonNull,
           })),
         },
         participantRecords: {
@@ -418,12 +497,41 @@ export async function saveSjaDraft(input: any) {
         linkedRiskId: (h.linkedRiskId && typeof h.linkedRiskId === "string" && h.linkedRiskId.length > 5)
           ? h.linkedRiskId : null,
       }));
+    const sourceRiskAssessmentId =
+      typeof input.sourceRiskAssessmentId === "string" &&
+      input.sourceRiskAssessmentId.length > 5
+        ? input.sourceRiskAssessmentId
+        : null;
+    const riskSnapshots = await validateSjaRiskSources(
+      tenantId,
+      sourceRiskAssessmentId,
+      hazards,
+    );
 
     if (input.id) {
+      const existingDraft = await prisma.sjaAnalysis.findFirst({
+        where: { id: input.id, tenantId },
+        select: { id: true, createdById: true },
+      });
+      if (!existingDraft) {
+        return { success: false, error: "SJA-utkast ikke funnet" };
+      }
+      if (
+        existingDraft.createdById !== user.id &&
+        !auth.permissions.canApproveSja
+      ) {
+        return { success: false, error: "Du kan bare oppdatere egne SJA-utkast" };
+      }
       if (hazards.length > 0) {
         await prisma.sjaHazard.deleteMany({ where: { sjaAnalysisId: input.id } });
         await prisma.sjaHazard.createMany({
-          data: hazards.map((h: any) => ({ ...h, sjaAnalysisId: input.id })),
+          data: hazards.map((h: any) => ({
+            ...h,
+            sjaAnalysisId: input.id,
+            riskSnapshot: h.linkedRiskId
+              ? riskSnapshots.get(h.linkedRiskId) ?? Prisma.JsonNull
+              : Prisma.JsonNull,
+          })),
         });
       }
 
@@ -450,6 +558,7 @@ export async function saveSjaDraft(input: any) {
             ? String(input.secondPersonException).trim()
             : null,
           projectId: input.projectId || null,
+          sourceRiskAssessmentId,
           contentVersion: new Date(),
           updatedAt: new Date(),
         },
@@ -488,6 +597,7 @@ export async function saveSjaDraft(input: any) {
         templateId: input.templateId ?? null,
         templateName: input.templateName ?? null,
         templateSnapshot: sourceTemplate ? JSON.stringify(sourceTemplate) : null,
+        sourceRiskAssessmentId,
         electricalWorkType: input.electricalWorkType || "NOT_APPLICABLE",
         workMethod: input.workMethod ? String(input.workMethod).trim() : null,
         requiredEquipment: input.requiredEquipment ? String(input.requiredEquipment).trim() : null,
@@ -502,7 +612,17 @@ export async function saveSjaDraft(input: any) {
         projectId: input.projectId || null,
         status: SjaStatus.DRAFT,
         conclusion: SjaConclusion.NOT_DECIDED,
-        hazards: hazards.length > 0 ? { create: hazards } : undefined,
+        hazards:
+          hazards.length > 0
+            ? {
+                create: hazards.map((hazard: any) => ({
+                  ...hazard,
+                  riskSnapshot: hazard.linkedRiskId
+                    ? riskSnapshots.get(hazard.linkedRiskId) ?? Prisma.JsonNull
+                    : Prisma.JsonNull,
+                })),
+              }
+            : undefined,
       },
       include: { hazards: true },
     });
@@ -561,6 +681,13 @@ export async function updateSjaAnalysis(input: any) {
     if (!existing) {
       return { success: false, error: "SJA ikke funnet" };
     }
+    const riskSnapshots = validated.hazards
+      ? await validateSjaRiskSources(
+          tenantId,
+          existing.sourceRiskAssessmentId,
+          validated.hazards,
+        )
+      : new Map<string, Prisma.InputJsonValue>();
     const isApprovalChange =
       input.conclusion !== undefined ||
       input.status === SjaStatus.ACTIVE ||
@@ -650,6 +777,9 @@ export async function updateSjaAnalysis(input: any) {
           measures: h.measures,
           responsibleName: h.responsibleName ?? null,
           linkedRiskId: h.linkedRiskId ?? null,
+          riskSnapshot: h.linkedRiskId
+            ? riskSnapshots.get(h.linkedRiskId) ?? Prisma.JsonNull
+            : Prisma.JsonNull,
         })),
       });
     }

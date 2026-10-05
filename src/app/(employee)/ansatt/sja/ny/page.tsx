@@ -23,7 +23,7 @@ export default async function NySja({ searchParams }: PageProps) {
 
   const { mal: templateId, projectId, utenMal } = await searchParams;
 
-  const [projects, selectedProject, risks, allTemplates, memberships, training] = await Promise.all([
+  const [projects, selectedProject, risks, riskAssessments, allTemplates, memberships, training] = await Promise.all([
     prisma.project.findMany({
       where: {
         tenantId: session.user.tenantId,
@@ -52,6 +52,31 @@ export default async function NySja({ searchParams }: PageProps) {
       where: { tenantId: session.user.tenantId },
       select: { id: true, title: true, score: true },
       orderBy: { title: "asc" },
+    }),
+    prisma.riskAssessment.findMany({
+      where: { tenantId: session.user.tenantId },
+      select: {
+        id: true,
+        title: true,
+        assessmentYear: true,
+        project: { select: { id: true, name: true } },
+        risks: {
+          orderBy: [{ score: "desc" }, { title: "asc" }],
+          select: {
+            id: true,
+            title: true,
+            context: true,
+            description: true,
+            riskStatement: true,
+            likelihood: true,
+            consequence: true,
+            score: true,
+            existingControls: true,
+            measures: { select: { title: true, status: true } },
+          },
+        },
+      },
+      orderBy: [{ assessmentYear: "desc" }, { title: "asc" }],
     }),
     prisma.sjaTemplate.findMany({
       where: { tenantId: session.user.tenantId, isActive: true },
@@ -246,6 +271,7 @@ export default async function NySja({ searchParams }: PageProps) {
               projectId={selectedProject?.id}
               projects={projects}
               risks={risks}
+              riskAssessments={riskAssessments}
               employees={employees}
               initialData={templateData}
             />

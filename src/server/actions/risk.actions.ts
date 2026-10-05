@@ -452,6 +452,7 @@ export async function updateRiskAssessment(input: {
   approvedAt?: string | null;
   reviewedById?: string | null;
   reviewedAt?: string | null;
+  verifyImport?: boolean;
 }) {
   try {
     const { user, tenantId, role } = await getActionContext();
@@ -462,10 +463,54 @@ export async function updateRiskAssessment(input: {
     });
     if (!existing) return { success: false, error: "Risikovurdering ikke funnet" };
 
-    if (validated.title !== undefined) {
-      const permissions = getPermissions(role);
+    const permissions = getPermissions(role);
+    if (
+      validated.title !== undefined ||
+      validated.participants !== undefined
+    ) {
       if (!permissions.canCreateRisks) {
         return { success: false, error: "Ingen tilgang til å endre tittel på risikovurdering" };
+      }
+    }
+    const hasApprovalChange =
+      validated.approvedById !== undefined ||
+      validated.approvedAt !== undefined ||
+      validated.reviewedById !== undefined ||
+      validated.reviewedAt !== undefined ||
+      validated.verifyImport === true;
+    if (hasApprovalChange && !permissions.canApproveRisks) {
+      return {
+        success: false,
+        error: "Ingen tilgang til å verifisere eller godkjenne risikovurderinger",
+      };
+    }
+    if (
+      existing.importedAt &&
+      !existing.importVerifiedAt &&
+      (validated.approvedById || validated.approvedAt)
+    ) {
+      return {
+        success: false,
+        error: "Importen må verifiseres mot originalfilen før godkjenning",
+      };
+    }
+    if (validated.verifyImport && !existing.importedAt) {
+      return { success: false, error: "Risikovurderingen er ikke importert" };
+    }
+
+    const referencedUserIds = [
+      validated.approvedById,
+      validated.reviewedById,
+    ].filter((id): id is string => Boolean(id));
+    if (referencedUserIds.length > 0) {
+      const memberships = await prisma.userTenant.count({
+        where: {
+          tenantId,
+          userId: { in: referencedUserIds },
+        },
+      });
+      if (memberships !== new Set(referencedUserIds).size) {
+        return { success: false, error: "Valgt bruker tilhører ikke bedriften" };
       }
     }
 
@@ -480,6 +525,12 @@ export async function updateRiskAssessment(input: {
         approvedAt: validated.approvedAt,
         reviewedById: validated.reviewedById,
         reviewedAt: validated.reviewedAt,
+        ...(validated.verifyImport
+          ? {
+              importVerifiedAt: new Date(),
+              importVerifiedById: user.id,
+            }
+          : {}),
         updatedAt: new Date(),
       },
     });

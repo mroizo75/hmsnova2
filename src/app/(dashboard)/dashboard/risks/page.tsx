@@ -14,6 +14,7 @@ import { RisksContent } from "@/features/risks/components/risks-content";
 import { getTranslations } from "next-intl/server";
 import { fetchRisks, fetchRiskAssessments } from "@/server/queries/risk.queries";
 import { getIndustryLabel, getIndustryPackage } from "@/lib/industry-packages";
+import { RiskAssessmentImportCard } from "@/features/risks/components/risk-assessment-import-card";
 
 export default async function RisksPage() {
   const t = await getTranslations("dashboardRisksPage");
@@ -44,12 +45,21 @@ export default async function RisksPage() {
   const canUseAiSuggestions = permissions.canCreateRisks;
   const canDeleteRiskAssessments = permissions.canDeleteRisks;
 
-  const [initialRisks, initialAssessments, tenant] = await Promise.all([
+  const [initialRisks, initialAssessments, tenant, memberships] = await Promise.all([
     fetchRisks(),
     fetchRiskAssessments(),
     prisma.tenant.findUnique({
       where: { id: selectedMembership.tenantId },
       select: { industry: true, aiEnabled: true },
+    }),
+    prisma.userTenant.findMany({
+      where: { tenantId: selectedMembership.tenantId },
+      select: {
+        userId: true,
+        displayName: true,
+        user: { select: { name: true, email: true } },
+      },
+      orderBy: { displayName: "asc" },
     }),
   ]);
 
@@ -86,6 +96,19 @@ export default async function RisksPage() {
       )}
 
       {showAiSuggestions && <AiRiskSuggestionsCard />}
+
+      {canUseAiSuggestions && (
+        <RiskAssessmentImportCard
+          currentUserId={user.id}
+          users={memberships.map((membership) => ({
+            id: membership.userId,
+            name:
+              membership.displayName ||
+              membership.user.name ||
+              membership.user.email,
+          }))}
+        />
+      )}
 
       <RisksContent
         initialRisks={initialRisks}

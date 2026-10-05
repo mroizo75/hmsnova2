@@ -25,6 +25,7 @@ import {
   ShieldAlert,
   Image as ImageIcon,
   Zap,
+  ClipboardList,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -82,6 +83,17 @@ export function SjaDetailContent({ initialData, history }: SjaDetailContentProps
             <BookTemplate className="h-3 w-3 mr-1" />
             Fra mal: {analysis.templateName}
           </Badge>
+        )}
+        {analysis.sourceRiskAssessment && (
+          <Link
+            href={`/dashboard/risks/assessment/${analysis.sourceRiskAssessment.id}`}
+            className="inline-flex items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Badge variant="secondary" className="text-xs">
+              <ClipboardList className="mr-1 h-3 w-3" />
+              Fra risikovurdering: {analysis.sourceRiskAssessment.title}
+            </Badge>
+          </Link>
         )}
       </div>
 
@@ -244,6 +256,16 @@ export function SjaDetailContent({ initialData, history }: SjaDetailContentProps
                         </Link>
                       </div>
                     )}
+                    {hazard.riskSnapshot &&
+                      typeof hazard.riskSnapshot === "object" &&
+                      "capturedAt" in hazard.riskSnapshot &&
+                      typeof hazard.riskSnapshot.capturedAt === "string" && (
+                        <p className="text-xs text-muted-foreground">
+                          Kildeinnholdet ble kopiert{" "}
+                          {new Date(hazard.riskSnapshot.capturedAt).toLocaleString("no-NO")}.
+                          Senere endringer i risikovurderingen oppdaterer ikke denne SJA-en.
+                        </p>
+                      )}
                   </div>
                 ))}
               </div>

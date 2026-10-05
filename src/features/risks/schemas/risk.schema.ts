@@ -90,6 +90,7 @@ export const updateRiskAssessmentSchema = z.object({
   approvedAt: z.coerce.date().optional().nullable(),
   reviewedById: z.string().cuid().optional().nullable(),
   reviewedAt: z.coerce.date().optional().nullable(),
+  verifyImport: z.boolean().optional(),
 });
 
 /** Enkel nivå for risikopunkt i årlig risikovurdering (ISO 45001) */

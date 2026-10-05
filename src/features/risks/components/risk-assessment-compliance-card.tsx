@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { updateRiskAssessment } from "@/server/actions/risk.actions";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, Users, Pencil, X } from "lucide-react";
+import { CheckCircle2, Download, ShieldCheck, Users, Pencil, X } from "lucide-react";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
 
@@ -27,8 +27,14 @@ interface ComplianceCardProps {
     approvedAt: Date | null;
     reviewedById: string | null;
     reviewedAt: Date | null;
+    importedAt: Date | null;
+    importVerifiedAt: Date | null;
+    importVerifiedById: string | null;
+    importSourceFileName: string | null;
   };
   users: Array<{ id: string; name: string | null; email: string }>;
+  canApprove: boolean;
+  canEdit: boolean;
 }
 
 const NO_USER = "__none__";
@@ -36,7 +42,12 @@ const NO_USER = "__none__";
 const formatDate = (date: Date | null) =>
   date ? format(new Date(date), "d. MMM yyyy", { locale: nb }) : null;
 
-export function RiskAssessmentComplianceCard({ assessment, users }: ComplianceCardProps) {
+export function RiskAssessmentComplianceCard({
+  assessment,
+  users,
+  canApprove,
+  canEdit,
+}: ComplianceCardProps) {
   const { toast } = useToast();
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -57,18 +68,25 @@ export function RiskAssessmentComplianceCard({ assessment, users }: ComplianceCa
   const isCompliant =
     !!assessment.participants &&
     !!assessment.approvedById &&
-    !!assessment.approvedAt;
+    !!assessment.approvedAt &&
+    (!assessment.importedAt || !!assessment.importVerifiedAt);
+  const importNeedsVerification =
+    Boolean(assessment.importedAt) && !assessment.importVerifiedAt;
 
   async function handleSave() {
     setLoading(true);
     try {
       const result = await updateRiskAssessment({
         id: assessment.id,
-        participants: participants || undefined,
-        approvedById: approvedById === NO_USER ? null : approvedById,
-        approvedAt: approvedAt || null,
-        reviewedById: reviewedById === NO_USER ? null : reviewedById,
-        reviewedAt: reviewedAt || null,
+        ...(canEdit ? { participants: participants || undefined } : {}),
+        ...(canApprove
+          ? {
+              approvedById: approvedById === NO_USER ? null : approvedById,
+              approvedAt: approvedAt || null,
+              reviewedById: reviewedById === NO_USER ? null : reviewedById,
+              reviewedAt: reviewedAt || null,
+            }
+          : {}),
       });
 
       if (result.success) {
@@ -82,6 +100,24 @@ export function RiskAssessmentComplianceCard({ assessment, users }: ComplianceCa
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleVerifyImport() {
+    setLoading(true);
+    const result = await updateRiskAssessment({
+      id: assessment.id,
+      verifyImport: true,
+    });
+    setLoading(false);
+    if (!result.success) {
+      toast({ variant: "destructive", title: "Feil", description: result.error });
+      return;
+    }
+    toast({
+      title: "Importen er verifisert",
+      description: "Risikovurderingen kan nå godkjennes.",
+    });
+    window.location.reload();
   }
 
   return (
@@ -102,7 +138,7 @@ export function RiskAssessmentComplianceCard({ assessment, users }: ComplianceCa
               </span>
             )}
           </div>
-          {!editing && (
+          {!editing && (canEdit || canApprove) && (
             <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
               <Pencil className="h-3.5 w-3.5 mr-1" /> Rediger
             </Button>
@@ -110,6 +146,50 @@ export function RiskAssessmentComplianceCard({ assessment, users }: ComplianceCa
         </div>
       </CardHeader>
       <CardContent>
+        {assessment.importedAt && (
+          <div className={`mb-4 rounded-lg border p-3 text-sm ${
+            importNeedsVerification
+              ? "border-amber-300 bg-amber-50 text-amber-950"
+              : "border-green-300 bg-green-50 text-green-950"
+          }`}>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="font-medium">
+                  {importNeedsVerification
+                    ? "Importert – må verifiseres"
+                    : "Import kontrollert av menneskelig godkjenner"}
+                </p>
+                <p className="text-xs">
+                  {assessment.importSourceFileName ?? "Originaldokument"} · importert{" "}
+                  {formatDate(assessment.importedAt)}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" className="bg-transparent" asChild>
+                  <a
+                    href={`/api/risks/assessments/${assessment.id}/original`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <Download className="mr-1 h-3.5 w-3.5" />
+                    Åpne original
+                  </a>
+                </Button>
+                {importNeedsVerification && canApprove && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => void handleVerifyImport()}
+                    disabled={loading}
+                  >
+                    <ShieldCheck className="mr-1 h-3.5 w-3.5" />
+                    Bekreft kontrollert
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
         {editing ? (
           <div className="space-y-4">
             <div className="space-y-2">
@@ -122,20 +202,21 @@ export function RiskAssessmentComplianceCard({ assessment, users }: ComplianceCa
                 onChange={(e) => setParticipants(e.target.value)}
                 placeholder="F.eks: Kari Olsen (HMS-ansvarlig), Per Hansen (Verneombud), Anne Berg (Avd.leder)"
                 rows={2}
-                disabled={loading}
+                disabled={loading || !canEdit}
               />
               <p className="text-xs text-muted-foreground">
                 Dokumenter hvem som deltok — arbeidstakere og verneombud skal involveres (AML § 6-2).
               </p>
             </div>
 
+            {canApprove && (
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label>
                   Godkjent av *
                   <span className="ml-1 text-xs font-normal text-muted-foreground">(IK-HMS § 5 nr. 6)</span>
                 </Label>
-                <Select value={approvedById} onValueChange={setApprovedById} disabled={loading}>
+                <Select value={approvedById} onValueChange={setApprovedById} disabled={loading || importNeedsVerification}>
                   <SelectTrigger>
                     <SelectValue placeholder="Velg person" />
                   </SelectTrigger>
@@ -155,11 +236,13 @@ export function RiskAssessmentComplianceCard({ assessment, users }: ComplianceCa
                   type="date"
                   value={approvedAt}
                   onChange={(e) => setApprovedAt(e.target.value)}
-                  disabled={loading}
+                  disabled={loading || importNeedsVerification}
                 />
               </div>
             </div>
+            )}
 
+            {canApprove && (
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label>
@@ -190,6 +273,7 @@ export function RiskAssessmentComplianceCard({ assessment, users }: ComplianceCa
                 />
               </div>
             </div>
+            )}
 
             <div className="flex gap-3 pt-2">
               <Button onClick={handleSave} disabled={loading} size="sm">

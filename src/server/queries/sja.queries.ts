@@ -61,6 +61,9 @@ export async function fetchSjaDetail(id: string) {
             linkedRisk: { select: { id: true, title: true, score: true } },
           },
         },
+        sourceRiskAssessment: {
+          select: { id: true, title: true, assessmentYear: true },
+        },
         participantRecords: { orderBy: { createdAt: "asc" } },
         attachments: true,
         mocLinks: {

@@ -20,7 +20,7 @@ export default async function NewSjaPage({ searchParams }: PageProps) {
 
   const { mal: templateId, projectId, utenMal } = await searchParams;
 
-  const [project, projects, template, risks, allTemplates, memberships, training] = await Promise.all([
+  const [project, projects, template, risks, riskAssessments, allTemplates, memberships, training] = await Promise.all([
     projectId
       ? prisma.project.findFirst({
           where: {
@@ -56,6 +56,31 @@ export default async function NewSjaPage({ searchParams }: PageProps) {
       where: { tenantId: session.user.tenantId },
       select: { id: true, title: true, score: true },
       orderBy: { title: "asc" },
+    }),
+    prisma.riskAssessment.findMany({
+      where: { tenantId: session.user.tenantId },
+      select: {
+        id: true,
+        title: true,
+        assessmentYear: true,
+        project: { select: { id: true, name: true } },
+        risks: {
+          orderBy: [{ score: "desc" }, { title: "asc" }],
+          select: {
+            id: true,
+            title: true,
+            context: true,
+            description: true,
+            riskStatement: true,
+            likelihood: true,
+            consequence: true,
+            score: true,
+            existingControls: true,
+            measures: { select: { title: true, status: true } },
+          },
+        },
+      },
+      orderBy: [{ assessmentYear: "desc" }, { title: "asc" }],
     }),
     prisma.sjaTemplate.findMany({
       where: { tenantId: session.user.tenantId, isActive: true },
@@ -227,6 +252,7 @@ export default async function NewSjaPage({ searchParams }: PageProps) {
               projectId={safeProjectId}
               projects={projects}
               risks={risks}
+              riskAssessments={riskAssessments}
               employees={employees}
               successRedirectPath={successRedirectPath}
               initialData={templateData}

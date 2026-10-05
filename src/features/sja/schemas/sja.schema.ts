@@ -47,6 +47,7 @@ export const createSjaSchema = z.object({
   weatherConditions: z.string().optional(),
   templateId: z.string().optional(),
   templateName: z.string().optional(),
+  sourceRiskAssessmentId: z.string().cuid().optional().nullable(),
   electricalWorkType: z.enum(electricalWorkTypes).default("NOT_APPLICABLE"),
   workMethod: z.string().optional(),
   requiredEquipment: z.string().optional(),

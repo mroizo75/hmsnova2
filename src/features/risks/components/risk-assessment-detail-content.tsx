@@ -20,6 +20,7 @@ interface RiskAssessmentDetailContentProps {
   userId: string;
   canDeleteRiskAssessments: boolean;
   canEditAssessmentTitle: boolean;
+  canApproveRiskAssessments: boolean;
   openAi: boolean;
   initialAiRiskType?: string;
   initialIndustryContext?: string;
@@ -31,6 +32,7 @@ export function RiskAssessmentDetailContent({
   userId,
   canDeleteRiskAssessments,
   canEditAssessmentTitle,
+  canApproveRiskAssessments,
   openAi,
   initialAiRiskType,
   initialIndustryContext,
@@ -87,8 +89,14 @@ export function RiskAssessmentDetailContent({
           approvedAt: assessment.approvedAt,
           reviewedById: assessment.reviewedById,
           reviewedAt: assessment.reviewedAt,
+          importedAt: assessment.importedAt,
+          importVerifiedAt: assessment.importVerifiedAt,
+          importVerifiedById: assessment.importVerifiedById,
+          importSourceFileName: assessment.importSourceFileName,
         }}
         users={userList}
+        canApprove={canApproveRiskAssessments}
+        canEdit={canEditAssessmentTitle}
       />
 
       <RiskAssessmentItemForm

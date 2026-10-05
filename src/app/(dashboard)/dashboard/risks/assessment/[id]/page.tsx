@@ -49,6 +49,7 @@ export default async function RiskAssessmentPage({
   const permissions = getPermissions(selectedMembership.role);
   const canDeleteRiskAssessments = permissions.canDeleteRisks;
   const canEditAssessmentTitle = permissions.canCreateRisks;
+  const canApproveRiskAssessments = permissions.canApproveRisks;
 
   const initialData = await fetchRiskAssessmentDetail(id);
 
@@ -63,6 +64,7 @@ export default async function RiskAssessmentPage({
       userId={user.id}
       canDeleteRiskAssessments={canDeleteRiskAssessments}
       canEditAssessmentTitle={canEditAssessmentTitle}
+      canApproveRiskAssessments={canApproveRiskAssessments}
       openAi={openAi}
       initialAiRiskType={initialAiRiskType}
       initialIndustryContext={initialIndustryContext}
