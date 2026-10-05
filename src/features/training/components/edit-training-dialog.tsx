@@ -177,7 +177,9 @@ export function EditTrainingDialog({ training, trigger }: EditTrainingDialogProp
                 onChange={(e) => setValidUntil(e.target.value)}
                 disabled={loading}
               />
-              <p className="text-xs text-muted-foreground">La stå tom = utløper ikke</p>
+              <p className="text-xs text-muted-foreground">
+                Tomt felt = utløper ikke. Dato i fortiden vises som utløpt.
+              </p>
             </div>
           </div>
 

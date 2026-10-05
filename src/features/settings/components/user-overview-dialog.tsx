@@ -12,6 +12,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { fetchUserOverview } from "@/server/queries/users.queries";
 import { getRoleDisplayName } from "@/lib/permissions";
+import {
+  getTrainingStatusColor,
+  getTrainingStatusLabel,
+} from "@/features/training/schemas/training.schema";
 import type { Role } from "@prisma/client";
 
 type Overview = NonNullable<Awaited<ReturnType<typeof fetchUserOverview>>>;
@@ -68,7 +72,7 @@ export function UserOverviewDialog({ userId, onClose }: UserOverviewDialogProps)
         <DialogHeader>
           <DialogTitle>{overview?.name || "Bruker"}</DialogTitle>
           <DialogDescription>
-            Kontakt og personalopplysninger, inkludert pårørende.
+            Kontakt, pårørende og registrert kompetanse.
           </DialogDescription>
         </DialogHeader>
 
@@ -106,6 +110,40 @@ export function UserOverviewDialog({ userId, onClose }: UserOverviewDialogProps)
                       <p className="text-muted-foreground">{kin.relation || "Relasjon ikke oppgitt"}</p>
                       <p>{kin.phone || "Ingen telefon"}</p>
                     </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Kompetanse</p>
+              {overview.trainings.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Ingen kompetanse er registrert.</p>
+              ) : (
+                <div className="space-y-2">
+                  {overview.trainings.map((training) => (
+                    <Link
+                      key={training.id}
+                      href={`/dashboard/training/${training.id}`}
+                      className="flex items-start justify-between gap-3 rounded-md border p-3 text-sm hover:bg-muted/50"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-medium">{training.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {training.completedAt
+                            ? `Gjennomført ${formatDate(training.completedAt)}`
+                            : "Ikke dokumentert gjennomført"}
+                          {training.validUntil
+                            ? ` · Gyldig til ${formatDate(training.validUntil)}`
+                            : " · Utløper ikke"}
+                        </p>
+                      </div>
+                      <span
+                        className={`shrink-0 rounded-full border px-2 py-0.5 text-xs ${getTrainingStatusColor(training.status)}`}
+                      >
+                        {getTrainingStatusLabel(training.status)}
+                      </span>
+                    </Link>
                   ))}
                 </div>
               )}

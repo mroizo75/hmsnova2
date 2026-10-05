@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/db";
 import { getTenantContextSafe } from "@/lib/tenant-context";
 import { getInvitableRoles, getPermissions } from "@/lib/permissions";
+import { getTrainingStatus } from "@/features/training/schemas/training.schema";
 import type { Role } from "@prisma/client";
 
 export async function fetchUsers() {
@@ -101,6 +102,17 @@ export async function fetchUserOverview(userId: string) {
   });
   if (!membership) return null;
 
+  const trainings = await prisma.training.findMany({
+    where: { tenantId, userId },
+    select: {
+      id: true,
+      title: true,
+      completedAt: true,
+      validUntil: true,
+    },
+    orderBy: [{ validUntil: "asc" }, { title: "asc" }],
+  });
+
   let languages: string[] = [];
   if (membership.hrProfile?.languages) {
     try {
@@ -134,6 +146,16 @@ export async function fetchUserOverview(userId: string) {
       name: kin.name,
       relation: kin.relation,
       phone: kin.phone,
+    })),
+    trainings: trainings.map((training) => ({
+      id: training.id,
+      title: training.title,
+      completedAt: training.completedAt?.toISOString() ?? null,
+      validUntil: training.validUntil?.toISOString() ?? null,
+      status: getTrainingStatus({
+        completedAt: training.completedAt,
+        validUntil: training.validUntil,
+      }),
     })),
   };
 }

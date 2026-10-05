@@ -245,10 +245,9 @@ export function TrainingForm({ tenantId, users, courseTemplates, trigger, open: 
                 name="validUntil"
                 type="date"
                 disabled={loading}
-                min={new Date().toISOString().split("T")[0]}
               />
               <p className="text-xs text-muted-foreground">
-                La stå tom hvis kurset ikke utløper
+                Tomt felt = utløper ikke. Dato i fortiden registreres som utløpt kompetanse.
               </p>
             </div>
           </div>

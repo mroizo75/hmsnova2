@@ -429,7 +429,7 @@ export function PerEmployeeTrainingForm({
                         className="h-8 text-sm"
                         type="date"
                         value={row.validUntil}
-                        min={new Date().toISOString().split("T")[0]}
+                        title="Tomt felt = utløper ikke. Dato i fortiden registreres som utløpt kompetanse."
                         onChange={(e) => updateRow(row.rowId, { validUntil: e.target.value })}
                         disabled={loading}
                       />

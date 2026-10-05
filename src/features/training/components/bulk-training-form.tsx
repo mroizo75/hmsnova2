@@ -368,11 +368,10 @@ export function BulkTrainingForm({
                 <Input
                   type="date"
                   value={validUntil}
-                  min={new Date().toISOString().split("T")[0]}
                   onChange={(e) => setValidUntil(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  La stå tom hvis kurset ikke utløper
+                  Tomt felt = utløper ikke. Dato i fortiden registreres som utløpt kompetanse.
                 </p>
               </div>
             </div>
