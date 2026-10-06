@@ -133,8 +133,9 @@ export function RiskAssessmentImportCard({
           Importer eksisterende risikovurdering
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Last opp PDF, Word eller Excel (.xlsx). AI lager bare et strukturert utkast;
-          innholdet må kontrolleres og verifiseres av et menneske.
+          Last opp PDF, Word eller Excel (.xlsx). Excel leses fra kolonnene i
+          risikoregisteret. PDF og Word tolkes til et utkast. Innholdet må
+          kontrolleres og verifiseres av et menneske.
         </p>
       </CardHeader>
       <CardContent className="space-y-5">

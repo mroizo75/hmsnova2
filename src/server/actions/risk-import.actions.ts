@@ -18,6 +18,11 @@ import {
   parseRiskImportResponse,
   type ConfirmRiskImportInput,
 } from "@/features/risks/lib/risk-import";
+import {
+  parseRiskSpreadsheet,
+  sheetRowsFromWorkbook,
+  spreadsheetToText,
+} from "@/features/risks/lib/risk-spreadsheet";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
 import { checkRateLimitPolicy } from "@/lib/rate-limit";
 
@@ -33,27 +38,13 @@ function fail(message: string) {
   return { success: false as const, error: message };
 }
 
-async function extractSpreadsheetText(buffer: Buffer): Promise<string> {
+async function readSpreadsheet(buffer: Buffer) {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
-  const lines: string[] = [];
-  for (const sheet of workbook.worksheets.slice(0, 10)) {
-    lines.push(`ARK: ${sheet.name}`);
-    sheet.eachRow({ includeEmpty: false }, (row) => {
-      const values: string[] = [];
-      row.eachCell({ includeEmpty: true }, (cell, columnNumber) => {
-        values[columnNumber - 1] = cell.text.trim();
-      });
-      lines.push(values.join("\t"));
-    });
-  }
-  return lines.join("\n");
+  return sheetRowsFromWorkbook(workbook);
 }
 
 async function extractImportText(buffer: Buffer, mimeType: string) {
-  if (mimeType === XLSX_MIME) {
-    return extractSpreadsheetText(buffer);
-  }
   if (mimeType === PDF_MIME) {
     return extractTextFromPDF(buffer);
   }
@@ -109,7 +100,26 @@ export async function previewRiskAssessmentImport(formData: FormData) {
       tenantId: auth.tenantId,
       uploadedById: auth.userId,
     });
-    const extractedText = await extractImportText(buffer, validation.detectedType);
+
+    let extractedText = "";
+    if (validation.detectedType === XLSX_MIME) {
+      const sheets = await readSpreadsheet(buffer);
+      const structured = parseRiskSpreadsheet(sheets, { fileName: file.name });
+      if (structured) {
+        return {
+          success: true as const,
+          data: {
+            ...structured,
+            fileKey,
+            fileName: file.name,
+            mimeType: validation.detectedType,
+          },
+        };
+      }
+      extractedText = spreadsheetToText(sheets);
+    } else {
+      extractedText = await extractImportText(buffer, validation.detectedType);
+    }
     if (extractedText.trim().length < 20) {
       throw new Error("Dokumentet inneholder for lite lesbar tekst");
     }
