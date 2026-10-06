@@ -81,7 +81,7 @@ export function InspectionMobileContent({ initialData, inspectionId }: Inspectio
               </div>
             </div>
 
-            {inspection.formSubmission ? (
+            {inspection.formSubmission && inspection.formSubmission.status !== "DRAFT" ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-3 rounded-md">
                   <CheckCircle className="h-4 w-4" />
@@ -98,7 +98,9 @@ export function InspectionMobileContent({ initialData, inspectionId }: Inspectio
                   <span>{t("form.warning")}</span>
                 </div>
                 <Link href={`/dashboard/inspections/${inspectionId}/fill`}>
-                  <Button className="w-full">{t("form.fill")}</Button>
+                  <Button className="w-full">
+                    {inspection.formSubmission?.status === "DRAFT" ? t("form.continueDraft") : t("form.fill")}
+                  </Button>
                 </Link>
               </div>
             )}

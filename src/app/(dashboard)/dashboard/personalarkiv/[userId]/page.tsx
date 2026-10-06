@@ -44,7 +44,11 @@ export default async function PersonalmappePage({
           auth.permissions.canReadHrNotes || auth.permissions.canReadDepartmentPersonnelFiles
         }
         canEditNotes={auth.permissions.canReadHrNotes}
-        canEditKin={auth.userId === userId || auth.permissions.canReadHrNotes}
+        canEditKin={
+          auth.userId === userId ||
+          auth.permissions.canReadHrNotes ||
+          auth.role === "LEDER"
+        }
         canEditBirthDate={auth.userId === userId || auth.permissions.canReadHrNotes}
         hrThread={hrThread}
         hrTemplates={hrTemplates}

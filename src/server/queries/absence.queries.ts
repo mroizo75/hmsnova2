@@ -2,14 +2,19 @@
 
 import { prisma } from "@/lib/db";
 import { getAuthContext } from "@/lib/server-authorization";
+import { listVisibleEmployeeIds } from "@/server/lib/leader-employees";
+import { isLeaderScopedRole } from "@/features/personnel/lib/leader-scope";
 
 export async function fetchAbsences() {
   const auth = await getAuthContext();
   const { tenantId, userId, permissions } = auth;
 
   let where: any;
+  const visibleIds = await listVisibleEmployeeIds(auth);
 
-  if (permissions.canReadAllAbsence) {
+  if (visibleIds) {
+    where = { tenantId, userId: { in: visibleIds } };
+  } else if (permissions.canReadAllAbsence) {
     where = { tenantId };
   } else if (permissions.canReadOwnAbsence) {
     // LEDER ser også fravær for ansatte de er leder for
@@ -67,8 +72,11 @@ export async function fetchAbsenceById(id: string) {
 
   if (!absence) return null;
 
+  const visibleIds = await listVisibleEmployeeIds(auth);
+  if (visibleIds && !visibleIds.includes(absence.userId)) return null;
+
   // LEDER-sjekk: tillat lesing for leder selv om de ikke har canReadAllAbsence
-  if (!permissions.canReadAllAbsence && absence.userId !== userId) {
+  if (!isLeaderScopedRole(auth.role) && !permissions.canReadAllAbsence && absence.userId !== userId) {
     const isManager = await prisma.userTenant.findFirst({
       where: { tenantId, userId: absence.userId, managerId: userId },
     });
@@ -214,7 +222,10 @@ export async function fetchFollowUps(absenceId: string) {
   });
   if (!absence) return [];
 
-  if (!permissions.canReadAllAbsence && absence.userId !== userId) {
+  const visibleIds = await listVisibleEmployeeIds(auth);
+  if (visibleIds && !visibleIds.includes(absence.userId)) return [];
+
+  if (!visibleIds && !permissions.canReadAllAbsence && absence.userId !== userId) {
     const isManager = await prisma.userTenant.findFirst({
       where: { tenantId, userId: absence.userId, managerId: userId },
     });
@@ -250,7 +261,10 @@ export async function fetchFollowUpById(id: string) {
 
   if (!followUp) return null;
 
-  if (!permissions.canReadAllAbsence && followUp.absence.userId !== userId) {
+  const visibleIds = await listVisibleEmployeeIds(auth);
+  if (visibleIds && !visibleIds.includes(followUp.absence.userId)) return null;
+
+  if (!visibleIds && !permissions.canReadAllAbsence && followUp.absence.userId !== userId) {
     const isManager = await prisma.userTenant.findFirst({
       where: { tenantId, userId: followUp.absence.userId, managerId: userId },
     });

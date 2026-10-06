@@ -101,12 +101,42 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    let existingDraftId: string | null = null;
+    if (inspectionId) {
+      const inspectionForDraft = await prisma.inspection.findFirst({
+        where: { id: inspectionId, tenantId: sessionTenantId },
+        select: { formSubmissionId: true },
+      });
+      if (inspectionForDraft?.formSubmissionId) {
+        const linked = await prisma.formSubmission.findFirst({
+          where: {
+            id: inspectionForDraft.formSubmissionId,
+            tenantId: sessionTenantId,
+            status: "DRAFT",
+          },
+          select: { id: true },
+        });
+        existingDraftId = linked?.id ?? null;
+      }
+      if (!existingDraftId) {
+        const loose = await prisma.formSubmission.findFirst({
+          where: {
+            tenantId: sessionTenantId,
+            formTemplateId: formId,
+            status: "DRAFT",
+            metadata: { contains: `"inspectionId":"${inspectionId}"` },
+          },
+          orderBy: { updatedAt: "desc" },
+          select: { id: true },
+        });
+        existingDraftId = loose?.id ?? null;
+      }
+    }
+
     const sequenceType = getFormSequenceType(form.numberPrefix ?? null);
-    const submissionNumber = await generateSequenceNumber(
-      tenantId,
-      sequenceType,
-      new Date().getFullYear()
-    );
+    const submissionNumber = existingDraftId
+      ? undefined
+      : await generateSequenceNumber(tenantId, sequenceType, new Date().getFullYear());
 
     // Anonyme svar for psykososiale skjemaer (ISO 45003, AML § 4-3)
     const isAnonymous =
@@ -125,6 +155,19 @@ export async function POST(request: NextRequest) {
         metadataObj.fieldComments = JSON.parse(fieldCommentsJson);
       } catch {
         // Ignorer ugyldig JSON
+      }
+    }
+    if (inspectionId) {
+      metadataObj.inspectionId = inspectionId;
+    }
+    if (status === "DRAFT" && inspectionFindingsJson) {
+      try {
+        metadataObj.inspectionFindings = JSON.parse(inspectionFindingsJson);
+      } catch {
+        return NextResponse.json(
+          { error: "Ugyldig format for inspeksjonsfunn" },
+          { status: 400 }
+        );
       }
     }
 
@@ -166,19 +209,38 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Opprett submission
-    const submission = await prisma.formSubmission.create({
-      data: {
-        formTemplateId: formId,
-        tenantId,
-        projectId: selectedProjectId,
-        submissionNumber,
-        submittedById: isAnonymous ? null : userId,
-        status: status as "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED",
-        signedAt: signature ? new Date() : null,
-        metadata: Object.keys(metadataObj).length > 0 ? JSON.stringify(metadataObj) : null,
-      },
-    });
+    const submissionData = {
+      formTemplateId: formId,
+      tenantId,
+      projectId: selectedProjectId,
+      submittedById: isAnonymous ? null : userId,
+      status: status as "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED",
+      signedAt: signature ? new Date() : null,
+      metadata: Object.keys(metadataObj).length > 0 ? JSON.stringify(metadataObj) : null,
+    };
+
+    const submission = existingDraftId
+      ? await prisma.formSubmission.update({
+          where: { id: existingDraftId },
+          data: submissionData,
+        })
+      : await prisma.formSubmission.create({
+          data: {
+            ...submissionData,
+            submissionNumber,
+          },
+        });
+
+    const previousFileValues = existingDraftId
+      ? await prisma.formFieldValue.findMany({
+          where: { submissionId: existingDraftId, fileKey: { not: null } },
+          select: { fieldId: true, fileKey: true },
+        })
+      : [];
+
+    if (existingDraftId) {
+      await prisma.formFieldValue.deleteMany({ where: { submissionId: existingDraftId } });
+    }
 
     // Lagre feltverdier
     for (const field of form.fields) {
@@ -212,6 +274,17 @@ export async function POST(request: NextRequest) {
             },
           });
           continue;
+        }
+
+        const previousFile = previousFileValues.find((item) => item.fieldId === field.id && item.fileKey);
+        if (previousFile?.fileKey) {
+          await prisma.formFieldValue.create({
+            data: {
+              submissionId: submission.id,
+              fieldId: field.id,
+              fileKey: previousFile.fileKey,
+            },
+          });
         }
       }
 
@@ -308,6 +381,22 @@ export async function POST(request: NextRequest) {
           completedDate: new Date(),
         },
       });
+    }
+
+    if (status === "DRAFT" && inspectionId) {
+      const openInspection = await prisma.inspection.findFirst({
+        where: { id: inspectionId, tenantId: sessionTenantId },
+        select: { status: true },
+      });
+      if (openInspection && (openInspection.status === "PLANNED" || openInspection.status === "IN_PROGRESS")) {
+        await prisma.inspection.update({
+          where: { id: inspectionId },
+          data: {
+            formSubmissionId: submission.id,
+            ...(openInspection.status === "PLANNED" ? { status: "IN_PROGRESS" } : {}),
+          },
+        });
+      }
     }
 
     // Send varsling til lederroller hvis skjemaet sendes inn (ikke kladd)

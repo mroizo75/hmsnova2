@@ -3,7 +3,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TenantSettingsForm } from "@/features/settings/components/tenant-settings-form";
+import { HrProfileForm } from "@/features/personnel/components/hr-profile-form";
 import { UserProfileForm } from "@/features/settings/components/user-profile-form";
 import { TotpSetup } from "@/features/whistleblowing/components/totp-setup";
 import { SubscriptionInfo } from "@/features/settings/components/subscription-info";
@@ -158,6 +160,24 @@ export function SettingsContent({
 
       <TabsContent value="profile" className="space-y-6">
         <UserProfileForm user={user} />
+        <Card>
+          <CardHeader>
+            <CardTitle>Personalopplysninger</CardTitle>
+            <CardDescription>
+              Samme opplysninger som ansatte kan legge inn: fødselsdato, pårørende, nasjonalitet og ansatt fra.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <HrProfileForm
+              userId={user.id}
+              profile={data.hrProfile}
+              canEditHrFields
+              canEditNotes={data.hrProfile.canReadHrNotes}
+              canEditKin
+              canEditBirthDate
+            />
+          </CardContent>
+        </Card>
         <TotpSetup />
       </TabsContent>
 

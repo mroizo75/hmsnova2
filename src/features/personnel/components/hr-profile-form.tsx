@@ -78,27 +78,31 @@ export function HrProfileForm({
       {profile.employeeNumber && (
         <p className="text-sm text-muted-foreground">Lønnsnummer: {profile.employeeNumber}</p>
       )}
-      {(canEditHrFields || canEditNotes) && (
+      {(canEditHrFields || canEditBirthDate) && (
         <div className="grid gap-4 sm:grid-cols-2">
+          {canEditHrFields && (
           <div className="space-y-2">
             <Label htmlFor="nationality">Nasjonalitet</Label>
             <Input
               id="nationality"
               value={nationality}
               onChange={(event) => setNationality(event.target.value)}
-              disabled={!canEditNotes}
+              disabled={!canEditHrFields}
             />
           </div>
+          )}
+          {canEditHrFields && (
           <div className="space-y-2">
             <Label htmlFor="languages">Arbeidsspråk</Label>
             <Input
               id="languages"
               value={languages}
               onChange={(event) => setLanguages(event.target.value)}
-              disabled={!canEditHrFields}
               placeholder="Norsk, engelsk"
             />
           </div>
+          )}
+          {canEditHrFields && (
           <div className="space-y-2">
             <Label htmlFor="startedAt">Ansatt fra</Label>
             <Input
@@ -106,9 +110,9 @@ export function HrProfileForm({
               type="date"
               value={startedAt}
               onChange={(event) => setStartedAt(event.target.value)}
-              disabled={!canEditHrFields}
             />
           </div>
+          )}
           {(canEditBirthDate || profile.dateOfBirth) && (
             <div className="space-y-2">
               <Label htmlFor="dateOfBirth">Fødselsdato</Label>

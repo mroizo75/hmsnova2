@@ -139,16 +139,20 @@ export function InspectionDetailContent({
                   <p className="text-sm text-muted-foreground mt-1">{inspection.formTemplate.description}</p>
                 )}
               </div>
-              {inspection.formSubmission && (
+              {inspection.formSubmission?.status === "DRAFT" ? (
+                <Badge className="bg-amber-100 text-amber-800">
+                  {t("form.draft")}
+                </Badge>
+              ) : inspection.formSubmission ? (
                 <Badge className="bg-green-100 text-green-800">
                   <CheckCircle2 className="h-3 w-3 mr-1" />
                   {t("form.completed")}
                 </Badge>
-              )}
+              ) : null}
             </div>
           </CardHeader>
           <CardContent>
-            {inspection.formSubmission ? (
+            {inspection.formSubmission && inspection.formSubmission.status !== "DRAFT" ? (
               <div className="space-y-4">
                 <div className="rounded-md border p-4 space-y-3">
                   {inspection.formTemplate.fields.map((field: any) => {
@@ -177,7 +181,9 @@ export function InspectionDetailContent({
                   <span>{t("form.warning")}</span>
                 </div>
                 <Link href={`/dashboard/inspections/${inspectionId}/fill`}>
-                  <Button className="w-full">{t("form.fillNow")}</Button>
+                  <Button className="w-full">
+                    {inspection.formSubmission?.status === "DRAFT" ? t("form.continueDraft") : t("form.fillNow")}
+                  </Button>
                 </Link>
               </div>
             )}

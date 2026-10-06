@@ -3,6 +3,8 @@
 import { prisma } from "@/lib/db";
 import { getAuthContext } from "@/lib/server-authorization";
 import { canAccessPersonnelFile } from "@/features/personnel/lib/personnel-categories";
+import { listVisibleEmployeeIds } from "@/server/lib/leader-employees";
+import { isLeaderScopedRole, managedEmployeeFilter } from "@/features/personnel/lib/leader-scope";
 
 export type HrOverviewAttention = {
   id: string;
@@ -34,20 +36,28 @@ export async function fetchHrOverview(): Promise<HrOverview | null> {
   const canReviews =
     auth.permissions.canReadAllEmployeeReviews || auth.permissions.canReadOwnEmployeeReviews;
 
-  const absenceWhere = auth.permissions.canReadAllAbsence
-    ? { tenantId: auth.tenantId }
-    : { tenantId: auth.tenantId, userId: auth.userId };
+  const visibleIds = await listVisibleEmployeeIds(auth);
 
-  const boardingWhere = auth.permissions.canReadAllBoarding
-    ? { tenantId: auth.tenantId }
-    : { tenantId: auth.tenantId, employeeId: auth.userId };
+  const absenceWhere = visibleIds
+    ? { tenantId: auth.tenantId, userId: { in: visibleIds } }
+    : auth.permissions.canReadAllAbsence
+      ? { tenantId: auth.tenantId }
+      : { tenantId: auth.tenantId, userId: auth.userId };
 
-  const reviewWhere = auth.permissions.canReadAllEmployeeReviews
-    ? { tenantId: auth.tenantId }
-    : {
-        tenantId: auth.tenantId,
-        OR: [{ employeeId: auth.userId }, { reviewerId: auth.userId }],
-      };
+  const boardingWhere = visibleIds
+    ? { tenantId: auth.tenantId, employeeId: { in: visibleIds } }
+    : auth.permissions.canReadAllBoarding
+      ? { tenantId: auth.tenantId }
+      : { tenantId: auth.tenantId, employeeId: auth.userId };
+
+  const reviewWhere = visibleIds
+    ? { tenantId: auth.tenantId, employeeId: { in: visibleIds } }
+    : auth.permissions.canReadAllEmployeeReviews
+      ? { tenantId: auth.tenantId }
+      : {
+          tenantId: auth.tenantId,
+          OR: [{ employeeId: auth.userId }, { reviewerId: auth.userId }],
+        };
 
   const [
     employeeCount,
@@ -64,7 +74,11 @@ export async function fetchHrOverview(): Promise<HrOverview | null> {
       ? prisma.userTenant.count({
           where: {
             tenantId: auth.tenantId,
-            ...(auth.permissions.canReadAllPersonnelFiles ? {} : { departmentId: auth.departmentId ?? "__none__" }),
+            ...(visibleIds
+              ? managedEmployeeFilter(auth.userId)
+              : auth.permissions.canReadAllPersonnelFiles
+                ? {}
+                : { departmentId: auth.departmentId ?? "__none__" }),
           },
         })
       : Promise.resolve(null),
@@ -175,19 +189,21 @@ export async function fetchEmployeeHrThread(userId: string): Promise<EmployeeHrT
 
   const membership = await prisma.userTenant.findUnique({
     where: { userId_tenantId: { userId, tenantId: auth.tenantId } },
-    select: { departmentId: true },
+    select: { departmentId: true, managerId: true },
   });
   if (!membership) return null;
 
-  const allowed = canAccessPersonnelFile({
-    viewerId: auth.userId,
-    employeeId: userId,
-    canReadOwn: auth.permissions.canReadOwnPersonnelFile,
-    canReadAll: auth.permissions.canReadAllPersonnelFiles,
-    canReadDepartment: auth.permissions.canReadDepartmentPersonnelFiles,
-    viewerDepartmentId: auth.departmentId,
-    employeeDepartmentId: membership.departmentId,
-  });
+  const allowed = isLeaderScopedRole(auth.role)
+    ? auth.userId === userId || membership.managerId === auth.userId
+    : canAccessPersonnelFile({
+        viewerId: auth.userId,
+        employeeId: userId,
+        canReadOwn: auth.permissions.canReadOwnPersonnelFile,
+        canReadAll: auth.permissions.canReadAllPersonnelFiles,
+        canReadDepartment: auth.permissions.canReadDepartmentPersonnelFiles,
+        viewerDepartmentId: auth.departmentId,
+        employeeDepartmentId: membership.departmentId,
+      });
   if (!allowed) return null;
 
   const now = new Date();

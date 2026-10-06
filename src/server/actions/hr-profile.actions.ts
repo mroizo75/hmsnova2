@@ -17,7 +17,7 @@ function fail(message: string) {
 async function loadMembership(userId: string, tenantId: string) {
   return prisma.userTenant.findUnique({
     where: { userId_tenantId: { userId, tenantId } },
-    select: { id: true, departmentId: true },
+    select: { id: true, departmentId: true, managerId: true },
   });
 }
 
@@ -39,21 +39,21 @@ export async function updateEmployeeHrProfile(input: {
     auth.permissions.canReadDepartmentPersonnelFiles &&
     auth.departmentId != null;
 
-  if (!isSelf && !canHr && !canDept) {
-    return fail("Du har ikke tilgang til å oppdatere personalopplysninger");
-  }
-
   const membership = await loadMembership(input.userId, auth.tenantId);
   if (!membership) return fail("Brukeren er ikke medlem i virksomheten");
 
-  if (!isSelf && canDept && !canHr && membership.departmentId !== auth.departmentId) {
+  const isDirectManager = membership.managerId === auth.userId;
+  if (!isSelf && !canHr && !canDept && !isDirectManager) {
+    return fail("Du har ikke tilgang til å oppdatere personalopplysninger");
+  }
+  if (!isSelf && canDept && !canHr && !isDirectManager && membership.departmentId !== auth.departmentId) {
     return fail("Du kan bare oppdatere ansatte i egen avdeling");
   }
 
   const canWriteNotes = canHr;
-  const canWriteHrFields = canHr || canDept;
-  const canWriteNationality = canHr;
-  const canWriteKin = isSelf || canHr || canDept;
+  const canWriteHrFields = isSelf || canHr || canDept || isDirectManager;
+  const canWriteNationality = isSelf || canHr;
+  const canWriteKin = isSelf || canHr || canDept || isDirectManager;
 
   try {
     await prisma.employeeHrProfile.upsert({

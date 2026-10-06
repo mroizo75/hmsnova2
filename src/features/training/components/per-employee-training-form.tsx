@@ -22,6 +22,12 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { createEmployeeTrainings } from "@/server/actions/training.actions";
+import {
+  courseKeyForEmployeeRow,
+  employeeCourseRowIssue,
+  employeeCourseStepIssues,
+  isBlankEmployeeCourseRow,
+} from "@/features/training/lib/employee-course-rows";
 import { CertificateFileDrop } from "@/features/training/components/certificate-file-drop";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -121,7 +127,7 @@ export function PerEmployeeTrainingForm({
   const handleCourseSelect = (rowId: string, courseKey: string) => {
     const course = courseTemplates.find((c) => c.courseKey === courseKey);
     if (!course) {
-      updateRow(rowId, { courseKey, title: "", provider: "", validUntil: "" });
+      updateRow(rowId, { courseKey });
       return;
     }
     let validUntil = "";
@@ -153,9 +159,9 @@ export function PerEmployeeTrainingForm({
   };
 
   const canProceedStep1 = !!selectedUserId;
-  const canProceedStep2 = rows.every(
-    (r) => r.courseKey && r.title.length >= 3 && r.provider.length >= 2
-  ) && rows.length > 0;
+  const step2Issues = employeeCourseStepIssues(rows);
+  const canProceedStep2 = step2Issues.length === 0;
+  const activeRows = rows.filter((row) => !isBlankEmployeeCourseRow(row));
 
   const uploadFile = async (file: File): Promise<string | null> => {
     const fd = new FormData();
@@ -170,16 +176,16 @@ export function PerEmployeeTrainingForm({
     setLoading(true);
     try {
       const courses = await Promise.all(
-        rows.map(async (row) => {
+        activeRows.map(async (row, index) => {
           let proofDocKey: string | undefined = undefined;
           if (row.file) {
             const key = await uploadFile(row.file);
             proofDocKey = key ?? undefined;
           }
           return {
-            courseKey: row.courseKey,
-            title: row.title,
-            provider: row.provider,
+            courseKey: courseKeyForEmployeeRow(row, index),
+            title: row.title.trim(),
+            provider: row.provider.trim(),
             completedAt: row.completedAt || undefined,
             validUntil: row.validUntil || undefined,
             isRequired: row.isRequired,
@@ -197,7 +203,7 @@ export function PerEmployeeTrainingForm({
       if (result.success) {
         toast({
           title: "Kurs registrert",
-          description: `${rows.length} kurs er registrert for ${selectedUser?.name || selectedUser?.email}`,
+          description: `${activeRows.length} kurs er registrert for ${selectedUser?.name || selectedUser?.email}`,
           className: "bg-green-50 border-green-200",
         });
         handleClose(false);
@@ -339,10 +345,14 @@ export function PerEmployeeTrainingForm({
             </div>
 
             <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
-              {rows.map((row, idx) => (
+              {rows.map((row, idx) => {
+                const rowIssue = employeeCourseRowIssue(row);
+                return (
                 <div
                   key={row.rowId}
-                  className="rounded-lg border p-3 space-y-3 relative"
+                  className={`rounded-lg border p-3 space-y-3 relative ${
+                    rowIssue ? "border-destructive" : ""
+                  }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -366,8 +376,15 @@ export function PerEmployeeTrainingForm({
                     <div className="col-span-2 space-y-1">
                       <Label className="text-xs">Kursmal</Label>
                       <Select
-                        value={row.courseKey}
+                        value={row.courseKey || undefined}
                         onValueChange={(v) => handleCourseSelect(row.rowId, v)}
+                        onOpenChange={(open) => {
+                          if (!open) {
+                            window.setTimeout(() => {
+                              document.body.style.pointerEvents = "";
+                            }, 0);
+                          }
+                        }}
                         disabled={loading}
                       >
                         <SelectTrigger className="h-8 text-sm">
@@ -477,8 +494,12 @@ export function PerEmployeeTrainingForm({
                       </Label>
                     </div>
                   </div>
+                  {rowIssue && (
+                    <p className="text-xs text-destructive">{rowIssue}</p>
+                  )}
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             <Button
@@ -491,6 +512,9 @@ export function PerEmployeeTrainingForm({
               <Plus className="mr-2 h-4 w-4" />
               Legg til ett kurs til
             </Button>
+            {step2Issues.length > 0 && (
+              <p className="text-xs text-destructive">{step2Issues[0]}</p>
+            )}
           </div>
         )}
 
@@ -505,16 +529,16 @@ export function PerEmployeeTrainingForm({
                   {selectedUser?.name || selectedUser?.email}
                 </span>
                 <span className="text-muted-foreground">Antall kurs</span>
-                <span className="font-semibold text-primary">{rows.length}</span>
+                <span className="font-semibold text-primary">{activeRows.length}</span>
                 <span className="text-muted-foreground">Diplomer klar</span>
                 <span className="font-medium">
-                  {rows.filter((r) => r.file).length} av {rows.length}
+                  {activeRows.filter((r) => r.file).length} av {activeRows.length}
                 </span>
               </div>
             </div>
 
             <div className="border rounded-lg divide-y max-h-52 overflow-y-auto">
-              {rows.map((row, idx) => (
+              {activeRows.map((row) => (
                 <div
                   key={row.rowId}
                   className="flex items-center justify-between px-4 py-2.5"
@@ -545,14 +569,14 @@ export function PerEmployeeTrainingForm({
 
             <p className="text-xs text-muted-foreground bg-blue-50 border border-blue-200 rounded p-2">
               Dette vil opprette{" "}
-              <strong>{rows.length} kursregistreringer</strong> for{" "}
+              <strong>{activeRows.length} kursregistreringer</strong> for{" "}
               <strong>{selectedUser?.name || selectedUser?.email}</strong>.
             </p>
           </div>
         )}
 
         {/* Navigasjonsknapper */}
-        <div className="flex justify-between pt-2 border-t mt-4">
+        <div className="sticky bottom-0 flex justify-between border-t bg-background pt-2">
           <Button
             type="button"
             variant="outline"
@@ -590,7 +614,7 @@ export function PerEmployeeTrainingForm({
               ) : (
                 <>
                   <CheckCircle2 className="mr-2 h-4 w-4" />
-                  Registrer {rows.length} kurs
+                  Registrer {activeRows.length} kurs
                 </>
               )}
             </Button>

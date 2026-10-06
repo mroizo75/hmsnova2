@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { getAuthContext } from "@/lib/server-authorization";
+import { canViewEmployee, listVisibleEmployeeIds } from "@/server/lib/leader-employees";
 
 export async function fetchProfiles() {
   const auth = await getAuthContext();
@@ -40,7 +41,12 @@ export async function fetchProfileById(id: string) {
     },
   });
 
-  return profile ? JSON.parse(JSON.stringify(profile)) : null;
+  if (!profile) return null;
+  const visibleIds = await listVisibleEmployeeIds(auth);
+  if (visibleIds) {
+    profile.users = profile.users.filter((row) => visibleIds.includes(row.userId));
+  }
+  return JSON.parse(JSON.stringify(profile));
 }
 
 export interface GapItem {
@@ -73,6 +79,13 @@ export async function fetchUserGapAnalysis(userId: string): Promise<UserGapResul
   const { tenantId, permissions } = auth;
 
   if (!permissions.canReadAllTraining && auth.userId !== userId) return null;
+  const visible = await canViewEmployee({
+    tenantId,
+    viewerId: auth.userId,
+    role: auth.role,
+    employeeId: userId,
+  });
+  if (!visible) return null;
 
   const userTenant = await prisma.userTenant.findFirst({
     where: { tenantId, userId },

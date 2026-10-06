@@ -2,6 +2,8 @@
 
 import { prisma } from "@/lib/db";
 import { getTenantContextSafe } from "@/lib/tenant-context";
+import { getAuthContext } from "@/lib/server-authorization";
+import { listVisibleEmployeeIds } from "@/server/lib/leader-employees";
 
 /** AML § 3-2: krav gjelder arbeidet den ansatte er tildelt, ikke alle i bedriften. */
 async function requiredCourseKeysByUser(tenantId: string): Promise<Record<string, string[]>> {
@@ -33,17 +35,21 @@ async function requiredCourseKeysByUser(tenantId: string): Promise<Record<string
 }
 
 export async function fetchTrainingList() {
-  const ctx = await getTenantContextSafe();
-  if (!ctx) return { trainingsRaw: [], tenantUsers: [], courseTemplates: [], reminderDays: 30, requiredCourseKeysByUser: {} };
-  const { tenantId } = ctx;
+  const auth = await getAuthContext();
+  if (!auth) return { trainingsRaw: [], tenantUsers: [], courseTemplates: [], reminderDays: 30, requiredCourseKeysByUser: {} };
+  const { tenantId } = auth;
+  const visibleIds = await listVisibleEmployeeIds(auth);
 
   const [trainingsRaw, tenantUsers, courseTemplates, tenant, requiredByUser] = await Promise.all([
     prisma.training.findMany({
-      where: { tenantId },
+      where: { tenantId, ...(visibleIds ? { userId: { in: visibleIds } } : {}) },
       orderBy: { createdAt: "desc" },
     }),
     prisma.user.findMany({
-      where: { tenants: { some: { tenantId } } },
+      where: {
+        ...(visibleIds ? { id: { in: visibleIds } } : {}),
+        tenants: { some: { tenantId } },
+      },
       select: { id: true, name: true, email: true },
     }),
     prisma.courseTemplate.findMany({
@@ -72,15 +78,17 @@ export async function fetchTrainingList() {
 }
 
 export async function fetchTrainingDetail(id: string) {
-  const ctx = await getTenantContextSafe();
-  if (!ctx) return null;
-  const { tenantId } = ctx;
+  const auth = await getAuthContext();
+  if (!auth) return null;
+  const { tenantId } = auth;
 
   const training = await prisma.training.findUnique({
     where: { id, tenantId },
   });
 
   if (!training) return null;
+  const visibleIds = await listVisibleEmployeeIds(auth);
+  if (visibleIds && !visibleIds.includes(training.userId)) return null;
 
   const trainedUser = await prisma.user.findUnique({
     where: { id: training.userId },
@@ -119,17 +127,21 @@ export async function fetchTrainingCourses() {
 }
 
 export async function fetchTrainingMatrix() {
-  const ctx = await getTenantContextSafe();
-  if (!ctx) return { matrix: [], courseTemplates: [], reminderDays: 30, requiredCourseKeysByUser: {} };
-  const { tenantId } = ctx;
+  const auth = await getAuthContext();
+  if (!auth) return { matrix: [], courseTemplates: [], reminderDays: 30, requiredCourseKeysByUser: {} };
+  const { tenantId } = auth;
+  const visibleIds = await listVisibleEmployeeIds(auth);
 
   const [users, trainings, courseTemplates, requiredByUser] = await Promise.all([
     prisma.user.findMany({
-      where: { tenants: { some: { tenantId } } },
+      where: {
+        ...(visibleIds ? { id: { in: visibleIds } } : {}),
+        tenants: { some: { tenantId } },
+      },
       select: { id: true, name: true, email: true },
     }),
     prisma.training.findMany({
-      where: { tenantId },
+      where: { tenantId, ...(visibleIds ? { userId: { in: visibleIds } } : {}) },
       orderBy: { courseKey: "asc" },
     }),
     prisma.courseTemplate.findMany({

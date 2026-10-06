@@ -30,7 +30,7 @@ export default async function BrukerePage() {
   const selectedMembership = user.tenants[0];
   const permissions = getPermissions(selectedMembership.role as Role);
 
-  if (!permissions.canManageUsers) {
+  if (!permissions.canManageUsers && selectedMembership.role !== "LEDER") {
     redirect("/dashboard");
   }
 
@@ -49,7 +49,9 @@ export default async function BrukerePage() {
             Brukere
           </h1>
           <p className="mt-1 text-sm text-muted-foreground sm:text-base">
-            Administrer ansatte, roller og tilganger i bedriften
+            {selectedMembership.role === "LEDER"
+              ? "Ansatte som er koblet til deg som nærmeste leder"
+              : "Administrer ansatte, roller og tilganger i bedriften"}
           </p>
         </div>
       </div>

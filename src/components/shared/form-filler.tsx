@@ -60,6 +60,10 @@ interface FormFillerProps {
   initialProjectId?: string;
   /** Satt når bruker kommer fra «Vis alle maler» – må sendes til API ved innsending */
   industryScopeBypass?: boolean;
+  initialValues?: Record<string, string>;
+  initialComments?: Record<string, string>;
+  initialSignature?: string;
+  initialFindings?: Record<string, InspectionFindingDraft[]>;
 }
 
 type InlineInspectionFindingDraft = InspectionFindingDraft;
@@ -110,33 +114,37 @@ export function FormFiller({
   projects = [],
   initialProjectId,
   industryScopeBypass = false,
+  initialValues,
+  initialComments,
+  initialSignature,
+  initialFindings,
 }: FormFillerProps) {
   const isAnonymous = form.isAnonymous ?? false;
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formValues, setFormValues] = useState<Record<string, string>>(() => {
-    if (!initialProjectId) {
-      return {};
-    }
+    const initial = { ...initialValues };
+    if (!initialProjectId) return initial;
 
     const projectField = form.fields.find((field) => field.type === "PROJECT");
-    if (!projectField) {
-      return {};
+    if (projectField && !initial[projectField.id]) {
+      initial[projectField.id] = initialProjectId;
     }
-
-    return { [projectField.id]: initialProjectId };
+    return initial;
   });
-  const [signature, setSignature] = useState<string>("");
+  const [signature, setSignature] = useState<string>(initialSignature ?? "");
   const [files, setFiles] = useState<Record<string, File>>({});
   const [imagePreviews, setImagePreviews] = useState<Record<string, string>>({});
-  const [fieldComments, setFieldComments] = useState<Record<string, string>>({});
-  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+  const [fieldComments, setFieldComments] = useState<Record<string, string>>(initialComments ?? {});
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(
+    () => new Set(Object.keys(initialComments ?? {}).filter((key) => initialComments?.[key])),
+  );
   const cameraInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const findingImageInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [inlineInspectionFindings, setInlineInspectionFindings] = useState<
     Record<string, InlineInspectionFindingDraft[]>
-  >({});
+  >(initialFindings ?? {});
   const [uploadingFindingKey, setUploadingFindingKey] = useState<string | null>(null);
 
   // Merknader er alltid tilgjengelig i vernerunde-kontekst (inspectionId satt)
@@ -414,7 +422,7 @@ export function FormFiller({
       if (Object.keys(nonEmptyComments).length > 0) {
         formData.append("fieldComments", JSON.stringify(nonEmptyComments));
       }
-      if (status === "SUBMITTED" && inspectionId) {
+      if (inspectionId) {
         const inspectionFindings = form.fields
           .filter((field) => isNotOkAnswer(formValues[field.id]))
           .flatMap((field) => {
@@ -462,8 +470,10 @@ export function FormFiller({
 
       toast({
         title: status === "DRAFT" ? "💾 Kladd lagret" : "✅ Skjema sendt inn",
-        description: status === "DRAFT" 
-          ? "Du kan fortsette senere" 
+        description: status === "DRAFT"
+          ? inspectionId
+            ? "Åpne samme vernerunde og velg Fortsett kladd"
+            : "Du kan fortsette senere"
           : form.requiresApproval 
             ? "Venter på godkjenning fra leder"
             : inspectionId

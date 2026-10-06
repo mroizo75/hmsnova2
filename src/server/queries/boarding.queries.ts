@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { getAuthContext } from "@/lib/server-authorization";
+import { listVisibleEmployeeIds } from "@/server/lib/leader-employees";
 
 export async function fetchBoardings(type?: "ONBOARDING" | "OFFBOARDING") {
   const auth = await getAuthContext();
@@ -14,7 +15,10 @@ export async function fetchBoardings(type?: "ONBOARDING" | "OFFBOARDING") {
   const where: any = { tenantId };
   if (type) where.type = type;
 
-  if (!permissions.canReadAllBoarding) {
+  const visibleIds = await listVisibleEmployeeIds(auth);
+  if (visibleIds) {
+    where.employeeId = { in: visibleIds };
+  } else if (!permissions.canReadAllBoarding) {
     where.employeeId = userId;
   }
 
@@ -54,7 +58,10 @@ export async function fetchBoardingById(id: string) {
 
   if (!boarding) return null;
 
-  if (!permissions.canReadAllBoarding && boarding.employeeId !== userId) {
+  const visibleIds = await listVisibleEmployeeIds(auth);
+  if (visibleIds && !visibleIds.includes(boarding.employeeId)) return null;
+
+  if (!visibleIds && !permissions.canReadAllBoarding && boarding.employeeId !== userId) {
     const isAssignee = boarding.tasks.some((t) => t.assigneeId === userId);
     if (!isAssignee) return null;
   }

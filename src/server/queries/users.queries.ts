@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { getTenantContextSafe } from "@/lib/tenant-context";
 import { getInvitableRoles, getPermissions } from "@/lib/permissions";
 import { getTrainingStatus } from "@/features/training/schemas/training.schema";
+import { isLeaderScopedRole, managedEmployeeFilter } from "@/features/personnel/lib/leader-scope";
+import { canViewEmployee } from "@/server/lib/leader-employees";
 import type { Role } from "@prisma/client";
 
 export async function fetchUsers() {
@@ -33,7 +35,10 @@ export async function fetchUsers() {
 
   const [tenantUsers, departments] = await Promise.all([
     prisma.userTenant.findMany({
-      where: { tenantId },
+      where: {
+        tenantId,
+        ...(isLeaderScopedRole(selectedMembership.role) ? managedEmployeeFilter(userId) : {}),
+      },
       include: {
         user: {
           select: {
@@ -88,12 +93,29 @@ export async function fetchUserOverview(userId: string) {
   if (!actor) return null;
 
   const permissions = getPermissions(actor.role as Role);
-  if (!permissions.canManageUsers) return null;
+  const leaderCanView = await canViewEmployee({
+    tenantId,
+    viewerId: actorId,
+    role: actor.role,
+    employeeId: userId,
+  });
+  if (!permissions.canManageUsers && !leaderCanView) return null;
+  if (!permissions.canManageUsers && !isLeaderScopedRole(actor.role)) return null;
 
   const membership = await prisma.userTenant.findUnique({
     where: { userId_tenantId: { userId, tenantId } },
     include: {
-      user: { select: { id: true, name: true, email: true } },
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          address: true,
+          postalCode: true,
+          city: true,
+        },
+      },
       manager: { select: { name: true, email: true } },
       orgDepartment: { select: { name: true } },
       hrProfile: true,
@@ -128,7 +150,10 @@ export async function fetchUserOverview(userId: string) {
   return {
     name: membership.displayName || membership.user.name,
     email: membership.user.email,
-    phone: membership.phone,
+    phone: membership.phone || membership.user.phone,
+    address: membership.user.address,
+    postalCode: membership.user.postalCode,
+    city: membership.user.city,
     role: membership.role,
     employeeNumber: membership.employeeNumber,
     position: membership.position,

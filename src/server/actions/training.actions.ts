@@ -11,6 +11,7 @@ import {
 } from "@/features/training/schemas/training.schema";
 import { hasTenantFeature } from "@/lib/tenant-features";
 import { runHealthcareTrainingExpiryAlerts } from "@/lib/healthcare-training-alerts";
+import { canViewEmployee, listVisibleEmployeeIds } from "@/server/lib/leader-employees";
 
 async function getSessionContext() {
   const tenantContext = await getRequiredTenantContext();
@@ -24,16 +25,25 @@ async function getSessionContext() {
     throw new Error("User not associated with a tenant");
   }
   
-  return { user, tenantId: tenantContext.tenantId };
+  const membership = user.tenants.find((row) => row.tenantId === tenantContext.tenantId);
+  return { user, tenantId: tenantContext.tenantId, role: membership?.role ?? "" };
+}
+
+async function assertEmployeeVisible(tenantId: string, viewerId: string, role: string, employeeId: string) {
+  const allowed = await canViewEmployee({ tenantId, viewerId, role, employeeId });
+  if (!allowed) {
+    throw new Error("Du kan bare se ansatte som er koblet til deg");
+  }
 }
 
 // Hent all opplæring for en tenant
 export async function getTrainings(_tenantId: string) {
   try {
-    const { tenantId } = await getSessionContext();
+    const { tenantId, user, role } = await getSessionContext();
+    const visibleIds = await listVisibleEmployeeIds({ tenantId, userId: user.id, role });
     
     const trainings = await prisma.training.findMany({
-      where: { tenantId },
+      where: { tenantId, ...(visibleIds ? { userId: { in: visibleIds } } : {}) },
       orderBy: [
         { completedAt: "desc" },
         { createdAt: "desc" },
@@ -50,7 +60,8 @@ export async function getTrainings(_tenantId: string) {
 // Hent opplæring for en spesifikk bruker
 export async function getUserTrainings(userId: string) {
   try {
-    const { user, tenantId } = await getSessionContext();
+    const { user, tenantId, role } = await getSessionContext();
+    await assertEmployeeVisible(tenantId, user.id, role, userId);
     
     const trainings = await prisma.training.findMany({
       where: { userId, tenantId },
@@ -67,13 +78,14 @@ export async function getUserTrainings(userId: string) {
 // Opprett ny opplæring (ISO 9001: Dokumentere kompetanse)
 export async function createTraining(input: any) {
   try {
-    const { user, tenantId } = await getSessionContext();
+    const { user, tenantId, role } = await getSessionContext();
     const validated = createTrainingSchema.parse({
       ...input,
       tenantId,
       completedAt: input.completedAt ? new Date(input.completedAt) : undefined,
       validUntil: input.validUntil ? new Date(input.validUntil) : undefined,
     });
+    await assertEmployeeVisible(tenantId, user.id, role, validated.userId);
 
     const duplicate = await prisma.training.findFirst({
       where: {
@@ -131,7 +143,7 @@ export async function createTraining(input: any) {
 // Oppdater opplæring
 export async function updateTraining(input: any) {
   try {
-    const { user, tenantId } = await getSessionContext();
+    const { user, tenantId, role } = await getSessionContext();
     const validated = updateTrainingSchema.parse({
       ...input,
       completedAt: input.completedAt ? new Date(input.completedAt) : undefined,
@@ -145,7 +157,8 @@ export async function updateTraining(input: any) {
     if (!existingTraining) {
       return { success: false, error: "Opplæring ikke funnet" };
     }
-    
+    await assertEmployeeVisible(tenantId, user.id, role, existingTraining.userId);
+
     const training = await prisma.training.update({
       where: { id: validated.id },
       data: {
@@ -214,15 +227,16 @@ export async function evaluateTraining(input: any) {
 // Slett opplæring
 export async function deleteTraining(id: string) {
   try {
-    const { user, tenantId } = await getSessionContext();
-    
+    const { user, tenantId, role } = await getSessionContext();
+
     const training = await prisma.training.findFirst({
       where: { id, tenantId },
     });
-    
+
     if (!training) {
       return { success: false, error: "Opplæring ikke funnet" };
     }
+    await assertEmployeeVisible(tenantId, user.id, role, training.userId);
     
     // Slett dokumentert bevis fra storage hvis det finnes
     if (training.proofDocKey) {
@@ -256,10 +270,11 @@ export async function deleteTraining(id: string) {
 // Få statistikk over opplæring
 export async function getTrainingStats(_tenantId: string) {
   try {
-    const { tenantId } = await getSessionContext();
+    const { tenantId, user, role } = await getSessionContext();
+    const visibleIds = await listVisibleEmployeeIds({ tenantId, userId: user.id, role });
     
     const trainings = await prisma.training.findMany({
-      where: { tenantId },
+      where: { tenantId, ...(visibleIds ? { userId: { in: visibleIds } } : {}) },
     });
     
     const now = new Date();
@@ -310,7 +325,8 @@ export async function createEmployeeTrainings(input: {
   }>;
 }) {
   try {
-    const { user, tenantId } = await getSessionContext();
+    const { user, tenantId, role } = await getSessionContext();
+    await assertEmployeeVisible(tenantId, user.id, role, input.userId);
 
     if (!input.courses || input.courses.length === 0) {
       return { success: false, error: "Ingen kurs lagt til" };
@@ -369,10 +385,14 @@ export async function createBulkTrainings(input: {
   participants: Array<{ userId: string; proofDocKey?: string }>;
 }) {
   try {
-    const { user, tenantId } = await getSessionContext();
+    const { user, tenantId, role } = await getSessionContext();
 
     if (!input.participants || input.participants.length === 0) {
       return { success: false, error: "Ingen deltakere valgt" };
+    }
+
+    for (const participant of input.participants) {
+      await assertEmployeeVisible(tenantId, user.id, role, participant.userId);
     }
 
     const completedAt = input.completedAt ? new Date(input.completedAt) : undefined;

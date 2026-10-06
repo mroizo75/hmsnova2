@@ -1257,6 +1257,7 @@
     },
     "actions": {
       "fillOut": "Fill out",
+      "continueDraft": "Continue draft",
       "viewReport": "View report"
     },
     "info": {
@@ -3874,9 +3875,11 @@
     },
     "form": {
       "completed": "Completed",
+      "draft": "Draft",
       "view": "View completed form",
       "warning": "The form must be completed and submitted to complete the safety round. Items marked \"Not OK\" must be registered as findings.",
-      "fillNow": "Fill out form now"
+      "fillNow": "Fill out form now",
+      "continueDraft": "Continue draft"
     },
     "basicInfo": {
       "title": "Basic information",
@@ -5279,7 +5282,8 @@
       "completed": "Form is completed",
       "view": "View completed form",
       "warning": "Form must be completed and submitted. Items marked \"Not OK\" must be registered as findings.",
-      "fill": "Fill out form"
+      "fill": "Fill out form",
+      "continueDraft": "Continue draft"
     },
     "stats": {
       "registeredFindings": "Registered findings",

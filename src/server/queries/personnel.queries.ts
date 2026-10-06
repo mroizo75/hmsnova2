@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/db";
 import { getAuthContext } from "@/lib/server-authorization";
 import { canAccessPersonnelFile } from "@/features/personnel/lib/personnel-categories";
+import { isLeaderScopedRole, managedEmployeeFilter } from "@/features/personnel/lib/leader-scope";
 import { isHrDocumentCategory } from "@/lib/document-module-scope";
 import { matchesIndustryScope } from "@/lib/industry-scope";
 
@@ -102,12 +103,17 @@ export async function fetchPersonnelEmployees(): Promise<PersonnelEmployeeRow[]>
 
   const canAll = auth.permissions.canReadAllPersonnelFiles;
   const canDept = auth.permissions.canReadDepartmentPersonnelFiles && auth.departmentId;
-  if (!canAll && !canDept) return [];
+  const leaderScope = isLeaderScopedRole(auth.role);
+  if (!canAll && !canDept && !leaderScope) return [];
 
   const memberships = await prisma.userTenant.findMany({
     where: {
       tenantId: auth.tenantId,
-      ...(canAll ? {} : { departmentId: auth.departmentId }),
+      ...(leaderScope
+        ? managedEmployeeFilter(auth.userId)
+        : canAll
+          ? {}
+          : { departmentId: auth.departmentId }),
     },
     include: {
       user: { select: { id: true, name: true, email: true } },
@@ -157,15 +163,18 @@ export async function fetchPersonnelFolder(userId: string): Promise<PersonnelFol
   });
   if (!membership) return null;
 
-  const allowed = canAccessPersonnelFile({
-    viewerId: auth.userId,
-    employeeId: userId,
-    canReadOwn: auth.permissions.canReadOwnPersonnelFile,
-    canReadAll: auth.permissions.canReadAllPersonnelFiles,
-    canReadDepartment: auth.permissions.canReadDepartmentPersonnelFiles,
-    viewerDepartmentId: auth.departmentId,
-    employeeDepartmentId: membership.departmentId,
-  });
+  const isDirectManager = membership.managerId === auth.userId;
+  const allowed = isLeaderScopedRole(auth.role)
+    ? auth.userId === userId || isDirectManager
+    : canAccessPersonnelFile({
+        viewerId: auth.userId,
+        employeeId: userId,
+        canReadOwn: auth.permissions.canReadOwnPersonnelFile,
+        canReadAll: auth.permissions.canReadAllPersonnelFiles,
+        canReadDepartment: auth.permissions.canReadDepartmentPersonnelFiles,
+        viewerDepartmentId: auth.departmentId,
+        employeeDepartmentId: membership.departmentId,
+      });
   if (!allowed) return null;
 
   const documents = await prisma.personnelDocument.findMany({
@@ -176,6 +185,7 @@ export async function fetchPersonnelFolder(userId: string): Promise<PersonnelFol
 
   const canReadHrNotes = auth.permissions.canReadHrNotes;
   const isSelf = auth.userId === userId;
+  const canSeePersonalDetails = canReadHrNotes || isSelf || isDirectManager;
 
   return {
     userId: membership.user.id,
@@ -186,17 +196,17 @@ export async function fetchPersonnelFolder(userId: string): Promise<PersonnelFol
     position: membership.position,
     documents: documents.map(serializeDoc),
     hrProfile: {
-      nationality: canReadHrNotes || auth.permissions.canReadAllPersonnelFiles ? membership.hrProfile?.nationality ?? null : null,
+      nationality: canSeePersonalDetails || auth.permissions.canReadAllPersonnelFiles ? membership.hrProfile?.nationality ?? null : null,
       languages:
-        canReadHrNotes || auth.permissions.canReadDepartmentPersonnelFiles || isSelf
+        canSeePersonalDetails || auth.permissions.canReadDepartmentPersonnelFiles
           ? parseLanguages(membership.hrProfile?.languages)
           : [],
       hrNotes: canReadHrNotes ? membership.hrProfile?.hrNotes ?? null : null,
       startedAt: membership.hrProfile?.startedAt?.toISOString() ?? null,
-      dateOfBirth: canReadHrNotes || isSelf ? membership.hrProfile?.dateOfBirth?.toISOString() ?? null : null,
+      dateOfBirth: canSeePersonalDetails ? membership.hrProfile?.dateOfBirth?.toISOString() ?? null : null,
       employeeNumber: membership.employeeNumber,
       nextOfKin:
-        canReadHrNotes || isSelf
+        canSeePersonalDetails
           ? membership.nextOfKin.map((kin) => ({
               name: kin.name,
               relation: kin.relation,
@@ -278,19 +288,22 @@ export async function fetchPersonnelDevelopment(userId: string): Promise<Personn
 
   const membership = await prisma.userTenant.findUnique({
     where: { userId_tenantId: { userId, tenantId: auth.tenantId } },
-    select: { departmentId: true },
+    select: { departmentId: true, managerId: true },
   });
   if (!membership) return null;
 
-  const allowed = canAccessPersonnelFile({
-    viewerId: auth.userId,
-    employeeId: userId,
-    canReadOwn: auth.permissions.canReadOwnPersonnelFile,
-    canReadAll: auth.permissions.canReadAllPersonnelFiles,
-    canReadDepartment: auth.permissions.canReadDepartmentPersonnelFiles,
-    viewerDepartmentId: auth.departmentId,
-    employeeDepartmentId: membership.departmentId,
-  });
+  const isDirectManager = membership.managerId === auth.userId;
+  const allowed = isLeaderScopedRole(auth.role)
+    ? auth.userId === userId || isDirectManager
+    : canAccessPersonnelFile({
+        viewerId: auth.userId,
+        employeeId: userId,
+        canReadOwn: auth.permissions.canReadOwnPersonnelFile,
+        canReadAll: auth.permissions.canReadAllPersonnelFiles,
+        canReadDepartment: auth.permissions.canReadDepartmentPersonnelFiles,
+        viewerDepartmentId: auth.departmentId,
+        employeeDepartmentId: membership.departmentId,
+      });
   if (!allowed) return null;
 
   const [reviews, statements, profileStatementCount] = await Promise.all([

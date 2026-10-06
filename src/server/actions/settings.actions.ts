@@ -181,7 +181,15 @@ export async function updateTenantSimpleMenuItems(hrefs: string[]) {
 // USER SETTINGS
 // ============================================================================
 
-export async function updateUserProfile(data: { name?: string; email?: string; preferredLocale?: string }) {
+export async function updateUserProfile(data: {
+  name?: string;
+  email?: string;
+  preferredLocale?: string;
+  phone?: string;
+  address?: string;
+  postalCode?: string;
+  city?: string;
+}) {
   try {
     const { user, tenantId } = await getSessionContext();
     const allowedLocales = new Set(["nb", "en"]);
@@ -200,14 +208,29 @@ export async function updateUserProfile(data: { name?: string; email?: string; p
       }
     }
 
+    const contact = {
+      ...(data.phone !== undefined ? { phone: data.phone.trim() || null } : {}),
+      ...(data.address !== undefined ? { address: data.address.trim() || null } : {}),
+      ...(data.postalCode !== undefined ? { postalCode: data.postalCode.trim() || null } : {}),
+      ...(data.city !== undefined ? { city: data.city.trim() || null } : {}),
+    };
+
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
         name: data.name,
         email: data.email,
+        ...contact,
         ...(preferredLocale ? { preferredLocale } : {}),
       },
     });
+
+    if (data.phone !== undefined) {
+      await prisma.userTenant.updateMany({
+        where: { userId: user.id, tenantId },
+        data: { phone: data.phone.trim() || null },
+      });
+    }
 
     revalidatePath("/dashboard/settings");
     triggerRealtimeEvent(tenantId, "settings-updated");

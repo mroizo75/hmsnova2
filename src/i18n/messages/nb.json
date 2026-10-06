@@ -1257,6 +1257,7 @@
     },
     "actions": {
       "fillOut": "Fyll ut",
+      "continueDraft": "Fortsett kladd",
       "viewReport": "Se rapport"
     },
     "info": {
@@ -3874,9 +3875,11 @@
     },
     "form": {
       "completed": "Utfylt",
+      "draft": "Kladd",
       "view": "Se utfylt skjema",
       "warning": "Skjema må fylles ut og sendes inn for å fullføre vernerunden. Punkter merket \"Ikke OK\" skal registreres som funn.",
-      "fillNow": "Fyll ut skjema nå"
+      "fillNow": "Fyll ut skjema nå",
+      "continueDraft": "Fortsett kladd"
     },
     "basicInfo": {
       "title": "Grunnleggende informasjon",
@@ -4923,7 +4926,8 @@
       "completed": "Skjema er utfylt",
       "view": "Se utfylt skjema",
       "warning": "Skjema må fylles ut og sendes inn. Punkter merket \"Ikke OK\" skal registreres som funn.",
-      "fill": "Fyll ut skjema"
+      "fill": "Fyll ut skjema",
+      "continueDraft": "Fortsett kladd"
     },
     "stats": {
       "registeredFindings": "Registrerte funn",

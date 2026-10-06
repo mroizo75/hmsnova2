@@ -4,6 +4,7 @@ import { redirect, notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { FormFiller } from "@/components/shared/form-filler";
+import { loadInspectionFormDraft } from "@/features/inspections/lib/load-inspection-form-draft";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,7 @@ export default async function FillInspectionFormPage({ params }: PageProps) {
   }
 
   const { formTemplate } = inspection;
+  const draft = await loadInspectionFormDraft(inspection.id, tenantId, formTemplate.id);
 
   const form = {
     id: formTemplate.id,
@@ -70,6 +72,10 @@ export default async function FillInspectionFormPage({ params }: PageProps) {
       tenantId={tenantId}
       inspectionId={inspection.id}
       returnUrl="/ansatt/vernerunder"
+      initialValues={draft?.values}
+      initialComments={draft?.comments}
+      initialSignature={draft?.signature}
+      initialFindings={draft?.findings}
     />
   );
 }

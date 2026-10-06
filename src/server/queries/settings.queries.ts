@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { getAuthContext } from "@/lib/server-authorization";
+import { fetchPersonnelFolder } from "@/server/queries/personnel.queries";
 import { HOSPITALITY_COURSE_KEYS } from "@/lib/hospitality-courses";
 import { ensureHospitalityCourses } from "@/server/hospitality-courses";
 
@@ -30,13 +31,14 @@ export async function fetchSettingsData() {
   const tenantId = tenant.id;
   const isAdmin = userTenant.role === "ADMIN";
 
-  const [intelligenceConsent, tavleSubscription, tavleCount] = await Promise.all([
+  const [intelligenceConsent, tavleSubscription, tavleCount, personnelFolder] = await Promise.all([
     prisma.intelligenceConsent.findUnique({ where: { tenantId } }),
     prisma.hmsTavleSubscription.findFirst({
       where: { tenantId, status: { not: "CANCELLED" } },
       orderBy: { createdAt: "desc" },
     }),
     prisma.hmsTavle.count({ where: { tenantId } }),
+    fetchPersonnelFolder(auth.userId),
   ]);
 
   return JSON.parse(JSON.stringify({
@@ -48,6 +50,16 @@ export async function fetchSettingsData() {
     tavleSubscription,
     tavleCount,
     tenantId,
+    hrProfile: personnelFolder?.hrProfile ?? {
+      nationality: null,
+      languages: [],
+      hrNotes: null,
+      startedAt: null,
+      dateOfBirth: null,
+      employeeNumber: userTenant.employeeNumber,
+      nextOfKin: [],
+      canReadHrNotes: auth.permissions.canReadHrNotes,
+    },
   }));
 }
 

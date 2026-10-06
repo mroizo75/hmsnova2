@@ -87,6 +87,9 @@ export function UserOverviewDialog({ userId, onClose }: UserOverviewDialogProps)
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="E-post" value={overview.email} />
               <Field label="Telefon" value={overview.phone} />
+              <Field label="Adresse" value={overview.address} />
+              <Field label="Postnummer" value={overview.postalCode} />
+              <Field label="Poststed" value={overview.city} />
               <Field label="Rolle" value={getRoleDisplayName(overview.role as Role)} />
               <Field label="Ansattnr." value={overview.employeeNumber} />
               <Field label="Stilling" value={overview.position} />

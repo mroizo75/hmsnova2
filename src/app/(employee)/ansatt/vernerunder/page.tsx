@@ -120,8 +120,9 @@ export default async function AnsattVernerunderPage() {
             upcoming.map((inspection) => {
               const statusCfg = getStatusConfig(inspection.status, t);
               const isResponsible = inspection.conductedBy === userId;
+              const hasDraft = inspection.formSubmission?.status === "DRAFT";
               const canFill =
-                inspection.formTemplate && !inspection.formSubmission;
+                inspection.formTemplate && (!inspection.formSubmission || hasDraft);
 
               return (
                 <Card key={inspection.id} className="border-l-4 border-l-blue-400">
@@ -179,7 +180,7 @@ export default async function AnsattVernerunderPage() {
                           className="shrink-0"
                         >
                           <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                            {t("actions.fillOut")}
+                            {hasDraft ? t("actions.continueDraft") : t("actions.fillOut")}
                           </Button>
                         </Link>
                       )}

@@ -34,6 +34,10 @@ export function UserProfileForm({ user }: UserProfileFormProps) {
       name: formData.get("name") as string || undefined,
       email: formData.get("email") as string || undefined,
       preferredLocale: formData.get("preferredLocale") as string || undefined,
+      phone: (formData.get("phone") as string) || "",
+      address: (formData.get("address") as string) || "",
+      postalCode: (formData.get("postalCode") as string) || "",
+      city: (formData.get("city") as string) || "",
     };
 
     const result = await updateUserProfile(data);
@@ -146,6 +150,49 @@ export function UserProfileForm({ user }: UserProfileFormProps) {
               <p className="text-sm text-amber-600">
                 {t("fields.email.help")}
               </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Telefon</Label>
+              <Input
+                id="phone"
+                name="phone"
+                type="tel"
+                placeholder="+47 999 99 999"
+                disabled={loadingProfile}
+                defaultValue={user.phone || ""}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="address">Adresse</Label>
+              <Input
+                id="address"
+                name="address"
+                disabled={loadingProfile}
+                defaultValue={user.address || ""}
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="postalCode">Postnummer</Label>
+                <Input
+                  id="postalCode"
+                  name="postalCode"
+                  disabled={loadingProfile}
+                  defaultValue={user.postalCode || ""}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="city">Poststed</Label>
+                <Input
+                  id="city"
+                  name="city"
+                  disabled={loadingProfile}
+                  defaultValue={user.city || ""}
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
