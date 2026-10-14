@@ -209,7 +209,12 @@ async function hentAarshjul(tenantId: string, now: Date): Promise<TavleAarshjulD
     (step) => !step.industries || step.industries.includes(industry)
   );
   const completed = await prisma.hmsAnnualPlanCompletion.count({
-    where: { tenantId, year, stepKey: { in: applicableSteps.map((step) => step.key) } },
+    where: {
+      tenantId,
+      year,
+      status: "COMPLETED",
+      stepKey: { in: applicableSteps.map((step) => step.key) },
+    },
   });
 
   return { year, completed, total: applicableSteps.length };

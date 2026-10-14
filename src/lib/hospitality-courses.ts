@@ -56,7 +56,7 @@ export const HOSPITALITY_REQUIRED_COURSES: Array<{
     courseKey: HOSPITALITY_COURSE_KEYS.alcohol,
     title: "Ansvarlig alkoholservering",
     description:
-      "Alderskontroll, beruselse og bortvisning. Alkoholloven § 1-7c og alkoholforskriften § 8-3.",
+      "Aldersgrenser, beruselse og bortvisning for ansatte som skjenker. Alkoholloven § 1-7c og alkoholforskriften § 8-3 nr. 2. Kunnskapsprøven for styrer og stedfortreder føres i internkontrollen.",
     isRequired: true,
     validityYears: 2,
     theme: "skjenking",

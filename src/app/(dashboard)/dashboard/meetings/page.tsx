@@ -20,7 +20,7 @@ export default async function MeetingsPage() {
     return notFound();
   }
 
-  const permissions = getPermissions(session.user.role);
+  const permissions = getPermissions(session.user.role, session.user.extraRoles);
 
   if (!permissions.canReadMeetings) {
     redirect("/dashboard");

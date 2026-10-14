@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Ikke autorisert" }, { status: 401 });
   }
 
-  const permissions = getPermissions(session.user.role as Role);
+  const permissions = getPermissions(session.user.role as Role, session.user.extraRoles);
   if (!permissions.canUpdateSettings) {
     return NextResponse.json({ error: "Kun admin kan laste opp logo" }, { status: 403 });
   }
@@ -87,7 +87,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Ikke autorisert" }, { status: 401 });
   }
 
-  const permissions = getPermissions(session.user.role as Role);
+  const permissions = getPermissions(session.user.role as Role, session.user.extraRoles);
   if (!permissions.canUpdateSettings) {
     return NextResponse.json({ error: "Kun admin kan endre logo" }, { status: 403 });
   }

@@ -17,7 +17,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Building2, FileText, Flame, Save } from "lucide-react";
+import { ArrowLeft, Building2, FileText, Flame, Save, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { FIRE_DRILL_TYPE_LABELS } from "@/features/fire-drills/schemas/fire-drill.schema";
 import type { FireDrillType } from "@/features/fire-drills/schemas/fire-drill.schema";
@@ -35,7 +35,10 @@ export default function NewFireDrillPage() {
   const [loadingUsers, setLoadingUsers] = useState(true);
 
   const [routines, setRoutines] = useState<{ id: string; title: string }[]>([]);
+  const [riskAssessments, setRiskAssessments] = useState<{ id: string; title: string }[]>([]);
+  const [emergencyPlans, setEmergencyPlans] = useState<{ id: string; title: string }[]>([]);
   const [loadingRoutines, setLoadingRoutines] = useState(true);
+  const [aiLoading, setAiLoading] = useState(false);
 
   const [form, setForm] = useState({
     title: "",
@@ -48,6 +51,8 @@ export default function NewFireDrillPage() {
     scenario: "",
     riskAssessment: "",
     routineId: "__none__",
+    riskAssessmentId: "__none__",
+    emergencyPlanDocumentId: "__none__",
     sharedPremises: false,
     buildingOwnerCoordinated: false,
     buildingOwnerName: "",
@@ -60,11 +65,12 @@ export default function NewFireDrillPage() {
     const fetchData = async () => {
       if (!session?.user?.tenantId) return;
       try {
-        const [usersRes, routinesResult] = await Promise.all([
+        const [usersRes, routinesResult, linksRes] = await Promise.all([
           fetch(`/api/tenants/${session.user.tenantId}/users`),
           import("@/server/actions/routine.actions").then((mod) =>
             mod.listTenantRoutines()
           ),
+          fetch("/api/fire-drills/link-options"),
         ]);
         const usersData = await usersRes.json();
         if (usersRes.ok && usersData.users) {
@@ -75,6 +81,11 @@ export default function NewFireDrillPage() {
         }
         if (routinesResult.success && routinesResult.data) {
           setRoutines(routinesResult.data.map((r: { id: string; title: string }) => ({ id: r.id, title: r.title })));
+        }
+        if (linksRes.ok) {
+          const links = await linksRes.json();
+          setRiskAssessments(links.riskAssessments ?? []);
+          setEmergencyPlans(links.emergencyPlans ?? []);
         }
       } catch {
         // silent
@@ -88,6 +99,47 @@ export default function NewFireDrillPage() {
 
   const set = (field: string, value: unknown) =>
     setForm((prev) => ({ ...prev, [field]: value }));
+
+  const fillWithAi = async () => {
+    setAiLoading(true);
+    try {
+      const res = await fetch("/api/fire-drills/ai-draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          drillType: form.drillType,
+          location: form.location,
+          isAnnounced: form.isAnnounced,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error ?? "Kunne ikke lage utkast");
+      }
+      setForm((prev) => ({
+        ...prev,
+        title: data.title || prev.title,
+        objectives: data.objectives || prev.objectives,
+        scenario: data.scenario || prev.scenario,
+        riskAssessment: data.riskAssessment || prev.riskAssessment,
+        routineId: data.routineId || prev.routineId,
+        riskAssessmentId: data.riskAssessmentId || prev.riskAssessmentId,
+        emergencyPlanDocumentId: data.emergencyPlanDocumentId || prev.emergencyPlanDocumentId,
+      }));
+      toast({
+        title: "Utkast fylt inn",
+        description: "Les gjennom mål, scenario og koblingene før du lagrer.",
+      });
+    } catch (error) {
+      toast({
+        title: "Kunne ikke fylle inn med AI",
+        description: error instanceof Error ? error.message : "Ukjent feil",
+        variant: "destructive",
+      });
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,6 +160,9 @@ export default function NewFireDrillPage() {
           scenario: form.scenario || undefined,
           riskAssessment: form.riskAssessment || undefined,
           routineId: form.routineId === "__none__" ? undefined : form.routineId,
+          riskAssessmentId: form.riskAssessmentId === "__none__" ? undefined : form.riskAssessmentId,
+          emergencyPlanDocumentId:
+            form.emergencyPlanDocumentId === "__none__" ? undefined : form.emergencyPlanDocumentId,
           buildingOwnerName: form.buildingOwnerName || undefined,
           totalBuildingOccupants: form.totalBuildingOccupants
             ? parseInt(form.totalBuildingOccupants, 10)
@@ -149,7 +204,7 @@ export default function NewFireDrillPage() {
         </Button>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100">
           <Flame className="h-5 w-5 text-red-600" />
         </div>
@@ -159,6 +214,10 @@ export default function NewFireDrillPage() {
             Forskrift om brannforebygging § 12 — systematisk sikkerhetsarbeid
           </p>
         </div>
+        <Button type="button" variant="outline" className="ml-auto bg-transparent" onClick={() => void fillWithAi()} disabled={aiLoading}>
+          <Sparkles className="mr-2 h-4 w-4" />
+          {aiLoading ? "Skriver utkast…" : "Fyll inn med AI"}
+        </Button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -301,6 +360,49 @@ export default function NewFireDrillPage() {
                 </p>
               </div>
             )}
+
+            <div className="space-y-2">
+              <Label htmlFor="riskAssessmentId">Koble til risikovurdering</Label>
+              <Select
+                value={form.riskAssessmentId}
+                onValueChange={(v) => set("riskAssessmentId", v)}
+              >
+                <SelectTrigger id="riskAssessmentId">
+                  <SelectValue placeholder="Velg risikovurdering (valgfritt)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Ingen kobling</SelectItem>
+                  {riskAssessments.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="emergencyPlanDocumentId">Koble til beredskapsplan</Label>
+              <Select
+                value={form.emergencyPlanDocumentId}
+                onValueChange={(v) => set("emergencyPlanDocumentId", v)}
+              >
+                <SelectTrigger id="emergencyPlanDocumentId">
+                  <SelectValue placeholder="Velg beredskapsplan (valgfritt)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Ingen kobling</SelectItem>
+                  {emergencyPlans.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Planer fra beredskap og dokumenter merket som plan.
+              </p>
+            </div>
           </CardContent>
         </Card>
 

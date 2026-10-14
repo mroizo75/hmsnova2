@@ -454,6 +454,8 @@ model Tenant {
   matRenhold                          MatRenhold[]
   skjenkeBevillinger                  SkjenkeBevilling[]
   skjenkeHendelser                    SkjenkeHendelse[]
+  skjenkeRutiner                      SkjenkeRutine[]
+  skjenkeGjennomganger                SkjenkeGjennomgang[]
   gjesteHendelser                     GjesteHendelse[]
   hotellEvakueringsplaner             HotellEvakueringsplan[]
   aktivitetssjekker                   AktivitetsUtstyrssjekk[]
@@ -553,6 +555,8 @@ model HmsAnnualPlanCompletion {
   completedAt       DateTime @default(now())
   completedByUserId String? // Hvem som krysset av
   note              String?  @db.Text // Valgfri notat ved avkryssing
+  /// COMPLETED = gjennomført. NOT_RELEVANT / NOT_USED avklarer punktet uten å regne det som utført arbeid.
+  status            HmsAnnualPlanStepStatus @default(COMPLETED)
 
   tenant      Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   completedBy User?  @relation(fields: [completedByUserId], references: [id], onDelete: SetNull)
@@ -560,6 +564,12 @@ model HmsAnnualPlanCompletion {
   @@unique([tenantId, year, stepKey])
   @@index([tenantId])
   @@index([tenantId, year])
+}
+
+enum HmsAnnualPlanStepStatus {
+  COMPLETED
+  NOT_RELEVANT
+  NOT_USED
 }
 
 model TenantActivity {
@@ -851,6 +861,7 @@ model Department {
 
   tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   memberships  UserTenant[]
+  incidents    Incident[]
 
   @@unique([tenantId, name])
   @@index([tenantId])
@@ -900,6 +911,10 @@ model UserTenant {
   // Organisasjonshierarki (AML § 3-1: HMS-ansvar skal være plassert i linjen)
   managerId String? // UserId for nærmeste leder. Null = fall tilbake til rollebasert varsling
   position  String? // Stillingstittel, f.eks. "Tømrer", "Prosjektleder"
+
+  /// Tilleggsroller utover hovedrollen i `role`. Kommaseparert, f.eks. "HMS,VERNEOMBUD".
+  /// Verneombud registreres etter AML § 6-2. HMS-ansvarlig etter AML § 3-1.
+  extraRoles String? @db.VarChar(255)
 
   // Tenant-spesifikke brukerinnstillinger (kan være ulike per tenant)
   displayName String? // Visningsnavn i denne tenanten (kan være annerledes enn User.name)
@@ -2062,6 +2077,8 @@ model Incident {
   // Underkategorier (JSON-array med keys fra IncidentSubcategoryOption)
   subcategoryKeys          String?              @db.Text
   treatmentOtherText      String?              @db.Text
+  // Avdeling avviket gjelder (AML § 3-1: oppfølging i linjen)
+  departmentId             String?
   // Prosjektkobling (valgfritt – AML § 3-1 systematisk HMS per arbeidssted)
   projectId                String?
   // Fritekst prosjektnummer/referanse for sporbarhet når prosjektet ikke er registrert
@@ -2085,6 +2102,7 @@ model Incident {
   attachments        Attachment[]
   customerFeedbacks  CustomerFeedback[]
   risk               Risk?               @relation("IncidentRiskReference", fields: [riskReferenceId], references: [id])
+  department         Department?         @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   project            Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
   equipmentApproval  EquipmentApproval?  @relation(fields: [equipmentApprovalId], references: [id], onDelete: SetNull)
   relatedRoutine     Routine?            @relation("IncidentRelatedRoutine", fields: [relatedRoutineId], references: [id], onDelete: SetNull)
@@ -2101,6 +2119,7 @@ model Incident {
   @@index([responsibleId])
   @@index([reportedForUserId])
   @@index([riskReferenceId])
+  @@index([departmentId])
   @@index([projectId])
   @@index([equipmentApprovalId])
   @@index([relatedRoutineId])
@@ -5158,6 +5177,10 @@ model FireDrill {
   updatedAt DateTime @updatedAt
 
   routineId String?
+  /// Kobling til årlig risikovurdering (IK-HMS § 5). Tekstfeltet riskAssessment er fortsatt øvelsens egen vurdering.
+  riskAssessmentId String?
+  /// Beredskapsplan lagret som dokument (forskrift om brannforebygging § 12).
+  emergencyPlanDocumentId String?
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   routine  Routine?  @relation("FireDrillRoutine", fields: [routineId], references: [id], onDelete: SetNull)
@@ -5993,46 +6016,104 @@ model MatRenhold {
   @@index([cleanedAt])
 }
 
-/// Skjenkebevilling og interne serveringsregler
-/// Hjemmel: Alkoholforskriften § 8-1 og § 8-3, alkoholloven § 1-7c
+/// Skjenkebevilling, organisering og stedets vilkår.
+/// Hjemmel: Alkoholforskriften § 8-3 nr. 1 og nr. 3, § 5-1, § 4-6 til § 4-8, § 6-3.
 model SkjenkeBevilling {
-  id               String    @id @default(cuid())
-  tenantId         String
-  bevillingsnummer String?
-  kommune          String?
-  gyldigFra        DateTime?
-  gyldigTil        DateTime?
-  styrer           String?
-  stedfortreder    String?
-  skjenketider     String?   @db.Text
-  internregler     String?   @db.Text
-  sistGjennomgatt  DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id                     String    @id @default(cuid())
+  tenantId               String
+  bevillingstype         String    @default("SKJENKING")
+  ambulerende            Boolean   @default(false)
+  bevillingsnummer       String?
+  kommune                String?
+  gyldigFra              DateTime?
+  gyldigTil              DateTime?
+  gruppe1                Boolean   @default(true)
+  gruppe2                Boolean   @default(true)
+  gruppe3                Boolean   @default(false)
+  styrer                 String?
+  stedfortreder          String?
+  styrerProveDato        DateTime?
+  stedfortrederProveDato DateTime?
+  skjenketider           String?   @db.Text
+  internregler           String?   @db.Text
+  alderskontrollAnsvar   String?
+  beruselseAnsvar        String?
+  bortvisningAnsvar      String?
+  opplaeringAnsvar       String?
+  alkoholfrittUtvalg     String?   @db.Text
+  harHalvflasker         Boolean   @default(false)
+  harMinibar             Boolean   @default(false)
+  sarvilkar              String?   @db.Text
+  sistOmsetningsoppgave  DateTime?
+  sistGjennomgatt        DateTime?
+  nesteGjennomgang       DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
 }
 
-/// Skjenkehendelser: alderskontroll, beruselse, bortvisning og avvik
-/// Hjemmel: Alkoholloven § 1-5, alkoholforskriften § 4-2 og § 8-3 nr. 5
-/// GDPR art. 5: lagre ikke gjestens navn, fødselsnummer eller legitimasjonsnummer
+/// Skjenkehendelser: alderskontroll, beruselse, bortvisning og avvik.
+/// Hjemmel: Alkoholloven § 1-5, alkoholforskriften § 4-2 og § 8-3 nr. 5.
+/// GDPR art. 5: lagre ikke gjestens navn, fødselsnummer eller legitimasjonsnummer.
 model SkjenkeHendelse {
-  id             String   @id @default(cuid())
-  tenantId       String
-  occurredAt     DateTime
-  type           String
-  action         String
-  beruselsesgrad String?
-  registeredBy   String?
-  note           String?  @db.Text
-  createdAt      DateTime @default(now())
+  id                 String    @id @default(cuid())
+  tenantId           String
+  occurredAt         DateTime
+  type               String
+  action             String
+  beruselsesgrad     String?
+  registeredBy       String?
+  note               String?   @db.Text
+  korrigerendeTiltak String?   @db.Text
+  forebygging        String?   @db.Text
+  status             String    @default("LUKKET")
+  lukketAt           DateTime?
+  createdAt          DateTime  @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([occurredAt])
+}
+
+/// Dokumenterte rutiner i internkontrollen.
+/// Hjemmel: Alkoholforskriften § 8-3 nr. 4 og nr. 5.
+model SkjenkeRutine {
+  id         String   @id @default(cuid())
+  tenantId   String
+  nokkel     String
+  tittel     String
+  lovhjemmel String
+  innhold    String   @db.Text
+  aktiv      Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, nokkel])
+  @@index([tenantId])
+}
+
+/// Systematisk gjennomgang av skjenkeinternkontrollen.
+/// Hjemmel: Alkoholforskriften § 8-3 nr. 6.
+model SkjenkeGjennomgang {
+  id            String    @id @default(cuid())
+  tenantId      String
+  gjennomfortAt DateTime
+  gjennomfortAv String
+  funn          String    @db.Text
+  tiltak        String?   @db.Text
+  nesteDato     DateTime?
+  createdAt     DateTime  @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([gjennomfortAt])
 }
 
 // ─── BHT og nattarbeid ───────────────────────────────────────────────────────

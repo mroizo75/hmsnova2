@@ -57,9 +57,15 @@ export function AnnualHmsPlanReportContent({ initialData, year, generatedAt }: A
               </div>
               <div className="text-right text-xs">
                 <p
-                  className={step.completedAt ? "font-semibold text-green-700 dark:text-green-300" : "font-semibold text-red-700 dark:text-red-300"}
+                  className={step.status || step.completedAt ? "font-semibold text-green-700 dark:text-green-300" : "font-semibold text-red-700 dark:text-red-300"}
                 >
-                  {step.completedAt ? "Fullført" : "Ikke fullført"}
+                  {step.status === "NOT_RELEVANT"
+                    ? "Ikke relevant"
+                    : step.status === "NOT_USED"
+                      ? "Brukes ikke"
+                      : step.status === "COMPLETED" || step.completedAt
+                        ? "Fullført"
+                        : "Ikke avklart"}
                 </p>
                 {step.completedAt && (
                   <p className="text-xs text-muted-foreground">

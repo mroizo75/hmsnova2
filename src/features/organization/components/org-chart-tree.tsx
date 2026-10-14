@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useTransition, type CSSProperties } from "react";
+import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,9 +73,19 @@ function buildTree(nodes: OrgNode[]): TreeNode[] {
 
 // ─── Visual chart node (box) ─────────────────────────
 
+function useRefreshOrgChart() {
+  const queryClient = useQueryClient();
+  const router = useRouter();
+  return () => {
+    void queryClient.invalidateQueries({ queryKey: ["settings", "org-chart"] });
+    router.refresh();
+  };
+}
+
 function useNodeDelete(node: OrgNode) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const refresh = useRefreshOrgChart();
 
   function handleDelete() {
     if (!confirm(`Slett "${node.title}"${node.name ? ` (${node.name})` : ""}? Underordnede flyttes opp.`)) return;
@@ -81,7 +93,9 @@ function useNodeDelete(node: OrgNode) {
       const result = await deleteOrgChartNode(node.id);
       if (!result.success) {
         toast({ title: "Feil", description: result.error, variant: "destructive" });
+        return;
       }
+      refresh();
     });
   }
 
@@ -262,6 +276,7 @@ function NodeDialog({
   const [department, setDepartment] = useState(editNode?.department ?? "");
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const refresh = useRefreshOrgChart();
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -284,6 +299,7 @@ function NodeDialog({
 
       if (result.success) {
         toast({ title: editNode ? "Oppdatert" : "Opprettet" });
+        refresh();
         setOpen(false);
         if (!editNode) {
           setTitle("");

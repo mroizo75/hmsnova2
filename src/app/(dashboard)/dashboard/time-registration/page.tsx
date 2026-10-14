@@ -16,7 +16,7 @@ export default async function TimeRegistrationPage({ searchParams }: TimeRegistr
     redirect("/login");
   }
 
-  const permissions = getPermissions(session.user.role!);
+  const permissions = getPermissions(session.user.role!, session.user.extraRoles);
 
   if (!permissions.canAccessTimeRegistration) {
     redirect("/dashboard");

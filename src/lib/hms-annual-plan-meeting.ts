@@ -36,6 +36,7 @@ export async function completeAnnualPlanForMeeting(input: {
       year,
       stepKey: AMU_STEP_KEY,
       completedByUserId: input.completedByUserId,
+      status: "COMPLETED",
       note: `Krysset av fordi ${typeLabel}-møtet «${input.meetingTitle}» er gjennomført.`,
     },
   });

@@ -46,7 +46,7 @@ export default async function RiskAssessmentPage({
   }
 
   const tenantId = selectedMembership.tenantId;
-  const permissions = getPermissions(selectedMembership.role);
+  const permissions = getPermissions(selectedMembership.role, selectedMembership.extraRoles);
   const canDeleteRiskAssessments = permissions.canDeleteRisks;
   const canEditAssessmentTitle = permissions.canCreateRisks;
   const canApproveRiskAssessments = permissions.canApproveRisks;

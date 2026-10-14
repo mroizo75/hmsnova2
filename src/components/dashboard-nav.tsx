@@ -27,7 +27,7 @@ export function DashboardNav() {
   const pathname = usePathname();
   const t = useTranslations();
   const { data: session } = useSession();
-  const { visibleNavItems, role, permissions } = usePermissions();
+  const { visibleNavItems, role, roles, permissions } = usePermissions();
   const { isSimpleMode, toggleMode } = useSimpleMode();
   const { simpleMenuItems } = useSimpleMenuConfig();
   const { tenantFeatures, moduleVisibility, tenantIndustry } = useTenantNavContext();
@@ -39,6 +39,7 @@ export function DashboardNav() {
     filterDashboardNavItems({
       visibleNavItems,
       role: (role as Role | null) ?? null,
+      roles,
       permissions,
       moduleVisibility,
       tenantFeatures,

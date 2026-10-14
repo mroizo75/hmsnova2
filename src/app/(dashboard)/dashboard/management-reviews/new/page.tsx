@@ -78,7 +78,17 @@ export default function NewManagementReviewPage() {
     setLoadingPrefill(true);
 
     try {
-      const response = await fetch("/api/management-reviews/prefill-data?months=3");
+      if (!formData.reviewDate) {
+        toast({
+          title: "Velg gjennomgangsdato",
+          description: "Datoen avgjør hvilket år som hentes inn.",
+          variant: "destructive",
+        });
+        setLoadingPrefill(false);
+        return;
+      }
+      const reviewDate = new Date(formData.reviewDate).toISOString();
+      const response = await fetch(`/api/management-reviews/prefill-data?reviewDate=${encodeURIComponent(reviewDate)}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -88,8 +98,10 @@ export default function NewManagementReviewPage() {
       // Oppdater form med forhåndsutfylt data
       setFormData((prev) => ({
         ...prev,
+        period: prev.period || data.data.periodLabel || prev.period,
         hmsGoalsReview: data.data.hmsGoalsReview || prev.hmsGoalsReview,
         incidentStatistics: data.data.incidentStatistics || prev.incidentStatistics,
+        resourcesReview: prev.resourcesReview || data.data.annualPlanSummary || prev.resourcesReview,
         riskReview: data.data.riskReview || prev.riskReview,
         auditResults: data.data.auditResults || prev.auditResults,
         trainingStatus: data.data.trainingStatus || prev.trainingStatus,
@@ -98,7 +110,9 @@ export default function NewManagementReviewPage() {
 
       toast({
         title: "Data hentet",
-        description: "Feltene er forhåndsutfylt med data fra systemet. Du kan redigere og justere etter behov.",
+        description: data.data.periodLabel
+          ? `Data er hentet for ${data.data.periodLabel}. Januar henter hele forrige år. Senere på året hentes det fra 1. januar til gjennomgangsdatoen.`
+          : "Feltene er forhåndsutfylt med data fra systemet.",
       });
     } catch (error: any) {
       toast({
@@ -218,6 +232,9 @@ export default function NewManagementReviewPage() {
                   }
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  Gjennomgang i januar henter hele forrige år. Ellers hentes det fra 1. januar samme år til denne datoen.
+                </p>
               </div>
 
               <div className="space-y-2">

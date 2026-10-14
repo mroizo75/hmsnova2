@@ -15,9 +15,9 @@ export default async function EditFormPage({ params }: { params: Promise<{ id: s
 
   const userTenant = await prisma.userTenant.findFirst({
     where: { userId: session.user.id, tenantId: session.user.tenantId },
-    select: { role: true },
+    select: { role: true, extraRoles: true },
   });
-  if (!getPermissions(userTenant?.role ?? "ANSATT").canManageForms) {
+  if (!getPermissions(userTenant?.role ?? "ANSATT", userTenant?.extraRoles).canManageForms) {
     redirect("/dashboard/forms");
   }
 

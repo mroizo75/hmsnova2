@@ -13,7 +13,8 @@ import {
   FileCheck,
   TrendingUp,
   ArrowRight,
-  BookOpen
+  BookOpen,
+  Receipt,
 } from "lucide-react";
 import { FAQSection } from "@/components/faq-section";
 import { TrustBadges } from "@/components/trust-badges";
@@ -135,6 +136,14 @@ const HMS_SYSTEM_TOPICS = [
     icon: Users,
     href: "/hms-system",
     badge: "HR",
+  },
+  {
+    title: "Tripletex-integrasjon",
+    description: "Godkjenn timer, prosjekt og varer i HMS Nova. Grunnlaget går til Tripletex.",
+    details: "Prosjekt opprettet i HMS Nova opprettes i Tripletex. Godkjente timer, kilometer, maskintimer og varer blir timeføring og ordrelinjer. Usendt faktura opprettes i Tripletex og sendes derfra.",
+    icon: Receipt,
+    href: "/tripletex-integrasjon",
+    badge: "Regnskap",
   },
   {
     title: "ISO 9001-støtte",

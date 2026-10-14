@@ -9,6 +9,7 @@ import { assertNoManagerCycle } from "@/lib/incident-notification-routing";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
 import { Role } from "@prisma/client";
 import { getInvitableRoles } from "@/lib/permissions";
+import { parseExtraRoles, serializeExtraRoles } from "@/lib/extra-roles";
 import { aliasDashboardMenuHrefs } from "@/lib/legal-link-repair";
 import {
   importUsersIntoTenant,
@@ -412,6 +413,11 @@ export async function updateUserRole(userId: string, role: string) {
       return { success: false, error: "Du kan ikke endre din egen rolle" };
     }
 
+    const existing = await prisma.userTenant.findUnique({
+      where: { userId_tenantId: { userId, tenantId } },
+      select: { extraRoles: true },
+    });
+
     const updatedUserTenant = await prisma.userTenant.update({
       where: {
         userId_tenantId: {
@@ -419,7 +425,10 @@ export async function updateUserRole(userId: string, role: string) {
           tenantId,
         },
       },
-      data: { role: role as any },
+      data: {
+        role: role as Role,
+        extraRoles: serializeExtraRoles(existing?.extraRoles, role),
+      },
     });
 
     await AuditLog.log(tenantId, user.id, "USER_ROLE_UPDATED", "User", userId, {
@@ -432,6 +441,44 @@ export async function updateUserRole(userId: string, role: string) {
   } catch (error: any) {
     console.error("Update user role error:", error);
     return { success: false, error: error.message || "Kunne ikke oppdatere rolle" };
+  }
+}
+
+export async function updateUserExtraRoles(userId: string, roles: string[]) {
+  try {
+    const { user, tenantId } = await getSessionContext();
+    const actor = user.tenants.find((item) => item.tenantId === tenantId);
+    if (!actor) return { success: false, error: "Ikke innlogget" };
+
+    const allowed = new Set(getInvitableRoles(actor.role));
+    if (allowed.size === 0) {
+      return { success: false, error: "Kun administratorer og HR kan endre roller" };
+    }
+    if (userId === user.id) {
+      return { success: false, error: "Du kan ikke endre dine egne tilleggsroller" };
+    }
+
+    const membership = await prisma.userTenant.findUnique({
+      where: { userId_tenantId: { userId, tenantId } },
+      select: { role: true },
+    });
+    if (!membership) return { success: false, error: "Brukeren finnes ikke i bedriften" };
+
+    const next = parseExtraRoles(roles, membership.role).filter((role) => allowed.has(role));
+    await prisma.userTenant.update({
+      where: { userId_tenantId: { userId, tenantId } },
+      data: { extraRoles: serializeExtraRoles(next, membership.role) },
+    });
+
+    await AuditLog.log(tenantId, user.id, "USER_ROLE_UPDATED", "User", userId, {
+      extraRoles: next,
+    });
+    revalidatePath("/dashboard/brukere");
+    triggerRealtimeEvent(tenantId, "settings-updated");
+    return { success: true };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Kunne ikke oppdatere tilleggsroller";
+    return { success: false, error: message };
   }
 }
 

@@ -12,6 +12,7 @@ import {
   shouldSendImmediateSmsForType,
 } from "@/lib/notification-routing";
 import { sendSms, formatPhoneNumber } from "@/lib/sms";
+import { roleMatchFilter } from "@/lib/extra-roles";
 
 interface CreateNotificationInput {
   tenantId: string;
@@ -298,7 +299,7 @@ export async function notifyUsersByRole(
     const users = await prisma.userTenant.findMany({
       where: {
         tenantId,
-        role: role as Role,
+        ...roleMatchFilter([role as string]),
       },
       select: {
         userId: true,
@@ -331,7 +332,7 @@ export async function notifyUsersByRoles(
     const users = await prisma.userTenant.findMany({
       where: {
         tenantId,
-        role: { in: normalizedRoles },
+        ...roleMatchFilter(normalizedRoles),
       },
       select: {
         userId: true,

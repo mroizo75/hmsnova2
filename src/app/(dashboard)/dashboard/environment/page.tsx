@@ -70,7 +70,7 @@ export default async function EnvironmentPage() {
 
       <EnvironmentContent
         initialData={initialData}
-        canUpdate={getPermissions(selectedMembership.role).canUpdateEnvironment}
+        canUpdate={getPermissions(selectedMembership.role, selectedMembership.extraRoles).canUpdateEnvironment}
       />
     </div>
   );

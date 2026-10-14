@@ -23,7 +23,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const permissions = getPermissions(session.user.role);
+    const permissions = getPermissions(session.user.role, session.user.extraRoles);
     if (!permissions.canCreateManagementReviews) {
       return NextResponse.json(
         { error: "Insufficient permissions" },

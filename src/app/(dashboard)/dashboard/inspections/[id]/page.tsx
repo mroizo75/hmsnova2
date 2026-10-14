@@ -22,7 +22,7 @@ export default async function InspectionDetailPage({
     redirect("/login");
   }
 
-  const permissions = getPermissions(session.user.role ?? "ANSATT");
+  const permissions = getPermissions(session.user.role ?? "ANSATT", session.user.extraRoles);
 
   const initialData = await fetchInspectionDetail(id);
 

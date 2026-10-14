@@ -5,6 +5,7 @@
  */
 
 import { Role } from "@prisma/client";
+import { membershipRoles } from "@/lib/extra-roles";
 
 export interface RolePermissions {
   // Dashboard & Navigasjon
@@ -1356,11 +1357,40 @@ export const rolePermissions: Record<Role, RolePermissions> = {
   },
 };
 
+export function mergeRolePermissions(roles: readonly Role[]): RolePermissions {
+  const unique = [...new Set(roles)];
+  const base = rolePermissions[unique[0]];
+  const merged = { ...base };
+  for (const role of unique.slice(1)) {
+    const perms = rolePermissions[role];
+    for (const key of Object.keys(merged) as Array<keyof RolePermissions>) {
+      merged[key] = Boolean(merged[key] || perms[key]);
+    }
+  }
+  return merged;
+}
+
+export function mergePermissionSets(sets: readonly RolePermissions[]): RolePermissions {
+  const [first, ...rest] = sets;
+  const merged = { ...first };
+  for (const perms of rest) {
+    for (const key of Object.keys(merged) as Array<keyof RolePermissions>) {
+      merged[key] = Boolean(merged[key] || perms[key]);
+    }
+  }
+  return merged;
+}
+
 /**
- * Hent tilganger for en rolle
+ * Hent tilganger for en rolle, eventuelt slått sammen med tilleggsroller.
  */
-export function getPermissions(role: Role): RolePermissions {
-  return rolePermissions[role];
+export function getPermissions(
+  role: Role,
+  extraRoles?: string | readonly Role[] | null,
+): RolePermissions {
+  const roles = membershipRoles(role, extraRoles);
+  if (roles.length <= 1) return rolePermissions[role];
+  return mergeRolePermissions(roles);
 }
 
 /**
@@ -1368,16 +1398,17 @@ export function getPermissions(role: Role): RolePermissions {
  */
 export function hasPermission(
   role: Role,
-  permission: keyof RolePermissions
+  permission: keyof RolePermissions,
+  extraRoles?: string | readonly Role[] | null,
 ): boolean {
-  return rolePermissions[role][permission];
+  return getPermissions(role, extraRoles)[permission];
 }
 
 /**
- * Hent synlig navigasjon for en rolle
+ * Hent synlig navigasjon for en rolle, inkludert tilleggsroller.
  */
-export function getVisibleNavItems(role: Role) {
-  const perms = getPermissions(role);
+export function getVisibleNavItems(role: Role, extraRoles?: string | readonly Role[] | null) {
+  const perms = getPermissions(role, extraRoles);
 
   return {
     dashboard: perms.canAccessDashboard,

@@ -17,7 +17,7 @@ export default async function OrgChartPage() {
     return <div>Ingen tilgang til bedrift</div>;
   }
 
-  const permissions = getPermissions(userTenant.role);
+  const permissions = getPermissions(userTenant.role, userTenant.extraRoles);
   const initialData = await fetchOrgChartNodes();
 
   return (

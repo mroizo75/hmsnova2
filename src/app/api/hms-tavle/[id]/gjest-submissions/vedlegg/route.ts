@@ -23,7 +23,7 @@ export async function GET(
       return new NextResponse("Ikke autentisert", { status: 401 });
     }
 
-    const perms = getPermissions(session.user.role);
+    const perms = getPermissions(session.user.role, session.user.extraRoles);
     if (!perms.canViewHmsTavle && !perms.canManageHmsTavle) {
       return new NextResponse("Ingen tilgang", { status: 403 });
     }

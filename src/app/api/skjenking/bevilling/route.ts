@@ -4,19 +4,11 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getPermissions } from "@/lib/permissions";
 import { createErrorResponse, createSuccessResponse, handleApiError, ErrorCodes } from "@/lib/validations/api";
-import { z } from "zod";
+import { skjenkeBevillingSchema } from "@/features/skjenking/schemas/skjenking.schema";
 
-const schema = z.object({
-  bevillingsnummer: z.string().max(100).optional().nullable(),
-  kommune: z.string().max(100).optional().nullable(),
-  gyldigFra: z.string().datetime().optional().nullable(),
-  gyldigTil: z.string().datetime().optional().nullable(),
-  styrer: z.string().max(200).optional().nullable(),
-  stedfortreder: z.string().max(200).optional().nullable(),
-  skjenketider: z.string().max(4000).optional().nullable(),
-  internregler: z.string().max(8000).optional().nullable(),
-  sistGjennomgatt: z.string().datetime().optional().nullable(),
-});
+function dateOrNull(value: string | null | undefined): Date | null {
+  return value ? new Date(value) : null;
+}
 
 export async function GET() {
   try {
@@ -38,27 +30,42 @@ export async function PUT(req: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.tenantId) return createErrorResponse(ErrorCodes.UNAUTHORIZED, "Ikke autentisert", 401);
 
-    const perms = getPermissions(session.user.role);
+    const perms = getPermissions(session.user.role, session.user.extraRoles);
     if (!perms.canCreateInspections) return createErrorResponse(ErrorCodes.FORBIDDEN, "Ingen tilgang", 403);
 
-    const parsed = schema.safeParse(await req.json());
+    const parsed = skjenkeBevillingSchema.safeParse(await req.json());
     if (!parsed.success) return createErrorResponse(ErrorCodes.VALIDATION_ERROR, parsed.error.issues[0].message, 400);
+
+    const data = {
+      bevillingstype: parsed.data.bevillingstype,
+      ambulerende: parsed.data.ambulerende,
+      bevillingsnummer: parsed.data.bevillingsnummer ?? null,
+      kommune: parsed.data.kommune ?? null,
+      gyldigFra: dateOrNull(parsed.data.gyldigFra),
+      gyldigTil: dateOrNull(parsed.data.gyldigTil),
+      gruppe1: parsed.data.gruppe1,
+      gruppe2: parsed.data.gruppe2,
+      gruppe3: parsed.data.gruppe3,
+      styrer: parsed.data.styrer ?? null,
+      stedfortreder: parsed.data.stedfortreder ?? null,
+      styrerProveDato: dateOrNull(parsed.data.styrerProveDato),
+      stedfortrederProveDato: dateOrNull(parsed.data.stedfortrederProveDato),
+      skjenketider: parsed.data.skjenketider ?? null,
+      internregler: parsed.data.internregler ?? null,
+      alderskontrollAnsvar: parsed.data.alderskontrollAnsvar ?? null,
+      beruselseAnsvar: parsed.data.beruselseAnsvar ?? null,
+      bortvisningAnsvar: parsed.data.bortvisningAnsvar ?? null,
+      opplaeringAnsvar: parsed.data.opplaeringAnsvar ?? null,
+      alkoholfrittUtvalg: parsed.data.alkoholfrittUtvalg ?? null,
+      harHalvflasker: parsed.data.harHalvflasker,
+      harMinibar: parsed.data.harMinibar,
+      sarvilkar: parsed.data.sarvilkar ?? null,
+      sistOmsetningsoppgave: dateOrNull(parsed.data.sistOmsetningsoppgave),
+    };
 
     const existing = await prisma.skjenkeBevilling.findFirst({
       where: { tenantId: session.user.tenantId },
     });
-
-    const data = {
-      bevillingsnummer: parsed.data.bevillingsnummer ?? null,
-      kommune: parsed.data.kommune ?? null,
-      gyldigFra: parsed.data.gyldigFra ? new Date(parsed.data.gyldigFra) : null,
-      gyldigTil: parsed.data.gyldigTil ? new Date(parsed.data.gyldigTil) : null,
-      styrer: parsed.data.styrer ?? null,
-      stedfortreder: parsed.data.stedfortreder ?? null,
-      skjenketider: parsed.data.skjenketider ?? null,
-      internregler: parsed.data.internregler ?? null,
-      sistGjennomgatt: parsed.data.sistGjennomgatt ? new Date(parsed.data.sistGjennomgatt) : null,
-    };
 
     const bevilling = existing
       ? await prisma.skjenkeBevilling.update({ where: { id: existing.id }, data })

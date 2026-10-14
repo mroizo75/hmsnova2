@@ -17,6 +17,7 @@ import {
   getTrainingStatusLabel,
 } from "@/features/training/schemas/training.schema";
 import type { Role } from "@prisma/client";
+import { formatLastSeen } from "@/lib/last-seen";
 
 type Overview = NonNullable<Awaited<ReturnType<typeof fetchUserOverview>>>;
 
@@ -86,6 +87,7 @@ export function UserOverviewDialog({ userId, onClose }: UserOverviewDialogProps)
           <div className="space-y-5">
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="E-post" value={overview.email} />
+              <Field label="Sist inne" value={formatLastSeen(overview.lastSeenAt).label} />
               <Field label="Telefon" value={overview.phone} />
               <Field label="Adresse" value={overview.address} />
               <Field label="Postnummer" value={overview.postalCode} />

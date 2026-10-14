@@ -18,7 +18,7 @@ export default async function ComplianceDashboardPage() {
     return <div className="p-6">Ingen tilgang til virksomhet.</div>;
   }
 
-  const permissions = getPermissions(membership.role);
+  const permissions = getPermissions(membership.role, membership.extraRoles);
   if (!permissions.canReadDocuments) {
     redirect("/dashboard");
   }

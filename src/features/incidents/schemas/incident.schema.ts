@@ -41,6 +41,8 @@ export const createIncidentSchema = z.object({
   customerTicketId: z.string().max(120).optional().or(z.literal("")),
   responseDeadline: z.date().optional(),
   customerSatisfaction: z.number().int().min(1).max(5).optional(),
+  // Avdeling avviket gjelder. Leder for avdelingen og HMS-ansvarlig varsles.
+  departmentId: z.string().cuid().optional(),
   // Prosjektkobling
   projectId: z.string().cuid().optional(),
   // FuA § 13-4: avvik på arbeidsutstyr med godkjenning

@@ -27,7 +27,7 @@ export default async function ConstructionComplianceOverviewPage() {
   if (!membership) {
     return <div>Ingen tilgang</div>;
   }
-  const permissions = getPermissions(membership.role);
+  const permissions = getPermissions(membership.role, membership.extraRoles);
   if (!permissions.canReadConstructionCompliance) {
     redirect("/dashboard");
   }

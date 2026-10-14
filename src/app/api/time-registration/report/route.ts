@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const perms = getPermissions(session.user.role as Role);
+    const perms = getPermissions(session.user.role as Role, session.user.extraRoles);
     if (!perms.canAccessTimeRegistration) {
       return NextResponse.json({ error: "Ingen tilgang" }, { status: 403 });
     }

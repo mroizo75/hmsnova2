@@ -1,0 +1,6 @@
+ALTER TABLE `HmsAnnualPlanCompletion`
+  ADD COLUMN `status` ENUM('COMPLETED', 'NOT_RELEVANT', 'NOT_USED') NOT NULL DEFAULT 'COMPLETED';
+
+ALTER TABLE `FireDrill`
+  ADD COLUMN `riskAssessmentId` VARCHAR(191) NULL,
+  ADD COLUMN `emergencyPlanDocumentId` VARCHAR(191) NULL;

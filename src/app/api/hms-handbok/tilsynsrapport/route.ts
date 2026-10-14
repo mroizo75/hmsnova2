@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Ikke autorisert" }, { status: 401 });
   }
 
-  const permissions = getPermissions(session.user.role as Role);
+  const permissions = getPermissions(session.user.role as Role, session.user.extraRoles);
   if (!permissions.canReadDocuments) {
     return NextResponse.json({ error: "Ingen tilgang" }, { status: 403 });
   }

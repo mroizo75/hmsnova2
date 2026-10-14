@@ -658,8 +658,8 @@ export const WIDGET_REGISTRY: WidgetDefinition[] = [
   },
   {
     id: "skjenking",
-    label: "Skjenking",
-    description: "Internkontroll etter alkoholloven: alderskontroll, beruselse og bortvisning",
+    label: "Internkontroll skjenking",
+    description: "Alkoholforskriften § 8-3: krav, kompetanse, rutiner, avvik og gjennomgang",
     icon: Wine,
     href: "/dashboard/skjenking",
     category: "sikkerhet",

@@ -732,17 +732,19 @@ async function getAnnualPlanProgress(
 
     const completions = await prisma.hmsAnnualPlanCompletion.findMany({
       where: { tenantId, year: currentYear },
-      select: { stepKey: true, completedAt: true },
+      select: { stepKey: true, completedAt: true, status: true },
     });
 
     const completedMap = new Map(
-      completions.map((c) => [c.stepKey, c.completedAt]),
+      completions
+        .filter((completion) => completion.status === "COMPLETED")
+        .map((completion) => [completion.stepKey, completion.completedAt]),
     );
 
     return {
       year: currentYear,
       totalSteps: ANNUAL_HMS_PLAN_STEPS.length,
-      completedSteps: completions.length,
+      completedSteps: completedMap.size,
       steps: ANNUAL_HMS_PLAN_STEPS.map((step) => ({
         key: step.key,
         title: step.title,
@@ -793,7 +795,7 @@ export async function createNewDraft(
     if (!session?.user?.id || session.user.tenantId !== tenantId) {
       return { success: false, error: "Ikke autorisert" };
     }
-    const permissions = getPermissions(session.user.role as import("@prisma/client").Role);
+    const permissions = getPermissions(session.user.role as import("@prisma/client").Role, session.user.extraRoles);
     if (!permissions.canUpdateSettings) return { success: false, error: "Ingen tilgang" };
 
     const handbook = await getOrCreateHandbook(tenantId);
@@ -884,7 +886,7 @@ export async function updateDraftSection(
       return { success: false, error: "Kan kun redigere seksjoner i utkast" };
     }
 
-    const permissions = getPermissions(session.user.role as import("@prisma/client").Role);
+    const permissions = getPermissions(session.user.role as import("@prisma/client").Role, session.user.extraRoles);
     if (!permissions.canUpdateSettings) return { success: false, error: "Ingen tilgang" };
 
     await prisma.handbookSection.update({
@@ -933,7 +935,7 @@ export async function toggleSectionEnabled(
       return { success: false, error: "Kan kun endre seksjoner i utkast" };
     }
 
-    const permissions = getPermissions(session.user.role as import("@prisma/client").Role);
+    const permissions = getPermissions(session.user.role as import("@prisma/client").Role, session.user.extraRoles);
     if (!permissions.canUpdateSettings) return { success: false, error: "Ingen tilgang" };
 
     await prisma.handbookSection.update({
@@ -978,7 +980,7 @@ export async function updateSectionExternalRef(
       return { success: false, error: "Kan kun endre seksjoner i utkast" };
     }
 
-    const permissions = getPermissions(session.user.role as import("@prisma/client").Role);
+    const permissions = getPermissions(session.user.role as import("@prisma/client").Role, session.user.extraRoles);
     if (!permissions.canUpdateSettings) return { success: false, error: "Ingen tilgang" };
 
     await prisma.handbookSection.update({
@@ -1047,7 +1049,7 @@ export async function approveVersion(
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) return { success: false, error: "Ikke autorisert" };
 
-    const permissions = getPermissions(session.user.role as import("@prisma/client").Role);
+    const permissions = getPermissions(session.user.role as import("@prisma/client").Role, session.user.extraRoles);
     if (!permissions.canUpdateSettings && !permissions.canApproveDocuments) {
       return { success: false, error: "Kun admin/HMS kan godkjenne" };
     }
@@ -1122,7 +1124,7 @@ export async function rejectDraft(
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) return { success: false, error: "Ikke autorisert" };
 
-    const permissions = getPermissions(session.user.role as import("@prisma/client").Role);
+    const permissions = getPermissions(session.user.role as import("@prisma/client").Role, session.user.extraRoles);
     if (!permissions.canUpdateSettings && !permissions.canApproveDocuments) {
       return { success: false, error: "Kun admin/HMS kan avvise" };
     }
@@ -1206,7 +1208,7 @@ export async function markHandbookReviewed(
     if (!session?.user?.id || session.user.tenantId !== tenantId) {
       return { success: false, error: "Ikke autorisert" };
     }
-    const permissions = getPermissions(session.user.role as import("@prisma/client").Role);
+    const permissions = getPermissions(session.user.role as import("@prisma/client").Role, session.user.extraRoles);
     if (!permissions.canReadDocuments) return { success: false, error: "Ingen tilgang" };
 
     await getOrCreateHandbook(tenantId);
@@ -1505,7 +1507,7 @@ export async function ensureHrSections(
       return { success: false, error: "Ikke autorisert" };
     }
 
-    const permissions = getPermissions(session.user.role as import("@prisma/client").Role);
+    const permissions = getPermissions(session.user.role as import("@prisma/client").Role, session.user.extraRoles);
     if (!permissions.canUpdateSettings) {
       return { success: false, error: "Ingen tilgang" };
     }

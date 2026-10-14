@@ -59,6 +59,11 @@ export function PublicFooter() {
                 </Link>
               </li>
               <li>
+                <Link href="/tripletex-integrasjon" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Tripletex-integrasjon
+                </Link>
+              </li>
+              <li>
                 <Link href="/priser" className="text-muted-foreground hover:text-foreground transition-colors">
                   Priser
                 </Link>

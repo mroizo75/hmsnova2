@@ -42,7 +42,7 @@ export async function GET(
     return NextResponse.json({ error: "Ikke autorisert" }, { status: 401 });
   }
 
-  const permissions = getPermissions(session.user.role as Role);
+  const permissions = getPermissions(session.user.role as Role, session.user.extraRoles);
   if (!permissions.canReadRuh && !permissions.canReadOwnRuh) {
     return NextResponse.json({ error: "Ingen tilgang" }, { status: 403 });
   }

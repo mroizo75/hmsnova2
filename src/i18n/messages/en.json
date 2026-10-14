@@ -291,7 +291,7 @@
     "hr": "HR",
     "hmsTavle": "HMS Board",
     "ikMat": "Food safety and HACCP",
-    "skjenking": "Alcohol serving",
+    "skjenking": "Alcohol internal control",
     "beredskap": "Emergency preparedness",
     "aktivitetssikkerhet": "Activity safety",
     "transport": "Transport",
@@ -2111,7 +2111,8 @@
     "toast": {
       "success": {
         "title": "✅ Incident reported",
-        "description": "Thank you for the report! HSE responsible has been notified."
+        "description": "Thank you for the report! The HSE responsible and the department manager have been notified.",
+        "descriptionWithoutDepartment": "Thank you for the report! The HSE responsible has been notified."
       },
       "error": {
         "title": "❌ Error",
@@ -2155,6 +2156,12 @@
       }
     },
     "fields": {
+      "department": {
+        "label": "Department *",
+        "placeholder": "Select department",
+        "required": "Select the department the incident belongs to.",
+        "help": "The department manager and the HSE responsible are notified. The manager must have the Leader role on the department, or be the line manager of someone there."
+      },
       "project": {
         "label": "Project / job",
         "placeholder": "Select project (optional)",
@@ -2961,6 +2968,7 @@
         "descriptionLabel": "Description",
         "time": "Time",
         "location": "Location",
+        "department": "Department",
         "projectReference": "Project number / reference",
         "witnesses": "Witnesses",
         "injury": "Injury",

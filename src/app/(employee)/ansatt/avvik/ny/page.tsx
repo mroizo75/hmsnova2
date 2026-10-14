@@ -22,11 +22,22 @@ export default async function NyttAvvik({ searchParams }: PageProps) {
 
   const { projectId, equipmentId } = await searchParams;
 
-  const [projects, tenant] = await Promise.all([
+  const [projects, departments, membership, tenant] = await Promise.all([
     prisma.project.findMany({
       where: { tenantId: session.user.tenantId, status: { in: ["PLANNING", "ACTIVE"] } },
       select: { id: true, name: true, code: true },
       orderBy: { name: "asc" },
+    }),
+    prisma.department.findMany({
+      where: { tenantId: session.user.tenantId, isActive: true },
+      select: { id: true, name: true },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    }),
+    prisma.userTenant.findUnique({
+      where: {
+        userId_tenantId: { userId: session.user.id, tenantId: session.user.tenantId },
+      },
+      select: { departmentId: true },
     }),
     prisma.tenant.findUnique({
       where: { id: session.user.tenantId },
@@ -67,9 +78,11 @@ export default async function NyttAvvik({ searchParams }: PageProps) {
             tenantId={session.user.tenantId}
             reportedBy={session.user.name || session.user.email || t("employeeFallback")}
             projects={projects}
+            departments={departments}
             equipment={equipment}
             ruhModuleEnabled={tenant?.ruhModuleEnabled ?? true}
             defaultValues={{
+              ...(membership?.departmentId ? { departmentId: membership.departmentId } : {}),
               ...(projectId ? { projectId } : {}),
               ...(equipmentId ? { equipmentId } : {}),
             }}

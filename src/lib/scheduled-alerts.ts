@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
-import { createNotification, notifyUsersByRole } from "@/server/actions/notification.actions";
+import { ANNUAL_HMS_PLAN_STEPS } from "@/lib/annual-hms-plan-steps";
+import { createNotification, notifyUsersByRole, notifyUsersByRoles } from "@/server/actions/notification.actions";
 import { addDays, addMonths, subDays, startOfDay, endOfDay, differenceInDays } from "date-fns";
 import { NotificationType, Role } from "@prisma/client";
 
@@ -68,6 +69,7 @@ export async function runScheduledAlerts(): Promise<TenantAlertSummary[]> {
       checkUpcomingAudits(tenant.id),
       checkOpenAuditFindings(tenant.id),
       checkManagementReviewDue(tenant.id),
+      checkAnnualPlanOpen(tenant.id),
       checkInspectionFindings(tenant.id),
       checkConstructionDailyRosterControl(tenant.id),
       checkRoutineReviews(tenant.id),
@@ -1090,6 +1092,63 @@ async function checkManagementReviewDue(tenantId: string): Promise<AlertResult> 
     count: daysSinceLastReview > 90 ? 1 : upcomingReviews.length, 
     notifications 
   };
+}
+
+// ============================================
+// HMS-ÅRSHJUL — alt skal være avklart innen 31.12
+// ============================================
+
+async function checkAnnualPlanOpen(tenantId: string): Promise<AlertResult> {
+  const now = new Date();
+  if (now.getMonth() < 9) {
+    return { type: "ANNUAL_PLAN_OPEN", count: 0, notifications: 0 };
+  }
+
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { hmsAnnualPlanEnabled: true, industry: true },
+  });
+  if (!tenant?.hmsAnnualPlanEnabled) {
+    return { type: "ANNUAL_PLAN_OPEN", count: 0, notifications: 0 };
+  }
+
+  const industry = (tenant.industry ?? "").trim().toLowerCase();
+  const applicable = ANNUAL_HMS_PLAN_STEPS.filter(
+    (step) => !step.industries || step.industries.includes(industry)
+  );
+  const year = now.getFullYear();
+  const settled = await prisma.hmsAnnualPlanCompletion.findMany({
+    where: { tenantId, year, stepKey: { in: applicable.map((step) => step.key) } },
+    select: { stepKey: true },
+  });
+  const settledKeys = new Set(settled.map((row) => row.stepKey));
+  const openCount = applicable.filter((step) => !settledKeys.has(step.key)).length;
+  if (openCount === 0) {
+    return { type: "ANNUAL_PLAN_OPEN", count: 0, notifications: 0 };
+  }
+
+  const recentNotification = await prisma.notification.findFirst({
+    where: {
+      tenantId,
+      type: "SYSTEM_ALERT",
+      link: "/dashboard/annual-hms-plan",
+      createdAt: { gt: subDays(now, 14) },
+    },
+  });
+
+  let notifications = 0;
+  if (!recentNotification) {
+    const message = `${openCount} punkt i HMS-årshjulet for ${year} er ikke avklart. Alt skal være gjennomført, markert som ikke relevant, eller markert som ikke i bruk innen 31.12.${year}.`;
+    await notifyUsersByRoles(tenantId, ["ADMIN", "HMS"], {
+      type: "SYSTEM_ALERT",
+      title: "HMS-årshjulet skal avklares innen årsslutt",
+      message,
+      link: "/dashboard/annual-hms-plan",
+    });
+    notifications += 1;
+  }
+
+  return { type: "ANNUAL_PLAN_OPEN", count: openCount, notifications };
 }
 
 // ============================================

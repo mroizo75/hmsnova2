@@ -6,23 +6,29 @@
  * krever at avvik følges opp systematisk. Kaskaden nedenfor sikrer at et avvik alltid
  * havner hos noen, også når virksomheten ikke har fylt ut lederhierarkiet:
  *
- *   1. Prosjektleder for prosjektet avviket gjelder (en ansatt jobber under ulike
- *      prosjektledere på ulike prosjekter, så prosjektet har forrang)
- *   2. Melderens nærmeste leder
- *   3. Dagens rollebaserte varsling (ADMIN/HMS/LEDER)
+ *   1. Leder for avdelingen avviket er meldt på (AML § 3-1: ansvaret ligger i linjen)
+ *   2. Prosjektleder for prosjektet avviket gjelder
+ *   3. Melderens nærmeste leder
+ *   4. Rollebasert varsling (ADMIN/HMS/LEDER) når ingen leder er satt
  *
  * HMS-ansvarlige er alltid på kopi. Melderen varsles aldri som mottaker av sitt eget avvik.
  *
  * Oppslagene er injiserbare slik at kaskaden kan testes uten database.
  */
 
-export type IncidentRecipientSource = "PROJECT_MANAGER" | "LINE_MANAGER" | "ROLES";
+export type IncidentRecipientSource =
+  | "DEPARTMENT_LEADER"
+  | "PROJECT_MANAGER"
+  | "LINE_MANAGER"
+  | "ROLES";
 
 export interface IncidentRoutingLookups {
   /** Prosjektleder for prosjektet, validert mot samme tenant. Null hvis ikke satt. */
   getProjectManagerId(projectId: string): Promise<string | null>;
   /** Nærmeste leder for en ansatt i denne tenanten. Null hvis ikke satt. */
   getManagerId(userId: string): Promise<string | null>;
+  /** Ledere for avdelingen avviket gjelder. Tom liste hvis ingen er satt. */
+  getDepartmentLeaderIds(departmentId: string): Promise<string[]>;
   /** Brukere med en av rollene, innen samme tenant. */
   getUserIdsByRoles(roles: readonly string[]): Promise<string[]>;
 }
@@ -30,6 +36,8 @@ export interface IncidentRoutingLookups {
 export interface IncidentRoutingInput {
   reporterId: string;
   projectId: string | null;
+  /** Avdelingen avviket er meldt på. Null hvis ikke valgt. */
+  departmentId?: string | null;
   /** Rollene som varsles når verken prosjektleder eller nærmeste leder finnes. */
   fallbackRoles: readonly string[];
   /** Rollene som alltid legges på kopi. Standard er HMS. */
@@ -60,11 +68,24 @@ export async function resolveIncidentRecipients(
   let recipientIds: string[] = [];
   let source: IncidentRecipientSource = "ROLES";
 
+  if (input.departmentId) {
+    const departmentLeaders = await lookups.getDepartmentLeaderIds(input.departmentId);
+    const leaders = dedupeWithout(departmentLeaders, [input.reporterId]);
+    if (leaders.length > 0) {
+      recipientIds = leaders;
+      source = "DEPARTMENT_LEADER";
+    }
+  }
+
   if (input.projectId) {
     const projectManagerId = await lookups.getProjectManagerId(input.projectId);
-    if (projectManagerId && projectManagerId !== input.reporterId) {
-      recipientIds = [projectManagerId];
-      source = "PROJECT_MANAGER";
+    if (projectManagerId && projectManagerId !== input.reporterId && !recipientIds.includes(projectManagerId)) {
+      if (recipientIds.length === 0) {
+        recipientIds = [projectManagerId];
+        source = "PROJECT_MANAGER";
+      } else {
+        recipientIds = [...recipientIds, projectManagerId];
+      }
     }
   }
 
@@ -88,6 +109,19 @@ export async function resolveIncidentRecipients(
   const uniqueCopies = dedupeWithout(copyCandidates, [input.reporterId, ...uniqueRecipients]);
 
   return { recipientIds: uniqueRecipients, copyRecipientIds: uniqueCopies, source };
+}
+
+/**
+ * Leder på selve avdelingen har forrang. Finnes ingen, brukes nærmeste ledere
+ * for de ansatte som ligger på avdelingen.
+ */
+export function pickDepartmentLeaderIds(input: {
+  leadersInDepartment: readonly string[];
+  managersOfMembers: readonly string[];
+}): string[] {
+  const placed = dedupeWithout(input.leadersInDepartment, []);
+  if (placed.length > 0) return placed;
+  return dedupeWithout(input.managersOfMembers, []);
 }
 
 function dedupeWithout(ids: readonly string[], excluded: readonly string[]): string[] {

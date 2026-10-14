@@ -4,16 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getPermissions } from "@/lib/permissions";
 import { createErrorResponse, createSuccessResponse, handleApiError, ErrorCodes } from "@/lib/validations/api";
-import { z } from "zod";
-
-const schema = z.object({
-  occurredAt: z.string().datetime(),
-  type: z.enum(["ALDERSKONTROLL", "BERUSELSE", "BORTVISNING", "AVVIK", "ANNET"]),
-  action: z.enum(["AVSLATT", "SERVERING_STOPPET", "BORTVIST", "ADVARSEL", "ANNET"]),
-  beruselsesgrad: z.enum(["NORMAL", "PA_VEI", "APENBART_PAVIRKET"]).optional().nullable(),
-  registeredBy: z.string().max(100).optional().nullable(),
-  note: z.string().max(2000).optional().nullable(),
-});
+import { skjenkeHendelseSchema } from "@/features/skjenking/schemas/skjenking.schema";
 
 export async function GET() {
   try {
@@ -36,12 +27,13 @@ export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.tenantId) return createErrorResponse(ErrorCodes.UNAUTHORIZED, "Ikke autentisert", 401);
 
-    const perms = getPermissions(session.user.role);
+    const perms = getPermissions(session.user.role, session.user.extraRoles);
     if (!perms.canCreateInspections) return createErrorResponse(ErrorCodes.FORBIDDEN, "Ingen tilgang", 403);
 
-    const parsed = schema.safeParse(await req.json());
+    const parsed = skjenkeHendelseSchema.safeParse(await req.json());
     if (!parsed.success) return createErrorResponse(ErrorCodes.VALIDATION_ERROR, parsed.error.issues[0].message, 400);
 
+    const status = parsed.data.status ?? (parsed.data.type === "AVVIK" ? "APEN" : "LUKKET");
     const item = await prisma.skjenkeHendelse.create({
       data: {
         tenantId: session.user.tenantId,
@@ -51,6 +43,10 @@ export async function POST(req: NextRequest) {
         beruselsesgrad: parsed.data.beruselsesgrad ?? null,
         registeredBy: parsed.data.registeredBy ?? null,
         note: parsed.data.note ?? null,
+        korrigerendeTiltak: parsed.data.korrigerendeTiltak ?? null,
+        forebygging: parsed.data.forebygging ?? null,
+        status,
+        lukketAt: status === "LUKKET" ? new Date() : null,
       },
     });
     return createSuccessResponse({ item }, undefined, 201);

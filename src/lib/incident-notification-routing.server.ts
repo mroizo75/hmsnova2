@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/db";
-import type { Role } from "@prisma/client";
 import {
+  pickDepartmentLeaderIds,
   resolveIncidentRecipients,
   type IncidentRoutingLookups,
 } from "@/lib/incident-notification-routing";
+import { roleMatchFilter } from "@/lib/extra-roles";
 import { createNotification } from "@/server/actions/notification.actions";
 import {
   buildIncidentReporterNotification,
@@ -47,11 +48,42 @@ export function createIncidentRoutingLookups(tenantId: string): IncidentRoutingL
       return (await isMemberOfTenant(membership.managerId)) ? membership.managerId : null;
     },
 
+    async getDepartmentLeaderIds(departmentId) {
+      const department = await prisma.department.findFirst({
+        where: { id: departmentId, tenantId, isActive: true },
+        select: { id: true },
+      });
+      if (!department) return [];
+
+      const placed = await prisma.userTenant.findMany({
+        where: { tenantId, departmentId, role: "LEDER" },
+        select: { userId: true },
+      });
+      const members = await prisma.userTenant.findMany({
+        where: { tenantId, departmentId, managerId: { not: null } },
+        select: { managerId: true },
+      });
+      const managerIds = members
+        .map((member) => member.managerId)
+        .filter((managerId): managerId is string => Boolean(managerId));
+      const managerLeaders = managerIds.length
+        ? await prisma.userTenant.findMany({
+            where: { tenantId, userId: { in: managerIds }, role: "LEDER" },
+            select: { userId: true },
+          })
+        : [];
+
+      return pickDepartmentLeaderIds({
+        leadersInDepartment: placed.map((leader) => leader.userId),
+        managersOfMembers: managerLeaders.map((leader) => leader.userId),
+      });
+    },
+
     async getUserIdsByRoles(roles) {
       if (roles.length === 0) return [];
 
       const memberships = await prisma.userTenant.findMany({
-        where: { tenantId, role: { in: roles as Role[] } },
+        where: { tenantId, ...roleMatchFilter(roles) },
         select: { userId: true },
         distinct: ["userId"],
       });
@@ -65,6 +97,7 @@ interface DispatchNewIncidentNotificationsInput {
   tenantId: string;
   reporterId: string;
   projectId: string | null;
+  departmentId?: string | null;
   fallbackRoles: readonly string[];
   incidentId: string;
   title: string;
@@ -82,6 +115,7 @@ export async function dispatchNewIncidentNotifications(
     {
       reporterId: input.reporterId,
       projectId: input.projectId,
+      departmentId: input.departmentId ?? null,
       fallbackRoles: input.fallbackRoles,
     },
     createIncidentRoutingLookups(input.tenantId)

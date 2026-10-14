@@ -5,6 +5,7 @@ import { getAuthContext } from "@/lib/server-authorization";
 import { fetchPersonnelFolder } from "@/server/queries/personnel.queries";
 import { HOSPITALITY_COURSE_KEYS } from "@/lib/hospitality-courses";
 import { ensureHospitalityCourses } from "@/server/hospitality-courses";
+import { ensureSkjenkingRutiner } from "@/server/skjenking-rutiner";
 
 export async function fetchSettingsData() {
   const auth = await getAuthContext();
@@ -207,10 +208,11 @@ export async function fetchRenholdData() {
 export async function fetchSkjenkingData() {
   const auth = await getAuthContext();
   await ensureHospitalityCourses(auth.tenantId);
+  await ensureSkjenkingRutiner(auth.tenantId);
 
   const alcoholKey = HOSPITALITY_COURSE_KEYS.alcohol;
 
-  const [bevilling, hendelser, course, trainings, users] = await Promise.all([
+  const [bevilling, hendelser, rutiner, gjennomganger, course, trainings, users] = await Promise.all([
     prisma.skjenkeBevilling.findFirst({
       where: { tenantId: auth.tenantId },
       orderBy: { updatedAt: "desc" },
@@ -219,6 +221,15 @@ export async function fetchSkjenkingData() {
       where: { tenantId: auth.tenantId },
       orderBy: { occurredAt: "desc" },
       take: 200,
+    }),
+    prisma.skjenkeRutine.findMany({
+      where: { tenantId: auth.tenantId },
+      orderBy: { tittel: "asc" },
+    }),
+    prisma.skjenkeGjennomgang.findMany({
+      where: { tenantId: auth.tenantId },
+      orderBy: { gjennomfortAt: "desc" },
+      take: 20,
     }),
     prisma.courseTemplate.findFirst({
       where: {
@@ -252,7 +263,7 @@ export async function fetchSkjenkingData() {
     }),
   };
 
-  return JSON.parse(JSON.stringify({ bevilling, hendelser, alcoholTraining }));
+  return JSON.parse(JSON.stringify({ bevilling, hendelser, rutiner, gjennomganger, alcoholTraining }));
 }
 
 export async function fetchTransportData() {

@@ -43,7 +43,7 @@ export default async function DashboardPage() {
     redirect("/dashboard/hms-tavle");
   }
 
-  const permissions = getPermissions(selectedMembership.role);
+  const permissions = getPermissions(selectedMembership.role, selectedMembership.extraRoles);
   const tenant = selectedMembership.tenant as typeof selectedMembership.tenant & {
     startpakkeCompleted?: boolean;
     onboardingStatus?: string;

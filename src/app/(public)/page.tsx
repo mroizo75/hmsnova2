@@ -36,6 +36,8 @@ import {
   ClipboardCheck,
   Star,
   ChevronRight,
+  FolderKanban,
+  Receipt,
 } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -374,12 +376,79 @@ export default function HomePage() {
               </p>
               <Button asChild variant="outline" size="lg">
                 <Link href="/hms-system">
-                  Se alle {11} funksjoner
+                  Se alle funksjoner
                   <ChevronRight className="ml-1 h-4 w-4" aria-hidden="true" />
                 </Link>
               </Button>
             </div>
           </ScrollReveal>
+        </section>
+
+        {/* ═══════════════════════════════════════════
+            TRIPLETEX — Godkjenn i HMS Nova
+        ═══════════════════════════════════════════ */}
+        <section className="container mx-auto px-4 py-20 bg-muted/30">
+          <div className="max-w-6xl mx-auto">
+            <ScrollReveal>
+              <div className="text-center mb-12">
+                <Badge variant="default" className="mb-4">
+                  Tripletex
+                </Badge>
+                <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                  Godkjenn i HMS Nova. Grunnlaget ligger i Tripletex.
+                </h2>
+                <p className="text-muted-foreground max-w-2xl mx-auto">
+                  Timeføring på prosjekt, nye prosjekt og varer som fakturagrunnlag.
+                  Når leder godkjenner, går det over av seg selv.
+                </p>
+              </div>
+            </ScrollReveal>
+
+            <div className="grid md:grid-cols-3 gap-6">
+              {[
+                {
+                  icon: Clock,
+                  title: "Timeføring inn i prosjekt",
+                  desc: "Ordinær tid, 50 % og 100 % overtid godkjennes i HMS Nova og legges på prosjektet i Tripletex.",
+                },
+                {
+                  icon: FolderKanban,
+                  title: "Prosjekt fra HMS Nova",
+                  desc: "Opprett prosjektet hos oss. Det opprettes i Tripletex med kunde, klart for timer og varer.",
+                },
+                {
+                  icon: Receipt,
+                  title: "Varer og tjenester",
+                  desc: "Kilometer, maskintimer og varer blir ordrelinjer. Usendt faktura opprettes i Tripletex.",
+                },
+              ].map((item, i) => (
+                <ScrollReveal key={item.title} delay={i * 80}>
+                  <Card className="h-full">
+                    <CardHeader>
+                      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                        <item.icon className="h-5 w-5 text-primary" aria-hidden="true" />
+                      </div>
+                      <CardTitle className="text-base">{item.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">{item.desc}</p>
+                    </CardContent>
+                  </Card>
+                </ScrollReveal>
+              ))}
+            </div>
+
+            <ScrollReveal delay={200} direction="fade">
+              <div className="text-center mt-10">
+                <Button asChild size="lg">
+                  <Link href="/tripletex-integrasjon">
+                    Les om Tripletex-integrasjonen
+                    <ChevronRight className="ml-1 h-4 w-4" aria-hidden="true" />
+                  </Link>
+                </Button>
+              </div>
+            </ScrollReveal>
+          </div>
         </section>
 
         {/* ═══════════════════════════════════════════
@@ -529,6 +598,7 @@ export default function HomePage() {
                       "Automatiske påminnelser",
                       "Bransjetilpassede maler",
                       "Norsk support",
+                      "Tripletex-integrasjon",
                       "12 mnd binding etter 14 dager",
                     ].map((item) => (
                       <div key={item} className="flex items-center gap-2">

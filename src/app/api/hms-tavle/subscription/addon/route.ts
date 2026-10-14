@@ -11,7 +11,7 @@ export async function POST(_req: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.tenantId) return createErrorResponse(ErrorCodes.UNAUTHORIZED, "Ikke autentisert", 401);
 
-    const perms = getPermissions(session.user.role);
+    const perms = getPermissions(session.user.role, session.user.extraRoles);
     if (!perms.canManageHmsTavle) return createErrorResponse(ErrorCodes.FORBIDDEN, "Ingen tilgang", 403);
 
     const existing = await prisma.hmsTavleSubscription.findUnique({

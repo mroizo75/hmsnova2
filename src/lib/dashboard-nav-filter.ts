@@ -49,6 +49,7 @@ export function isHrefVisibleInSimpleMode(
 export function filterDashboardNavItems(opts: {
   visibleNavItems: Record<string, boolean | undefined>;
   role: Role | null;
+  roles?: readonly Role[] | null;
   permissions: RolePermissions | null;
   moduleVisibility: ModuleVisibilityConfig | null;
   tenantFeatures: string[] | null;
@@ -68,10 +69,10 @@ export function filterDashboardNavItems(opts: {
     if (item.feature && !opts.tenantFeatures?.includes(item.feature)) return false;
     if (!isNavItemAllowedForIndustry(item.industries, opts.tenantIndustry)) return false;
     if (
-      opts.role &&
+      (opts.roles?.length ? opts.roles : opts.role) &&
       !isNavItemAllowedByModuleVisibility(
         item.permission,
-        opts.role,
+        opts.roles?.length ? opts.roles : (opts.role as Role),
         opts.moduleVisibility,
         opts.permissions,
       )

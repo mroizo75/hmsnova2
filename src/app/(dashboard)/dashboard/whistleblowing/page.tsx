@@ -21,7 +21,7 @@ export default async function WhistleblowingListPage() {
     return notFound();
   }
 
-  const permissions = getPermissions(session.user.role);
+  const permissions = getPermissions(session.user.role, session.user.extraRoles);
 
   const initialData = await fetchWhistleblowings();
   if (!initialData) return notFound();

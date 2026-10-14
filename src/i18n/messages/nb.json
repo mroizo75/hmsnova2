@@ -291,7 +291,7 @@
     "hr": "HR",
     "hmsTavle": "Digital HMS Tavle",
     "ikMat": "IK-mat og mattrygghet",
-    "skjenking": "Skjenking",
+    "skjenking": "Internkontroll skjenking",
     "beredskap": "Beredskap",
     "aktivitetssikkerhet": "Aktivitetssikkerhet",
     "transport": "Transport",
@@ -2111,7 +2111,8 @@
     "toast": {
       "success": {
         "title": "✅ Avvik rapportert",
-        "description": "Takk for rapporten! HMS-ansvarlig er varslet."
+        "description": "Takk for rapporten! HMS-ansvarlig og lederen for avdelingen er varslet.",
+        "descriptionWithoutDepartment": "Takk for rapporten! HMS-ansvarlig er varslet."
       },
       "error": {
         "title": "❌ Feil",
@@ -2155,6 +2156,12 @@
       }
     },
     "fields": {
+      "department": {
+        "label": "Avdeling *",
+        "placeholder": "Velg avdeling",
+        "required": "Velg hvilken avdeling avviket gjelder.",
+        "help": "Lederen for avdelingen og HMS-ansvarlig får melding. Lederen må ha rollen Leder på avdelingen, eller være nærmeste leder for noen der."
+      },
       "project": {
         "label": "Prosjekt / jobb",
         "placeholder": "Velg prosjekt (valgfritt)",
@@ -2961,6 +2968,7 @@
         "descriptionLabel": "Beskrivelse",
         "time": "Tidspunkt",
         "location": "Sted",
+        "department": "Avdeling",
         "projectReference": "Prosjektnummer / referanse",
         "witnesses": "Vitner",
         "injury": "Skade",

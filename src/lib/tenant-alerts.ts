@@ -9,6 +9,7 @@
 
 import { addMonths } from "date-fns";
 import { prisma } from "@/lib/db";
+import { roleMatchFilter } from "@/lib/extra-roles";
 
 export type TenantAlertSeverity = "critical" | "warning";
 
@@ -64,8 +65,8 @@ export async function evaluateTenantAlerts(tenantId: string): Promise<TenantAler
       where: { id: tenantId },
       select: { managementReviewFrequencyMonths: true, createdAt: true },
     }),
-    prisma.userTenant.count({ where: { tenantId, role: "HMS" } }),
-    prisma.userTenant.count({ where: { tenantId, role: "VERNEOMBUD" } }),
+    prisma.userTenant.count({ where: { tenantId, ...roleMatchFilter(["HMS"]) } }),
+    prisma.userTenant.count({ where: { tenantId, ...roleMatchFilter(["VERNEOMBUD"]) } }),
     prisma.managementReview.findFirst({
       where: { tenantId, status: { in: ["COMPLETED", "APPROVED"] } },
       orderBy: { reviewDate: "desc" },

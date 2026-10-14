@@ -52,7 +52,7 @@ export default async function RutinerPage({
   }
 
   const membership = user?.tenants.at(0);
-  const routinePerms = membership ? getPermissions(membership.role) : null;
+  const routinePerms = membership ? getPermissions(membership.role, membership.extraRoles) : null;
   const serializedUploads =
     uploadsResult.success === true
       ? uploadsResult.data.map((u) => ({

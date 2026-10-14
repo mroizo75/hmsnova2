@@ -14,7 +14,7 @@ export default async function AnnualHmsPlanPage() {
     redirect("/login");
   }
 
-  const permissions = getPermissions(session.user.role);
+  const permissions = getPermissions(session.user.role, session.user.extraRoles);
 
   if (!permissions.canReadManagementReviews && !permissions.canReadDocuments) {
     redirect("/dashboard");

@@ -6,7 +6,6 @@ import {
   emptyVisibleNavItems,
   getPermissions,
   getVisibleNavItems,
-  hasPermission,
   type RolePermissions,
 } from "@/lib/permissions";
 
@@ -25,12 +24,14 @@ export function usePermissions() {
       role: null,
       permissions: null,
       hasPermission: () => false,
+      roles: [] as Role[],
       visibleNavItems: emptyVisibleNavItems(),
     };
   }
 
-  const permissions = getPermissions(role);
-  const visibleNavItems = getVisibleNavItems(role);
+  const extraRoles = session?.user?.extraRoles;
+  const permissions = getPermissions(role, extraRoles);
+  const visibleNavItems = getVisibleNavItems(role, extraRoles);
   if (session?.user?.hasConfidentialInbox) {
     visibleNavItems.confidentialTasks = true;
   }
@@ -38,7 +39,8 @@ export function usePermissions() {
   return {
     role,
     permissions,
-    hasPermission: (permission: keyof RolePermissions) => hasPermission(role, permission),
+    hasPermission: (permission: keyof RolePermissions) => permissions[permission] === true,
+    roles: [role, ...(extraRoles ?? [])],
     visibleNavItems,
   };
 }

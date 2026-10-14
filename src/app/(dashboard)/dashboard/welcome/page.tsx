@@ -15,7 +15,7 @@ export default async function WelcomePage() {
     redirect("/login");
   }
 
-  const permissions = getPermissions(session.user.role as Role);
+  const permissions = getPermissions(session.user.role as Role, session.user.extraRoles);
 
   if (!permissions.canUpdateSettings) {
     redirect("/dashboard");

@@ -28,7 +28,7 @@ export default async function BrukerePage() {
   if (!user || user.tenants.length === 0) redirect("/login");
 
   const selectedMembership = user.tenants[0];
-  const permissions = getPermissions(selectedMembership.role as Role);
+  const permissions = getPermissions(selectedMembership.role as Role, selectedMembership.extraRoles);
 
   if (!permissions.canManageUsers && selectedMembership.role !== "LEDER") {
     redirect("/dashboard");
@@ -50,8 +50,8 @@ export default async function BrukerePage() {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground sm:text-base">
             {selectedMembership.role === "LEDER"
-              ? "Ansatte som er koblet til deg som nærmeste leder"
-              : "Administrer ansatte, roller og tilganger i bedriften"}
+              ? "Ansatte som er koblet til deg som nærmeste leder. Sist inne viser siste aktivitet i systemet."
+              : "Administrer ansatte, roller og tilganger. En bruker kan ha tilleggsroller, for eksempel HMS-ansvarlig og verneombud."}
           </p>
         </div>
       </div>

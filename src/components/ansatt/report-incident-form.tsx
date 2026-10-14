@@ -30,6 +30,7 @@ import { PsychosocialIncidentHint } from "@/features/incidents/components/psycho
 
 const NO_REPORTED_FOR = "__none__";
 const NO_PROJECT = "__none__";
+const NO_DEPARTMENT = "__none__";
 const NO_EQUIPMENT = "__none__";
 
 function getCurrentLocalDateTimeValue(): string {
@@ -47,6 +48,7 @@ export function ReportIncidentForm({
   reportedBy,
   users = [],
   projects = [],
+  departments = [],
   equipment = [],
   successRedirectPath = "/ansatt/avvik/takk",
   ruhModuleEnabled = true,
@@ -57,6 +59,7 @@ export function ReportIncidentForm({
   reportedBy: string;
   users?: Array<{ id: string; name: string | null; email: string }>;
   projects?: Array<{ id: string; name: string; code: string | null }>;
+  departments?: Array<{ id: string; name: string }>;
   equipment?: Array<{ id: string; name: string; serialNumber: string | null }>;
   successRedirectPath?: string;
   ruhModuleEnabled?: boolean;
@@ -68,6 +71,7 @@ export function ReportIncidentForm({
     location?: string;
     immediateAction?: string;
     projectId?: string;
+    departmentId?: string;
     equipmentId?: string;
   };
 }) {
@@ -90,6 +94,11 @@ export function ReportIncidentForm({
   );
   const [reportedForUserId, setReportedForUserId] = useState<string>(NO_REPORTED_FOR);
   const [projectId, setProjectId] = useState<string>(defaultValues?.projectId ?? NO_PROJECT);
+  const [departmentId, setDepartmentId] = useState<string>(
+    defaultValues?.departmentId && departments.some((department) => department.id === defaultValues.departmentId)
+      ? defaultValues.departmentId
+      : NO_DEPARTMENT,
+  );
   const [equipmentId, setEquipmentId] = useState<string>(defaultValues?.equipmentId ?? NO_EQUIPMENT);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<{
@@ -193,6 +202,18 @@ export function ReportIncidentForm({
     if (reportedForUserId !== NO_REPORTED_FOR) {
       formData.append("reportedForUserId", reportedForUserId);
     }
+    if (departments.length > 0 && departmentId === NO_DEPARTMENT) {
+      toast({
+        title: t("toast.error.title"),
+        description: t("fields.department.required"),
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+    if (departmentId !== NO_DEPARTMENT) {
+      formData.set("departmentId", departmentId);
+    }
     if (projectId !== NO_PROJECT) {
       formData.set("projectId", projectId);
     }
@@ -212,7 +233,10 @@ export function ReportIncidentForm({
 
       toast({
         title: t("toast.success.title"),
-        description: t("toast.success.description"),
+        description:
+          departmentId !== NO_DEPARTMENT
+            ? t("toast.success.description")
+            : t("toast.success.descriptionWithoutDepartment"),
       });
 
       router.push(successRedirectPath);
@@ -360,6 +384,27 @@ export function ReportIncidentForm({
           />
         </div>
       </div>
+
+      {departments.length > 0 && (
+        <div className="space-y-2">
+          <Label htmlFor="departmentId" className="text-base">
+            {t("fields.department.label")}
+          </Label>
+          <Select value={departmentId} onValueChange={setDepartmentId} disabled={isSubmitting}>
+            <SelectTrigger id="departmentId" className="h-11 text-base">
+              <SelectValue placeholder={t("fields.department.placeholder")} />
+            </SelectTrigger>
+            <SelectContent>
+              {departments.map((department) => (
+                <SelectItem key={department.id} value={department.id}>
+                  {department.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">{t("fields.department.help")}</p>
+        </div>
+      )}
 
       {projects.length > 0 && (
         <div className="space-y-2">

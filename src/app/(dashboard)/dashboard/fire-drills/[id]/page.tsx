@@ -100,6 +100,8 @@ interface FireDrill {
   totalBuildingOccupants: number | null;
   routineId: string | null;
   routine: { id: string; title: string; status: string } | null;
+  linkedRiskAssessment: { id: string; title: string; assessmentYear: number } | null;
+  emergencyPlan: { id: string; title: string; kind: string } | null;
   measures: Measure[];
   createdAt: string;
 }
@@ -451,6 +453,36 @@ export default function FireDrillDetailPage() {
                     <span className="text-muted-foreground">Felles evakueringsøvelse for hele bygget</span>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {(drill.linkedRiskAssessment || drill.emergencyPlan) && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">Koblet grunnlag</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {drill.linkedRiskAssessment && (
+                  <Link
+                    href={`/dashboard/risks/assessment/${drill.linkedRiskAssessment.id}`}
+                    className="block text-sm font-medium text-primary hover:underline"
+                  >
+                    Risikovurdering: {drill.linkedRiskAssessment.title} ({drill.linkedRiskAssessment.assessmentYear})
+                  </Link>
+                )}
+                {drill.emergencyPlan && (
+                  <Link
+                    href={
+                      drill.emergencyPlan.kind === "PLAN"
+                        ? `/dashboard/bcm/planer/${drill.emergencyPlan.id}`
+                        : `/dashboard/documents/${drill.emergencyPlan.id}`
+                    }
+                    className="block text-sm font-medium text-primary hover:underline"
+                  >
+                    Beredskapsplan: {drill.emergencyPlan.title}
+                  </Link>
+                )}
               </CardContent>
             </Card>
           )}

@@ -518,7 +518,7 @@ export async function getGroupAnnualPlanStatus() {
 
   const completions = await prisma.hmsAnnualPlanCompletion.groupBy({
     by: ["tenantId"],
-    where: { tenantId: { in: tenantIds }, year: currentYear },
+    where: { tenantId: { in: tenantIds }, year: currentYear, status: "COMPLETED" },
     _count: true,
   });
 

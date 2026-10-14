@@ -89,6 +89,9 @@ export async function POST(request: NextRequest) {
     const incidentContext = formData.get("incidentContext") as string | null;
     const contextDetails = (formData.get("contextDetails") as string | null)?.trim() || null;
     const rawSubcategoryKeys = formData.get("subcategoryKeys") as string | null;
+    const rawDepartmentId = (formData.get("departmentId") as string | null)?.trim() || null;
+    const departmentId =
+      rawDepartmentId && rawDepartmentId !== "__none__" ? rawDepartmentId : null;
     const projectId = (formData.get("projectId") as string | null) || null;
     const projectReference = normalizeProjectReference(formData.get("projectReference"));
     const rawEquipmentId = (formData.get("equipmentApprovalId") as string | null)?.trim() || null;
@@ -139,6 +142,18 @@ export async function POST(request: NextRequest) {
       "AVVIK",
       occurredAt.getFullYear()
     );
+    let validatedDepartmentId: string | null = null;
+    if (departmentId) {
+      const department = await prisma.department.findFirst({
+        where: { id: departmentId, tenantId, isActive: true },
+        select: { id: true },
+      });
+      if (!department) {
+        return NextResponse.json({ error: "Avdeling ikke funnet" }, { status: 400 });
+      }
+      validatedDepartmentId = department.id;
+    }
+
     let validatedProjectId: string | null = null;
     if (projectId) {
       const project = await prisma.project.findFirst({
@@ -194,6 +209,7 @@ export async function POST(request: NextRequest) {
         involvedPersons,
         contributingFactors: incidentContext || undefined,
         subcategoryKeys,
+        departmentId: validatedDepartmentId,
         projectId: validatedProjectId,
         projectReference,
         equipmentApprovalId: validatedEquipmentId,
@@ -254,7 +270,9 @@ export async function POST(request: NextRequest) {
           userId,
           type: "NEW_INCIDENT",
           title: "Avvik mottatt",
-          message: `Takk for rapporten! Ditt avvik "${title}" er registrert og vil bli behandlet av HMS-ansvarlig.`,
+          message: validatedDepartmentId
+            ? `Takk for rapporten! Ditt avvik "${title}" er registrert. HMS-ansvarlig og lederen for avdelingen er varslet.`
+            : `Takk for rapporten! Ditt avvik "${title}" er registrert og vil bli behandlet av HMS-ansvarlig.`,
           link: `/ansatt/avvik`,
         });
         const visConfig = parseModuleVisibilityConfig(
@@ -269,6 +287,7 @@ export async function POST(request: NextRequest) {
           tenantId,
           reporterId: userId,
           projectId: validatedProjectId,
+          departmentId: validatedDepartmentId,
           fallbackRoles: getNotifyRolesForModule(visConfig, "incidents", ["HMS"]),
           incidentId: incident.id,
           title,

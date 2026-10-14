@@ -16,6 +16,7 @@ export function OrgChartContent({ initialData, canManage }: OrgChartContentProps
     queryKey: ["settings", "org-chart"],
     queryFn: () => fetchOrgChartNodes(),
     initialData,
+    initialDataUpdatedAt: 0,
   });
 
   return <OrgChartTree nodes={nodes} canManage={canManage} />;

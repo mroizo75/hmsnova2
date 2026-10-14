@@ -35,7 +35,7 @@ export async function fetchDashboardData() {
     return null;
   }
 
-  const permissions = getPermissions(selectedMembership.role);
+  const permissions = getPermissions(selectedMembership.role, selectedMembership.extraRoles);
   const tenantId = selectedMembership.tenantId;
   const userRole = selectedMembership.role;
 

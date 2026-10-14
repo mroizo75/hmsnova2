@@ -15,10 +15,13 @@ const setCompletedSchema = z.object({
   note: z.string().max(2000).optional(),
 });
 
+export type AnnualPlanStepStatus = "COMPLETED" | "NOT_RELEVANT" | "NOT_USED";
+
 export type AnnualPlanStepWithCompletion = AnnualHmsPlanStep & {
   completedAt: Date | null;
   completedByUserId: string | null;
   note: string | null;
+  status: AnnualPlanStepStatus | null;
 };
 
 export type AnnualPlanChecklistData = {
@@ -26,6 +29,7 @@ export type AnnualPlanChecklistData = {
   steps: AnnualPlanStepWithCompletion[];
   byCategory: Map<AnnualHmsPlanStep["category"], AnnualPlanStepWithCompletion[]>;
   completedCount: number;
+  settledCount: number;
   totalCount: number;
 };
 
@@ -34,6 +38,7 @@ export type AnnualPlanChecklistDataSerialized = {
   year: number;
   steps: (AnnualPlanStepWithCompletion & { completedAt: Date | string | null })[];
   completedCount: number;
+  settledCount: number;
   totalCount: number;
 };
 
@@ -44,6 +49,7 @@ export async function serializeAnnualPlanData(
     year: data.year,
     steps: data.steps,
     completedCount: data.completedCount,
+    settledCount: data.settledCount,
     totalCount: data.totalCount,
   };
 }
@@ -78,6 +84,7 @@ export async function getAnnualPlanChecklist(
           completedAt: c.completedAt,
           completedByUserId: c.completedByUserId,
           note: c.note,
+          status: c.status,
         },
       ])
     );
@@ -89,6 +96,7 @@ export async function getAnnualPlanChecklist(
         completedAt: c?.completedAt ?? null,
         completedByUserId: c?.completedByUserId ?? null,
         note: c?.note ?? null,
+        status: c?.status ?? null,
       };
     });
 
@@ -99,7 +107,8 @@ export async function getAnnualPlanChecklist(
       byCategory.set(step.category, list);
     }
 
-    const completedCount = steps.filter((s) => s.completedAt !== null).length;
+    const completedCount = steps.filter((s) => s.status === "COMPLETED").length;
+    const settledCount = steps.filter((s) => s.status !== null).length;
     const totalCount = steps.length;
 
     return {
@@ -109,6 +118,7 @@ export async function getAnnualPlanChecklist(
         steps,
         byCategory,
         completedCount,
+        settledCount,
         totalCount,
       },
     };
@@ -145,11 +155,13 @@ export async function setAnnualPlanStepCompleted(
           stepKey: parsed.stepKey,
           completedByUserId: parsed.userId ?? null,
           note: parsed.note ?? null,
+          status: "COMPLETED",
         },
         update: {
           completedAt: new Date(),
           completedByUserId: parsed.userId ?? null,
           note: parsed.note ?? null,
+          status: "COMPLETED",
         },
       });
     } else {
@@ -170,6 +182,68 @@ export async function setAnnualPlanStepCompleted(
       return { success: false, error: err.issues[0]?.message ?? "Ugyldig input" };
     }
     console.error("setAnnualPlanStepCompleted error:", err);
+    return { success: false, error: "Kunne ikke oppdatere sjekkliste" };
+  }
+}
+
+const setDispositionSchema = z.object({
+  tenantId: z.string(),
+  year: z.number().int().min(2020).max(2030),
+  stepKey: z.string().min(1),
+  status: z.enum(["COMPLETED", "NOT_RELEVANT", "NOT_USED"]).nullable(),
+  userId: z.string().optional(),
+});
+
+/** Sett punktet som gjennomført, ikke relevant, brukes ikke, eller åpent igjen. */
+export async function setAnnualPlanStepDisposition(
+  input: z.infer<typeof setDispositionSchema>
+): Promise<{ success: true } | { success: false; error: string }> {
+  try {
+    const parsed = setDispositionSchema.parse(input);
+    if (!VALID_STEP_KEYS.has(parsed.stepKey)) {
+      return { success: false, error: "Ugyldig steg" };
+    }
+
+    if (!parsed.status) {
+      await prisma.hmsAnnualPlanCompletion.deleteMany({
+        where: {
+          tenantId: parsed.tenantId,
+          year: parsed.year,
+          stepKey: parsed.stepKey,
+        },
+      });
+    } else {
+      await prisma.hmsAnnualPlanCompletion.upsert({
+        where: {
+          tenantId_year_stepKey: {
+            tenantId: parsed.tenantId,
+            year: parsed.year,
+            stepKey: parsed.stepKey,
+          },
+        },
+        create: {
+          tenantId: parsed.tenantId,
+          year: parsed.year,
+          stepKey: parsed.stepKey,
+          completedByUserId: parsed.userId ?? null,
+          status: parsed.status,
+        },
+        update: {
+          completedAt: new Date(),
+          completedByUserId: parsed.userId ?? null,
+          status: parsed.status,
+        },
+      });
+    }
+
+    revalidatePath("/dashboard/annual-hms-plan");
+    triggerRealtimeEvent(parsed.tenantId, "goal-updated");
+    return { success: true };
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return { success: false, error: err.issues[0]?.message ?? "Ugyldig input" };
+    }
+    console.error("setAnnualPlanStepDisposition error:", err);
     return { success: false, error: "Kunne ikke oppdatere sjekkliste" };
   }
 }

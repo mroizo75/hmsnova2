@@ -32,7 +32,7 @@ export default async function ProjectsPage() {
     where: { id: selectedMembership.tenantId },
     select: { accountingProvider: true },
   });
-  const perms = getPermissions(selectedMembership.role);
+  const perms = getPermissions(selectedMembership.role, selectedMembership.extraRoles);
   const initialData = await fetchProjects();
 
   return (

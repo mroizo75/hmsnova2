@@ -53,7 +53,7 @@ export default async function EditRiskPage({ params }: { params: Promise<{ id: s
       userId={user.id}
       trainingRequirements={trainingRequirements}
       history={history}
-      canSuggestMeasures={getPermissions(selectedMembership.role).canCreateActions}
+      canSuggestMeasures={getPermissions(selectedMembership.role, selectedMembership.extraRoles).canCreateActions}
     />
   );
 }

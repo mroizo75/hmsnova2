@@ -55,6 +55,8 @@ export async function POST(request: NextRequest) {
           ? JSON.stringify(validated.participantIds)
           : null,
         routineId: validated.routineId ?? null,
+        riskAssessmentId: validated.riskAssessmentId ?? null,
+        emergencyPlanDocumentId: validated.emergencyPlanDocumentId ?? null,
         status: "PLANNED",
       },
     });

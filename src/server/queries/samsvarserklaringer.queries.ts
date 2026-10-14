@@ -11,7 +11,7 @@ export async function fetchSamsvarserklaringer() {
   const membership = user.tenants.at(0);
   if (!membership) return null;
 
-  const permissions = getPermissions(membership.role);
+  const permissions = getPermissions(membership.role, membership.extraRoles);
   if (!permissions.canReadDocuments) return null;
 
   const result = await getElectroForDashboard();

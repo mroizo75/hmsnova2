@@ -109,7 +109,7 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
   );
   const isTabletMode = resolvedSearchParams?.tablet === "1" && isHealthcareTenant;
 
-  const [users, projects, equipment] = await Promise.all([
+  const [users, projects, departments, equipment] = await Promise.all([
     prisma.userTenant.findMany({
       where: { tenantId },
       include: { user: { select: { id: true, name: true, email: true } } },
@@ -119,6 +119,11 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
       where: { tenantId, status: { in: ["PLANNING", "ACTIVE"] } },
       select: { id: true, name: true, code: true, status: true },
       orderBy: { name: "asc" },
+    }),
+    prisma.department.findMany({
+      where: { tenantId, isActive: true },
+      select: { id: true, name: true },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     }),
     listEquipmentChoices(tenantId, selectedMembership.tenant.industry),
   ]);
@@ -133,6 +138,7 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
 
   const defaultValues = {
     type: resolvedSearchParams?.type ?? preset?.type,
+    departmentId: selectedMembership.departmentId ?? undefined,
     projectId: resolvedSearchParams?.projectId,
     equipmentId: resolvedSearchParams?.equipmentId,
     title: preset ? tForm(preset.titleKey) : undefined,
@@ -165,6 +171,7 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
         tenantId={tenantId}
         reportedBy={user.id}
         projects={projects}
+        departments={departments}
         equipment={equipment}
         users={userList}
         successRedirectPath="/dashboard/incidents"

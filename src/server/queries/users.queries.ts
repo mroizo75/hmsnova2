@@ -31,7 +31,7 @@ export async function fetchUsers() {
   const selectedMembership = user.tenants[0];
   const tenant = selectedMembership.tenant;
   const isAdmin = selectedMembership.role === "ADMIN";
-  const permissions = getPermissions(selectedMembership.role as Role);
+  const permissions = getPermissions(selectedMembership.role as Role, selectedMembership.extraRoles);
 
   const [tenantUsers, departments] = await Promise.all([
     prisma.userTenant.findMany({
@@ -46,6 +46,7 @@ export async function fetchUsers() {
             name: true,
             email: true,
             createdAt: true,
+            lastSeenAt: true,
           },
         },
       },
@@ -64,6 +65,7 @@ export async function fetchUsers() {
     position: ut.position ?? null,
     managerId: ut.managerId ?? null,
     departmentId: ut.departmentId ?? null,
+    extraRoles: ut.extraRoles ?? null,
   }));
 
   const { getSubscriptionLimits } = await import("@/lib/subscription");
@@ -111,6 +113,7 @@ export async function fetchUserOverview(userId: string) {
           name: true,
           email: true,
           phone: true,
+          lastSeenAt: true,
           address: true,
           postalCode: true,
           city: true,
@@ -150,6 +153,7 @@ export async function fetchUserOverview(userId: string) {
   return {
     name: membership.displayName || membership.user.name,
     email: membership.user.email,
+    lastSeenAt: membership.user.lastSeenAt?.toISOString() ?? null,
     phone: membership.phone || membership.user.phone,
     address: membership.user.address,
     postalCode: membership.user.postalCode,

@@ -143,7 +143,10 @@ export default function EditManagementReviewPage() {
   const handlePrefillEnvironment = async () => {
     setLoadingEnvPrefill(true);
     try {
-      const response = await fetch("/api/management-reviews/prefill-data?months=3");
+      const reviewDate = formData.reviewDate
+        ? new Date(formData.reviewDate).toISOString()
+        : new Date().toISOString();
+      const response = await fetch(`/api/management-reviews/prefill-data?reviewDate=${encodeURIComponent(reviewDate)}`);
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error || "Kunne ikke hente miljødata");

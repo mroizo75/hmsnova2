@@ -99,7 +99,7 @@ export async function getAuthContext(): Promise<AuthContext | null> {
 
   const permissions = withEmployeeProjectCreateSetting(
     role,
-    getEffectivePermissions(role, moduleVisibilityConfig),
+    getEffectivePermissions(role, moduleVisibilityConfig, userTenant.extraRoles),
     tenant?.employeesCanCreateProjects ?? true
   );
 

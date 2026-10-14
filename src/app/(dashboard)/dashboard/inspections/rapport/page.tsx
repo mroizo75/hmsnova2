@@ -24,7 +24,7 @@ export default async function InspeksjonRapportPage({ searchParams }: PageProps)
 
   if (!session?.user?.role || !session.user.tenantId) return notFound();
 
-  const permissions = getPermissions(session.user.role);
+  const permissions = getPermissions(session.user.role, session.user.extraRoles);
   if (!permissions.canReadInspections) redirect("/dashboard");
 
   const sp = await searchParams;

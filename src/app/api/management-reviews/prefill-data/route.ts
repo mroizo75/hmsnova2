@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { generateEnvironmentReviewSummary } from "@/lib/environment-iso14001";
+import { managementReviewPeriod } from "@/lib/management-review-period";
+import { ANNUAL_HMS_PLAN_STEPS } from "@/lib/annual-hms-plan-steps";
 
 export const dynamic = "force-dynamic";
 
@@ -16,11 +18,13 @@ export async function GET(req: NextRequest) {
 
     const tenantId = session.user.tenantId;
 
-    // Hent periode fra query params (default: siste 3 måneder)
     const { searchParams } = new URL(req.url);
-    const monthsBack = parseInt(searchParams.get("months") || "3");
-    const startDate = new Date();
-    startDate.setMonth(startDate.getMonth() - monthsBack);
+    const reviewDateParam = searchParams.get("reviewDate");
+    const parsedReviewDate = reviewDateParam ? new Date(reviewDateParam) : new Date();
+    const reviewDate = Number.isNaN(parsedReviewDate.getTime()) ? new Date() : parsedReviewDate;
+    const period = managementReviewPeriod(reviewDate);
+    const startDate = period.from;
+    const endDate = period.to;
 
     // Parallell henting av alle data
     const [
@@ -51,7 +55,7 @@ export async function GET(req: NextRequest) {
       db.incident.findMany({
         where: {
           tenantId,
-          occurredAt: { gte: startDate },
+          occurredAt: { gte: startDate, lte: endDate },
         },
         orderBy: { occurredAt: "desc" },
       }),
@@ -66,7 +70,7 @@ export async function GET(req: NextRequest) {
       db.audit.findMany({
         where: {
           tenantId,
-          scheduledDate: { gte: startDate },
+          scheduledDate: { gte: startDate, lte: endDate },
         },
         include: {
           findings: true,
@@ -78,7 +82,7 @@ export async function GET(req: NextRequest) {
       db.inspection.findMany({
         where: {
           tenantId,
-          scheduledDate: { gte: startDate },
+          scheduledDate: { gte: startDate, lte: endDate },
         },
         include: {
           findings: true,
@@ -90,7 +94,7 @@ export async function GET(req: NextRequest) {
       db.training.findMany({
         where: {
           tenantId,
-          completedAt: { gte: startDate },
+          completedAt: { gte: startDate, lte: endDate },
         },
         orderBy: { completedAt: "desc" },
       }),
@@ -99,7 +103,7 @@ export async function GET(req: NextRequest) {
       db.measure.findMany({
         where: {
           tenantId,
-          createdAt: { gte: startDate },
+          createdAt: { gte: startDate, lte: endDate },
         },
         orderBy: { createdAt: "desc" },
       }),
@@ -121,7 +125,7 @@ export async function GET(req: NextRequest) {
       db.environmentalMeasurement.findMany({
         where: {
           tenantId,
-          measurementDate: { gte: startDate },
+          measurementDate: { gte: startDate, lte: endDate },
         },
         select: { status: true, parameter: true },
       }),
@@ -133,11 +137,17 @@ export async function GET(req: NextRequest) {
       }),
     ]);
 
+    const planRows = await db.hmsAnnualPlanCompletion.findMany({
+      where: { tenantId, year: period.year },
+      select: { stepKey: true, status: true },
+    });
+    const annualPlanSummary = generateAnnualPlanSummary(period.year, planRows);
+
     // Generer tekst for HMS-mål
     const hmsGoalsReview = generateGoalsReview(goals);
 
     // Generer tekst for hendelser
-    const incidentStatistics = generateIncidentStatistics(incidents);
+    const incidentStatistics = `Periode: ${period.label}.\n\n${generateIncidentStatistics(incidents)}`;
 
     // Generer tekst for risikovurderinger
     const riskReview = generateRiskReview(risks);
@@ -158,6 +168,8 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       data: {
+        periodLabel: period.label,
+        annualPlanSummary,
         hmsGoalsReview,
         incidentStatistics,
         riskReview,
@@ -189,6 +201,28 @@ export async function GET(req: NextRequest) {
 }
 
 // Generer tekst for HMS-mål
+function generateAnnualPlanSummary(
+  year: number,
+  rows: { stepKey: string; status: "COMPLETED" | "NOT_RELEVANT" | "NOT_USED" }[]
+): string {
+  const byKey = new Map(rows.map((row) => [row.stepKey, row.status]));
+  const completed = ANNUAL_HMS_PLAN_STEPS.filter((step) => byKey.get(step.key) === "COMPLETED").length;
+  const notRelevant = ANNUAL_HMS_PLAN_STEPS.filter((step) => byKey.get(step.key) === "NOT_RELEVANT").length;
+  const notUsed = ANNUAL_HMS_PLAN_STEPS.filter((step) => byKey.get(step.key) === "NOT_USED").length;
+  const open = ANNUAL_HMS_PLAN_STEPS.filter((step) => !byKey.has(step.key));
+  let text = `## HMS-årshjul ${year}\n\n`;
+  text += `Gjennomført: ${completed}. Ikke relevant: ${notRelevant}. Brukes ikke: ${notUsed}. Åpne: ${open.length}.\n`;
+  if (open.length > 0) {
+    text += `\nÅpne punkt som skal avklares innen 31.12.${year}:\n`;
+    for (const step of open) {
+      text += `- ${step.order}. ${step.title}\n`;
+    }
+  } else {
+    text += `\nAlle punktene i årshjulet er avklart.\n`;
+  }
+  return text;
+}
+
 function generateGoalsReview(goals: any[]): string {
   if (goals.length === 0) {
     return "Ingen HMS-mål er registrert i perioden.\n\n⚠️ ANBEFALING: Sett opp målbare HMS-mål for neste periode.";

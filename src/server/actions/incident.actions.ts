@@ -109,10 +109,21 @@ const normalizeSuggestedMeasures = (value: unknown): string[] => {
 const assertTenantScopedRelations = async (input: {
   tenantId: string;
   projectId?: string | null;
+  departmentId?: string | null;
   riskReferenceId?: string | null;
   reportedForUserId?: string | null;
   equipmentApprovalId?: string | null;
 }): Promise<void> => {
+  if (input.departmentId) {
+    const department = await prisma.department.findFirst({
+      where: { id: input.departmentId, tenantId: input.tenantId, isActive: true },
+      select: { id: true },
+    });
+    if (!department) {
+      throw new Error("Avdeling finnes ikke i valgt tenant");
+    }
+  }
+
   if (input.projectId) {
     const project = await prisma.project.findFirst({
       where: {
@@ -359,6 +370,7 @@ export async function createIncident(input: any) {
     await assertTenantScopedRelations({
       tenantId,
       projectId: validated.projectId ?? null,
+      departmentId: validated.departmentId ?? null,
       riskReferenceId: validated.riskReferenceId ?? null,
       reportedForUserId: validated.reportedForUserId ?? null,
       equipmentApprovalId: validated.equipmentApprovalId ?? null,
@@ -403,6 +415,7 @@ export async function createIncident(input: any) {
         customerTicketId: sanitizeString(validated.customerTicketId),
         responseDeadline: validated.responseDeadline ?? null,
         customerSatisfaction: validated.customerSatisfaction ?? null,
+        departmentId: validated.departmentId ?? null,
         // Prosjektkobling
         projectId,
         projectReference,
@@ -472,6 +485,7 @@ export async function createIncident(input: any) {
           tenantId,
           reporterId: user.id,
           projectId: incident.projectId,
+          departmentId: incident.departmentId,
           fallbackRoles: notifyRoles,
           incidentId: incident.id,
           title: incident.title,

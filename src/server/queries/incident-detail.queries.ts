@@ -48,6 +48,9 @@ export async function fetchIncidentDetail(id: string) {
       equipmentApproval: {
         select: { id: true, name: true, supplierName: true },
       },
+      department: {
+        select: { id: true, name: true },
+      },
     },
   });
 

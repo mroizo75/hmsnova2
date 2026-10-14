@@ -27,6 +27,7 @@ declare module "next-auth" {
       tenantId?: string | null;
       tenantName?: string | null;
       role?: Role;
+      extraRoles?: Role[];
       hasMultipleTenants?: boolean;
       preferredLocale?: string;
       isTavleOnly?: boolean;
@@ -45,6 +46,7 @@ declare module "next-auth/jwt" {
     tenantId?: string | null;
     tenantName?: string | null;
     role?: Role;
+    extraRoles?: Role[];
     hasMultipleTenants?: boolean;
     preferredLocale?: string;
     isTavleOnly?: boolean;

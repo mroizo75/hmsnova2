@@ -329,6 +329,13 @@ export function IncidentDetailContent({
                 <p className="text-sm text-muted-foreground">{formatDate(incident.occurredAt)}</p>
               </div>
 
+              {incident.department && (
+                <div>
+                  <h4 className="font-semibold mb-1">{t("sections.whatHappened.department")}</h4>
+                  <p className="text-sm text-muted-foreground">{incident.department.name}</p>
+                </div>
+              )}
+
               {incident.location && (
                 <div>
                   <h4 className="font-semibold mb-1 flex items-center gap-2">

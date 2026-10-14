@@ -32,7 +32,7 @@ export default async function ProjectConstructionCompliancePage({
     return <div>Ingen tilgang</div>;
   }
   const tenantId = membership.tenantId;
-  const permissions = getPermissions(membership.role);
+  const permissions = getPermissions(membership.role, membership.extraRoles);
   if (!permissions.canReadConstructionCompliance) {
     redirect("/dashboard");
   }

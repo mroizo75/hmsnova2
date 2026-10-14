@@ -88,7 +88,7 @@ export async function completeStartpakkeSetup(
       return { success: false, error: "Ikke autorisert" };
     }
 
-    const permissions = getPermissions(session.user.role as Role);
+    const permissions = getPermissions(session.user.role as Role, session.user.extraRoles);
     if (!permissions.canUpdateSettings) {
       return { success: false, error: "Kun admin kan fullføre startpakke" };
     }
@@ -153,7 +153,7 @@ export async function shouldShowStartpakke(tenantId: string): Promise<boolean> {
     const session = await getServerSession(authOptions);
     if (!session?.user?.role) return false;
 
-    const permissions = getPermissions(session.user.role as Role);
+    const permissions = getPermissions(session.user.role as Role, session.user.extraRoles);
     if (!permissions.canUpdateSettings) return false;
 
     const tenant = await prisma.tenant.findUnique({
@@ -682,7 +682,7 @@ export async function toggleSetupGuideVisibility(
       return { success: false, error: "Ikke autorisert" };
     }
 
-    const permissions = getPermissions(session.user.role as Role);
+    const permissions = getPermissions(session.user.role as Role, session.user.extraRoles);
     if (!permissions.canUpdateSettings) {
       return { success: false, error: "Kun admin kan endre veiviser-visning" };
     }
@@ -709,7 +709,7 @@ export async function dismissTavleBanner(): Promise<{ success: boolean; error?: 
       return { success: false, error: "Ikke autorisert" };
     }
 
-    const permissions = getPermissions(session.user.role as Role);
+    const permissions = getPermissions(session.user.role as Role, session.user.extraRoles);
     if (!permissions.canUpdateSettings) {
       return { success: false, error: "Kun admin kan skjule banneret" };
     }

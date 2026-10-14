@@ -29,9 +29,9 @@ export async function fetchFormsList(params: {
         tenantId,
       },
     },
-    select: { role: true },
+    select: { role: true, extraRoles: true },
   });
-  const permissions = getPermissions(userTenant?.role ?? "ANSATT");
+  const permissions = getPermissions(userTenant?.role ?? "ANSATT", userTenant?.extraRoles);
   const tenantInfo = await prisma.tenant.findUnique({
     where: { id: tenantId },
     select: { industry: true },
@@ -138,7 +138,7 @@ export async function fetchFormDetail(id: string) {
         tenantId,
       },
     },
-    select: { role: true },
+    select: { role: true, extraRoles: true },
   });
   const permissions = await resolveEffectivePermissions(
     tenantId,
@@ -229,9 +229,9 @@ export async function fetchFormSubmissionDetail(formId: string, submissionId: st
         tenantId,
       },
     },
-    select: { role: true },
+    select: { role: true, extraRoles: true },
   });
-  const permissions = getPermissions(userTenant?.role ?? "ANSATT");
+  const permissions = getPermissions(userTenant?.role ?? "ANSATT", userTenant?.extraRoles);
 
   const submission = await prisma.formSubmission.findUnique({
     where: { id: submissionId, tenantId },

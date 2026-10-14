@@ -38,14 +38,17 @@ import {
   updateEmployeeNumber,
   updateUserManager,
   updateUserPosition,
+  updateUserExtraRoles,
   assignManagerToUsers,
 } from "@/server/actions/settings.actions";
 import { assignUserDepartment } from "@/server/actions/department.actions";
 import { getRoleDisplayName } from "@/lib/permissions";
+import { parseExtraRoles } from "@/lib/extra-roles";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useRefreshAfterSave } from "@/hooks/use-refresh-after-save";
 import { UserOverviewDialog } from "@/features/settings/components/user-overview-dialog";
+import { formatLastSeen } from "@/lib/last-seen";
 
 interface UserManagementProps {
   users: Array<{
@@ -54,12 +57,14 @@ interface UserManagementProps {
     employeeNumber: string | null;
     position: string | null;
     managerId: string | null;
-    departmentId: string | null;
-    user: {
+  departmentId: string | null;
+  extraRoles: string | null;
+  user: {
       id: string;
       name: string | null;
       email: string;
       createdAt: Date;
+      lastSeenAt: string | Date | null;
     };
   }>;
   currentUserId: string;
@@ -72,6 +77,16 @@ interface UserManagementProps {
 }
 
 const NO_MANAGER_VALUE = "__no_manager__";
+
+function LastSeen({ value }: { value: string | Date | null | undefined }) {
+  const seen = formatLastSeen(value);
+  return (
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs">
+      <span className={`h-2 w-2 rounded-full ${seen.online ? "bg-green-600" : "bg-muted-foreground/40"}`} />
+      {seen.label}
+    </span>
+  );
+}
 
 export function UserManagement({
   users,
@@ -202,6 +217,28 @@ export function UserManagement({
       });
     }
 
+    setLoading(null);
+  };
+
+  const handleExtraToggle = async (userId: string, primary: string, current: string | null, role: string, checked: boolean) => {
+    const next = parseExtraRoles(current, primary).filter((item) => item !== role);
+    if (checked) next.push(role as (typeof next)[number]);
+    setLoading(userId);
+    const result = await updateUserExtraRoles(userId, next);
+    if (result.success) {
+      toast({
+        title: "Tilleggsroller oppdatert",
+        description: "Tilgang og varsling følger alle rollene brukeren har.",
+        className: "bg-green-50 border-green-200",
+      });
+      await refreshAfterSave();
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Feil",
+        description: result.error || "Kunne ikke oppdatere tilleggsroller",
+      });
+    }
     setLoading(null);
   };
 
@@ -770,6 +807,7 @@ export function UserManagement({
                   <TableHead>Rolle</TableHead>
                   <TableHead>Nærmeste leder</TableHead>
                   <TableHead>Medlem siden</TableHead>
+                  <TableHead>Sist inne</TableHead>
                   {isAdmin && <TableHead className="text-right">Handlinger</TableHead>}
                 </TableRow>
               </TableHeader>
@@ -930,29 +968,56 @@ export function UserManagement({
                       </TableCell>
                       <TableCell>
                         {canManagePeople && !isCurrentUser ? (
-                          <Select
-                            value={userTenant.role}
-                            onValueChange={(value) =>
-                              handleRoleChange(userTenant.userId, value)
-                            }
-                            disabled={loading === userTenant.userId}
-                          >
-                            <SelectTrigger className="w-[130px]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {(invitableRoles?.length
-                                ? invitableRoles
-                                : ["ANSATT", "LEDER", "HR", "HMS", "VARSLINGSANSVARLIG", "VERNEOMBUD", "BHT", "REVISOR", "ADMIN"]
-                              ).map((role) => (
-                                <SelectItem key={role} value={role}>
-                                  {getRoleDisplayName(role as Parameters<typeof getRoleDisplayName>[0])}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <div className="space-y-2">
+                            <Select
+                              value={userTenant.role}
+                              onValueChange={(value) =>
+                                handleRoleChange(userTenant.userId, value)
+                              }
+                              disabled={loading === userTenant.userId}
+                            >
+                              <SelectTrigger className="w-[150px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {(invitableRoles?.length
+                                  ? invitableRoles
+                                  : ["ANSATT", "LEDER", "HR", "HMS", "VARSLINGSANSVARLIG", "VERNEOMBUD", "BHT", "REVISOR", "ADMIN"]
+                                ).map((role) => (
+                                  <SelectItem key={role} value={role}>
+                                    {getRoleDisplayName(role as Parameters<typeof getRoleDisplayName>[0])}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <div className="space-y-1">
+                              <p className="text-[11px] text-muted-foreground">Også disse rollene. Verneombud etter AML § 6-2.</p>
+                              {(invitableRoles ?? [])
+                                .filter((role) => role !== userTenant.role && role !== "ADMIN")
+                                .map((role) => {
+                                  const selected = parseExtraRoles(userTenant.extraRoles, userTenant.role).some((item) => item === role);
+                                  return (
+                                    <label key={role} className="flex items-center gap-2 text-xs">
+                                      <Checkbox
+                                        checked={selected}
+                                        disabled={loading === userTenant.userId}
+                                        onCheckedChange={(checked) =>
+                                          handleExtraToggle(userTenant.userId, userTenant.role, userTenant.extraRoles, role, checked === true)
+                                        }
+                                      />
+                                      {getRoleDisplayName(role as Parameters<typeof getRoleDisplayName>[0])}
+                                    </label>
+                                  );
+                                })}
+                            </div>
+                          </div>
                         ) : (
-                          getRoleBadge(userTenant.role)
+                          <div className="space-y-1">
+                            {getRoleBadge(userTenant.role)}
+                            {parseExtraRoles(userTenant.extraRoles, userTenant.role).map((role) => (
+                              <div key={role}>{getRoleBadge(role)}</div>
+                            ))}
+                          </div>
                         )}
                       </TableCell>
                       <TableCell>
@@ -988,6 +1053,9 @@ export function UserManagement({
                       </TableCell>
                       <TableCell>
                         {new Date(userTenant.user.createdAt).toLocaleDateString("nb-NO")}
+                      </TableCell>
+                      <TableCell>
+                        <LastSeen value={userTenant.user.lastSeenAt} />
                       </TableCell>
                       {isAdmin && (
                         <TableCell className="text-right">

@@ -23,6 +23,8 @@ import {
   repairLovdataUrl,
   REQUIREMENT_TITLE_ALIASES,
 } from "@/lib/legal-link-repair";
+import { evaluateSkjenkingInternkontroll } from "@/features/skjenking/lib/internkontroll";
+import { HOSPITALITY_COURSE_KEYS } from "@/lib/hospitality-courses";
 
 export async function saveActivityProfile(input: {
   answers: Record<string, boolean>;
@@ -314,14 +316,34 @@ async function checkFeatureCompliance(
       return count > 0 ? "COMPLIANT" : "MISSING";
     }
     case "skjenking": {
-      const [bevilling, hendelser] = await Promise.all([
+      const [bevilling, hendelser, rutiner, gjennomganger, users, trainings] = await Promise.all([
         prisma.skjenkeBevilling.findFirst({ where: { tenantId } }),
-        prisma.skjenkeHendelse.count({ where: { tenantId } }),
+        prisma.skjenkeHendelse.findMany({ where: { tenantId }, select: { status: true } }),
+        prisma.skjenkeRutine.findMany({ where: { tenantId }, select: { nokkel: true, innhold: true, aktiv: true } }),
+        prisma.skjenkeGjennomgang.findMany({ where: { tenantId }, select: { gjennomfortAt: true } }),
+        prisma.user.findMany({ where: { tenants: { some: { tenantId } } }, select: { id: true } }),
+        prisma.training.findMany({
+          where: { tenantId, courseKey: HOSPITALITY_COURSE_KEYS.alcohol, completedAt: { not: null } },
+          select: { userId: true, validUntil: true },
+        }),
       ]);
-      if (bevilling && (bevilling.internregler || bevilling.skjenketider) && hendelser > 0) {
-        return "COMPLIANT";
-      }
-      if (bevilling || hendelser > 0) return "PARTIAL";
+      const now = new Date();
+      const userIds = new Set(users.map((user) => user.id));
+      const fullfort = new Set(
+        trainings
+          .filter((row) => userIds.has(row.userId) && (!row.validUntil || row.validUntil >= now))
+          .map((row) => row.userId),
+      ).size;
+      const coverage = evaluateSkjenkingInternkontroll({
+        bevilling,
+        rutiner,
+        apneHendelser: hendelser.filter((item) => item.status === "APEN").length,
+        gjennomganger,
+        opplaering: { total: users.length, fullfort },
+        now,
+      });
+      if (coverage.complete) return "COMPLIANT";
+      if (coverage.sections.some((section) => section.checks.some((item) => item.ok))) return "PARTIAL";
       return "MISSING";
     }
     case "allergen": {

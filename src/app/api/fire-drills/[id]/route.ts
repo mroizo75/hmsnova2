@@ -32,7 +32,22 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: "Ikke funnet" }, { status: 404 });
     }
 
-    return NextResponse.json(drill);
+    const [linkedRiskAssessment, emergencyPlan] = await Promise.all([
+      drill.riskAssessmentId
+        ? prisma.riskAssessment.findFirst({
+            where: { id: drill.riskAssessmentId, tenantId: session.user.tenantId },
+            select: { id: true, title: true, assessmentYear: true },
+          })
+        : null,
+      drill.emergencyPlanDocumentId
+        ? prisma.document.findFirst({
+            where: { id: drill.emergencyPlanDocumentId, tenantId: session.user.tenantId },
+            select: { id: true, title: true, kind: true },
+          })
+        : null,
+    ]);
+
+    return NextResponse.json({ ...drill, linkedRiskAssessment, emergencyPlan });
   } catch {
     return NextResponse.json({ error: "Intern feil" }, { status: 500 });
   }
@@ -77,6 +92,10 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
           participantIds: JSON.stringify(validated.participantIds),
         }),
         ...(validated.routineId !== undefined && { routineId: validated.routineId ?? null }),
+        ...(validated.riskAssessmentId !== undefined && { riskAssessmentId: validated.riskAssessmentId ?? null }),
+        ...(validated.emergencyPlanDocumentId !== undefined && {
+          emergencyPlanDocumentId: validated.emergencyPlanDocumentId ?? null,
+        }),
         ...(validated.status !== undefined && { status: validated.status }),
       },
     });

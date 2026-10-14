@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.tenantId) return createErrorResponse(ErrorCodes.UNAUTHORIZED, "Ikke autentisert", 401);
 
-    const perms = getPermissions(session.user.role);
+    const perms = getPermissions(session.user.role, session.user.extraRoles);
     if (!perms.canCreateInspections) return createErrorResponse(ErrorCodes.FORBIDDEN, "Ingen tilgang", 403);
 
     const body = await req.json();

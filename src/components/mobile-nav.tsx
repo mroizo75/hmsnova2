@@ -28,7 +28,7 @@ export function MobileNav() {
   const pathname = usePathname();
   const t = useTranslations();
   const { data: session } = useSession();
-  const { visibleNavItems, role, permissions } = usePermissions();
+  const { visibleNavItems, role, roles, permissions } = usePermissions();
   const { isSimpleMode, toggleMode } = useSimpleMode();
   const { simpleMenuItems } = useSimpleMenuConfig();
   const { dashboardLocked } = useDashboardLock();
@@ -41,6 +41,7 @@ export function MobileNav() {
     filterDashboardNavItems({
       visibleNavItems,
       role: (role as Role | null) ?? null,
+      roles,
       permissions,
       moduleVisibility,
       tenantFeatures,

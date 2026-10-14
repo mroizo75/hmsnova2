@@ -21,7 +21,9 @@ export function SkjenkingContent({ initialData, canEdit }: Props) {
   return (
     <SkjenkingClient
       bevilling={data.bevilling}
-      hendelser={data.hendelser}
+      hendelser={data.hendelser ?? []}
+      rutiner={data.rutiner ?? []}
+      gjennomganger={data.gjennomganger ?? []}
       alcoholTraining={data.alcoholTraining ?? { courseKey: "hospitality_alcohol_service", title: "Ansvarlig alkoholservering", users: [] }}
       canEdit={canEdit}
     />

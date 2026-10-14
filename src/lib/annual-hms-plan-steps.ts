@@ -123,8 +123,8 @@ export const ANNUAL_HMS_PLAN_STEPS: AnnualHmsPlanStep[] = [
     description: "Evakuering eller annen beredskapsøvelse er gjennomført (hvis aktuelt for virksomheten).",
     category: "kontroll",
     order: 12,
-    href: "/dashboard/inspections",
-    legalRef: "Brannvernforskriften, AML",
+    href: "/dashboard/fire-drills",
+    legalRef: "Forskrift om brannforebygging § 12",
   },
   {
     key: "whistleblowing",

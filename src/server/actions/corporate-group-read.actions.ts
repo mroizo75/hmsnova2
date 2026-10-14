@@ -101,7 +101,7 @@ export async function getGroupTenantOverview(tenantId: string) {
     }),
     Promise.resolve(0),
     Promise.resolve(0),
-    prisma.hmsAnnualPlanCompletion.count({ where: { tenantId, year: currentYear } }),
+    prisma.hmsAnnualPlanCompletion.count({ where: { tenantId, year: currentYear, status: "COMPLETED" } }),
   ]);
 
   return {

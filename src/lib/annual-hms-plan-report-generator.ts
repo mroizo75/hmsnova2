@@ -34,9 +34,10 @@ function getCategoryLabel(category: string): string {
 
 export async function generateAnnualHmsPlanReport(data: AnnualHmsPlanReportData): Promise<Buffer> {
   const { tenant, checklist } = data;
+  const settledCount = checklist.settledCount ?? checklist.completedCount;
   const completedPercent =
     checklist.totalCount > 0
-      ? Math.round((checklist.completedCount / checklist.totalCount) * 100)
+      ? Math.round((settledCount / checklist.totalCount) * 100)
       : 0;
 
   const fmtDate = (d: string | Date | null | undefined) => {
@@ -88,7 +89,13 @@ export async function generateAnnualHmsPlanReport(data: AnnualHmsPlanReportData)
           headers: ["Steg", "Status", "Fullført dato", "Hjemmel"],
           rows: steps.map((step) => [
             step.title,
-            step.completedAt ? "✓ Fullført" : "Ikke fullført",
+            step.status === "NOT_RELEVANT"
+              ? "Ikke relevant"
+              : step.status === "NOT_USED"
+                ? "Brukes ikke"
+                : step.status === "COMPLETED" || step.completedAt
+                  ? "✓ Fullført"
+                  : "Ikke avklart",
             fmtDate(step.completedAt),
             step.legalRef ?? "–",
           ]),
@@ -98,7 +105,7 @@ export async function generateAnnualHmsPlanReport(data: AnnualHmsPlanReportData)
   }
 
   // Ikke-fullførte steg samlet
-  const notDone = checklist.steps.filter((s) => !s.completedAt);
+  const notDone = checklist.steps.filter((s) => s.status == null && !s.completedAt);
   if (notDone.length > 0) {
     sections.push({
       title: "Gjenstående steg",
@@ -116,7 +123,7 @@ export async function generateAnnualHmsPlanReport(data: AnnualHmsPlanReportData)
     type: "formal",
     reportLabel: "Årlig HMS-plan",
     title: `Årlig HMS-plan ${checklist.year}`,
-    subtitle: `Fremdrift: ${completedPercent}% fullført (${checklist.completedCount} av ${checklist.totalCount} steg)`,
+    subtitle: `Fremdrift: ${completedPercent}% avklart (${settledCount} av ${checklist.totalCount}, ${checklist.completedCount} gjennomført)`,
     tenant: {
       name: tenant.name,
       orgNumber: tenant.orgNumber,

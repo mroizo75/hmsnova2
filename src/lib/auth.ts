@@ -22,6 +22,8 @@ import {
 } from "@/lib/rate-limit";
 import { syncAzureAdOrgProfile } from "@/lib/azure-ad-org-sync";
 import bcrypt from "bcryptjs";
+import type { Role } from "@prisma/client";
+import { parseExtraRoles } from "@/lib/extra-roles";
 
 const prismaAdapter = PrismaAdapter(prisma);
 
@@ -360,6 +362,7 @@ export const authOptions: NextAuthOptions = {
           
           token.tenantId = selectedTenant?.tenantId || null;
           token.role = selectedTenant?.role || undefined;
+          token.extraRoles = parseExtraRoles(selectedTenant?.extraRoles, selectedTenant?.role);
           token.tenantName = selectedTenant?.tenant?.name || null;
           token.isTavleOnly = selectedTenant?.tenant?.isTavleOnly ?? false;
           // Lagre tidspunkt for siste kjente DB-oppdatering av rollen.
@@ -435,6 +438,7 @@ export const authOptions: NextAuthOptions = {
           if (newMembership) {
             token.tenantId = effectiveTenantId;
             token.role = newMembership.role;
+            token.extraRoles = parseExtraRoles(newMembership.extraRoles, newMembership.role);
             token.tenantName = newMembership.tenant.name;
             token.isTavleOnly = newMembership.tenant.isTavleOnly ?? false;
             token.roleUpdatedAt = newMembership.updatedAt.getTime();
@@ -449,11 +453,12 @@ export const authOptions: NextAuthOptions = {
                 tenantId: token.tenantId as string,
               },
             },
-            select: { role: true, updatedAt: true },
+            select: { role: true, extraRoles: true, updatedAt: true },
           });
           if (membership) {
             const dbUpdatedAt = membership.updatedAt.getTime();
             const tokenUpdatedAt = token.roleUpdatedAt as number | null;
+            token.extraRoles = parseExtraRoles(membership.extraRoles, membership.role);
             if (tokenUpdatedAt === null || dbUpdatedAt > tokenUpdatedAt) {
               token.role = membership.role;
               token.roleUpdatedAt = dbUpdatedAt;
@@ -485,6 +490,7 @@ export const authOptions: NextAuthOptions = {
         session.user.isSupport = token.isSupport as boolean;
         session.user.tenantId = token.tenantId as string | null;
         session.user.role = token.role as any;
+        session.user.extraRoles = (token.extraRoles as Role[] | undefined) ?? [];
         session.user.tenantName = token.tenantName as string | null;
         session.user.hasMultipleTenants = token.hasMultipleTenants as boolean;
         session.user.preferredLocale = (token.preferredLocale as string | undefined) ?? "nb";

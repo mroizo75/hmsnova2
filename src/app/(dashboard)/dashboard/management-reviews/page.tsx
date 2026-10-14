@@ -17,7 +17,7 @@ export default async function ManagementReviewsPage() {
     return notFound();
   }
 
-  const permissions = getPermissions(session.user.role);
+  const permissions = getPermissions(session.user.role, session.user.extraRoles);
 
   if (!permissions.canReadManagementReviews) {
     redirect("/dashboard");

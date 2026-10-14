@@ -45,6 +45,12 @@ export function PublicNav() {
             >
               Digital HMS Tavle
             </Link>
+            <Link
+              href="/tripletex-integrasjon"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Tripletex
+            </Link>
             <Link 
               href="/hva-er-hms-nova" 
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
@@ -121,6 +127,13 @@ export function PublicNav() {
               onClick={() => setMobileMenuOpen(false)}
             >
               Digital HMS Tavle
+            </Link>
+            <Link
+              href="/tripletex-integrasjon"
+              className="flex min-h-11 items-center py-3 text-sm font-medium text-muted-foreground hover:text-foreground"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Tripletex
             </Link>
             <Link 
               href="/hva-er-hms-nova" 

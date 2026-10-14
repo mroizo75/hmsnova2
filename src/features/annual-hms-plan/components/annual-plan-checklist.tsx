@@ -7,8 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import Link from "next/link";
 import { CheckCircle2, ExternalLink, Loader2 } from "lucide-react";
-import { format } from "date-fns";
-import { nb } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import {
   getCategoryLabel,
@@ -16,8 +14,9 @@ import {
   type AnnualHmsPlanStep,
 } from "@/lib/annual-hms-plan-steps";
 import {
-  setAnnualPlanStepCompleted,
+  setAnnualPlanStepDisposition,
   type AnnualPlanChecklistDataSerialized,
+  type AnnualPlanStepStatus,
 } from "@/server/actions/annual-hms-plan.actions";
 
 type StepWithCompletion = AnnualPlanChecklistDataSerialized["steps"][number];
@@ -50,12 +49,12 @@ export function AnnualPlanChecklist({
   canEdit,
 }: AnnualPlanChecklistProps) {
   const { toast } = useToast();
-  const [completedKeys, setCompletedKeys] = useState<Set<string>>(() => {
-    const set = new Set<string>();
-    for (const s of initialData.steps) {
-      if (s.completedAt != null) set.add(s.key);
+  const [statuses, setStatuses] = useState<Record<string, AnnualPlanStepStatus | null>>(() => {
+    const next: Record<string, AnnualPlanStepStatus | null> = {};
+    for (const step of initialData.steps) {
+      next[step.key] = step.status ?? (step.completedAt != null ? "COMPLETED" : null);
     }
-    return set;
+    return next;
   });
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
 
@@ -64,57 +63,54 @@ export function AnnualPlanChecklist({
     [initialData.steps]
   );
 
-  const completedCount = useMemo(() => completedKeys.size, [completedKeys]);
+  const completedCount = useMemo(
+    () => Object.values(statuses).filter((status) => status === "COMPLETED").length,
+    [statuses]
+  );
+  const settledCount = useMemo(
+    () => Object.values(statuses).filter((status) => status !== null).length,
+    [statuses]
+  );
   const totalCount = initialData.totalCount;
-  const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  const openCount = Math.max(totalCount - settledCount, 0);
+  const progressPercent = totalCount > 0 ? Math.round((settledCount / totalCount) * 100) : 0;
 
-  const toggleStep = useCallback(
-    async (stepKey: string, currentlyCompleted: boolean) => {
+  const setStatus = useCallback(
+    async (stepKey: string, nextStatus: AnnualPlanStepStatus | null) => {
       if (!canEdit) return;
+      const previous = statuses[stepKey] ?? null;
       setLoadingKey(stepKey);
-      const newCompleted = !currentlyCompleted;
-      setCompletedKeys((prev) => {
-        const next = new Set(prev);
-        if (newCompleted) next.add(stepKey);
-        else next.delete(stepKey);
-        return next;
-      });
-      const result = await setAnnualPlanStepCompleted({
+      setStatuses((current) => ({ ...current, [stepKey]: nextStatus }));
+      const result = await setAnnualPlanStepDisposition({
         tenantId,
         year: initialData.year,
         stepKey,
-        completed: newCompleted,
+        status: nextStatus,
         userId: userId ?? undefined,
       });
       setLoadingKey(null);
       if (!result.success) {
-        const errorMessage = (result as { success: false; error: string }).error;
-        setCompletedKeys((prev) => {
-          const next = new Set(prev);
-          if (newCompleted) next.delete(stepKey);
-          else next.add(stepKey);
-          return next;
-        });
+        setStatuses((current) => ({ ...current, [stepKey]: previous }));
         toast({
           title: "Feil",
-          description: errorMessage,
+          description: "error" in result ? result.error : "Kunne ikke oppdatere",
           variant: "destructive",
           duration: 5000,
         });
-      } else {
-        toast({
-          title: newCompleted ? "Steg fullført" : "Avkryssing fjernet",
-          description: newCompleted ? "Steget er markert som fullført." : undefined,
-          duration: 4000,
-        });
+        return;
       }
+      toast({
+        title: nextStatus === "COMPLETED"
+          ? "Punkt gjennomført"
+          : nextStatus === "NOT_RELEVANT"
+            ? "Markert som ikke relevant"
+            : nextStatus === "NOT_USED"
+              ? "Markert som ikke i bruk"
+              : "Punktet er åpent igjen",
+        duration: 3000,
+      });
     },
-    [canEdit, tenantId, initialData.year, userId, toast]
-  );
-
-  const isStepCompleted = useCallback(
-    (key: string) => completedKeys.has(key),
-    [completedKeys]
+    [canEdit, statuses, tenantId, initialData.year, userId, toast]
   );
 
   return (
@@ -125,7 +121,7 @@ export function AnnualPlanChecklist({
           <div>
             <CardTitle className="text-lg">Fremdrift for {initialData.year}</CardTitle>
             <CardDescription>
-              Når alle steg er avkrysset, har dere dokumentert at årets HMS-krav er oppfylt.
+              Nummeret viser rekkefølgen etter hva som bør tas først i året. Alt skal være avklart innen 31.12.{initialData.year}, slik at ledelsesgjennomgangen har grunnlag for året (IK-HMS § 5, ISO 45001 kap. 9.3).
             </CardDescription>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -155,14 +151,17 @@ export function AnnualPlanChecklist({
           <div className="flex items-center justify-between gap-4">
             <Progress value={progressPercent} className="h-3 flex-1" />
             <span className="text-sm font-medium tabular-nums text-muted-foreground shrink-0">
-              {completedCount} av {totalCount} fullført
+              {settledCount} av {totalCount} avklart
             </span>
           </div>
-          {progressPercent === 100 && (
+          <p className="text-sm text-muted-foreground">
+            {completedCount} gjennomført. {openCount} punkt{openCount === 1 ? "" : "er"} er fortsatt åpne og skal avklares innen årsslutt. Kryss av, eller marker som ikke relevant eller at det ikke brukes.
+          </p>
+          {openCount === 0 && (
             <div className="flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-950/30 p-3 text-green-800 dark:text-green-200">
               <CheckCircle2 className="h-5 w-5 shrink-0" />
               <p className="text-sm font-medium">
-                Alle steg er fullført for {initialData.year}. Dere har dokumentert at årets HMS-plan er gjennomført.
+                Årshjulet for {initialData.year} er avklart. {completedCount} punkt er gjennomført, resten er markert som ikke relevant eller ikke i bruk.
               </p>
             </div>
           )}
@@ -174,39 +173,50 @@ export function AnnualPlanChecklist({
         {getCategoryOrder().map((category) => {
           const steps = byCategory.get(category);
           if (!steps || steps.length === 0) return null;
+          const ordered = [...steps].sort((a, b) => a.order - b.order);
           const label = getCategoryLabel(category);
+          const settledInGroup = ordered.filter((step) => statuses[step.key] != null).length;
           return (
             <Card key={category}>
               <CardHeader>
                 <CardTitle className="text-base">{label}</CardTitle>
                 <CardDescription>
-                  {steps.filter((s) => isStepCompleted(s.key)).length} av {steps.length} fullført i denne gruppen
+                  {settledInGroup} av {ordered.length} avklart i denne gruppen
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {steps.map((step) => {
-                  const completed = isStepCompleted(step.key);
+                {ordered.map((step) => {
+                  const status = statuses[step.key] ?? null;
                   const loading = loadingKey === step.key;
                   return (
                     <div
                       key={step.key}
                       className={`flex gap-4 rounded-lg border p-4 transition-colors ${
-                        completed ? "border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20" : "bg-card"
+                        status === "COMPLETED"
+                          ? "border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20"
+                          : status
+                            ? "border-amber-200 bg-amber-50/40 dark:bg-amber-950/20"
+                            : "bg-card"
                       }`}
                     >
-                      <div className="flex shrink-0 items-start pt-0.5">
+                      <div className="flex shrink-0 items-start gap-2 pt-0.5">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-semibold tabular-nums">
+                          {step.order}
+                        </span>
                         <Checkbox
                           id={step.key}
-                          checked={completed}
+                          checked={status === "COMPLETED"}
                           disabled={!canEdit || loading}
-                          onCheckedChange={() => toggleStep(step.key, completed)}
+                          onCheckedChange={(checked) =>
+                            void setStatus(step.key, checked === true ? "COMPLETED" : null)
+                          }
                           className="h-5 w-5"
                         />
                         {loading && (
-                          <Loader2 className="ml-1 h-4 w-4 animate-spin text-muted-foreground" />
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                         )}
                       </div>
-                      <div className="min-w-0 flex-1 space-y-1">
+                      <div className="min-w-0 flex-1 space-y-2">
                         <label
                           htmlFor={step.key}
                           className="font-medium cursor-pointer leading-tight"
@@ -217,11 +227,38 @@ export function AnnualPlanChecklist({
                         {step.legalRef && (
                           <p className="text-xs text-muted-foreground">Krav: {step.legalRef}</p>
                         )}
-                        {completed && step.completedAt && (
-                          <p className="text-xs text-muted-foreground">
-                            Fullført {format(new Date(step.completedAt), "d. MMM yyyy", { locale: nb })}
-                          </p>
+                        {status === "NOT_RELEVANT" && (
+                          <p className="text-xs text-muted-foreground">Markert som ikke relevant for virksomheten.</p>
                         )}
+                        {status === "NOT_USED" && (
+                          <p className="text-xs text-muted-foreground">Markert som ikke i bruk.</p>
+                        )}
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={status === "NOT_RELEVANT" ? "secondary" : "outline"}
+                            className="bg-transparent"
+                            disabled={!canEdit || loading}
+                            onClick={() =>
+                              void setStatus(step.key, status === "NOT_RELEVANT" ? null : "NOT_RELEVANT")
+                            }
+                          >
+                            Ikke relevant
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={status === "NOT_USED" ? "secondary" : "outline"}
+                            className="bg-transparent"
+                            disabled={!canEdit || loading}
+                            onClick={() =>
+                              void setStatus(step.key, status === "NOT_USED" ? null : "NOT_USED")
+                            }
+                          >
+                            Brukes ikke
+                          </Button>
+                        </div>
                       </div>
                       {step.href && (
                         <Button asChild variant="ghost" size="sm" className="shrink-0">

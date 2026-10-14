@@ -20,7 +20,7 @@ export async function GET() {
     return NextResponse.json({ error: "Ikke autorisert" }, { status: 401 });
   }
 
-  const permissions = getPermissions(session.user.role as Role);
+  const permissions = getPermissions(session.user.role as Role, session.user.extraRoles);
   if (!permissions.canReadDocuments && !permissions.canReadRoutines) {
     return NextResponse.json({ error: "Ingen tilgang" }, { status: 403 });
   }
@@ -232,10 +232,12 @@ export async function GET() {
         const currentYear = now.getFullYear();
         const completions = await prisma.hmsAnnualPlanCompletion.findMany({
           where: { tenantId, year: currentYear },
-          select: { stepKey: true, completedAt: true },
+          select: { stepKey: true, status: true },
         });
-        const completedKeys = new Set(completions.map((c) => c.stepKey));
-        const completedCount = completedKeys.size;
+        const statusByKey = new Map(completions.map((row) => [row.stepKey, row.status]));
+        const completedCount = ANNUAL_HMS_PLAN_STEPS.filter(
+          (step) => statusByKey.get(step.key) === "COMPLETED"
+        ).length;
 
         contentBlocks.push({
           type: "paragraph",
@@ -248,7 +250,13 @@ export async function GET() {
           rows: ANNUAL_HMS_PLAN_STEPS.map((step) => [
             step.title,
             getCategoryLabel(step.category),
-            completedKeys.has(step.key) ? "✓ Fullført" : "○ Ikke fullført",
+            statusByKey.get(step.key) === "COMPLETED"
+              ? "✓ Fullført"
+              : statusByKey.get(step.key) === "NOT_RELEVANT"
+                ? "Ikke relevant"
+                : statusByKey.get(step.key) === "NOT_USED"
+                  ? "Brukes ikke"
+                  : "○ Ikke avklart",
           ]),
         });
       }

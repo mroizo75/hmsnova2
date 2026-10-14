@@ -9,7 +9,8 @@
  */
 
 import { Role } from "@prisma/client";
-import { getPermissions, type RolePermissions } from "@/lib/permissions";
+import { getPermissions, mergePermissionSets, type RolePermissions } from "@/lib/permissions";
+import { membershipRoles } from "@/lib/extra-roles";
 
 export type ModuleKey =
   | "incidents"
@@ -251,9 +252,14 @@ export function applyModuleVisibility(
  */
 export function getEffectivePermissions(
   role: Role,
-  config: ModuleVisibilityConfig | null | undefined
+  config: ModuleVisibilityConfig | null | undefined,
+  extraRoles?: string | readonly Role[] | null,
 ): RolePermissions {
-  return applyModuleVisibility(getPermissions(role), config, role);
+  const roles = membershipRoles(role, extraRoles);
+  if (roles.length <= 1) return applyModuleVisibility(getPermissions(role), config, role);
+  return mergePermissionSets(
+    roles.map((item) => applyModuleVisibility(getPermissions(item), config, item)),
+  );
 }
 
 /**
@@ -262,13 +268,14 @@ export function getEffectivePermissions(
  */
 export function isNavItemAllowedByModuleVisibility(
   permission: string,
-  role: Role,
+  role: Role | readonly Role[],
   config: ModuleVisibilityConfig | null | undefined,
   permissions: RolePermissions | null | undefined
 ): boolean {
+  const roles = Array.isArray(role) ? role : [role];
   const moduleKey = NAV_PERMISSION_TO_MODULE[permission];
   if (!moduleKey) return true;
-  if (canRoleAccessModule(config, moduleKey, role)) return true;
+  if (roles.some((item) => canRoleAccessModule(config, moduleKey, item))) return true;
   const createPermKey = MODULE_CREATE_PERMISSION[moduleKey];
   return Boolean(createPermKey && permissions?.[createPermKey] === true);
 }
