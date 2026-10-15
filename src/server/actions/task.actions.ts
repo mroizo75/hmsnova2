@@ -28,6 +28,16 @@ export interface TaskSummary {
     title: string;
     scheduledDate: Date;
   }[];
+  assignedInspections: {
+    id: string;
+    title: string;
+    scheduledDate: Date;
+  }[];
+  laterMeasures: {
+    id: string;
+    title: string;
+    dueAt: Date;
+  }[];
   upcomingAudits: {
     id: string;
     title: string;
@@ -281,6 +291,30 @@ export async function getMyTasks(): Promise<{ success: boolean; data?: TaskSumma
       }),
     ]);
 
+    const [assignedInspectionsData, laterMeasuresData] = await Promise.all([
+      prisma.inspection.findMany({
+        where: {
+          tenantId,
+          OR: [{ conductedBy: userId }, { followUpById: userId }],
+          status: { in: ["PLANNED", "IN_PROGRESS"] },
+        },
+        select: { id: true, title: true, scheduledDate: true },
+        orderBy: { scheduledDate: "asc" },
+        take: 30,
+      }),
+      prisma.measure.findMany({
+        where: {
+          tenantId,
+          responsibleId: userId,
+          status: { in: ["PENDING", "IN_PROGRESS"] },
+          dueAt: { gt: endOfDay(in7Days) },
+        },
+        select: { id: true, title: true, dueAt: true },
+        orderBy: { dueAt: "asc" },
+        take: 30,
+      }),
+    ]);
+
     const taskSummary: TaskSummary = {
       overdueIncidents,
       overdueMeasures,
@@ -302,6 +336,16 @@ export async function getMyTasks(): Promise<{ success: boolean; data?: TaskSumma
         id: i.id,
         title: i.title,
         scheduledDate: i.scheduledDate!,
+      })),
+      assignedInspections: assignedInspectionsData.map((inspection) => ({
+        id: inspection.id,
+        title: inspection.title,
+        scheduledDate: inspection.scheduledDate,
+      })),
+      laterMeasures: laterMeasuresData.map((measure) => ({
+        id: measure.id,
+        title: measure.title,
+        dueAt: measure.dueAt!,
       })),
       upcomingAudits: upcomingAuditsData.map((a) => ({
         id: a.id,

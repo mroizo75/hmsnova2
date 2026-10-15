@@ -3203,6 +3203,8 @@
     "actions": {
       "showIndustry": "Show industry-specific",
       "showAll": "Show all",
+      "showMine": "My inspections",
+      "showEveryone": "Show everyone's",
       "report": "Report",
       "new": "New inspection",
       "createFirst": "Create first inspection",
@@ -5259,6 +5261,7 @@
       "description": "Write a description of the inspection..."
     },
     "hints": {
+      "conductedBy": "The person responsible for carrying out the round. You can change this when responsibility is delegated.",
       "completedDate": "Set only if inspection is completed"
     },
     "actions": {

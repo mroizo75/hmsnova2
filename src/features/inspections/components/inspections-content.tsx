@@ -27,6 +27,8 @@ interface InspectionsContentProps {
   initialData: InspectionsData;
   locale: string;
   showAll: boolean;
+  showMine: boolean;
+  currentUserId: string;
   tenantIndustry: string | null;
   canCreateInspections: boolean;
 }
@@ -35,6 +37,8 @@ export function InspectionsContent({
   initialData,
   locale,
   showAll,
+  showMine,
+  currentUserId,
   tenantIndustry,
   canCreateInspections,
 }: InspectionsContentProps) {
@@ -48,6 +52,7 @@ export function InspectionsContent({
   });
 
   const inspections = inspectionsRaw.filter((inspection: any) => {
+    if (showMine && inspection.conductedBy !== currentUserId) return false;
     if (showAll || !inspection.templateId) return true;
     return matchesIndustryScope(inspection.template?.industryScope, tenantIndustry);
   });

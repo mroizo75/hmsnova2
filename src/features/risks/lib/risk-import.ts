@@ -11,6 +11,8 @@ export const riskImportRowSchema = z.object({
   category: z.nativeEnum(RiskCategory).default(RiskCategory.OPERATIONAL),
   existingControls: z.string().trim().max(2000).nullable().default(null),
   measures: z.array(z.string().trim().min(1).max(500)).max(10).default([]),
+  residualLikelihood: z.number().int().min(1).max(5).nullable().optional(),
+  residualConsequence: z.number().int().min(1).max(5).nullable().optional(),
   confidence: z.coerce.number().min(0).max(1).default(0),
   missingFields: z.array(z.string().trim().min(1).max(100)).max(20).default([]),
 });

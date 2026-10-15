@@ -4,6 +4,7 @@ import { Prisma, Role } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { createErrorResponse, createSuccessResponse, ErrorCodes } from "@/lib/validations/api";
+import { notifyTaskAssigned } from "@/lib/task-assignment-notice";
 
 const resolveSelectedTenantId = async (userId: string, sessionTenantId?: string | null): Promise<string | null> => {
   if (!sessionTenantId) {
@@ -206,6 +207,20 @@ export async function POST(request: NextRequest) {
         findings: true,
       },
     });
+
+    const assigneeId = inspection.conductedBy;
+    if (assigneeId && assigneeId !== session.user.id) {
+      const when = inspection.scheduledDate.toLocaleDateString("nb-NO");
+      await notifyTaskAssigned({
+        tenantId,
+        assigneeId,
+        actorId: session.user.id,
+        type: "INSPECTION_SCHEDULED",
+        title: "Du har fått en vernerunde",
+        message: `«${inspection.title}» er tildelt deg og skal gjennomføres ${when}.`,
+        link: `/dashboard/inspections/${inspection.id}`,
+      });
+    }
 
     return createSuccessResponse({ inspection }, "Inspeksjon opprettet", 201);
   } catch (error) {

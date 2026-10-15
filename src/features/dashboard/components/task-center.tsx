@@ -56,7 +56,6 @@ export function TaskCenter({ tenantId, userId }: TaskCenterProps) {
   const upcomingCount =
     tasks.upcomingMeasures.length +
     tasks.upcomingMeetings.length +
-    tasks.upcomingInspections.length +
     tasks.upcomingAudits.length;
   const reviewCount =
     tasks.documentsNeedingReview +
@@ -72,7 +71,9 @@ export function TaskCenter({ tenantId, userId }: TaskCenterProps) {
     tasks.overdueInspections > 0;
   const hasUpcoming = upcomingCount > 0;
   const hasReview = reviewCount > 0;
-  const hasAny = hasCritical || hasUpcoming || hasReview;
+  const assignedCount = tasks.assignedInspections.length + tasks.laterMeasures.length;
+  const hasAssigned = assignedCount > 0;
+  const hasAny = hasCritical || hasUpcoming || hasReview || hasAssigned;
 
   return (
     <Card>
@@ -157,6 +158,42 @@ export function TaskCenter({ tenantId, userId }: TaskCenterProps) {
               </section>
             )}
 
+            {hasAssigned && (
+              <section>
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                  Tildelt deg
+                </h3>
+                <div className="space-y-1.5">
+                  {tasks.assignedInspections.map((inspection) => (
+                    <TaskRow
+                      key={inspection.id}
+                      icon={Clipboard}
+                      iconClass="text-green-600 bg-green-50"
+                      title={inspection.title}
+                      sub={formatDistanceToNow(new Date(inspection.scheduledDate), {
+                        addSuffix: true,
+                        locale: nb,
+                      })}
+                      href={`/dashboard/inspections/${inspection.id}`}
+                    />
+                  ))}
+                  {tasks.laterMeasures.map((measure) => (
+                    <TaskRow
+                      key={measure.id}
+                      icon={CheckCircle2}
+                      iconClass="text-amber-600 bg-amber-50"
+                      title={measure.title}
+                      sub={formatDistanceToNow(new Date(measure.dueAt), {
+                        addSuffix: true,
+                        locale: nb,
+                      })}
+                      href="/dashboard/actions"
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
             {/* Kommende */}
             {hasUpcoming && (
               <section>
@@ -188,19 +225,6 @@ export function TaskCenter({ tenantId, userId }: TaskCenterProps) {
                         locale: nb,
                       })}
                       href={`/dashboard/meetings/${m.id}`}
-                    />
-                  ))}
-                  {tasks.upcomingInspections.map((i) => (
-                    <TaskRow
-                      key={i.id}
-                      icon={Clipboard}
-                      iconClass="text-green-600 bg-green-50"
-                      title={i.title}
-                      sub={formatDistanceToNow(new Date(i.scheduledDate), {
-                        addSuffix: true,
-                        locale: nb,
-                      })}
-                      href={`/dashboard/inspections/${i.id}`}
                     />
                   ))}
                   {tasks.upcomingAudits.map((a) => (

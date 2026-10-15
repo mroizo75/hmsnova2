@@ -246,6 +246,12 @@ export async function confirmRiskAssessmentImport(
           score: row.likelihood * row.consequence,
           category: row.category,
           existingControls: row.existingControls,
+          residualLikelihood: row.residualLikelihood ?? null,
+          residualConsequence: row.residualConsequence ?? null,
+          residualScore:
+            row.residualLikelihood && row.residualConsequence
+              ? row.residualLikelihood * row.residualConsequence
+              : null,
           ownerId: validated.ownerId,
           assessmentDate: now,
           createdBy: auth.userId,

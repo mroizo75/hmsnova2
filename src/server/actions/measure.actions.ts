@@ -6,6 +6,7 @@ import { getRequiredTenantContext } from "@/lib/tenant-context";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
 import { createMeasureSchema, updateMeasureSchema, completeMeasureSchema } from "@/features/measures/schemas/measure.schema";
 import { resolveIncidentStage } from "@/lib/incident-stage";
+import { notifyTaskAssigned } from "@/lib/task-assignment-notice";
 import { IncidentStage } from "@prisma/client";
 
 async function getSessionContext() {
@@ -203,6 +204,19 @@ export async function createMeasure(input: any) {
       revalidatePath(`/dashboard/risks/${validated.riskId}`);
     }
     triggerRealtimeEvent(tenantId, "measure-updated", { id: measure.id });
+
+    if (validated.responsibleId) {
+      const due = validated.dueAt.toLocaleDateString("nb-NO");
+      await notifyTaskAssigned({
+        tenantId,
+        assigneeId: validated.responsibleId,
+        actorId: user.id,
+        type: "MEASURE_ASSIGNED",
+        title: "Du har fått et tiltak",
+        message: `«${measure.title}» er tildelt deg og har frist ${due}.`,
+        link: "/dashboard/actions",
+      });
+    }
     
     return { success: true, data: measure };
   } catch (error: any) {
@@ -273,6 +287,22 @@ export async function updateMeasure(input: any) {
       revalidatePath(`/dashboard/risks/${measure.riskId}`);
     }
     triggerRealtimeEvent(tenantId, "measure-updated", { id: measure.id });
+
+    if (
+      validated.responsibleId &&
+      validated.responsibleId !== existingMeasure.responsibleId
+    ) {
+      const due = (validated.dueAt ?? existingMeasure.dueAt).toLocaleDateString("nb-NO");
+      await notifyTaskAssigned({
+        tenantId,
+        assigneeId: validated.responsibleId,
+        actorId: user.id,
+        type: "MEASURE_ASSIGNED",
+        title: "Du har fått et tiltak",
+        message: `«${measure.title}» er tildelt deg og har frist ${due}.`,
+        link: "/dashboard/actions",
+      });
+    }
 
     return { success: true, data: measure };
   } catch (error: any) {

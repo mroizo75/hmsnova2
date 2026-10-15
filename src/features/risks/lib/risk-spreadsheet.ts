@@ -2,6 +2,7 @@ import ExcelJS from "exceljs";
 import { RiskCategory } from "@prisma/client";
 import {
   riskImportPreviewSchema,
+  riskImportRowSchema,
   type RiskImportPreview,
 } from "@/features/risks/lib/risk-import";
 
@@ -13,11 +14,15 @@ type ColumnRole =
   | "activity"
   | "title"
   | "cause"
+  | "details"
   | "riskStatement"
   | "likelihood"
   | "consequence"
+  | "residualLikelihood"
+  | "residualConsequence"
   | "existingControls"
   | "measures"
+  | "measureOwner"
   | "category"
   | "responsible";
 
@@ -101,28 +106,40 @@ function classifyHeader(header: string): { role: ColumnRole; rank: number } | nu
   const before = /\bfor\b|\bna\b|\bnavaerende\b|\binit/.test(text);
   const rank = (before ? 2 : 0) - (after ? 3 : 0);
 
+  if (/^s2$|^s etter$|sannsynlighet etter|likelihood after/.test(text)) {
+    return { role: "residualLikelihood", rank: 1 };
+  }
+  if (/^k2$|^k etter$|konsekvens etter|consequence after/.test(text)) {
+    return { role: "residualConsequence", rank: 1 };
+  }
   if (/beskrivelse|tekst|mulig konsekvens|konsekvens av|skade/.test(text) && /konsekvens|skade|hendelse/.test(text)) {
     return { role: "riskStatement", rank };
   }
+  if (/^beskrivelse\b/.test(text)) {
+    return { role: "details", rank };
+  }
   if (
     (/^k$|^k\b|konsekvensgrad|\bkonsekvens\b|\brisiko k\b/.test(text)) &&
-    !/beskrivelse|tekst|mulig|kommentar/.test(text)
+    !/beskrivelse|tekst|mulig|kommentar|etter/.test(text)
   ) {
     return { role: "consequence", rank };
   }
   if (
     /^s$|^s\b|sannsynlighetsgrad|\bsannsynlighet\b|\blikelihood\b|\bprobability\b|\brisiko s\b/.test(text) &&
-    !/status|beskriv/.test(text)
+    !/status|beskriv|etter/.test(text)
   ) {
     return { role: "likelihood", rank };
   }
   if (/eksisterende tiltak|navarende tiltak|gjeldende tiltak|barrier/.test(text)) {
     return { role: "existingControls", rank };
   }
+  if (/tiltaksansvarlig|ansvarlig for tiltak/.test(text)) {
+    return { role: "measureOwner", rank };
+  }
   if (/nye tiltak|foreslatt|planlagt|ytterligere|risikoreduser|tiltak etter|anbefalt tiltak|^tiltak$/.test(text)) {
     return { role: "measures", rank };
   }
-  if (/uonsket hendelse|^fare$|farekilde|risikobeskrivelse|\bfare\b/.test(text)) {
+  if (/^tittel\b|hva er risikoen|uonsket hendelse|^fare$|farekilde|risikobeskrivelse|\bfare\b/.test(text)) {
     return { role: "title", rank };
   }
   if (/aktivitet|arbeidsoperasjon|arbeidsoppgave|omrade|prosess/.test(text)) {
@@ -189,18 +206,20 @@ function mapCategory(raw: string): RiskCategory | null {
   if (/helse/.test(text)) return RiskCategory.HEALTH;
   if (/jurid|lov|personvern/.test(text)) return RiskCategory.LEGAL;
   if (/informasjon|ikt|sikkerhetssystem/.test(text)) return RiskCategory.INFORMATION_SECURITY;
-  if (/strateg/.test(text)) return RiskCategory.STRATEGIC;
-  if (/sikker|ulykke|hms/.test(text)) return RiskCategory.SAFETY;
-  if (/operasjon|drift/.test(text)) return RiskCategory.OPERATIONAL;
+  if (/strateg|okonom|omdomme/.test(text)) return RiskCategory.STRATEGIC;
+  if (/sikker|ulykke|^hms$|\bhms\b/.test(text)) return RiskCategory.SAFETY;
+  if (/kvalitet|fremdrift|operasjon|drift/.test(text)) return RiskCategory.OPERATIONAL;
   return null;
 }
 
 function splitMeasures(raw: string): string[] {
-  return raw
-    .split(/\r?\n|;|•|·|(?:^|\s)\d+[.)]\s/)
-    .map((part) => part.trim())
+  const parts = raw
+    .split(/\r?\n|;|•|·/)
+    .flatMap((part) => part.split(/(?:^|\s)\d+[.)]\s+/))
+    .map((part) => part.replace(/^\s*\d+[.)]\s*/, "").trim())
     .filter((part) => part.length >= 3)
-    .slice(0, 10);
+    .map((part) => part.slice(0, 500));
+  return [...new Set(parts)].slice(0, 10);
 }
 
 function findYear(texts: string[], fallback: number): number {
@@ -266,7 +285,7 @@ function parseSheet(
   const columns = pickColumns(header);
   const roles = new Set([...columns.values()].map((column) => column.role));
   if (!roles.has("likelihood") && !roles.has("consequence")) return null;
-  if (!roles.has("title") && !roles.has("activity") && !roles.has("riskStatement")) return null;
+  if (!roles.has("title") && !roles.has("activity") && !roles.has("riskStatement") && !roles.has("details")) return null;
 
   const indexOf = (role: ColumnRole) =>
     [...columns.entries()].find(([, column]) => column.role === role)?.[0];
@@ -283,21 +302,26 @@ function parseSheet(
     const activity = cellAt(row, indexOf("activity"));
     const cause = cellAt(row, indexOf("cause"));
     const statement = cellAt(row, indexOf("riskStatement"));
+    const details = cellAt(row, indexOf("details"));
     const controls = cellAt(row, indexOf("existingControls"));
     const measureText = cellAt(row, indexOf("measures"));
+    const measureOwner = cellAt(row, indexOf("measureOwner"));
     const categoryText = cellAt(row, indexOf("category"));
     const responsible = cellAt(row, indexOf("responsible"));
     const likelihoodRaw = cellAt(row, indexOf("likelihood"));
     const consequenceRaw = cellAt(row, indexOf("consequence"));
+    const residualLikelihood = parseScale(cellAt(row, indexOf("residualLikelihood")));
+    const residualConsequence = parseScale(cellAt(row, indexOf("residualConsequence")));
     if (!title && !activity && !statement && !likelihoodRaw && !consequenceRaw) return [];
     if (headerScore(row) >= bestScore) return [];
 
     const hazard = title || statement || activity;
     if (hazard.trim().length < 3) return [];
 
-    const context = [activity && activity !== hazard ? activity : "", cause, statement && statement !== hazard ? statement : ""]
+    const contextText = [activity && activity !== hazard ? activity : "", cause, details, statement && statement !== hazard ? statement : ""]
       .filter(Boolean)
-      .join(". ") || hazard;
+      .join(". ");
+    const context = contextText.trim().length >= 3 ? contextText : hazard;
 
     const missingFields: string[] = [];
     const likelihood = parseScale(likelihoodRaw);
@@ -307,7 +331,10 @@ function parseSheet(
     const category = mapCategory(categoryText);
     if (!category) missingFields.push("kategori");
 
-    const description = responsible ? `Ansvarlig i kilden: ${responsible}` : null;
+    const description = [
+      responsible ? `Risikoeier: ${responsible}` : "",
+      measureOwner ? `Tiltaksansvarlig: ${measureOwner}` : "",
+    ].filter(Boolean).join(". ") || null;
 
     return [{
       title: hazard.slice(0, 500),
@@ -319,18 +346,24 @@ function parseSheet(
       category: category ?? RiskCategory.SAFETY,
       existingControls: controls ? controls.slice(0, 2000) : null,
       measures: splitMeasures(measureText),
+      residualLikelihood,
+      residualConsequence,
       confidence: likelihood != null && consequence != null ? 0.9 : 0.4,
       missingFields,
     }];
   });
 
-  if (rows.length === 0) return null;
+  const validRows = rows.flatMap((row) => {
+    const parsed = riskImportRowSchema.safeParse(row);
+    return parsed.success ? [parsed.data] : [];
+  });
+  if (validRows.length === 0) return null;
 
   const preview = riskImportPreviewSchema.safeParse({
     title: titleFromFileName(fileName, sheet.name),
     assessmentYear: year,
     participants: participants ? participants.slice(0, 2000) : null,
-    rows: rows.slice(0, 200),
+    rows: validRows.slice(0, 200),
   });
   return preview.success ? preview.data : null;
 }

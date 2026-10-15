@@ -264,6 +264,7 @@ export default function EditInspectionPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">{t("hints.conductedBy")}</p>
               </div>
 
               <div className="space-y-2">

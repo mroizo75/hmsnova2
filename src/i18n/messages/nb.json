@@ -3203,6 +3203,8 @@
     "actions": {
       "showIndustry": "Vis bransjetilpasset",
       "showAll": "Vis alle",
+      "showMine": "Mine vernerunder",
+      "showEveryone": "Vis alles",
       "report": "Rapport",
       "new": "Ny vernerunde",
       "createFirst": "Opprett første vernerunde",
@@ -4903,6 +4905,7 @@
       "description": "Skriv en beskrivelse av inspeksjonen..."
     },
     "hints": {
+      "conductedBy": "Personen som er ansvarlig for å gjennomføre runden. Du kan bytte når ansvaret delegeres videre.",
       "completedDate": "Sett kun hvis inspeksjonen er fullført"
     },
     "actions": {

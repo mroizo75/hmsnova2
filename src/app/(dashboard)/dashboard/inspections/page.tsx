@@ -15,7 +15,7 @@ import { InspectionsContent } from "@/features/inspections/components/inspection
 export default async function InspectionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string }>;
+  searchParams: Promise<{ view?: string; mine?: string }>;
 }) {
   const t = await getTranslations("dashboardInspectionsPage");
   const locale = await getLocale();
@@ -33,6 +33,7 @@ export default async function InspectionsPage({
 
   const params = await searchParams;
   const showAll = params.view === "all";
+  const showMine = params.mine === "1";
 
   const [initialData, tenant] = await Promise.all([
     fetchInspections(),
@@ -55,6 +56,11 @@ export default async function InspectionsPage({
           <PageHelpDialog content={helpContent.inspections} />
         </div>
         <div className="page-header-actions">
+          <Link href={showMine ? "/dashboard/inspections" : "/dashboard/inspections?mine=1"}>
+            <Button variant="outline" className="bg-transparent">
+              {showMine ? t("actions.showEveryone") : t("actions.showMine")}
+            </Button>
+          </Link>
           <Link href={showAll ? "/dashboard/inspections" : "/dashboard/inspections?view=all"}>
             <Button variant="outline"> {showAll ? t("actions.showIndustry") : t("actions.showAll")} </Button>
           </Link>
@@ -79,6 +85,8 @@ export default async function InspectionsPage({
         initialData={initialData}
         locale={locale}
         showAll={showAll}
+        showMine={showMine}
+        currentUserId={session.user.id}
         tenantIndustry={tenant?.industry ?? null}
         canCreateInspections={permissions.canCreateInspections}
       />
