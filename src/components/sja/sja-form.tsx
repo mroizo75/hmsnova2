@@ -57,6 +57,7 @@ import {
   type SjaSourceRisk,
 } from "@/features/sja/lib/sja-risk-source";
 import { useTenantNavContext } from "@/hooks/use-tenant-nav-context";
+import { SjaSaveAsTemplateButton } from "@/components/sja/sja-save-as-template-button";
 
 interface HazardRow {
   activity: string;
@@ -135,6 +136,7 @@ interface SjaFormProps {
   risks?: RiskOption[];
   riskAssessments?: RiskAssessmentOption[];
   employees?: EmployeeOption[];
+  canManageTemplates?: boolean;
   onSuccess?: () => void;
   successRedirectPath?: string;
   initialData?: {
@@ -167,6 +169,7 @@ export function SjaForm({
   risks = [],
   riskAssessments = [],
   employees = [],
+  canManageTemplates = false,
   onSuccess,
   successRedirectPath = "/ansatt/sja",
   initialData,
@@ -1753,6 +1756,29 @@ export function SjaForm({
             </>
           )}
         </Button>
+
+        {canManageTemplates && (
+          <SjaSaveAsTemplateButton
+            tenantId={tenantId}
+            suggestedName={formValues.title}
+            disabled={isSubmitting || isSavingDraft}
+            templateDraft={{
+              description: formValues.description,
+              workLocation,
+              electricalWorkType,
+              workMethod: formValues.workMethod,
+              requiredEquipment: formValues.requiredEquipment,
+              requiredPpe: formValues.requiredPpe,
+              personnelRequirements: formValues.personnelRequirements,
+              safetyConditions: formValues.safetyConditions,
+              requiresSecondPerson:
+                Boolean(initialData?.requiresSecondPerson) ||
+                requiresSecondPersonByFse(electricalWorkType),
+              requiredCourseKeys: initialData?.requiredCourseKeys ?? [],
+              hazards,
+            }}
+          />
+        )}
 
         <Button
           type="button"

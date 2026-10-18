@@ -8,6 +8,7 @@ import { HardHat, BookTemplate } from "lucide-react";
 import { SjaForm } from "@/components/sja/sja-form";
 import { SjaTemplatePicker } from "@/components/sja/sja-template-picker";
 import type { ElectricalWorkType } from "@/features/sja/lib/sja-fse";
+import { getAuthContext } from "@/lib/server-authorization";
 
 interface PageProps {
   searchParams: Promise<{ mal?: string; projectId?: string; utenMal?: string }>;
@@ -18,6 +19,10 @@ export default async function NySja({ searchParams }: PageProps) {
   const t = await getTranslations("employeeSjaNewPage");
 
   if (!session?.user?.tenantId) {
+    redirect("/login");
+  }
+  const auth = await getAuthContext();
+  if (!auth || auth.tenantId !== session.user.tenantId) {
     redirect("/login");
   }
 
@@ -273,6 +278,7 @@ export default async function NySja({ searchParams }: PageProps) {
               risks={risks}
               riskAssessments={riskAssessments}
               employees={employees}
+              canManageTemplates={auth.permissions.canApproveSja}
               initialData={templateData}
             />
           </CardContent>

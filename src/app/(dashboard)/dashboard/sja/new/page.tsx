@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HardHat, BookTemplate, FolderOpen } from "lucide-react";
 import { SjaForm } from "@/components/sja/sja-form";
 import { SjaTemplatePicker } from "@/components/sja/sja-template-picker";
+import { getAuthContext } from "@/lib/server-authorization";
 
 interface PageProps {
   searchParams: Promise<{ mal?: string; projectId?: string; utenMal?: string }>;
@@ -15,6 +16,10 @@ export default async function NewSjaPage({ searchParams }: PageProps) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.tenantId) {
+    redirect("/login");
+  }
+  const auth = await getAuthContext();
+  if (!auth || auth.tenantId !== session.user.tenantId) {
     redirect("/login");
   }
 
@@ -254,6 +259,7 @@ export default async function NewSjaPage({ searchParams }: PageProps) {
               risks={risks}
               riskAssessments={riskAssessments}
               employees={employees}
+              canManageTemplates={auth.permissions.canApproveSja}
               successRedirectPath={successRedirectPath}
               initialData={templateData}
             />
