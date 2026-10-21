@@ -7,6 +7,7 @@ import { nb } from "date-fns/locale";
 import {
   Calendar,
   CheckCircle2,
+  Printer,
   Info,
   Loader2,
   PenLine,
@@ -177,7 +178,13 @@ export function AnsattSamtaleView({
     startTransition(async () => {
       const result = await signEmployeeReview(initialReview.id, "ANSATT");
       if (result.success) {
-        toast({ title: "Samtalen er signert av deg" });
+        toast({
+          title: result.personnelDocumentId
+            ? "Bekreftet. Dokumentet ligger i personalmappen din."
+            : "Bekreftet",
+          description: result.archiveError ?? undefined,
+          variant: result.archiveError ? "destructive" : "default",
+        });
         router.refresh();
       } else {
         toast({ title: "Feil", description: result.error, variant: "destructive" });
@@ -216,7 +223,9 @@ export function AnsattSamtaleView({
             )}
           </div>
 
-          {/* Signeringstatus */}
+          <p className="text-xs text-muted-foreground">
+            Bekreftelsen lagres med navn og tidspunkt. Når begge har bekreftet, legges dokumentet i personalmappen.
+          </p>
           <div className="grid grid-cols-2 gap-2 text-sm pt-1">
             <div className="flex items-center gap-2">
               {initialReview.signertAvAnsatt ? (
@@ -246,21 +255,40 @@ export function AnsattSamtaleView({
             </div>
           </div>
 
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" className="bg-transparent" asChild>
+              <a href={`/api/medarbeidersamtale/${initialReview.id}/pdf`} target="_blank" rel="noreferrer">
+                <Printer className="h-4 w-4 mr-2" />
+                Skriv ut
+              </a>
+            </Button>
+            {initialReview.personnelDocumentId && (
+              <Button variant="outline" size="sm" className="bg-transparent" asChild>
+                <a href={`/api/personnel/${initialReview.personnelDocumentId}/download`}>
+                  Åpne i personalmappen
+                </a>
+              </Button>
+            )}
+          </div>
+
           {/* Signer-knapp */}
           {canSign && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button size="sm" className="mt-1">
                   <PenLine className="h-4 w-4 mr-2" />
-                  Signer samtalen
+                  {initialReview.kind === "SYKEFRAVAER" ? "Bekreft oppfølgingen" : "Signer samtalen"}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Bekreft signering</AlertDialogTitle>
+                  <AlertDialogTitle>
+                    {initialReview.kind === "SYKEFRAVAER" ? "Bekreft oppfølgingen" : "Bekreft signering"}
+                  </AlertDialogTitle>
                   <AlertDialogDescription>
-                    Ved å signere bekrefter du at du har lest og deltatt i denne
-                    medarbeidersamtalen. Innholdet vil ikke kunne endres etterpå.
+                    {initialReview.kind === "SYKEFRAVAER"
+                      ? "Ved å bekrefte sier du at oppfølgingen er laget sammen med deg, og at innholdet stemmer med det dere ble enige om. Det følger av arbeidsmiljøloven § 4-6. Bekreftelsen gjelder ikke diagnose. Innholdet kan ikke endres etterpå."
+                      : "Ved å signere bekrefter du at du har lest og deltatt i denne medarbeidersamtalen. Innholdet vil ikke kunne endres etterpå."}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

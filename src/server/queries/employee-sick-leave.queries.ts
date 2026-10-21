@@ -12,6 +12,7 @@ export type MySickLeaveMilestone = {
   overdue: boolean;
   templateKey: string | null;
   reviewId: string | null;
+  awaitingConfirmation: boolean;
 };
 
 export type MySickLeaveCase = {
@@ -71,7 +72,14 @@ export async function fetchMySickLeaveOverview(): Promise<MySickLeaveCase[]> {
       status: { not: "AVBRUTT" },
       absenceId: { in: absences.map((absence) => absence.id) },
     },
-    select: { id: true, absenceId: true, templateKey: true, scheduledDate: true },
+    select: {
+      id: true,
+      absenceId: true,
+      templateKey: true,
+      scheduledDate: true,
+      status: true,
+      signertAvAnsatt: true,
+    },
     orderBy: { scheduledDate: "desc" },
   });
 
@@ -83,9 +91,12 @@ export async function fetchMySickLeaveOverview(): Promise<MySickLeaveCase[]> {
     percentage: absence.percentage,
     milestones: absence.followUps.map((followUp) => {
       const templateKey = templateKeyForMilestone(followUp.milestone);
-      const review = reviews.find(
+      const matches = reviews.filter(
         (item) => item.absenceId === absence.id && item.templateKey === templateKey,
       );
+      const review =
+        matches.find((item) => item.status === "GJENNOMFORT" && !item.signertAvAnsatt) ??
+        matches[0];
       return {
         id: followUp.id,
         milestone: followUp.milestone,
@@ -97,6 +108,9 @@ export async function fetchMySickLeaveOverview(): Promise<MySickLeaveCase[]> {
           followUp.status !== "SKIPPED",
         templateKey,
         reviewId: review?.id ?? null,
+        awaitingConfirmation: Boolean(
+          review && review.status === "GJENNOMFORT" && !review.signertAvAnsatt,
+        ),
       };
     }),
   }));

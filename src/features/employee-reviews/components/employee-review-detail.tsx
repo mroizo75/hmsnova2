@@ -13,6 +13,7 @@ import {
   Info,
   Loader2,
   PenLine,
+  Printer,
   Plus,
   Save,
   Trash2,
@@ -319,7 +320,11 @@ export function EmployeeReviewDetail({
     startTransition(async () => {
       const result = await signEmployeeReview(review.id, rolle);
       if (result.success) {
-        toast({ title: "Signert" });
+        toast({
+          title: result.personnelDocumentId ? "Bekreftet og lagt i personalmappen" : "Bekreftet",
+          description: result.archiveError ?? undefined,
+          variant: result.archiveError ? "destructive" : "default",
+        });
         router.refresh();
       } else {
         toast({ title: "Feil", description: result.error, variant: "destructive" });
@@ -398,6 +403,19 @@ export function EmployeeReviewDetail({
             </div>
 
             <div className="flex gap-2 flex-wrap">
+              <Button variant="outline" size="sm" className="bg-transparent" asChild>
+                <a href={`/api/medarbeidersamtale/${review.id}/pdf`} target="_blank" rel="noreferrer">
+                  <Printer className="h-4 w-4 mr-1" />
+                  Skriv ut
+                </a>
+              </Button>
+              {review.personnelDocumentId && (
+                <Button variant="outline" size="sm" className="bg-transparent" asChild>
+                  <a href={`/api/personnel/${review.personnelDocumentId}/download`}>
+                    Åpne i personalmappen
+                  </a>
+                </Button>
+              )}
               {/* Merk som gjennomført */}
               {canConduct && review.status === "FORBEREDT" && (
                 <Button
@@ -432,7 +450,7 @@ export function EmployeeReviewDetail({
                       disabled={isPending}
                     >
                       <PenLine className="h-4 w-4 mr-1" />
-                      Signer (ansatt)
+                      {review.kind === "SYKEFRAVAER" ? "Bekreft (ansatt)" : "Signer (ansatt)"}
                     </Button>
                   )}
                   {(isReviewer || canConduct) && !review.signertAvLeder && (
@@ -479,9 +497,12 @@ export function EmployeeReviewDetail({
             </div>
           </div>
 
-          {/* Signeringsvisning */}
-          {review.status === "GJENNOMFORT" && (
-            <div className="mt-4 p-3 rounded-md bg-muted/50 border border-muted grid grid-cols-2 gap-3 text-sm">
+          {(review.status === "GJENNOMFORT" || review.status === "SIGNERT") && (
+            <div className="mt-4 space-y-2">
+            <p className="text-xs text-muted-foreground">
+              Bekreftelsen lagres med navn og tidspunkt. Når begge har bekreftet, legges dokumentet i personalmappen.
+            </p>
+            <div className="p-3 rounded-md bg-muted/50 border border-muted grid grid-cols-2 gap-3 text-sm">
               <div className="flex items-center gap-2">
                 {review.signertAvAnsatt ? (
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
@@ -508,6 +529,7 @@ export function EmployeeReviewDetail({
                     : "Ikke signert"}
                 </span>
               </div>
+            </div>
             </div>
           )}
         </CardContent>

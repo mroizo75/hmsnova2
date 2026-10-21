@@ -5548,11 +5548,14 @@ model EmployeeReview {
   // --- Oppsummering ---
   oppsummeringKommentar String? @db.Text
 
-  // --- Signering (GDPR: ikke digital signatur, kun bekreftelse) ---
+  // Bekreftelse i systemet med tidspunkt. Ikke kvalifisert elektronisk signatur.
   signertAvAnsatt Boolean   @default(false)
   signertAvLeder  Boolean   @default(false)
   ansattSignertAt DateTime?
   lederSignertAt  DateTime?
+
+  // Kopi i personalmappen når begge har bekreftet (AML § 4-6 (5), GDPR art. 5).
+  personnelDocumentId String? @unique
 
   // GDPR art. 5: konfidensialitet – kun leder og ansatt ser samtalen som standard
   konfidensielt Boolean @default(true)
@@ -5569,7 +5572,8 @@ model EmployeeReview {
   tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   employee User     @relation("EmployeeReviews", fields: [employeeId], references: [id])
   reviewer User     @relation("ReviewerReviews", fields: [reviewerId], references: [id])
-  absence  Absence? @relation(fields: [absenceId], references: [id], onDelete: SetNull)
+  absence           Absence?           @relation(fields: [absenceId], references: [id], onDelete: SetNull)
+  personnelDocument PersonnelDocument? @relation("ReviewPersonnelCopy", fields: [personnelDocumentId], references: [id], onDelete: SetNull)
 
   goals   EmployeeReviewGoal[]
   actions EmployeeReviewAction[]
@@ -7434,6 +7438,7 @@ model PersonnelDocument {
   tenant     Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user       User   @relation("PersonnelEmployee", fields: [userId], references: [id], onDelete: Cascade)
   uploadedBy User   @relation("PersonnelUploadedBy", fields: [uploadedById], references: [id], onDelete: Restrict)
+  reviewCopy EmployeeReview? @relation("ReviewPersonnelCopy")
 
   @@index([tenantId, userId])
   @@index([tenantId, category])

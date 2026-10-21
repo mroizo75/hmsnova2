@@ -72,7 +72,7 @@ export async function EmployeeSickLeaveOverview() {
                           href={`/ansatt/medarbeidersamtale/${milestone.reviewId}`}
                           className="shrink-0 text-sm text-primary underline-offset-2 hover:underline"
                         >
-                          Åpne samtale
+                          {milestone.awaitingConfirmation ? "Bekreft" : "Åpne samtale"}
                         </Link>
                       ) : template ? (
                         <span className="shrink-0 text-xs text-muted-foreground">Leder kaller inn</span>

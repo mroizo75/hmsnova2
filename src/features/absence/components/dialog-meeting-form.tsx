@@ -38,6 +38,7 @@ export function DialogMeetingForm({ followUpId, absenceId, milestone, initialDat
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   let parsedAttendees: string[] = [];
   if (initialData?.attendees) {
@@ -69,6 +70,10 @@ export function DialogMeetingForm({ followUpId, absenceId, milestone, initialDat
     setError(null);
     const result = await updateDialogMeeting(data);
     setLoading(false);
+    if (result.success && result.awaitingEmployeeConfirmation) {
+      setNotice("Møtet er lagret. Den ansatte må bekrefte sykefraværssamtalen før punktet avsluttes.");
+      return;
+    }
     if (result.success) {
       router.push(`/dashboard/fravaer/${absenceId}`);
     } else {
@@ -87,8 +92,8 @@ export function DialogMeetingForm({ followUpId, absenceId, milestone, initialDat
           <CardTitle className="text-base">{title}</CardTitle>
           <p className="text-sm text-muted-foreground">
             {milestone === "DIALOG_MEETING_1"
-              ? "Arbeidsgiver innkaller til dialogmøte innen 7 uker."
-              : "NAV innkaller til dialogmøte. Arbeidsgiver plikter å delta."}
+              ? "Arbeidsgiver innkaller til dialogmøte innen 7 uker. Punktet avsluttes når den ansatte har bekreftet samtalen."
+              : "NAV innkaller til dialogmøte. Arbeidsgiver plikter å delta. Punktet avsluttes når den ansatte har bekreftet samtalen."}
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -150,13 +155,14 @@ export function DialogMeetingForm({ followUpId, absenceId, milestone, initialDat
         </CardContent>
       </Card>
 
+      {notice && <p className="text-sm text-muted-foreground">{notice}</p>}
       {error && (
         <p className="text-sm text-destructive">{error}</p>
       )}
 
       <div className="flex gap-3">
         <Button type="submit" disabled={loading}>
-          {loading ? "Lagrer..." : "Fullfør dialogmøte"}
+          {loading ? "Lagrer..." : "Lagre dialogmøte"}
         </Button>
         <Button
           type="button"

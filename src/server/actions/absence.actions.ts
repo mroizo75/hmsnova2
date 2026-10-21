@@ -36,6 +36,8 @@ import {
   type UpdateDialogMeetingInput,
 } from "@/features/absence/schemas/follow-up.schema";
 import { addDays } from "date-fns";
+import { employeeHasConfirmedFollowUp } from "@/lib/hr/sick-leave-confirmation";
+import { followUpRequiresEmployeeConfirmation } from "@/features/employee-reviews/lib/sick-leave-templates";
 import {
   calendarDaysInclusive,
   MAX_SELF_CERTIFIED_CALENDAR_DAYS,
@@ -433,6 +435,19 @@ export async function completeFollowUp(input: CompleteFollowUpInput) {
     if (!followUp) throw new Error("Oppfølgingspunkt ikke funnet");
     if (followUp.status === "COMPLETED") throw new Error("Allerede fullført");
 
+    if (followUpRequiresEmployeeConfirmation(followUp.milestone)) {
+      const confirmed = await employeeHasConfirmedFollowUp({
+        tenantId: auth.tenantId,
+        absenceId: followUp.absenceId,
+        milestone: followUp.milestone,
+        followUpId: followUp.id,
+        dueDate: followUp.dueDate,
+      });
+      if (!confirmed) {
+        throw new Error("Den ansatte må bekrefte sykefraværssamtalen før punktet kan avsluttes");
+      }
+    }
+
     const updated = await prisma.sickLeaveFollowUp.update({
       where: { id: validated.id },
       data: {
@@ -502,12 +517,21 @@ export async function updateFollowUpPlan(input: UpdateFollowUpPlanInput) {
     });
     if (!followUp) throw new Error("Oppfølgingsplan ikke funnet");
 
+    const alreadyClosed = followUp.status === "COMPLETED";
+    const confirmed = alreadyClosed || await employeeHasConfirmedFollowUp({
+      tenantId: auth.tenantId,
+      absenceId: followUp.absenceId,
+      milestone: followUp.milestone,
+      followUpId: followUp.id,
+      dueDate: followUp.dueDate,
+    });
+
     const updated = await prisma.sickLeaveFollowUp.update({
       where: { id: validated.id },
       data: {
-        status: "COMPLETED",
-        completedAt: new Date(),
-        completedById: auth.userId,
+        status: confirmed ? "COMPLETED" : "IN_PROGRESS",
+        completedAt: confirmed ? followUp.completedAt ?? new Date() : null,
+        completedById: confirmed ? followUp.completedById ?? auth.userId : null,
         workAssessment: validated.workAssessment,
         accommodations: validated.accommodations,
         externalSupport: validated.externalSupport ?? null,
@@ -521,7 +545,11 @@ export async function updateFollowUpPlan(input: UpdateFollowUpPlanInput) {
 
     revalidatePath(`/dashboard/fravaer/${followUp.absenceId}`);
     triggerRealtimeEvent(auth.tenantId, "absence-updated");
-    return { success: true as const, data: JSON.parse(JSON.stringify(updated)) };
+    return {
+      success: true as const,
+      data: JSON.parse(JSON.stringify(updated)),
+      awaitingEmployeeConfirmation: !confirmed,
+    };
   } catch (error: any) {
     return { success: false as const, error: error.message || "Kunne ikke oppdatere oppfølgingsplan" };
   }
@@ -545,12 +573,21 @@ export async function updateDialogMeeting(input: UpdateDialogMeetingInput) {
     });
     if (!followUp) throw new Error("Dialogmøte ikke funnet");
 
+    const alreadyClosed = followUp.status === "COMPLETED";
+    const confirmed = alreadyClosed || await employeeHasConfirmedFollowUp({
+      tenantId: auth.tenantId,
+      absenceId: followUp.absenceId,
+      milestone: followUp.milestone,
+      followUpId: followUp.id,
+      dueDate: followUp.dueDate,
+    });
+
     const updated = await prisma.sickLeaveFollowUp.update({
       where: { id: validated.id },
       data: {
-        status: "COMPLETED",
-        completedAt: new Date(),
-        completedById: auth.userId,
+        status: confirmed ? "COMPLETED" : "IN_PROGRESS",
+        completedAt: confirmed ? followUp.completedAt ?? new Date() : null,
+        completedById: confirmed ? followUp.completedById ?? auth.userId : null,
         meetingDate: new Date(validated.meetingDate),
         meetingNotes: validated.meetingNotes ?? null,
         attendees: validated.attendees ? JSON.stringify(validated.attendees) : null,
@@ -564,7 +601,11 @@ export async function updateDialogMeeting(input: UpdateDialogMeetingInput) {
 
     revalidatePath(`/dashboard/fravaer/${followUp.absenceId}`);
     triggerRealtimeEvent(auth.tenantId, "absence-updated");
-    return { success: true as const, data: JSON.parse(JSON.stringify(updated)) };
+    return {
+      success: true as const,
+      data: JSON.parse(JSON.stringify(updated)),
+      awaitingEmployeeConfirmation: !confirmed,
+    };
   } catch (error: any) {
     return { success: false as const, error: error.message || "Kunne ikke oppdatere dialogmøte" };
   }

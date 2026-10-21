@@ -199,8 +199,37 @@ export function getSickLeaveTemplate(key: string | null | undefined): SickLeaveT
   return TEMPLATE_BY_KEY.get(key) ?? null;
 }
 
+const EMPLOYEE_CONFIRMATION_MILESTONES = [
+  "FOLLOW_UP_PLAN",
+  "DIALOG_MEETING_1",
+  "DIALOG_MEETING_2",
+  "DIALOG_MEETING_3",
+] as const;
+
 export function templateKeyForMilestone(milestone: string): string | null {
   return MILESTONE_TEMPLATE[milestone] ?? null;
+}
+
+/** Milepæler den ansatte må bekrefte, AML § 4-6. Aktivitetskrav og maksdato er arbeidsgivers. */
+export function milestonesAwaitingEmployeeConfirmation(
+  templateKey: string | null | undefined,
+): string[] {
+  if (!templateKey) return [];
+  return EMPLOYEE_CONFIRMATION_MILESTONES.filter(
+    (milestone) => templateKeyForMilestone(milestone) === templateKey,
+  );
+}
+
+export function followUpRequiresEmployeeConfirmation(milestone: string): boolean {
+  return (EMPLOYEE_CONFIRMATION_MILESTONES as readonly string[]).includes(milestone);
+}
+
+/** En signert samtale lukker ett åpent punkt. Eldre, allerede lukkede punkter bruker opp tidligere bekreftelser. */
+export function confirmationCoversMilestone(
+  signedConversations: number,
+  completedSiblings: number,
+): boolean {
+  return signedConversations > completedSiblings;
 }
 
 export function parseTemplateAnswers(value: unknown): Record<string, string> {

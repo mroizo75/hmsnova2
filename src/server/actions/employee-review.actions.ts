@@ -25,8 +25,11 @@ import {
   type EmployeeReviewGoalInput,
   type EmployeeReviewActionInput,
 } from "@/features/employee-reviews/schemas/employee-review.schema";
-import { missingRequiredSickLeaveAnswers } from "@/features/employee-reviews/lib/sick-leave-templates";
+import { getSickLeaveTemplate, missingRequiredSickLeaveAnswers } from "@/features/employee-reviews/lib/sick-leave-templates";
+import { closeFollowUpAfterEmployeeConfirmation } from "@/lib/hr/sick-leave-confirmation";
+import { archiveSignedEmployeeReview } from "@/lib/hr/archive-employee-review";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
+import { createNotification } from "@/server/actions/notification.actions";
 
 function formatActionError(error: unknown, fallback: string): string {
   if (error instanceof ZodError) {
@@ -174,6 +177,9 @@ export async function updateEmployeeReview(id: string, input: UpdateEmployeeRevi
       where: { id, tenantId },
     });
     if (!review) throw new Error("Medarbeidersamtale ikke funnet");
+    if (review.status === "SIGNERT" || review.status === "AVBRUTT") {
+      throw new Error("En bekreftet eller avbrutt samtale kan ikke endres");
+    }
 
     const canEdit =
       auth.permissions.canConductEmployeeReviews ||
@@ -251,10 +257,38 @@ export async function signEmployeeReview(id: string, rolle: "LEDER" | "ANSATT") 
       },
     });
 
+    if (rolle === "ANSATT" && review.kind === "SYKEFRAVAER" && review.absenceId) {
+      const closedId = await closeFollowUpAfterEmployeeConfirmation({
+        tenantId,
+        absenceId: review.absenceId,
+        templateKey: review.templateKey,
+        confirmedById: userId,
+      });
+      if (closedId) {
+        revalidatePath(`/dashboard/fravaer/${review.absenceId}`);
+        revalidatePath("/ansatt/fravaer");
+        revalidatePath("/ansatt/profil");
+      }
+    }
+
+    let personnelDocumentId: string | null = null;
+    let archiveError: string | null = null;
+    if (updated.status === "SIGNERT") {
+      try {
+        personnelDocumentId = await archiveSignedEmployeeReview(id, userId);
+        revalidatePath("/dashboard/personalarkiv");
+        revalidatePath(`/dashboard/personalarkiv/${review.employeeId}`);
+        revalidatePath("/ansatt/personalmappe");
+      } catch (error: unknown) {
+        archiveError = error instanceof Error ? error.message : "Kunne ikke legge dokumentet i personalmappen";
+      }
+    }
+
     revalidatePath("/dashboard/medarbeidersamtale");
     revalidatePath(`/dashboard/medarbeidersamtale/${id}`);
+    revalidatePath(`/ansatt/medarbeidersamtale/${id}`);
     triggerRealtimeEvent(tenantId, "employee-review-updated");
-    return { success: true as const, data: updated };
+    return { success: true as const, data: updated, personnelDocumentId, archiveError };
   } catch (error: any) {
     return { success: false as const, error: error.message || "Kunne ikke signere samtalen" };
   }
@@ -286,8 +320,24 @@ export async function markEmployeeReviewCompleted(id: string) {
       data: { status: "GJENNOMFORT", completedDate: new Date() },
     });
 
+    if (review.kind === "SYKEFRAVAER" && review.employeeId !== auth.userId) {
+      const template = getSickLeaveTemplate(review.templateKey);
+      await createNotification({
+        tenantId: auth.tenantId,
+        userId: review.employeeId,
+        type: "EMPLOYEE_REVIEW_SIGN",
+        title: "Bekreft sykefraværsoppfølgingen",
+        message: template
+          ? `${template.title} er gjennomført og venter på din bekreftelse.`
+          : "Sykefraværssamtalen er gjennomført og venter på din bekreftelse.",
+        link: `/ansatt/medarbeidersamtale/${id}`,
+      });
+    }
+
     revalidatePath("/dashboard/medarbeidersamtale");
     revalidatePath(`/dashboard/medarbeidersamtale/${id}`);
+    revalidatePath(`/ansatt/medarbeidersamtale/${id}`);
+    revalidatePath("/ansatt/fravaer");
     triggerRealtimeEvent(auth.tenantId, "employee-review-updated");
     return { success: true as const, data: updated };
   } catch (error: any) {

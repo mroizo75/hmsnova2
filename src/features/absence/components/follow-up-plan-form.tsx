@@ -30,6 +30,7 @@ export function FollowUpPlanForm({ followUpId, absenceId, initialData }: FollowU
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<UpdateFollowUpPlanInput>({
     resolver: zodResolver(UpdateFollowUpPlanSchema),
@@ -51,6 +52,10 @@ export function FollowUpPlanForm({ followUpId, absenceId, initialData }: FollowU
     setError(null);
     const result = await updateFollowUpPlan(data);
     setLoading(false);
+    if (result.success && result.awaitingEmployeeConfirmation) {
+      setNotice("Planen er lagret. Den ansatte må bekrefte sykefraværssamtalen før punktet avsluttes.");
+      return;
+    }
     if (result.success) {
       router.push(`/dashboard/fravaer/${absenceId}`);
     } else {
@@ -66,7 +71,7 @@ export function FollowUpPlanForm({ followUpId, absenceId, initialData }: FollowU
         <CardHeader>
           <CardTitle className="text-base">Oppfølgingsplan (AML § 4-6 (3))</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Arbeidsgiver skal i samråd med arbeidstaker utarbeide oppfølgingsplan innen fire uker.
+            Arbeidsgiver skal i samråd med arbeidstaker utarbeide oppfølgingsplan innen fire uker. Punktet avsluttes når den ansatte har bekreftet sykefraværssamtalen.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -140,13 +145,14 @@ export function FollowUpPlanForm({ followUpId, absenceId, initialData }: FollowU
         </CardContent>
       </Card>
 
+      {notice && <p className="text-sm text-muted-foreground">{notice}</p>}
       {error && (
         <p className="text-sm text-destructive">{error}</p>
       )}
 
       <div className="flex gap-3">
         <Button type="submit" disabled={loading}>
-          {loading ? "Lagrer..." : "Fullfør oppfølgingsplan"}
+          {loading ? "Lagrer..." : "Lagre oppfølgingsplan"}
         </Button>
         <Button
           type="button"
