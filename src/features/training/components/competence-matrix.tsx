@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, CheckCircle2, AlertTriangle, XCircle, Clock, Download } from "lucide-react";
+import { GraduationCap, CheckCircle2, AlertTriangle, XCircle, Clock, FileSpreadsheet } from "lucide-react";
 import {
   getTrainingStatus,
   getTrainingStatusLabel,
@@ -26,211 +26,236 @@ interface CompetenceMatrixProps {
 export function CompetenceMatrix({ matrix, courseTemplates, tenantId, reminderDays = 30, requiredCourseKeysByUser = {} }: CompetenceMatrixProps) {
   const tableRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
-  // Bruk courseTemplates fra databasen
   const courses = courseTemplates.map((template) => ({
     key: template.courseKey,
     title: template.title,
     isRequired: template.isRequired,
+    validityYears: template.validityYears,
   }));
 
-  const handleExportPDF = async () => {
-    setIsGeneratingPDF(true);
-
+  const handleExportExcel = async () => {
+    setIsExporting(true);
     try {
-      // Forbered data for PDF-generering
-      const matrixData = matrix.map((item) => ({
-        userName: item.user.name || item.user.email,
-        courses: courses.map((course) => {
-          const training = item.trainings.find((t) => t.courseKey === course.key);
-          if (!training) {
-            return {
-              courseTitle: course.title,
-              status: (requiredCourseKeysByUser[item.user.id] ?? []).includes(course.key)
-                ? "MISSING_REQUIRED"
-                : "NOT_TAKEN",
-              isRequired: (requiredCourseKeysByUser[item.user.id] ?? []).includes(course.key),
-            };
-          }
-          const status = getTrainingStatus(training, reminderDays);
-          return {
-            courseTitle: course.title,
-            status,
-            completedAt: training.completedAt?.toISOString(),
-            validUntil: training.validUntil?.toISOString(),
-            isRequired: course.isRequired,
-          };
-        }),
-      }));
+      const ExcelJS = await import("exceljs");
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = "HMS Nova";
+      workbook.created = new Date();
 
-      const response = await fetch("/api/training/competence-matrix/pdf", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          matrixData,
-          courseHeaders: courses.map((c) => c.title),
-          tenantId,
-        }),
+      const ws = workbook.addWorksheet("Kompetansematrise", {
+        views: [{ state: "frozen", xSplit: 2, ySplit: 3 }],
       });
 
-      if (!response.ok) {
-        throw new Error("Kunne ikke generere PDF");
+      // -- Tittelrad --
+      const titleRow = ws.addRow(["Kompetansematrise"]);
+      titleRow.font = { size: 16, bold: true };
+      ws.mergeCells(1, 1, 1, 2 + courses.length);
+
+      const dateRow = ws.addRow([`Generert: ${new Date().toLocaleDateString("nb-NO", { day: "numeric", month: "long", year: "numeric" })}`]);
+      dateRow.font = { size: 10, color: { argb: "FF666666" } };
+      ws.mergeCells(2, 1, 2, 2 + courses.length);
+
+      // -- Kolonne-header --
+      const headerValues = ["Ansatt", "E-post", ...courses.map((c) => c.title)];
+      const headerRow = ws.addRow(headerValues);
+      headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
+      headerRow.alignment = { horizontal: "center", vertical: "middle", wrapText: true, textRotation: 45 };
+      headerRow.height = 80;
+
+      const headerFill = { type: "pattern" as const, pattern: "solid" as const, fgColor: { argb: "FF475569" } };
+      headerRow.eachCell((cell, colNumber) => {
+        cell.fill = headerFill;
+        cell.border = {
+          top: { style: "thin" },
+          bottom: { style: "thin" },
+          left: { style: "thin" },
+          right: { style: "thin" },
+        };
+        if (colNumber <= 2) {
+          cell.alignment = { horizontal: "left", vertical: "middle", wrapText: true };
+        }
+      });
+
+      // Kolonnebredder
+      ws.getColumn(1).width = 25;
+      ws.getColumn(2).width = 28;
+      for (let i = 0; i < courses.length; i++) {
+        ws.getColumn(3 + i).width = 14;
       }
 
-      // Last ned PDFen
-      const blob = await response.blob();
+      // -- Datarows --
+      for (const item of matrix) {
+        const row: (string | number)[] = [
+          item.user.name || "Ukjent",
+          item.user.email,
+        ];
+
+        for (const course of courses) {
+          const training = item.trainings.find((t) => t.courseKey === course.key);
+          if (!training) {
+            const isRequired = (requiredCourseKeysByUser[item.user.id] ?? []).includes(course.key);
+            row.push(isRequired ? "MANGLER" : "");
+          } else {
+            const status = getTrainingStatus(training, reminderDays);
+            let cellText = "";
+            if (status === "VALID" || status === "COMPLETED") {
+              cellText = "OK";
+            } else if (status === "EXPIRING_SOON") {
+              cellText = "Utløper snart";
+            } else if (status === "EXPIRED") {
+              cellText = "Utløpt";
+            } else {
+              cellText = "Ikke dokumentert";
+            }
+            if (training.validUntil) {
+              const d = new Date(training.validUntil).toLocaleDateString("nb-NO", { day: "2-digit", month: "2-digit", year: "numeric" });
+              cellText += ` (${d})`;
+            }
+            row.push(cellText);
+          }
+        }
+
+        const dataRow = ws.addRow(row);
+        dataRow.font = { size: 10 };
+        dataRow.getCell(1).font = { size: 10, bold: true };
+
+        // Fargekod statusceller
+        for (let i = 0; i < courses.length; i++) {
+          const cell = dataRow.getCell(3 + i);
+          const val = String(cell.value ?? "");
+          cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+          cell.border = {
+            top: { style: "thin", color: { argb: "FFE2E8F0" } },
+            bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
+            left: { style: "thin", color: { argb: "FFE2E8F0" } },
+            right: { style: "thin", color: { argb: "FFE2E8F0" } },
+          };
+
+          if (val.startsWith("OK")) {
+            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD1FAE5" } };
+            cell.font = { size: 10, color: { argb: "FF166534" }, bold: true };
+          } else if (val.startsWith("Utløper snart")) {
+            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFEF3C7" } };
+            cell.font = { size: 10, color: { argb: "FF92400E" }, bold: true };
+          } else if (val.startsWith("Utløpt") || val === "MANGLER") {
+            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFEE2E2" } };
+            cell.font = { size: 10, color: { argb: "FF991B1B" }, bold: true };
+          }
+        }
+      }
+
+      // -- Oppsummeringsrad --
+      ws.addRow([]);
+      const summaryHeaderRow = ws.addRow(["Oppsummering", "", ...courses.map((c) => c.title)]);
+      summaryHeaderRow.font = { bold: true, size: 10 };
+      summaryHeaderRow.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } };
+
+      const countRow = (label: string, statuses: string[]) => {
+        const vals: (string | number)[] = [label, ""];
+        for (const course of courses) {
+          let count = 0;
+          for (const item of matrix) {
+            const training = item.trainings.find((t) => t.courseKey === course.key);
+            if (!training) {
+              if (statuses.includes("MISSING") && (requiredCourseKeysByUser[item.user.id] ?? []).includes(course.key)) {
+                count++;
+              }
+              continue;
+            }
+            const status = getTrainingStatus(training, reminderDays);
+            if (statuses.includes(status)) count++;
+          }
+          vals.push(count > 0 ? count : "");
+        }
+        return vals;
+      };
+
+      const okRow = ws.addRow(countRow("✓ Gyldig", ["VALID", "COMPLETED"]));
+      okRow.font = { size: 9, color: { argb: "FF166534" } };
+      okRow.getCell(1).font = { size: 9, color: { argb: "FF166534" }, bold: true };
+
+      const warnRow = ws.addRow(countRow("⚠ Utløper snart", ["EXPIRING_SOON"]));
+      warnRow.font = { size: 9, color: { argb: "FF92400E" } };
+      warnRow.getCell(1).font = { size: 9, color: { argb: "FF92400E" }, bold: true };
+
+      const expRow = ws.addRow(countRow("✗ Utløpt", ["EXPIRED"]));
+      expRow.font = { size: 9, color: { argb: "FF991B1B" } };
+      expRow.getCell(1).font = { size: 9, color: { argb: "FF991B1B" }, bold: true };
+
+      const missingRow = ws.addRow(countRow("Mangler (påkrevd)", ["MISSING"]));
+      missingRow.font = { size: 9, color: { argb: "FF991B1B" } };
+      missingRow.getCell(1).font = { size: 9, color: { argb: "FF991B1B" }, bold: true };
+
+      // -- Detaljark med fullstendig liste --
+      const detailWs = workbook.addWorksheet("Kompetansedetaljer");
+      const detailHeader = detailWs.addRow(["Ansatt", "E-post", "Kurs", "Status", "Gjennomført", "Gyldig til", "Leverandør", "Påkrevd"]);
+      detailHeader.font = { bold: true, color: { argb: "FFFFFFFF" } };
+      detailHeader.eachCell((cell) => {
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF475569" } };
+      });
+
+      for (const item of matrix) {
+        for (const course of courses) {
+          const training = item.trainings.find((t) => t.courseKey === course.key);
+          const isRequired = (requiredCourseKeysByUser[item.user.id] ?? []).includes(course.key);
+          if (!training && !isRequired) continue;
+
+          const status = training ? getTrainingStatusLabel(getTrainingStatus(training, reminderDays)) : "Mangler";
+          const completedAt = training?.completedAt
+            ? new Date(training.completedAt).toLocaleDateString("nb-NO")
+            : "";
+          const validUntil = training?.validUntil
+            ? new Date(training.validUntil).toLocaleDateString("nb-NO")
+            : "";
+
+          detailWs.addRow([
+            item.user.name || "Ukjent",
+            item.user.email,
+            course.title,
+            status,
+            completedAt,
+            validUntil,
+            training?.provider ?? "",
+            isRequired ? "Ja" : "Nei",
+          ]);
+        }
+      }
+
+      detailWs.getColumn(1).width = 25;
+      detailWs.getColumn(2).width = 28;
+      detailWs.getColumn(3).width = 30;
+      detailWs.getColumn(4).width = 18;
+      detailWs.getColumn(5).width = 14;
+      detailWs.getColumn(6).width = 14;
+      detailWs.getColumn(7).width = 20;
+      detailWs.getColumn(8).width = 10;
+
+      // Last ned
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `kompetansematrise-${new Date().toISOString().split("T")[0]}.pdf`;
+      a.download = `kompetansematrise-${new Date().toISOString().split("T")[0]}.xlsx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
       toast({
-        title: "PDF generert",
-        description: "Kompetansematrisen er lastet ned",
+        title: "Excel generert",
+        description: "Kompetansematrisen er lastet ned som Excel-fil",
       });
     } catch (error) {
-      console.error("PDF export error:", error);
+      console.error("Excel export error:", error);
       toast({
         title: "Feil",
-        description: "Kunne ikke generere PDF",
+        description: "Kunne ikke generere Excel-fil",
         variant: "destructive",
       });
     } finally {
-      setIsGeneratingPDF(false);
-    }
-  };
-
-  // Fallback til jsPDF hvis Adobe ikke virker
-  const handleExportPDFFallback = async () => {
-    try {
-      const { default: jsPDF } = await import("jspdf");
-      const { default: autoTable } = await import("jspdf-autotable");
-
-      const doc = new jsPDF({
-        orientation: "landscape",
-        unit: "mm",
-        format: "a4",
-      });
-
-      doc.setFontSize(16);
-      doc.text("Kompetansematrise", 148, 12, { align: "center" });
-      
-      doc.setFontSize(9);
-      doc.text(
-        `Generert: ${new Date().toLocaleDateString("nb-NO")}`,
-        148,
-        18,
-        { align: "center" }
-      );
-
-      const shortCourseTitles = courses.map((c) => {
-        if (c.title.length > 20) {
-          return c.title.substring(0, 17) + "...";
-        }
-        return c.title;
-      });
-
-      const tableHead = [["Ansatt", ...shortCourseTitles]];
-      const tableBody = matrix.map((item) => {
-        const row = [
-          item.user.name || "Ukjent",
-          ...courses.map((course) => {
-            const training = item.trainings.find((t) => t.courseKey === course.key);
-            if (!training) {
-              return (requiredCourseKeysByUser[item.user.id] ?? []).includes(course.key) ? "✗" : "-";
-            }
-            const status = getTrainingStatus(training, reminderDays);
-            let statusText = "-";
-            if (status === "VALID" || status === "COMPLETED") {
-              statusText = "✓";
-            } else if (status === "EXPIRING_SOON") {
-              statusText = "⚠";
-            } else if (status === "EXPIRED") {
-              statusText = "✗";
-            }
-            if (training.validUntil) {
-              const date = new Date(training.validUntil).toLocaleDateString("nb-NO", {
-                day: "2-digit",
-                month: "2-digit",
-                year: "2-digit",
-              });
-              statusText += `\n${date}`;
-            }
-            return statusText;
-          }),
-        ];
-        return row;
-      });
-
-      // Beregn kolonne-bredde dynamisk basert på antall kurs
-      const pageWidth = doc.internal.pageSize.width - 20; // margins
-      const nameColWidth = 35;
-      const availableWidth = pageWidth - nameColWidth;
-      const courseColWidth = Math.max(10, Math.min(20, availableWidth / courses.length));
-
-      const columnStyles: any = { 0: { cellWidth: nameColWidth, fontStyle: "bold" } };
-      for (let i = 1; i <= courses.length; i++) {
-        columnStyles[i] = { cellWidth: courseColWidth, halign: "center" };
-      }
-
-      autoTable(doc, {
-        head: tableHead,
-        body: tableBody,
-        startY: 23,
-        theme: "grid",
-        styles: {
-          fontSize: courses.length > 8 ? 6 : 7,
-          cellPadding: 1.5,
-          overflow: "linebreak",
-          lineWidth: 0.1,
-        },
-        headStyles: {
-          fillColor: [71, 85, 105],
-          textColor: 255,
-          fontStyle: "bold",
-          halign: "center",
-          fontSize: courses.length > 8 ? 6 : 7,
-          cellPadding: 2,
-        },
-        columnStyles: columnStyles,
-        margin: { left: 10, right: 10 },
-        didParseCell: function (data) {
-          if (data.section === "body" && data.column.index > 0) {
-            const cellText = data.cell.text.join("");
-            if (cellText.includes("✓")) {
-              data.cell.styles.textColor = [22, 163, 74];
-              data.cell.styles.fontStyle = "bold";
-            } else if (cellText.includes("⚠")) {
-              data.cell.styles.textColor = [202, 138, 4];
-              data.cell.styles.fontStyle = "bold";
-            } else if (cellText.includes("✗")) {
-              data.cell.styles.textColor = [220, 38, 38];
-              data.cell.styles.fontStyle = "bold";
-            }
-          }
-        },
-      });
-
-      // Footer med forklaring
-      doc.setFontSize(7);
-      doc.setTextColor(100);
-      doc.text(
-        "Forklaring: ✓ = Gyldig kompetanse  |  ⚠ = Utløper snart  |  ✗ = Utløpt eller mangler  |  - = Ikke påkrevd",
-        148,
-        doc.internal.pageSize.height - 8,
-        { align: "center" }
-      );
-
-      // Last ned
-      doc.save(`kompetansematrise-${new Date().toISOString().split("T")[0]}.pdf`);
-    } catch (error) {
-      console.error("Failed to generate PDF:", error);
-      alert("Kunne ikke generere PDF. Vennligst prøv igjen.");
+      setIsExporting(false);
     }
   };
 
@@ -247,25 +272,6 @@ export function CompetenceMatrix({ matrix, courseTemplates, tenantId, reminderDa
         return <Clock className="h-4 w-4 text-gray-400" />;
       default:
         return null;
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    const label = getTrainingStatusLabel(status);
-    let variant: "default" | "destructive" | "secondary" | "outline" = "default";
-
-    switch (status) {
-      case "VALID":
-      case "COMPLETED":
-        return <Badge className="bg-green-100 text-green-800 border-green-300">{label}</Badge>;
-      case "EXPIRING_SOON":
-        return <Badge className="bg-yellow-100 text-black border-yellow-300">{label}</Badge>;
-      case "EXPIRED":
-        return <Badge variant="destructive">{label}</Badge>;
-      case "NOT_STARTED":
-        return <Badge variant="outline" className="text-gray-600">-</Badge>;
-      default:
-        return <Badge variant="outline">-</Badge>;
     }
   };
 
@@ -293,126 +299,129 @@ export function CompetenceMatrix({ matrix, courseTemplates, tenantId, reminderDa
               Kompetansematrise
             </CardTitle>
             <CardDescription>
-              Oversikt over hvilken kompetanse hver ansatt har. ISO 9001: Dokumentert kompetanse.
+              Oversikt over all kompetanse — standard HMS-kurs og bedriftens egne kurs.
             </CardDescription>
           </div>
-          <Button 
-            onClick={handleExportPDF} 
-            variant="outline" 
+          <Button
+            onClick={handleExportExcel}
+            variant="outline"
             className="print:hidden"
-            disabled={isGeneratingPDF}
+            disabled={isExporting}
           >
-            <Download className="mr-2 h-4 w-4" />
-            {isGeneratingPDF ? "Genererer PDF..." : "Eksporter til PDF"}
+            <FileSpreadsheet className="mr-2 h-4 w-4" />
+            {isExporting ? "Genererer..." : "Last ned Excel"}
           </Button>
         </div>
       </CardHeader>
       <CardContent>
         <div className="relative">
-          <div 
-            className="overflow-auto max-h-[70vh] border rounded-lg" 
+          <div
+            className="overflow-auto max-h-[70vh] border rounded-lg"
             ref={tableRef}
           >
             <table className="w-full border-collapse">
-            <thead className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800">
-              <tr>
-                <th className="text-left p-2 font-semibold sticky left-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b min-w-[150px]">
-                  <div className="flex flex-col">
-                    <span className="text-sm font-bold">Ansatt</span>
-                  </div>
-                </th>
-                {courses.map((course) => (
-                  <th
-                    key={course.key}
-                    className="relative p-1 bg-slate-100 dark:bg-slate-800 border-b border-l"
-                    style={{ minWidth: "40px", maxWidth: "50px", width: "50px" }}
-                  >
-                    <div className="flex items-start justify-center" style={{ height: "120px" }}>
-                      <div 
-                        className="absolute bottom-2 left-1/2 origin-bottom-left text-xs font-semibold whitespace-nowrap"
-                        style={{ 
-                          transform: "rotate(-45deg) translateX(-50%)",
-                          transformOrigin: "0 0",
-                          width: "120px",
-                          textAlign: "left"
-                        }}
-                      >
-                        {course.title}
-                      </div>
+              <thead className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800">
+                <tr>
+                  <th className="text-left p-2 font-semibold sticky left-0 z-30 bg-slate-100 dark:bg-slate-800 border-r border-b min-w-[150px]">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-bold">Ansatt</span>
+                      <span className="text-xs font-normal text-muted-foreground">
+                        {matrix.length} ansatte · {courses.length} kurs
+                      </span>
                     </div>
                   </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {matrix.map((item) => (
-                <tr key={item.user.id} className="border-b hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                  <td className="p-2 sticky left-0 bg-background z-10 border-r">
-                    <div className="min-w-[130px]">
-                      <div className="font-semibold text-sm">{item.user.name || "Ukjent"}</div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        {item.user.email}
+                  {courses.map((course) => (
+                    <th
+                      key={course.key}
+                      className="relative p-1 bg-slate-100 dark:bg-slate-800 border-b border-l"
+                      style={{ minWidth: "40px", maxWidth: "50px", width: "50px" }}
+                    >
+                      <div className="flex items-start justify-center" style={{ height: "120px" }}>
+                        <div
+                          className="absolute bottom-2 left-1/2 origin-bottom-left text-xs font-semibold whitespace-nowrap"
+                          style={{
+                            transform: "rotate(-45deg) translateX(-50%)",
+                            transformOrigin: "0 0",
+                            width: "120px",
+                            textAlign: "left",
+                          }}
+                        >
+                          {course.title}
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  {courses.map((course) => {
-                    const training = item.trainings.find(
-                      (t) => t.courseKey === course.key
-                    );
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {matrix.map((item) => (
+                  <tr key={item.user.id} className="border-b hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                    <td className="p-2 sticky left-0 bg-background z-10 border-r">
+                      <div className="min-w-[130px]">
+                        <div className="font-semibold text-sm">{item.user.name || "Ukjent"}</div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {item.user.email}
+                        </div>
+                      </div>
+                    </td>
+                    {courses.map((course) => {
+                      const training = item.trainings.find(
+                        (t) => t.courseKey === course.key,
+                      );
 
-                    if (!training) {
+                      if (!training) {
+                        return (
+                          <td
+                            key={course.key}
+                            className="p-1 text-center border-l"
+                            style={{ minWidth: "40px", maxWidth: "50px" }}
+                          >
+                            {(requiredCourseKeysByUser[item.user.id] ?? []).includes(course.key) ? (
+                              <div className="flex flex-col items-center" title="Mangler påkrevd kompetanse">
+                                <XCircle className="h-4 w-4 text-red-600" />
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">-</span>
+                            )}
+                          </td>
+                        );
+                      }
+
+                      const status = getTrainingStatus(training, reminderDays);
+                      const validDate = training.validUntil
+                        ? new Date(training.validUntil).toLocaleDateString("nb-NO", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "2-digit",
+                          })
+                        : null;
+
                       return (
-                        <td 
-                          key={course.key} 
+                        <td
+                          key={course.key}
                           className="p-1 text-center border-l"
                           style={{ minWidth: "40px", maxWidth: "50px" }}
+                          title={`${course.title}: ${getTrainingStatusLabel(status)}${validDate ? ` (${validDate})` : ""}`}
                         >
-                          {(requiredCourseKeysByUser[item.user.id] ?? []).includes(course.key) ? (
-                            <div className="flex flex-col items-center" title="Mangler påkrevd kompetanse">
-                              <XCircle className="h-4 w-4 text-red-600" />
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground text-xs">-</span>
-                          )}
+                          <div className="flex flex-col items-center gap-0.5">
+                            {getStatusIcon(status)}
+                            {validDate && (
+                              <div className="text-[9px] text-muted-foreground leading-none">
+                                {validDate}
+                              </div>
+                            )}
+                          </div>
                         </td>
                       );
-                    }
-
-                    const status = getTrainingStatus(training, reminderDays);
-                    const validDate = training.validUntil 
-                      ? new Date(training.validUntil).toLocaleDateString("nb-NO", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "2-digit",
-                        })
-                      : null;
-
-                    return (
-                      <td 
-                        key={course.key} 
-                        className="p-1 text-center border-l"
-                        style={{ minWidth: "40px", maxWidth: "50px" }}
-                        title={`${course.title}: ${getTrainingStatusLabel(status)}${validDate ? ` (${validDate})` : ""}`}
-                      >
-                        <div className="flex flex-col items-center gap-0.5">
-                          {getStatusIcon(status)}
-                          {validDate && (
-                            <div className="text-[9px] text-muted-foreground leading-none">
-                              {validDate}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
-        {/* Legend og info */}
+        {/* Legend */}
         <div className="mt-4 space-y-2">
           <div className="flex flex-wrap gap-4 items-center justify-center p-3 bg-slate-50 dark:bg-slate-900 rounded-lg">
             <div className="flex items-center gap-2">
@@ -425,19 +434,15 @@ export function CompetenceMatrix({ matrix, courseTemplates, tenantId, reminderDa
             </div>
             <div className="flex items-center gap-2">
               <XCircle className="h-4 w-4 text-red-600" />
-              <span className="text-sm">Utløpt/Mangler</span>
+              <span className="text-sm">Utløpt / Mangler</span>
             </div>
             <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-gray-400" />
-              <span className="text-sm">Ikke startet</span>
+              <span className="text-muted-foreground text-sm">-</span>
+              <span className="text-sm">Ikke relevant</span>
             </div>
           </div>
-          <p className="text-xs text-center text-muted-foreground">
-            * = Påkrevd kompetanse | Hold musepekeren over en celle for mer informasjon
-          </p>
         </div>
       </CardContent>
     </Card>
   );
 }
-

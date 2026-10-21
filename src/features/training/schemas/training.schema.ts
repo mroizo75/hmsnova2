@@ -27,8 +27,8 @@ export const updateTrainingSchema = z.object({
   id: z.string().cuid(),
   title: z.string().min(3).optional(),
   provider: z.string().min(2).optional(),
-  completedAt: z.date().optional(),
-  validUntil: z.date().optional(),
+  completedAt: z.date().nullable().optional(),
+  validUntil: z.date().nullable().optional(),
   proofDocKey: z.string().optional(),
   effectiveness: z.string().optional(),
 });
@@ -146,7 +146,7 @@ export const STANDARD_COURSES = [
     title: "Truckførerbevis",
     description: "Godkjent opplæring for truckkjøring",
     isRequired: false,
-    validityYears: 5,
+    validityYears: null, // Truckførerbevis utløper ikke i Norge
   },
   {
     key: "hot-work",

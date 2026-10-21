@@ -10,7 +10,7 @@ export async function GET() {
       "Content-Type":
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "Content-Disposition":
-        'attachment; filename="bruker-import-eksempel.xlsx"',
+        'attachment; filename="Ansatt- og pårørendeliste.xlsx"',
       "Cache-Control": "no-cache",
     },
   });

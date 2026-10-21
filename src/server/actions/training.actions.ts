@@ -144,10 +144,20 @@ export async function createTraining(input: any) {
 export async function updateTraining(input: any) {
   try {
     const { user, tenantId, role } = await getSessionContext();
+
+    const parsedCompletedAt =
+      input.completedAt === null ? null
+      : input.completedAt ? new Date(input.completedAt)
+      : undefined;
+    const parsedValidUntil =
+      input.validUntil === null ? null
+      : input.validUntil ? new Date(input.validUntil)
+      : undefined;
+
     const validated = updateTrainingSchema.parse({
       ...input,
-      completedAt: input.completedAt ? new Date(input.completedAt) : undefined,
-      validUntil: input.validUntil ? new Date(input.validUntil) : undefined,
+      completedAt: parsedCompletedAt,
+      validUntil: parsedValidUntil,
     });
     
     const existingTraining = await prisma.training.findFirst({
@@ -238,10 +248,12 @@ export async function deleteTraining(id: string) {
     }
     await assertEmployeeVisible(tenantId, user.id, role, training.userId);
     
-    // Slett dokumentert bevis fra storage hvis det finnes
+    // Slett dokumenterte bevis fra storage hvis det finnes
     if (training.proofDocKey) {
+      const { parseProofDocKeys } = await import("@/features/training/lib/proof-doc-keys");
       const storage = await import("@/lib/storage").then(m => m.getStorage());
-      await storage.delete(training.proofDocKey);
+      const keys = parseProofDocKeys(training.proofDocKey);
+      await Promise.all(keys.map((key) => storage.delete(key)));
     }
     
     await prisma.training.delete({

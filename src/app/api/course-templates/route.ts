@@ -10,7 +10,10 @@ const courseTemplateSchema = z.object({
   description: z.string().nullable().optional(),
   provider: z.string().nullable().optional(),
   isRequired: z.boolean().default(false),
-  validityYears: z.number().int().min(1).max(10).nullable().optional(),
+  validityYears: z.preprocess(
+    (val) => (val === null || val === undefined || val === "" || val === 0) ? null : Number(val),
+    z.number().int().min(1).max(10).nullable(),
+  ),
 });
 
 const updateCourseTemplateSchema = courseTemplateSchema.extend({

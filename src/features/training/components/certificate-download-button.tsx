@@ -7,16 +7,19 @@ import { useToast } from "@/hooks/use-toast";
 
 interface CertificateDownloadButtonProps {
   trainingId: string;
+  index?: number;
+  label?: string;
 }
 
-export function CertificateDownloadButton({ trainingId }: CertificateDownloadButtonProps) {
+export function CertificateDownloadButton({ trainingId, index, label }: CertificateDownloadButtonProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
   const handleDownload = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/training/${trainingId}/certificate`);
+      const query = index !== undefined ? `?index=${index}` : "";
+      const res = await fetch(`/api/training/${trainingId}/certificate${query}`);
       if (!res.ok) {
         toast({ variant: "destructive", title: "Feil", description: "Kunne ikke hente sertifikat" });
         return;
@@ -37,7 +40,7 @@ export function CertificateDownloadButton({ trainingId }: CertificateDownloadBut
       ) : (
         <Download className="mr-1 h-3 w-3" />
       )}
-      Last ned sertifikat
+      {label ?? "Last ned sertifikat"}
     </Button>
   );
 }

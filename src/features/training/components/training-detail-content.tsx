@@ -12,6 +12,7 @@ import {
 import { Calendar, Building2, User, FileText, CheckCircle2, AlertTriangle } from "lucide-react";
 import { CertificateDownloadButton } from "@/features/training/components/certificate-download-button";
 import { fetchTrainingDetail } from "@/server/queries/training.queries";
+import { parseProofDocKeys, hasProofDocs } from "@/features/training/lib/proof-doc-keys";
 
 type TrainingDetailData = NonNullable<Awaited<ReturnType<typeof fetchTrainingDetail>>>;
 
@@ -143,12 +144,21 @@ export function TrainingDetailContent({ initialData, currentUserId }: TrainingDe
                 </p>
               </div>
             </div>
-            {training.proofDocKey && (
+            {hasProofDocs(training.proofDocKey) && (
               <div className="flex items-start gap-3">
                 <FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Dokumentert bevis</p>
-                  <CertificateDownloadButton trainingId={training.id} />
+                  <div className="flex flex-col gap-1">
+                    {parseProofDocKeys(training.proofDocKey).map((_, idx) => (
+                      <CertificateDownloadButton
+                        key={idx}
+                        trainingId={training.id}
+                        index={idx}
+                        label={parseProofDocKeys(training.proofDocKey).length > 1 ? `Last ned dokument ${idx + 1}` : undefined}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -209,12 +219,12 @@ export function TrainingDetailContent({ initialData, currentUserId }: TrainingDe
             <span>Kompetanse dokumentert basert på opplæring</span>
           </div>
           <div className="flex items-center gap-2">
-            {training.proofDocKey ? (
+            {hasProofDocs(training.proofDocKey) ? (
               <CheckCircle2 className="h-4 w-4 text-blue-600" />
             ) : (
               <AlertTriangle className="h-4 w-4 text-yellow-600" />
             )}
-            <span>Dokumentert bevis (sertifikat) {training.proofDocKey ? "lastet opp" : "mangler"}</span>
+            <span>Dokumentert bevis (sertifikat) {hasProofDocs(training.proofDocKey) ? "lastet opp" : "mangler"}</span>
           </div>
           <div className="flex items-center gap-2">
             {training.effectiveness ? (

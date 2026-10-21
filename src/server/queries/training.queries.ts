@@ -68,10 +68,18 @@ export async function fetchTrainingList() {
     requiredCourseKeysByUser(tenantId),
   ]);
 
+  // Dedupliser: tenant-overstyring erstatter globalt kurs med samme courseKey
+  const tenantKeys = new Set(
+    courseTemplates.filter((c) => c.tenantId === tenantId).map((c) => c.courseKey),
+  );
+  const deduped = courseTemplates.filter(
+    (c) => c.tenantId === tenantId || !tenantKeys.has(c.courseKey),
+  );
+
   return JSON.parse(JSON.stringify({
     trainingsRaw,
     tenantUsers,
-    courseTemplates,
+    courseTemplates: deduped,
     reminderDays: tenant?.trainingReminderDaysBefore ?? 30,
     requiredCourseKeysByUser: requiredByUser,
   }));
@@ -166,9 +174,40 @@ export async function fetchTrainingMatrix() {
     select: { trainingReminderDaysBefore: true },
   });
 
+  // Dedupliser: tenant-overstyring erstatter globalt kurs med samme courseKey
+  const matrixTenantKeys = new Set(
+    courseTemplates.filter((c) => c.tenantId === tenantId).map((c) => c.courseKey),
+  );
+  const dedupedTemplates = courseTemplates.filter(
+    (c) => c.tenantId === tenantId || !matrixTenantKeys.has(c.courseKey),
+  );
+
+  // Inkluder kurs fra faktiske opplæringer som ikke har en mal
+  const templateKeys = new Set(dedupedTemplates.map((t) => t.courseKey));
+  const extraCourseKeys = new Set<string>();
+  for (const t of trainings) {
+    if (!templateKeys.has(t.courseKey)) {
+      extraCourseKeys.add(t.courseKey);
+    }
+  }
+  const extraCourses = [...extraCourseKeys].sort().map((key) => ({
+    id: `extra-${key}`,
+    courseKey: key,
+    title: trainings.find((t) => t.courseKey === key)?.title ?? key,
+    description: null,
+    provider: null,
+    isRequired: false,
+    validityYears: null,
+    isGlobal: false,
+    isActive: true,
+    tenantId,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }));
+
   return JSON.parse(JSON.stringify({
     matrix,
-    courseTemplates,
+    courseTemplates: [...dedupedTemplates, ...extraCourses],
     reminderDays: tenant?.trainingReminderDaysBefore ?? 30,
     requiredCourseKeysByUser: requiredByUser,
   }));

@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRefreshAfterSave } from "@/hooks/use-refresh-after-save";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -25,7 +24,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { createTraining } from "@/server/actions/training.actions";
 import { CertificateFileDrop } from "@/features/training/components/certificate-file-drop";
 import { useToast } from "@/hooks/use-toast";
-import { Plus } from "lucide-react";
+import { Plus, Search, CheckCircle2 } from "lucide-react";
 import type { CourseTemplate } from "@prisma/client";
 
 interface TrainingFormProps {
@@ -46,6 +45,21 @@ export function TrainingForm({ tenantId, users, courseTemplates, trigger, open: 
   const [loading, setLoading] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [userSearch, setUserSearch] = useState("");
+  const [validUntil, setValidUntil] = useState("");
+
+  const filteredUsers = useMemo(() => {
+    if (!userSearch) return users;
+    const q = userSearch.toLowerCase();
+    return users.filter(
+      (u) =>
+        u.name?.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q),
+    );
+  }, [users, userSearch]);
+
+  const selectedUser = users.find((u) => u.id === selectedUserId);
 
   const uploadCertificate = async (file: File): Promise<string | null> => {
     const fd = new FormData();
@@ -80,12 +94,12 @@ export function TrainingForm({ tenantId, users, courseTemplates, trigger, open: 
 
       const data = {
         tenantId,
-        userId: formData.get("userId") as string,
+        userId: selectedUserId,
         courseKey: formData.get("courseKey") as string,
         title: formData.get("title") as string,
         provider: formData.get("provider") as string,
         completedAt: formData.get("completedAt") as string || undefined,
-        validUntil: formData.get("validUntil") as string || undefined,
+        validUntil: validUntil || undefined,
         isRequired: formData.get("isRequired") === "true",
         proofDocKey,
       };
@@ -99,6 +113,11 @@ export function TrainingForm({ tenantId, users, courseTemplates, trigger, open: 
           className: "bg-green-50 border-green-200",
         });
         setOpen(false);
+        setSelectedUserId("");
+        setUserSearch("");
+        setSelectedCourse("");
+        setValidUntil("");
+        setSelectedFile(null);
         await refreshAfterSave();
       } else {
         toast({
@@ -107,7 +126,7 @@ export function TrainingForm({ tenantId, users, courseTemplates, trigger, open: 
           description: result.error || "Kunne ikke registrere opplæring",
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         variant: "destructive",
         title: "Uventet feil",
@@ -118,7 +137,29 @@ export function TrainingForm({ tenantId, users, courseTemplates, trigger, open: 
     }
   };
 
-  const selectedCourseInfo = courseTemplates.find(c => c.courseKey === selectedCourse);
+  const handleCourseChange = (value: string) => {
+    setSelectedCourse(value);
+    const course = courseTemplates.find((c) => c.courseKey === value);
+    if (course) {
+      const form = document.querySelector("form") as HTMLFormElement;
+      const titleInput = form?.querySelector('[name="title"]') as HTMLInputElement;
+      if (titleInput) titleInput.value = course.title;
+      const providerInput = form?.querySelector('[name="provider"]') as HTMLInputElement;
+      if (providerInput && course.provider) providerInput.value = course.provider;
+
+      if (course.validityYears) {
+        const completedInput = form?.querySelector('[name="completedAt"]') as HTMLInputElement;
+        const baseDate = completedInput?.value ? new Date(completedInput.value) : new Date();
+        const validDate = new Date(baseDate);
+        validDate.setFullYear(validDate.getFullYear() + course.validityYears);
+        setValidUntil(validDate.toISOString().split("T")[0]);
+      } else {
+        setValidUntil("");
+      }
+    }
+  };
+
+  const selectedCourseInfo = courseTemplates.find((c) => c.courseKey === selectedCourse);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -134,28 +175,76 @@ export function TrainingForm({ tenantId, users, courseTemplates, trigger, open: 
       )}
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Registrer opplæring</DialogTitle>
+          <DialogTitle>Registrer kompetanse</DialogTitle>
           <DialogDescription>
-            ISO 9001: Dokumenter kompetanse basert på utdanning, opplæring eller erfaring
+            Dokumenter kompetanse basert på utdanning, opplæring eller erfaring
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
+            {/* Søkbar ansattvelger */}
             <div className="space-y-2">
-              <Label htmlFor="userId">Ansatt *</Label>
-              <Select name="userId" required disabled={loading}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Velg ansatt" />
-                </SelectTrigger>
-                <SelectContent>
-                  {users.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.name || user.email}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Ansatt *</Label>
+              <input type="hidden" name="userId" value={selectedUserId} />
+              <div className="space-y-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Søk ansatt..."
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    className="pl-9"
+                    disabled={loading}
+                  />
+                </div>
+                {selectedUser && !userSearch && (
+                  <div className="flex items-center gap-2 rounded-md border bg-green-50 border-green-200 px-3 py-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                    <span className="text-sm font-medium text-green-800 truncate">
+                      {selectedUser.name || selectedUser.email}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => { setSelectedUserId(""); setUserSearch(""); }}
+                      className="ml-auto text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      Bytt
+                    </button>
+                  </div>
+                )}
+                {!selectedUser && !userSearch && (
+                  <p className="text-xs text-muted-foreground py-2">
+                    Skriv navn eller e-post for å søke ({users.length} ansatte)
+                  </p>
+                )}
+                {(!selectedUser || userSearch) && userSearch.length > 0 && (
+                  <div className="border rounded-md max-h-48 overflow-y-auto divide-y">
+                    {filteredUsers.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-3">Ingen treff for &ldquo;{userSearch}&rdquo;</p>
+                    ) : (
+                      filteredUsers.map((u) => (
+                        <button
+                          key={u.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedUserId(u.id);
+                            setUserSearch("");
+                          }}
+                          className={`w-full text-left px-3 py-2 text-sm hover:bg-muted/50 transition-colors ${
+                            selectedUserId === u.id ? "bg-primary/10 font-medium" : ""
+                          }`}
+                        >
+                          <div className="font-medium truncate">{u.name || u.email}</div>
+                          {u.name && (
+                            <div className="text-xs text-muted-foreground truncate">{u.email}</div>
+                          )}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -165,25 +254,7 @@ export function TrainingForm({ tenantId, users, courseTemplates, trigger, open: 
                 required
                 disabled={loading}
                 value={selectedCourse}
-                onValueChange={(value) => {
-                  setSelectedCourse(value);
-                  const course = courseTemplates.find(c => c.courseKey === value);
-                  if (course) {
-                    const form = document.querySelector("form") as HTMLFormElement;
-                    const titleInput = form?.querySelector('[name="title"]') as HTMLInputElement;
-                    if (titleInput) titleInput.value = course.title;
-                    const providerInput = form?.querySelector('[name="provider"]') as HTMLInputElement;
-                    if (providerInput && course.provider) providerInput.value = course.provider;
-                    if (course.validityYears) {
-                      const completedInput = form?.querySelector('[name="completedAt"]') as HTMLInputElement;
-                      const baseDate = completedInput?.value ? new Date(completedInput.value) : new Date();
-                      const validDate = new Date(baseDate);
-                      validDate.setFullYear(validDate.getFullYear() + course.validityYears);
-                      const validInput = form?.querySelector('[name="validUntil"]') as HTMLInputElement;
-                      if (validInput) validInput.value = validDate.toISOString().split("T")[0];
-                    }
-                  }
-                }}
+                onValueChange={handleCourseChange}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Velg kurs" />
@@ -245,6 +316,8 @@ export function TrainingForm({ tenantId, users, courseTemplates, trigger, open: 
                 name="validUntil"
                 type="date"
                 disabled={loading}
+                value={validUntil}
+                onChange={(e) => setValidUntil(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
                 Tomt felt = utløper ikke. Dato i fortiden registreres som utløpt kompetanse.
@@ -278,18 +351,6 @@ export function TrainingForm({ tenantId, users, courseTemplates, trigger, open: 
             </Label>
           </div>
 
-          <Card className="bg-blue-50 border-blue-200">
-            <CardContent className="pt-4">
-              <p className="text-sm font-medium text-blue-900 mb-2">📋 ISO 9001 - 7.2 Kompetanse</p>
-              <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-                <li>Dokumenter kompetanse basert på opplæring</li>
-                <li>Last opp sertifikat som bevis</li>
-                <li>Sett utløpsdato for kurs som må fornyes</li>
-                <li>System varsler når kurs skal fornyes</li>
-              </ul>
-            </CardContent>
-          </Card>
-
           <div className="flex justify-end gap-4">
             <Button
               type="button"
@@ -299,8 +360,8 @@ export function TrainingForm({ tenantId, users, courseTemplates, trigger, open: 
             >
               Avbryt
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Registrerer..." : "Registrer opplæring"}
+            <Button type="submit" disabled={loading || !selectedUserId}>
+              {loading ? "Registrerer..." : "Registrer kompetanse"}
             </Button>
           </div>
         </form>
@@ -308,4 +369,3 @@ export function TrainingForm({ tenantId, users, courseTemplates, trigger, open: 
     </Dialog>
   );
 }
-

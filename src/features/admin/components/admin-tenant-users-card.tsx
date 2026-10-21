@@ -150,7 +150,7 @@ export function AdminTenantUsersCard({ tenantId, users }: AdminTenantUsersCardPr
             </Button>
             <a
               href="/api/users/import-example"
-              download="bruker-import-eksempel.xlsx"
+              download="Ansatt- og pårørendeliste.xlsx"
               className="text-xs text-muted-foreground hover:underline"
             >
               Last ned Excel-eksempel

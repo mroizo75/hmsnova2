@@ -526,7 +526,7 @@ export function UserManagement({
                   </Button>
                   <a
                     href="/api/users/import-example"
-                    download="bruker-import-eksempel.xlsx"
+                    download="Ansatt- og pårørendeliste.xlsx"
                     className="text-xs text-muted-foreground hover:underline"
                   >
                     Last ned Excel-eksempel
@@ -539,11 +539,11 @@ export function UserManagement({
                     Hvordan importere brukere?
                   </summary>
                   <div className="mt-3 space-y-2 border-t pt-3 text-muted-foreground">
-                    <p><strong>1. Last ned eksempelfil</strong> – Klikk «Last ned Excel-eksempel» for å få en ferdig mal. Blå kolonner er påkrevd, grå er valgfrie.</p>
-                    <p><strong>2. Påkrevd</strong> – Bare <code className="rounded bg-muted px-1">e-post</code> og <code className="rounded bg-muted px-1">navn</code>. Resten kan stå tomt. Du kan også bruke <code className="rounded bg-muted px-1">fornavn</code> og <code className="rounded bg-muted px-1">etternavn</code> i stedet for navn.</p>
-                    <p><strong>3. Valgfritt</strong> – <code className="rounded bg-muted px-1">rolle</code> (tomt = ANSATT), <code className="rounded bg-muted px-1">ansattnummer</code>, <code className="rounded bg-muted px-1">stilling</code>, <code className="rounded bg-muted px-1">avdeling</code> og <code className="rounded bg-muted px-1">leder</code>. Avdeling må treffe et avdelingsnavn som allerede finnes. Leder er e-post til nærmeste leder. Ukjent avdeling eller leder gir en merknad, men stopper ikke importen. Pårørende, fødselsdato og adresse hører til HR-import, ikke her.</p>
-                    <p><strong>4. Importer filen</strong> – Velg din fil og klikk «Importer». Brukere legges til og får invitasjon på e-post.</p>
-                    <p className="text-xs pt-1">Støtter både .csv og .xlsx (Excel). Maks 500 brukere per import, filstørrelse inntil 2 MB.</p>
+                    <p><strong>1. Last ned eksempelfil</strong> – Samme mal som «Ansatt- og pårørendeliste» (Fornavn, Etternavn, E-post, Avdeling, Stilling, adresse, pårørende, …).</p>
+                    <p><strong>2. Påkrevd for innlogging</strong> – <code className="rounded bg-muted px-1">Fornavn</code>, <code className="rounded bg-muted px-1">Etternavn</code> og <code className="rounded bg-muted px-1">E-post</code>. Rolle blir ANSATT automatisk.</p>
+                    <p><strong>3. Valgfritt</strong> – Avdeling, stilling, fødselsdato, adresse, mobil og pårørende kan fylles ut. Avdeling/stilling brukes ved brukerimport; øvrige felt kan senere brukes i HR-import.</p>
+                    <p><strong>4. Importer filen</strong> – Velg din fil og klikk «Importer». Brukere legges til; aktiver under Handlinger for å sende invitasjon.</p>
+                    <p className="text-xs pt-1">Støtter .xlsx (Excel) og .csv. Maks 500 brukere per import, filstørrelse inntil 2 MB.</p>
                   </div>
                 </details>
                 <Dialog

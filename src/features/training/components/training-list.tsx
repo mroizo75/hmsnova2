@@ -51,6 +51,7 @@ import {
 } from "@/features/training/schemas/training.schema";
 import { EditTrainingDialog } from "@/features/training/components/edit-training-dialog";
 import type { Training } from "@prisma/client";
+import { hasProofDocs } from "@/features/training/lib/proof-doc-keys";
 
 type SortField = "title" | "employee" | "completedAt" | "validUntil" | "status";
 type SortDir = "asc" | "desc";
@@ -448,7 +449,7 @@ export function TrainingList({ trainings, tenantUsers = [], requiredCourseKeysBy
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
-                            {!training.proofDocKey && (
+                            {!hasProofDocs(training.proofDocKey) && (
                               <EditTrainingDialog
                                 training={training}
                                 trigger={
@@ -463,7 +464,7 @@ export function TrainingList({ trainings, tenantUsers = [], requiredCourseKeysBy
                                 }
                               />
                             )}
-                            {training.proofDocKey && (
+                            {hasProofDocs(training.proofDocKey) && (
                               <Button
                                 variant="ghost"
                                 size="sm"

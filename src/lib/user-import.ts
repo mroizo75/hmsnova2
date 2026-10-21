@@ -107,7 +107,10 @@ function excelRowCells(row: ExcelJS.Row): string[] {
 export async function parseExcelToRows(buffer: Buffer): Promise<UserImportParseResult> {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer as unknown as Parameters<ExcelJS.Workbook["xlsx"]["load"]>[0]);
-  const sheet = workbook.worksheets.find((item) => item.name === "Brukere") ?? workbook.worksheets[0];
+  const sheet =
+    workbook.worksheets.find((item) => item.name === "Ansatt- og pårørende") ??
+    workbook.worksheets.find((item) => item.name === "Brukere") ??
+    workbook.worksheets[0];
   if (!sheet) return { rows: [], errors: [] };
 
   const rows: UserImportRow[] = [];
@@ -154,7 +157,7 @@ export async function parseUserImportFile(file: File): Promise<
       error:
         parsed.errors.length > 0
           ? parsed.errors.slice(0, 5).join(" ")
-          : "Ingen gyldige rader i filen. Påkrevd er bare e-post og navn. Rolle, ansattnummer, stilling, avdeling og leder kan stå tomme.",
+          : "Ingen gyldige rader i filen. Bruk Ansatt- og pårørendeliste med Fornavn, Etternavn og E-post (påkrevd).",
     };
   }
 
