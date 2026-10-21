@@ -7,6 +7,7 @@ import { MessageSquare, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { PersonnelReviewRow } from "@/server/queries/personnel.queries";
+import { getSickLeaveTemplate } from "@/features/employee-reviews/lib/sick-leave-templates";
 
 const STATUS_LABEL: Record<string, string> = {
   PLANLAGT: "Planlagt",
@@ -35,17 +36,25 @@ export function PersonnelReviewsSection({
           PUS / medarbeidersamtale
         </CardTitle>
         {canCreate && (
-          <Button asChild size="sm" variant="outline">
-            <Link href={`/dashboard/medarbeidersamtale/ny?ansatt=${userId}`}>
-              <Plus className="mr-2 h-4 w-4" />
-              Ny samtale
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button asChild size="sm" variant="outline" className="bg-transparent">
+              <Link href={`/dashboard/medarbeidersamtale/ny?ansatt=${userId}&type=SYKEFRAVAER`}>
+                <Plus className="mr-2 h-4 w-4" />
+                Sykefraværssamtale
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline" className="bg-transparent">
+              <Link href={`/dashboard/medarbeidersamtale/ny?ansatt=${userId}`}>
+                <Plus className="mr-2 h-4 w-4" />
+                Ny samtale
+              </Link>
+            </Button>
+          </div>
         )}
       </CardHeader>
       <CardContent className="space-y-2">
         <p className="text-sm text-muted-foreground">
-          Personlig utviklingssamtale etter AML § 4-2. Samtalene ligger i medarbeidersamtale-modulen og vises her i personalmappen.
+          Medarbeidersamtale etter AML § 4-2 og sykefraværssamtale etter AML § 4-6 ligger i samtale-modulen og vises her.
         </p>
         {reviews.length === 0 ? (
           <p className="text-sm text-muted-foreground">Ingen samtaler registrert.</p>
@@ -58,6 +67,10 @@ export function PersonnelReviewsSection({
                   className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-muted/50"
                 >
                   <span>
+                    {review.kind === "SYKEFRAVAER"
+                      ? getSickLeaveTemplate(review.templateKey)?.title ?? "Sykefraværssamtale"
+                      : "Medarbeidersamtale"}
+                    {" · "}
                     {format(new Date(review.scheduledDate), "d. MMM yyyy", { locale: nb })}
                     {review.reviewerName ? ` · ${review.reviewerName}` : ""}
                   </span>

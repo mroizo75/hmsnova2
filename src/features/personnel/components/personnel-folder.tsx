@@ -24,6 +24,10 @@ interface PersonnelFolderViewProps {
   canEditNotes?: boolean;
   canEditKin?: boolean;
   canEditBirthDate?: boolean;
+  canEditContact?: boolean;
+  canEditOrg?: boolean;
+  departments?: { id: string; name: string }[];
+  managers?: { id: string; name: string }[];
   hrThread?: EmployeeHrThread | null;
   hrTemplates?: HrPersonnelTemplate[];
   development?: PersonnelDevelopment | null;
@@ -39,6 +43,10 @@ export function PersonnelFolderView({
   canEditNotes = false,
   canEditKin = false,
   canEditBirthDate = false,
+  canEditContact = false,
+  canEditOrg = false,
+  departments = [],
+  managers = [],
   hrThread = null,
   hrTemplates = [],
   development = null,
@@ -69,6 +77,7 @@ export function PersonnelFolderView({
       {hrThread && (
         <EmployeeHrThreadCard
           employeeName={folder.name ?? folder.email}
+          employeeId={folder.userId}
           thread={hrThread}
         />
       )}
@@ -91,7 +100,7 @@ export function PersonnelFolderView({
         </>
       )}
 
-      {folder.hrProfile && (canEditHrFields || canEditNotes || canEditKin || folder.hrProfile.nextOfKin.length > 0) && (
+      {folder.hrProfile && (canEditHrFields || canEditNotes || canEditKin || canEditContact || folder.hrProfile.nextOfKin.length > 0) && (
         <Card>
           <CardHeader>
             <CardTitle>Personalopplysninger</CardTitle>
@@ -99,11 +108,18 @@ export function PersonnelFolderView({
           <CardContent>
             <HrProfileForm
               userId={folder.userId}
+              employeeName={folder.name}
               profile={folder.hrProfile}
               canEditHrFields={canEditHrFields}
               canEditNotes={canEditNotes}
               canEditKin={canEditKin}
               canEditBirthDate={canEditBirthDate}
+              canEditContact={canEditContact}
+              canEditOrg={canEditOrg}
+              departmentId={folder.departmentId}
+              managerId={folder.managerId}
+              departments={departments}
+              managers={managers}
             />
           </CardContent>
         </Card>

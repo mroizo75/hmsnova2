@@ -3,6 +3,7 @@ import { getAuthContext } from "@/lib/server-authorization";
 import { fetchMyPersonnelFolder, fetchPersonnelDevelopment } from "@/server/queries/personnel.queries";
 import { PersonnelFolderView } from "@/features/personnel/components/personnel-folder";
 import { EmployeeHrWorkspaceNav } from "@/features/hr/components/employee-hr-workspace-nav";
+import { EmployeeSickLeaveOverview } from "@/features/absence/components/employee-sick-leave-overview";
 
 export default async function AnsattPersonalmappePage() {
   const auth = await getAuthContext();
@@ -18,6 +19,7 @@ export default async function AnsattPersonalmappePage() {
   return (
     <div className="space-y-6">
       <EmployeeHrWorkspaceNav />
+      <EmployeeSickLeaveOverview />
       <PersonnelFolderView
         folder={folder}
         canUpload={false}

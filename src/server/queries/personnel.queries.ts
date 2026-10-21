@@ -44,6 +44,11 @@ export type HrProfileRow = {
   startedAt: string | null;
   dateOfBirth: string | null;
   employeeNumber: string | null;
+  phone: string | null;
+  address: string | null;
+  postalCode: string | null;
+  city: string | null;
+  position: string | null;
   nextOfKin: NextOfKinRow[];
   canReadHrNotes: boolean;
 };
@@ -54,6 +59,7 @@ export type PersonnelFolder = {
   email: string;
   department: string | null;
   departmentId: string | null;
+  managerId: string | null;
   position: string | null;
   documents: PersonnelDocumentRow[];
   hrProfile: HrProfileRow | null;
@@ -155,7 +161,17 @@ export async function fetchPersonnelFolder(userId: string): Promise<PersonnelFol
   const membership = await prisma.userTenant.findUnique({
     where: { userId_tenantId: { userId, tenantId: auth.tenantId } },
     include: {
-      user: { select: { id: true, name: true, email: true } },
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          address: true,
+          postalCode: true,
+          city: true,
+        },
+      },
       orgDepartment: { select: { name: true } },
       hrProfile: true,
       nextOfKin: { orderBy: { sortOrder: "asc" } },
@@ -193,6 +209,7 @@ export async function fetchPersonnelFolder(userId: string): Promise<PersonnelFol
     email: membership.user.email,
     department: membership.orgDepartment?.name ?? membership.department,
     departmentId: membership.departmentId,
+    managerId: membership.managerId,
     position: membership.position,
     documents: documents.map(serializeDoc),
     hrProfile: {
@@ -205,6 +222,11 @@ export async function fetchPersonnelFolder(userId: string): Promise<PersonnelFol
       startedAt: membership.hrProfile?.startedAt?.toISOString() ?? null,
       dateOfBirth: canSeePersonalDetails ? membership.hrProfile?.dateOfBirth?.toISOString() ?? null : null,
       employeeNumber: membership.employeeNumber,
+      phone: membership.phone || membership.user.phone,
+      address: canSeePersonalDetails ? membership.user.address : null,
+      postalCode: canSeePersonalDetails ? membership.user.postalCode : null,
+      city: canSeePersonalDetails ? membership.user.city : null,
+      position: membership.position,
       nextOfKin:
         canSeePersonalDetails
           ? membership.nextOfKin.map((kin) => ({
@@ -263,6 +285,8 @@ export type PersonnelReviewRow = {
   scheduledDate: string;
   status: string;
   reviewerName: string | null;
+  kind: string;
+  templateKey: string | null;
 };
 
 export type PersonnelCompetenceRow = {
@@ -337,6 +361,8 @@ export async function fetchPersonnelDevelopment(userId: string): Promise<Personn
       scheduledDate: review.scheduledDate.toISOString(),
       status: review.status,
       reviewerName: review.reviewer.name ?? review.reviewer.email,
+      kind: review.kind,
+      templateKey: review.templateKey,
     })),
     statements: statements.map((row) => ({
       id: row.id,

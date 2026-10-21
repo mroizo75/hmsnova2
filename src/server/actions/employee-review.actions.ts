@@ -6,11 +6,13 @@
  * Hjemmel:
  *   AML § 4-2 (2): faglig og personlig utvikling skal legges til rette for
  *   AML § 4-3 (presisert 1. jan 2026): psykososialt arbeidsmiljø
+ *   AML § 4-6: sykefraværssamtale, oppfølgingsplan og dialogmøte
  *   IK-HMS § 5: systematisk HMS-arbeid med dokumentasjon og tiltaksoppfølging
  *   GDPR art. 5 og 9: konfidensialitet og minimering av personopplysninger
  */
 
 import { revalidatePath } from "next/cache";
+import { ZodError } from "zod";
 import { prisma } from "@/lib/db";
 import { getAuthContext } from "@/lib/server-authorization";
 import {
@@ -23,7 +25,16 @@ import {
   type EmployeeReviewGoalInput,
   type EmployeeReviewActionInput,
 } from "@/features/employee-reviews/schemas/employee-review.schema";
+import { missingRequiredSickLeaveAnswers } from "@/features/employee-reviews/lib/sick-leave-templates";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
+
+function formatActionError(error: unknown, fallback: string): string {
+  if (error instanceof ZodError) {
+    return error.issues.map((issue) => issue.message).join(". ");
+  }
+  if (error instanceof Error) return error.message;
+  return fallback;
+}
 
 // ─── Kontekst-hjelper ────────────────────────────────────────────────────────
 
@@ -112,6 +123,18 @@ export async function createEmployeeReview(input: CreateEmployeeReviewInput) {
     });
     if (!employee) throw new Error("Ansatt er ikke tilknyttet denne bedriften");
 
+    if (validated.absenceId) {
+      const absence = await prisma.absence.findFirst({
+        where: {
+          id: validated.absenceId,
+          tenantId: auth.tenantId,
+          userId: validated.employeeId,
+        },
+        select: { id: true },
+      });
+      if (!absence) throw new Error("Fraværet tilhører ikke denne ansatte");
+    }
+
     const review = await prisma.employeeReview.create({
       data: {
         tenantId: auth.tenantId,
@@ -120,6 +143,9 @@ export async function createEmployeeReview(input: CreateEmployeeReviewInput) {
         scheduledDate: validated.scheduledDate,
         nextReviewDate: validated.nextReviewDate ?? null,
         konfidensielt: validated.konfidensielt,
+        kind: validated.kind,
+        templateKey: validated.kind === "SYKEFRAVAER" ? validated.templateKey : null,
+        absenceId: validated.absenceId ?? null,
         status: "PLANLAGT",
       },
       include: {
@@ -129,10 +155,11 @@ export async function createEmployeeReview(input: CreateEmployeeReviewInput) {
     });
 
     revalidatePath("/dashboard/medarbeidersamtale");
+    revalidatePath("/dashboard/hr");
     triggerRealtimeEvent(auth.tenantId, "employee-review-updated");
     return { success: true as const, data: review };
-  } catch (error: any) {
-    return { success: false as const, error: error.message || "Kunne ikke opprette medarbeidersamtalen" };
+  } catch (error: unknown) {
+    return { success: false as const, error: formatActionError(error, "Kunne ikke opprette medarbeidersamtalen") };
   }
 }
 
@@ -161,6 +188,9 @@ export async function updateEmployeeReview(id: string, input: UpdateEmployeeRevi
       ? {
           ansattForberedelse: validated.ansattForberedelse,
           ansattMedvirkning: validated.ansattMedvirkning,
+          ...(review.kind === "SYKEFRAVAER" && validated.templateAnswers
+            ? { templateAnswers: validated.templateAnswers }
+            : {}),
           status: review.status === "PLANLAGT" ? ("FORBEREDT" as const) : review.status,
         }
       : validated;
@@ -174,8 +204,8 @@ export async function updateEmployeeReview(id: string, input: UpdateEmployeeRevi
     revalidatePath(`/dashboard/medarbeidersamtale/${id}`);
     triggerRealtimeEvent(tenantId, "employee-review-updated");
     return { success: true as const, data: updated };
-  } catch (error: any) {
-    return { success: false as const, error: error.message || "Kunne ikke oppdatere medarbeidersamtalen" };
+  } catch (error: unknown) {
+    return { success: false as const, error: formatActionError(error, "Kunne ikke oppdatere medarbeidersamtalen") };
   }
 }
 
@@ -243,6 +273,13 @@ export async function markEmployeeReviewCompleted(id: string) {
       where: { id, tenantId: auth.tenantId },
     });
     if (!review) throw new Error("Medarbeidersamtale ikke funnet");
+
+    if (review.kind === "SYKEFRAVAER") {
+      const missing = missingRequiredSickLeaveAnswers(review.templateKey, review.templateAnswers);
+      if (missing.length > 0) {
+        throw new Error(`Fyll ut lovpålagte punkter før samtalen markeres gjennomført: ${missing.join(", ")}`);
+      }
+    }
 
     const updated = await prisma.employeeReview.update({
       where: { id },

@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { EmployeeReviewStatus } from "@prisma/client";
 import { EmployeeHrWorkspaceNav } from "@/features/hr/components/employee-hr-workspace-nav";
+import { getSickLeaveTemplate } from "@/features/employee-reviews/lib/sick-leave-templates";
 
 const STATUS_CONFIG: Record<
   EmployeeReviewStatus,
@@ -43,17 +44,17 @@ export default async function AnsattMedarbeidersamtalePage() {
       <div>
         <h1 className="text-xl font-bold flex items-center gap-2">
           <MessageSquare className="h-5 w-5 text-primary" />
-          Mine medarbeidersamtaler
+          Mine samtaler
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Dine samtaler med leder — logg, forberedelse og avtaler
+          Medarbeidersamtale og sykefraværssamtale med leder. Du fyller ut og signerer det som gjelder deg.
         </p>
       </div>
 
       {reviews.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-muted-foreground text-sm">
-            Ingen medarbeidersamtaler registrert ennå.
+            Ingen samtaler registrert ennå.
           </CardContent>
         </Card>
       ) : (
@@ -75,7 +76,11 @@ export default async function AnsattMedarbeidersamtalePage() {
                       <div className="flex-1 min-w-0 space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-medium text-sm">
-                            Samtale med {review.reviewer.name ?? review.reviewer.email}
+                            {review.kind === "SYKEFRAVAER"
+                              ? getSickLeaveTemplate(review.templateKey)?.title ?? "Sykefraværssamtale"
+                              : "Medarbeidersamtale"}
+                            {" med "}
+                            {review.reviewer.name ?? review.reviewer.email}
                           </span>
                           <Badge className={`text-xs border ${cfg.className}`}>
                             {cfg.label}

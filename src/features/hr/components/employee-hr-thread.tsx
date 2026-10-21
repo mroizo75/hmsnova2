@@ -22,9 +22,11 @@ const ABSENCE_TYPE_LABEL: Record<string, string> = {
 
 export function EmployeeHrThreadCard({
   employeeName,
+  employeeId,
   thread,
 }: {
   employeeName: string;
+  employeeId?: string;
   thread: EmployeeHrThread;
 }) {
   const search = encodeURIComponent(employeeName);
@@ -62,19 +64,31 @@ export function EmployeeHrThreadCard({
         ? `/dashboard/medarbeidersamtale/${thread.upcomingReview.id}`
         : "/dashboard/medarbeidersamtale",
       icon: MessageSquare,
-      title: "Medarbeidersamtale",
+      title: thread.upcomingReview?.kind === "SYKEFRAVAER" ? "Sykefraværssamtale" : "Medarbeidersamtale",
       meta: thread.upcomingReview
         ? `Planlagt ${format(new Date(thread.upcomingReview.scheduledDate), "d. MMM yyyy", { locale: nb })}`
         : "Ingen planlagt samtale",
     },
   ];
 
+  const sickAbsence =
+    thread.currentAbsence &&
+    (thread.currentAbsence.type === "SICK_LEAVE" || thread.currentAbsence.type === "SELF_CERTIFIED");
+  if (sickAbsence && employeeId && thread.upcomingReview?.kind !== "SYKEFRAVAER") {
+    items.push({
+      href: `/dashboard/medarbeidersamtale/ny?ansatt=${employeeId}&type=SYKEFRAVAER&mal=tidlig-kontakt&fravaer=${thread.currentAbsence?.id ?? ""}`,
+      icon: MessageSquare,
+      title: "Start sykefraværssamtale",
+      meta: "AML § 4-6 · egen mal under Samtaler",
+    });
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>HR-løp for denne ansatte</CardTitle>
       </CardHeader>
-      <CardContent className="grid gap-2 sm:grid-cols-3">
+      <CardContent className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
         {items.map((item) => (
           <Link
             key={item.title}

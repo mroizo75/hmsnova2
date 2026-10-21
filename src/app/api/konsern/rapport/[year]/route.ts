@@ -129,6 +129,27 @@ function buildSections(data: GroupAnnualReportData): PdfSection[] {
     });
   }
 
+  sections.push({
+    title: "Sykefravær",
+    legalRef: "AML § 5-1 (4), AML § 4-6",
+    content: [
+      {
+        type: "paragraph",
+        text: `Sykefravær ${data.sickLeave.sickLeavePercentage.toFixed(1)} % (${data.sickLeave.sickDays} sykedager). ${data.sickLeave.onSickLeaveNow} personer var sykmeldt ved periodeslutt. ${data.sickLeave.overdueFollowUps} oppfølgingsfrister var ikke lukket. Tallene er aggregert og uten navn eller diagnose.`,
+      },
+      {
+        type: "table",
+        headers: ["Bedrift", "Ved periodeslutt", "Sykefravær", "Forfalte frister"],
+        rows: data.sickLeave.byTenant.map((tenant) => [
+          tenant.tenantName,
+          tenant.hidden ? "Skjult" : tenant.onSickLeaveNow,
+          tenant.hidden ? "Skjult" : `${tenant.sickLeavePercentage?.toFixed(1)} %`,
+          tenant.overdueFollowUps,
+        ]),
+      },
+    ],
+  });
+
   // 6. Psykososialt arbeidsmiljø
   const wellbeingWithData = data.wellbeing.filter((w) => w.averageScore !== null);
   if (wellbeingWithData.length > 0) {

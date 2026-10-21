@@ -4,11 +4,13 @@
  * Hjemmel:
  *   AML § 4-2 (2): tilrettelegging for faglig og personlig utvikling
  *   AML § 4-3 (presisert 1. jan 2026): psykososiale arbeidsmiljøfaktorer
+ *   AML § 4-6: sykefraværssamtale, oppfølgingsplan og dialogmøte
  *   IK-HMS § 5: systematisk HMS-arbeid og tiltaksoppfølging
  *   GDPR art. 5 og 9: personvern og konfidensialitet
  */
 
 import { z } from "zod";
+import { getSickLeaveTemplate } from "@/features/employee-reviews/lib/sick-leave-templates";
 
 // ─── Enums ──────────────────────────────────────────────────────────────────
 
@@ -39,6 +41,8 @@ export const PsykososialtNivaSchema = z.enum([
   "IKKE_FORSVARLIG",
 ]);
 
+export const EmployeeReviewKindSchema = z.enum(["MEDARBEIDER", "SYKEFRAVAER"]);
+
 // ─── Mål ────────────────────────────────────────────────────────────────────
 
 export const EmployeeReviewGoalSchema = z.object({
@@ -64,12 +68,26 @@ export const EmployeeReviewActionSchema = z.object({
 
 // ─── Opprett samtale ────────────────────────────────────────────────────────
 
-export const CreateEmployeeReviewSchema = z.object({
-  employeeId: z.string().min(1, "Ansatt er påkrevd"),
-  scheduledDate: z.coerce.date({ error: "Dato er påkrevd" }),
-  nextReviewDate: z.coerce.date().optional().nullable(),
-  konfidensielt: z.boolean().default(true),
-});
+export const CreateEmployeeReviewSchema = z
+  .object({
+    employeeId: z.string().min(1, "Ansatt er påkrevd"),
+    scheduledDate: z.coerce.date({ error: "Dato er påkrevd" }),
+    nextReviewDate: z.coerce.date().optional().nullable(),
+    konfidensielt: z.boolean().default(true),
+    kind: EmployeeReviewKindSchema.default("MEDARBEIDER"),
+    templateKey: z.string().optional().nullable(),
+    absenceId: z.string().optional().nullable(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.kind !== "SYKEFRAVAER") return;
+    if (!getSickLeaveTemplate(value.templateKey)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["templateKey"],
+        message: "Velg en sykefraværsmal",
+      });
+    }
+  });
 
 // ─── Oppdater – ansattens forberedelse ──────────────────────────────────────
 
@@ -109,9 +127,10 @@ export const UpdateTilretteleggingSchema = z.object({
   tilretteleggingBehov: z.string().optional().nullable(),
   arbeidstidKommentar: z.string().optional().nullable(),
   lederTilbakemeldingTilAnsatt: z.string().optional().nullable(),
-  ansattTilbakemeldingTilLeder: z.string().optional().nullable(),
-  oppsummeringKommentar: z.string().optional().nullable(),
-});
+    ansattTilbakemeldingTilLeder: z.string().optional().nullable(),
+    oppsummeringKommentar: z.string().optional().nullable(),
+    templateAnswers: z.record(z.string().max(80), z.string().max(4000)).optional(),
+  });
 
 // ─── Oppdater – generell (full patch) ───────────────────────────────────────
 

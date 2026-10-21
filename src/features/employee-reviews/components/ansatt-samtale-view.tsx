@@ -34,6 +34,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { EmployeeReviewStatusBadge } from "./employee-review-status-badge";
+import { SickLeaveConversationPanel } from "./sick-leave-conversation-panel";
+import { getSickLeaveTemplate } from "@/features/employee-reviews/lib/sick-leave-templates";
 import {
   updateEmployeeReview,
   signEmployeeReview,
@@ -189,7 +191,11 @@ export function AnsattSamtaleView({
       <Card>
         <CardContent className="p-4 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-lg font-semibold">Medarbeidersamtale</h2>
+            <h2 className="text-lg font-semibold">
+              {initialReview.kind === "SYKEFRAVAER"
+                ? getSickLeaveTemplate(initialReview.templateKey)?.title ?? "Sykefraværssamtale"
+                : "Medarbeidersamtale"}
+            </h2>
             <EmployeeReviewStatusBadge status={initialReview.status} />
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
@@ -271,6 +277,14 @@ export function AnsattSamtaleView({
       </Card>
 
       {/* Faner */}
+      {initialReview.kind === "SYKEFRAVAER" ? (
+        <SickLeaveConversationPanel
+          reviewId={initialReview.id}
+          templateKey={initialReview.templateKey}
+          answers={initialReview.templateAnswers}
+          canEdit={initialReview.status !== "SIGNERT" && initialReview.status !== "AVBRUTT"}
+        />
+      ) : (
       <Tabs defaultValue="forberedelse">
         <TabsList className="w-full">
           <TabsTrigger value="forberedelse" className="flex-1">
@@ -596,6 +610,7 @@ export function AnsattSamtaleView({
           </TabsContent>
         )}
       </Tabs>
+      )}
     </div>
   );
 }

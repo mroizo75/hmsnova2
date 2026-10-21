@@ -12,6 +12,7 @@ import { ProfileForm } from "@/components/ansatt/profile-form";
 import { HrProfileForm } from "@/features/personnel/components/hr-profile-form";
 import { fetchPersonnelFolder } from "@/server/queries/personnel.queries";
 import { EmployeeHrWorkspaceNav } from "@/features/hr/components/employee-hr-workspace-nav";
+import { EmployeeSickLeaveOverview } from "@/features/absence/components/employee-sick-leave-overview";
 
 const EXPOSURE_TYPE_KEYS: Record<string, string> = {
   INHALATION: "exposure.types.INHALATION",
@@ -79,6 +80,7 @@ export default async function AnsattProfil() {
   return (
     <div className="space-y-6">
       <EmployeeHrWorkspaceNav />
+      <EmployeeSickLeaveOverview />
       <div>
         <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
           <User className="h-7 w-7 text-primary" />

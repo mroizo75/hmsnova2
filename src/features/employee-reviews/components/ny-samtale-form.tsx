@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,6 +9,7 @@ import {
   type CreateEmployeeReviewInput,
 } from "@/features/employee-reviews/schemas/employee-review.schema";
 import { createEmployeeReview } from "@/server/actions/employee-review.actions";
+import { SICK_LEAVE_TEMPLATES } from "@/features/employee-reviews/lib/sick-leave-templates";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -41,9 +42,18 @@ type Employee = {
 interface NySamtaleFormProps {
   employees: Employee[];
   defaultEmployeeId?: string;
+  defaultKind?: "MEDARBEIDER" | "SYKEFRAVAER";
+  defaultTemplateKey?: string;
+  defaultAbsenceId?: string;
 }
 
-export function NySamtaleForm({ employees, defaultEmployeeId }: NySamtaleFormProps) {
+export function NySamtaleForm({
+  employees,
+  defaultEmployeeId,
+  defaultKind = "MEDARBEIDER",
+  defaultTemplateKey,
+  defaultAbsenceId,
+}: NySamtaleFormProps) {
   const presetEmployeeId =
     defaultEmployeeId && employees.some((employee) => employee.id === defaultEmployeeId)
       ? defaultEmployeeId
@@ -59,14 +69,23 @@ export function NySamtaleForm({ employees, defaultEmployeeId }: NySamtaleFormPro
       scheduledDate: undefined,
       nextReviewDate: null,
       konfidensielt: true,
+      kind: defaultKind,
+      templateKey: defaultKind === "SYKEFRAVAER" ? defaultTemplateKey ?? "tidlig-kontakt" : null,
+      absenceId: defaultAbsenceId ?? null,
     },
   });
+  const kind = form.watch("kind");
+  const selectedTemplate = SICK_LEAVE_TEMPLATES.find(
+    (template) => template.key === form.watch("templateKey"),
+  );
 
   function onSubmit(data: CreateEmployeeReviewInput) {
     startTransition(async () => {
       const result = await createEmployeeReview(data);
       if (result.success) {
-        toast({ title: "Medarbeidersamtale opprettet" });
+        toast({
+          title: data.kind === "SYKEFRAVAER" ? "Sykefraværssamtale opprettet" : "Medarbeidersamtale opprettet",
+        });
         router.push(`/dashboard/medarbeidersamtale/${result.data.id}`);
       } else {
         toast({
@@ -81,11 +100,78 @@ export function NySamtaleForm({ employees, defaultEmployeeId }: NySamtaleFormPro
   return (
     <Card className="max-w-2xl">
       <CardHeader>
-        <CardTitle>Planlegg medarbeidersamtale</CardTitle>
+        <CardTitle>
+          {kind === "SYKEFRAVAER" ? "Planlegg sykefraværssamtale" : "Planlegg medarbeidersamtale"}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={form.control}
+              name="kind"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Type samtale</FormLabel>
+                  <Select
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      if (value === "SYKEFRAVAER" && !form.getValues("templateKey")) {
+                        form.setValue("templateKey", "tidlig-kontakt");
+                      }
+                      if (value === "MEDARBEIDER") {
+                        form.setValue("templateKey", null);
+                      }
+                    }}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="MEDARBEIDER">Medarbeidersamtale (AML § 4-2)</SelectItem>
+                      <SelectItem value="SYKEFRAVAER">Sykefraværssamtale (AML § 4-6)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {kind === "SYKEFRAVAER" && (
+              <FormField
+                control={form.control}
+                name="templateKey"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mal *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Velg mal" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {SICK_LEAVE_TEMPLATES.map((template) => (
+                          <SelectItem key={template.key} value={template.key}>
+                            {template.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {selectedTemplate && (
+                      <FormDescription>
+                        {selectedTemplate.legalRef}. Frist: {selectedTemplate.deadline}
+                      </FormDescription>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
             {/* Velg ansatt */}
             <FormField
               control={form.control}
@@ -183,7 +269,9 @@ export function NySamtaleForm({ employees, defaultEmployeeId }: NySamtaleFormPro
                   <div className="space-y-0.5">
                     <FormLabel>Konfidensiell samtale</FormLabel>
                     <FormDescription>
-                      Innholdet er kun synlig for leder og ansatt (GDPR art. 5)
+                      {kind === "SYKEFRAVAER"
+                        ? "Skriv arbeidsevne og tiltak, ikke diagnose (GDPR art. 9). Innholdet er kun synlig for leder og ansatt."
+                        : "Innholdet er kun synlig for leder og ansatt (GDPR art. 5)"}
                     </FormDescription>
                   </div>
                   <FormControl>

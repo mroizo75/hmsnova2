@@ -24,11 +24,14 @@ import {
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { EmployeeReviewStatusBadge } from "./employee-review-status-badge";
-import type { EmployeeReviewStatus } from "@prisma/client";
+import { getSickLeaveTemplate } from "@/features/employee-reviews/lib/sick-leave-templates";
+import type { EmployeeReviewKind, EmployeeReviewStatus } from "@prisma/client";
 
 type ReviewListItem = {
   id: string;
   status: EmployeeReviewStatus;
+  kind: EmployeeReviewKind;
+  templateKey: string | null;
   scheduledDate: Date;
   completedDate: Date | null;
   konfidensielt: boolean;
@@ -66,16 +69,18 @@ function getInitials(name: string | null, email: string) {
 export function EmployeeReviewList({ reviews, canCreate }: EmployeeReviewListProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<EmployeeReviewStatus | "ALL">("ALL");
+  const [kindFilter, setKindFilter] = useState<EmployeeReviewKind | "ALL">("ALL");
 
   const filtered = reviews.filter((r) => {
     const matchStatus = statusFilter === "ALL" || r.status === statusFilter;
+    const matchKind = kindFilter === "ALL" || r.kind === kindFilter;
     const q = search.toLowerCase();
     const matchSearch =
       !q ||
       r.employee.name?.toLowerCase().includes(q) ||
       r.employee.email.toLowerCase().includes(q) ||
       r.reviewer.name?.toLowerCase().includes(q);
-    return matchStatus && matchSearch;
+    return matchStatus && matchKind && matchSearch;
   });
 
   return (
@@ -106,14 +111,35 @@ export function EmployeeReviewList({ reviews, canCreate }: EmployeeReviewListPro
               )}
             </SelectContent>
           </Select>
+          <Select
+            value={kindFilter}
+            onValueChange={(value) => setKindFilter(value as EmployeeReviewKind | "ALL")}
+          >
+            <SelectTrigger className="w-52">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Alle typer</SelectItem>
+              <SelectItem value="MEDARBEIDER">Medarbeidersamtale</SelectItem>
+              <SelectItem value="SYKEFRAVAER">Sykefraværssamtale</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         {canCreate && (
-          <Button asChild>
-            <Link href="/dashboard/medarbeidersamtale/ny">
-              <Plus className="h-4 w-4 mr-2" />
-              Ny samtale
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button asChild variant="outline" className="bg-transparent">
+              <Link href="/dashboard/medarbeidersamtale/ny?type=SYKEFRAVAER">
+                <Plus className="h-4 w-4 mr-2" />
+                Sykefraværssamtale
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href="/dashboard/medarbeidersamtale/ny">
+                <Plus className="h-4 w-4 mr-2" />
+                Ny samtale
+              </Link>
+            </Button>
+          </div>
         )}
       </div>
 
@@ -151,6 +177,11 @@ export function EmployeeReviewList({ reviews, canCreate }: EmployeeReviewListPro
                           {review.employee.name ?? review.employee.email}
                         </span>
                         <EmployeeReviewStatusBadge status={review.status} />
+                        {review.kind === "SYKEFRAVAER" && (
+                          <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
+                            {getSickLeaveTemplate(review.templateKey)?.title ?? "Sykefravær"}
+                          </span>
+                        )}
                       </div>
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">

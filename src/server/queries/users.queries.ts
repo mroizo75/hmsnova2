@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { getTenantContextSafe } from "@/lib/tenant-context";
+import { getAuthContext } from "@/lib/server-authorization";
 import { getInvitableRoles, getPermissions } from "@/lib/permissions";
 import { getTrainingStatus } from "@/features/training/schemas/training.schema";
 import { isLeaderScopedRole, managedEmployeeFilter } from "@/features/personnel/lib/leader-scope";
@@ -83,6 +84,38 @@ export async function fetchUsers() {
   }));
 }
 
+export async function fetchEmployeeOrgOptions() {
+  const auth = await getAuthContext();
+  if (!auth?.permissions.canManageUsers) {
+    return { departments: [] as { id: string; name: string }[], managers: [] as { id: string; name: string }[] };
+  }
+
+  const [departments, memberships] = await Promise.all([
+    prisma.department.findMany({
+      where: { tenantId: auth.tenantId, isActive: true },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true },
+    }),
+    prisma.userTenant.findMany({
+      where: { tenantId: auth.tenantId },
+      select: {
+        userId: true,
+        displayName: true,
+        user: { select: { name: true, email: true } },
+      },
+      orderBy: { user: { name: "asc" } },
+    }),
+  ]);
+
+  return {
+    departments,
+    managers: memberships.map((membership) => ({
+      id: membership.userId,
+      name: membership.displayName || membership.user.name || membership.user.email,
+    })),
+  };
+}
+
 export async function fetchUserOverview(userId: string) {
   const ctx = await getTenantContextSafe();
   if (!ctx) return null;
@@ -103,6 +136,10 @@ export async function fetchUserOverview(userId: string) {
   });
   if (!permissions.canManageUsers && !leaderCanView) return null;
   if (!permissions.canManageUsers && !isLeaderScopedRole(actor.role)) return null;
+
+  const orgOptions = permissions.canManageUsers
+    ? await fetchEmployeeOrgOptions()
+    : { departments: [], managers: [] };
 
   const membership = await prisma.userTenant.findUnique({
     where: { userId_tenantId: { userId, tenantId } },
@@ -171,6 +208,13 @@ export async function fetchUserOverview(userId: string) {
     showHrNotes: permissions.canReadHrNotes,
     canOpenPersonnelFolder:
       permissions.canReadAllPersonnelFiles || permissions.canReadDepartmentPersonnelFiles,
+    canEditContact: permissions.canManageUsers || membership.managerId === actorId,
+    canEditOrg: permissions.canManageUsers,
+    canEditNotes: permissions.canReadHrNotes,
+    departmentId: membership.departmentId,
+    managerId: membership.managerId,
+    departments: orgOptions.departments,
+    managers: orgOptions.managers,
     nextOfKin: membership.nextOfKin.map((kin) => ({
       name: kin.name,
       relation: kin.relation,

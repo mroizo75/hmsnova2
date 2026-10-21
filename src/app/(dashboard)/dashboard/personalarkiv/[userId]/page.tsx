@@ -6,6 +6,7 @@ import {
   fetchPersonnelDevelopment,
 } from "@/server/queries/personnel.queries";
 import { fetchEmployeeHrThread } from "@/server/queries/hr-overview.queries";
+import { fetchEmployeeOrgOptions } from "@/server/queries/users.queries";
 import { PersonnelFolderView } from "@/features/personnel/components/personnel-folder";
 import { HrWorkspaceNav } from "@/features/hr/components/hr-workspace-nav";
 import { EmployeeHrThreadCard } from "@/features/hr/components/employee-hr-thread";
@@ -22,10 +23,13 @@ export default async function PersonalmappePage({
   const folder = await fetchPersonnelFolder(userId);
   if (!folder) redirect("/dashboard/personalarkiv");
 
-  const [hrThread, hrTemplates, development] = await Promise.all([
+  const canEditContact = auth.permissions.canManageUsers || folder.managerId === auth.userId;
+  const canEditOrg = auth.permissions.canManageUsers;
+  const [hrThread, hrTemplates, development, orgOptions] = await Promise.all([
     fetchEmployeeHrThread(userId),
     auth.permissions.canUploadPersonnelFile ? fetchHrDocumentTemplates() : Promise.resolve([]),
     fetchPersonnelDevelopment(userId),
+    canEditOrg ? fetchEmployeeOrgOptions() : Promise.resolve({ departments: [], managers: [] }),
   ]);
 
   return (
@@ -47,9 +51,18 @@ export default async function PersonalmappePage({
         canEditKin={
           auth.userId === userId ||
           auth.permissions.canReadHrNotes ||
-          auth.role === "LEDER"
+          auth.role === "LEDER" ||
+          folder.managerId === auth.userId
         }
-        canEditBirthDate={auth.userId === userId || auth.permissions.canReadHrNotes}
+        canEditBirthDate={
+          auth.userId === userId ||
+          auth.permissions.canReadHrNotes ||
+          folder.managerId === auth.userId
+        }
+        canEditContact={canEditContact}
+        canEditOrg={canEditOrg}
+        departments={orgOptions.departments}
+        managers={orgOptions.managers}
         hrThread={hrThread}
         hrTemplates={hrTemplates}
         development={development}

@@ -22,10 +22,10 @@ export default async function MedarbeidersamtalePage() {
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <MessageSquare className="h-6 w-6 text-primary" />
-          Medarbeidersamtaler
+          Samtaler
         </h1>
         <p className="text-muted-foreground mt-1">
-          Strukturerte samtaler mellom leder og ansatt – AML § 4-2 og § 4-3
+          Medarbeidersamtale etter AML § 4-2 og sykefraværssamtale etter AML § 4-6
         </p>
       </div>
 

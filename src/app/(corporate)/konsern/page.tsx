@@ -14,6 +14,7 @@ import {
   ArrowRight,
   ShieldAlert,
   ArrowUpRight,
+  CalendarDays,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCorporateGroupDetails } from "@/server/actions/corporate-group.actions";
@@ -22,6 +23,7 @@ import {
   getGroupIncidentStats,
   getGroupAlerts,
   getGroupOverviewStats,
+  getGroupSickLeaveStats,
 } from "@/server/actions/corporate-group-stats.actions";
 import { IncidentTrendChart } from "./components/incident-trend-chart";
 import { ScoreRing } from "./components/score-ring";
@@ -33,12 +35,13 @@ function scoreBadge(score: number) {
 }
 
 export default async function CorporateGroupDashboardPage() {
-  const [group, scores, incidents, alerts, overview] = await Promise.all([
+  const [group, scores, incidents, alerts, overview, sickLeave] = await Promise.all([
     getCorporateGroupDetails(),
     getGroupComplianceScores(),
     getGroupIncidentStats(),
     getGroupAlerts(),
     getGroupOverviewStats(),
+    getGroupSickLeaveStats(),
   ]);
 
   const avgScore = scores.length > 0
@@ -194,6 +197,74 @@ export default async function CorporateGroupDashboardPage() {
           </Card>
         </div>
       </div>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <CalendarDays className="h-4 w-4" />
+            Sykefravær
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-gray-500">
+            Tall per bedrift etter arbeidsmiljøloven § 5-1. Forfalte frister gjelder oppfølgingsplan og dialogmøte etter § 4-6. Ingen navn eller diagnoser.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-lg bg-gray-50 px-3 py-2">
+              <p className="text-xs text-gray-500">På sykefravær nå</p>
+              <p className="text-2xl font-bold text-gray-900">{sickLeave.onSickLeaveNow}</p>
+            </div>
+            <div className="rounded-lg bg-gray-50 px-3 py-2">
+              <p className="text-xs text-gray-500">Sykefravær i år</p>
+              <p className="text-2xl font-bold text-gray-900">{sickLeave.sickLeavePercentage.toFixed(1)}%</p>
+              <p className="text-[10px] text-gray-400">{sickLeave.sickDays} sykedager</p>
+            </div>
+            <div className={`rounded-lg px-3 py-2 ${sickLeave.overdueFollowUps > 0 ? "bg-red-50" : "bg-gray-50"}`}>
+              <p className="text-xs text-gray-500">Forfalte frister</p>
+              <p className={`text-2xl font-bold ${sickLeave.overdueFollowUps > 0 ? "text-red-700" : "text-gray-900"}`}>
+                {sickLeave.overdueFollowUps}
+              </p>
+            </div>
+          </div>
+          {sickLeave.byTenant.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-xs text-gray-500">
+                    <th className="py-2 pr-3 font-medium">Bedrift</th>
+                    <th className="py-2 pr-3 font-medium">Nå</th>
+                    <th className="py-2 pr-3 font-medium">I år</th>
+                    <th className="py-2 font-medium">Forfalt</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sickLeave.byTenant.map((tenant) => (
+                    <tr key={tenant.tenantId} className="border-b last:border-0">
+                      <td className="py-2 pr-3">
+                        <Link href={`/konsern/bedrifter/${tenant.tenantId}`} className="text-gray-900 hover:underline">
+                          {tenant.tenantName}
+                        </Link>
+                      </td>
+                      <td className="py-2 pr-3 tabular-nums">{tenant.hidden ? "—" : tenant.onSickLeaveNow}</td>
+                      <td className="py-2 pr-3 tabular-nums">
+                        {tenant.hidden ? "—" : `${tenant.sickLeavePercentage?.toFixed(1)}%`}
+                      </td>
+                      <td className={`py-2 tabular-nums ${tenant.overdueFollowUps > 0 ? "font-medium text-red-700" : ""}`}>
+                        {tenant.overdueFollowUps}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {sickLeave.byTenant.some((tenant) => tenant.hidden) && (
+            <p className="text-xs text-gray-400">
+              Sykefraværstall skjules for bedrifter med færre enn fem ansatte, så enkeltpersoner ikke kan kjennes igjen.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Varsler-banner */}
       {alerts.length > 0 && (

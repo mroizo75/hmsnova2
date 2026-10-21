@@ -1170,7 +1170,11 @@ export function UserManagement({
           </Card>
         )}
       </CardContent>
-      <UserOverviewDialog userId={overviewUserId} onClose={() => setOverviewUserId(null)} />
+      <UserOverviewDialog
+        userId={overviewUserId}
+        onClose={() => setOverviewUserId(null)}
+        onSaved={() => void refreshAfterSave()}
+      />
     </Card>
   );
 }

@@ -46,6 +46,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { EmployeeReviewStatusBadge } from "./employee-review-status-badge";
+import { SickLeaveConversationPanel } from "./sick-leave-conversation-panel";
+import { getSickLeaveTemplate } from "@/features/employee-reviews/lib/sick-leave-templates";
 import {
   updateEmployeeReview,
   signEmployeeReview,
@@ -349,6 +351,11 @@ export function EmployeeReviewDetail({
     });
   }
 
+  const isSickLeave = review.kind === "SYKEFRAVAER";
+  const sickTemplate = getSickLeaveTemplate(review.templateKey);
+  const canEditSickLeave =
+    (canConduct || isEmployee) && review.status !== "SIGNERT" && review.status !== "AVBRUTT";
+
   // ─── Render ──────────────────────────────────────────────────────────────
 
   return (
@@ -363,6 +370,11 @@ export function EmployeeReviewDetail({
                   {review.employee.name ?? review.employee.email}
                 </h2>
                 <EmployeeReviewStatusBadge status={review.status} />
+                {isSickLeave && (
+                  <Badge variant="outline">
+                    {sickTemplate?.title ?? "Sykefraværssamtale"}
+                  </Badge>
+                )}
               </div>
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
@@ -501,14 +513,23 @@ export function EmployeeReviewDetail({
         </CardContent>
       </Card>
 
+      {isSickLeave && (
+        <SickLeaveConversationPanel
+          reviewId={review.id}
+          templateKey={review.templateKey}
+          answers={review.templateAnswers}
+          canEdit={canEditSickLeave}
+        />
+      )}
+
       {/* Faner */}
-      <Tabs defaultValue="forberedelse">
+      <Tabs defaultValue={isSickLeave ? "tiltak" : "forberedelse"}>
         <TabsList className="flex flex-wrap h-auto gap-1">
-          <TabsTrigger value="forberedelse">Forberedelse</TabsTrigger>
-          <TabsTrigger value="arbeidssituasjon">Arbeidssituasjon</TabsTrigger>
-          <TabsTrigger value="mal">Mål</TabsTrigger>
-          <TabsTrigger value="kompetanse">Kompetanse</TabsTrigger>
-          <TabsTrigger value="tilbakemelding">Tilbakemelding</TabsTrigger>
+          {!isSickLeave && <TabsTrigger value="forberedelse">Forberedelse</TabsTrigger>}
+          {!isSickLeave && <TabsTrigger value="arbeidssituasjon">Arbeidssituasjon</TabsTrigger>}
+          {!isSickLeave && <TabsTrigger value="mal">Mål</TabsTrigger>}
+          {!isSickLeave && <TabsTrigger value="kompetanse">Kompetanse</TabsTrigger>}
+          {!isSickLeave && <TabsTrigger value="tilbakemelding">Tilbakemelding</TabsTrigger>}
           <TabsTrigger value="tiltak">Tiltak</TabsTrigger>
         </TabsList>
 

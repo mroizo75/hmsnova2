@@ -76,6 +76,7 @@ export async function POST(request: NextRequest) {
     const date = formData.get("date") as string;
     const injuryType = formData.get("injuryType") as string | null;
     const medicalAttention = formData.get("medicalAttentionRequired") as string | null;
+    const suggestedActionsRaw = (formData.get("suggestedActions") as string | null)?.trim() || null;
     const lostTime = formData.get("lostTimeMinutes") as string | null;
     const involvedPersons = formData.get("involvedPersons") as string | null;
     const witnessName = formData.get("witnessName") as string | null;
@@ -205,7 +206,7 @@ export async function POST(request: NextRequest) {
         medicalAttentionRequired: medicalAttention === "yes",
         lostTimeMinutes: lostTime ? parseInt(lostTime, 10) : undefined,
         immediateAction: (formData.get("immediateAction") as string)?.trim() || null,
-        suggestedActions: null,
+        suggestedActions: suggestedActionsRaw,
         involvedPersons,
         contributingFactors: incidentContext || undefined,
         subcategoryKeys,

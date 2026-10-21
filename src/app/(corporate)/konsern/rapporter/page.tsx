@@ -68,14 +68,14 @@ export default function KonsernRapporterPage() {
         <CardContent className="space-y-4">
           <p className="text-sm text-gray-600">
             Rapporten inneholder en samlet oversikt over HMS-status for alle bedrifter i konsernet,
-            inkludert compliance-score, hendelsesstatistikk, opplæringsstatus, vernerunder og
+            inkludert compliance-score, hendelsesstatistikk, sykefravær, opplæringsstatus, vernerunder og
             psykososialt arbeidsmiljø.
           </p>
 
           <div className="rounded-lg border border-blue-100 bg-blue-50 p-3">
             <p className="text-xs text-blue-800">
               <strong>Innhold:</strong> Ledersammendrag, HMS-compliance per bedrift, hendelsesanalyse
-              (type/alvorlighet/trender), opplæringsstatus, vernerunder, psykososialt arbeidsmiljø
+              (type/alvorlighet/trender), sykefravær per bedrift (aggregert), opplæringsstatus, vernerunder, psykososialt arbeidsmiljø
               (aggregert), og varsler/anbefalinger.
             </p>
           </div>

@@ -5,6 +5,7 @@ import { getAuthContext } from "@/lib/server-authorization";
 import { canAccessPersonnelFile } from "@/features/personnel/lib/personnel-categories";
 import { listVisibleEmployeeIds } from "@/server/lib/leader-employees";
 import { isLeaderScopedRole, managedEmployeeFilter } from "@/features/personnel/lib/leader-scope";
+import { templateKeyForMilestone } from "@/features/employee-reviews/lib/sick-leave-templates";
 
 export type HrOverviewAttention = {
   id: string;
@@ -12,6 +13,17 @@ export type HrOverviewAttention = {
   title: string;
   meta: string;
   kind: "absence" | "boarding" | "review";
+};
+
+export type HrSickFollowUp = {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  absenceId: string;
+  milestone: string;
+  dueDate: string;
+  overdue: boolean;
+  templateKey: string | null;
 };
 
 export type HrOverview = {
@@ -22,6 +34,7 @@ export type HrOverview = {
   upcomingReviews: number | null;
   departmentCount: number | null;
   attention: HrOverviewAttention[];
+  sickFollowUps: HrSickFollowUp[];
 };
 
 export async function fetchHrOverview(): Promise<HrOverview | null> {
@@ -69,6 +82,7 @@ export async function fetchHrOverview(): Promise<HrOverview | null> {
     pendingAbsenceRows,
     boardingRows,
     reviewRows,
+    sickFollowUpRows,
   ] = await Promise.all([
     canPersonnel
       ? prisma.userTenant.count({
@@ -139,6 +153,29 @@ export async function fetchHrOverview(): Promise<HrOverview | null> {
           take: 5,
         })
       : Promise.resolve([]),
+    canAbsence
+      ? prisma.sickLeaveFollowUp.findMany({
+          where: {
+            tenantId: auth.tenantId,
+            status: { in: ["NOT_STARTED", "IN_PROGRESS"] },
+            absence: {
+              status: "APPROVED",
+              ...( "userId" in absenceWhere ? { userId: absenceWhere.userId } : {}),
+            },
+          },
+          include: {
+            absence: {
+              select: {
+                id: true,
+                userId: true,
+                user: { select: { name: true, email: true } },
+              },
+            },
+          },
+          orderBy: { dueDate: "asc" },
+          take: 8,
+        })
+      : Promise.resolve([]),
   ]);
 
   const attention: HrOverviewAttention[] = [
@@ -173,6 +210,16 @@ export async function fetchHrOverview(): Promise<HrOverview | null> {
     upcomingReviews,
     departmentCount,
     attention,
+    sickFollowUps: sickFollowUpRows.map((row) => ({
+      id: row.id,
+      employeeId: row.absence.userId,
+      employeeName: row.absence.user.name ?? row.absence.user.email,
+      absenceId: row.absence.id,
+      milestone: row.milestone,
+      dueDate: row.dueDate.toISOString(),
+      overdue: row.dueDate < now,
+      templateKey: templateKeyForMilestone(row.milestone),
+    })),
   };
 }
 
@@ -180,7 +227,7 @@ export type EmployeeHrThread = {
   currentAbsence: { id: string; type: string; endDate: string } | null;
   pendingAbsenceCount: number;
   activeBoarding: { id: string; type: string; status: string } | null;
-  upcomingReview: { id: string; scheduledDate: string } | null;
+  upcomingReview: { id: string; scheduledDate: string; kind: string } | null;
 };
 
 export async function fetchEmployeeHrThread(userId: string): Promise<EmployeeHrThread | null> {
@@ -238,7 +285,7 @@ export async function fetchEmployeeHrThread(userId: string): Promise<EmployeeHrT
         status: { in: ["PLANLAGT", "FORBEREDT"] },
       },
       orderBy: { scheduledDate: "asc" },
-      select: { id: true, scheduledDate: true },
+      select: { id: true, scheduledDate: true, kind: true },
     }),
   ]);
 
@@ -253,7 +300,11 @@ export async function fetchEmployeeHrThread(userId: string): Promise<EmployeeHrT
     pendingAbsenceCount,
     activeBoarding,
     upcomingReview: upcomingReview
-      ? { id: upcomingReview.id, scheduledDate: upcomingReview.scheduledDate.toISOString() }
+      ? {
+          id: upcomingReview.id,
+          scheduledDate: upcomingReview.scheduledDate.toISOString(),
+          kind: upcomingReview.kind,
+        }
       : null,
   };
 }

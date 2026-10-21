@@ -5,6 +5,10 @@ import {
   requireCorporateGroupContext,
   getAccessibleTenantIds,
 } from "@/lib/corporate-group-context";
+import {
+  summarizeGroupSickLeave,
+  type GroupSickLeaveSummary,
+} from "@/lib/hr/group-sick-leave-stats";
 
 export interface TenantComplianceScore {
   tenantId: string;
@@ -465,6 +469,96 @@ export async function getGroupOverviewStats() {
   };
 }
 
+const SICK_FOLLOW_UP_MILESTONES = ["FOLLOW_UP_PLAN", "DIALOG_MEETING_1", "DIALOG_MEETING_2"] as const;
+
+/**
+ * Aggregert sykefravær for konsernet.
+ * AML § 5-1 (4) og § 4-6. Ingen personopplysninger (GDPR art. 9).
+ */
+export async function getGroupSickLeaveStats(year?: number): Promise<GroupSickLeaveSummary> {
+  const context = await requireCorporateGroupContext();
+  const tenantIds = await getAccessibleTenantIds(context.groupId);
+  const empty: GroupSickLeaveSummary = {
+    onSickLeaveNow: 0,
+    sickLeavePercentage: 0,
+    sickDays: 0,
+    availableWorkdays: 0,
+    overdueFollowUps: 0,
+    byTenant: [],
+  };
+  if (tenantIds.length === 0) return empty;
+
+  const now = new Date();
+  const targetYear = year ?? now.getFullYear();
+  const noon = (y: number, month: number, day: number) => new Date(Date.UTC(y, month, day, 12));
+  const periodStart = noon(targetYear, 0, 1);
+  const yearEnd = noon(targetYear, 11, 31);
+  const today = noon(now.getFullYear(), now.getMonth(), now.getDate());
+  const periodEnd = yearEnd < today ? yearEnd : today;
+  const isLiveYear = targetYear === now.getFullYear();
+
+  const [memberships, absences, overdueRows, employeeRows] = await Promise.all([
+    prisma.corporateGroupTenant.findMany({
+      where: { groupId: context.groupId, status: "ACTIVE", tenantId: { in: tenantIds } },
+      select: { tenant: { select: { id: true, name: true } } },
+    }),
+    prisma.absence.findMany({
+      where: {
+        tenantId: { in: tenantIds },
+        status: "APPROVED",
+        type: { in: ["SICK_LEAVE", "SELF_CERTIFIED"] },
+        startDate: { lte: periodEnd },
+        endDate: { gte: periodStart },
+      },
+      select: {
+        tenantId: true,
+        userId: true,
+        startDate: true,
+        endDate: true,
+        percentage: true,
+      },
+    }),
+    prisma.sickLeaveFollowUp.groupBy({
+      by: ["tenantId"],
+      where: {
+        tenantId: { in: tenantIds },
+        status: { in: ["NOT_STARTED", "IN_PROGRESS"] },
+        milestone: { in: [...SICK_FOLLOW_UP_MILESTONES] },
+        dueDate: isLiveYear
+          ? { lt: new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())) }
+          : { gte: periodStart, lte: yearEnd },
+      },
+      _count: true,
+    }),
+    prisma.userTenant.groupBy({
+      by: ["tenantId"],
+      where: { tenantId: { in: tenantIds } },
+      _count: true,
+    }),
+  ]);
+
+  const employeeCount = new Map(employeeRows.map((row) => [row.tenantId, row._count]));
+
+  return summarizeGroupSickLeave({
+    tenants: memberships.map((membership) => ({
+      tenantId: membership.tenant.id,
+      tenantName: membership.tenant.name,
+      employeeCount: employeeCount.get(membership.tenant.id) ?? 0,
+    })),
+    absences: absences.map((absence) => ({
+      tenantId: absence.tenantId,
+      userId: absence.userId,
+      startDate: new Date(Date.UTC(absence.startDate.getUTCFullYear(), absence.startDate.getUTCMonth(), absence.startDate.getUTCDate(), 12)),
+      endDate: new Date(Date.UTC(absence.endDate.getUTCFullYear(), absence.endDate.getUTCMonth(), absence.endDate.getUTCDate(), 12)),
+      percentage: absence.percentage,
+    })),
+    overdueByTenant: overdueRows.map((row) => ({ tenantId: row.tenantId, count: row._count })),
+    periodStart,
+    periodEnd,
+    today: isLiveYear ? today : periodEnd,
+  });
+}
+
 // ── Psykososialt arbeidsmiljø (GDPR Art. 9 — helseopplysninger) ──────────────
 
 const WELLBEING_MIN_RESPONSES = 5;
@@ -711,6 +805,7 @@ export interface GroupAnnualReportData {
   }>;
   wellbeing: TenantWellbeingOverview[];
   alerts: GroupAlert[];
+  sickLeave: GroupSickLeaveSummary;
 }
 
 export async function generateGroupAnnualReport(year: number): Promise<GroupAnnualReportData> {
@@ -729,6 +824,7 @@ export async function generateGroupAnnualReport(year: number): Promise<GroupAnnu
     wellbeing,
     overview,
     alerts,
+    sickLeave,
   ] = await Promise.all([
     getGroupComplianceScores(),
     getGroupIncidentStats(),
@@ -737,6 +833,7 @@ export async function generateGroupAnnualReport(year: number): Promise<GroupAnnu
     getGroupWellbeingOverview(),
     getGroupOverviewStats(),
     getGroupAlerts(),
+    getGroupSickLeaveStats(year),
   ]);
 
   const averageHmsScore = scores.length > 0
@@ -786,5 +883,6 @@ export async function generateGroupAnnualReport(year: number): Promise<GroupAnnu
     })),
     wellbeing,
     alerts,
+    sickLeave,
   };
 }

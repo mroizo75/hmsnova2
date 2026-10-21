@@ -5484,9 +5484,17 @@ enum PsykososialtNiva {
   IKKE_FORSVARLIG // Tilstanden er ikke forsvarlig – tiltak kreves
 }
 
+/// MEDARBEIDER = utviklingssamtale (AML § 4-2).
+/// SYKEFRAVAER = sykefraværssamtale (AML § 4-6), med egen mal.
+enum EmployeeReviewKind {
+  MEDARBEIDER
+  SYKEFRAVAER
+}
+
 /// Medarbeidersamtale mellom leder og ansatt
 /// AML § 4-2 (2): arbeidsgiver skal legge til rette for faglig og personlig utvikling
 /// AML § 4-3 (2026): systematisk kartlegging av psykososiale arbeidsmiljøfaktorer
+/// AML § 4-6: sykefraværssamtale, oppfølgingsplan og dialogmøte
 model EmployeeReview {
   id         String @id @default(cuid())
   tenantId   String
@@ -5549,12 +5557,19 @@ model EmployeeReview {
   // GDPR art. 5: konfidensialitet – kun leder og ansatt ser samtalen som standard
   konfidensielt Boolean @default(true)
 
+  // Sykefraværssamtale (AML § 4-6). Mal og svar skal ikke inneholde diagnose (GDPR art. 9).
+  kind            EmployeeReviewKind @default(MEDARBEIDER)
+  templateKey     String?
+  absenceId       String?
+  templateAnswers Json?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  employee User   @relation("EmployeeReviews", fields: [employeeId], references: [id])
-  reviewer User   @relation("ReviewerReviews", fields: [reviewerId], references: [id])
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee User     @relation("EmployeeReviews", fields: [employeeId], references: [id])
+  reviewer User     @relation("ReviewerReviews", fields: [reviewerId], references: [id])
+  absence  Absence? @relation(fields: [absenceId], references: [id], onDelete: SetNull)
 
   goals   EmployeeReviewGoal[]
   actions EmployeeReviewAction[]
@@ -5565,6 +5580,8 @@ model EmployeeReview {
   @@index([reviewerId])
   @@index([status])
   @@index([scheduledDate])
+  @@index([kind])
+  @@index([absenceId])
 }
 
 /// Mål satt i eller fulgt opp via medarbeidersamtalen
@@ -7142,6 +7159,7 @@ model Absence {
   approvedBy User?               @relation("AbsenceApprovedBy", fields: [approvedById], references: [id])
   project    Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
   followUps  SickLeaveFollowUp[]
+  reviews    EmployeeReview[]
 
   @@index([tenantId, userId])
   @@index([tenantId, startDate])

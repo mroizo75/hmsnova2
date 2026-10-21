@@ -5,17 +5,36 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { updateEmployeeHrProfile } from "@/server/actions/hr-profile.actions";
 import type { HrProfileRow } from "@/server/queries/personnel.queries";
 
+interface OrgOption {
+  id: string;
+  name: string;
+}
+
 interface HrProfileFormProps {
   userId: string;
+  employeeName?: string | null;
   profile: HrProfileRow;
   canEditHrFields: boolean;
   canEditNotes: boolean;
   canEditKin: boolean;
   canEditBirthDate: boolean;
+  canEditContact?: boolean;
+  canEditOrg?: boolean;
+  departmentId?: string | null;
+  managerId?: string | null;
+  departments?: OrgOption[];
+  managers?: OrgOption[];
 }
 
 function toDateInput(value: string | null): string {
@@ -23,16 +42,34 @@ function toDateInput(value: string | null): string {
   return value.slice(0, 10);
 }
 
+const NONE = "__none__";
+
 export function HrProfileForm({
   userId,
+  employeeName = null,
   profile,
   canEditHrFields,
   canEditNotes,
   canEditKin,
   canEditBirthDate,
+  canEditContact = false,
+  canEditOrg = false,
+  departmentId = null,
+  managerId = null,
+  departments = [],
+  managers = [],
 }: HrProfileFormProps) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
+  const [name, setName] = useState(employeeName ?? "");
+  const [phone, setPhone] = useState(profile.phone ?? "");
+  const [address, setAddress] = useState(profile.address ?? "");
+  const [postalCode, setPostalCode] = useState(profile.postalCode ?? "");
+  const [city, setCity] = useState(profile.city ?? "");
+  const [position, setPosition] = useState(profile.position ?? "");
+  const [employeeNumber, setEmployeeNumber] = useState(profile.employeeNumber ?? "");
+  const [department, setDepartment] = useState(departmentId ?? NONE);
+  const [manager, setManager] = useState(managerId ?? NONE);
   const [nationality, setNationality] = useState(profile.nationality ?? "");
   const [languages, setLanguages] = useState(profile.languages.join(", "));
   const [hrNotes, setHrNotes] = useState(profile.hrNotes ?? "");
@@ -48,6 +85,15 @@ export function HrProfileForm({
     try {
       const result = await updateEmployeeHrProfile({
         userId,
+        name: canEditContact ? name : undefined,
+        phone: canEditContact ? phone : undefined,
+        address: canEditContact ? address : undefined,
+        postalCode: canEditContact ? postalCode : undefined,
+        city: canEditContact ? city : undefined,
+        position: canEditContact ? position : undefined,
+        employeeNumber: canEditContact ? employeeNumber : undefined,
+        departmentId: canEditOrg ? (department === NONE ? null : department) : undefined,
+        managerId: canEditOrg ? (manager === NONE ? null : manager) : undefined,
         nationality: canEditHrFields ? nationality : undefined,
         languages: canEditHrFields
           ? languages.split(",").map((item) => item.trim()).filter(Boolean)
@@ -75,7 +121,83 @@ export function HrProfileForm({
 
   return (
     <div className="space-y-4">
-      {profile.employeeNumber && (
+      {canEditContact && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="employeeName">Navn</Label>
+            <Input id="employeeName" value={name} onChange={(event) => setName(event.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="phone">Telefon</Label>
+            <Input id="phone" value={phone} onChange={(event) => setPhone(event.target.value)} />
+          </div>
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="address">Adresse</Label>
+            <Input id="address" value={address} onChange={(event) => setAddress(event.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="postalCode">Postnummer</Label>
+            <Input id="postalCode" value={postalCode} onChange={(event) => setPostalCode(event.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="city">Poststed</Label>
+            <Input id="city" value={city} onChange={(event) => setCity(event.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="position">Stilling</Label>
+            <Input id="position" value={position} onChange={(event) => setPosition(event.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="employeeNumber">Ansattnummer</Label>
+            <Input
+              id="employeeNumber"
+              value={employeeNumber}
+              onChange={(event) => setEmployeeNumber(event.target.value)}
+            />
+          </div>
+        </div>
+      )}
+
+      {canEditOrg && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label>Avdeling</Label>
+            <Select value={department} onValueChange={setDepartment}>
+              <SelectTrigger>
+                <SelectValue placeholder="Velg avdeling" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>Ingen avdeling</SelectItem>
+                {departments.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Nærmeste leder</Label>
+            <Select value={manager} onValueChange={setManager}>
+              <SelectTrigger>
+                <SelectValue placeholder="Velg leder" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>Ingen leder</SelectItem>
+                {managers
+                  .filter((item) => item.id !== userId)
+                  .map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
+
+      {!canEditContact && profile.employeeNumber && (
         <p className="text-sm text-muted-foreground">Lønnsnummer: {profile.employeeNumber}</p>
       )}
       {(canEditHrFields || canEditBirthDate) && (
