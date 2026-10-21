@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +51,7 @@ const emptyForm: FormValues = {
 
 export function CourseTemplatesManager({ tenantId, globalCourses, tenantCourses }: CourseTemplatesManagerProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -117,6 +119,7 @@ export function CourseTemplatesManager({ tenantId, globalCourses, tenantCourses 
       });
 
       closeDialog();
+      await queryClient.invalidateQueries({ queryKey: ["training", "courses"] });
       router.refresh();
     } catch (error) {
       toast({
@@ -144,6 +147,7 @@ export function CourseTemplatesManager({ tenantId, globalCourses, tenantCourses 
       if (!response.ok) throw new Error("Kunne ikke slette kursmal");
 
       toast({ title: "Kursmal slettet", description: "Kursmalen er fjernet" });
+      await queryClient.invalidateQueries({ queryKey: ["training", "courses"] });
       router.refresh();
     } catch (error) {
       toast({
@@ -177,6 +181,7 @@ export function CourseTemplatesManager({ tenantId, globalCourses, tenantCourses 
       if (!response.ok) throw new Error("Kunne ikke tilbakestille");
 
       toast({ title: "Tilbakestilt", description: "Kurset bruker nå standardverdier" });
+      await queryClient.invalidateQueries({ queryKey: ["training", "courses"] });
       router.refresh();
     } catch (error) {
       toast({
