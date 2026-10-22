@@ -32,6 +32,7 @@ import Link from "next/link";
 import { ResourceHistory } from "@/components/shared/resource-history";
 import { fetchSjaDetail } from "@/server/queries/sja.queries";
 import { MocRelatedCard } from "@/features/moc/components/moc-related-card";
+import { SjaPdfButton } from "@/features/sja/components/sja-pdf-button";
 
 type SjaDetailData = NonNullable<Awaited<ReturnType<typeof fetchSjaDetail>>>;
 
@@ -66,7 +67,7 @@ export function SjaDetailContent({ initialData, history }: SjaDetailContentProps
 
   return (
     <>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Badge variant="outline" className={getSjaStatusColor(analysis.status)}>
           {getSjaStatusLabel(analysis.status)}
         </Badge>
@@ -95,6 +96,9 @@ export function SjaDetailContent({ initialData, history }: SjaDetailContentProps
             </Badge>
           </Link>
         )}
+        <div className="ml-auto">
+          <SjaPdfButton analysis={analysis} />
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">

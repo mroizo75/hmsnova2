@@ -586,11 +586,11 @@ export function SjaForm({
       templateName: initialData?.templateName,
       sourceRiskAssessmentId,
       electricalWorkType,
-      workMethod: formData.get("workMethod") as string,
-      requiredEquipment: formData.get("requiredEquipment") as string,
-      requiredPpe: formData.get("requiredPpe") as string,
-      personnelRequirements: formData.get("personnelRequirements") as string,
-      safetyConditions: formData.get("safetyConditions") as string,
+      workMethod: (formData.get("workMethod") as string) ?? "",
+      requiredEquipment: (formData.get("requiredEquipment") as string) ?? "",
+      requiredPpe: (formData.get("requiredPpe") as string) ?? "",
+      personnelRequirements: (formData.get("personnelRequirements") as string) ?? "",
+      safetyConditions: (formData.get("safetyConditions") as string) ?? "",
       fseChecklist,
       requiresSecondPerson:
         Boolean(initialData?.requiresSecondPerson) ||
