@@ -11,7 +11,9 @@
  *   3. Melderens nærmeste leder
  *   4. Rollebasert varsling (ADMIN/HMS/LEDER) når ingen leder er satt
  *
- * HMS-ansvarlige er alltid på kopi. Melderen varsles aldri som mottaker av sitt eget avvik.
+ * Admin og HMS-ansvarlig er alltid på kopi, slik at virksomheten har systematisk
+ * oversikt (internkontrollforskriften § 5). Melderen varsles aldri som mottaker
+ * av sitt eget avvik.
  *
  * Oppslagene er injiserbare slik at kaskaden kan testes uten database.
  */
@@ -40,7 +42,7 @@ export interface IncidentRoutingInput {
   departmentId?: string | null;
   /** Rollene som varsles når verken prosjektleder eller nærmeste leder finnes. */
   fallbackRoles: readonly string[];
-  /** Rollene som alltid legges på kopi. Standard er HMS. */
+  /** Rollene som alltid legges på kopi. Standard er admin og HMS. */
   copyRoles?: readonly string[];
 }
 
@@ -52,7 +54,7 @@ export interface IncidentRoutingResult {
   source: IncidentRecipientSource;
 }
 
-const DEFAULT_COPY_ROLES = ["HMS"] as const;
+const DEFAULT_COPY_ROLES = ["ADMIN", "HMS"] as const;
 
 /** Maks antall ledd vi følger oppover før vi antar en syklus i lederkjeden. */
 const MAX_MANAGER_CHAIN_DEPTH = 20;

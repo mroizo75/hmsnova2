@@ -289,7 +289,7 @@ export async function POST(request: NextRequest) {
           reporterId: userId,
           projectId: validatedProjectId,
           departmentId: validatedDepartmentId,
-          fallbackRoles: getNotifyRolesForModule(visConfig, "incidents", ["HMS"]),
+          fallbackRoles: getNotifyRolesForModule(visConfig, "incidents", ["ADMIN", "HMS"]),
           incidentId: incident.id,
           title,
           typeLabel: type,

@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { createErrorResponse, createSuccessResponse, ErrorCodes } from "@/lib/validations/api";
 import { generateSequenceNumber } from "@/lib/sequence";
+import { notifyCreatedIncident } from "@/lib/incident-notification-routing.server";
 
 /**
  * GET /api/inspections/[id]/findings
@@ -137,6 +138,13 @@ export async function POST(
     await prisma.inspectionFinding.update({
       where: { id: finding.id },
       data: { linkedIncidentId: incident.id },
+    });
+
+    await notifyCreatedIncident({
+      tenantId: inspection.tenantId,
+      reporterId: session.user.id,
+      incidentId: incident.id,
+      title: incident.title,
     });
 
     return createSuccessResponse({ finding: { ...finding, linkedIncidentId: incident.id } }, "Funn registrert", 201);

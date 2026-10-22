@@ -10,6 +10,7 @@ import { getIncidentStatusLabel } from "@/features/incidents/schemas/incident.sc
 import { normalizeProjectReference } from "@/lib/incident-project-reference";
 import { resolveIncidentStage } from "@/lib/incident-stage";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
+import { copyRolesForNewIncident } from "@/lib/incident-visibility";
 
 function parseBoolean(value: unknown): boolean | undefined {
   if (typeof value === "boolean") {
@@ -341,7 +342,7 @@ export async function PUT(
     const becameStopWork =
       existingIncident.isRestrictedWork !== true && incident.isRestrictedWork === true;
     if (becameStopWork || (incident.severity ?? 0) >= 5) {
-      await notifyUsersByRoles(tenantId, ["ADMIN", "HMS"], {
+      await notifyUsersByRoles(tenantId, copyRolesForNewIncident(incident.type, incident.subcategoryKeys), {
         type: "NEW_INCIDENT",
         title: "KRITISK: Stoppet arbeid",
         message: `${incident.type}: ${incident.title} - stoppet arbeid krever umiddelbar oppfolging.`,

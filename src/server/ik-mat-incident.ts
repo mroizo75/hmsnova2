@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { generateSequenceNumber } from "@/lib/sequence";
 import { IK_MAT_SOURCE } from "@/lib/ik-mat-avvik";
+import { notifyCreatedIncident } from "@/lib/incident-notification-routing.server";
 
 export async function createIkMatDeviation(input: {
   tenantId: string;
@@ -41,7 +42,14 @@ export async function createIkMatDeviation(input: {
       subcategoryKeys: JSON.stringify([input.subcategoryKey]),
       stage: "REPORTED",
     },
-    select: { id: true, avviksnummer: true },
+    select: { id: true, avviksnummer: true, title: true },
+  });
+
+  await notifyCreatedIncident({
+    tenantId: input.tenantId,
+    reporterId: input.reportedBy,
+    incidentId: incident.id,
+    title: incident.title,
   });
 
   return incident;

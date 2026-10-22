@@ -8,6 +8,7 @@ import {
   getFormSequenceType,
 } from "@/lib/sequence";
 import { notifyUsersByRoles } from "@/server/actions/notification.actions";
+import { notifyCreatedIncident } from "@/lib/incident-notification-routing.server";
 import { analyzeWellbeingSubmission } from "@/server/actions/wellbeing.actions";
 import { tenantCanUseGlobalFormTemplate } from "@/lib/form-template-industry";
 import {
@@ -358,7 +359,7 @@ export async function POST(request: NextRequest) {
           : "";
         const incidentDescription = `${inspectionContext}${fieldContext}${answerContext}\n\n${description}`;
 
-        await prisma.incident.create({
+        const incident = await prisma.incident.create({
           data: {
             tenantId: inspection.tenantId,
             avviksnummer,
@@ -370,6 +371,12 @@ export async function POST(request: NextRequest) {
             reportedBy: session.user.id,
             location: location || inspection.location || null,
           },
+        });
+        await notifyCreatedIncident({
+          tenantId: inspection.tenantId,
+          reporterId: session.user.id,
+          incidentId: incident.id,
+          title: incident.title,
         });
       }
 

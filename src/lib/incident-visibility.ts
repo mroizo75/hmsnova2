@@ -43,6 +43,21 @@ export function parseSubcategoryKeys(raw: string | null | undefined): string[] {
   }
 }
 
+/**
+ * AML § 6-2 (5): verneombudet skal gjøres kjent med yrkessykdom, arbeidsulykker,
+ * tilløp og påviste feil og mangler. Kvalitets- og kundeavvik er ikke arbeidsmiljø.
+ */
+export function copyRolesForNewIncident(
+  type: IncidentType | string,
+  subcategoryKeysRaw?: string | null,
+): Role[] {
+  const roles: Role[] = ["ADMIN", "HMS"];
+  if (!isQualityOnlyIncident(type as IncidentType, subcategoryKeysRaw)) {
+    roles.push("VERNEOMBUD");
+  }
+  return roles;
+}
+
 export function isQualityOnlyIncident(type: IncidentType, subcategoryKeysRaw: string | null | undefined): boolean {
   if (VO_HIDDEN_INCIDENT_TYPES.includes(type)) return true;
   const keys = parseSubcategoryKeys(subcategoryKeysRaw);

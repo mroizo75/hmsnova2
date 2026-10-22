@@ -39,7 +39,7 @@ import { triggerRealtimeEvent } from "@/lib/pusher-server";
 import { getIncidentCloseBlockers } from "@/lib/incident-close-rules";
 import { suggestHandbookUpdates } from "@/lib/handbook-suggestions";
 import { resolveIncidentStage } from "@/lib/incident-stage";
-import { prismaIncidentWhereForRole, canRoleSeeIncident, isQualityOnlyIncident } from "@/lib/incident-visibility";
+import { prismaIncidentWhereForRole, canRoleSeeIncident, isQualityOnlyIncident, copyRolesForNewIncident } from "@/lib/incident-visibility";
 import type { IncidentType } from "@prisma/client";
 
 async function getSessionContext() {
@@ -490,9 +490,14 @@ export async function createIncident(input: any) {
           incidentId: incident.id,
           title: incident.title,
           typeLabel: incident.type,
+          subcategoryKeys: incident.subcategoryKeys,
         });
         if (incident.isRestrictedWork || (incident.severity ?? 0) >= 5) {
-          const criticalRoles = getNotifyRolesForModule(visConfig, "incidents", ["ADMIN", "HMS"]);
+          const criticalRoles = getNotifyRolesForModule(
+            visConfig,
+            "incidents",
+            copyRolesForNewIncident(incident.type, incident.subcategoryKeys),
+          );
           await notifyUsersByRoles(
             tenantId,
             criticalRoles,
@@ -683,7 +688,11 @@ export async function updateIncident(input: any) {
           if (updateData.measureEffectiveness !== undefined) changedLabels.push("tiltakseffektivitet");
           if (updateData.isFatal !== undefined || updateData.isLostTimeIncident !== undefined) changedLabels.push("alvorlighetsgrad");
 
-          const notifyRoles = getNotifyRolesForModule(visConfig, "incidents", ["ADMIN", "HMS"]);
+          const notifyRoles = getNotifyRolesForModule(
+            visConfig,
+            "incidents",
+            copyRolesForNewIncident(incident.type, incident.subcategoryKeys),
+          );
           await notifyUsersByRoles(tenantId, notifyRoles, {
             type: "INCIDENT_UPDATED",
             title: "Ny informasjon lagt til i avvik",
@@ -692,7 +701,11 @@ export async function updateIncident(input: any) {
           });
         }
         if (becameStopWork || (incident.severity ?? 0) >= 5) {
-          const criticalRoles = getNotifyRolesForModule(visConfig, "incidents", ["ADMIN", "HMS"]);
+          const criticalRoles = getNotifyRolesForModule(
+            visConfig,
+            "incidents",
+            copyRolesForNewIncident(incident.type, incident.subcategoryKeys),
+          );
           await notifyUsersByRoles(
             tenantId,
             criticalRoles,

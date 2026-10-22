@@ -5,6 +5,8 @@ import {
   type IncidentRoutingLookups,
 } from "@/lib/incident-notification-routing";
 import { roleMatchFilter } from "@/lib/extra-roles";
+import { copyRolesForNewIncident } from "@/lib/incident-visibility";
+import { getNotifyRolesForModule, parseModuleVisibilityConfig } from "@/lib/module-visibility";
 import { createNotification } from "@/server/actions/notification.actions";
 import {
   buildIncidentReporterNotification,
@@ -102,11 +104,13 @@ interface DispatchNewIncidentNotificationsInput {
   incidentId: string;
   title: string;
   typeLabel: string;
+  subcategoryKeys?: string | null;
 }
 
 /**
  * Varsler nærmeste ansvarlige for et nytt avvik etter kaskaden i
- * resolveIncidentRecipients, med HMS-ansvarlige på kopi.
+ * resolveIncidentRecipients. Admin og HMS er alltid på kopi. Verneombud
+ * varsles om arbeidsmiljøavvik, ikke om rene kvalitets- eller kundeavvik.
  */
 export async function dispatchNewIncidentNotifications(
   input: DispatchNewIncidentNotificationsInput
@@ -117,6 +121,7 @@ export async function dispatchNewIncidentNotifications(
       projectId: input.projectId,
       departmentId: input.departmentId ?? null,
       fallbackRoles: input.fallbackRoles,
+      copyRoles: copyRolesForNewIncident(input.typeLabel, input.subcategoryKeys),
     },
     createIncidentRoutingLookups(input.tenantId)
   );
@@ -148,6 +153,40 @@ export async function dispatchNewIncidentNotifications(
   ]);
 
   return routing;
+}
+
+/** Felles inngang når et avvik opprettes utenfor det vanlige skjemaet. */
+export async function notifyCreatedIncident(input: {
+  tenantId: string;
+  reporterId: string;
+  incidentId: string;
+  title: string;
+  typeLabel?: string;
+  subcategoryKeys?: string | null;
+  projectId?: string | null;
+  departmentId?: string | null;
+}) {
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: input.tenantId },
+    select: { moduleVisibilityConfig: true },
+  });
+  const fallbackRoles = getNotifyRolesForModule(
+    parseModuleVisibilityConfig(tenant?.moduleVisibilityConfig),
+    "incidents",
+    ["ADMIN", "HMS", "LEDER"],
+  );
+
+  return dispatchNewIncidentNotifications({
+    tenantId: input.tenantId,
+    reporterId: input.reporterId,
+    projectId: input.projectId ?? null,
+    departmentId: input.departmentId ?? null,
+    fallbackRoles,
+    incidentId: input.incidentId,
+    title: input.title,
+    typeLabel: input.typeLabel ?? "AVVIK",
+    subcategoryKeys: input.subcategoryKeys,
+  });
 }
 
 export async function notifyIncidentReporter(opts: {
