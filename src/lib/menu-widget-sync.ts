@@ -13,6 +13,7 @@ const PATH_TO_WIDGET: Record<string, string> = {
   "/dashboard/risks": "risks",
   "/dashboard/rutiner": "routines",
   "/dashboard/inspections": "inspections",
+  "/dashboard/sjekklister": "checklists",
   "/dashboard/training": "training",
   "/dashboard/fire-drills": "fire-safety",
   "/dashboard/annual-hms-plan": "annual-hms-plan",

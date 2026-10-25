@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getAuthContext } from "@/lib/server-authorization";
-import { canRoleSeeIncident } from "@/lib/incident-visibility";
+import { viewerCanSeeIncident } from "@/server/lib/incident-access";
 import type { IncidentType } from "@prisma/client";
 
 function fail(message: string) {
@@ -25,25 +25,33 @@ export async function addIncidentComment(input: {
 
   const incident = await prisma.incident.findFirst({
     where: { id: input.incidentId, tenantId: auth.tenantId },
-    select: { id: true, reportedBy: true, type: true, subcategoryKeys: true },
+    select: {
+      id: true,
+      reportedBy: true,
+      type: true,
+      subcategoryKeys: true,
+      departmentId: true,
+      responsibleId: true,
+      projectId: true,
+    },
   });
   if (!incident) return fail("Avviket ble ikke funnet");
 
-  const reporter = await prisma.userTenant.findUnique({
-    where: { userId_tenantId: { userId: incident.reportedBy, tenantId: auth.tenantId } },
-    select: { departmentId: true },
-  });
-
-  const visible = canRoleSeeIncident({
+  const visible = await viewerCanSeeIncident({
     role: auth.role,
+    tenantId: auth.tenantId,
+    userId: auth.userId,
     canReadIncidents: auth.permissions.canReadIncidents,
     canReadOwnIncidents: auth.permissions.canReadOwnIncidents,
-    viewerId: auth.userId,
-    reportedBy: incident.reportedBy,
-    type: incident.type as IncidentType,
-    subcategoryKeysRaw: incident.subcategoryKeys,
-    reporterDepartmentId: reporter?.departmentId ?? null,
-    viewerDepartmentId: auth.departmentId,
+    departmentId: auth.departmentId,
+    incident: {
+      reportedBy: incident.reportedBy,
+      type: incident.type as IncidentType,
+      subcategoryKeys: incident.subcategoryKeys,
+      departmentId: incident.departmentId,
+      responsibleId: incident.responsibleId,
+      projectId: incident.projectId,
+    },
   });
   if (!visible) return fail("Du har ikke tilgang til dette avviket");
 

@@ -76,7 +76,10 @@ export default function LoginPage() {
         const session = await response.json();
         if (session?.user?.isSuperAdmin || session?.user?.isSupport) {
           router.push("/admin");
-        } else if (session?.user?.role === "ANSATT") {
+        } else if (
+          session?.user?.role === "ANSATT" &&
+          !session.user.extraRoles?.includes("LEDER")
+        ) {
           router.push("/ansatt");
         } else if (session?.user?.isTavleOnly) {
           router.push("/dashboard/hms-tavle");

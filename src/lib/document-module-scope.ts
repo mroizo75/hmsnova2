@@ -9,7 +9,7 @@ import { isBcmTemplateCategory } from "@/lib/bcm-audit";
  * - BCM / beredskap → /dashboard/bcm (AML § 3-2)
  * - HR / arbeidsavtale → /dashboard/personalarkiv (AML § 14-5/14-6, GDPR)
  * - SDS → stoffkartotek (AML § 4-5)
- * - Sjekklister og skjemaer → /dashboard/forms
+ * - Sjekklister → /dashboard/sjekklister
  * - HMS-håndbok → /dashboard/hms-handbok
  * - Rutiner → /dashboard/rutiner
  */

@@ -225,6 +225,37 @@ export const helpContent: Record<string, HelpContent> = {
     ],
   },
 
+  checklists: {
+    title: "Sjekklister",
+    description: "Bedriftens egne kontroller, med tydelig resultat og tilgang",
+    sections: [
+      {
+        heading: "Hva er dette?",
+        emoji: "✅",
+        content:
+          "Her lager bedriften egne sjekklister for oppstart, kontroll og faste rutiner. Det er ikke det samme som vernerunde. Internkontrollforskriften § 5 nr. 6 og 7 krever at farer kartlegges og at tiltak følges opp. Sjekklisten er verktøyet dere bruker til det.",
+      },
+      {
+        heading: "Slik brukes den",
+        emoji: "🧭",
+        items: [
+          {
+            title: "Bygg punktene",
+            description: "Del opp i bolker. Merk det som må besvares. Avvik krever en forklaring, jf. AML § 2-3.",
+          },
+          {
+            title: "Velg tilgang",
+            description: "Alle, utvalgte roller eller utvalgte personer. Andre ser ikke sjekklisten.",
+          },
+          {
+            title: "Velg mottakere",
+            description: "De varsles når sjekklisten sendes inn, og ser hvem som fylte ut, hvor, og hvilke avvik som ble funnet.",
+          },
+        ],
+      },
+    ],
+  },
+
   inspections: {
     title: "Inspeksjoner og vernerunder",
     description: "Gjennomfør systematiske kontroller av arbeidsmiljøet",

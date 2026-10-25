@@ -80,7 +80,18 @@ export function canRoleSeeIncident(opts: {
   subcategoryKeysRaw?: string | null;
   reporterDepartmentId?: string | null;
   viewerDepartmentId?: string | null;
+  incidentDepartmentId?: string | null;
+  responsibleId?: string | null;
+  projectId?: string | null;
+  managedProjectIds?: readonly string[];
 }): boolean {
+  const assignedToViewer = opts.responsibleId === opts.viewerId;
+  const managesProject = Boolean(
+    opts.projectId && opts.managedProjectIds?.includes(opts.projectId),
+  );
+  // «Send videre» og prosjektleder skal se saken selv om melderen sitter i en annen avdeling.
+  if (assignedToViewer || managesProject) return true;
+
   if (opts.reportedBy === opts.viewerId && opts.canReadOwnIncidents) {
     return true;
   }
@@ -94,6 +105,12 @@ export function canRoleSeeIncident(opts: {
   }
 
   if (opts.role === "LEDER") {
+    if (
+      opts.incidentDepartmentId &&
+      opts.incidentDepartmentId === opts.viewerDepartmentId
+    ) {
+      return true;
+    }
     if (!opts.viewerDepartmentId) return false;
     return opts.reporterDepartmentId === opts.viewerDepartmentId;
   }
@@ -109,15 +126,28 @@ export function prismaIncidentWhereForRole(opts: {
   canReadOwnIncidents: boolean;
   departmentId: string | null;
   departmentUserIds?: string[];
+  managedProjectIds?: readonly string[];
 }): Record<string, unknown> | null {
-  if (!opts.canReadIncidents && !opts.canReadOwnIncidents) {
-    return null;
-  }
+  const managedProjectIds = opts.managedProjectIds ?? [];
+  const assignedOrProject = [
+    { responsibleId: opts.userId },
+    ...(managedProjectIds.length > 0 ? [{ projectId: { in: [...managedProjectIds] } }] : []),
+  ];
 
   const base: Record<string, unknown> = { tenantId: opts.tenantId };
 
+  if (!opts.canReadIncidents && !opts.canReadOwnIncidents && managedProjectIds.length === 0) {
+    return { ...base, responsibleId: opts.userId };
+  }
+
   if (!opts.canReadIncidents) {
-    return { ...base, reportedBy: opts.userId };
+    return {
+      ...base,
+      OR: [
+        ...(opts.canReadOwnIncidents ? [{ reportedBy: opts.userId }] : []),
+        ...assignedOrProject,
+      ],
+    };
   }
 
   if (opts.role === "VERNEOMBUD") {
@@ -129,12 +159,16 @@ export function prismaIncidentWhereForRole(opts: {
 
   if (opts.role === "LEDER") {
     const ids = opts.departmentUserIds ?? [];
-    if (!opts.departmentId || ids.length === 0) {
-      return { ...base, reportedBy: opts.userId };
-    }
     return {
       ...base,
-      OR: [{ reportedBy: { in: ids } }, { reportedForUserId: { in: ids } }, { reportedBy: opts.userId }],
+      OR: [
+        ...(ids.length > 0
+          ? [{ reportedBy: { in: ids } }, { reportedForUserId: { in: ids } }]
+          : []),
+        { reportedBy: opts.userId },
+        ...(opts.departmentId ? [{ departmentId: opts.departmentId }] : []),
+        ...assignedOrProject,
+      ],
     };
   }
 

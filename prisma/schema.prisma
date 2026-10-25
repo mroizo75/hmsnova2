@@ -116,6 +116,8 @@ model User {
   scheduledReminders              ScheduledReminder[]            @relation("UserReminders")
   hmsAnnualPlanCompletions        HmsAnnualPlanCompletion[]
   formSubmissions                 FormSubmission[]
+  checklistsCreated               Checklist[]                      @relation("ChecklistAuthor")
+  checklistRunsSubmitted          ChecklistRun[]                   @relation("ChecklistSubmitter")
   projectsCreated                 Project[]                      @relation("ProjectCreatedBy")
   projectsManaged                 Project[]                      @relation("ProjectManager")
   timeEntries                     TimeEntry[]
@@ -351,6 +353,8 @@ model Tenant {
   notifications                       Notification[]
   notificationPushTokens              NotificationPushToken[]
   formSubmissions                     FormSubmission[] // Digital forms
+  checklists                          Checklist[]
+  checklistRuns                       ChecklistRun[]
   kpiMeasurements                     KpiMeasurement[] // KPI målinger
   inspections                         Inspection[] // Vernerunde/Inspeksjoner
   inspectionTemplates                 InspectionTemplate[]
@@ -3311,6 +3315,117 @@ model FormFieldValue {
 
   @@index([submissionId])
   @@index([fieldId])
+}
+
+// ============================================================================
+// Sjekklister
+// Internkontrollforskriften § 5 nr. 6 og 7: kartlegge farer, iverksette
+// tiltak og følge opp. Sjekklisten er bedriftens eget kontrollverktøy.
+// AML § 2-3: ansatte skal melde feil og mangler — avvikspunkt krever kommentar.
+// ============================================================================
+
+enum ChecklistStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum ChecklistAccess {
+  ALL
+  ROLES
+  USERS
+  ROLES_AND_USERS
+}
+
+enum ChecklistResponse {
+  OK
+  DEVIATION
+  NOT_APPLICABLE
+}
+
+model Checklist {
+  id                 String          @id @default(cuid())
+  tenantId           String
+  title              String
+  description        String?         @db.Text
+  /// Når sjekklisten skal brukes. Vises til den som fyller ut.
+  usageNote          String?         @db.Text
+  status             ChecklistStatus @default(DRAFT)
+  access             ChecklistAccess @default(ALL)
+  allowedRoles       Json?
+  allowedUserIds     Json?
+  /// Brukere som varsles og alltid kan lese innsendingene.
+  resultRecipientIds Json?
+  createdById        String
+  sections           ChecklistSection[]
+  runs               ChecklistRun[]
+  tenant             Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy          User            @relation("ChecklistAuthor", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@index([tenantId, status])
+  @@index([createdById])
+}
+
+model ChecklistSection {
+  id          String          @id @default(cuid())
+  checklistId String
+  title       String
+  sortOrder   Int
+  checklist   Checklist       @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  items       ChecklistItem[]
+
+  @@index([checklistId, sortOrder])
+}
+
+model ChecklistItem {
+  id        String           @id @default(cuid())
+  sectionId String
+  prompt    String
+  helpText  String?          @db.Text
+  required  Boolean          @default(true)
+  sortOrder Int
+  section   ChecklistSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId, sortOrder])
+}
+
+model ChecklistRun {
+  id                  String            @id @default(cuid())
+  checklistId         String
+  tenantId            String
+  submittedById       String
+  reference           String
+  location            String?
+  note                String?           @db.Text
+  okCount             Int
+  deviationCount      Int
+  notApplicableCount  Int
+  submittedAt         DateTime          @default(now())
+  checklist           Checklist         @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  tenant              Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  submittedBy         User              @relation("ChecklistSubmitter", fields: [submittedById], references: [id], onDelete: Restrict)
+  answers             ChecklistAnswer[]
+
+  @@unique([tenantId, reference])
+  @@index([checklistId, submittedAt])
+  @@index([tenantId, submittedAt])
+  @@index([submittedById])
+}
+
+model ChecklistAnswer {
+  id           String             @id @default(cuid())
+  runId        String
+  itemId       String?
+  sectionTitle String
+  prompt       String             @db.Text
+  response     ChecklistResponse
+  comment      String?            @db.Text
+  sortOrder    Int
+  run          ChecklistRun       @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, sortOrder])
 }
 
 // ============================================

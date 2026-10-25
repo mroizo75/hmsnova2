@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/db";
 import { getAuthContext } from "@/lib/server-authorization";
 import { canRoleSeeIncident } from "@/lib/incident-visibility";
+import { managedProjectIdsFor } from "@/server/lib/incident-access";
 import type { IncidentType } from "@prisma/client";
 
 function canSeeMoc(opts: {
@@ -151,6 +152,9 @@ export async function fetchMocDetail(id: string) {
         type: true,
         reportedBy: true,
         subcategoryKeys: true,
+        departmentId: true,
+        responsibleId: true,
+        projectId: true,
       },
       orderBy: { createdAt: "desc" },
       take: 80,
@@ -166,10 +170,13 @@ export async function fetchMocDetail(id: string) {
   ]);
 
   const reporterIds = [...new Set(incidents.map((item) => item.reportedBy))];
-  const reporters = await prisma.userTenant.findMany({
-    where: { tenantId, userId: { in: reporterIds } },
-    select: { userId: true, departmentId: true },
-  });
+  const [reporters, managedProjectIds] = await Promise.all([
+    prisma.userTenant.findMany({
+      where: { tenantId, userId: { in: reporterIds } },
+      select: { userId: true, departmentId: true },
+    }),
+    managedProjectIdsFor(tenantId, userId),
+  ]);
   const deptByUser = new Map(reporters.map((row) => [row.userId, row.departmentId]));
 
   const visibleIncidents = incidents.filter((incident) =>
@@ -183,6 +190,10 @@ export async function fetchMocDetail(id: string) {
       subcategoryKeysRaw: incident.subcategoryKeys,
       reporterDepartmentId: deptByUser.get(incident.reportedBy) ?? null,
       viewerDepartmentId: departmentId,
+      incidentDepartmentId: incident.departmentId,
+      responsibleId: incident.responsibleId,
+      projectId: incident.projectId,
+      managedProjectIds,
     }),
   );
 

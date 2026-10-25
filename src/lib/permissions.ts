@@ -63,6 +63,11 @@ export interface RolePermissions {
   canReadAllFormSubmissions: boolean;  // Lese ALLE innsendinger (behandlere)
   canReadOwnFormSubmissions: boolean;  // Lese egne skjemainnsendinger
 
+  // Sjekklister (IK-HMS § 5 nr. 6–7)
+  canReadChecklists: boolean;
+  canFillChecklists: boolean;
+  canManageChecklists: boolean;
+
   // Rutiner
   canReadRoutines: boolean;
   canCreateRoutines: boolean;
@@ -241,6 +246,9 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canManageForms: false,
     canReadAllFormSubmissions: true,
     canReadOwnFormSubmissions: true,
+    canReadChecklists: true,
+    canFillChecklists: true,
+    canManageChecklists: true,
     canReadRoutines: true,
     canCreateRoutines: true,
     canManageRoutines: true,
@@ -369,6 +377,9 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canManageForms: false,
     canReadAllFormSubmissions: true,
     canReadOwnFormSubmissions: true,
+    canReadChecklists: true,
+    canFillChecklists: true,
+    canManageChecklists: true,
     canReadRoutines: true,
     canCreateRoutines: true,
     canManageRoutines: true,
@@ -499,6 +510,9 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canManageForms: false,
     canReadAllFormSubmissions: true,
     canReadOwnFormSubmissions: true,
+    canReadChecklists: true,
+    canFillChecklists: true,
+    canManageChecklists: true,
     canReadRoutines: true,
     canCreateRoutines: true,
     canManageRoutines: true,
@@ -627,6 +641,9 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canManageForms: false,
     canReadAllFormSubmissions: false,
     canReadOwnFormSubmissions: true,
+    canReadChecklists: true,
+    canFillChecklists: true,
+    canManageChecklists: false,
     canReadRoutines: true,
     canCreateRoutines: false,
     canManageRoutines: false,
@@ -755,6 +772,9 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canManageForms: false,
     canReadAllFormSubmissions: true,  // Verneombud ser alle innsendinger
     canReadOwnFormSubmissions: true,
+    canReadChecklists: true,
+    canFillChecklists: true,
+    canManageChecklists: true,
     canReadRoutines: true,
     canCreateRoutines: false,
     canManageRoutines: false,
@@ -883,6 +903,9 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canManageForms: false,
     canReadAllFormSubmissions: false, // Kan IKKE se andres skjemainnsendinger
     canReadOwnFormSubmissions: true,  // Kan se egne innsendinger
+    canReadChecklists: true,
+    canFillChecklists: true,
+    canManageChecklists: false,
     canReadRoutines: true,
     canCreateRoutines: false,
     canManageRoutines: false,
@@ -1011,6 +1034,9 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canManageForms: false,
     canReadAllFormSubmissions: true,
     canReadOwnFormSubmissions: true,
+    canReadChecklists: true,
+    canFillChecklists: true,
+    canManageChecklists: false,
     canReadRoutines: true,
     canCreateRoutines: false,
     canManageRoutines: false,
@@ -1139,6 +1165,9 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canManageForms: false,
     canReadAllFormSubmissions: true,
     canReadOwnFormSubmissions: true,
+    canReadChecklists: true,
+    canFillChecklists: false,
+    canManageChecklists: false,
     canReadRoutines: true,
     canCreateRoutines: false,
     canManageRoutines: false,
@@ -1267,6 +1296,9 @@ export const rolePermissions: Record<Role, RolePermissions> = {
     canManageForms: false,
     canReadAllFormSubmissions: false,
     canReadOwnFormSubmissions: false,
+    canReadChecklists: false,
+    canFillChecklists: false,
+    canManageChecklists: false,
     canReadRoutines: false,
     canCreateRoutines: false,
     canManageRoutines: false,
@@ -1470,6 +1502,7 @@ export function getVisibleNavItems(role: Role, extraRoles?: string | readonly Ro
     hmsHandbok: perms.canReadDocuments || perms.canReadRoutines,
     hmsCockpit: perms.canReadDocuments,
     templates: perms.canReadDocuments || perms.canReadRoutines,
+    checklists: perms.canReadChecklists || perms.canFillChecklists,
   };
 }
 

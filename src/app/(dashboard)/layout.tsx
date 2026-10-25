@@ -30,9 +30,19 @@ export default async function DashboardLayout({
     redirect("/admin");
   }
 
-  // VIKTIG: Redirect ANSATT til employee dashboard
+  // Ansatte uten leder- eller prosjektlederansvar bruker ansattportalen.
+  // Leder og prosjektleder skal inn på dashboardet, inkludert avviksoversikten.
   if (user.role === "ANSATT") {
-    redirect("/ansatt");
+    const extraRoles = sessionUser.extraRoles ?? [];
+    const isLeader = extraRoles.includes("LEDER");
+    const managesProject = user.tenantId
+      ? await prisma.project.count({
+          where: { tenantId: user.tenantId, projectManagerId: user.id },
+        })
+      : 0;
+    if (!isLeader && managesProject === 0) {
+      redirect("/ansatt");
+    }
   }
 
   const tenantId = user.tenantId ?? null;

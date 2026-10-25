@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/db";
 import { getTenantContextSafe } from "@/lib/tenant-context";
 import { getAuthContext } from "@/lib/server-authorization";
-import { canRoleSeeIncident } from "@/lib/incident-visibility";
+import { viewerCanSeeIncident } from "@/server/lib/incident-access";
 import type { IncidentType } from "@prisma/client";
 
 export async function fetchIncidentDetail(id: string) {
@@ -59,20 +59,21 @@ export async function fetchIncidentDetail(id: string) {
   }
 
   if (auth) {
-    const reporter = await prisma.userTenant.findUnique({
-      where: { userId_tenantId: { userId: rawIncident.reportedBy, tenantId } },
-      select: { departmentId: true },
-    });
-    const visible = canRoleSeeIncident({
+    const visible = await viewerCanSeeIncident({
       role: auth.role,
+      tenantId,
+      userId: auth.userId,
       canReadIncidents: auth.permissions.canReadIncidents,
       canReadOwnIncidents: auth.permissions.canReadOwnIncidents,
-      viewerId: auth.userId,
-      reportedBy: rawIncident.reportedBy,
-      type: rawIncident.type as IncidentType,
-      subcategoryKeysRaw: rawIncident.subcategoryKeys,
-      reporterDepartmentId: reporter?.departmentId ?? null,
-      viewerDepartmentId: auth.departmentId,
+      departmentId: auth.departmentId,
+      incident: {
+        reportedBy: rawIncident.reportedBy,
+        type: rawIncident.type as IncidentType,
+        subcategoryKeys: rawIncident.subcategoryKeys,
+        departmentId: rawIncident.departmentId,
+        responsibleId: rawIncident.responsibleId,
+        projectId: rawIncident.projectId,
+      },
     });
     if (!visible) return null;
   }

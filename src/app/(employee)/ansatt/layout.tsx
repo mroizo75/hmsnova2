@@ -70,6 +70,20 @@ export default async function EmployeeLayout({
     allWidgets = allWidgets.filter((w) => w.id !== "emp-moc");
   }
 
+  const extraRoles = session.user.extraRoles ?? [];
+  const isLeader = session.user.role === "LEDER" || extraRoles.includes("LEDER");
+  const managesProject =
+    !isLeader && session.user.tenantId
+      ? await prisma.project.count({
+          where: { tenantId: session.user.tenantId, projectManagerId: session.user.id },
+        })
+      : 0;
+  if (isLeader || managesProject > 0) {
+    allWidgets = allWidgets.map((widget) =>
+      widget.id === "emp-incidents" ? { ...widget, href: "/dashboard/incidents" } : widget,
+    );
+  }
+
   const bottomNavItems = getEmployeeBottomNavItems(allWidgets);
 
   return (

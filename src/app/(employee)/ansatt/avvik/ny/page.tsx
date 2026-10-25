@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import { ReportIncidentForm } from "@/components/ansatt/report-incident-form";
 import { prisma } from "@/lib/db";
+import { opensIncidentOverview } from "@/server/lib/incident-access";
 import { listEquipmentChoices } from "@/server/queries/equipment-approval.queries";
 
 interface PageProps {
@@ -18,6 +19,17 @@ export default async function NyttAvvik({ searchParams }: PageProps) {
 
   if (!session?.user?.tenantId) {
     redirect("/login");
+  }
+
+  if (
+    await opensIncidentOverview({
+      role: session.user.role,
+      extraRoles: session.user.extraRoles,
+      tenantId: session.user.tenantId,
+      userId: session.user.id,
+    })
+  ) {
+    redirect("/dashboard/incidents");
   }
 
   const { projectId, equipmentId } = await searchParams;

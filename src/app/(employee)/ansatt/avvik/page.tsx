@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { AlertCircle, Plus, Clock, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { employeeOwnIncidentsWhere } from "@/lib/incident-visibility";
+import { opensIncidentOverview } from "@/server/lib/incident-access";
 import { IncidentType } from "@prisma/client";
 
 const TYPE_LABEL_KEYS: Record<IncidentType, string> = {
@@ -32,6 +33,17 @@ export default async function AnsattAvvik() {
 
   if (!session?.user?.tenantId) {
     redirect("/login");
+  }
+
+  if (
+    await opensIncidentOverview({
+      role: session.user.role,
+      extraRoles: session.user.extraRoles,
+      tenantId: session.user.tenantId,
+      userId: session.user.id,
+    })
+  ) {
+    redirect("/dashboard/incidents");
   }
 
   // Hent ansattes egne avviksrapporter

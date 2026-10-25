@@ -2,7 +2,8 @@
 
 import { prisma } from "@/lib/db";
 import { getAuthContext } from "@/lib/server-authorization";
-import { prismaIncidentWhereForRole, isQualityOnlyIncident } from "@/lib/incident-visibility";
+import { isQualityOnlyIncident } from "@/lib/incident-visibility";
+import { incidentListWhere } from "@/server/lib/incident-access";
 import type { IncidentType } from "@prisma/client";
 
 export async function fetchIncidents(options?: { kilde?: string }) {
@@ -10,22 +11,13 @@ export async function fetchIncidents(options?: { kilde?: string }) {
   if (!auth) return [];
   const { permissions, tenantId, userId, role, departmentId } = auth;
 
-  const departmentMembers =
-    role === "LEDER" && departmentId
-      ? await prisma.userTenant.findMany({
-          where: { tenantId, departmentId },
-          select: { userId: true },
-        })
-      : [];
-
-  const where = prismaIncidentWhereForRole({
+  const where = await incidentListWhere({
     role,
     tenantId,
     userId,
     canReadIncidents: permissions.canReadIncidents,
     canReadOwnIncidents: permissions.canReadOwnIncidents,
     departmentId,
-    departmentUserIds: departmentMembers.map((m) => m.userId),
   });
 
   if (!where) return [];

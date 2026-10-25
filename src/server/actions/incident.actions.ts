@@ -39,7 +39,8 @@ import { triggerRealtimeEvent } from "@/lib/pusher-server";
 import { getIncidentCloseBlockers } from "@/lib/incident-close-rules";
 import { suggestHandbookUpdates } from "@/lib/handbook-suggestions";
 import { resolveIncidentStage } from "@/lib/incident-stage";
-import { prismaIncidentWhereForRole, canRoleSeeIncident, isQualityOnlyIncident, copyRolesForNewIncident } from "@/lib/incident-visibility";
+import { isQualityOnlyIncident, copyRolesForNewIncident } from "@/lib/incident-visibility";
+import { incidentListWhere, viewerCanSeeIncident } from "@/server/lib/incident-access";
 import type { IncidentType } from "@prisma/client";
 
 async function getSessionContext() {
@@ -208,21 +209,13 @@ export async function getIncidents(_tenantId: string) {
     }
 
     const { tenantId, userId, role, departmentId } = auth;
-    const departmentMembers =
-      role === "LEDER" && departmentId
-        ? await prisma.userTenant.findMany({
-            where: { tenantId, departmentId },
-            select: { userId: true },
-          })
-        : [];
-    const where = prismaIncidentWhereForRole({
+    const where = await incidentListWhere({
       role,
       tenantId,
       userId,
       canReadIncidents: canReadAll,
       canReadOwnIncidents: canReadOwn,
       departmentId,
-      departmentUserIds: departmentMembers.map((m) => m.userId),
     });
     if (!where) {
       throw new Error("Ikke autorisert til å se avvik");
@@ -281,18 +274,11 @@ export async function getIncident(id: string) {
     const canReadAll = auth.permissions.canReadIncidents;
     const canReadOwn = auth.permissions.canReadOwnIncidents;
 
-    if (!canReadAll && !canReadOwn) {
-      throw new Error("Ikke autorisert til å se avvik");
-    }
-
     const { userId: _userId, tenantId } = auth;
     const user = { id: auth.userId, email: auth.userEmail };
 
-    // Ved "kun egne": legg til reportedBy-filter for å hindre henting av andres avvik
-    const ownerFilter = canReadAll ? {} : { reportedBy: auth.userId };
-    
     const incident = await prisma.incident.findFirst({
-      where: { id, tenantId, ...ownerFilter },
+      where: { id, tenantId },
       include: {
         measures: {
           orderBy: { createdAt: "desc" },
@@ -313,20 +299,21 @@ export async function getIncident(id: string) {
       return { success: false, error: "Avvik ikke funnet" };
     }
 
-    const reporter = await prisma.userTenant.findUnique({
-      where: { userId_tenantId: { userId: incident.reportedBy, tenantId } },
-      select: { departmentId: true },
-    });
-    const visibleIncident = canRoleSeeIncident({
+    const visibleIncident = await viewerCanSeeIncident({
       role: auth.role,
+      tenantId,
+      userId: auth.userId,
       canReadIncidents: canReadAll,
       canReadOwnIncidents: canReadOwn,
-      viewerId: auth.userId,
-      reportedBy: incident.reportedBy,
-      type: incident.type as IncidentType,
-      subcategoryKeysRaw: incident.subcategoryKeys,
-      reporterDepartmentId: reporter?.departmentId ?? null,
-      viewerDepartmentId: auth.departmentId,
+      departmentId: auth.departmentId,
+      incident: {
+        reportedBy: incident.reportedBy,
+        type: incident.type as IncidentType,
+        subcategoryKeys: incident.subcategoryKeys,
+        departmentId: incident.departmentId,
+        responsibleId: incident.responsibleId,
+        projectId: incident.projectId,
+      },
     });
     if (!visibleIncident) {
       return { success: false, error: "Avvik ikke funnet" };

@@ -66,6 +66,7 @@ export const DASHBOARD_NAV_ICONS: Record<string, LucideIcon> = {
   "/dashboard/incidents/statistics": BarChart3,
   "/dashboard/sja": HardHat,
   "/dashboard/inspections": ShieldCheck,
+  "/dashboard/sjekklister": ListChecks,
   "/dashboard/fire-drills": Flame,
   "/dashboard/training": GraduationCap,
   "/dashboard/actions": ListTodo,

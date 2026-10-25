@@ -53,7 +53,8 @@ export type NavPermission =
   | "support"
   | "benchmark"
   | "hmsCockpit"
-  | "templates";
+  | "templates"
+  | "checklists";
 
 /**
  * Arbeidsflyt-gruppering for menyen. Endrer kun IA/gruppering – ingen
@@ -134,6 +135,7 @@ export const DASHBOARD_NAV_CONFIG: DashboardNavItemConfig[] = [
   { href: "/dashboard/bcm", label: "nav.bcm", permission: "beredskap", defaultSimple: true, coreHub: "risiko" },
   { href: "/dashboard/audits", label: "nav.audits", permission: "audits", defaultSimple: false, coreHub: "risiko" },
 
+  { href: "/dashboard/sjekklister", label: "nav.checklists", permission: "checklists", defaultSimple: true, alwaysShow: true, coreHub: "skjema" },
   { href: "/dashboard/construction-compliance", label: "nav.constructionCompliance", permission: "constructionCompliance", defaultSimple: true, coreHub: "skjema" },
   {
     href: EQUIPMENT_APPROVAL_PATH,

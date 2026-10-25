@@ -7,6 +7,7 @@ import { getPermissions, getVisibleNavItems } from "@/lib/permissions";
 import { getSetupGuideProgress } from "@/server/actions/onboarding.actions";
 import { distributableDocumentsWhere } from "@/lib/document-module-scope";
 import { isDocumentAttention } from "@/lib/document-attention";
+import { incidentListWhere } from "@/server/lib/incident-access";
 
 export async function fetchDashboardData() {
   const session = await getServerSession(authOptions);
@@ -46,12 +47,16 @@ export async function fetchDashboardData() {
     permissions.canReadRisks
       ? prisma.risk.findMany({ where: { tenantId } })
       : [],
-    permissions.canReadIncidents
+    permissions.canReadIncidents || permissions.canReadOwnIncidents
       ? prisma.incident.findMany({
-          where: {
+          where: (await incidentListWhere({
+            role: userRole,
             tenantId,
-            ...(userRole === "ANSATT" && { reportedById: user.id }),
-          },
+            userId: user.id,
+            canReadIncidents: permissions.canReadIncidents,
+            canReadOwnIncidents: permissions.canReadOwnIncidents,
+            departmentId: selectedMembership.departmentId ?? null,
+          })) ?? { id: "__none__" },
         })
       : [],
     permissions.canReadActions

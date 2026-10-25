@@ -75,7 +75,7 @@ export async function fetchSjaDetail(id: string) {
     }),
     prisma.tenant.findUnique({
       where: { id: tenantId },
-      select: { mocModuleEnabled: true },
+      select: { mocModuleEnabled: true, name: true, logoUrl: true },
     }),
   ]);
 
@@ -84,6 +84,8 @@ export async function fetchSjaDetail(id: string) {
   return JSON.parse(JSON.stringify({
     ...analysis,
     mocModuleEnabled: tenant?.mocModuleEnabled ?? false,
+    tenantName: tenant?.name ?? null,
+    tenantLogoUrl: tenant?.logoUrl ?? null,
     canApproveSja: permissions.canApproveSja,
   }));
 }

@@ -36,6 +36,8 @@ interface SjaPdfButtonProps {
     approvedByName?: string | null;
     createdAt: string | Date;
     templateName?: string | null;
+    tenantName?: string | null;
+    tenantLogoUrl?: string | null;
     hazards: Array<{
       activity: string;
       hazard: string;
@@ -64,6 +66,24 @@ export function SjaPdfButton({ analysis }: SjaPdfButtonProps) {
     try {
       const { default: jsPDF } = await import("jspdf");
       const { default: autoTable } = await import("jspdf-autotable");
+
+      let logoDataUrl: string | null = null;
+      if (analysis.tenantLogoUrl) {
+        try {
+          const response = await fetch(analysis.tenantLogoUrl);
+          if (response.ok) {
+            const blob = await response.blob();
+            logoDataUrl = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : null);
+              reader.onerror = () => reject(reader.error);
+              reader.readAsDataURL(blob);
+            });
+          }
+        } catch {
+          logoDataUrl = null;
+        }
+      }
 
       const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       const pageW = doc.internal.pageSize.width;
@@ -117,6 +137,16 @@ export function SjaPdfButton({ analysis }: SjaPdfButtonProps) {
       // --- HEADER ---
       doc.setFillColor(30, 41, 59);
       doc.rect(0, 0, pageW, 28, "F");
+      if (logoDataUrl) {
+        const format = logoDataUrl.includes("image/png") ? "PNG" : "JPEG";
+        try {
+          doc.setFillColor(255, 255, 255);
+          doc.roundedRect(pageW - margin - 28, 6, 28, 16, 1, 1, "F");
+          doc.addImage(logoDataUrl, format, pageW - margin - 27, 7, 26, 14);
+        } catch {
+          logoDataUrl = null;
+        }
+      }
       doc.setFont("helvetica", "bold");
       doc.setFontSize(16);
       doc.setTextColor(255, 255, 255);
@@ -124,20 +154,26 @@ export function SjaPdfButton({ analysis }: SjaPdfButtonProps) {
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       doc.text(analysis.title, margin, 19);
-      if (analysis.sjaNummer) {
+      const headerMeta = [analysis.sjaNummer, analysis.tenantName].filter(Boolean).join(" · ");
+      if (headerMeta) {
         doc.setFontSize(8);
-        doc.text(analysis.sjaNummer, margin, 24);
+        doc.text(headerMeta, margin, 24);
       }
 
-      // Status badge top right
       doc.setFontSize(8);
       doc.setFont("helvetica", "bold");
-      const statusText = `${getSjaStatusLabel(analysis.status as any)} | ${getSjaConclusionLabel(analysis.conclusion as any)}`;
-      doc.text(statusText, pageW - margin, 12, { align: "right" });
-      doc.setFont("helvetica", "normal");
-      doc.text(`Generert: ${new Date().toLocaleDateString("nb-NO")}`, pageW - margin, 19, { align: "right" });
+      const statusText = `${getSjaStatusLabel(analysis.status as never)} | ${getSjaConclusionLabel(analysis.conclusion as never)}`;
+      if (!logoDataUrl) {
+        doc.text(statusText, pageW - margin, 12, { align: "right" });
+        doc.setFont("helvetica", "normal");
+        doc.text(`Generert: ${new Date().toLocaleDateString("nb-NO")}`, pageW - margin, 19, { align: "right" });
+      } else {
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(60, 60, 60);
+        doc.text(`${statusText} · Generert ${new Date().toLocaleDateString("nb-NO")}`, margin, 34);
+      }
 
-      y = 34;
+      y = logoDataUrl ? 40 : 34;
 
       // --- GRUNNINFO ---
       sectionTitle("1. Grunnleggende informasjon");
