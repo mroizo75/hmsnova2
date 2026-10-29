@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DocumentSignatureSection } from "@/features/documents/components/document-signature-section";
+import { DocumentConfirmReadButton } from "@/features/documents/components/document-confirm-read-button";
 import { Clock, CheckCircle2, Calendar, User, Tag, Download, Users } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { fetchDocumentDetail } from "@/server/queries/document.queries";
@@ -53,7 +54,7 @@ export function DocumentDetailContent({ initialData, locale, kindLabels }: Docum
 
   if (!data) return null;
 
-  const { document, currentUserId, userRole, confirmationStatus } = data;
+  const { document, currentUserId, userRole, confirmationStatus, myConfirmation } = data;
   const permissions = getPermissions(userRole as any);
 
   const statusLabels: Record<string, string> = {
@@ -155,7 +156,30 @@ export function DocumentDetailContent({ initialData, locale, kindLabels }: Docum
         </CardContent>
       </Card>
 
-      {document.status === "APPROVED" && confirmationStatus && (
+      {document.requiresReadConfirmation && document.status === "APPROVED" && (
+        <Card className="border-amber-300 bg-amber-50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium">Din lesebekreftelse</CardTitle>
+            <CardDescription>
+              Kvitter for at du har lest denne versjonen, eller at du vet hvor dokumentet ligger.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <DocumentConfirmReadButton
+              documentId={document.id}
+              initialConfirmed={!!myConfirmation}
+              initialConfirmedAt={myConfirmation?.confirmedAt ?? null}
+              labels={{
+                confirm: "Jeg har lest den, eller vet hvor den ligger",
+                confirmed: "Du har kvittert for denne versjonen",
+                confirmedAt: "Kvittert",
+              }}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {document.requiresReadConfirmation && document.status === "APPROVED" && confirmationStatus && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">

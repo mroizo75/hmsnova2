@@ -125,6 +125,7 @@ export async function POST(request: NextRequest) {
         proofDocKey: proofDocKey || null,
         isRequired: isRequired || false,
         effectiveness: effectiveness !== undefined ? effectiveness : null,
+        createdBy: session.user.id,
         courseKey: `${session.user.tenantId}-${title.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}`,
       },
     });

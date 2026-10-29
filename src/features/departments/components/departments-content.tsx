@@ -6,22 +6,120 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { createDepartment, updateDepartment } from "@/server/actions/department.actions";
 import type { DepartmentRow } from "@/server/queries/department.queries";
+import { ledDepartmentIds } from "@/features/departments/lib/department-tree";
 import type { DepartmentReport } from "@/server/queries/department-reports.queries";
 import { PowerOfficeImportPanel } from "./poweroffice-import-panel";
 
 interface DepartmentsContentProps {
   departments: DepartmentRow[];
   reports: DepartmentReport[];
+  leaders: { id: string; name: string }[];
   canManage: boolean;
   canImport: boolean;
   hidePersonnelDetails: boolean;
 }
 
+const NONE = "__none__";
+
+function DepartmentEditor({
+  department,
+  departments,
+  leaders,
+}: {
+  department: DepartmentRow;
+  departments: DepartmentRow[];
+  leaders: { id: string; name: string }[];
+}) {
+  const [parentId, setParentId] = useState(department.parentId ?? NONE);
+  const [leaderId, setLeaderId] = useState(department.leaderId ?? NONE);
+  const [error, setError] = useState<string | null>(null);
+  const blocked = new Set(
+    ledDepartmentIds(
+      departments.map((item) => ({ id: item.id, parentId: item.parentId, leaderId: item.leaderId })),
+      "",
+      department.id,
+    ),
+  );
+
+  async function save(isActive = department.isActive) {
+    setError(null);
+    const result = await updateDepartment({
+      id: department.id,
+      name: department.name,
+      code: department.code,
+      isActive,
+      parentId: parentId === NONE ? null : parentId,
+      leaderId: leaderId === NONE ? null : leaderId,
+    });
+    if (result.success === false) {
+      setError(result.error);
+      return;
+    }
+    window.location.reload();
+  }
+
+  return (
+    <div className="space-y-3 rounded-md border p-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="font-medium">{department.name}</p>
+          <p className="text-xs text-muted-foreground">
+            {department.code ?? "Uten kode"} · {department.memberCount} ansatte
+            {department.isActive ? "" : " · inaktiv"}
+            {department.leaderName ? ` · Leder: ${department.leaderName}` : ""}
+          </p>
+        </div>
+        <Button type="button" variant="outline" size="sm" className="bg-transparent" onClick={() => void save(!department.isActive)}>
+          {department.isActive ? "Deaktiver" : "Aktiver"}
+        </Button>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label>Overordnet avdeling</Label>
+          <Select value={parentId} onValueChange={setParentId}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NONE}>Ingen</SelectItem>
+              {departments
+                .filter((item) => item.id !== department.id && !blocked.has(item.id))
+                .map((item) => (
+                  <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Avdelingsleder</Label>
+          <Select value={leaderId} onValueChange={setLeaderId}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NONE}>Ingen</SelectItem>
+              {leaders.map((leader) => (
+                <SelectItem key={leader.id} value={leader.id}>{leader.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      <Button type="button" size="sm" onClick={() => void save()}>Lagre ledelse</Button>
+    </div>
+  );
+}
+
 export function DepartmentsContent({
   departments,
   reports,
+  leaders,
   canManage,
   canImport,
   hidePersonnelDetails,
@@ -56,7 +154,7 @@ export function DepartmentsContent({
           Avdelinger
         </h1>
         <p className="mt-1 text-muted-foreground">
-          Organisasjonsenheter for personal, avvik og rapporter. LEDER ser kun egen avdeling.
+          Organisasjonsenheter for personal, avvik og rapporter. Samme person kan lede flere avdelinger. Overordnet leder ser også avdelingene under.
         </p>
       </div>
 
@@ -128,31 +226,12 @@ export function DepartmentsContent({
           </CardHeader>
           <CardContent className="space-y-2">
             {departments.map((department) => (
-              <div key={department.id} className="flex items-center justify-between gap-3 rounded-md border p-3">
-                <div>
-                  <p className="font-medium">{department.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {department.code ?? "Uten kode"} · {department.memberCount} ansatte
-                    {department.isActive ? "" : " · inaktiv"}
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={async () => {
-                    await updateDepartment({
-                      id: department.id,
-                      name: department.name,
-                      code: department.code,
-                      isActive: !department.isActive,
-                    });
-                    window.location.reload();
-                  }}
-                >
-                  {department.isActive ? "Deaktiver" : "Aktiver"}
-                </Button>
-              </div>
+              <DepartmentEditor
+                key={department.id}
+                department={department}
+                departments={departments}
+                leaders={leaders}
+              />
             ))}
           </CardContent>
         </Card>

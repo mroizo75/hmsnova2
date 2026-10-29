@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { getAuthContext } from "@/lib/server-authorization";
+import { leaderDepartmentIds } from "@/server/queries/department.queries";
 import { VO_HIDDEN_INCIDENT_TYPES, isQualityOnlyIncident } from "@/lib/incident-visibility";
 import type { IncidentType } from "@prisma/client";
 
@@ -27,8 +28,13 @@ export async function fetchDepartmentReports(): Promise<DepartmentReport[]> {
   const auth = await getAuthContext();
   if (!auth?.permissions.canReadDepartments) return [];
 
-  const departmentFilter =
-    auth.role === "LEDER" && auth.departmentId ? { id: auth.departmentId } : {};
+  const visibleIds =
+    auth.role === "LEDER"
+      ? await leaderDepartmentIds(auth.tenantId, auth.userId, auth.departmentId)
+      : null;
+  const departmentFilter = visibleIds
+    ? { id: { in: visibleIds.length > 0 ? visibleIds : ["__none__"] } }
+    : {};
 
   const departments = await prisma.department.findMany({
     where: { tenantId: auth.tenantId, isActive: true, ...departmentFilter },

@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { FolderArchive, Search } from "lucide-react";
+import { Download, FolderArchive, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { PersonnelEmployeeRow } from "@/server/queries/personnel.queries";
+import { EMPLOYMENT_TYPE_LABEL } from "@/features/personnel/lib/employment";
 
 interface PersonnelEmployeeListProps {
   employees: PersonnelEmployeeRow[];
@@ -22,15 +24,26 @@ export function PersonnelEmployeeList({ employees }: PersonnelEmployeeListProps)
 
   return (
     <div className="space-y-4">
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Søk etter ansatt..."
-          className="pl-9"
-        />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative w-full max-w-md">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Søk etter ansatt..."
+            className="pl-9"
+          />
+        </div>
+        <Button variant="outline" size="sm" className="bg-transparent" asChild>
+          <a href="/api/personnel/beredskap">
+            <Download className="mr-2 h-4 w-4" />
+            Last ned beredskapsfil
+          </a>
+        </Button>
       </div>
+      <p className="text-xs text-muted-foreground">
+        Filen er til lederens perm: navn, telefon og pårørende, så de kan nås ved en ulykke (AML § 3-1 og § 5-2). Diagnose tas ikke med.
+      </p>
 
       {filtered.length === 0 ? (
         <Card>
@@ -55,6 +68,9 @@ export function PersonnelEmployeeList({ employees }: PersonnelEmployeeListProps)
                     )}
                     <div className="mt-2 flex flex-wrap gap-2">
                       <Badge variant="secondary">{employee.documentCount} dokumenter</Badge>
+                      {employee.employmentType !== "FAST" && (
+                        <Badge variant="outline">{EMPLOYMENT_TYPE_LABEL[employee.employmentType]}</Badge>
+                      )}
                       {employee.expiredCount > 0 && (
                         <Badge variant="outline" className="border-red-300 text-red-700">
                           {employee.expiredCount} slettefrist passert

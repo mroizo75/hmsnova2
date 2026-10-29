@@ -1357,6 +1357,7 @@
       "empty": "Du har ikke registrert noen opplæring ennå",
       "completedAt": "Gjennomført: {date}",
       "pendingApproval": "Venter på godkjenning",
+      "registered": "Registrert",
       "approved": "Godkjent",
       "approvedBy": "Godkjent av: {name}"
     },
@@ -1449,6 +1450,7 @@
     "badges": {
       "required": "Påkrevd kurs",
       "approved": "Godkjent",
+      "registered": "Registrert",
       "pending": "Venter på godkjenning",
       "expired": "Utløpt",
       "expiringSoon": "Utløper snart"

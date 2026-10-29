@@ -47,7 +47,6 @@ export function BoardingList({ boardings }: { boardings: BoardingItem[] }) {
       <TableHeader>
         <TableRow>
           <TableHead>Ansatt</TableHead>
-          <TableHead>Type</TableHead>
           <TableHead>Startdato</TableHead>
           <TableHead>Mal</TableHead>
           <TableHead>Fremdrift</TableHead>
@@ -65,11 +64,6 @@ export function BoardingList({ boardings }: { boardings: BoardingItem[] }) {
             <TableRow key={b.id}>
               <TableCell className="font-medium">
                 {b.employee.name ?? b.employee.email}
-              </TableCell>
-              <TableCell>
-                <Badge variant="outline">
-                  {b.type === "ONBOARDING" ? "Onboarding" : "Offboarding"}
-                </Badge>
               </TableCell>
               <TableCell>
                 {format(new Date(b.startDate), "d. MMM yyyy", { locale: nb })}

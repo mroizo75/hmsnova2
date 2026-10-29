@@ -13,6 +13,8 @@ import { requirePermission, requireResourceAccess } from "@/lib/server-authoriza
 import { calculateNextReviewDate, parseDateInput } from "@/lib/document-utils";
 import { convertDocumentToPDF } from "@/lib/adobe-pdf";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
+import { createNotification } from "@/server/actions/notification.actions";
+import { documentVisibleToRole } from "@/features/documents/lib/read-confirmation";
 import {
   distributableDocumentsWhere,
   isDistributableDocumentKind,
@@ -36,6 +38,34 @@ async function logAudit(
       metadata: metadata ? JSON.stringify(metadata) : null,
     },
   });
+}
+
+async function notifyReadConfirmation(document: {
+  id: string;
+  tenantId: string;
+  title: string;
+  version: string;
+  visibleToRoles: unknown;
+}) {
+  const members = await prisma.userTenant.findMany({
+    where: { tenantId: document.tenantId },
+    select: { userId: true, role: true },
+  });
+  const recipients = members.filter((member) =>
+    documentVisibleToRole(document.visibleToRoles, member.role),
+  );
+  await Promise.all(
+    recipients.map((member) =>
+      createNotification({
+        tenantId: document.tenantId,
+        userId: member.userId,
+        type: "DOCUMENT_APPROVED",
+        title: "Lesebekreftelse",
+        message: `«${document.title}» (${document.version}) skal leses. Kvitter når du har lest den, eller når du vet hvor den ligger.`,
+        link: `/ansatt/dokumenter/${document.id}`,
+      }).catch(() => undefined),
+    ),
+  );
 }
 
 const sanitizeText = (value?: string | null) => {
@@ -136,6 +166,7 @@ export async function createDocument(formData: FormData) {
     const fileEntry = formData.get("file");
     const changeComment = formData.get("changeComment") as string | null;
     const visibleToRolesStr = formData.get("visibleToRoles") as string | null;
+    const requiresReadConfirmation = formData.get("requiresReadConfirmation") === "true";
     const ownerIdRaw = (formData.get("ownerId") as string | null) || null;
     const templateIdRaw = (formData.get("templateId") as string | null) || null;
     const reviewIntervalRaw = formData.get("reviewIntervalMonths") as string | null;
@@ -275,6 +306,7 @@ export async function createDocument(formData: FormData) {
         actSummary: validated.actSummary ?? null,
         nextReviewDate,
         visibleToRoles: visibleToRoles || null,
+        requiresReadConfirmation,
         versions: {
           create: {
             tenantId: validated.tenantId,
@@ -529,6 +561,9 @@ export async function updateDocument(input: any) {
       updateData.visibleToRoles =
         validated.visibleToRoles && validated.visibleToRoles.length > 0 ? validated.visibleToRoles : null;
     }
+    if (hasField("requiresReadConfirmation")) {
+      updateData.requiresReadConfirmation = validated.requiresReadConfirmation === true;
+    }
     if (hasField("ownerId")) {
       updateData.ownerId = validated.ownerId ?? null;
     }
@@ -565,7 +600,16 @@ export async function updateDocument(input: any) {
 
     revalidatePath(`/dashboard/documents`);
     revalidatePath(`/dashboard/documents/${validated.id}`);
+    revalidatePath("/ansatt");
+    revalidatePath("/ansatt/dokumenter");
     triggerRealtimeEvent(updated.tenantId, "document-updated");
+    if (
+      updated.status === "APPROVED" &&
+      updated.requiresReadConfirmation &&
+      !document.requiresReadConfirmation
+    ) {
+      await notifyReadConfirmation(updated);
+    }
     return { success: true, data: updated };
   } catch (error: any) {
     console.error("Update document error:", error);
@@ -628,7 +672,12 @@ export async function approveDocument(input: any) {
 
     revalidatePath(`/dashboard/documents`);
     revalidatePath(`/dashboard/documents/${validated.id}`);
+    revalidatePath("/ansatt");
+    revalidatePath("/ansatt/dokumenter");
     triggerRealtimeEvent(document.tenantId, "document-updated");
+    if (approved.requiresReadConfirmation) {
+      await notifyReadConfirmation(approved);
+    }
     return { success: true, data: approved };
   } catch (error: any) {
     console.error("Approve document error:", error);
@@ -765,6 +814,9 @@ export async function confirmDocumentRead(documentId: string) {
     });
 
     revalidatePath(`/ansatt/dokumenter/${documentId}`);
+    revalidatePath("/ansatt");
+    revalidatePath("/ansatt/dokumenter");
+    revalidatePath("/dashboard");
     revalidatePath(`/dashboard/documents/${documentId}`);
 
     return { success: true, data: confirmation };

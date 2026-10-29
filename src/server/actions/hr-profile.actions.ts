@@ -5,6 +5,8 @@ import { ZodError, z } from "zod";
 import { prisma } from "@/lib/db";
 import { getAuthContext } from "@/lib/server-authorization";
 import { assertNoManagerCycle } from "@/lib/incident-notification-routing";
+import { isLeaderScopedRole } from "@/features/personnel/lib/leader-scope";
+import { canViewEmployee } from "@/server/lib/leader-employees";
 
 const EmployeeDirectorySchema = z.object({
   userId: z.string().min(1),
@@ -32,6 +34,12 @@ const EmployeeDirectorySchema = z.object({
   employeeNumber: z.string().max(40).nullable().optional(),
   departmentId: z.string().nullable().optional(),
   managerId: z.string().nullable().optional(),
+  employmentType: z.enum(["FAST", "MIDLERTIDIG", "SKOLEUNGDOM"]).optional(),
+  temporaryBasis: z
+    .enum(["MIDLERTIDIG_KARAKTER", "VIKARIAT", "PRAKSIS", "ARBEIDSMARKEDSTILTAK", "IDRETT"])
+    .nullable()
+    .optional(),
+  employmentEndsAt: z.string().nullable().optional(),
 });
 
 type NextOfKinInput = {
@@ -81,6 +89,9 @@ export async function updateEmployeeHrProfile(raw: {
   employeeNumber?: string | null;
   departmentId?: string | null;
   managerId?: string | null;
+  employmentType?: "FAST" | "MIDLERTIDIG" | "SKOLEUNGDOM";
+  temporaryBasis?: "MIDLERTIDIG_KARAKTER" | "VIKARIAT" | "PRAKSIS" | "ARBEIDSMARKEDSTILTAK" | "IDRETT" | null;
+  employmentEndsAt?: string | null;
 }) {
   const auth = await getAuthContext();
   if (!auth) return fail("Ikke innlogget");
@@ -99,10 +110,26 @@ export async function updateEmployeeHrProfile(raw: {
   if (!membership) return fail("Brukeren er ikke medlem i virksomheten");
 
   const isDirectManager = membership.managerId === auth.userId;
-  if (!isSelf && !canHr && !canDept && !isDirectManager) {
+  const leadsEmployee =
+    isLeaderScopedRole(auth.role) &&
+    (await canViewEmployee({
+      tenantId: auth.tenantId,
+      viewerId: auth.userId,
+      role: auth.role,
+      employeeId: input.userId,
+      departmentId: auth.departmentId,
+    }));
+  if (!isSelf && !canHr && !canDept && !isDirectManager && !leadsEmployee) {
     return fail("Du har ikke tilgang til å oppdatere personalopplysninger");
   }
-  if (!isSelf && canDept && !canHr && !isDirectManager && membership.departmentId !== auth.departmentId) {
+  if (
+    !isSelf &&
+    canDept &&
+    !canHr &&
+    !isDirectManager &&
+    !leadsEmployee &&
+    membership.departmentId !== auth.departmentId
+  ) {
     return fail("Du kan bare oppdatere ansatte i egen avdeling");
   }
 
@@ -166,6 +193,26 @@ export async function updateEmployeeHrProfile(raw: {
           ...(input.employeeNumber !== undefined
             ? { employeeNumber: emptyToNull(input.employeeNumber) }
             : {}),
+        },
+      });
+    }
+
+    if (canHr && input.employmentType) {
+      if (input.employmentType === "MIDLERTIDIG" && (!input.temporaryBasis || !input.employmentEndsAt)) {
+        return fail("Midlertidig ansettelse krever grunnlag og sluttdato (AML § 14-9)");
+      }
+      if (input.employmentType === "SKOLEUNGDOM" && !input.employmentEndsAt) {
+        return fail("Skoleungdom krever sluttdato");
+      }
+      await prisma.userTenant.update({
+        where: { userId_tenantId: { userId: input.userId, tenantId: auth.tenantId } },
+        data: {
+          employmentType: input.employmentType,
+          temporaryBasis: input.employmentType === "MIDLERTIDIG" ? input.temporaryBasis ?? null : null,
+          employmentEndsAt:
+            input.employmentType === "FAST" || !input.employmentEndsAt
+              ? null
+              : new Date(input.employmentEndsAt),
         },
       });
     }

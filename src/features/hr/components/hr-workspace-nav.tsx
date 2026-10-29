@@ -8,6 +8,7 @@ import {
   FolderArchive,
   LayoutDashboard,
   MessageSquare,
+  UserMinus,
   UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,7 @@ const ICONS = {
   "/dashboard/personalarkiv": FolderArchive,
   "/dashboard/fravaer": CalendarDays,
   "/dashboard/onboarding": UserPlus,
+  "/dashboard/offboarding": UserMinus,
   "/dashboard/medarbeidersamtale": MessageSquare,
   "/dashboard/avdelinger": Building2,
 } as const;

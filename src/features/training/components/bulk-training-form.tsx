@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,12 +39,18 @@ import {
 } from "lucide-react";
 import type { CourseTemplate } from "@prisma/client";
 
+interface RenewalPreset {
+  courseKey: string;
+  userIds: string[];
+}
+
 interface BulkTrainingFormProps {
   tenantId: string;
   users: Array<{ id: string; name: string | null; email: string }>;
   courseTemplates: CourseTemplate[];
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  renewalPreset?: RenewalPreset | null;
 }
 
 interface ParticipantRow {
@@ -68,8 +75,10 @@ export function BulkTrainingForm({
   courseTemplates,
   open: controlledOpen,
   onOpenChange,
+  renewalPreset,
 }: BulkTrainingFormProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const [internalOpen, setInternalOpen] = useState(false);
@@ -96,6 +105,31 @@ export function BulkTrainingForm({
   const [diplomaFiles, setDiplomaFiles] = useState<Map<string, File>>(new Map());
 
   const selectedCourse = courseTemplates.find((c) => c.courseKey === courseKey);
+  const presetKey = renewalPreset
+    ? `${renewalPreset.courseKey}:${renewalPreset.userIds.join(",")}`
+    : "";
+
+  useEffect(() => {
+    if (!open || !renewalPreset) return;
+    const course = courseTemplates.find((item) => item.courseKey === renewalPreset.courseKey);
+    setCourseKey(renewalPreset.courseKey);
+    if (course) {
+      setTitle(course.title);
+      setProvider(course.provider || "");
+      setIsRequired(course.isRequired);
+      if (course.validityYears) {
+        const next = new Date();
+        next.setFullYear(next.getFullYear() + course.validityYears);
+        setValidUntil(next.toISOString().split("T")[0]);
+      } else {
+        setValidUntil("");
+      }
+    }
+    setCompletedAt(new Date().toISOString().split("T")[0]);
+    setSelectedUserIds(new Set(renewalPreset.userIds));
+    setDiplomaFiles(new Map());
+    setStep(1);
+  }, [open, presetKey, courseTemplates, renewalPreset]);
 
   const filteredUsers = users.filter((u) => {
     const q = search.toLowerCase();
@@ -226,11 +260,12 @@ export function BulkTrainingForm({
 
       if (result.success) {
         toast({
-          title: "Opplæring registrert",
+          title: renewalPreset ? "Kurs fornyet" : "Opplæring registrert",
           description: `${selectedUserIds.size} ansatte ble registrert på ${title}`,
           className: "bg-green-50 border-green-200",
         });
         handleClose(false);
+        await queryClient.invalidateQueries({ queryKey: ["training"] });
         router.refresh();
       } else {
         toast({
@@ -269,10 +304,12 @@ export function BulkTrainingForm({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            Massregistrer opplæring
+            {renewalPreset ? "Forny kurs" : "Massregistrer opplæring"}
           </DialogTitle>
           <DialogDescription>
-            Registrer ett kurs for flere ansatte på én gang
+            {renewalPreset
+              ? "Bekreft dato og gyldighet, og last opp diplom for hver ansatt. Gyldig til følger kursets intervall."
+              : "Registrer ett kurs for flere ansatte på én gang"}
           </DialogDescription>
         </DialogHeader>
 

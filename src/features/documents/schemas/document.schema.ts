@@ -29,6 +29,7 @@ export const updateDocumentSchema = z.object({
   version: z.string().optional(),
   status: z.nativeEnum(DocStatus).optional(),
   visibleToRoles: z.array(z.string()).nullable().optional(),
+  requiresReadConfirmation: z.boolean().optional(),
   ownerId: z.string().cuid().nullable().optional(),
   templateId: z.string().cuid().nullable().optional(),
   reviewIntervalMonths: z.number().int().min(1).max(36).optional(),

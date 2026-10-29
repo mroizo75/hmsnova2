@@ -10,6 +10,7 @@ import { GraduationCap, Clock, CheckCircle, AlertCircle, BarChart3 } from "lucid
 import Link from "next/link";
 import { Progress } from "@/components/ui/progress";
 import { fetchUserGapAnalysis } from "@/server/queries/competence.queries";
+import { trainingAwaitsApproval } from "@/features/training/lib/training-approval";
 
 export default async function AnsattOpplaering() {
   const session = await getServerSession(authOptions);
@@ -34,6 +35,7 @@ export default async function AnsattOpplaering() {
 
   const gapAnalysis = await fetchUserGapAnalysis(session.user.id).catch(() => null);
   const assignedRequirements = gapAnalysis?.items ?? [];
+  const hasPendingOwnSubmission = myTrainings.some((training) => trainingAwaitsApproval(training));
 
   return (
     <div className="space-y-6">
@@ -56,14 +58,15 @@ export default async function AnsattOpplaering() {
         </Link>
       </div>
 
-      {/* Info om godkjenning */}
-      <Card className="border-l-4 border-l-blue-500 bg-blue-50">
-        <CardContent className="p-4">
-          <p className="text-sm text-blue-900">
-            <strong>{t("approvalInfo.title")}</strong> {t("approvalInfo.description")}
-          </p>
-        </CardContent>
-      </Card>
+      {hasPendingOwnSubmission && (
+        <Card className="border-l-4 border-l-blue-500 bg-blue-50">
+          <CardContent className="p-4">
+            <p className="text-sm text-blue-900">
+              <strong>{t("approvalInfo.title")}</strong> {t("approvalInfo.description")}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Påkrevd opplæring */}
       <Card>
@@ -150,12 +153,12 @@ export default async function AnsattOpplaering() {
                       </div>
 
                       {/* Status */}
-                      {training.effectiveness === null ? (
+                      {trainingAwaitsApproval(training) ? (
                         <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
                           <AlertCircle className="h-3 w-3 mr-1" />
                           {t("myRecords.pendingApproval")}
                         </Badge>
-                      ) : (
+                      ) : training.effectiveness ? (
                         <div className="flex flex-col gap-1">
                           <Badge variant="secondary" className="bg-green-100 text-green-700 w-fit">
                             <CheckCircle className="h-3 w-3 mr-1" />
@@ -167,6 +170,11 @@ export default async function AnsattOpplaering() {
                             </span>
                           )}
                         </div>
+                      ) : (
+                        <Badge variant="secondary" className="bg-green-100 text-green-700 w-fit">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          {t("myRecords.registered")}
+                        </Badge>
                       )}
                     </div>
                   </div>

@@ -53,22 +53,31 @@ export function RiskAssessmentImportCard({
   async function handlePreview() {
     if (!file) return;
     setIsParsing(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    const result = await previewRiskAssessmentImport(formData);
-    setIsParsing(false);
-    if ("error" in result) {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const result = await previewRiskAssessmentImport(formData);
+      if ("error" in result) {
+        toast({
+          title: "Kunne ikke lese risikovurderingen",
+          description: result.error,
+          variant: "destructive",
+        });
+        return;
+      }
+      setPreview({
+        ...result.data,
+        rows: result.data.rows.map((row) => ({ ...row, selected: true })),
+      });
+    } catch {
       toast({
         title: "Kunne ikke lese risikovurderingen",
-        description: result.error,
+        description: "Tolking av dokumentet ble avbrutt. Prøv igjen.",
         variant: "destructive",
       });
-      return;
+    } finally {
+      setIsParsing(false);
     }
-    setPreview({
-      ...result.data,
-      rows: result.data.rows.map((row) => ({ ...row, selected: true })),
-    });
   }
 
   function updateRow(index: number, patch: Partial<EditableRow>) {
@@ -99,30 +108,39 @@ export function RiskAssessmentImportCard({
     }
 
     setIsConfirming(true);
-    const result = await confirmRiskAssessmentImport({
-      title: preview.title,
-      assessmentYear: preview.assessmentYear,
-      participants: preview.participants,
-      rows: selectedRows,
-      fileKey: preview.fileKey,
-      fileName: preview.fileName,
-      mimeType: preview.mimeType,
-      ownerId,
-    });
-    setIsConfirming(false);
-    if ("error" in result) {
+    try {
+      const result = await confirmRiskAssessmentImport({
+        title: preview.title,
+        assessmentYear: preview.assessmentYear,
+        participants: preview.participants,
+        rows: selectedRows,
+        fileKey: preview.fileKey,
+        fileName: preview.fileName,
+        mimeType: preview.mimeType,
+        ownerId,
+      });
+      if ("error" in result) {
+        toast({
+          title: "Importen ble ikke lagret",
+          description: result.error,
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({
+        title: "Risikovurderingen er importert",
+        description: "Den må verifiseres av en godkjenner før den kan godkjennes.",
+      });
+      router.push(`/dashboard/risks/assessment/${result.data.id}`);
+    } catch {
       toast({
         title: "Importen ble ikke lagret",
-        description: result.error,
+        description: "Lagringen ble avbrutt. Prøv igjen.",
         variant: "destructive",
       });
-      return;
+    } finally {
+      setIsConfirming(false);
     }
-    toast({
-      title: "Risikovurderingen er importert",
-      description: "Den må verifiseres av en godkjenner før den kan godkjennes.",
-    });
-    router.push(`/dashboard/risks/assessment/${result.data.id}`);
   }
 
   return (

@@ -1,36 +1,44 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, FileText } from "lucide-react";
 import { BoardingList } from "./boarding-list";
+import type { BoardingType } from "@prisma/client";
 
 interface BoardingContentProps {
+  type: BoardingType;
   boardings: any[];
   canCreate: boolean;
   canManageTemplates: boolean;
 }
 
-export function BoardingContent({ boardings, canCreate, canManageTemplates }: BoardingContentProps) {
-  const [tab, setTab] = useState<string>("all");
+const COPY: Record<BoardingType, { title: string; description: string; create: string }> = {
+  ONBOARDING: {
+    title: "Onboarding",
+    description: "Innmelding av nyansatte. Arbeidsavtale innen 7 dager, AML § 14-5 og § 14-6.",
+    create: "Ny onboarding",
+  },
+  OFFBOARDING: {
+    title: "Offboarding",
+    description: "Utmelding. Sluttattest etter AML § 15-15 og avslutning av tilganger.",
+    create: "Ny offboarding",
+  },
+};
 
-  const filtered = tab === "all"
-    ? boardings
-    : boardings.filter((b) => b.type === tab);
-
-  const activeCount = boardings.filter((b) => b.status === "IN_PROGRESS").length;
+export function BoardingContent({ type, boardings, canCreate, canManageTemplates }: BoardingContentProps) {
+  const copy = COPY[type];
+  const activeCount = boardings.filter((b) => b.status === "IN_PROGRESS" || b.status === "NOT_STARTED").length;
   const completedCount = boardings.filter((b) => b.status === "COMPLETED").length;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Onboarding & offboarding</h1>
+          <h1 className="text-2xl font-bold">{copy.title}</h1>
           <p className="text-muted-foreground mt-1">
-            {activeCount} aktive prosesser, {completedCount} fullført
+            {copy.description} {activeCount} pågår, {completedCount} fullført.
           </p>
         </div>
         <div className="flex gap-2">
@@ -43,10 +51,10 @@ export function BoardingContent({ boardings, canCreate, canManageTemplates }: Bo
             </Link>
           )}
           {canCreate && (
-            <Link href="/dashboard/onboarding/ny">
+            <Link href={`/dashboard/onboarding/ny?type=${type}`}>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
-                Ny prosess
+                {copy.create}
               </Button>
             </Link>
           )}
@@ -80,20 +88,11 @@ export function BoardingContent({ boardings, canCreate, canManageTemplates }: Bo
         </Card>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="all">Alle</TabsTrigger>
-          <TabsTrigger value="ONBOARDING">Onboarding</TabsTrigger>
-          <TabsTrigger value="OFFBOARDING">Offboarding</TabsTrigger>
-        </TabsList>
-        <TabsContent value={tab} className="mt-4">
-          <Card>
-            <CardContent className="p-0">
-              <BoardingList boardings={filtered} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <Card>
+        <CardContent className="p-0">
+          <BoardingList boardings={boardings} />
+        </CardContent>
+      </Card>
     </div>
   );
 }

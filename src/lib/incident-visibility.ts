@@ -81,6 +81,7 @@ export function canRoleSeeIncident(opts: {
   reporterDepartmentId?: string | null;
   viewerDepartmentId?: string | null;
   incidentDepartmentId?: string | null;
+  viewerDepartmentIds?: readonly string[] | null;
   responsibleId?: string | null;
   projectId?: string | null;
   managedProjectIds?: readonly string[];
@@ -105,14 +106,14 @@ export function canRoleSeeIncident(opts: {
   }
 
   if (opts.role === "LEDER") {
-    if (
-      opts.incidentDepartmentId &&
-      opts.incidentDepartmentId === opts.viewerDepartmentId
-    ) {
-      return true;
-    }
-    if (!opts.viewerDepartmentId) return false;
-    return opts.reporterDepartmentId === opts.viewerDepartmentId;
+    const departments = opts.viewerDepartmentIds?.length
+      ? opts.viewerDepartmentIds
+      : opts.viewerDepartmentId
+        ? [opts.viewerDepartmentId]
+        : [];
+    if (opts.incidentDepartmentId && departments.includes(opts.incidentDepartmentId)) return true;
+    if (departments.length === 0) return false;
+    return Boolean(opts.reporterDepartmentId && departments.includes(opts.reporterDepartmentId));
   }
 
   return true;
@@ -125,6 +126,7 @@ export function prismaIncidentWhereForRole(opts: {
   canReadIncidents: boolean;
   canReadOwnIncidents: boolean;
   departmentId: string | null;
+  departmentIds?: string[];
   departmentUserIds?: string[];
   managedProjectIds?: readonly string[];
 }): Record<string, unknown> | null {
@@ -166,7 +168,9 @@ export function prismaIncidentWhereForRole(opts: {
           ? [{ reportedBy: { in: ids } }, { reportedForUserId: { in: ids } }]
           : []),
         { reportedBy: opts.userId },
-        ...(opts.departmentId ? [{ departmentId: opts.departmentId }] : []),
+        ...((opts.departmentIds?.length ? opts.departmentIds : opts.departmentId ? [opts.departmentId] : []).length > 0
+          ? [{ departmentId: { in: opts.departmentIds?.length ? opts.departmentIds : [opts.departmentId as string] } }]
+          : []),
         ...assignedOrProject,
       ],
     };

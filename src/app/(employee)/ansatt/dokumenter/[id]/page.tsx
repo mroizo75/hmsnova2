@@ -158,28 +158,31 @@ export default async function AnsattDocumentDetailPage({ params }: { params: Pro
         </CardContent>
       </Card>
 
-      {/* Lesebekreftelse - IK-HMS § 5 */}
-      <Card className="border-2 border-green-200 bg-green-50/50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-green-600" />
-            {t("confirmation.title")}
-          </CardTitle>
-          <CardDescription>{t("confirmation.description")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <DocumentConfirmReadButton
-            documentId={document.id}
-            initialConfirmed={!!existingConfirmation}
-            initialConfirmedAt={existingConfirmation?.confirmedAt.toISOString() ?? null}
-            labels={{
-              confirm: t("confirmation.confirmButton"),
-              confirmed: t("confirmation.confirmedBadge"),
-              confirmedAt: t("confirmation.confirmedAtLabel"),
-            }}
-          />
-        </CardContent>
-      </Card>
+      {document.requiresReadConfirmation && (
+        <Card className="border-2 border-amber-300 bg-amber-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-amber-700" />
+              {t("confirmation.title")}
+            </CardTitle>
+            <CardDescription>
+              Kvitter for at du har lest denne versjonen, eller at du vet hvor dokumentet ligger.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <DocumentConfirmReadButton
+              documentId={document.id}
+              initialConfirmed={!!existingConfirmation}
+              initialConfirmedAt={existingConfirmation?.confirmedAt.toISOString() ?? null}
+              labels={{
+                confirm: "Jeg har lest den, eller vet hvor den ligger",
+                confirmed: t("confirmation.confirmedBadge"),
+                confirmedAt: t("confirmation.confirmedAtLabel"),
+              }}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Dokumentinformasjon */}
       <Card>

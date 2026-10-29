@@ -12,6 +12,7 @@ import { DashboardProviders } from "@/components/dashboard-providers";
 import { OfflineSyncBannerWrapper } from "@/components/offline-sync-banner-wrapper";
 import { widgetIdsToMenuPaths } from "@/lib/menu-widget-sync";
 import { aliasDashboardMenuHrefs } from "@/lib/legal-link-repair";
+import { PendingReadConfirmations } from "@/features/documents/components/pending-read-confirmations";
 export default async function DashboardLayout({
   children,
 }: {
@@ -102,6 +103,7 @@ export default async function DashboardLayout({
           <div className="min-w-0 w-full">
             <AppBreadcrumbs />
             <OfflineSyncBannerWrapper />
+            <PendingReadConfirmations hrefBase="/dashboard/documents" />
             {children}
           </div>
         </main>

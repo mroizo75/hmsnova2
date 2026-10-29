@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand, HeadObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import path from "path";
 import type { StorageAdapter } from "@/lib/storage-types";
@@ -77,6 +77,26 @@ export class R2Storage implements StorageAdapter {
         );
       }
       return null;
+    }
+  }
+
+  async exists(key: string): Promise<boolean> {
+    try {
+      await this.client.send(
+        new HeadObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+        }),
+      );
+      return true;
+    } catch (error) {
+      if (!isNotFoundStorageError(error)) {
+        console.error(
+          "Error checking file in R2:",
+          error instanceof Error ? error.message : "ukjent feil",
+        );
+      }
+      return false;
     }
   }
 

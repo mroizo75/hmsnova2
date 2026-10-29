@@ -91,6 +91,7 @@ model User {
   sessions                        Session[]
   tenants                         UserTenant[]
   managedUserTenants              UserTenant[]                   @relation("UserTenantManager") // Ansatte denne brukeren er nærmeste leder for
+  ledDepartments                  Department[]                   @relation("DepartmentLeader")
   incidentComments                IncidentComment[]            @relation("IncidentCommentAuthor")
   blogPosts                       BlogPost[] // Blogg-artikler skrevet av bruker
   passwordResetTokens             PasswordResetToken[]
@@ -860,15 +861,40 @@ model Department {
   code      String?
   isActive  Boolean @default(true)
   sortOrder Int     @default(0)
+  /// Overordnet avdeling. Lederen der ser også underavdelingene (AML § 3-1).
+  parentId  String?
+  /// Avdelingsleder. Samme person kan lede flere avdelinger.
+  leaderId  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  parent       Department?  @relation("DepartmentTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children     Department[] @relation("DepartmentTree")
+  leader       User?        @relation("DepartmentLeader", fields: [leaderId], references: [id], onDelete: SetNull)
   memberships  UserTenant[]
   incidents    Incident[]
 
   @@unique([tenantId, name])
   @@index([tenantId])
+  @@index([parentId])
+  @@index([leaderId])
+}
+
+/// AML § 14-9: fast er hovedregelen. Skoleungdom er tidsbegrenset elevjobb.
+enum EmploymentType {
+  FAST
+  MIDLERTIDIG
+  SKOLEUNGDOM
+}
+
+/// AML § 14-9 (2) bokstav a–e.
+enum TemporaryBasis {
+  MIDLERTIDIG_KARAKTER
+  VIKARIAT
+  PRAKSIS
+  ARBEIDSMARKEDSTILTAK
+  IDRETT
 }
 
 model EmployeeHrProfile {
@@ -915,6 +941,11 @@ model UserTenant {
   // Organisasjonshierarki (AML § 3-1: HMS-ansvar skal være plassert i linjen)
   managerId String? // UserId for nærmeste leder. Null = fall tilbake til rollebasert varsling
   position  String? // Stillingstittel, f.eks. "Tømrer", "Prosjektleder"
+
+  /// AML § 14-9 og kap. 11. Fast er hovedregelen.
+  employmentType   EmploymentType  @default(FAST)
+  temporaryBasis   TemporaryBasis?
+  employmentEndsAt DateTime?
 
   /// Tilleggsroller utover hovedrollen i `role`. Kommaseparert, f.eks. "HMS,VERNEOMBUD".
   /// Verneombud registreres etter AML § 6-2. HMS-ansvarlig etter AML § 3-1.
@@ -1000,6 +1031,8 @@ model Document {
   checkSummary            String?      @db.Text
   actSummary              String?      @db.Text
   visibleToRoles          Json? // Array av roller som skal se dokumentet ["ANSATT", "LEDER"]. Null = alle
+  /// IK-HMS § 5: ansatte skal kjenne til dokumentet. Ny versjon krever ny kvittering.
+  requiresReadConfirmation Boolean @default(false)
   corporateGroupContentId String?
   isLockedByGroup         Boolean      @default(false)
   createdAt               DateTime     @default(now())

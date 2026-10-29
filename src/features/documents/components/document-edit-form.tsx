@@ -73,6 +73,9 @@ export function DocumentEditForm({ document, owners, templates, returnTo = "/das
   })();
 
   const [selectedRoles, setSelectedRoles] = useState<string[]>(initialRoles);
+  const [requiresReadConfirmation, setRequiresReadConfirmation] = useState(
+    document.requiresReadConfirmation,
+  );
   const [title, setTitle] = useState(document.title);
   const [kind, setKind] = useState(document.kind);
   const [version, setVersion] = useState(document.version);
@@ -133,6 +136,7 @@ export function DocumentEditForm({ document, owners, templates, returnTo = "/das
         kind,
         version,
         visibleToRoles: selectedRoles.length > 0 ? selectedRoles : null,
+        requiresReadConfirmation,
         ownerId: selectedOwner === NO_OWNER_VALUE ? null : selectedOwner,
         templateId: selectedTemplate === NO_TEMPLATE_VALUE ? null : selectedTemplate,
         reviewIntervalMonths: reviewInterval,
@@ -356,6 +360,26 @@ export function DocumentEditForm({ document, owners, templates, returnTo = "/das
                 onChange={(event) => setPdca((prev) => ({ ...prev, act: event.target.value }))}
                 disabled={loading}
               />
+            </div>
+          </div>
+
+          <div className="rounded-xl border p-4">
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="requires-read-confirmation"
+                checked={requiresReadConfirmation}
+                onCheckedChange={(checked) => setRequiresReadConfirmation(checked === true)}
+                disabled={loading}
+              />
+              <div>
+                <Label htmlFor="requires-read-confirmation" className="cursor-pointer">
+                  Krev lesebekreftelse
+                </Label>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Alle som kan se dokumentet må kvittere for at de har lest det, eller at de vet hvor det ligger.
+                  En ny godkjent versjon krever ny kvittering.
+                </p>
+              </div>
             </div>
           </div>
 

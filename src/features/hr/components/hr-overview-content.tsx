@@ -72,8 +72,14 @@ export function HrOverviewContent({ overview }: { overview: HrOverview }) {
     {
       href: "/dashboard/onboarding",
       title: "Onboarding",
-      value: overview.activeBoardings,
-      hint: "Pågående inn- og utmelding",
+      value: overview.activeOnboardings,
+      hint: "Pågående innmelding",
+    },
+    {
+      href: "/dashboard/offboarding",
+      title: "Offboarding",
+      value: overview.activeOffboardings,
+      hint: "Pågående utmelding",
     },
     {
       href: "/dashboard/medarbeidersamtale",

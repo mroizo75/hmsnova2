@@ -3,8 +3,9 @@
 import { prisma } from "@/lib/db";
 import { getAuthContext } from "@/lib/server-authorization";
 import { canAccessPersonnelFile } from "@/features/personnel/lib/personnel-categories";
-import { listVisibleEmployeeIds } from "@/server/lib/leader-employees";
-import { isLeaderScopedRole, managedEmployeeFilter } from "@/features/personnel/lib/leader-scope";
+import { canViewEmployee, listVisibleEmployeeIds } from "@/server/lib/leader-employees";
+import { isLeaderScopedRole } from "@/features/personnel/lib/leader-scope";
+import { leaderDepartmentIds } from "@/server/queries/department.queries";
 import { templateKeyForMilestone } from "@/features/employee-reviews/lib/sick-leave-templates";
 
 export type HrOverviewAttention = {
@@ -30,7 +31,8 @@ export type HrOverview = {
   employeeCount: number | null;
   pendingAbsences: number | null;
   activeSickLeaves: number | null;
-  activeBoardings: number | null;
+  activeOnboardings: number | null;
+  activeOffboardings: number | null;
   upcomingReviews: number | null;
   departmentCount: number | null;
   attention: HrOverviewAttention[];
@@ -49,7 +51,12 @@ export async function fetchHrOverview(): Promise<HrOverview | null> {
   const canReviews =
     auth.permissions.canReadAllEmployeeReviews || auth.permissions.canReadOwnEmployeeReviews;
 
-  const visibleIds = await listVisibleEmployeeIds(auth);
+  const visibleIds = await listVisibleEmployeeIds({
+    tenantId: auth.tenantId,
+    userId: auth.userId,
+    role: auth.role,
+    departmentId: auth.departmentId,
+  });
 
   const absenceWhere = visibleIds
     ? { tenantId: auth.tenantId, userId: { in: visibleIds } }
@@ -76,7 +83,7 @@ export async function fetchHrOverview(): Promise<HrOverview | null> {
     employeeCount,
     pendingAbsences,
     activeSickLeaves,
-    activeBoardings,
+    boardingGroups,
     upcomingReviews,
     departmentCount,
     pendingAbsenceRows,
@@ -89,7 +96,7 @@ export async function fetchHrOverview(): Promise<HrOverview | null> {
           where: {
             tenantId: auth.tenantId,
             ...(visibleIds
-              ? managedEmployeeFilter(auth.userId)
+              ? { userId: { in: visibleIds.length > 0 ? visibleIds : ["__none__"] } }
               : auth.permissions.canReadAllPersonnelFiles
                 ? {}
                 : { departmentId: auth.departmentId ?? "__none__" }),
@@ -111,10 +118,12 @@ export async function fetchHrOverview(): Promise<HrOverview | null> {
         })
       : Promise.resolve(null),
     canBoarding
-      ? prisma.boarding.count({
+      ? prisma.boarding.groupBy({
+          by: ["type"],
           where: { ...boardingWhere, status: { in: ["NOT_STARTED", "IN_PROGRESS"] } },
+          _count: { _all: true },
         })
-      : Promise.resolve(null),
+      : Promise.resolve([]),
     canReviews
       ? prisma.employeeReview.count({
           where: { ...reviewWhere, status: { in: ["PLANLAGT", "FORBEREDT"] } },
@@ -125,7 +134,15 @@ export async function fetchHrOverview(): Promise<HrOverview | null> {
           where: {
             tenantId: auth.tenantId,
             isActive: true,
-            ...(auth.role === "LEDER" && auth.departmentId ? { id: auth.departmentId } : {}),
+            ...(auth.role === "LEDER"
+              ? {
+                  id: {
+                    in: await leaderDepartmentIds(auth.tenantId, auth.userId, auth.departmentId).then((ids) =>
+                      ids.length > 0 ? ids : ["__none__"],
+                    ),
+                  },
+                }
+              : {}),
           },
         })
       : Promise.resolve(null),
@@ -188,7 +205,7 @@ export async function fetchHrOverview(): Promise<HrOverview | null> {
     })),
     ...boardingRows.map((row) => ({
       id: row.id,
-      href: `/dashboard/onboarding/${row.id}`,
+      href: row.type === "OFFBOARDING" ? `/dashboard/onboarding/${row.id}` : `/dashboard/onboarding/${row.id}`,
       title: row.employee.name ?? row.employee.email,
       meta: row.type === "OFFBOARDING" ? "Offboarding pågår" : "Onboarding pågår",
       kind: "boarding" as const,
@@ -202,11 +219,17 @@ export async function fetchHrOverview(): Promise<HrOverview | null> {
     })),
   ].slice(0, 8);
 
+  const countFor = (type: "ONBOARDING" | "OFFBOARDING") =>
+    canBoarding
+      ? (boardingGroups.find((group) => group.type === type)?._count._all ?? 0)
+      : null;
+
   return {
     employeeCount,
     pendingAbsences,
     activeSickLeaves,
-    activeBoardings,
+    activeOnboardings: countFor("ONBOARDING"),
+    activeOffboardings: countFor("OFFBOARDING"),
     upcomingReviews,
     departmentCount,
     attention,
@@ -241,7 +264,13 @@ export async function fetchEmployeeHrThread(userId: string): Promise<EmployeeHrT
   if (!membership) return null;
 
   const allowed = isLeaderScopedRole(auth.role)
-    ? auth.userId === userId || membership.managerId === auth.userId
+    ? await canViewEmployee({
+        tenantId: auth.tenantId,
+        viewerId: auth.userId,
+        role: auth.role,
+        employeeId: userId,
+        departmentId: auth.departmentId,
+      })
     : canAccessPersonnelFile({
         viewerId: auth.userId,
         employeeId: userId,

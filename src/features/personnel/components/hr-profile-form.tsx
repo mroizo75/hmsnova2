@@ -15,6 +15,13 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { updateEmployeeHrProfile } from "@/server/actions/hr-profile.actions";
 import type { HrProfileRow } from "@/server/queries/personnel.queries";
+import {
+  EMPLOYMENT_TYPE_LABEL,
+  TEMPORARY_BASIS_LABEL,
+  employmentAlerts,
+  type EmploymentType,
+  type TemporaryBasis,
+} from "@/features/personnel/lib/employment";
 
 interface OrgOption {
   id: string;
@@ -74,6 +81,9 @@ export function HrProfileForm({
   const [languages, setLanguages] = useState(profile.languages.join(", "));
   const [hrNotes, setHrNotes] = useState(profile.hrNotes ?? "");
   const [startedAt, setStartedAt] = useState(toDateInput(profile.startedAt));
+  const [employmentType, setEmploymentType] = useState<EmploymentType>(profile.employmentType ?? "FAST");
+  const [temporaryBasis, setTemporaryBasis] = useState<TemporaryBasis>(profile.temporaryBasis ?? "MIDLERTIDIG_KARAKTER");
+  const [employmentEndsAt, setEmploymentEndsAt] = useState(toDateInput(profile.employmentEndsAt ?? null));
   const [dateOfBirth, setDateOfBirth] = useState(toDateInput(profile.dateOfBirth));
   const [kin, setKin] = useState([
     profile.nextOfKin[0] ?? { name: "", relation: "", phone: "" },
@@ -100,6 +110,9 @@ export function HrProfileForm({
           : undefined,
         hrNotes: canEditNotes ? hrNotes : undefined,
         startedAt: canEditHrFields ? startedAt || null : undefined,
+        employmentType: canEditOrg ? employmentType : undefined,
+        temporaryBasis: canEditOrg && employmentType === "MIDLERTIDIG" ? temporaryBasis : null,
+        employmentEndsAt: canEditOrg ? employmentEndsAt || null : undefined,
         dateOfBirth: canEditBirthDate ? dateOfBirth || null : undefined,
         nextOfKin: canEditKin
           ? kin.map((item) => ({
@@ -234,6 +247,53 @@ export function HrProfileForm({
               onChange={(event) => setStartedAt(event.target.value)}
             />
           </div>
+          )}
+          {canEditOrg && (
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Ansettelsesform</Label>
+              <Select value={employmentType} onValueChange={(value) => setEmploymentType(value as EmploymentType)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(EMPLOYMENT_TYPE_LABEL) as EmploymentType[]).map((type) => (
+                    <SelectItem key={type} value={type}>{EMPLOYMENT_TYPE_LABEL[type]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {employmentType === "MIDLERTIDIG" && (
+                <Select value={temporaryBasis} onValueChange={(value) => setTemporaryBasis(value as TemporaryBasis)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(TEMPORARY_BASIS_LABEL) as TemporaryBasis[]).map((basis) => (
+                      <SelectItem key={basis} value={basis}>{TEMPORARY_BASIS_LABEL[basis]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {employmentType !== "FAST" && (
+                <div className="space-y-2">
+                  <Label htmlFor="employmentEndsAt">Sluttdato</Label>
+                  <Input
+                    id="employmentEndsAt"
+                    type="date"
+                    value={employmentEndsAt}
+                    onChange={(event) => setEmploymentEndsAt(event.target.value)}
+                  />
+                </div>
+              )}
+              {employmentAlerts({
+                employmentType,
+                temporaryBasis: employmentType === "MIDLERTIDIG" ? temporaryBasis : null,
+                startedAt: startedAt ? new Date(startedAt) : null,
+                endsAt: employmentEndsAt ? new Date(employmentEndsAt) : null,
+                dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+              }).map((alert) => (
+                <p key={alert.text} className="text-sm text-amber-800">{alert.text}</p>
+              ))}
+            </div>
           )}
           {(canEditBirthDate || profile.dateOfBirth) && (
             <div className="space-y-2">

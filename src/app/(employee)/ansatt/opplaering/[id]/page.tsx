@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Download, GraduationCap, Calendar, User, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { getStorage } from "@/lib/storage";
+import { trainingAwaitsApproval } from "@/features/training/lib/training-approval";
 
 export default async function AnsattTrainingDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const t = await getTranslations("employeeTrainingDetailPage");
@@ -45,6 +46,7 @@ export default async function AnsattTrainingDetailPage({ params }: { params: Pro
     select: { trainingReminderDaysBefore: true },
   });
   const reminderDays = tenant?.trainingReminderDaysBefore ?? 30;
+  const awaitsApproval = trainingAwaitsApproval(training);
   const isExpired = training.validUntil && new Date(training.validUntil) < new Date();
   const isExpiringSoon = training.validUntil && !isExpired && (() => {
     const daysUntilExpiry = Math.ceil(
@@ -76,15 +78,15 @@ export default async function AnsattTrainingDetailPage({ params }: { params: Pro
           {training.isRequired && (
             <Badge variant="destructive">{t("badges.required")}</Badge>
           )}
-          {training.effectiveness !== null ? (
-            <Badge className="bg-green-100 text-green-700 border-green-200">
-              <CheckCircle className="h-3 w-3 mr-1" />
-              {t("badges.approved")}
-            </Badge>
-          ) : (
+          {awaitsApproval ? (
             <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
               <AlertCircle className="h-3 w-3 mr-1" />
               {t("badges.pending")}
+            </Badge>
+          ) : (
+            <Badge className="bg-green-100 text-green-700 border-green-200">
+              <CheckCircle className="h-3 w-3 mr-1" />
+              {training.effectiveness ? t("badges.approved") : t("badges.registered")}
             </Badge>
           )}
           {isExpired && (
@@ -99,7 +101,7 @@ export default async function AnsattTrainingDetailPage({ params }: { params: Pro
       </div>
 
       {/* Varsler */}
-      {training.effectiveness === null && (
+      {awaitsApproval && (
         <Card className="border-l-4 border-l-yellow-500 bg-yellow-50">
           <CardContent className="p-4">
             <p className="text-sm text-yellow-900">

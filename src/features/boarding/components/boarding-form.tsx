@@ -53,9 +53,10 @@ interface Template {
 interface BoardingFormProps {
   employees: Employee[];
   templates: Template[];
+  fixedType?: "ONBOARDING" | "OFFBOARDING";
 }
 
-export function BoardingForm({ employees, templates }: BoardingFormProps) {
+export function BoardingForm({ employees, templates, fixedType }: BoardingFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +64,7 @@ export function BoardingForm({ employees, templates }: BoardingFormProps) {
   const form = useForm<CreateBoardingInput>({
     resolver: zodResolver(CreateBoardingSchema),
     defaultValues: {
-      type: "ONBOARDING",
+      type: fixedType ?? "ONBOARDING",
       startDate: new Date().toISOString().slice(0, 10),
       notes: "",
     },
@@ -83,7 +84,7 @@ export function BoardingForm({ employees, templates }: BoardingFormProps) {
     const result = await createBoarding(data);
     setLoading(false);
     if (result.success) {
-      router.push("/dashboard/onboarding");
+      router.push(data.type === "OFFBOARDING" ? "/dashboard/offboarding" : "/dashboard/onboarding");
       router.refresh();
     } else {
       setError(result.error);
@@ -93,6 +94,7 @@ export function BoardingForm({ employees, templates }: BoardingFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {!fixedType && (
         <FormField
           control={form.control}
           name="type"
@@ -123,6 +125,7 @@ export function BoardingForm({ employees, templates }: BoardingFormProps) {
             </FormItem>
           )}
         />
+        )}
 
         <Card>
           <CardContent className="grid gap-6 pt-6 md:grid-cols-2 xl:grid-cols-3">
@@ -280,7 +283,7 @@ export function BoardingForm({ employees, templates }: BoardingFormProps) {
             type="button"
             variant="outline"
             className="bg-transparent"
-            onClick={() => router.push("/dashboard/onboarding")}
+            onClick={() => router.push(fixedType === "OFFBOARDING" ? "/dashboard/offboarding" : "/dashboard/onboarding")}
           >
             Avbryt
           </Button>

@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/server-action";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { distributableDocumentsWhere } from "@/lib/document-module-scope";
+import { documentVisibleToRole } from "@/features/documents/lib/read-confirmation";
 
 export async function fetchDocuments() {
   const user = await getCurrentUser();
@@ -92,17 +93,37 @@ export async function fetchDocumentDetail(id: string) {
     return null;
   }
 
-  const [confirmedCount, totalUsers] = await Promise.all([
-    prisma.documentConfirmation.count({
-      where: { documentId: document.id, documentVersion: document.version },
+  const [members, confirmations, mine] = await Promise.all([
+    prisma.userTenant.findMany({
+      where: { tenantId },
+      select: { userId: true, role: true },
     }),
-    prisma.userTenant.count({ where: { tenantId } }),
+    prisma.documentConfirmation.findMany({
+      where: { documentId: document.id, documentVersion: document.version },
+      select: { userId: true },
+    }),
+    prisma.documentConfirmation.findUnique({
+      where: {
+        documentId_userId_documentVersion: {
+          documentId: document.id,
+          userId: user.id,
+          documentVersion: document.version,
+        },
+      },
+      select: { confirmedAt: true },
+    }),
   ]);
+  const audience = members.filter((member) =>
+    documentVisibleToRole(document.visibleToRoles, member.role),
+  );
+  const audienceIds = new Set(audience.map((member) => member.userId));
+  const confirmedCount = confirmations.filter((confirmation) => audienceIds.has(confirmation.userId)).length;
 
   return JSON.parse(JSON.stringify({
     document,
     currentUserId: user.id,
     userRole: selectedMembership.role,
-    confirmationStatus: { confirmedCount, totalUsers },
+    confirmationStatus: { confirmedCount, totalUsers: audience.length },
+    myConfirmation: mine,
   }));
 }

@@ -3,7 +3,9 @@
 import { prisma } from "@/lib/db";
 import { getAuthContext } from "@/lib/server-authorization";
 import { canAccessPersonnelFile } from "@/features/personnel/lib/personnel-categories";
-import { isLeaderScopedRole, managedEmployeeFilter } from "@/features/personnel/lib/leader-scope";
+import { isLeaderScopedRole } from "@/features/personnel/lib/leader-scope";
+import { canViewEmployee, leaderEmployeeWhere } from "@/server/lib/leader-employees";
+import type { EmergencyRosterEmployee } from "@/features/personnel/lib/emergency-roster";
 import { isHrDocumentCategory } from "@/lib/document-module-scope";
 import { matchesIndustryScope } from "@/lib/industry-scope";
 
@@ -13,6 +15,7 @@ export type PersonnelEmployeeRow = {
   email: string;
   department: string | null;
   position: string | null;
+  employmentType: "FAST" | "MIDLERTIDIG" | "SKOLEUNGDOM";
   documentCount: number;
   expiredCount: number;
 };
@@ -43,6 +46,9 @@ export type HrProfileRow = {
   hrNotes: string | null;
   startedAt: string | null;
   dateOfBirth: string | null;
+  employmentType: "FAST" | "MIDLERTIDIG" | "SKOLEUNGDOM";
+  temporaryBasis: "MIDLERTIDIG_KARAKTER" | "VIKARIAT" | "PRAKSIS" | "ARBEIDSMARKEDSTILTAK" | "IDRETT" | null;
+  employmentEndsAt: string | null;
   employeeNumber: string | null;
   phone: string | null;
   address: string | null;
@@ -116,7 +122,7 @@ export async function fetchPersonnelEmployees(): Promise<PersonnelEmployeeRow[]>
     where: {
       tenantId: auth.tenantId,
       ...(leaderScope
-        ? managedEmployeeFilter(auth.userId)
+        ? await leaderEmployeeWhere(auth.tenantId, auth.userId, auth.departmentId)
         : canAll
           ? {}
           : { departmentId: auth.departmentId }),
@@ -149,9 +155,70 @@ export async function fetchPersonnelEmployees(): Promise<PersonnelEmployeeRow[]>
     email: m.user.email,
     department: m.orgDepartment?.name ?? m.department,
     position: m.position,
+    employmentType: m.employmentType,
     documentCount: countMap.get(m.user.id) ?? 0,
     expiredCount: expiredMap.get(m.user.id) ?? 0,
   }));
+}
+
+export async function fetchEmergencyRoster(): Promise<{
+  tenantName: string;
+  logoUrl: string | null;
+  orgNumber: string | null;
+  address: string | null;
+  scopeLabel: string;
+  employees: EmergencyRosterEmployee[];
+} | null> {
+  const auth = await getAuthContext();
+  if (!auth) return null;
+
+  const canAll = auth.permissions.canReadAllPersonnelFiles;
+  const canDept = auth.permissions.canReadDepartmentPersonnelFiles && auth.departmentId;
+  const leaderScope = isLeaderScopedRole(auth.role);
+  if (!canAll && !canDept && !leaderScope) return null;
+
+  const [tenant, memberships] = await Promise.all([
+    prisma.tenant.findUnique({
+      where: { id: auth.tenantId },
+      select: { name: true, logoUrl: true, orgNumber: true, address: true },
+    }),
+    prisma.userTenant.findMany({
+      where: {
+        tenantId: auth.tenantId,
+        ...(leaderScope
+          ? await leaderEmployeeWhere(auth.tenantId, auth.userId, auth.departmentId)
+          : canAll
+            ? {}
+            : { departmentId: auth.departmentId }),
+      },
+      select: {
+        phone: true,
+        position: true,
+        department: true,
+        user: { select: { name: true, email: true, phone: true } },
+        orgDepartment: { select: { name: true } },
+        nextOfKin: {
+          orderBy: { sortOrder: "asc" },
+          select: { name: true, relation: true, phone: true },
+        },
+      },
+    }),
+  ]);
+
+  return {
+    tenantName: tenant?.name ?? "Bedrift",
+    logoUrl: tenant?.logoUrl ?? null,
+    orgNumber: tenant?.orgNumber ?? null,
+    address: tenant?.address ?? null,
+    scopeLabel: leaderScope || !canAll ? "Ansatte du har ansvar for" : "Alle ansatte",
+    employees: memberships.map((membership) => ({
+      name: membership.user.name ?? membership.user.email,
+      phone: membership.phone?.trim() || membership.user.phone?.trim() || null,
+      department: membership.orgDepartment?.name ?? membership.department,
+      position: membership.position,
+      nextOfKin: membership.nextOfKin,
+    })),
+  };
 }
 
 export async function fetchPersonnelFolder(userId: string): Promise<PersonnelFolder | null> {
@@ -181,7 +248,13 @@ export async function fetchPersonnelFolder(userId: string): Promise<PersonnelFol
 
   const isDirectManager = membership.managerId === auth.userId;
   const allowed = isLeaderScopedRole(auth.role)
-    ? auth.userId === userId || isDirectManager
+    ? await canViewEmployee({
+        tenantId: auth.tenantId,
+        viewerId: auth.userId,
+        role: auth.role,
+        employeeId: userId,
+        departmentId: auth.departmentId,
+      })
     : canAccessPersonnelFile({
         viewerId: auth.userId,
         employeeId: userId,
@@ -221,6 +294,9 @@ export async function fetchPersonnelFolder(userId: string): Promise<PersonnelFol
       hrNotes: canReadHrNotes ? membership.hrProfile?.hrNotes ?? null : null,
       startedAt: membership.hrProfile?.startedAt?.toISOString() ?? null,
       dateOfBirth: canSeePersonalDetails ? membership.hrProfile?.dateOfBirth?.toISOString() ?? null : null,
+      employmentType: membership.employmentType,
+      temporaryBasis: membership.temporaryBasis,
+      employmentEndsAt: membership.employmentEndsAt?.toISOString() ?? null,
       employeeNumber: membership.employeeNumber,
       phone: membership.phone || membership.user.phone,
       address: canSeePersonalDetails ? membership.user.address : null,
@@ -318,7 +394,13 @@ export async function fetchPersonnelDevelopment(userId: string): Promise<Personn
 
   const isDirectManager = membership.managerId === auth.userId;
   const allowed = isLeaderScopedRole(auth.role)
-    ? auth.userId === userId || isDirectManager
+    ? await canViewEmployee({
+        tenantId: auth.tenantId,
+        viewerId: auth.userId,
+        role: auth.role,
+        employeeId: userId,
+        departmentId: auth.departmentId,
+      })
     : canAccessPersonnelFile({
         viewerId: auth.userId,
         employeeId: userId,

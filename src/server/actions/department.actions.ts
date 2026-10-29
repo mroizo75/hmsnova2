@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getAuthContext } from "@/lib/server-authorization";
+import { departmentParentCreatesCycle } from "@/features/departments/lib/department-tree";
 
 function fail(message: string) {
   return { success: false as const, error: message };
@@ -54,6 +55,8 @@ export async function updateDepartment(input: {
   name: string;
   code?: string | null;
   isActive?: boolean;
+  parentId?: string | null;
+  leaderId?: string | null;
 }) {
   const auth = await getAuthContext();
   if (!auth?.permissions.canManageDepartments) {
@@ -80,12 +83,37 @@ export async function updateDepartment(input: {
       return fail("Avdelingen finnes allerede");
     }
 
+    if (input.parentId) {
+      const parent = await prisma.department.findFirst({
+        where: { id: input.parentId, tenantId: auth.tenantId },
+        select: { id: true },
+      });
+      if (!parent) return fail("Overordnet avdeling ble ikke funnet");
+      const nodes = await prisma.department.findMany({
+        where: { tenantId: auth.tenantId },
+        select: { id: true, parentId: true, leaderId: true },
+      });
+      if (departmentParentCreatesCycle(nodes, input.id, input.parentId)) {
+        return fail("Overordnet avdeling kan ikke ligge under denne avdelingen");
+      }
+    }
+
+    if (input.leaderId) {
+      const leader = await prisma.userTenant.findUnique({
+        where: { userId_tenantId: { userId: input.leaderId, tenantId: auth.tenantId } },
+        select: { userId: true },
+      });
+      if (!leader) return fail("Avdelingslederen er ikke medlem i virksomheten");
+    }
+
     await prisma.department.update({
       where: { id: input.id },
       data: {
         name,
         code: input.code === undefined ? undefined : input.code?.trim().slice(0, 40) || null,
         isActive: input.isActive,
+        ...(input.parentId !== undefined ? { parentId: input.parentId } : {}),
+        ...(input.leaderId !== undefined ? { leaderId: input.leaderId } : {}),
       },
     });
 

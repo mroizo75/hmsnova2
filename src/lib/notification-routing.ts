@@ -58,8 +58,6 @@ const immediateEmailTypes = new Set<NotificationType>([
   "WHISTLEBLOWING_MSG",
   "CONFIDENTIAL_ACCESS",
   "BREAK_GLASS_REQUEST",
-  "TRAINING_EXPIRED",
-  "TRAINING_DUE",
   "SYSTEM_ALERT",
   "INSPECTION_FINDING",
   "INSPECTION_SCHEDULED",
@@ -104,7 +102,6 @@ const immediateSmsTypes = new Set<NotificationType>([
   "INCIDENT_OVERDUE",
   "MEASURE_OVERDUE",
   "WHISTLEBLOWING",
-  "TRAINING_EXPIRED",
   "INSPECTION_FINDING",
 ]);
 

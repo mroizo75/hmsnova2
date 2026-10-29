@@ -29,8 +29,8 @@ export function TrainingExpiryAlertButton() {
       title: "Varsler sendt",
       description:
         sent > 0
-          ? `${sent} helsevarsler om utlopende kompetanse er sendt.`
-          : "Ingen nye varsler var nodvendige akkurat na.",
+          ? `${sent} samlet varsel om kompetanse som må fornyes er lagt i systemet.`
+          : "Ingen nye varsler var nødvendige akkurat nå.",
     });
   }
 

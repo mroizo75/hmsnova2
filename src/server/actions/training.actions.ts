@@ -12,6 +12,8 @@ import {
 import { hasTenantFeature } from "@/lib/tenant-features";
 import { runHealthcareTrainingExpiryAlerts } from "@/lib/healthcare-training-alerts";
 import { canViewEmployee, listVisibleEmployeeIds } from "@/server/lib/leader-employees";
+import { pickCurrentTrainings } from "@/features/training/lib/current-training";
+import { createdByForEmployerEntry } from "@/features/training/lib/training-approval";
 
 async function getSessionContext() {
   const tenantContext = await getRequiredTenantContext();
@@ -113,6 +115,7 @@ export async function createTraining(input: any) {
         validUntil: validated.validUntil,
         proofDocKey: validated.proofDocKey,
         isRequired: validated.isRequired,
+        createdBy: createdByForEmployerEntry(user.id, validated.userId),
       },
     });
     
@@ -285,9 +288,10 @@ export async function getTrainingStats(_tenantId: string) {
     const { tenantId, user, role } = await getSessionContext();
     const visibleIds = await listVisibleEmployeeIds({ tenantId, userId: user.id, role });
     
-    const trainings = await prisma.training.findMany({
+    const recorded = await prisma.training.findMany({
       where: { tenantId, ...(visibleIds ? { userId: { in: visibleIds } } : {}) },
     });
+    const trainings = pickCurrentTrainings(recorded);
     
     const now = new Date();
     const tenant = await prisma.tenant.findUnique({
@@ -357,6 +361,7 @@ export async function createEmployeeTrainings(input: {
             validUntil: c.validUntil ? new Date(c.validUntil) : undefined,
             proofDocKey: c.proofDocKey ?? null,
             isRequired: c.isRequired ?? false,
+            createdBy: createdByForEmployerEntry(user.id, input.userId),
           },
         })
       )
@@ -423,6 +428,7 @@ export async function createBulkTrainings(input: {
             validUntil,
             proofDocKey: p.proofDocKey ?? null,
             isRequired: input.isRequired,
+            createdBy: createdByForEmployerEntry(user.id, p.userId),
           },
         })
       )

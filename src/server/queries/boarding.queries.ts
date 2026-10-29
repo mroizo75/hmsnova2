@@ -66,7 +66,13 @@ export async function fetchBoardingById(id: string) {
     if (!isAssignee) return null;
   }
 
-  return JSON.parse(JSON.stringify(boarding));
+  const files = await prisma.attachment.findMany({
+    where: { tenantId, objectType: "BOARDING", objectId: id },
+    select: { id: true, name: true, fileKey: true, size: true, createdAt: true },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return JSON.parse(JSON.stringify({ ...boarding, files }));
 }
 
 export async function fetchTemplates(type?: "ONBOARDING" | "OFFBOARDING") {

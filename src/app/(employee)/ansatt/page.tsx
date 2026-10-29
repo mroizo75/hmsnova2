@@ -14,6 +14,7 @@ import {
   type EmployeeWidgetDefinition,
 } from "@/features/dashboard/lib/employee-widget-registry";
 import { filterEmployeeWidgetsForAccounting } from "@/lib/accounting/widgets";
+import { PendingReadConfirmations } from "@/features/documents/components/pending-read-confirmations";
 
 export default async function AnsattDashboard() {
   const session = await getServerSession(authOptions);
@@ -105,6 +106,8 @@ export default async function AnsattDashboard() {
           </div>
         )}
       </div>
+
+      <PendingReadConfirmations hrefBase="/ansatt/dokumenter" />
 
       <Card className="border-l-4 border-l-yellow-500">
         <CardHeader className="pb-3">

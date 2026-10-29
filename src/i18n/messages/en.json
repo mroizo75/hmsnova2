@@ -1357,6 +1357,7 @@
       "empty": "You have not registered any training yet",
       "completedAt": "Completed: {date}",
       "pendingApproval": "Pending approval",
+      "registered": "Registered",
       "approved": "Approved",
       "approvedBy": "Approved by: {name}"
     },
@@ -1449,6 +1450,7 @@
     "badges": {
       "required": "Required course",
       "approved": "Approved",
+      "registered": "Registered",
       "pending": "Pending approval",
       "expired": "Expired",
       "expiringSoon": "Expiring soon"

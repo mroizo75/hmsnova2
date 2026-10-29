@@ -3,5 +3,6 @@ export interface StorageAdapter {
   upload(key: string, file: Blob | Buffer, metadata?: Record<string, string>): Promise<string>;
   getUrl(key: string, expiresIn?: number): Promise<string>;
   get(key: string): Promise<Buffer | null>;
+  exists(key: string): Promise<boolean>;
   delete(key: string): Promise<void>;
 }

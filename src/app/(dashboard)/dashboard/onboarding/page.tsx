@@ -11,12 +11,13 @@ export default async function OnboardingPage() {
     redirect("/dashboard");
   }
 
-  const boardings = await fetchBoardings();
+  const boardings = await fetchBoardings("ONBOARDING");
 
   return (
     <div className="space-y-6 p-6">
       <HrWorkspaceNav />
       <BoardingContent
+        type="ONBOARDING"
         boardings={boardings}
         canCreate={auth.permissions.canCreateBoarding}
         canManageTemplates={auth.permissions.canManageBoardingTemplates}

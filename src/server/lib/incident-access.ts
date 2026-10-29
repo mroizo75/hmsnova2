@@ -4,6 +4,7 @@ import {
   canRoleSeeIncident,
   prismaIncidentWhereForRole,
 } from "@/lib/incident-visibility";
+import { leaderDepartmentIds } from "@/server/queries/department.queries";
 
 export async function opensIncidentOverview(input: {
   role: Role | null | undefined;
@@ -33,11 +34,15 @@ export async function incidentListWhere(input: {
   canReadOwnIncidents: boolean;
   departmentId: string | null;
 }): Promise<Record<string, unknown> | null> {
+  const departmentIds =
+    input.role === "LEDER"
+      ? await leaderDepartmentIds(input.tenantId, input.userId, input.departmentId)
+      : [];
   const [managedProjectIds, departmentMembers] = await Promise.all([
     managedProjectIdsFor(input.tenantId, input.userId),
-    input.role === "LEDER" && input.departmentId
+    departmentIds.length > 0
       ? prisma.userTenant.findMany({
-          where: { tenantId: input.tenantId, departmentId: input.departmentId },
+          where: { tenantId: input.tenantId, departmentId: { in: departmentIds } },
           select: { userId: true },
         })
       : Promise.resolve([]),
@@ -45,6 +50,7 @@ export async function incidentListWhere(input: {
 
   return prismaIncidentWhereForRole({
     ...input,
+    departmentIds,
     departmentUserIds: departmentMembers.map((member) => member.userId),
     managedProjectIds,
   });
@@ -66,12 +72,15 @@ export async function viewerCanSeeIncident(input: {
     projectId: string | null;
   };
 }): Promise<boolean> {
-  const [managedProjectIds, reporter] = await Promise.all([
+  const [managedProjectIds, reporter, departmentIds] = await Promise.all([
     managedProjectIdsFor(input.tenantId, input.userId),
     prisma.userTenant.findUnique({
       where: { userId_tenantId: { userId: input.incident.reportedBy, tenantId: input.tenantId } },
       select: { departmentId: true },
     }),
+    input.role === "LEDER"
+      ? leaderDepartmentIds(input.tenantId, input.userId, input.departmentId)
+      : Promise.resolve([]),
   ]);
 
   return canRoleSeeIncident({
@@ -84,6 +93,7 @@ export async function viewerCanSeeIncident(input: {
     subcategoryKeysRaw: input.incident.subcategoryKeys,
     reporterDepartmentId: reporter?.departmentId ?? null,
     viewerDepartmentId: input.departmentId,
+    viewerDepartmentIds: departmentIds,
     incidentDepartmentId: input.incident.departmentId,
     responsibleId: input.incident.responsibleId,
     projectId: input.incident.projectId,

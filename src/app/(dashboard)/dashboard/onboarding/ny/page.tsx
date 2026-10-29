@@ -7,14 +7,20 @@ import { fetchTemplates } from "@/server/queries/boarding.queries";
 import { prisma } from "@/lib/db";
 import { BoardingForm } from "@/features/boarding/components/boarding-form";
 
-export default async function NyBoardingPage() {
+export default async function NyBoardingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ type?: string }>;
+}) {
   const auth = await getAuthContext();
 
   if (!auth.permissions.canCreateBoarding) {
     redirect("/dashboard/onboarding");
   }
 
-  const templates = await fetchTemplates();
+  const { type } = await searchParams;
+  const fixedType = type === "OFFBOARDING" ? "OFFBOARDING" : type === "ONBOARDING" ? "ONBOARDING" : undefined;
+  const templates = await fetchTemplates(fixedType);
 
   const employees = await prisma.userTenant.findMany({
     where: { tenantId: auth.tenantId },
@@ -26,20 +32,23 @@ export default async function NyBoardingPage() {
     <div className="space-y-6 p-6">
       <div>
         <Button variant="ghost" size="sm" className="mb-3 -ml-2" asChild>
-          <Link href="/dashboard/onboarding">
+          <Link href={fixedType === "OFFBOARDING" ? "/dashboard/offboarding" : "/dashboard/onboarding"}>
             <ChevronLeft className="h-4 w-4 mr-1" />
             Tilbake
           </Link>
         </Button>
-        <h1 className="text-2xl font-bold">Ny prosess</h1>
+        <h1 className="text-2xl font-bold">
+          {fixedType === "OFFBOARDING" ? "Ny offboarding" : fixedType === "ONBOARDING" ? "Ny onboarding" : "Ny prosess"}
+        </h1>
         <p className="mt-1 text-muted-foreground">
-          Velg type, ansatt og mal. Oppgavene opprettes automatisk fra malen.
+          Velg ansatt og mal. Oppgavene opprettes automatisk fra malen.
         </p>
       </div>
 
       <BoardingForm
         employees={JSON.parse(JSON.stringify(employees))}
         templates={templates}
+        fixedType={fixedType}
       />
     </div>
   );

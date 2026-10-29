@@ -48,6 +48,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useRefreshAfterSave } from "@/hooks/use-refresh-after-save";
 import { UserOverviewDialog } from "@/features/settings/components/user-overview-dialog";
+import { ManagerSelect } from "@/features/settings/components/manager-select";
 import { formatLastSeen } from "@/lib/last-seen";
 
 interface UserManagementProps {
@@ -142,6 +143,11 @@ export function UserManagement({
   const userLabelById = new Map(
     users.map((u) => [u.userId, u.user.name || u.user.email] as const)
   );
+
+  const managerOptions = users.map((candidate) => ({
+    userId: candidate.userId,
+    label: candidate.user.name || candidate.user.email,
+  }));
 
   const totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
   const safePage = Math.min(currentPage, totalPages);
@@ -659,23 +665,16 @@ export function UserManagement({
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="manager">Nærmeste leder</Label>
-                      <Select
+                      <ManagerSelect
+                        id="manager"
                         value={inviteManagerId}
                         onValueChange={setInviteManagerId}
+                        options={managerOptions}
+                        noneValue={NO_MANAGER_VALUE}
+                        noneLabel="Ingen leder"
                         disabled={inviteLoading}
-                      >
-                        <SelectTrigger id="manager">
-                          <SelectValue placeholder="Velg nærmeste leder" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={NO_MANAGER_VALUE}>Ingen leder</SelectItem>
-                          {users.map((candidate) => (
-                            <SelectItem key={candidate.userId} value={candidate.userId}>
-                              {candidate.user.name || candidate.user.email}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        placeholder="Velg nærmeste leder"
+                      />
                     </div>
                   </div>
 
@@ -745,21 +744,18 @@ export function UserManagement({
               Sett nærmeste leder for alle på én gang.
             </p>
             <div className="flex flex-wrap items-center gap-2">
-              <Select value={bulkManagerId} onValueChange={setBulkManagerId}>
-                <SelectTrigger className="w-[200px] bg-white">
-                  <SelectValue placeholder="Velg nærmeste leder" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NO_MANAGER_VALUE}>Fjern nærmeste leder</SelectItem>
-                  {users
-                    .filter((candidate) => !selectedUserIds.includes(candidate.userId))
-                    .map((candidate) => (
-                      <SelectItem key={candidate.userId} value={candidate.userId}>
-                        {candidate.user.name || candidate.user.email}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+              <ManagerSelect
+                value={bulkManagerId}
+                onValueChange={setBulkManagerId}
+                options={managerOptions.filter(
+                  (candidate) => !selectedUserIds.includes(candidate.userId)
+                )}
+                noneValue={NO_MANAGER_VALUE}
+                noneLabel="Fjern nærmeste leder"
+                placeholder="Velg nærmeste leder"
+                className="w-[220px]"
+                triggerClassName="bg-white"
+              />
               <Button size="sm" onClick={handleBulkManagerAssign} disabled={bulkAssigning}>
                 {bulkAssigning ? "Lagrer..." : "Sett nærmeste leder for valgte"}
               </Button>
@@ -1022,27 +1018,20 @@ export function UserManagement({
                       </TableCell>
                       <TableCell>
                         {isAdmin ? (
-                          <Select
+                          <ManagerSelect
                             value={userTenant.managerId ?? NO_MANAGER_VALUE}
                             onValueChange={(value) =>
                               handleManagerChange(userTenant.userId, value)
                             }
+                            options={managerOptions.filter(
+                              (candidate) => candidate.userId !== userTenant.userId
+                            )}
+                            noneValue={NO_MANAGER_VALUE}
+                            noneLabel="Ingen leder satt"
                             disabled={loading === userTenant.userId}
-                          >
-                            <SelectTrigger className="w-[170px]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value={NO_MANAGER_VALUE}>Ingen leder satt</SelectItem>
-                              {users
-                                .filter((candidate) => candidate.userId !== userTenant.userId)
-                                .map((candidate) => (
-                                  <SelectItem key={candidate.userId} value={candidate.userId}>
-                                    {candidate.user.name || candidate.user.email}
-                                  </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
+                            placeholder="Velg nærmeste leder"
+                            className="w-[190px]"
+                          />
                         ) : (
                           <span className="text-xs text-muted-foreground">
                             {userTenant.managerId

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/db";
 import { distributableDocumentsWhere } from "@/lib/document-module-scope";
+import { pendingReadConfirmations } from "@/features/documents/lib/read-confirmation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Eye, Clock } from "lucide-react";
@@ -75,7 +76,19 @@ export default async function AnsattDokumenter() {
       console.error("Feil ved parsing av visibleToRoles:", error);
       return true; // Vis dokumentet hvis det er feil i dataene
     }
-  }).slice(0, 50); // Begrens til 50 dokumenter
+  }).slice(0, 50);
+
+  const pending = await pendingReadConfirmations({
+    tenantId: session.user.tenantId,
+    userId: session.user.id,
+    role: userRole,
+  });
+  const pendingIds = new Set(pending.map((document) => document.id));
+  const orderedDocuments = [...documents].sort((left, right) => {
+    const leftPending = pendingIds.has(left.id) ? 0 : 1;
+    const rightPending = pendingIds.has(right.id) ? 0 : 1;
+    return leftPending - rightPending;
+  });
 
   return (
     <div className="space-y-6">
@@ -99,7 +112,7 @@ export default async function AnsattDokumenter() {
             </CardContent>
           </Card>
         ) : (
-          documents.map((doc) => (
+          orderedDocuments.map((doc) => (
             <Link key={doc.id} href={`/ansatt/dokumenter/${doc.id}`}>
               <Card className="hover:shadow-md transition-shadow cursor-pointer">
                 <CardContent className="p-4">
@@ -136,6 +149,11 @@ export default async function AnsattDokumenter() {
                         <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
                           {t("approvedBadge")}
                         </Badge>
+                        {pendingIds.has(doc.id) && (
+                          <Badge className="bg-amber-100 text-xs text-amber-950 hover:bg-amber-100">
+                            Må kvitteres
+                          </Badge>
+                        )}
                         {doc.approvedByUser && (
                           <span className="text-xs text-muted-foreground">
                             {t("approvedBy", { name: doc.approvedByUser.name || doc.approvedByUser.email || "" })}

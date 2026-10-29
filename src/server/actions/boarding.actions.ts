@@ -30,6 +30,7 @@ import {
   type SkipTaskInput,
 } from "@/features/boarding/schemas/boarding.schema";
 import { getBoardingTemplateLibrary } from "@/lib/boarding-template-library";
+import { generateFileKey, getStorage } from "@/lib/storage";
 
 // ─── Opprett boarding (fra mal) ─────────────────────────────────────────────
 
@@ -104,6 +105,7 @@ export async function createBoarding(input: CreateBoardingInput) {
     });
 
     revalidatePath("/dashboard/onboarding");
+    revalidatePath("/dashboard/offboarding");
     triggerRealtimeEvent(auth.tenantId, "boarding-updated");
     return { success: true as const, data: JSON.parse(JSON.stringify(boarding)) };
   } catch (error: any) {
@@ -190,6 +192,96 @@ export async function skipBoardingTask(input: SkipTaskInput) {
     return { success: true as const };
   } catch (error: any) {
     return { success: false as const, error: error.message || "Kunne ikke hoppe over oppgave" };
+  }
+}
+
+/** Huker av alle gjenstående punkter. Lovpålagte punkter blir fullført, ikke hoppet over. */
+export async function completeAllBoardingTasks(boardingId: string) {
+  try {
+    const auth = await getAuthContext();
+    if (!auth.permissions.canCreateBoarding) {
+      throw new Error("Du har ikke tilgang til å fullføre alle punktene");
+    }
+
+    const boarding = await prisma.boarding.findFirst({
+      where: { id: boardingId, tenantId: auth.tenantId },
+      select: { id: true },
+    });
+    if (!boarding) throw new Error("Prosessen ble ikke funnet");
+
+    await prisma.boardingTask.updateMany({
+      where: { boardingId, status: "PENDING" },
+      data: {
+        status: "COMPLETED",
+        completedAt: new Date(),
+        completedById: auth.userId,
+      },
+    });
+
+    await checkAndCompleteBoardingIfDone(boardingId, auth.tenantId);
+    revalidatePath(`/dashboard/onboarding/${boardingId}`);
+    revalidatePath("/dashboard/onboarding");
+    revalidatePath("/dashboard/offboarding");
+    triggerRealtimeEvent(auth.tenantId, "boarding-updated");
+    return { success: true as const };
+  } catch (error: any) {
+    return { success: false as const, error: error.message || "Kunne ikke huke av alle punktene" };
+  }
+}
+
+const BOARDING_FILE_TYPE = "BOARDING";
+const MAX_BOARDING_FILE_BYTES = 20 * 1024 * 1024;
+
+export async function uploadBoardingFile(formData: FormData) {
+  try {
+    const auth = await getAuthContext();
+    if (!auth.permissions.canCreateBoarding) {
+      throw new Error("Du har ikke tilgang til å laste opp filer");
+    }
+
+    const boardingId = String(formData.get("boardingId") ?? "");
+    const file = formData.get("file");
+    if (!boardingId || !(file instanceof File) || file.size === 0) {
+      throw new Error("Velg en fil");
+    }
+    if (file.size > MAX_BOARDING_FILE_BYTES) {
+      throw new Error("Filen kan ikke være større enn 20 MB");
+    }
+    if (/\.(exe|bat|cmd|js|msi|dll|sh)$/i.test(file.name)) {
+      throw new Error("Filtypen er ikke tillatt");
+    }
+
+    const boarding = await prisma.boarding.findFirst({
+      where: { id: boardingId, tenantId: auth.tenantId },
+      select: { id: true },
+    });
+    if (!boarding) throw new Error("Prosessen ble ikke funnet");
+
+    const fileKey = generateFileKey(auth.tenantId, `boarding/${boardingId}`, file.name);
+    const storage = getStorage();
+    await storage.upload(fileKey, file);
+    try {
+      await prisma.attachment.create({
+        data: {
+          tenantId: auth.tenantId,
+          objectType: BOARDING_FILE_TYPE,
+          objectId: boardingId,
+          fileKey,
+          name: file.name,
+          mime: file.type || "application/octet-stream",
+          size: file.size,
+          uploadedById: auth.userId,
+        },
+      });
+    } catch (error) {
+      await storage.delete(fileKey);
+      throw error;
+    }
+
+    revalidatePath(`/dashboard/onboarding/${boardingId}`);
+    return { success: true as const };
+  } catch (error: any) {
+    return { success: false as const, error: error.message || "Kunne ikke laste opp filen" };
   }
 }
 

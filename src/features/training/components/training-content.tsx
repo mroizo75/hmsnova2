@@ -2,12 +2,13 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useServerQuery } from "@/hooks/use-server-query";
-import { Badge } from "@/components/ui/badge";
 import { TrainingList } from "@/features/training/components/training-list";
 import { CheckCircle2, AlertTriangle, XCircle, Users } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { fetchTrainingList } from "@/server/queries/training.queries";
 import { hospitalityCourseKeysForTheme } from "@/lib/hospitality-courses";
+import { daysUntil, pickCurrentTrainings } from "@/features/training/lib/current-training";
+import { TrainingRenewalPanel } from "@/features/training/components/training-renewal-panel";
 import Link from "next/link";
 
 type TrainingListData = Awaited<ReturnType<typeof fetchTrainingList>>;
@@ -15,9 +16,10 @@ type TrainingListData = Awaited<ReturnType<typeof fetchTrainingList>>;
 interface TrainingContentProps {
   initialData: TrainingListData;
   tema?: string;
+  tenantId: string;
 }
 
-export function TrainingContent({ initialData, tema }: TrainingContentProps) {
+export function TrainingContent({ initialData, tema, tenantId }: TrainingContentProps) {
   const t = useTranslations("dashboardTrainingPage");
 
   const { data } = useServerQuery({
@@ -36,7 +38,8 @@ export function TrainingContent({ initialData, tema }: TrainingContentProps) {
     : data.courseTemplates;
 
   const userMap = new Map(tenantUsers.map((u: any) => [u.id, u]));
-  const trainingsWithUser = trainingsRaw
+  const currentTrainings = pickCurrentTrainings(trainingsRaw);
+  const trainingsWithUser = currentTrainings
     .map((t: any) => ({ ...t, user: userMap.get(t.userId) }))
     .filter((t: any) => !!t.user);
 
@@ -44,49 +47,31 @@ export function TrainingContent({ initialData, tema }: TrainingContentProps) {
 
   const reminderDays = data.reminderDays ?? 30;
   const now = new Date();
-  const completed = trainingsRaw.filter((t: any) => t.completedAt).length;
+  const completed = currentTrainings.filter((t) => t.completedAt).length;
 
-  const expiringSoon = trainingsRaw.filter((t: any) => {
-    if (!t.validUntil) return false;
-    const days = Math.ceil(
-      (new Date(t.validUntil).getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-    );
-    return days > 0 && days <= reminderDays;
+  const expiringSoon = currentTrainings.filter((t) => {
+    const days = daysUntil(t.validUntil, now);
+    return days !== null && days > 0 && days <= reminderDays;
   }).length;
 
-  const expired = trainingsRaw.filter((t: any) => {
-    if (!t.validUntil) return false;
-    return new Date(t.validUntil) < now;
+  const expired = currentTrainings.filter((t) => {
+    const days = daysUntil(t.validUntil, now);
+    return days !== null && days <= 0;
   }).length;
 
   const employeesWithGaps = tenantUsers.filter((u: any) => {
     const userCourseKeys = new Set(
-      trainingsRaw
-        .filter((t: any) => t.userId === u.id && t.completedAt)
-        .filter((t: any) => {
+      currentTrainings
+        .filter((t) => t.userId === u.id && t.completedAt)
+        .filter((t) => {
           if (!t.validUntil) return true;
           return new Date(t.validUntil) >= now;
         })
-        .map((t: any) => t.courseKey),
+        .map((t) => t.courseKey),
     );
     const requiredKeys = requiredCourseKeysByUser[u.id] ?? [];
     return requiredKeys.some((key) => !userCourseKeys.has(key));
   }).length;
-
-  const expiringTrainings = trainingsWithUser
-    .filter((training: any) => {
-      if (!training.validUntil) return false;
-      const days = Math.ceil(
-        (new Date(training.validUntil).getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-      );
-      return days <= reminderDays;
-    })
-    .sort((a: any, b: any) => {
-      const aDate = a.validUntil ? new Date(a.validUntil).getTime() : Number.MAX_SAFE_INTEGER;
-      const bDate = b.validUntil ? new Date(b.validUntil).getTime() : Number.MAX_SAFE_INTEGER;
-      return aDate - bDate;
-    })
-    .slice(0, 10);
 
   const themeLabel = tema === "skjenking" ? "skjenking" : tema === "ik-mat" ? "IK-mat" : null;
 
@@ -110,9 +95,9 @@ export function TrainingContent({ initialData, tema }: TrainingContentProps) {
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{completed}</div>
             <p className="text-xs text-muted-foreground">
-              {trainingsRaw.length > 0
+              {currentTrainings.length > 0
                 ? t("stats.completed.percentOfTotal", {
-                    percent: Math.round((completed / trainingsRaw.length) * 100),
+                    percent: Math.round((completed / currentTrainings.length) * 100),
                   })
                 : t("stats.completed.zero")}
             </p>
@@ -155,50 +140,13 @@ export function TrainingContent({ initialData, tema }: TrainingContentProps) {
         </Card>
       </div>
 
-      {/* Utløpsvarsler */}
-      {expiringTrainings.length > 0 && (
-        <Card className="border-amber-200 bg-amber-50">
-          <CardHeader>
-            <CardTitle className="text-amber-900">
-              {t("expiryAlerts.title")}
-            </CardTitle>
-            <CardDescription className="text-amber-800">
-              {t("expiryAlerts.description")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {expiringTrainings.map((training: any) => {
-                const daysUntilExpiry = training.validUntil
-                  ? Math.ceil(
-                      (new Date(training.validUntil).getTime() - now.getTime()) /
-                        (1000 * 60 * 60 * 24),
-                    )
-                  : null;
-                const isExpired = (daysUntilExpiry ?? 1) <= 0;
-                return (
-                  <div
-                    key={training.id}
-                    className="flex items-center justify-between rounded-md border border-amber-200 bg-white p-3"
-                  >
-                    <div>
-                      <p className="font-medium">{training.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {training.user?.name || training.user?.email || t("expiryAlerts.unknownEmployee")}
-                      </p>
-                    </div>
-                    <Badge variant={isExpired ? "destructive" : "outline"}>
-                      {isExpired
-                        ? t("expiryAlerts.expired")
-                        : t("expiryAlerts.daysLeft", { days: daysUntilExpiry })}
-                    </Badge>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <TrainingRenewalPanel
+        tenantId={tenantId}
+        trainings={trainingsWithUser}
+        users={tenantUsers}
+        courseTemplates={courseTemplates}
+        reminderDays={reminderDays}
+      />
 
       {/* Training List */}
       <Card>

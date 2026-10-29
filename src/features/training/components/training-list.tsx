@@ -209,7 +209,7 @@ export function TrainingList({ trainings, tenantUsers = [], requiredCourseKeysBy
           const days = Math.ceil(
             (new Date(t.validUntil).getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
           );
-          return days > 0 && days <= 30;
+          return days > 0 && days <= reminderDays;
         }).length;
         const expiredCount = userTrainings.filter((t) => {
           if (!t.validUntil) return false;

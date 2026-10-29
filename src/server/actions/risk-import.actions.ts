@@ -2,7 +2,7 @@
 
 import ExcelJS from "exceljs";
 import { revalidatePath } from "next/cache";
-import { RiskCategory } from "@prisma/client";
+import { Prisma, RiskCategory } from "@prisma/client";
 import { AuditLog } from "@/lib/audit-log";
 import { generateAIResponse } from "@/lib/ai";
 import { convertDocumentToPDF, extractTextFromPDF } from "@/lib/adobe-pdf";
@@ -36,6 +36,13 @@ const XLSX_MIME =
 
 function fail(message: string) {
   return { success: false as const, error: message };
+}
+
+function importFailureMessage(error: unknown): string {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2028") {
+    return "Lagringen ble avbrutt fordi den tok for lang tid. Prøv igjen.";
+  }
+  return "Kunne ikke lagre importen. Prøv igjen.";
 }
 
 async function readSpreadsheet(buffer: Buffer) {
@@ -207,8 +214,8 @@ export async function confirmRiskAssessmentImport(
   if (!owner) {
     return fail("Valgt risikoeier tilhører ikke bedriften");
   }
-  const originalFile = await getStorage().get(validated.fileKey);
-  if (!originalFile) {
+  const originalExists = await getStorage().exists(validated.fileKey);
+  if (!originalExists) {
     return fail("Originalfilen finnes ikke lenger");
   }
 
@@ -216,6 +223,7 @@ export async function confirmRiskAssessmentImport(
   const dueAt = new Date(now);
   dueAt.setDate(dueAt.getDate() + 30);
 
+  try {
   const assessment = await prisma.$transaction(async (tx) => {
     const created = await tx.riskAssessment.create({
       data: {
@@ -270,7 +278,7 @@ export async function confirmRiskAssessmentImport(
       }
     }
     return created;
-  });
+  }, { maxWait: 10_000, timeout: 60_000 });
 
   AuditLog.log(
     auth.tenantId,
@@ -285,4 +293,11 @@ export async function confirmRiskAssessmentImport(
   triggerRealtimeEvent(auth.tenantId, "risk-updated");
 
   return { success: true as const, data: { id: assessment.id } };
+  } catch (error) {
+    console.error(
+      "Risk import confirm failed:",
+      error instanceof Error ? error.message : "ukjent feil",
+    );
+    return fail(importFailureMessage(error));
+  }
 }

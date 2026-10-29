@@ -3,6 +3,7 @@ export type HrWorkspaceHref =
   | "/dashboard/personalarkiv"
   | "/dashboard/fravaer"
   | "/dashboard/onboarding"
+  | "/dashboard/offboarding"
   | "/dashboard/medarbeidersamtale"
   | "/dashboard/avdelinger";
 
@@ -12,12 +13,13 @@ export type HrWorkspaceItem = {
   permission: "hr" | "personnelArchive" | "absence" | "boarding" | "employeeReviews" | "departments";
 };
 
-/** Fast HR-løp: oversikt → ansattmappe → fravær/sykdom → onboarding → samtale → avdeling */
+/** Fast HR-løp: oversikt → ansattmappe → fravær → innmelding → utmelding → samtale → avdeling */
 export const HR_WORKSPACE_ITEMS: HrWorkspaceItem[] = [
   { href: "/dashboard/hr", label: "Oversikt", permission: "hr" },
   { href: "/dashboard/personalarkiv", label: "Ansatte", permission: "personnelArchive" },
   { href: "/dashboard/fravaer", label: "Fravær og sykdom", permission: "absence" },
   { href: "/dashboard/onboarding", label: "Onboarding", permission: "boarding" },
+  { href: "/dashboard/offboarding", label: "Offboarding", permission: "boarding" },
   { href: "/dashboard/medarbeidersamtale", label: "Samtaler", permission: "employeeReviews" },
   { href: "/dashboard/avdelinger", label: "Avdelinger", permission: "departments" },
 ];

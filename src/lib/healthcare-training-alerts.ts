@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/db";
 import { hasTenantFeature } from "@/lib/tenant-features";
+import { roleMatchFilter } from "@/lib/extra-roles";
 import { createNotification } from "@/server/actions/notification.actions";
+import { daysUntil, expiryDigestMessage, pickCurrentTrainings } from "@/features/training/lib/current-training";
 
 type AlertRunResult = {
   tenantId: string;
@@ -42,23 +44,24 @@ export async function runHealthcareTrainingExpiryAlerts(options?: {
 
   for (const tenant of healthcareTenants) {
     const reminderDays = tenant.trainingReminderDaysBefore ?? 30;
-    const horizon = new Date();
-    horizon.setDate(now.getDate() + reminderDays);
-    const trainings = await prisma.training.findMany({
+    const recorded = await prisma.training.findMany({
       where: {
         tenantId: tenant.id,
         isRequired: true,
-        validUntil: {
-          lte: horizon,
-        },
+        validUntil: { not: null },
       },
-      orderBy: {
-        validUntil: "asc",
-      },
-      take: 200,
+    });
+    const current = pickCurrentTrainings(recorded);
+    const expiring = current.filter((training) => {
+      const days = daysUntil(training.validUntil, now);
+      return days !== null && days > 0 && days <= reminderDays;
+    });
+    const expired = current.filter((training) => {
+      const days = daysUntil(training.validUntil, now);
+      return days !== null && days <= 0;
     });
 
-    if (trainings.length === 0) {
+    if (expiring.length === 0 && expired.length === 0) {
       results.push({
         tenantId: tenant.id,
         tenantName: tenant.name,
@@ -67,85 +70,58 @@ export async function runHealthcareTrainingExpiryAlerts(options?: {
       continue;
     }
 
+    const byCourse = new Map<string, { courseKey: string; title: string; expiring: number; expired: number }>();
+    for (const training of [...expiring, ...expired]) {
+      const row = byCourse.get(training.courseKey) ?? {
+        courseKey: training.courseKey,
+        title: training.title,
+        expiring: 0,
+        expired: 0,
+      };
+      if (expired.includes(training)) row.expired += 1;
+      else row.expiring += 1;
+      byCourse.set(training.courseKey, row);
+    }
+
     const recipients = await prisma.userTenant.findMany({
       where: {
         tenantId: tenant.id,
-        role: {
-          in: ["ADMIN", "HMS", "LEDER"],
-        },
+        ...roleMatchFilter(["ADMIN", "HMS"]),
       },
       select: { userId: true },
+      distinct: ["userId"],
     });
 
     let tenantSent = 0;
-    const employeeIds = Array.from(new Set(trainings.map((training) => training.userId)));
-    const employees = await prisma.user.findMany({
-      where: {
-        id: {
-          in: employeeIds,
-        },
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-      },
+    const message = expiryDigestMessage({
+      expiringCount: expiring.length,
+      expiredCount: expired.length,
+      reminderDays,
+      courses: [...byCourse.values()],
     });
-    const employeeById = new Map(employees.map((employee) => [employee.id, employee]));
 
-    for (const training of trainings) {
-      if (!training.validUntil) {
-        continue;
-      }
-
-      const validUntil = new Date(training.validUntil);
-      const daysUntilExpiry = Math.ceil(
-        (validUntil.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-      );
-      const isExpired = daysUntilExpiry <= 0;
-      const type = isExpired ? "TRAINING_EXPIRED" : "TRAINING_DUE";
-      const title = isExpired
-        ? "Kompetanse utløpt (helse)"
-        : "Kompetanse utløper snart (helse)";
-      const employee = employeeById.get(training.userId);
-      const employeeName = employee?.name || employee?.email || "Ukjent ansatt";
-      const message = isExpired
-        ? `${training.title} for ${employeeName} er utløpt og må fornyes.`
-        : `${training.title} for ${employeeName} utløper om ${daysUntilExpiry} dager.`;
-      const link = `/dashboard/training?trainingId=${training.id}`;
-
-      for (const recipient of recipients) {
-        const existing = await prisma.notification.findFirst({
-          where: {
-            tenantId: tenant.id,
-            userId: recipient.userId,
-            type,
-            title,
-            link,
-            createdAt: {
-              gte: dayStart,
-            },
-          },
-          select: { id: true },
-        });
-
-        if (existing) {
-          continue;
-        }
-
-        const created = await createNotification({
+    for (const recipient of recipients) {
+      const existing = await prisma.notification.findFirst({
+        where: {
           tenantId: tenant.id,
           userId: recipient.userId,
-          type,
-          title,
-          message,
-          link,
-        });
+          type: "TRAINING_DUE",
+          title: "Kompetanse som må fornyes",
+          createdAt: { gte: dayStart },
+        },
+        select: { id: true },
+      });
+      if (existing) continue;
 
-        if (created.success) {
-          tenantSent += 1;
-        }
-      }
+      const created = await createNotification({
+        tenantId: tenant.id,
+        userId: recipient.userId,
+        type: "TRAINING_DUE",
+        title: "Kompetanse som må fornyes",
+        message,
+        link: "/dashboard/training",
+      });
+      if (created.success) tenantSent += 1;
     }
 
     results.push({

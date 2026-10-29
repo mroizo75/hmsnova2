@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BoardingProgressBar } from "./boarding-progress-bar";
 import { BoardingTaskList } from "./boarding-task-list";
+import { BoardingFiles } from "./boarding-files";
 import { cancelBoarding } from "@/server/actions/boarding.actions";
 import type { BoardingStatus, BoardingType } from "@prisma/client";
 
@@ -33,6 +34,7 @@ interface BoardingDetailProps {
     employee: { id: string; name: string | null; email: string };
     template: { id: string; name: string } | null;
     tasks: any[];
+    files?: Array<{ id: string; name: string; fileKey: string; size: number | null }>;
   };
   canEdit: boolean;
   currentUserId: string;
@@ -53,7 +55,7 @@ export function BoardingDetail({ boarding, canEdit, currentUserId }: BoardingDet
     const result = await cancelBoarding(boarding.id);
     setCancelling(false);
     if (result.success) {
-      router.push("/dashboard/onboarding");
+      router.push(boarding.type === "OFFBOARDING" ? "/dashboard/offboarding" : "/dashboard/onboarding");
     }
   }
 
@@ -61,7 +63,7 @@ export function BoardingDetail({ boarding, canEdit, currentUserId }: BoardingDet
     <div className="space-y-6 p-6">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="sm" asChild>
-          <Link href="/dashboard/onboarding">
+          <Link href={boarding.type === "OFFBOARDING" ? "/dashboard/offboarding" : "/dashboard/onboarding"}>
             <ChevronLeft className="h-4 w-4 mr-1" />
             Tilbake
           </Link>
@@ -145,10 +147,24 @@ export function BoardingDetail({ boarding, canEdit, currentUserId }: BoardingDet
 
       <Card>
         <CardHeader>
+          <CardTitle className="text-base">Filer</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <BoardingFiles
+            boardingId={boarding.id}
+            files={boarding.files ?? []}
+            canUpload={canEdit}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="text-base">Oppgaver</CardTitle>
         </CardHeader>
         <CardContent>
           <BoardingTaskList
+            boardingId={boarding.id}
             tasks={boarding.tasks}
             canEdit={canEdit}
             currentUserId={currentUserId}

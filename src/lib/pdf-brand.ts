@@ -610,6 +610,16 @@ async function generateFallbackPdf(config: PdfReportConfig): Promise<Buffer> {
   const contentW = pageW - margin * 2;
   let y = margin;
 
+  const tenantLogo = await resolveImageToBase64(config.tenant.logoUrl);
+  if (tenantLogo.startsWith("data:image/png") || tenantLogo.startsWith("data:image/jpeg") || tenantLogo.startsWith("data:image/jpg")) {
+    const format = tenantLogo.startsWith("data:image/png") ? "PNG" : "JPEG";
+    try {
+      pdf.addImage(tenantLogo, format, pageW - margin - 36, y - 4, 36, 14);
+    } catch {
+      // Ukjent bildeformat. HTML-varianten tegner logoen.
+    }
+  }
+
   const checkPageBreak = (needed: number) => {
     if (y + needed > pdf.internal.pageSize.getHeight() - 20) {
       pdf.addPage();

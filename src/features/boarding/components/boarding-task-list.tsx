@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
 import { CheckCircle2, Circle, SkipForward, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { completeBoardingTask, skipBoardingTask } from "@/server/actions/boarding.actions";
+import { completeAllBoardingTasks, completeBoardingTask, skipBoardingTask } from "@/server/actions/boarding.actions";
 import type { BoardingTaskStatus } from "@prisma/client";
 
 interface TaskItem {
@@ -36,30 +37,50 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 interface BoardingTaskListProps {
+  boardingId: string;
   tasks: TaskItem[];
   canEdit: boolean;
   currentUserId: string;
 }
 
-export function BoardingTaskList({ tasks, canEdit, currentUserId }: BoardingTaskListProps) {
+export function BoardingTaskList({ boardingId, tasks, canEdit, currentUserId }: BoardingTaskListProps) {
+  const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [completingAll, setCompletingAll] = useState(false);
+  const pendingCount = tasks.filter((task) => task.status === "PENDING").length;
 
   async function handleComplete(taskId: string) {
     setLoadingId(taskId);
     await completeBoardingTask({ id: taskId });
     setLoadingId(null);
+    router.refresh();
   }
 
   async function handleSkip(taskId: string) {
     setLoadingId(taskId);
     await skipBoardingTask({ id: taskId });
     setLoadingId(null);
+    router.refresh();
+  }
+
+  async function handleCompleteAll() {
+    setCompletingAll(true);
+    await completeAllBoardingTasks(boardingId);
+    setCompletingAll(false);
+    router.refresh();
   }
 
   const categories = [...new Set(tasks.map((t) => t.category ?? "Annet"))];
 
   return (
     <div className="space-y-6">
+      {canEdit && pendingCount > 0 && (
+        <div className="flex justify-end">
+          <Button type="button" variant="outline" className="bg-transparent" onClick={handleCompleteAll} disabled={completingAll}>
+            {completingAll ? "Huker av..." : `Huk av alle (${pendingCount})`}
+          </Button>
+        </div>
+      )}
       {categories.map((cat) => {
         const catTasks = tasks.filter((t) => (t.category ?? "Annet") === cat);
         return (
@@ -76,16 +97,32 @@ export function BoardingTaskList({ tasks, canEdit, currentUserId }: BoardingTask
                       <div className="flex items-start gap-3">
                         <div className="mt-0.5">
                           {task.status === "COMPLETED" && (
-                            <CheckCircle2 className="h-5 w-5 text-green-600" />
+                            <CheckCircle2 className="h-5 w-5 text-green-600" aria-label="Fullført" />
                           )}
                           {task.status === "SKIPPED" && (
-                            <SkipForward className="h-5 w-5 text-gray-400" />
+                            <SkipForward className="h-5 w-5 text-gray-400" aria-label="Hoppet over" />
                           )}
-                          {task.status === "PENDING" && isOverdue && (
-                            <AlertTriangle className="h-5 w-5 text-red-500" />
+                          {task.status === "PENDING" && (canEdit || isMyTask) && (
+                            <button
+                              type="button"
+                              className="rounded-sm"
+                              aria-label={`Huk av ${task.title}`}
+                              disabled={loadingId === task.id}
+                              onClick={() => handleComplete(task.id)}
+                            >
+                              {isOverdue ? (
+                                <AlertTriangle className="h-5 w-5 text-red-500" />
+                              ) : (
+                                <Circle className="h-5 w-5 text-muted-foreground" />
+                              )}
+                            </button>
                           )}
-                          {task.status === "PENDING" && !isOverdue && (
-                            <Circle className="h-5 w-5 text-muted-foreground" />
+                          {task.status === "PENDING" && !(canEdit || isMyTask) && (
+                            isOverdue ? (
+                              <AlertTriangle className="h-5 w-5 text-red-500" />
+                            ) : (
+                              <Circle className="h-5 w-5 text-muted-foreground" />
+                            )
                           )}
                         </div>
 

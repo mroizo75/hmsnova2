@@ -2,6 +2,8 @@ import { prisma } from "@/lib/db";
 import { ANNUAL_HMS_PLAN_STEPS } from "@/lib/annual-hms-plan-steps";
 import { createNotification, notifyUsersByRole, notifyUsersByRoles } from "@/server/actions/notification.actions";
 import { addDays, addMonths, subDays, startOfDay, endOfDay, differenceInDays } from "date-fns";
+import { daysUntil, expiryDigestMessage, pickCurrentTrainings } from "@/features/training/lib/current-training";
+import { roleMatchFilter } from "@/lib/extra-roles";
 import { NotificationType, Role } from "@prisma/client";
 
 /**
@@ -58,7 +60,6 @@ export async function runScheduledAlerts(): Promise<TenantAlertSummary[]> {
       checkOverdueMeasures(tenant.id),
       checkUpcomingMeasures(tenant.id),
       checkExpiringTraining(tenant.id),
-      checkExpiredTraining(tenant.id),
       checkUpcomingInspections(tenant.id),
       checkOverdueInspections(tenant.id),
       checkDocumentReviews(tenant.id),
@@ -412,79 +413,83 @@ async function checkExpiringTraining(tenantId: string): Promise<AlertResult> {
     select: { trainingReminderDaysBefore: true },
   });
   const reminderDays = tenant?.trainingReminderDaysBefore ?? 30;
-  const horizon = addDays(now, reminderDays);
-  let notifications = 0;
 
-  const expiringTraining = await prisma.training.findMany({
-    where: {
-      tenantId,
-      validUntil: {
-        gte: startOfDay(now),
-        lte: endOfDay(horizon),
-      },
-    },
+  const recorded = await prisma.training.findMany({
+    where: { tenantId, validUntil: { not: null } },
+  });
+  const current = pickCurrentTrainings(recorded);
+  const expiring = current.filter((training) => {
+    const days = daysUntil(training.validUntil, now);
+    return days !== null && days > 0 && days <= reminderDays;
+  });
+  const expired = current.filter((training) => {
+    const days = daysUntil(training.validUntil, now);
+    return days !== null && days <= 0;
   });
 
-  // Grupper etter bruker
-  const userTrainings = new Map<string, typeof expiringTraining>();
-  for (const training of expiringTraining) {
-    if (!userTrainings.has(training.userId)) {
-      userTrainings.set(training.userId, []);
-    }
-    userTrainings.get(training.userId)!.push(training);
+  if (expiring.length === 0 && expired.length === 0) {
+    return { type: "TRAINING_DUE", count: 0, notifications: 0 };
   }
 
-  for (const [userId, trainings] of userTrainings) {
-    const recentNotification = await prisma.notification.findFirst({
+  const byCourse = new Map<string, { courseKey: string; title: string; expiring: number; expired: number }>();
+  for (const training of expiring) {
+    const row = byCourse.get(training.courseKey) ?? {
+      courseKey: training.courseKey,
+      title: training.title,
+      expiring: 0,
+      expired: 0,
+    };
+    row.expiring += 1;
+    byCourse.set(training.courseKey, row);
+  }
+  for (const training of expired) {
+    const row = byCourse.get(training.courseKey) ?? {
+      courseKey: training.courseKey,
+      title: training.title,
+      expiring: 0,
+      expired: 0,
+    };
+    row.expired += 1;
+    byCourse.set(training.courseKey, row);
+  }
+
+  const recipients = await prisma.userTenant.findMany({
+    where: { tenantId, ...roleMatchFilter(["ADMIN", "HMS"]) },
+    select: { userId: true },
+    distinct: ["userId"],
+  });
+
+  let notifications = 0;
+  for (const recipient of recipients) {
+    const recent = await prisma.notification.findFirst({
       where: {
         tenantId,
-        userId,
+        userId: recipient.userId,
         type: "TRAINING_DUE",
+        title: "Kompetanse som må fornyes",
         createdAt: { gt: subDays(now, 14) },
       },
+      select: { id: true },
     });
+    if (recent) continue;
 
-    if (!recentNotification) {
-      const titles = trainings.map(t => t.title).join(", ");
-      await createNotification({
-        tenantId,
-        userId,
-        type: "TRAINING_DUE",
-        title: "📚 Opplæring utløper snart",
-        message: `Følgende opplæring/sertifisering utløper innen ${reminderDays} dager: ${titles}`,
-        link: `/dashboard/training`,
-      });
-      notifications++;
-    }
-  }
-
-  return { type: "TRAINING_DUE", count: expiringTraining.length, notifications };
-}
-
-async function checkExpiredTraining(tenantId: string): Promise<AlertResult> {
-  const now = new Date();
-  let notifications = 0;
-
-  const expiredTraining = await prisma.training.findMany({
-    where: {
+    const created = await createNotification({
       tenantId,
-      validUntil: { lt: startOfDay(now) },
-      isRequired: true,
-    },
-  });
-
-  // Varsle HMS-ansvarlig om utløpt obligatorisk opplæring
-  if (expiredTraining.length > 0) {
-    await notifyUsersByRole(tenantId, "HMS", {
-      type: "TRAINING_EXPIRED",
-      title: "🚨 Utløpt obligatorisk opplæring",
-      message: `${expiredTraining.length} ansatte har utløpt obligatorisk opplæring/sertifisering som må fornyes.`,
-      link: `/dashboard/training`,
+      userId: recipient.userId,
+      type: "TRAINING_DUE",
+      title: "Kompetanse som må fornyes",
+      message: expiryDigestMessage({
+        expiringCount: expiring.length,
+        expiredCount: expired.length,
+        reminderDays,
+        courses: [...byCourse.values()],
+      }),
+      link: "/dashboard/training",
     });
-    notifications++;
+    if (created.success) notifications += 1;
   }
 
-  return { type: "TRAINING_EXPIRED", count: expiredTraining.length, notifications };
+  return { type: "TRAINING_DUE", count: expiring.length + expired.length, notifications };
 }
 
 // ============================================
@@ -1679,6 +1684,18 @@ async function checkCompetenceGaps(tenantId: string): Promise<AlertResult> {
     });
 
     for (const mgr of managers) {
+      const recent = await prisma.notification.findFirst({
+        where: {
+          tenantId,
+          userId: mgr.userId,
+          type: "TRAINING_EXPIRED",
+          link: "/dashboard/training/gap",
+          createdAt: { gt: subDays(now, 14) },
+        },
+        select: { id: true },
+      });
+      if (recent) continue;
+
       await createNotification({
         tenantId,
         userId: mgr.userId,

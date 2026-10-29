@@ -16,6 +16,8 @@ import { fetchRisks, fetchRiskAssessments } from "@/server/queries/risk.queries"
 import { getIndustryLabel, getIndustryPackage } from "@/lib/industry-packages";
 import { RiskAssessmentImportCard } from "@/features/risks/components/risk-assessment-import-card";
 
+export const maxDuration = 60;
+
 export default async function RisksPage() {
   const t = await getTranslations("dashboardRisksPage");
   const session = await getServerSession(authOptions);

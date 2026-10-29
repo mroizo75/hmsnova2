@@ -44,6 +44,15 @@ export class LocalStorage implements StorageAdapter {
     }
   }
 
+  async exists(key: string): Promise<boolean> {
+    try {
+      await fs.access(path.join(this.basePath, key));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async delete(key: string): Promise<void> {
     const filePath = path.join(this.basePath, key);
     await fs.unlink(filePath);

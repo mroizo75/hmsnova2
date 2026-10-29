@@ -11,6 +11,7 @@ import {
 import type { Training, CourseTemplate } from "@prisma/client";
 import { useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { pickCurrentTrainings } from "@/features/training/lib/current-training";
 
 interface CompetenceMatrixProps {
   matrix: Array<{
@@ -92,7 +93,7 @@ export function CompetenceMatrix({ matrix, courseTemplates, tenantId, reminderDa
         ];
 
         for (const course of courses) {
-          const training = item.trainings.find((t) => t.courseKey === course.key);
+          const training = pickCurrentTrainings(item.trainings).find((t) => t.courseKey === course.key);
           if (!training) {
             const isRequired = (requiredCourseKeysByUser[item.user.id] ?? []).includes(course.key);
             row.push(isRequired ? "MANGLER" : "");
@@ -156,7 +157,7 @@ export function CompetenceMatrix({ matrix, courseTemplates, tenantId, reminderDa
         for (const course of courses) {
           let count = 0;
           for (const item of matrix) {
-            const training = item.trainings.find((t) => t.courseKey === course.key);
+            const training = pickCurrentTrainings(item.trainings).find((t) => t.courseKey === course.key);
             if (!training) {
               if (statuses.includes("MISSING") && (requiredCourseKeysByUser[item.user.id] ?? []).includes(course.key)) {
                 count++;
@@ -197,7 +198,7 @@ export function CompetenceMatrix({ matrix, courseTemplates, tenantId, reminderDa
 
       for (const item of matrix) {
         for (const course of courses) {
-          const training = item.trainings.find((t) => t.courseKey === course.key);
+          const training = pickCurrentTrainings(item.trainings).find((t) => t.courseKey === course.key);
           const isRequired = (requiredCourseKeysByUser[item.user.id] ?? []).includes(course.key);
           if (!training && !isRequired) continue;
 
@@ -354,7 +355,11 @@ export function CompetenceMatrix({ matrix, courseTemplates, tenantId, reminderDa
                 </tr>
               </thead>
               <tbody>
-                {matrix.map((item) => (
+                {matrix.map((item) => {
+                  const currentByCourse = new Map(
+                    pickCurrentTrainings(item.trainings).map((training) => [training.courseKey, training]),
+                  );
+                  return (
                   <tr key={item.user.id} className="border-b hover:bg-slate-50 dark:hover:bg-slate-800/50">
                     <td className="p-2 sticky left-0 bg-background z-10 border-r">
                       <div className="min-w-[130px]">
@@ -365,9 +370,7 @@ export function CompetenceMatrix({ matrix, courseTemplates, tenantId, reminderDa
                       </div>
                     </td>
                     {courses.map((course) => {
-                      const training = item.trainings.find(
-                        (t) => t.courseKey === course.key,
-                      );
+                      const training = currentByCourse.get(course.key);
 
                       if (!training) {
                         return (
@@ -415,7 +418,8 @@ export function CompetenceMatrix({ matrix, courseTemplates, tenantId, reminderDa
                       );
                     })}
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

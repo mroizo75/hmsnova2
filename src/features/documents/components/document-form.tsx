@@ -53,6 +53,7 @@ export function DocumentForm({ tenantId, owners, templates }: DocumentFormProps)
   const [loading, setLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [requiresReadConfirmation, setRequiresReadConfirmation] = useState(false);
   const [selectedOwner, setSelectedOwner] = useState<string>(NO_OWNER_VALUE);
   const [selectedTemplate, setSelectedTemplate] = useState<string>(NO_TEMPLATE_VALUE);
   const [reviewInterval, setReviewInterval] = useState("12");
@@ -132,6 +133,7 @@ export function DocumentForm({ tenantId, owners, templates }: DocumentFormProps)
     if (selectedRoles.length > 0) {
       formData.append("visibleToRoles", JSON.stringify(selectedRoles));
     }
+    formData.append("requiresReadConfirmation", requiresReadConfirmation ? "true" : "false");
 
     try {
       const result = await createDocument(formData);
@@ -385,6 +387,26 @@ export function DocumentForm({ tenantId, owners, templates }: DocumentFormProps)
                 placeholder={t("placeholders.act")}
                 disabled={loading}
               />
+            </div>
+          </div>
+
+          <div className="rounded-xl border p-4">
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="requires-read-confirmation"
+                checked={requiresReadConfirmation}
+                onCheckedChange={(checked) => setRequiresReadConfirmation(checked === true)}
+                disabled={loading}
+              />
+              <div>
+                <Label htmlFor="requires-read-confirmation" className="cursor-pointer">
+                  Krev lesebekreftelse
+                </Label>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Alle som kan se dokumentet må kvittere for at de har lest det, eller at de vet hvor det ligger.
+                  Bruk dette for egen HMS-håndbok og andre styrende dokumenter. En ny versjon krever ny kvittering.
+                </p>
+              </div>
             </div>
           </div>
 

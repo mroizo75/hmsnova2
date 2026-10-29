@@ -85,7 +85,7 @@ export default async function TrainingPage({
         />
       </div>
 
-      <TrainingContent initialData={initialData} tema={tema} />
+      <TrainingContent initialData={initialData} tema={tema} tenantId={tenantId} />
 
       {/* ISO 9001 – kollapset som standard */}
       <IsoCompetenceInfo />
