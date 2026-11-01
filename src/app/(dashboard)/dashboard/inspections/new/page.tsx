@@ -390,7 +390,7 @@ export default function NewInspectionPage() {
                   {t("fields.conductedBy")} <span className="text-destructive">*</span>
                 </Label>
                 <Select
-                  value={formData.conductedBy}
+                  value={formData.conductedBy || undefined}
                   onValueChange={(value) =>
                     setFormData({ ...formData, conductedBy: value })
                   }

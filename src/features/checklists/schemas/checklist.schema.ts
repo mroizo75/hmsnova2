@@ -47,6 +47,7 @@ export const saveChecklistSchema = z
 export const submitChecklistSchema = z.object({
   checklistId: z.string().min(1),
   location: z.string().trim().max(160).optional().or(z.literal("")),
+  projectId: z.string().cuid().optional().or(z.literal("")),
   note: z.string().trim().max(2000).optional().or(z.literal("")),
   answers: z
     .array(
@@ -54,6 +55,17 @@ export const submitChecklistSchema = z.object({
         itemId: z.string().min(1),
         response: z.enum(["OK", "DEVIATION", "NOT_APPLICABLE"]),
         comment: z.string().trim().max(1000).optional().or(z.literal("")),
+        reportIncident: z.boolean().optional(),
+        photos: z
+          .array(
+            z.object({
+              fileKey: z.string().min(8).max(500),
+              fileName: z.string().trim().min(1).max(200),
+              mimeType: z.string().trim().min(1).max(100),
+            }),
+          )
+          .max(4)
+          .optional(),
       }),
     )
     .min(1),

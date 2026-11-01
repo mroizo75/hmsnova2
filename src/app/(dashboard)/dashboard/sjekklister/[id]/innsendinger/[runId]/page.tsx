@@ -12,5 +12,11 @@ export default async function ChecklistSubmissionPage({
   if (run === "denied") redirect("/dashboard/sjekklister");
   if (!run) notFound();
 
-  return <ChecklistResult run={run} backHref={`/dashboard/sjekklister/${id}`} />;
+  return (
+    <ChecklistResult
+      run={run}
+      backHref={`/dashboard/sjekklister/${id}`}
+      incidentHref={(incidentId) => `/dashboard/incidents/${incidentId}`}
+    />
+  );
 }

@@ -232,6 +232,8 @@ export function IncidentDetailContent({
               <Badge className={statusColor}>{statusLabel}</Badge>
               {(incident.source ?? "INTERNAL") === "EXTERNAL" ? (
                 <Badge className="bg-violet-100 text-violet-800 border-violet-300">Ekstern</Badge>
+              ) : incident.source === "CHECKLIST" ? (
+                <Badge className="bg-amber-100 text-amber-900 border-amber-300">Sjekkliste</Badge>
               ) : (
                 <Badge className="bg-slate-100 text-slate-700 border-slate-300">Intern</Badge>
               )}
@@ -239,6 +241,18 @@ export function IncidentDetailContent({
           </div>
         </div>
       </div>
+
+      {incident.checklistAnswers?.[0] && (
+        <Link
+          href={`/dashboard/sjekklister/${incident.checklistAnswers[0].run.checklistId}/innsendinger/${incident.checklistAnswers[0].run.id}`}
+          className="block rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm"
+        >
+          <span className="font-medium">Fra sjekkliste</span>
+          <span className="mt-1 block">
+            {incident.checklistAnswers[0].run.checklist.title} · {incident.checklistAnswers[0].run.reference}
+          </span>
+        </Link>
+      )}
 
       {/* Stepper */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b -mx-1 px-1 py-3">

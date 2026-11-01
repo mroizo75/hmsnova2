@@ -88,6 +88,7 @@ export default async function ChecklistDetailPage({ params }: { params: Promise<
                   </p>
                   <p className="text-sm text-muted-foreground">
                     {formatWhen(run.submittedAt)}
+                    {run.projectName ? ` · ${run.projectName}` : ""}
                     {run.location ? ` · ${run.location}` : ""}
                   </p>
                 </div>

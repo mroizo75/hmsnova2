@@ -148,7 +148,7 @@ const HMS_SYSTEM_TOPICS = [
   {
     title: "ISO 9001-støtte",
     description: "Følger ISO 9001:2015 kravene — klargjort for revisjon.",
-    details: "HMS Nova dekker kravene i ISO 9001:2015 for avvik (kap. 10.2), risiko (kap. 6.1), dokumentstyring (kap. 7.5) og revisjon. Revisjonsmodulen har ferdige sjekklister for alle 27 ISO-klausuler. Vi er ikke selv sertifisert, men gjør det enkelt for bedrifter å bli det.",
+    details: "HMS Nova dekker ISO 9001:2015 for avvik (kap. 10.2), risiko (kap. 6.1), endringsstyring (kap. 6.3), dokumentstyring (kap. 7.5), leverandører (kap. 8.4), kundetilfredshet (kap. 9.1.2) og revisjon. Revisjonsmodulen har ferdige sjekklister for alle 27 ISO-klausuler. Vi er ikke selv sertifisert, men gjør det enkelt for bedrifter å bli det.",
     icon: CheckCircle2,
     href: "/hms-system/iso-9001",
     badge: "Kvalitet",

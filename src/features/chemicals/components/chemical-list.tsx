@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -24,6 +23,7 @@ import { Trash2, Eye, Download, Search, Filter, FileText } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { deleteChemical, verifyChemical } from "@/server/actions/chemical.actions";
+import { useRefreshAfterSave } from "@/hooks/use-refresh-after-save";
 import { useToast } from "@/hooks/use-toast";
 import type { Chemical } from "@prisma/client";
 import { normalizePpeFile } from "@/lib/pictograms";
@@ -41,7 +41,7 @@ export function ChemicalList({
   initialIsocyanateFilter,
   initialQuickFilter,
 }: ChemicalListProps) {
-  const router = useRouter();
+  const refreshAfterSave = useRefreshAfterSave();
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -132,7 +132,7 @@ export function ChemicalList({
         title: "🗑️ Kjemikalie slettet",
         description: `"${productName}" er permanent fjernet`,
       });
-      router.refresh();
+      await refreshAfterSave();
     } else {
       toast({
         variant: "destructive",
@@ -163,7 +163,7 @@ export function ChemicalList({
         description: `"${productName}" er verifisert`,
         className: "bg-green-50 border-green-200",
       });
-      router.refresh();
+      await refreshAfterSave();
     } else {
       toast({
         variant: "destructive",

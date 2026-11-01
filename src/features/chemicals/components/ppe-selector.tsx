@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { PPE_PICTOGRAMS } from "@/lib/pictograms";
@@ -15,15 +15,19 @@ interface PPESelectorProps {
 export function PPESelector({ defaultValue, onChange, suggestedFiles = [] }: PPESelectorProps) {
   const [selected, setSelected] = useState<string[]>([]);
   const [showAll, setShowAll] = useState(false);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
   useEffect(() => {
-    if (defaultValue) {
-      try {
-        const parsed = JSON.parse(defaultValue);
-        setSelected(Array.isArray(parsed) ? parsed : []);
-      } catch {
-        setSelected([]);
-      }
+    if (!defaultValue) return;
+    try {
+      const parsed = JSON.parse(defaultValue);
+      const next = Array.isArray(parsed) ? parsed.filter((item) => typeof item === "string") : [];
+      setSelected(next);
+      onChangeRef.current?.(next);
+    } catch {
+      setSelected([]);
+      onChangeRef.current?.([]);
     }
   }, [defaultValue]);
 

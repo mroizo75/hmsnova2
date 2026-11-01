@@ -1651,6 +1651,21 @@ export const helpContent: Record<string, HelpContent> = {
     ],
   },
 
+  suppliers: {
+    title: "Leverandører",
+    description: "Godkjenning og oppfølging av leverandører (ISO 9001:2015 pkt. 8.4)",
+    sections: [
+      {
+        heading: "Hva registreres?",
+        emoji: "📦",
+        content:
+          "Registeret holder status, kriterier, kritikalitet og dato for re-evaluering. Leverandørrevisjon er evalueringen. Kvalitetsavvik er ytelsen.",
+      },
+    ],
+    isoStandards: ["ISO 9001:2015 pkt. 8.4 – Styring av eksternt leverte prosesser, produkter og tjenester"],
+    tips: ["Godkjente og betinget godkjente leverandører skal ha kriterier og en dato for neste vurdering."],
+  },
+
   feedback: {
     title: "Tilbakemeldinger",
     description: "Motta og følg opp tilbakemeldinger, forslag og innspill",

@@ -1,7 +1,10 @@
+import { handbookSectionNumber, handbookSectionSort } from "@/lib/handbook-outline";
+
 /**
  * Ett styringssystem i tre deler: kvalitet, HMS og personal.
  * Felles kapitler oppfyller både ISO 9001:2015 (pkt. 7.5, 9.2, 9.3 og 10.2)
- * og internkontrollforskriften § 5 nr. 7 og 8, og vises derfor i begge deler.
+ * og internkontrollforskriften § 5 nr. 7 og 8, og kan filtreres i begge deler.
+ * Nummereringen er felles og følger ISO-strukturen, ikke 1, 2, 3 per del.
  */
 
 export const HANDBOOK_TITLE = "Kvalitet, HMS og personal";
@@ -58,24 +61,22 @@ export function isSharedHandbookSection(sectionKey: string): boolean {
   return SHARED_KEYS.has(sectionKey);
 }
 
-function orderHandbookPart<T extends { sectionKey: string; sortOrder: number }>(
+function orderHandbookPart<T extends { sectionKey: string; sortOrder?: number | null; sectionNumber?: string | null }>(
   sections: T[],
-  part: HandbookPart,
-): T[] {
-  return [...sections].sort((a, b) => {
-    if (part === "KS") {
-      const aRank = SHARED_KEYS.has(a.sectionKey) ? 1 : 0;
-      const bRank = SHARED_KEYS.has(b.sectionKey) ? 1 : 0;
-      if (aRank !== bRank) return aRank - bRank;
-    }
-    return a.sortOrder - b.sortOrder || a.sectionKey.localeCompare(b.sectionKey);
-  });
+): Array<T & { sectionNumber: string; sortOrder: number }> {
+  return [...sections]
+    .map((section) => ({
+      ...section,
+      sectionNumber: handbookSectionNumber(section),
+      sortOrder: handbookSectionSort(section),
+    }))
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.sectionNumber.localeCompare(b.sectionNumber, "nb"));
 }
 
-/** Nummer 1, 2, 3 … i leserekkefølge innen hver del. */
+/** Samme nummer i alle deler. Filtrering endrer ikke 2.1 til 1. */
 export function groupHandbookSections<
-  T extends { sectionKey: string; category?: string | null; sortOrder: number },
->(sections: T[]): Record<HandbookPart, Array<T & { sectionNumber: string }>> {
+  T extends { sectionKey: string; category?: string | null; sortOrder?: number | null; sectionNumber?: string | null },
+>(sections: T[]): Record<HandbookPart, Array<T & { sectionNumber: string; sortOrder: number }>> {
   const grouped: Record<HandbookPart, T[]> = { KS: [], HMS: [], HR: [] };
   for (const section of sections) {
     for (const part of handbookSectionParts(section.sectionKey, section.category)) {
@@ -83,17 +84,8 @@ export function groupHandbookSections<
     }
   }
   return {
-    KS: orderHandbookPart(grouped.KS, "KS").map((section, index) => ({
-      ...section,
-      sectionNumber: String(index + 1),
-    })),
-    HMS: orderHandbookPart(grouped.HMS, "HMS").map((section, index) => ({
-      ...section,
-      sectionNumber: String(index + 1),
-    })),
-    HR: orderHandbookPart(grouped.HR, "HR").map((section, index) => ({
-      ...section,
-      sectionNumber: String(index + 1),
-    })),
+    KS: orderHandbookPart(grouped.KS),
+    HMS: orderHandbookPart(grouped.HMS),
+    HR: orderHandbookPart(grouped.HR),
   };
 }

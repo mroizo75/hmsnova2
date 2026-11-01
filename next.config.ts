@@ -44,6 +44,11 @@ const nextConfig: NextConfig = {
   outputFileTracingExcludes: {
     "/*": ["**/node_modules/@swc/**", "**/storage/**"],
   },
+  // Standalone-traceren utelater interne jsdom-filer (bl.a. webstorage/Storage-impl.js).
+  // isomorphic-dompurify laster jsdom i felles server-chunk, også på sider som ikke sanitizer HTML.
+  outputFileTracingIncludes: {
+    "/*": ["./node_modules/jsdom/**/*"],
+  },
   experimental: {
     staleTimes: {
       dynamic: 0,

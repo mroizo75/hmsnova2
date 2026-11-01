@@ -3,12 +3,7 @@
  * Ledelseskapitler filtreres bort; lenker peker til ansatt-flaten.
  */
 
-import {
-  HANDBOOK_PART_DESCRIPTIONS,
-  HANDBOOK_PART_LABELS,
-  HANDBOOK_PARTS,
-  groupHandbookSections,
-} from "@/lib/handbook-parts";
+import { groupHandbookChapters } from "@/lib/handbook-outline";
 
 export const EMPLOYEE_HIDDEN_SECTION_KEYS = new Set(["s9", "s10", "s13", "s14"]);
 
@@ -53,24 +48,12 @@ export function handbookSectionMatchesQuery<T extends { title: string; content: 
 }
 
 export function groupEmployeeHandbookSections<
-  T extends { sectionKey: string; category?: string | null; sortOrder?: number },
->(sections: T[]): Array<{ id: string; title: string; description: string; sections: T[] }> {
-  const withOrder = sections.map((section, index) => ({
-    ...section,
-    sortOrder: section.sortOrder ?? index,
+  T extends { sectionKey: string; category?: string | null; sortOrder?: number; sectionNumber?: string | null },
+>(sections: T[]): Array<{ id: string; title: string; description: string; sections: Array<T & { sectionNumber: string; sortOrder: number }> }> {
+  return groupHandbookChapters(sections).map((chapter) => ({
+    id: chapter.number,
+    title: chapter.number === "other" ? chapter.title : `${chapter.number}. ${chapter.title}`,
+    description: chapter.description,
+    sections: chapter.sections,
   }));
-  const grouped = groupHandbookSections(withOrder);
-
-  return HANDBOOK_PARTS.flatMap((part) => {
-    const partSections = grouped[part];
-    if (partSections.length === 0) return [];
-    return [
-      {
-        id: part,
-        title: HANDBOOK_PART_LABELS[part],
-        description: HANDBOOK_PART_DESCRIPTIONS[part],
-        sections: partSections,
-      },
-    ];
-  });
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useRefreshAfterSave } from "@/hooks/use-refresh-after-save";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -138,11 +139,14 @@ function FlagRow({ id, name, checked, disabled, color, label, description }: {
 
 export function ChemicalForm({ chemical, mode = "create" }: ChemicalFormProps) {
   const router = useRouter();
+  const refreshAfterSave = useRefreshAfterSave();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [sdsFile, setSdsFile] = useState<File | null>(null);
   const [parsing, setParsing] = useState(false);
   const [aiData, setAiData] = useState<any>(null);
+  const [pictogramFiles, setPictogramFiles] = useState<string[]>([]);
+  const [ppeFiles, setPpeFiles] = useState<string[]>([]);
 
   const handleSDSUpload = async (file: File) => {
     setSdsFile(file);
@@ -169,11 +173,16 @@ export function ChemicalForm({ chemical, mode = "create" }: ChemicalFormProps) {
       setAiData(data);
       toast({
         title: "AI-analyse fullført",
-        description: "Feltene er fylt ut automatisk – sjekk og juster om nødvendig",
+        description: "Feltene er fylt ut automatisk. Faresymboler og verneutstyr kan endres manuelt.",
         className: "bg-green-50 border-green-200",
       });
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Feil ved AI-parsing", description: error.message });
+      toast({
+        title: "Velg faresymboler og verneutstyr manuelt",
+        description:
+          error?.message ||
+          "AI er ikke tilgjengelig. Databladet er lastet opp, og symbolene under kan velges uten AI.",
+      });
     } finally {
       setParsing(false);
     }
@@ -205,8 +214,8 @@ export function ChemicalForm({ chemical, mode = "create" }: ChemicalFormProps) {
         hazardClass: (formData.get("hazardClass") as string) || undefined,
         hazardStatements: (formData.get("hazardStatements") as string) || undefined,
         precautionaryStatements: (formData.get("precautionaryStatements") as string) || undefined,
-        warningPictograms: (formData.get("warningPictograms") as string) || undefined,
-        requiredPPE: (formData.get("requiredPPE") as string) || undefined,
+        warningPictograms: JSON.stringify(pictogramFiles),
+        requiredPPE: JSON.stringify(ppeFiles),
         containsIsocyanates: formData.get("containsIsocyanates") === "on",
         isCMR: formData.get("isCMR") === "on",
         isSVHC: formData.get("isSVHC") === "on",
@@ -231,8 +240,7 @@ export function ChemicalForm({ chemical, mode = "create" }: ChemicalFormProps) {
           description: mode === "edit" ? "Endringene er lagret" : "Produktet er lagt til i stoffkartoteket",
           className: "bg-green-50 border-green-200",
         });
-        router.push("/dashboard/chemicals");
-        router.refresh();
+        await refreshAfterSave("/dashboard/chemicals");
       } else {
         toast({ variant: "destructive", title: "Feil", description: result.error || "Kunne ikke lagre" });
       }
@@ -252,7 +260,7 @@ export function ChemicalForm({ chemical, mode = "create" }: ChemicalFormProps) {
           <SectionHeader
             icon={Upload}
             title="Sikkerhetsdatablad (SDS)"
-            description="Last opp PDF – AI analyserer og fyller ut feltene under automatisk"
+            description="Last opp PDF. AI fyller ut feltene når det er aktivert. Faresymboler og verneutstyr kan alltid velges manuelt."
           />
 
           {/* AI-status */}
@@ -459,9 +467,13 @@ export function ChemicalForm({ chemical, mode = "create" }: ChemicalFormProps) {
               </div>
             )}
             <Label className="text-sm font-medium text-slate-700 block mb-2">Faresymboler (GHS)</Label>
+            <p className="text-xs text-muted-foreground mb-2">
+              Klikk symbolene. Valget lagres uten AI.
+            </p>
             <HazardPictogramSelector
-              key={aiData?.warningPictograms || "wp"}
+              key={aiData?.warningPictograms || chemical?.warningPictograms || "wp"}
               defaultValue={aiData?.warningPictograms || chemical?.warningPictograms || ""}
+              onChange={setPictogramFiles}
             />
           </div>
 
@@ -498,9 +510,13 @@ export function ChemicalForm({ chemical, mode = "create" }: ChemicalFormProps) {
             title="Personlig verneutstyr (PPE)"
             description="Påkrevd verneutstyr ved håndtering – ISO 7010-symboler"
           />
+          <p className="text-xs text-muted-foreground">
+            Klikk symbolene. Uten AI-forslag vises hele listen.
+          </p>
           <PPESelector
-            key={aiData?.requiredPPE || "ppe"}
+            key={aiData?.requiredPPE || chemical?.requiredPPE || "ppe"}
             defaultValue={aiData?.requiredPPE || chemical?.requiredPPE || ""}
+            onChange={setPpeFiles}
             suggestedFiles={aiData?.requiredPPE ? (() => { try { return JSON.parse(aiData.requiredPPE); } catch { return []; } })() : []}
           />
         </div>

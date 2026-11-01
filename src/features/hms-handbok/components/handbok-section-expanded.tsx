@@ -15,10 +15,25 @@ import {
   X,
   Lightbulb,
   Loader2,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { updateDraftSection } from "@/server/actions/hms-handbok.actions";
+import { deleteCustomHandbookSection, updateDraftSection } from "@/server/actions/hms-handbok.actions";
+import { isCustomHandbookSection } from "@/lib/handbook-section-order";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import type {
   HandbookSectionData,
   AnnualPlanProgress,
@@ -73,7 +88,11 @@ export function HandbokSectionExpanded({
   const [editContent, setEditContent] = useState(section.content);
   const [displayContent, setDisplayContent] = useState(section.content);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const router = useRouter();
+  const isCustom = isCustomHandbookSection(section.sectionKey);
 
   const isDraft = versionStatus === "DRAFT";
   const sectionSuggestions = suggestions.filter(
@@ -104,12 +123,15 @@ export function HandbokSectionExpanded({
             className="flex flex-1 cursor-pointer items-start gap-3"
             onClick={() => setExpanded(!expanded)}
           >
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+            <span className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold text-primary-foreground">
               {section.sectionNumber}
             </span>
             <div className="flex-1">
               <CardTitle className="flex items-center gap-2 text-base">
                 {section.title}
+                {isCustom && (
+                  <Badge variant="outline" className="bg-transparent text-xs font-normal">Eget punkt</Badge>
+                )}
                 {section.category === "HR" && (
                   <Badge variant="outline" className="bg-transparent text-xs font-normal">Personal</Badge>
                 )}
@@ -141,6 +163,51 @@ export function HandbokSectionExpanded({
                   <ExternalLink className="h-3.5 w-3.5" />
                 </Link>
               </Button>
+            )}
+            {isDraft && canEdit && isCustom && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive"
+                    aria-label="Slett eget punkt"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Slette {section.title}?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Punktet fjernes fra utkastet. De andre punktene nummereres på nytt.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Avbryt</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      disabled={deleting}
+                      onClick={async (event) => {
+                        event.preventDefault();
+                        setDeleting(true);
+                        const result = await deleteCustomHandbookSection({ sectionId: section.id });
+                        setDeleting(false);
+                        if (!result.success) {
+                          toast({ title: "Feil", description: result.error, variant: "destructive" });
+                          return;
+                        }
+                        toast({ title: "Punkt slettet" });
+                        await queryClient.invalidateQueries({ queryKey: ["hms-handbok"] });
+                        router.refresh();
+                      }}
+                    >
+                      {deleting ? "Sletter..." : "Slett"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
             <Button
               variant="ghost"

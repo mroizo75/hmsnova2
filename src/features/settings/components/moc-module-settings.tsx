@@ -67,8 +67,8 @@ export function MocModuleSettings({
           Endringsledelse (MoC)
         </CardTitle>
         <CardDescription>
-          Formell styring av planlagte og utilsiktede endringer som påvirker HMS, jf. ISO 45001 krav 8.1.3
-          og internkontrollforskriften § 5 nr. 2 og nr. 6.
+          Formell styring av endringer som påvirker arbeidsmiljø, miljø eller kvalitet. ISO 45001 pkt. 8.1.3,
+          ISO 9001 pkt. 6.3 og internkontrollforskriften § 5. Modulen er på for alle kunder.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

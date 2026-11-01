@@ -39,6 +39,7 @@ export interface ChecklistRecentRun {
   submittedAt: string;
   submittedByName: string;
   location: string | null;
+  projectName: string | null;
   okCount: number;
   deviationCount: number;
   notApplicableCount: number;
@@ -67,6 +68,8 @@ export interface ChecklistFillData {
   title: string;
   description: string | null;
   usageNote: string | null;
+  canReportIncident: boolean;
+  projects: Array<{ id: string; name: string; code: string | null }>;
   sections: Array<{
     title: string;
     items: Array<{ id: string; prompt: string; helpText: string | null; required: boolean }>;
@@ -81,17 +84,25 @@ export interface ChecklistRunView {
   submittedAt: string;
   submittedByName: string;
   location: string | null;
+  projectName: string | null;
   note: string | null;
   okCount: number;
   deviationCount: number;
   notApplicableCount: number;
   recipients: string[];
-  answers: Array<{
+    answers: Array<{
     sectionTitle: string;
     prompt: string;
     response: "OK" | "DEVIATION" | "NOT_APPLICABLE";
     comment: string | null;
+    photos: Array<{ fileKey: string; fileName: string }>;
+    incident: { id: string; avviksnummer: string | null } | null;
   }>;
+}
+
+function projectLabel(project: { name: string; code: string | null } | null): string | null {
+  if (!project) return null;
+  return project.code ? `${project.name} (${project.code})` : project.name;
 }
 
 const ROLE_OPTIONS = [
@@ -165,6 +176,7 @@ export async function fetchChecklistOverview() {
       include: {
         checklist: { select: { id: true, title: true, resultRecipientIds: true } },
         submittedBy: { select: { name: true, email: true } },
+        project: { select: { name: true, code: true } },
       },
       orderBy: { submittedAt: "desc" },
       take: 80,
@@ -226,6 +238,7 @@ export async function fetchChecklistOverview() {
       submittedAt: run.submittedAt.toISOString(),
       submittedByName: run.submittedBy.name?.trim() || run.submittedBy.email,
       location: run.location,
+      projectName: projectLabel(run.project),
       okCount: run.okCount,
       deviationCount: run.deviationCount,
       notApplicableCount: run.notApplicableCount,
@@ -321,11 +334,23 @@ export async function fetchChecklistFill(id: string): Promise<ChecklistFillData 
   });
   if (!allowed) return "denied";
 
+  const projects = await prisma.project.findMany({
+    where: {
+      tenantId: auth.tenantId,
+      isAbsenceProject: false,
+      status: { in: ["ACTIVE", "PLANNING", "ON_HOLD"] },
+    },
+    select: { id: true, name: true, code: true },
+    orderBy: { name: "asc" },
+  });
+
   return {
     id: checklist.id,
     title: checklist.title,
     description: checklist.description,
     usageNote: checklist.usageNote,
+    canReportIncident: auth.permissions.canCreateIncidents,
+    projects,
     sections: checklist.sections.map((section) => ({
       title: section.title,
       items: section.items.map((item) => ({
@@ -347,7 +372,10 @@ export async function fetchChecklistDetail(id: string) {
       sections: { include: { items: { select: { id: true } } } },
       createdBy: { select: { name: true, email: true } },
       runs: {
-        include: { submittedBy: { select: { id: true, name: true, email: true } } },
+        include: {
+          submittedBy: { select: { id: true, name: true, email: true } },
+          project: { select: { name: true, code: true } },
+        },
         orderBy: { submittedAt: "desc" },
         take: 40,
       },
@@ -408,6 +436,7 @@ export async function fetchChecklistDetail(id: string) {
         submittedAt: run.submittedAt.toISOString(),
         submittedByName: run.submittedBy.name?.trim() || run.submittedBy.email,
         location: run.location,
+        projectName: projectLabel(run.project),
         okCount: run.okCount,
         deviationCount: run.deviationCount,
         notApplicableCount: run.notApplicableCount,
@@ -423,7 +452,14 @@ export async function fetchChecklistRun(checklistId: string, runId: string): Pro
     include: {
       checklist: { select: { title: true, resultRecipientIds: true } },
       submittedBy: { select: { name: true, email: true } },
-      answers: { orderBy: { sortOrder: "asc" } },
+      project: { select: { name: true, code: true } },
+      answers: {
+        orderBy: { sortOrder: "asc" },
+        include: {
+          photos: { select: { fileKey: true, fileName: true } },
+          incident: { select: { id: true, avviksnummer: true } },
+        },
+      },
     },
   });
   if (!run) return null;
@@ -447,6 +483,7 @@ export async function fetchChecklistRun(checklistId: string, runId: string): Pro
     submittedAt: run.submittedAt.toISOString(),
     submittedByName: run.submittedBy.name?.trim() || run.submittedBy.email,
     location: run.location,
+    projectName: projectLabel(run.project),
     note: run.note,
     okCount: run.okCount,
     deviationCount: run.deviationCount,
@@ -457,6 +494,8 @@ export async function fetchChecklistRun(checklistId: string, runId: string): Pro
       prompt: answer.prompt,
       response: answer.response,
       comment: answer.comment,
+      photos: answer.photos,
+      incident: answer.incident,
     })),
   };
 }

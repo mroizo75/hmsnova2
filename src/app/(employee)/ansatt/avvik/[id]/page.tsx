@@ -31,6 +31,19 @@ export default async function AnsattAvvikDetalj({
         orderBy: { createdAt: "asc" },
       },
       equipmentApproval: { select: { name: true } },
+      checklistAnswers: {
+        take: 1,
+        select: {
+          run: {
+            select: {
+              id: true,
+              reference: true,
+              checklistId: true,
+              checklist: { select: { title: true } },
+            },
+          },
+        },
+      },
     },
   });
 
@@ -51,6 +64,14 @@ export default async function AnsattAvvikDetalj({
           <p className="text-sm text-muted-foreground">
             {incident.avviksnummer ?? incident.type}
           </p>
+          {incident.checklistAnswers[0] && (
+            <Link
+              href={`/ansatt/sjekklister/${incident.checklistAnswers[0].run.checklistId}/resultat/${incident.checklistAnswers[0].run.id}`}
+              className="text-sm underline"
+            >
+              Fra sjekkliste {incident.checklistAnswers[0].run.checklist.title} · {incident.checklistAnswers[0].run.reference}
+            </Link>
+          )}
         </div>
       </div>
 

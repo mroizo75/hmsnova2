@@ -20,6 +20,7 @@ import { MocModuleSettings } from "@/features/settings/components/moc-module-set
 import { AiSettings } from "@/features/settings/components/ai-settings";
 import { DataExportCard } from "@/features/settings/components/data-export-card";
 import { TenantLogoUpload } from "@/features/settings/components/tenant-logo-upload";
+import { isMocHighlightedIndustry } from "@/lib/moc-industry";
 import { parseModuleVisibilityConfig } from "@/lib/module-visibility";
 import { aliasDashboardMenuHrefs } from "@/lib/legal-link-repair";
 import { Building2, User, CreditCard, Cloud, Bell, PanelLeft, Lock, BarChart3, Monitor, Sparkles, Receipt } from "lucide-react";
@@ -137,7 +138,7 @@ export function SettingsContent({
         <MocModuleSettings
           initialEnabled={Boolean(tenant.mocModuleEnabled)}
           isAdmin={isAdmin}
-          recommended={["oil_gas", "offshore", "manufacturing", "bergverk", "marine", "elektro", "construction"].includes(
+          recommended={isMocHighlightedIndustry(
             String(tenant.industry ?? "").toLowerCase(),
           )}
         />

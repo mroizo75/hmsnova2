@@ -69,12 +69,22 @@ export async function POST(request: NextRequest) {
       return createErrorResponse(ErrorCodes.FORBIDDEN, "Ingen tenant tilgang", 403);
     }
     const data = await request.json();
+    const supplierId = typeof data.supplierId === "string" && data.supplierId.length > 0 ? data.supplierId : null;
+    if (supplierId) {
+      const supplier = await prisma.supplier.findFirst({
+        where: { id: supplierId, tenantId },
+        select: { id: true },
+      });
+      if (!supplier) {
+        return createErrorResponse(ErrorCodes.VALIDATION_ERROR, "Leverandøren finnes ikke", 400);
+      }
+    }
 
     const audit = await prisma.audit.create({
       data: {
         tenantId,
         title: data.title,
-        auditType: data.auditType || "INTERNAL",
+        auditType: supplierId ? "SUPPLIER" : data.auditType || "INTERNAL",
         scope: data.scope,
         criteria: data.criteria,
         leadAuditorId: data.leadAuditorId || session.user.id,
@@ -83,6 +93,7 @@ export async function POST(request: NextRequest) {
         area: data.area,
         department: data.department,
         status: "PLANNED",
+        supplierId,
       },
       include: {
         findings: true,

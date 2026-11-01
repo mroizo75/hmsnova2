@@ -6,9 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { submitChecklistRun } from "@/server/actions/checklist.actions";
+import { submitChecklistRun, uploadChecklistPhoto } from "@/server/actions/checklist.actions";
 import type { ChecklistResponseValue } from "@/features/checklists/lib/checklist-access";
 import type { ChecklistFillData } from "@/server/queries/checklist.queries";
+
+type PointPhoto = { fileKey: string; fileName: string; mimeType: string; previewUrl: string };
+type PointAnswer = {
+  response: ChecklistResponseValue;
+  comment: string;
+  reportIncident: boolean;
+  photos: PointPhoto[];
+};
 
 const CHOICES: Array<{ value: ChecklistResponseValue; label: string; selected: string }> = [
   { value: "OK", label: "OK", selected: "border-emerald-700 bg-emerald-50 text-emerald-950" },
@@ -27,8 +35,10 @@ export function ChecklistFill({
   const { toast } = useToast();
   const [pending, startTransition] = useTransition();
   const [location, setLocation] = useState("");
+  const [projectId, setProjectId] = useState("");
   const [note, setNote] = useState("");
-  const [answers, setAnswers] = useState<Record<string, { response: ChecklistResponseValue; comment: string }>>({});
+  const [answers, setAnswers] = useState<Record<string, PointAnswer>>({});
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
 
   const items = useMemo(
     () => checklist.sections.flatMap((section) => section.items),
@@ -44,8 +54,52 @@ export function ChecklistFill({
   function setResponse(itemId: string, response: ChecklistResponseValue) {
     setAnswers((current) => ({
       ...current,
-      [itemId]: { response, comment: current[itemId]?.comment ?? "" },
+      [itemId]: {
+        response,
+        comment: current[itemId]?.comment ?? "",
+        reportIncident:
+          response === "DEVIATION"
+            ? current[itemId]?.response === "DEVIATION"
+              ? current[itemId].reportIncident
+              : checklist.canReportIncident
+            : false,
+        photos: current[itemId]?.photos ?? [],
+      },
     }));
+  }
+
+  function patchAnswer(itemId: string, patch: Partial<PointAnswer>) {
+    setAnswers((current) => {
+      const existing = current[itemId];
+      if (!existing) return current;
+      return { ...current, [itemId]: { ...existing, ...patch } };
+    });
+  }
+
+  async function addPhotos(itemId: string, files: FileList | null) {
+    if (!files || files.length === 0) return;
+    const room = 4 - (answers[itemId]?.photos.length ?? 0);
+    const selected = Array.from(files).slice(0, room);
+    setUploadingId(itemId);
+    try {
+      for (const file of selected) {
+        const form = new FormData();
+        form.set("file", file);
+        const result = await uploadChecklistPhoto(form);
+        if (!result.success) {
+          toast({ title: "Bildet ble ikke lagt til", description: result.error, variant: "destructive" });
+          continue;
+        }
+        const photo: PointPhoto = { ...result.photo, previewUrl: URL.createObjectURL(file) };
+        setAnswers((current) => {
+          const existing = current[itemId];
+          if (!existing) return current;
+          return { ...current, [itemId]: { ...existing, photos: [...existing.photos, photo].slice(0, 4) } };
+        });
+      }
+    } finally {
+      setUploadingId(null);
+    }
   }
 
   function submit() {
@@ -53,6 +107,7 @@ export function ChecklistFill({
       const result = await submitChecklistRun({
         checklistId: checklist.id,
         location,
+        projectId,
         note,
         answers: items
           .filter((item) => answers[item.id]?.response)
@@ -60,6 +115,12 @@ export function ChecklistFill({
             itemId: item.id,
             response: answers[item.id].response,
             comment: answers[item.id].comment,
+            reportIncident: answers[item.id].reportIncident,
+            photos: answers[item.id].photos.map(({ fileKey, fileName, mimeType }) => ({
+              fileKey,
+              fileName,
+              mimeType,
+            })),
           })),
       });
       if (!result.success) {
@@ -97,9 +158,27 @@ export function ChecklistFill({
         </div>
       </div>
 
+      {checklist.projects.length > 0 && (
+        <label className="block space-y-1.5 text-sm">
+          <span className="font-medium">Prosjekt</span>
+          <select
+            value={projectId}
+            onChange={(event) => setProjectId(event.target.value)}
+            className="flex h-10 w-full rounded-md border border-border bg-transparent px-3 text-sm text-foreground"
+          >
+            <option value="">Ikke knyttet til prosjekt</option>
+            {checklist.projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.code ? `${project.name} (${project.code})` : project.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+
       <label className="block space-y-1.5 text-sm">
         <span className="font-medium">Hvor ble kontrollen gjort?</span>
-        <Input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Avdeling, prosjekt eller sted" />
+        <Input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Avdeling eller sted" />
       </label>
 
       {checklist.sections.map((section) => (
@@ -137,35 +216,84 @@ export function ChecklistFill({
                   })}
                 </div>
                 {answer?.response === "DEVIATION" && (
-                  <label className="mt-3 block space-y-1.5 text-sm">
-                    <span className="font-medium">Hva er galt?</span>
-                    <Textarea
-                      value={answer.comment}
-                      onChange={(event) =>
-                        setAnswers((current) => ({
-                          ...current,
-                          [item.id]: { response: "DEVIATION", comment: event.target.value },
-                        }))
-                      }
-                      placeholder="Beskriv avviket slik at mottakeren kan følge det opp"
-                      className="min-h-24"
-                    />
-                  </label>
+                  <div className="mt-3 space-y-3">
+                    <label className="block space-y-1.5 text-sm">
+                      <span className="font-medium">Hva er galt?</span>
+                      <Textarea
+                        value={answer.comment}
+                        onChange={(event) => patchAnswer(item.id, { comment: event.target.value })}
+                        placeholder="Beskriv avviket slik at mottakeren kan følge det opp"
+                        className="min-h-24"
+                      />
+                    </label>
+                    {checklist.canReportIncident && (
+                      <label className="flex items-start gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          className="mt-1"
+                          checked={answer.reportIncident}
+                          onChange={(event) => patchAnswer(item.id, { reportIncident: event.target.checked })}
+                        />
+                        <span>
+                          <span className="font-medium">Meld dette som avvik</span>
+                          <span className="mt-0.5 block text-muted-foreground">
+                            Oppretter et avvik som kan følges opp, med spor tilbake til dette punktet.
+                          </span>
+                        </span>
+                      </label>
+                    )}
+                  </div>
                 )}
                 {answer?.response && answer.response !== "DEVIATION" && (
                   <label className="mt-3 block space-y-1.5 text-sm">
                     <span className="text-muted-foreground">Kommentar, valgfritt</span>
                     <Input
                       value={answer.comment}
-                      onChange={(event) =>
-                        setAnswers((current) => ({
-                          ...current,
-                          [item.id]: { response: answer.response, comment: event.target.value },
-                        }))
-                      }
+                      onChange={(event) => patchAnswer(item.id, { comment: event.target.value })}
                       placeholder="Legg til hvis det er noe mottakeren bør vite"
                     />
                   </label>
+                )}
+                {answer?.response && (
+                  <div className="mt-3 space-y-2">
+                    {answer.photos.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {answer.photos.map((photo) => (
+                          <div key={photo.fileKey} className="relative">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={photo.previewUrl} alt={photo.fileName} className="h-16 w-16 rounded-lg object-cover" />
+                            <button
+                              type="button"
+                              className="absolute -right-1 -top-1 rounded-full bg-background px-1.5 text-xs"
+                              onClick={() =>
+                                patchAnswer(item.id, {
+                                  photos: answer.photos.filter((current) => current.fileKey !== photo.fileKey),
+                                })
+                              }
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {answer.photos.length < 4 && (
+                      <label className="inline-flex min-h-10 cursor-pointer items-center rounded-xl border border-border bg-transparent px-3 text-sm text-foreground">
+                        {uploadingId === item.id ? "Laster opp…" : "Legg til bilde"}
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/gif"
+                          multiple
+                          className="sr-only"
+                          disabled={uploadingId === item.id}
+                          onChange={(event) => {
+                            void addPhotos(item.id, event.target.files);
+                            event.target.value = "";
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
                 )}
               </article>
             );

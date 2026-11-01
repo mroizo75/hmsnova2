@@ -712,7 +712,7 @@ export const DEFAULT_KS_SECTIONS: HandbookHrSectionDef[] = [
     title: "Leverandørstyring",
     legalRef: "ISO 9001:2015 pkt. 8.4",
     sortOrder: 3,
-    moduleLink: null,
+    moduleLink: "/dashboard/leverandorer",
     content: `<h3>Styring av leverandører</h3>
 <p>Varer og tjenester som påvirker kvaliteten på det {{bedriftsnavn}} leverer, skal kjøpes fra leverandører som kan oppfylle kravene, jf. ISO 9001:2015 pkt. 8.4.</p>
 <h3>Vurdering</h3>

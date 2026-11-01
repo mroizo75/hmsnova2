@@ -2,8 +2,13 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 
 import { authOptions } from "@/lib/auth";
+import { groupHandbookChapters } from "@/lib/handbook-outline";
 import { fetchHmsHandbok } from "@/server/queries/hms-handbok.queries";
 import type { HandbookSectionData } from "@/server/actions/hms-handbok.actions";
+
+function withOutlineOrder(sections: HandbookSectionData[]): HandbookSectionData[] {
+  return groupHandbookChapters(sections).flatMap((chapter) => chapter.sections);
+}
 
 const flattenSections = (
   sections: HandbookSectionData[],
@@ -50,7 +55,7 @@ export async function GET() {
         signedByMe,
         signatureCount: version.signatureCount,
         totalEmployees: version.totalEmployees,
-        sections: flattenSections(version.sections ?? []).filter((section) => section.title.trim().length > 0),
+        sections: flattenSections(withOutlineOrder(version.sections ?? [])).filter((section) => section.title.trim().length > 0),
       },
     });
   } catch (error) {

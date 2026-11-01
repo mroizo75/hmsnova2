@@ -19,16 +19,16 @@ test("søk treffer tittel og HTML-innhold uten tagger", () => {
   assert.equal(handbookSectionMatchesQuery(section, "ferie"), false);
 });
 
-test("ansatt-grupper følger delene kvalitet, HMS og personal", () => {
+test("ansatt-grupper følger ISO-kapitlene med felles nummer", () => {
   const grouped = groupEmployeeHandbookSections([
     { sectionKey: "s4" },
     { sectionKey: "hr-ferie" },
-    { sectionKey: "s99" },
+    { sectionKey: "s99", sectionNumber: "5.9", sortOrder: 575 },
   ]);
-  assert.deepEqual(grouped.map((group) => group.id), ["KS", "HMS", "HR"]);
-  assert.deepEqual(grouped.find((group) => group.id === "KS")?.sections.map((section) => section.sectionKey), ["s4"]);
-  assert.deepEqual(grouped.find((group) => group.id === "HMS")?.sections.map((section) => section.sectionKey), ["s4", "s99"]);
-  assert.deepEqual(grouped.find((group) => group.id === "HR")?.sections.map((section) => section.sectionKey), ["hr-ferie"]);
+  assert.deepEqual(grouped.map((group) => group.id), ["5", "7", "8"]);
+  assert.equal(grouped.find((group) => group.id === "7")?.sections[0]?.sectionNumber, "7.1");
+  assert.deepEqual(grouped.find((group) => group.id === "5")?.sections.map((section) => section.sectionKey), ["s99"]);
+  assert.deepEqual(grouped.find((group) => group.id === "8")?.sections.map((section) => section.sectionKey), ["hr-ferie"]);
 });
 
 test("modul-lenker peker til ansatt-flaten, ikke dashboard", () => {

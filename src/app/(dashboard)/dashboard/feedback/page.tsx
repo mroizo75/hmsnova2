@@ -7,6 +7,9 @@ import { PageHelpDialog } from "@/components/dashboard/page-help-dialog";
 import { helpContent } from "@/lib/help-content";
 import { fetchFeedbackData } from "@/server/queries/feedback.queries";
 import { FeedbackContent } from "@/features/feedback/components/feedback-content";
+import { SatisfactionLink } from "@/features/feedback/components/satisfaction-link";
+import { getAuthContext } from "@/lib/server-authorization";
+import { ensureSurveyForTenant } from "@/server/satisfaction";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +20,13 @@ export default async function FeedbackPage() {
   }
 
   const initialData = await fetchFeedbackData();
+  const auth = await getAuthContext();
+  let surveyHref: string | null = null;
+  if (auth?.permissions.canCreateFeedback) {
+    const survey = await ensureSurveyForTenant(auth.tenantId, auth.userId);
+    const base = (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "").replace(/\/$/, "");
+    surveyHref = `${base}/tilfredshet/${survey.token}`;
+  }
 
   return (
     <div className="space-y-6">
@@ -35,6 +45,7 @@ export default async function FeedbackPage() {
         </Button>
       </div>
 
+      {surveyHref ? <SatisfactionLink href={surveyHref} /> : null}
       <FeedbackContent initialData={initialData} />
     </div>
   );

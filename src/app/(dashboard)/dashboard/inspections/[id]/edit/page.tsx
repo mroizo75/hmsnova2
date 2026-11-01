@@ -247,7 +247,7 @@ export default function EditInspectionPage() {
               <div className="space-y-2">
                 <Label htmlFor="conductedBy">{t("fields.conductedBy")}</Label>
                 <Select
-                  value={formData.conductedBy}
+                  value={formData.conductedBy || undefined}
                   onValueChange={(value) =>
                     setFormData({ ...formData, conductedBy: value })
                   }

@@ -70,8 +70,10 @@ function statusVariant(s: string): "default" | "destructive" | "secondary" | "ou
 
 export default async function EditRoutinePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.tenantId) {
@@ -79,6 +81,7 @@ export default async function EditRoutinePage({
   }
 
   const { id } = await params;
+  const { error: saveError } = await searchParams;
   const result = await getRoutineById(id);
   if (!result.success) {
     redirect("/dashboard/rutiner");
@@ -93,6 +96,16 @@ export default async function EditRoutinePage({
       user: { select: { name: true, email: true } },
     },
     orderBy: [{ role: "asc" }],
+  });
+
+  const approvedMocs = await prisma.managementOfChange.findMany({
+    where: {
+      tenantId: session.user.tenantId,
+      status: { in: ["APPROVED", "IMPLEMENTING", "VERIFYING", "CLOSED"] },
+    },
+    orderBy: { updatedAt: "desc" },
+    take: 40,
+    select: { id: true, number: true, title: true },
   });
 
   const foldersResult = await listRoutineFolders();
@@ -137,6 +150,8 @@ export default async function EditRoutinePage({
 
     const changeSummary = String(formData.get("changeSummary") || "").trim();
     const changeReason = String(formData.get("changeReason") || "").trim();
+    const changeScope = String(formData.get("changeScope") || "MINOR");
+    const mocId = String(formData.get("mocId") || "").trim();
 
     const content = mergeRoutineContentFromForm(formData, existingRow?.content ?? null);
 
@@ -183,7 +198,13 @@ export default async function EditRoutinePage({
       ...(status !== undefined ? { status } : {}),
       changeSummary: changeSummary || undefined,
       changeReason: changeReason || undefined,
+      changeScope,
+      mocId: mocId || null,
     });
+
+    if (!updateResult.success) {
+      redirect(`/dashboard/rutiner/${id}/edit?error=${encodeURIComponent(updateResult.error ?? "Kunne ikke lagre")}`);
+    }
 
     if (updateResult.success && responsibleId) {
       await assignRoutineResponsible(id, responsibleId);
@@ -220,6 +241,14 @@ export default async function EditRoutinePage({
           </div>
         </div>
       </div>
+
+      {saveError ? (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Endringen ble ikke lagret</AlertTitle>
+          <AlertDescription>{saveError}</AlertDescription>
+        </Alert>
+      ) : null}
 
       {/* Informasjon om egendefinert versjon */}
       {routine.templateId && (
@@ -588,6 +617,41 @@ export default async function EditRoutinePage({
                 required
                 placeholder="Beskriv kort hva som ble endret, f.eks. 'Oppdatert ansvarsliste og lagt til nytt punkt om risikovurdering'"
               />
+            </div>
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium">Omfang av endringen</legend>
+              <p className="text-xs text-muted-foreground">
+                En liten justering logges her. Ny prosess, nytt utstyr, ny organisering eller endring som påvirker arbeidsmiljø eller ytre miljø krever en godkjent endringssak først (ISO 9001 pkt. 6.3, ISO 45001 pkt. 8.1.3).
+              </p>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="radio" name="changeScope" value="MINOR" defaultChecked />
+                Liten justering
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="radio" name="changeScope" value="SIGNIFICANT" />
+                Vesentlig endring
+              </label>
+            </fieldset>
+            <div className="space-y-2">
+              <Label htmlFor="mocId">Godkjent endringssak</Label>
+              <select
+                id="mocId"
+                name="mocId"
+                className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                defaultValue=""
+              >
+                <option value="">Ingen – bare ved liten justering</option>
+                {approvedMocs.map((moc) => (
+                  <option key={moc.id} value={moc.id}>
+                    {moc.number} – {moc.title}
+                  </option>
+                ))}
+              </select>
+              {approvedMocs.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Det finnes ingen godkjent endringssak. Opprett en under Endringsledelse og få den godkjent før vesentlig rutineendring.
+                </p>
+              ) : null}
             </div>
             <div className="space-y-2">
               <Label htmlFor="changeReason">Begrunnelse for endring (valgfritt)</Label>

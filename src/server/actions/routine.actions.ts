@@ -12,6 +12,11 @@ import { ensureGlobalRoutineTemplateLibrarySeeded } from "@/server/actions/routi
 import { AuditLog } from "@/lib/audit-log";
 import { onRoutineUpdated } from "@/features/hms-ai/lib/event-handler";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
+import {
+  approvedMocCoversRoutineChange,
+  parseRoutineChangeScope,
+  routineChangeRequiresApprovedMoc,
+} from "@/lib/routine-change-scope";
 
 type RoutineTemplateListInput = {
   query?: string;
@@ -34,6 +39,8 @@ type RoutineUpdateInput = {
   lastReviewedAt?: Date | null;
   changeSummary?: string;
   changeReason?: string;
+  changeScope?: string;
+  mocId?: string | null;
 };
 
 async function getTenantIndustry(tenantId: string): Promise<string | null> {
@@ -447,6 +454,29 @@ export async function updateRoutine(input: RoutineUpdateInput) {
       return { success: false, error: "Denne rutinen er styrt av konsernet og kan ikke redigeres lokalt" };
     }
 
+    const changeScope = parseRoutineChangeScope(input.changeScope);
+    let mocId: string | null = null;
+    if (routineChangeRequiresApprovedMoc(changeScope)) {
+      const candidateId = input.mocId?.trim() ?? "";
+      if (!candidateId) {
+        return {
+          success: false,
+          error: "Vesentlig endring krever en godkjent endringssak før rutinen får ny versjon.",
+        };
+      }
+      const moc = await prisma.managementOfChange.findFirst({
+        where: { id: candidateId, tenantId: context.tenantId },
+        select: { id: true, status: true },
+      });
+      if (!moc || !approvedMocCoversRoutineChange(moc.status)) {
+        return {
+          success: false,
+          error: "Endringssaken må være godkjent før den vesentlige rutineendringen publiseres.",
+        };
+      }
+      mocId = moc.id;
+    }
+
     const [latestVersion, changeNumber] = await Promise.all([
       prisma.routineVersion.findFirst({
         where: { routineId: input.id },
@@ -485,6 +515,8 @@ export async function updateRoutine(input: RoutineUpdateInput) {
           changeNumber,
           changeSummary: input.changeSummary?.trim() || "Rutine oppdatert",
           changeReason: input.changeReason?.trim() || null,
+          changeScope,
+          mocId,
           content: existing.content ?? {},
           legalReference: existing.legalReference,
           changedById: context.userId,
@@ -492,7 +524,15 @@ export async function updateRoutine(input: RoutineUpdateInput) {
       }),
     ]);
 
-    AuditLog.log(context.tenantId, context.userId, "ROUTINE_UPDATED", "Routine", input.id, { changeSummary: input.changeSummary, changeNumber, versionNumber: nextVersionNumber }).catch(() => {});
+    if (mocId) {
+      await prisma.mocRoutineLink.upsert({
+        where: { mocId_routineId: { mocId, routineId: input.id } },
+        create: { mocId, routineId: input.id },
+        update: {},
+      });
+    }
+
+    AuditLog.log(context.tenantId, context.userId, "ROUTINE_UPDATED", "Routine", input.id, { changeSummary: input.changeSummary, changeNumber, versionNumber: nextVersionNumber, changeScope, mocId }).catch(() => {});
 
     revalidatePath("/dashboard/rutiner");
     revalidatePath(`/dashboard/rutiner/${routine.id}`);

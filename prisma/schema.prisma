@@ -112,6 +112,8 @@ model User {
   accessReviewDecisions           AccessReviewEntry[]            @relation("AccessReviewDecider")
   feedbackRecorded                CustomerFeedback[]             @relation("FeedbackRecorder")
   feedbackFollowUp                CustomerFeedback[]             @relation("FeedbackFollowUpOwner")
+  suppliersApproved               Supplier[]                     @relation("SupplierApprover")
+  satisfactionSurveysCreated      SatisfactionSurvey[]           @relation("SatisfactionSurveyCreator")
   notifications                   Notification[]
   notificationPushTokens          NotificationPushToken[]
   scheduledReminders              ScheduledReminder[]            @relation("UserReminders")
@@ -332,6 +334,8 @@ model Tenant {
   accessReviews                       AccessReview[]
   accessReviewEntries                 AccessReviewEntry[]
   customerFeedbacks                   CustomerFeedback[]
+  satisfactionSurvey                  SatisfactionSurvey?
+  suppliers                           Supplier[]
   incidents                           Incident[]
   incidentPeriodAnalyses              IncidentPeriodAnalysis[]
   trainings                           Training[]
@@ -378,7 +382,7 @@ model Tenant {
   lockedDashboardConfig               Json? // Widget-konfig som brukes av alle når dashboardet er låst
   moduleVisibilityConfig              Json? // Hvilke roller kan se hvert modul (null = systemstandard)
   ruhModuleEnabled                    Boolean                        @default(true) // false = skjul RUH, kun Avvik brukes (IK-HMS § 5: virksomheten velger egen avviksstruktur)
-  mocModuleEnabled                    Boolean                        @default(false) // ISO 45001 8.1.3: formell endringsledelse. Auto-på for høyrisikobransjer.
+  mocModuleEnabled                    Boolean                        @default(true) // ISO 45001 8.1.3 og ISO 9001 6.3: endringsstyring for alle kunder.
   hmsAnnualPlanCompletions            HmsAnnualPlanCompletion[] // Avkryssing av årlig HMS-plan (sjekkliste)
   // Regnskap / Tripletex (feltjobber og kundefaktura — ikke SaaS-Invoice)
   accountingProvider                  AccountingProviderType         @default(NONE)
@@ -2122,6 +2126,8 @@ model Incident {
   projectReference         String?
   // FuA § 13-4: avvik på arbeidsutstyr med godkjenning
   equipmentApprovalId      String?
+  // ISO 9001:2015 pkt. 8.4: avvik som gjelder en registrert leverandør
+  supplierId               String?
   // Kilde: INTERNAL (opprettet i systemet) eller EXTERNAL (mottatt utenfra, f.eks. PDF via e-post)
   source                   String               @default("INTERNAL")
   // HMS Intelligens-motor: kobling til rutine og standardisert område for mønstergjenkjenning
@@ -2142,10 +2148,12 @@ model Incident {
   department         Department?         @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   project            Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
   equipmentApproval  EquipmentApproval?  @relation(fields: [equipmentApprovalId], references: [id], onDelete: SetNull)
+  supplier           Supplier?           @relation(fields: [supplierId], references: [id], onDelete: SetNull)
   relatedRoutine     Routine?            @relation("IncidentRelatedRoutine", fields: [relatedRoutineId], references: [id], onDelete: SetNull)
   inspectionFindings InspectionFinding[] @relation("InspectionFindingIncident")
   comments           IncidentComment[]
   mocLinks           MocIncidentLink[]
+  checklistAnswers   ChecklistAnswer[]
 
   @@index([tenantId])
   @@index([avviksnummer])
@@ -2159,6 +2167,7 @@ model Incident {
   @@index([departmentId])
   @@index([projectId])
   @@index([equipmentApprovalId])
+  @@index([supplierId])
   @@index([relatedRoutineId])
   @@index([areaTag])
 }
@@ -2607,10 +2616,13 @@ model Audit {
   reportKey     String? // PDF-rapport i storage
   approvedBy    String? // Hvem som godkjente revisjonen
   approvedAt    DateTime? // Når revisjonen ble godkjent
+  // ISO 9001:2015 pkt. 8.4: leverandørrevisjon koblet til registeret
+  supplierId    String?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
   tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplier       Supplier?       @relation(fields: [supplierId], references: [id], onDelete: SetNull)
   findings       AuditFinding[]
   measures       Measure[]
   riskAuditLinks RiskAuditLink[]
@@ -2620,6 +2632,65 @@ model Audit {
   @@index([status])
   @@index([auditType])
   @@index([leadAuditorId])
+  @@index([supplierId])
+}
+
+// ISO 9001:2015 pkt. 8.4: godkjenning, kriterier, evaluering og re-evaluering.
+enum SupplierStatus {
+  PENDING
+  APPROVED
+  CONDITIONAL
+  REJECTED
+  SUSPENDED
+}
+
+enum SupplierCriticality {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Supplier {
+  id            String               @id @default(cuid())
+  tenantId      String
+  name          String
+  orgNumber     String?
+  scope         String?              @db.Text
+  status        SupplierStatus       @default(PENDING)
+  criticality   SupplierCriticality  @default(MEDIUM)
+  criteria      String?              @db.Text
+  approvedById  String?
+  approvedAt    DateTime?
+  validUntil    DateTime?
+  nextReviewAt  DateTime?
+  notes         String?              @db.Text
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  approvedBy User?      @relation("SupplierApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  audits     Audit[]
+  incidents  Incident[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([nextReviewAt])
+}
+
+// ISO 9001:2015 pkt. 9.1.2: offentlig lenke for innhenting av kundetilfredshet.
+model SatisfactionSurvey {
+  id          String   @id @default(cuid())
+  tenantId    String   @unique
+  token       String   @unique
+  createdById String
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy User   @relation("SatisfactionSurveyCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([token])
 }
 
 enum AuditType {
@@ -3431,6 +3502,8 @@ model ChecklistRun {
   submittedById       String
   reference           String
   location            String?
+  /// Valgfri prosjektkobling (AML § 3-1: systematisk HMS per arbeidssted).
+  projectId           String?
   note                String?           @db.Text
   okCount             Int
   deviationCount      Int
@@ -3439,12 +3512,14 @@ model ChecklistRun {
   checklist           Checklist         @relation(fields: [checklistId], references: [id], onDelete: Cascade)
   tenant              Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   submittedBy         User              @relation("ChecklistSubmitter", fields: [submittedById], references: [id], onDelete: Restrict)
+  project             Project?          @relation(fields: [projectId], references: [id], onDelete: SetNull)
   answers             ChecklistAnswer[]
 
   @@unique([tenantId, reference])
   @@index([checklistId, submittedAt])
   @@index([tenantId, submittedAt])
   @@index([submittedById])
+  @@index([projectId])
 }
 
 model ChecklistAnswer {
@@ -3456,9 +3531,25 @@ model ChecklistAnswer {
   response     ChecklistResponse
   comment      String?            @db.Text
   sortOrder    Int
+  /// Avvik meldt fra dette punktet (IK-HMS § 5 nr. 7, AML § 2-3).
+  incidentId   String?
   run          ChecklistRun       @relation(fields: [runId], references: [id], onDelete: Cascade)
+  incident     Incident?          @relation(fields: [incidentId], references: [id], onDelete: SetNull)
+  photos       ChecklistAnswerPhoto[]
 
   @@index([runId, sortOrder])
+  @@index([incidentId])
+}
+
+model ChecklistAnswerPhoto {
+  id        String          @id @default(cuid())
+  answerId  String
+  fileKey   String
+  fileName  String
+  mimeType  String
+  answer    ChecklistAnswer @relation(fields: [answerId], references: [id], onDelete: Cascade)
+
+  @@index([answerId])
 }
 
 // ============================================
@@ -4764,6 +4855,7 @@ model Project {
   constructionRosterChecks    ConstructionRosterDailyCheck[]
   riskAssessments             RiskAssessment[]
   formSubmissions             FormSubmission[]
+  checklistRuns               ChecklistRun[]
   hmsTavle                    HmsTavle?
   resourceAssignments         ResourceAssignment[]
   absences                    Absence[]
@@ -7103,13 +7195,23 @@ model RoutineVersion {
   content        Json
   legalReference String?
   changedById    String
+  // ISO 9001 pkt. 6.3: vesentlig endring krever godkjent MoC før ny versjon.
+  changeScope    RoutineChangeScope @default(MINOR)
+  mocId          String?
   createdAt      DateTime @default(now())
 
-  routine   Routine @relation(fields: [routineId], references: [id], onDelete: Cascade)
-  changedBy User    @relation(fields: [changedById], references: [id])
+  routine   Routine             @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  changedBy User                @relation(fields: [changedById], references: [id])
+  moc       ManagementOfChange? @relation("RoutineVersionMoc", fields: [mocId], references: [id], onDelete: SetNull)
 
   @@unique([routineId, versionNumber])
   @@index([routineId])
+  @@index([mocId])
+}
+
+enum RoutineChangeScope {
+  MINOR
+  SIGNIFICANT
 }
 
 // ============================================
@@ -7819,8 +7921,9 @@ model ManagementOfChange {
   voReviewedBy User?    @relation("MocVoReviewedBy", fields: [voReviewedById], references: [id], onDelete: SetNull)
   project      Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
-  measures      Measure[]
-  riskLinks     MocRiskLink[]
+  measures        Measure[]
+  routineVersions RoutineVersion[] @relation("RoutineVersionMoc")
+  riskLinks       MocRiskLink[]
   documentLinks MocDocumentLink[]
   routineLinks  MocRoutineLink[]
   sjaLinks      MocSjaLink[]

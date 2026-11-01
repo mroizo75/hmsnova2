@@ -147,7 +147,23 @@ export async function GET(req: NextRequest) {
     const hmsGoalsReview = generateGoalsReview(goals);
 
     // Generer tekst for hendelser
-    const incidentStatistics = `Periode: ${period.label}.\n\n${generateIncidentStatistics(incidents)}`;
+    const feedbackRows = await db.customerFeedback.findMany({
+      where: {
+        tenantId,
+        rating: { not: null },
+        feedbackDate: { gte: startDate, lte: endDate },
+      },
+      select: { rating: true },
+    });
+    const rated = feedbackRows.flatMap((row) => (typeof row.rating === "number" ? [row.rating] : []));
+    const satisfactionAverage = rated.length
+      ? Math.round((rated.reduce((sum, value) => sum + value, 0) / rated.length) * 10) / 10
+      : null;
+    const satisfactionText = satisfactionAverage === null
+      ? "Ingen kundevurderinger er innhentet i perioden (ISO 9001 pkt. 9.1.2)."
+      : `Kundetilfredshet i perioden: snitt ${satisfactionAverage} av 5, basert på ${rated.length} vurderinger (ISO 9001 pkt. 9.1.2).`;
+
+    const incidentStatistics = `Periode: ${period.label}.\n\n${generateIncidentStatistics(incidents)}\n${satisfactionText}\n`;
 
     // Generer tekst for risikovurderinger
     const riskReview = generateRiskReview(risks);

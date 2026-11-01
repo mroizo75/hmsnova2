@@ -4,12 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getPermissions } from "@/lib/permissions";
 import { generateBrandedPdf, type PdfSection } from "@/lib/pdf-brand";
-import {
-  HANDBOOK_PART_DESCRIPTIONS,
-  HANDBOOK_PART_LABELS,
-  HANDBOOK_PARTS,
-  groupHandbookSections,
-} from "@/lib/handbook-parts";
+import { groupHandbookChapters } from "@/lib/handbook-outline";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
 import type { Role } from "@prisma/client";
@@ -173,25 +168,19 @@ export async function GET() {
     content: statusContent,
   });
 
-  // Dynamiske seksjoner, gruppert i kvalitet, HMS og personal
+  // Én innholdsfortegnelse: ISO 9001/45001 pkt. 4–10, med IK-HMS § 5 og personal
   if (currentVersion && currentVersion.sections.length > 0) {
-    const grouped = groupHandbookSections(
-      currentVersion.sections.filter((section) => !section.parentId),
+    const chapters = groupHandbookChapters(
+      currentVersion.sections.filter((section) => !section.parentId && (section.isEnabled !== false || !!section.externalRef)),
     );
-    for (const part of HANDBOOK_PARTS) {
-      const partSections = grouped[part].filter(
-        (section) => section.isEnabled !== false || !!section.externalRef,
-      );
-      if (partSections.length === 0) continue;
-
+    for (const chapter of chapters) {
       sections.push({
-        title: HANDBOOK_PART_LABELS[part],
-        legalRef:
-          part === "KS" ? "ISO 9001:2015" : part === "HMS" ? "IK-HMS § 5" : "AML, ferieloven og GDPR",
-        content: [{ type: "paragraph", text: HANDBOOK_PART_DESCRIPTIONS[part] }],
+        title: chapter.number === "other" ? chapter.title : `${chapter.number}. ${chapter.title}`,
+        legalRef: chapter.legalRef || undefined,
+        content: [{ type: "paragraph", text: chapter.description }],
       });
 
-    for (const section of partSections) {
+    for (const section of chapter.sections) {
 
       const contentBlocks: PdfSection["content"] = [];
 

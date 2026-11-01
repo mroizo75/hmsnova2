@@ -153,6 +153,7 @@ export function ChecklistOverview({
                   </p>
                   <p className="text-sm text-muted-foreground">
                     {run.submittedByName}
+                    {run.projectName ? ` · ${run.projectName}` : ""}
                     {run.location ? ` · ${run.location}` : ""} · {formatWhen(run.submittedAt)}
                   </p>
                 </div>

@@ -15,9 +15,11 @@ function formatWhen(value: string) {
 export function ChecklistResult({
   run,
   backHref,
+  incidentHref,
 }: {
   run: ChecklistRunView;
   backHref: string;
+  incidentHref: (incidentId: string) => string;
 }) {
   const total = run.okCount + run.deviationCount + run.notApplicableCount;
   const deviations = run.answers.filter((answer) => answer.response === "DEVIATION");
@@ -48,6 +50,7 @@ export function ChecklistResult({
       <section className="grid gap-3 rounded-2xl border bg-card p-4 sm:grid-cols-2">
         <Info label="Utført av" value={run.submittedByName} />
         <Info label="Tidspunkt" value={formatWhen(run.submittedAt)} />
+        <Info label="Prosjekt" value={run.projectName || "Ikke knyttet til prosjekt"} />
         <Info label="Sted" value={run.location || "Ikke oppgitt"} />
         <Info label="Resultat sendt til" value={run.recipients.length > 0 ? run.recipients.join(", ") : "Ingen mottakere"} />
         {run.note && (
@@ -65,6 +68,12 @@ export function ChecklistResult({
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{answer.sectionTitle}</p>
               <p className="mt-1 font-medium">{answer.prompt}</p>
               <p className="mt-2 text-sm leading-6">{answer.comment}</p>
+              <AnswerPhotos photos={answer.photos} />
+              {answer.incident && (
+                <Link href={incidentHref(answer.incident.id)} className="mt-3 inline-block text-sm font-medium underline">
+                  Avvik {answer.incident.avviksnummer ?? "åpne saken"}
+                </Link>
+              )}
             </article>
           ))}
         </section>
@@ -84,6 +93,12 @@ export function ChecklistResult({
                     {answer.comment && answer.response !== "DEVIATION" && (
                       <p className="mt-1 text-sm text-muted-foreground">{answer.comment}</p>
                     )}
+                    <AnswerPhotos photos={answer.photos} />
+                    {answer.incident && (
+                      <Link href={incidentHref(answer.incident.id)} className="mt-2 inline-block text-sm font-medium underline">
+                        Avvik {answer.incident.avviksnummer ?? "åpne saken"}
+                      </Link>
+                    )}
                   </div>
                   <span
                     className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
@@ -101,6 +116,20 @@ export function ChecklistResult({
           </div>
         ))}
       </section>
+    </div>
+  );
+}
+
+function AnswerPhotos({ photos }: { photos: Array<{ fileKey: string; fileName: string }> }) {
+  if (photos.length === 0) return null;
+  return (
+    <div className="mt-3 flex flex-wrap gap-2">
+      {photos.map((photo) => (
+        <a key={photo.fileKey} href={`/api/files/${photo.fileKey}`} target="_blank" rel="noreferrer">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`/api/files/${photo.fileKey}`} alt={photo.fileName} className="h-20 w-20 rounded-lg object-cover" />
+        </a>
+      ))}
     </div>
   );
 }

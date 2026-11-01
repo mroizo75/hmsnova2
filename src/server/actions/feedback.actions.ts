@@ -6,6 +6,7 @@ import { z } from "zod";
 import { FeedbackSource, FeedbackSentiment, FeedbackStatus } from "@prisma/client";
 import { getRequiredTenantContext } from "@/lib/tenant-context";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
+import { syncCustomerSatisfactionGoal } from "@/server/satisfaction";
 
 const createFeedbackSchema = z.object({
   customerName: z.string().max(140).optional(),
@@ -104,7 +105,12 @@ export async function createCustomerFeedback(formData: FormData | Record<string,
       },
     });
 
+    if (typeof validated.rating === "number") {
+      await syncCustomerSatisfactionGoal(tenantId, user.id);
+    }
+
     revalidatePath("/dashboard/feedback");
+    revalidatePath("/dashboard/goals");
     triggerRealtimeEvent(tenantId, "feedback-updated");
 
     return { success: true, data: feedback };

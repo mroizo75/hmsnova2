@@ -1,6 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, AlertTriangle, CheckCircle, Clock } from "lucide-react";
 import Link from "next/link";
@@ -18,6 +19,11 @@ interface ChemicalsContentProps {
 
 export function ChemicalsContent({ initialData, initialIsocyanateFilter, initialQuickFilter }: ChemicalsContentProps) {
   const t = useTranslations("dashboardChemicalsPage");
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    queryClient.setQueryData(["chemicals"], initialData);
+  }, [initialData, queryClient]);
 
   const { data: chemicals } = useQuery({
     queryKey: ["chemicals"],

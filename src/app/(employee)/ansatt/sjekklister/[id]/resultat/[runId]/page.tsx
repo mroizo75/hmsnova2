@@ -12,5 +12,11 @@ export default async function EmployeeChecklistResultPage({
   if (run === "denied") redirect("/ansatt/sjekklister");
   if (!run) notFound();
 
-  return <ChecklistResult run={run} backHref="/ansatt/sjekklister" />;
+  return (
+    <ChecklistResult
+      run={run}
+      backHref="/ansatt/sjekklister"
+      incidentHref={(incidentId) => `/ansatt/avvik/${incidentId}`}
+    />
+  );
 }

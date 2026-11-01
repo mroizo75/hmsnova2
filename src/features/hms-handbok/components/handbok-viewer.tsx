@@ -12,18 +12,13 @@ import { TilsynsrapportDialog } from "./tilsynsrapport-dialog";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
 import { HandbokSectionExpanded } from "./handbok-section-expanded";
+import { HandbokAddSectionDialog } from "./handbok-add-section-dialog";
 import { HandbokVersionBar } from "./handbok-version-bar";
 import { HandbokSignButton } from "./handbok-sign-button";
 import { HandbokReviewButton } from "./handbok-review-button";
 import { ensureHrSections, toggleSectionEnabled, updateSectionExternalRef } from "@/server/actions/hms-handbok.actions";
-import {
-  HANDBOOK_PART_DESCRIPTIONS,
-  HANDBOOK_PART_LABELS,
-  HANDBOOK_PARTS,
-  groupHandbookSections,
-  handbookSectionInPart,
-  type HandbookPart,
-} from "@/lib/handbook-parts";
+import { handbookSectionInPart, type HandbookPart } from "@/lib/handbook-parts";
+import { groupHandbookChapters } from "@/lib/handbook-outline";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -108,8 +103,10 @@ export function HandbokViewer({
     .filter((section) => !isEmployee || !ADMIN_ONLY_SECTIONS.has(section.sectionKey))
     .filter((section) => !isEmployee || section.isEnabled !== false || !!section.externalRef);
 
-  const groupedSections = groupHandbookSections(visibleSections);
-  const visibleParts = filter === "ALL" ? HANDBOOK_PARTS : [filter];
+  const filteredSections = visibleSections.filter(
+    (section) => filter === "ALL" || handbookSectionInPart(section.sectionKey, section.category, filter),
+  );
+  const chapters = groupHandbookChapters(filteredSections);
 
   async function handleToggleSection(sectionId: string, enabled: boolean) {
     setTogglingSection(sectionId);
@@ -271,9 +268,19 @@ export function HandbokViewer({
       {currentVersion && currentVersion.sections.length > 0 ? (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              Innhold – v{currentVersion.version}
-            </h2>
+            <div className="flex flex-wrap items-center gap-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                Innhold – v{currentVersion.version}
+              </h2>
+              {canManage && (
+                <HandbokAddSectionDialog
+                  versionId={currentVersion.id}
+                  isDraft={isDraft}
+                  sections={currentVersion.sections}
+                  activePart={filter}
+                />
+              )}
+            </div>
             <div className="flex flex-wrap gap-1">
               {([
                 { id: "ALL", label: "Alle" },
@@ -294,21 +301,24 @@ export function HandbokViewer({
               ))}
             </div>
           </div>
-          {visibleParts.map((part) => {
-            const partSections = groupedSections[part];
-            if (partSections.length === 0) return null;
+          {chapters.map((chapter) => {
             return (
-              <div key={part} className="space-y-3">
+              <div key={chapter.number} className="space-y-3">
                 <div className="pt-2">
-                  <h3 className="text-base font-semibold">{HANDBOOK_PART_LABELS[part]}</h3>
-                  <p className="text-sm text-muted-foreground">{HANDBOOK_PART_DESCRIPTIONS[part]}</p>
+                  <h3 className="text-base font-semibold">
+                    {chapter.number === "other" ? chapter.title : `${chapter.number}. ${chapter.title}`}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">{chapter.description}</p>
+                  {chapter.legalRef && (
+                    <p className="text-xs text-muted-foreground">{chapter.legalRef}</p>
+                  )}
                 </div>
-                {partSections.map((section) => {
+                {chapter.sections.map((section) => {
             const isDisabled = section.isEnabled === false;
             const showRefOnly = isEmployee && isDisabled && !!section.externalRef;
 
             return (
-              <div key={`${part}-${section.id}`} className={cn(isDisabled && !showRefOnly && "opacity-60")}>
+              <div key={`${chapter.number}-${section.id}`} className={cn(isDisabled && !showRefOnly && "opacity-60")}>
                 {isDraft && canManage && (
                   <div className="space-y-0">
                     <div className="flex items-center justify-between rounded-t-lg border border-b-0 bg-muted/50 px-4 py-2">
@@ -403,6 +413,16 @@ export function HandbokViewer({
             <p className="mt-1 text-xs text-muted-foreground">
               Styringssystemet har ikke fått innhold ennå. Kontakt support for å importere en bransje-mal.
             </p>
+            {canManage && currentVersion && (
+              <div className="mt-4 flex justify-center">
+                <HandbokAddSectionDialog
+                  versionId={currentVersion.id}
+                  isDraft={isDraft}
+                  sections={currentVersion.sections}
+                  activePart={filter}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

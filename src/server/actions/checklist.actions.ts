@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 import { Role } from "@prisma/client";
 import { ZodError } from "zod";
 import { prisma } from "@/lib/db";
+import { validateFileSize, validateImageFile } from "@/lib/file-validation";
+import { generateSequenceNumber } from "@/lib/sequence";
+import { generateFileKey, getStorage } from "@/lib/storage";
 import { membershipRoles, parseExtraRoles } from "@/lib/extra-roles";
 import { getAuthContext } from "@/lib/server-authorization";
 import { createNotification } from "@/server/actions/notification.actions";
@@ -170,6 +173,37 @@ export async function deleteDraftChecklist(id: string) {
   }
 }
 
+export async function uploadChecklistPhoto(formData: FormData) {
+  try {
+    const auth = await getAuthContext();
+    if (!auth) return { success: false as const, error: "Ikke innlogget" };
+    if (!auth.permissions.canFillChecklists && !auth.permissions.canManageChecklists) {
+      return { success: false as const, error: "Du kan ikke legge ved bilder" };
+    }
+    const file = formData.get("file");
+    if (!(file instanceof File)) return { success: false as const, error: "Velg et bilde" };
+    const size = validateFileSize(file.size, 8);
+    if (!size.isValid) return { success: false as const, error: size.error ?? "Bildet er for stort" };
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const image = await validateImageFile(buffer);
+    if (!image.isValid || !image.detectedType) {
+      return { success: false as const, error: image.error ?? "Ugyldig bilde" };
+    }
+    const fileKey = generateFileKey(auth.tenantId, "checklists/photos", file.name || "bilde.jpg");
+    await getStorage().upload(fileKey, buffer);
+    return {
+      success: true as const,
+      photo: {
+        fileKey,
+        fileName: file.name || "bilde",
+        mimeType: image.detectedType,
+      },
+    };
+  } catch (error: unknown) {
+    return { success: false as const, error: formatActionError(error, "Kunne ikke laste opp bildet") };
+  }
+}
+
 export async function submitChecklistRun(input: SubmitChecklistInput) {
   try {
     const auth = await getAuthContext();
@@ -204,6 +238,7 @@ export async function submitChecklistRun(input: SubmitChecklistInput) {
     });
     if (!allowed) return { success: false as const, error: "Du har ikke tilgang til denne sjekklisten" };
 
+    const photoPrefix = `${auth.tenantId}/checklists/photos/`;
     const byItem = new Map(data.answers.map((answer) => [answer.itemId, answer]));
     const ordered: Array<{
       itemId: string;
@@ -211,6 +246,8 @@ export async function submitChecklistRun(input: SubmitChecklistInput) {
       prompt: string;
       response: "OK" | "DEVIATION" | "NOT_APPLICABLE";
       comment: string | null;
+      reportIncident: boolean;
+      photos: Array<{ fileKey: string; fileName: string; mimeType: string }>;
       sortOrder: number;
     }> = [];
     let sortOrder = 0;
@@ -227,12 +264,21 @@ export async function submitChecklistRun(input: SubmitChecklistInput) {
         if (answer.response === "DEVIATION" && !comment) {
           return { success: false as const, error: "Avvik må forklares, så mottakeren vet hva som er galt" };
         }
+        const reportIncident = answer.response === "DEVIATION" && answer.reportIncident === true;
+        if (reportIncident && !auth.permissions.canCreateIncidents) {
+          return { success: false as const, error: "Du kan ikke melde avvik" };
+        }
+        const photos = (answer.photos ?? []).filter(
+          (photo) => photo.fileKey.startsWith(photoPrefix) && photo.mimeType.startsWith("image/"),
+        );
         ordered.push({
           itemId: item.id,
           sectionTitle: section.title,
           prompt: item.prompt,
           response: answer.response,
           comment,
+          reportIncident,
+          photos,
           sortOrder,
         });
         sortOrder += 1;
@@ -241,30 +287,114 @@ export async function submitChecklistRun(input: SubmitChecklistInput) {
     if (ordered.length === 0) {
       return { success: false as const, error: "Sjekklisten har ingen punkter" };
     }
+    const storage = getStorage();
+    for (const answer of ordered) {
+      for (const photo of answer.photos) {
+        if (!(await storage.exists(photo.fileKey))) {
+          return { success: false as const, error: "Et bilde ble ikke funnet. Last det opp på nytt." };
+        }
+      }
+    }
+
+    const projectId = data.projectId?.trim() || null;
+    const project = projectId
+      ? await prisma.project.findFirst({
+          where: {
+            id: projectId,
+            tenantId: auth.tenantId,
+            isAbsenceProject: false,
+            status: { in: ["ACTIVE", "PLANNING", "ON_HOLD"] },
+          },
+          select: { id: true },
+        })
+      : null;
+    if (projectId && !project) {
+      return { success: false as const, error: "Prosjektet finnes ikke, eller er avsluttet" };
+    }
 
     const summary = summarizeChecklistResponses(ordered.map((answer) => answer.response));
     const year = new Date().getFullYear();
+    const location = cleanText(data.location);
+    const incidentNumbers: string[] = [];
+    for (const answer of ordered) {
+      if (!answer.reportIncident) continue;
+      incidentNumbers.push(await generateSequenceNumber(auth.tenantId, "AVVIK", year));
+    }
     const run = await prisma.$transaction(async (tx) => {
       const latest = await tx.checklistRun.findFirst({
         where: { tenantId: auth.tenantId, reference: { startsWith: `SJK-${year}-` } },
         orderBy: { reference: "desc" },
         select: { reference: true },
       });
-      return tx.checklistRun.create({
+      const createdRun = await tx.checklistRun.create({
         data: {
           checklistId: checklist.id,
           tenantId: auth.tenantId,
           submittedById: auth.userId,
           reference: nextChecklistReference(latest?.reference ?? null, year),
-          location: cleanText(data.location),
+          location,
+          projectId: project?.id,
           note: cleanText(data.note),
           okCount: summary.okCount,
           deviationCount: summary.deviationCount,
           notApplicableCount: summary.notApplicableCount,
-          answers: { create: ordered },
         },
       });
-    });
+      let incidentIndex = 0;
+      for (const answer of ordered) {
+        let incidentId: string | undefined;
+        if (answer.reportIncident) {
+          const avviksnummer = incidentNumbers[incidentIndex];
+          incidentIndex += 1;
+          const incident = await tx.incident.create({
+            data: {
+              tenantId: auth.tenantId,
+              avviksnummer,
+              type: "AVVIK",
+              title: answer.prompt.slice(0, 180),
+              description: [
+                `Meldt fra sjekkliste «${checklist.title}» (${createdRun.reference}).`,
+                `Bolk: ${answer.sectionTitle}.`,
+                "",
+                answer.comment ?? "",
+              ].join("\n"),
+              occurredAt: new Date(),
+              reportedBy: auth.userId,
+              location,
+              projectId: project?.id,
+              source: "CHECKLIST",
+              stage: "REPORTED",
+              attachments: answer.photos.length
+                ? {
+                    create: answer.photos.map((photo) => ({
+                      tenantId: auth.tenantId,
+                      fileKey: photo.fileKey,
+                      name: photo.fileName,
+                      mime: photo.mimeType,
+                      uploadedById: auth.userId,
+                    })),
+                  }
+                : undefined,
+            },
+          });
+          incidentId = incident.id;
+        }
+        await tx.checklistAnswer.create({
+          data: {
+            runId: createdRun.id,
+            itemId: answer.itemId,
+            sectionTitle: answer.sectionTitle,
+            prompt: answer.prompt,
+            response: answer.response,
+            comment: answer.comment,
+            sortOrder: answer.sortOrder,
+            incidentId,
+            photos: answer.photos.length ? { create: answer.photos } : undefined,
+          },
+        });
+      }
+      return createdRun;
+    }, { maxWait: 10_000, timeout: 60_000 });
 
     if (checklist.status === "ACTIVE") {
       const recipients = readIdList(checklist.resultRecipientIds).filter((id) => id !== auth.userId);
@@ -295,7 +425,9 @@ export async function submitChecklistRun(input: SubmitChecklistInput) {
 
     revalidatePath("/dashboard/sjekklister");
     revalidatePath(`/dashboard/sjekklister/${checklist.id}`);
+    revalidatePath("/dashboard/incidents");
     revalidatePath("/ansatt/sjekklister");
+    revalidatePath("/ansatt/avvik");
     return { success: true as const, runId: run.id, reference: run.reference };
   } catch (error: unknown) {
     return { success: false as const, error: formatActionError(error, "Kunne ikke sende inn sjekklisten") };

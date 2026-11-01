@@ -41,6 +41,7 @@ export default function NewAuditPage() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const fromBcm = searchParams.get("from") === "bcm" || pathname.startsWith("/dashboard/bcm");
+  const supplierId = searchParams.get("supplierId") ?? "";
   const returnPath = fromBcm ? BCM_PATH : "/dashboard/audits";
   const { toast } = useToast();
   const { data: session } = useSession();
@@ -50,7 +51,8 @@ export default function NewAuditPage() {
 
   const [formData, setFormData] = useState({
     title: "",
-    auditType: "INTERNAL",
+    auditType: supplierId ? "SUPPLIER" : "INTERNAL",
+    supplierId,
     scope: "",
     criteria: "",
     scheduledDate: "",
