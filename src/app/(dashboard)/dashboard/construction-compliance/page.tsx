@@ -42,7 +42,7 @@ export default async function ConstructionComplianceOverviewPage() {
           Bygg/anlegg-compliance
         </h1>
         <p className="text-muted-foreground">
-          Oversikt over SHA-plan, forhåndsmelding og daglig kontroll av elektronisk oversiktsliste.
+          SHA-planen ligger på prosjektet. Byggherren utarbeider den. Entreprenøren bruker den og skriver egen HMS-plan.
         </p>
       </div>
 

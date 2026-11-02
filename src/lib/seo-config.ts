@@ -8,6 +8,7 @@
  */
 
 import { AI_ADDON_NET_MONTHLY_NOK } from "./ai-addon";
+import { PUBLIC_FEATURE_NAMES } from "./public-feature-catalog";
 
 const rawBaseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://hmsnova.no";
 const normalizedBaseUrl = rawBaseUrl.startsWith("http") ? rawBaseUrl : `https://${rawBaseUrl}`;
@@ -154,26 +155,7 @@ export const SOFTWARE_PRODUCT_SCHEMA = {
       unitText: "MONTH",
     },
   },
-  featureList: [
-    "Digital signatur",
-    "Risikovurdering 5x5 matrise",
-    "Hendelsesrapportering",
-    "5 Whys analyse",
-    "Automatiske påminnelser",
-    "Mobilapp (offline)",
-    "ISO 9001 compliance",
-    "Dokumenthåndtering",
-    "Kompetansematrise",
-    "Stoffkartotek",
-    "Revisjoner og audits",
-    "Mål og KPI-oppfølging",
-    "Psykososial arbeidsmiljøundersøkelse",
-    "Eksponeringsregister",
-    "Varsling/whistleblowing",
-    "SJA - Sikker Jobb Analyse",
-    "Konsern-HMS",
-    "HMS Tavle",
-  ],
+  featureList: PUBLIC_FEATURE_NAMES,
   description: "HMS Nova bygger trygghet. Norges mest moderne HMS-system med full ISO 9001 compliance, digital signatur og mobilapp.",
   screenshot: `${SITE_CONFIG.url}/opengraph-image`,
 } as const;

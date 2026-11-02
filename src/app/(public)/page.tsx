@@ -11,6 +11,8 @@ import { FAQSection } from "@/components/faq-section";
 import { getFAQsForPage } from "@/lib/faq-data";
 import { TrustBadges } from "@/components/trust-badges";
 import { ProductShowcase } from "@/components/product-showcase";
+import { FeatureCatalog } from "@/components/feature-catalog";
+import { PUBLIC_FEATURE_COUNT } from "@/lib/public-feature-catalog";
 import {
   PAGE_METADATA,
   getOpenGraphDefaults,
@@ -25,15 +27,11 @@ import {
   CheckCircle2,
   Shield,
   Users,
-  FileText,
-  TrendingUp,
   Lock,
-  Zap,
   Globe,
   HeartHandshake,
   ArrowRight,
   Clock,
-  ClipboardCheck,
   Star,
   ChevronRight,
   FolderKanban,
@@ -300,88 +298,31 @@ export default function HomePage() {
         {/* ═══════════════════════════════════════════
             FUNKSJONER — Alt du trenger, samlet
         ═══════════════════════════════════════════ */}
-        <section id="funksjoner" className="container mx-auto px-4 py-20">
-          <div className="text-center mb-12">
+        <section id="funksjoner" className="container mx-auto px-4 py-20 scroll-mt-20">
+          <div className="text-center mb-10 max-w-3xl mx-auto">
+            <Badge variant="default" className="mb-4">
+              {PUBLIC_FEATURE_COUNT} funksjoner
+            </Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Ett system for alt HMS-arbeid
+              Hele funksjonslisten
             </h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">
-              Slutt med separate verktøy. HMS Nova samler alt du trenger i én plattform.
+            <p className="text-muted-foreground">
+              Alt under er med i prisen på 300 kr/mnd. Bransjemoduler følger med og slås på for den bransjen bedriften tilhører.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            {[
-              {
-                icon: ClipboardCheck,
-                title: "Avvik og hendelser",
-                desc: "Meld avvik fra mobil eller PC. Automatisk oppfølging, rotårsaksanalyse og korrigerende tiltak.",
-                href: "/hms-system/avvikshandtering",
-              },
-              {
-                icon: Shield,
-                title: "Risikovurdering",
-                desc: "5x5-matrise med ferdige maler per bransje. Tiltaksoppfølging og revisjonshistorikk inkludert.",
-                href: "/hms-system/risikovurdering",
-              },
-              {
-                icon: FileText,
-                title: "Dokumentstyring",
-                desc: "Versjonskontroll, digital signatur og automatisk arkivering. Alle dokumenter samlet og sporbare.",
-                href: "/hms-system/dokumenter",
-              },
-              {
-                icon: Users,
-                title: "Vernerunder",
-                desc: "Gjennomfør vernerunder fra mobilen med ferdige sjekklister. Funn og tiltak følges opp automatisk.",
-                href: "/hms-system/vernerunde",
-              },
-              {
-                icon: Zap,
-                title: "HMS-håndbok",
-                desc: "Ferdig HMS-håndbok tilpasset din bedrift og bransje. Automatisk oppdatert og alltid tilgjengelig.",
-                href: "/hms-handbok",
-              },
-              {
-                icon: TrendingUp,
-                title: "Opplæring og kompetanse",
-                desc: "Kompetansematrise, kurs-oppfølging og automatiske påminnelser når sertifikater utløper.",
-                href: "/hms-system",
-              },
-            ].map((feature, i) => (
-              <ScrollReveal key={feature.title} delay={i * 50}>
-                <Link href={feature.href} className="block h-full">
-                  <Card className="h-full hover:shadow-md transition-shadow">
-                    <CardHeader>
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <feature.icon className="h-5 w-5 text-primary" aria-hidden="true" />
-                        </div>
-                        <CardTitle className="text-base">{feature.title}</CardTitle>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground">{feature.desc}</p>
-                    </CardContent>
-                  </Card>
-                </Link>
-              </ScrollReveal>
-            ))}
+          <div className="max-w-6xl mx-auto">
+            <FeatureCatalog />
           </div>
 
-          <ScrollReveal delay={400} direction="fade">
-            <div className="text-center mt-10">
-              <p className="text-sm text-muted-foreground mb-4">
-                Pluss varsling, stoffkartotek, SJA, pulsundersøkelse, konsern-portal, revisjon, brannøvelser og mer
-              </p>
-              <Button asChild variant="outline" size="lg">
-                <Link href="/hms-system">
-                  Se alle funksjoner
-                  <ChevronRight className="ml-1 h-4 w-4" aria-hidden="true" />
-                </Link>
+          <div className="text-center mt-10">
+            <RegisterDialog>
+              <Button size="lg" className="bg-green-700 hover:bg-green-800 text-white">
+                Registrer bedrift
+                <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
               </Button>
-            </div>
-          </ScrollReveal>
+            </RegisterDialog>
+          </div>
         </section>
 
         {/* ═══════════════════════════════════════════

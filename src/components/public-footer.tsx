@@ -54,7 +54,7 @@ export function PublicFooter() {
                 </Link>
               </li>
               <li>
-                <Link href="/hms-system" className="text-muted-foreground hover:text-foreground transition-colors">
+                <Link href="/#funksjoner" className="text-muted-foreground hover:text-foreground transition-colors">
                   Alle funksjoner
                 </Link>
               </li>

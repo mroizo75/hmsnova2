@@ -46,8 +46,8 @@ const applySecurityHeaders = (response: NextResponse): NextResponse => {
   const isDev = process.env.NODE_ENV === "development";
 
   const scriptSrc = isDev
-    ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com"
-    : "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com";
+    ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://bzrcdn.openai.com"
+    : "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://bzrcdn.openai.com";
 
   const cspHeader = [
     "default-src 'self'",
@@ -55,7 +55,7 @@ const applySecurityHeaders = (response: NextResponse): NextResponse => {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' data: blob: https: http:",
     "font-src 'self' data: https://fonts.gstatic.com",
-    "connect-src 'self' https://*.r2.cloudflarestorage.com https://*.cloudflare.com",
+    "connect-src 'self' https://*.r2.cloudflarestorage.com https://*.cloudflare.com https://bzr.openai.com https://bzrcdn.openai.com",
     "frame-ancestors 'self'",
     "base-uri 'self'",
     "form-action 'self'",
@@ -69,8 +69,25 @@ const applySecurityHeaders = (response: NextResponse): NextResponse => {
   return response;
 };
 
+const JUNK_PATHS = new Set(["/$", "/&"]);
+
 export async function proxy(request: NextRequest) {
+  const host = request.headers.get("host")?.split(":")[0] ?? "";
+  if (host === "www.hmsnova.no") {
+    const url = request.nextUrl.clone();
+    url.hostname = "hmsnova.no";
+    url.protocol = "https";
+    return NextResponse.redirect(url, 308);
+  }
+
   const pathname = request.nextUrl.pathname;
+  if (JUNK_PATHS.has(pathname) || pathname.startsWith("/cdn-cgi/")) {
+    return new NextResponse("Not found", {
+      status: 404,
+      headers: { "X-Robots-Tag": "noindex" },
+    });
+  }
+
   const isMutation =
     MUTATION_METHODS.has(request.method) ||
     request.headers.has("next-action");

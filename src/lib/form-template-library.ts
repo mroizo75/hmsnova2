@@ -914,12 +914,12 @@ const inspectionTemplates: FormTemplateLibraryEntry[] = [
   },
   {
     title: "Vernerunde – Bygg og anlegg (prosjekt)",
-    description: "Prosjektorientert vernerunde for byggeplass: SHA-plan, fallsikring, graving og samordning.",
+    description: "Vernerunde på byggeplass. Sjekker at byggherrens SHA-plan er kjent. Selve SHA-planen ligger på prosjektet.",
     category: "INSPECTION",
     industryScope: ["construction", "av_installation"],
     fields: [
-      section("SHA-plan og koordinering"),
-      radioTri("SHA-plan er oppdatert og kjent for alle parter"),
+      section("Kjennskap til byggherrens SHA-plan"),
+      radioTri("Byggherrens SHA-plan er tilgjengelig, og eget mannskap kjenner den"),
       radioTri("SJA er gjennomført for pågående risikofylte aktiviteter"),
       radioTri("Samordning mellom entreprenører fungerer"),
       radioTri("HMS-kort og mannskapsliste er oppdatert"),

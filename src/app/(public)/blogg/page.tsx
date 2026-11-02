@@ -1,49 +1,25 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
-import { getPublishedPosts } from "@/server/actions/blog.actions";
 import { ShareButtons } from "@/components/blog/share-buttons";
+import { SITE_CONFIG } from "@/lib/seo-config";
+import { fetchPublishedPosts } from "@/server/queries/blog.queries";
 
-export default function BloggPage() {
-  const [posts, setPosts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+export const revalidate = 3600;
 
-  useEffect(() => {
-    async function loadPosts() {
-      const result = await getPublishedPosts();
-      if (result.success) {
-        setPosts(result.data);
-      }
-      setLoading(false);
-    }
-    loadPosts();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-        <section className="container mx-auto px-4 py-20 text-center">
-          <p className="text-muted-foreground">Laster artikler...</p>
-        </section>
-      </div>
-    );
-  }
-
+export default async function BloggPage() {
+  const posts = await fetchPublishedPosts();
   const featuredPost = posts[0];
   const regularPosts = posts.slice(1);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-      {/* Hero */}
       <section className="container mx-auto px-4 py-20 text-center">
         <Badge variant="secondary" className="mb-6">
-          📚 HMS Kunnskap
+          HMS-kunnskap
         </Badge>
         <h1 className="text-5xl md:text-6xl font-bold mb-6">HMS Nova Blogg</h1>
         <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
@@ -52,7 +28,6 @@ export default function BloggPage() {
         </p>
       </section>
 
-      {/* Featured Post */}
       {featuredPost && (
         <section className="container mx-auto px-4 py-12">
           <Link href={`/blogg/${featuredPost.slug}`}>
@@ -92,12 +67,10 @@ export default function BloggPage() {
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
-                      {format(new Date(featuredPost.publishedAt), "d. MMMM yyyy", {
-                        locale: nb,
-                      })}
+                      {format(new Date(featuredPost.publishedAt), "d. MMMM yyyy", { locale: nb })}
                     </div>
                     <ShareButtons
-                      url={`https://hmsnova.no/blogg/${featuredPost.slug}`}
+                      url={`${SITE_CONFIG.url}/blogg/${featuredPost.slug}`}
                       title={featuredPost.title}
                       variant="compact"
                     />
@@ -109,14 +82,13 @@ export default function BloggPage() {
         </section>
       )}
 
-      {/* Blog Posts Grid */}
       <section className="container mx-auto px-4 py-12">
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {regularPosts.length === 0 && !featuredPost ? (
             <div className="col-span-full text-center py-20">
               <h3 className="text-2xl font-bold mb-4">Ingen artikler ennå</h3>
               <p className="text-muted-foreground">
-                Kom tilbake snart for HMS-artikler og praktiske tips!
+                Kom tilbake snart for HMS-artikler og praktiske tips.
               </p>
             </div>
           ) : (
@@ -125,11 +97,7 @@ export default function BloggPage() {
                 <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
                   {post.coverImage && (
                     <div className="relative h-48 overflow-hidden">
-                      <img
-                        src={post.coverImage}
-                        alt={post.title}
-                        className="object-cover w-full h-full"
-                      />
+                      <img src={post.coverImage} alt={post.title} className="object-cover w-full h-full" />
                     </div>
                   )}
                   <CardHeader>
@@ -139,10 +107,7 @@ export default function BloggPage() {
                         className="w-fit mb-2"
                         style={
                           post.category.color
-                            ? {
-                                borderColor: post.category.color,
-                                color: post.category.color,
-                              }
+                            ? { borderColor: post.category.color, color: post.category.color }
                             : undefined
                         }
                       >
@@ -150,28 +115,24 @@ export default function BloggPage() {
                       </Badge>
                     )}
                     <CardTitle className="line-clamp-2">{post.title}</CardTitle>
-                    <CardDescription className="line-clamp-3">
-                      {post.excerpt}
-                    </CardDescription>
+                    <CardDescription className="line-clamp-3">{post.excerpt}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        {format(new Date(post.publishedAt), "d. MMM yyyy", {
-                          locale: nb,
-                        })}
+                        {format(new Date(post.publishedAt), "d. MMM yyyy", { locale: nb })}
                       </div>
                       <ShareButtons
-                        url={`https://hmsnova.no/blogg/${post.slug}`}
+                        url={`${SITE_CONFIG.url}/blogg/${post.slug}`}
                         title={post.title}
                         variant="compact"
                       />
                     </div>
                     {post.keywords && (
                       <div className="flex flex-wrap gap-1.5">
-                        {post.keywords.split(",").slice(0, 3).map((keyword: string, index: number) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
+                        {post.keywords.split(",").slice(0, 3).map((keyword) => (
+                          <Badge key={keyword.trim()} variant="secondary" className="text-xs">
                             {keyword.trim()}
                           </Badge>
                         ))}
@@ -187,4 +148,3 @@ export default function BloggPage() {
     </div>
   );
 }
-

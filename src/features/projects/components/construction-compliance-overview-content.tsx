@@ -27,7 +27,9 @@ export function ConstructionComplianceOverviewContent({ initialData }: Construct
 
   const todayKey = formatDateOnly(new Date());
   const rows = projects.map((project: any) => {
-    const hasShaPlan = Boolean(project.constructionShaPlan);
+    const sha = project.constructionShaPlan;
+    const hasShaPlan = Boolean(sha?.builderName?.trim() || sha?.specificMeasures?.trim() || sha?.sourceNote?.trim());
+    const hasOwnHmsPlan = sha?.holderRole === "BYGGHERRE" || Boolean(sha?.ownHmsPlan?.trim());
     const hasPreNotification = Boolean(project.constructionPreNotification);
     const activeWorkers = project.constructionRosterEntries.length;
     const lastCheckDate = project.constructionRosterChecks[0]?.checkedDate ?? null;
@@ -37,6 +39,8 @@ export function ConstructionComplianceOverviewContent({ initialData }: Construct
     return {
       ...project,
       hasShaPlan,
+      hasOwnHmsPlan,
+      isBuilder: sha?.holderRole === "BYGGHERRE",
       hasPreNotification,
       activeWorkers,
       hasDailyCheckToday,
@@ -60,7 +64,7 @@ export function ConstructionComplianceOverviewContent({ initialData }: Construct
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Prosjekter uten SHA-plan</p>
+            <p className="text-sm text-muted-foreground">Prosjekter uten byggherrens SHA-plan</p>
             <p className="text-2xl font-bold text-red-700">{projectsWithoutSha}</p>
           </CardContent>
         </Card>
@@ -98,7 +102,14 @@ export function ConstructionComplianceOverviewContent({ initialData }: Construct
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Badge variant={row.hasShaPlan ? "default" : "destructive"}>
-                    {row.hasShaPlan ? "SHA-plan OK" : "SHA-plan mangler"}
+                    {row.hasShaPlan ? "Byggherrens SHA registrert" : "Byggherrens SHA mangler"}
+                  </Badge>
+                  <Badge variant={row.hasOwnHmsPlan ? "default" : "destructive"}>
+                    {row.isBuilder
+                      ? "Vi er byggherre"
+                      : row.hasOwnHmsPlan
+                        ? "Egen HMS-plan OK"
+                        : "Egen HMS-plan mangler"}
                   </Badge>
                   <Badge variant={row.hasPreNotification ? "default" : "destructive"}>
                     {row.hasPreNotification ? "Forhåndsmelding OK" : "Forhåndsmelding mangler"}

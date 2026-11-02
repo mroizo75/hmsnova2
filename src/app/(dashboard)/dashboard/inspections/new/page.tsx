@@ -256,11 +256,13 @@ export default function NewInspectionPage() {
                   <SelectContent>
                     <SelectItem value="VERNERUNDE">{t("types.vernerunde")}</SelectItem>
                     <SelectItem value="HMS_INSPEKSJON">{t("types.hmsInspection")}</SelectItem>
-                    <SelectItem value="SHA_PLAN">{t("types.shaPlan")}</SelectItem>
                     <SelectItem value="SIKKERHETSVANDRING">{t("types.safetyWalk")}</SelectItem>
                     <SelectItem value="ANDRE">{t("types.other")}</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  SHA-plan registreres på prosjektet under bygg og anlegg, ikke som vernerunde.
+                </p>
               </div>
 
               <div className="space-y-2">

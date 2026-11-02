@@ -75,6 +75,11 @@ const changeFieldLabels: Record<string, string> = {
   changeProcedure: "Rutine for endring",
   conflictAssessmentDocumented: "Rollekonflikt dokumentert",
   availableOnSite: "Tilgjengelig på byggeplass",
+  holderRole: "Rolle",
+  receivedAt: "Mottatt dato",
+  sourceNote: "Referanse til SHA-dokument",
+  ownHmsPlan: "Egen HMS-plan",
+  shaIncorporated: "SHA tatt inn i egen HMS-plan",
   sentAt: "Sendt dato",
   submissionDate: "Innsendingsdato",
   projectAddress: "Adresse byggeplass",
@@ -114,6 +119,7 @@ export function ConstructionComplianceClient({ projectId, canManage }: Construct
 
   const [shaPlan, setShaPlan] = useState({
     status: "DRAFT",
+    holderRole: "ENTREPRENOR",
     builderName: "",
     builderRepresentativeName: "",
     builderRepresentativeContact: "",
@@ -125,6 +131,10 @@ export function ConstructionComplianceClient({ projectId, canManage }: Construct
     changeProcedure: "",
     conflictAssessmentDocumented: false,
     availableOnSite: false,
+    receivedAt: "",
+    sourceNote: "",
+    ownHmsPlan: "",
+    shaIncorporated: false,
   });
 
   const [preNotification, setPreNotification] = useState({
@@ -222,6 +232,7 @@ export function ConstructionComplianceClient({ projectId, canManage }: Construct
       if (payload.shaPlan) {
         setShaPlan({
           status: payload.shaPlan.status ?? "DRAFT",
+          holderRole: payload.shaPlan.holderRole ?? "ENTREPRENOR",
           builderName: payload.shaPlan.builderName ?? "",
           builderRepresentativeName: payload.shaPlan.builderRepresentativeName ?? "",
           builderRepresentativeContact: payload.shaPlan.builderRepresentativeContact ?? "",
@@ -233,6 +244,12 @@ export function ConstructionComplianceClient({ projectId, canManage }: Construct
           changeProcedure: payload.shaPlan.changeProcedure ?? "",
           conflictAssessmentDocumented: payload.shaPlan.conflictAssessmentDocumented ?? false,
           availableOnSite: payload.shaPlan.availableOnSite ?? false,
+          receivedAt: payload.shaPlan.receivedAt
+            ? new Date(payload.shaPlan.receivedAt).toISOString().slice(0, 10)
+            : "",
+          sourceNote: payload.shaPlan.sourceNote ?? "",
+          ownHmsPlan: payload.shaPlan.ownHmsPlan ?? "",
+          shaIncorporated: payload.shaPlan.shaIncorporated ?? false,
         });
       }
 
@@ -286,6 +303,7 @@ export function ConstructionComplianceClient({ projectId, canManage }: Construct
         body: JSON.stringify({
           shaPlan: {
             ...shaPlan,
+            receivedAt: shaPlan.receivedAt || null,
             lastReviewedAt: new Date().toISOString(),
           },
           preNotification: {
@@ -804,13 +822,45 @@ export function ConstructionComplianceClient({ projectId, canManage }: Construct
 
       <Card>
         <CardHeader>
-          <CardTitle>SHA-plan</CardTitle>
+          <CardTitle>SHA-plan på prosjektet</CardTitle>
           <CardDescription>
-            Prosjektspesifikk SHA-plan med organisering, fremdrift, tiltak og endringsrutine.
+            SHA-planen er byggherrens plan etter byggherreforskriften § 5 og § 7–9. Den ligger på prosjektet, ikke som vernerunde.
+            Entreprenøren bruker den som informasjon og skriver egen HMS-plan for arbeidet (AML § 3-1 og IK-HMS § 5).
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <Label>Vår rolle på prosjektet</Label>
+              <Select
+                value={shaPlan.holderRole}
+                onValueChange={(value) => setShaPlan((prev) => ({ ...prev, holderRole: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ENTREPRENOR">Vi er entreprenør</SelectItem>
+                  <SelectItem value="BYGGHERRE">Vi er byggherre</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Status</Label>
+              <Select
+                value={shaPlan.status}
+                onValueChange={(value) => setShaPlan((prev) => ({ ...prev, status: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="DRAFT">Utkast</SelectItem>
+                  <SelectItem value="ACTIVE">Aktiv</SelectItem>
+                  <SelectItem value="ARCHIVED">Arkivert</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Label>Byggherre</Label>
               <Input
@@ -856,58 +906,111 @@ export function ConstructionComplianceClient({ projectId, canManage }: Construct
             </div>
           </div>
 
-          <div>
-            <Label>Organisasjonskart / rollefordeling</Label>
-            <Textarea
-              rows={4}
-              value={shaPlan.organizationChart}
-              onChange={(e) => setShaPlan((prev) => ({ ...prev, organizationChart: e.target.value }))}
-            />
-          </div>
-          <div>
-            <Label>Fremdriftsplan (når/hvor arbeidsoperasjoner utføres)</Label>
-            <Textarea
-              rows={4}
-              value={shaPlan.progressPlan}
-              onChange={(e) => setShaPlan((prev) => ({ ...prev, progressPlan: e.target.value }))}
-            />
-          </div>
-          <div>
-            <Label>Spesifikke SHA-tiltak (risikoforhold etter § 8)</Label>
-            <Textarea
-              rows={4}
-              value={shaPlan.specificMeasures}
-              onChange={(e) => setShaPlan((prev) => ({ ...prev, specificMeasures: e.target.value }))}
-            />
-          </div>
-          <div>
-            <Label>Rutine for endring og oppdatering av SHA-plan</Label>
-            <Textarea
-              rows={3}
-              value={shaPlan.changeProcedure}
-              onChange={(e) => setShaPlan((prev) => ({ ...prev, changeProcedure: e.target.value }))}
-            />
-          </div>
+          {shaPlan.holderRole === "BYGGHERRE" ? (
+            <>
+              <div>
+                <Label>Organisasjonskart / rollefordeling</Label>
+                <Textarea
+                  rows={4}
+                  value={shaPlan.organizationChart}
+                  onChange={(e) => setShaPlan((prev) => ({ ...prev, organizationChart: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label>Fremdriftsplan (når/hvor arbeidsoperasjoner utføres)</Label>
+                <Textarea
+                  rows={4}
+                  value={shaPlan.progressPlan}
+                  onChange={(e) => setShaPlan((prev) => ({ ...prev, progressPlan: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label>Spesifikke SHA-tiltak (risikoforhold etter § 8)</Label>
+                <Textarea
+                  rows={4}
+                  value={shaPlan.specificMeasures}
+                  onChange={(e) => setShaPlan((prev) => ({ ...prev, specificMeasures: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label>Rutine for endring og oppdatering av SHA-plan</Label>
+                <Textarea
+                  rows={3}
+                  value={shaPlan.changeProcedure}
+                  onChange={(e) => setShaPlan((prev) => ({ ...prev, changeProcedure: e.target.value }))}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={shaPlan.conflictAssessmentDocumented}
+                  onCheckedChange={(checked) =>
+                    setShaPlan((prev) => ({ ...prev, conflictAssessmentDocumented: checked === true }))
+                  }
+                />
+                <span className="text-sm">Rollekonflikt-vurdering for koordinator er dokumentert</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Utførende virksomheter skal bruke denne planen som informasjon og lage sin egen HMS-plan for arbeidet.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div>
+                  <Label>Dato SHA-planen ble mottatt</Label>
+                  <Input
+                    type="date"
+                    value={shaPlan.receivedAt}
+                    onChange={(e) => setShaPlan((prev) => ({ ...prev, receivedAt: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>Referanse til byggherrens dokument</Label>
+                  <Input
+                    value={shaPlan.sourceNote}
+                    onChange={(e) => setShaPlan((prev) => ({ ...prev, sourceNote: e.target.value }))}
+                    placeholder="Versjon, filnavn eller hvor planen ligger"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label>Forhold fra SHA-planen vi må følge</Label>
+                <Textarea
+                  rows={4}
+                  value={shaPlan.specificMeasures}
+                  onChange={(e) => setShaPlan((prev) => ({ ...prev, specificMeasures: e.target.value }))}
+                  placeholder="Det byggherren krever at vi tar hensyn til på denne plassen"
+                />
+              </div>
+              <div>
+                <Label>Vår HMS-plan for prosjektet</Label>
+                <Textarea
+                  rows={5}
+                  value={shaPlan.ownHmsPlan}
+                  onChange={(e) => setShaPlan((prev) => ({ ...prev, ownHmsPlan: e.target.value }))}
+                  placeholder="Hvordan vi utfører arbeidet sikkert. Denne planen erstatter ikke byggherrens SHA-plan."
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={shaPlan.shaIncorporated}
+                  onCheckedChange={(checked) =>
+                    setShaPlan((prev) => ({ ...prev, shaIncorporated: checked === true }))
+                  }
+                />
+                <span className="text-sm">Relevante krav fra SHA-planen er tatt inn i vår HMS-plan</span>
+              </div>
+            </>
+          )}
 
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                checked={shaPlan.conflictAssessmentDocumented}
-                onCheckedChange={(checked) =>
-                  setShaPlan((prev) => ({ ...prev, conflictAssessmentDocumented: checked === true }))
-                }
-              />
-              <span className="text-sm">Rollekonflikt-vurdering for koordinator er dokumentert</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                checked={shaPlan.availableOnSite}
-                onCheckedChange={(checked) =>
-                  setShaPlan((prev) => ({ ...prev, availableOnSite: checked === true }))
-                }
-              />
-              <span className="text-sm">SHA-plan er tilgjengelig på byggeplassen</span>
-            </div>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              checked={shaPlan.availableOnSite}
+              onCheckedChange={(checked) =>
+                setShaPlan((prev) => ({ ...prev, availableOnSite: checked === true }))
+              }
+            />
+            <span className="text-sm">SHA-plan er tilgjengelig på byggeplassen</span>
           </div>
         </CardContent>
       </Card>

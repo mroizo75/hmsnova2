@@ -20,6 +20,7 @@ import {
 
 const shaPlanSchema = z.object({
   status: z.enum(["DRAFT", "ACTIVE", "ARCHIVED"]).optional(),
+  holderRole: z.enum(["ENTREPRENOR", "BYGGHERRE"]).optional(),
   organizationChart: z.string().optional().nullable(),
   progressPlan: z.string().optional().nullable(),
   specificMeasures: z.string().optional().nullable(),
@@ -31,6 +32,10 @@ const shaPlanSchema = z.object({
   coordinatorExecutionName: z.string().optional().nullable(),
   conflictAssessmentDocumented: z.boolean().optional(),
   availableOnSite: z.boolean().optional(),
+  receivedAt: z.string().optional().nullable(),
+  sourceNote: z.string().optional().nullable(),
+  ownHmsPlan: z.string().optional().nullable(),
+  shaIncorporated: z.boolean().optional(),
   lastReviewedAt: z.string().optional().nullable(),
 });
 
@@ -103,6 +108,12 @@ const patchPayloadSchema = z.discriminatedUnion("action", [
     notes: z.string().optional().nullable(),
   }),
 ]);
+
+function parseOptionalDate(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
 
 function formatDateOnly(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -453,6 +464,11 @@ export async function PUT(
             coordinatorExecutionName: payload.shaPlan.coordinatorExecutionName ?? null,
             conflictAssessmentDocumented: payload.shaPlan.conflictAssessmentDocumented ?? false,
             availableOnSite: payload.shaPlan.availableOnSite ?? false,
+            holderRole: payload.shaPlan.holderRole ?? "ENTREPRENOR",
+            receivedAt: parseOptionalDate(payload.shaPlan.receivedAt),
+            sourceNote: payload.shaPlan.sourceNote ?? null,
+            ownHmsPlan: payload.shaPlan.ownHmsPlan ?? null,
+            shaIncorporated: payload.shaPlan.shaIncorporated ?? false,
             lastReviewedAt: payload.shaPlan.lastReviewedAt
               ? new Date(payload.shaPlan.lastReviewedAt)
               : null,
@@ -489,6 +505,15 @@ export async function PUT(
             }),
             ...(payload.shaPlan.availableOnSite !== undefined && {
               availableOnSite: payload.shaPlan.availableOnSite,
+            }),
+            ...(payload.shaPlan.holderRole !== undefined && { holderRole: payload.shaPlan.holderRole }),
+            ...(payload.shaPlan.receivedAt !== undefined && {
+              receivedAt: parseOptionalDate(payload.shaPlan.receivedAt),
+            }),
+            ...(payload.shaPlan.sourceNote !== undefined && { sourceNote: payload.shaPlan.sourceNote }),
+            ...(payload.shaPlan.ownHmsPlan !== undefined && { ownHmsPlan: payload.shaPlan.ownHmsPlan }),
+            ...(payload.shaPlan.shaIncorporated !== undefined && {
+              shaIncorporated: payload.shaPlan.shaIncorporated,
             }),
             ...(payload.shaPlan.lastReviewedAt !== undefined && {
               lastReviewedAt: payload.shaPlan.lastReviewedAt

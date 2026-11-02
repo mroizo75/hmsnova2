@@ -4,6 +4,7 @@ import { getLocale, getMessages } from "next-intl/server";
 import { authOptions } from "@/lib/auth";
 import { Providers } from "./providers";
 import { CookieConsent } from "@/components/cookie-consent";
+import { ChatGptAdsPixel } from "@/components/chatgpt-ads-pixel";
 import { AITracker } from "@/components/ai-tracker";
 import { Toaster } from "sonner";
 import {
@@ -83,6 +84,7 @@ export default async function RootLayout({
       </head>
       <body className="min-h-dvh overflow-x-hidden">
         <Providers locale={locale} messages={messages} session={session} nowISO={nowISO}>
+          <ChatGptAdsPixel />
           <AITracker />
           {children}
           <Toaster position="top-center" richColors />

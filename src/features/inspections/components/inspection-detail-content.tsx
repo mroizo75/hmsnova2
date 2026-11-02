@@ -89,6 +89,24 @@ export function InspectionDetailContent({
 
   return (
     <div className="space-y-6">
+      {inspection.type === "SHA_PLAN" ? (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+          <p className="font-medium">SHA-plan er ikke en vernerunde</p>
+          <p className="mt-1">
+            Byggherrens SHA-plan og entreprenørens egen HMS-plan ligger på prosjektet.
+          </p>
+          <Link
+            href={
+              inspection.projectId
+                ? `/dashboard/projects/${inspection.projectId}/construction-compliance`
+                : "/dashboard/construction-compliance"
+            }
+            className="mt-2 inline-block font-medium underline"
+          >
+            Gå til SHA-plan på prosjektet
+          </Link>
+        </div>
+      ) : null}
       <div>
         <Button variant="ghost" asChild className="mb-4">
           <Link href="/dashboard/inspections">

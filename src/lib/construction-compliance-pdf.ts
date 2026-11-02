@@ -33,6 +33,10 @@ interface ConstructionCompliancePdfData {
     conflictAssessmentDocumented: boolean;
     availableOnSite: boolean;
     lastReviewedAt: Date | null;
+    holderRole?: string | null;
+    sourceNote?: string | null;
+    ownHmsPlan?: string | null;
+    shaIncorporated?: boolean | null;
   } | null;
   preNotification: {
     status: string;
@@ -112,7 +116,11 @@ export async function generateConstructionCompliancePdf(
           type: "keyvalue",
           pairs: [
             ["Status", data.shaPlan.status],
+            ["Rolle", data.shaPlan.holderRole === "BYGGHERRE" ? "Byggherre" : "Entreprenør"],
             ["Byggherre", data.shaPlan.builderName ?? "–"],
+            ["Referanse", data.shaPlan.sourceNote ?? "–"],
+            ["Egen HMS-plan", data.shaPlan.ownHmsPlan ?? "–"],
+            ["SHA tatt inn i egen HMS-plan", data.shaPlan.shaIncorporated ? "Ja" : "Nei"],
             ["Byggherres representant", data.shaPlan.builderRepresentativeName ?? "–"],
             ["Koordinator prosjektering (KP)", data.shaPlan.coordinatorPlanningName ?? "–"],
             ["Koordinator utførelse (KU)", data.shaPlan.coordinatorExecutionName ?? "–"],

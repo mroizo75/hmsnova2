@@ -215,13 +215,20 @@ export default function EditInspectionPage() {
                   <SelectContent>
                     <SelectItem value="VERNERUNDE">{t("types.vernerunde")}</SelectItem>
                     <SelectItem value="HMS_INSPEKSJON">{t("types.hmsInspection")}</SelectItem>
-                    <SelectItem value="SHA_PLAN">{t("types.shaPlan")}</SelectItem>
+                    {formData.type === "SHA_PLAN" ? (
+                      <SelectItem value="SHA_PLAN">SHA-plan (utgått – velg annen type)</SelectItem>
+                    ) : null}
                     <SelectItem value="SIKKERHETSVANDRING">
                       {t("types.safetyWalk")}
                     </SelectItem>
                     <SelectItem value="ANDRE">{t("types.other")}</SelectItem>
                   </SelectContent>
                 </Select>
+                {formData.type === "SHA_PLAN" ? (
+                  <p className="text-xs text-amber-800">
+                    SHA-plan hører til prosjektet. Velg en inspeksjonstype her, og registrer planen under bygg og anlegg.
+                  </p>
+                ) : null}
               </div>
 
               <div className="space-y-2">

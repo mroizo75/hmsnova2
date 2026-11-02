@@ -59,7 +59,7 @@ export async function PATCH(
     const data = await request.json();
     const existing = await prisma.inspection.findFirst({
       where: { id, tenantId: sessionTenantId },
-      select: { id: true, title: true, conductedBy: true, scheduledDate: true },
+      select: { id: true, title: true, type: true, conductedBy: true, scheduledDate: true },
     });
     if (!existing) {
       return createErrorResponse(ErrorCodes.NOT_FOUND, "Inspeksjon ikke funnet", 404);
@@ -84,6 +84,14 @@ export async function PATCH(
         );
       }
       conductedBy = member.userId;
+    }
+
+    if (data.type === "SHA_PLAN" && existing.type !== "SHA_PLAN") {
+      return createErrorResponse(
+        ErrorCodes.VALIDATION_ERROR,
+        "SHA-plan registreres på prosjektet under bygg og anlegg, ikke som vernerunde.",
+        400
+      );
     }
 
     const scheduledDate = data.scheduledDate ? new Date(data.scheduledDate) : existing.scheduledDate;

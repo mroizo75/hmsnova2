@@ -1,5 +1,6 @@
 interface ShaPlanData {
   status?: "DRAFT" | "ACTIVE" | "ARCHIVED" | string | null;
+  holderRole?: "ENTREPRENOR" | "BYGGHERRE" | string | null;
   builderName?: string | null;
   builderRepresentativeName?: string | null;
   builderRepresentativeContact?: string | null;
@@ -9,7 +10,10 @@ interface ShaPlanData {
   progressPlan?: string | null;
   specificMeasures?: string | null;
   changeProcedure?: string | null;
+  sourceNote?: string | null;
+  ownHmsPlan?: string | null;
   conflictAssessmentDocumented?: boolean | null;
+  shaIncorporated?: boolean | null;
   availableOnSite?: boolean | null;
 }
 
@@ -123,11 +127,33 @@ export function evaluatePreNotificationRequirement(
   };
 }
 
-// Byggherreforskriften § 8/§9: SHA-plan må være konkret før den settes aktiv.
+/**
+ * Byggherreforskriften § 5: byggherren utarbeider SHA-planen.
+ * § 7–9: innhold og ajourhold før planen er aktiv.
+ * Entreprenøren mottar planen og tar den inn i egen HMS-plan (AML § 3-1, IK-HMS § 5).
+ * Egen HMS-plan erstatter ikke SHA-planen.
+ */
 export function validateShaPlanForActive(
   shaPlan: ShaPlanData | null | undefined
 ): { isValid: boolean; missingFields: string[] } {
   const missingFields: string[] = [];
+  const isBuilder = shaPlan?.holderRole === "BYGGHERRE";
+
+  if (!isBuilder) {
+    if (!hasText(shaPlan?.builderName)) missingFields.push("Byggherre");
+    if (!hasText(shaPlan?.specificMeasures) && !hasText(shaPlan?.sourceNote)) {
+      missingFields.push("Forhold fra SHA-planen eller referanse til dokumentet");
+    }
+    if (!hasText(shaPlan?.ownHmsPlan)) missingFields.push("Egen HMS-plan for prosjektet");
+    if (shaPlan?.shaIncorporated !== true) {
+      missingFields.push("Bekreftelse på at SHA-planen er tatt inn i egen HMS-plan");
+    }
+    if (shaPlan?.availableOnSite !== true) {
+      missingFields.push("SHA-plan tilgjengelig på byggeplassen");
+    }
+    return { isValid: missingFields.length === 0, missingFields };
+  }
+
   if (!hasText(shaPlan?.builderName)) missingFields.push("Byggherre");
   if (!hasText(shaPlan?.coordinatorPlanningName)) missingFields.push("Koordinator prosjektering (KP)");
   if (!hasText(shaPlan?.coordinatorExecutionName)) missingFields.push("Koordinator utførelse (KU)");

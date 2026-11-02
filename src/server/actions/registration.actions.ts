@@ -2,7 +2,8 @@
 
 import { z } from "zod";
 import { checkServerActionRateLimit } from "@/lib/server-action-rate-limit";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { sendOpenAiRegistrationCompleted } from "@/lib/openai-ads";
 import { prisma } from "@/lib/db";
 import { Resend } from "resend";
 import { PricingTier } from "@prisma/client";
@@ -406,6 +407,26 @@ export async function submitRegistrationRequest(formData: FormData) {
       } catch (emailError) {
         console.error("Failed to send admin notification:", emailError);
       }
+    }
+
+    const cookieStore = await cookies();
+    if (cookieStore.get("hms-marketing-consent")?.value === "1") {
+      const referer = requestHeaders.get("referer");
+      const sourceUrl =
+        referer && referer.startsWith(appUrl) ? referer : `${appUrl}/registrer-bedrift`;
+      await sendOpenAiRegistrationCompleted({
+        eventId: `registration_${tenant.id}`,
+        sourceUrl,
+        email: normalizedEmail,
+        phone: validated.contactPhone,
+        externalId: tenant.id,
+        city: validated.city,
+        postalCode: validated.postalCode,
+        ipAddress,
+        userAgent,
+        oppref: cookieStore.get("__oppref")?.value,
+        obref: cookieStore.get("__obref")?.value,
+      });
     }
 
     return { success: true, data: { tenantId: tenant.id } };

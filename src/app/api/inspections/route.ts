@@ -117,6 +117,13 @@ export async function POST(request: NextRequest) {
       return createErrorResponse(ErrorCodes.FORBIDDEN, "Ingen tenant tilgang", 403);
     }
     const data = await request.json();
+    if (data.type === "SHA_PLAN") {
+      return createErrorResponse(
+        ErrorCodes.VALIDATION_ERROR,
+        "SHA-plan registreres på prosjektet under bygg og anlegg, ikke som vernerunde.",
+        400
+      );
+    }
     let validatedProjectId: string | null = null;
     let selectedTemplate: {
       id: string;

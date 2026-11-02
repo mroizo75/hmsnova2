@@ -139,6 +139,10 @@ export function validateEnv(): void {
     warnings.push("RESEND_API_KEY ikke satt - e-postvarsler vil ikke fungere");
   }
 
+  if (!process.env.OPENAI_ADS_API_KEY) {
+    warnings.push("OPENAI_ADS_API_KEY ikke satt - ChatGPT-annonser får ikke registrering fra serveren");
+  }
+
   if (
     process.env.NODE_ENV === "production" &&
     (!process.env.UPSTASH_REDIS_REST_URL ||

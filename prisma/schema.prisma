@@ -3158,6 +3158,7 @@ enum InspectionType {
   VERNERUNDE
   HMS_INSPEKSJON
   BRANNØVELSE /// @deprecated — erstattet av FireDrill-modul. Beholdes for eksisterende produksjonsdata.
+  /// @deprecated — SHA-plan hører til prosjektet (ConstructionShaPlan), ikke vernerunde.
   SHA_PLAN
   SIKKERHETSVANDRING
   ANDRE
@@ -4887,6 +4888,16 @@ model ConstructionShaPlan {
   coordinatorExecutionName     String? // KU
   conflictAssessmentDocumented Boolean                @default(false)
   availableOnSite              Boolean                @default(false)
+  /// ENTREPRENOR mottar byggherrens plan. BYGGHERRE utarbeider den. Byggherreforskriften § 5.
+  holderRole                   ConstructionShaRole    @default(ENTREPRENOR)
+  /// Når entreprenøren mottok byggherrens SHA-plan.
+  receivedAt                   DateTime?
+  /// Referanse til byggherrens dokument (versjon, fil eller hvor den ligger).
+  sourceNote                   String?                @db.Text
+  /// Entreprenørens egen HMS-plan for prosjektet. AML § 3-1, IK-HMS § 5. Erstatter ikke SHA-planen.
+  ownHmsPlan                   String?                @db.Text
+  /// Entreprenøren har tatt relevante krav fra SHA-planen inn i egen HMS-plan.
+  shaIncorporated              Boolean                @default(false)
   lastReviewedAt               DateTime?
   createdAt                    DateTime               @default(now())
   updatedAt                    DateTime               @updatedAt
@@ -4974,6 +4985,12 @@ model ConstructionRosterDailyCheck {
   @@unique([projectId, checkedDate])
   @@index([tenantId])
   @@index([checkedDate])
+}
+
+/// Hvem som holder SHA-planen på prosjektet. Byggherreforskriften § 5: byggherren utarbeider planen.
+enum ConstructionShaRole {
+  ENTREPRENOR
+  BYGGHERRE
 }
 
 enum ProjectStatus {

@@ -75,7 +75,11 @@ export function CookieConsent() {
       }
     }
 
-    // Marketing cookies (ingen for øyeblikket)
+    const secure = window.location.protocol === "https:" ? "; Secure" : "";
+    document.cookie = prefs.marketing
+      ? `hms-marketing-consent=1; Path=/; Max-Age=31536000; SameSite=Lax${secure}`
+      : `hms-marketing-consent=; Path=/; Max-Age=0; SameSite=Lax${secure}`;
+    window.dispatchEvent(new Event("cookie-consent-changed"));
   };
 
   const savePreferences = (prefs: CookiePreferences) => {
