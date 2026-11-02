@@ -82,6 +82,31 @@ describe("SJA-innsending", () => {
     assert.equal(result.success, true);
   });
 
+  it("godtar vanlig SJA når valgfrie felt, inkludert begrunnelse for person nummer to, er null", () => {
+    const result = createSjaSchema.safeParse({
+      tenantId,
+      title: "Stillasarbeid",
+      description: null,
+      workLocation: "Byggeplass",
+      plannedDate: new Date("2026-10-01"),
+      responsibleName: "Ola Nordmann",
+      participants: "Ola Nordmann",
+      additionalConditions: null,
+      weatherConditions: null,
+      templateId: null,
+      templateName: null,
+      projectId: null,
+      electricalWorkType: "NOT_APPLICABLE",
+      secondPersonException: null,
+      requiresSecondPerson: false,
+      hazards: [hazard],
+    });
+
+    if (!result.success) {
+      assert.fail(result.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join(", "));
+    }
+  });
+
   it("avviser elektroarbeid uten fullført FSE-sjekkliste", () => {
     const result = createSjaSchema.safeParse({
       tenantId,

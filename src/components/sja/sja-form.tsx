@@ -160,6 +160,12 @@ interface SjaFormProps {
   };
 }
 
+/** FormData.get er null når feltet ikke er med i skjemaet. Valgfrie felt skal ikke sendes som null. */
+function formText(formData: FormData, name: string): string | undefined {
+  const value = formData.get(name);
+  return typeof value === "string" ? value : undefined;
+}
+
 export function SjaForm({
   tenantId,
   currentUserId,
@@ -575,13 +581,13 @@ export function SjaForm({
       tenantId,
       projectId: selectedProjectId === "__none__" ? undefined : selectedProjectId,
       title: formData.get("title") as string,
-      description: formData.get("description") as string,
+      description: formText(formData, "description"),
       workLocation: formData.get("workLocation") as string,
       plannedDate: new Date(plannedDateStr).toISOString(),
       responsibleName: userName,
       participants,
-      additionalConditions: formData.get("additionalConditions") as string,
-      weatherConditions: formData.get("weatherConditions") as string,
+      additionalConditions: formText(formData, "additionalConditions"),
+      weatherConditions: formText(formData, "weatherConditions"),
       templateId: initialData?.templateId,
       templateName: initialData?.templateName,
       sourceRiskAssessmentId,
@@ -595,7 +601,7 @@ export function SjaForm({
       requiresSecondPerson:
         Boolean(initialData?.requiresSecondPerson) ||
         requiresSecondPersonByFse(electricalWorkType),
-      secondPersonException: formData.get("secondPersonException") as string,
+      secondPersonException: formText(formData, "secondPersonException"),
       participantRecords:
         electricalWorkType === "NOT_APPLICABLE"
           ? []
