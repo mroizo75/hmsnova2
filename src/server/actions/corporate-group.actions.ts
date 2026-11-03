@@ -12,6 +12,7 @@ import {
 } from "@/lib/corporate-group-context";
 import { createTenantAdminAndSendEmail } from "@/lib/konsern-tenant-email";
 import { isMocDefaultIndustry } from "@/lib/moc-industry";
+import { standardSoftwareSubscription } from "@/lib/subscription";
 
 export async function getCorporateGroupDetails() {
   const context = await requireCorporateGroupContext();
@@ -149,6 +150,9 @@ export async function createTenantForGroup(data: {
       status: "ACTIVE",
       onboardingStatus: "NOT_STARTED",
       mocModuleEnabled: isMocDefaultIndustry(data.industry),
+      subscription: {
+        create: standardSoftwareSubscription("ACTIVE"),
+      },
     },
   });
 

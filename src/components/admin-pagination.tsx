@@ -21,16 +21,19 @@ interface AdminPaginationProps {
   totalItems: number;
   basePath: string;
   searchTerm?: string;
+  extra?: Record<string, string | undefined>;
 }
 
 export function AdminPaginationSearch({
   basePath,
   searchTerm = "",
   placeholder = "Søk...",
+  extra,
 }: {
   basePath: string;
   searchTerm?: string;
   placeholder?: string;
+  extra?: Record<string, string | undefined>;
 }) {
   const router = useRouter();
   const [value, setValue] = useState(searchTerm);
@@ -41,7 +44,7 @@ export function AdminPaginationSearch({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    router.push(buildAdminListUrl(basePath, 1, value.trim() || undefined));
+    router.push(buildAdminListUrl(basePath, 1, value.trim() || undefined, extra));
   };
 
   return (
@@ -63,10 +66,11 @@ export function AdminPagination({
   totalItems,
   basePath,
   searchTerm,
+  extra,
 }: AdminPaginationProps) {
   if (totalPages <= 1) return null;
 
-  const hrefFor = (page: number) => buildAdminListUrl(basePath, page, searchTerm);
+  const hrefFor = (page: number) => buildAdminListUrl(basePath, page, searchTerm, extra);
 
   return (
     <div className="mt-6">

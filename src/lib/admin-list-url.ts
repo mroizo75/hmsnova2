@@ -10,10 +10,16 @@ export function buildAdminListUrl(
   basePath: string,
   page: number,
   search?: string,
+  extra?: Record<string, string | undefined>,
 ): string {
   const params = new URLSearchParams();
   if (page > 1) params.set("page", String(page));
   if (search) params.set("search", search);
+  if (extra) {
+    for (const [key, value] of Object.entries(extra)) {
+      if (value) params.set(key, value);
+    }
+  }
   const qs = params.toString();
   return qs ? `${basePath}?${qs}` : basePath;
 }

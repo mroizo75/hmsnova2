@@ -72,14 +72,6 @@ const applySecurityHeaders = (response: NextResponse): NextResponse => {
 const JUNK_PATHS = new Set(["/$", "/&"]);
 
 export async function proxy(request: NextRequest) {
-  const host = request.headers.get("host")?.split(":")[0] ?? "";
-  if (host === "www.hmsnova.no") {
-    const url = request.nextUrl.clone();
-    url.hostname = "hmsnova.no";
-    url.protocol = "https";
-    return NextResponse.redirect(url, 308);
-  }
-
   const pathname = request.nextUrl.pathname;
   if (JUNK_PATHS.has(pathname) || pathname.startsWith("/cdn-cgi/")) {
     return new NextResponse("Not found", {

@@ -7,7 +7,7 @@ import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
 import { sendEmail } from "@/lib/email";
 import { deleteTenantFiles } from "@/lib/storage";
-import { getBindingPrice } from "@/lib/subscription";
+import { getBindingPrice, standardSoftwareSubscription } from "@/lib/subscription";
 import { provisionIndustryPackage } from "@/server/actions/industry-provision.actions";
 import {
   getIndustryPackage,
@@ -1523,6 +1523,41 @@ export async function toggleAiIncludedInAgreement(tenantId: string, included: bo
   }
 }
 
+/** Manuell fakturasjekk inntil Fiken. Kun superadmin. */
+export async function setManualInvoiced(tenantId: string, invoiced: boolean) {
+  try {
+    const privilegedUser = await requireSuperAdmin();
+    if (!privilegedUser) {
+      return { success: false, error: "Ingen tilgang" };
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { id: true },
+    });
+    if (!tenant) {
+      return { success: false, error: "Bedrift ikke funnet" };
+    }
+
+    await prisma.tenant.update({
+      where: { id: tenantId },
+      data: {
+        manualInvoiced: invoiced,
+        manualInvoicedAt: invoiced ? new Date() : null,
+      },
+    });
+
+    revalidatePath("/admin/tenants");
+    revalidatePath(`/admin/tenants/${tenantId}`);
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Kunne ikke oppdatere fakturastatus",
+    };
+  }
+}
+
 /**
  * Endre tenant-status
  */
@@ -1596,7 +1631,9 @@ export async function createTenant(input: z.infer<typeof createTenantSchema>) {
         // Standard HMS-oppsett
         hmsAnnualPlanEnabled: true,
         managementReviewFrequencyMonths: 12,
-        // Subscription opprettes når tenant aktiveres
+        subscription: {
+          create: standardSoftwareSubscription("TRIAL"),
+        },
       },
     });
 

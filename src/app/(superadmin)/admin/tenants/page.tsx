@@ -22,9 +22,11 @@ import {
 import Link from "next/link";
 import { Plus, CheckCircle2, Circle, AlertTriangle, Landmark } from "lucide-react";
 import { AdminAiIncludedSwitch } from "@/features/admin/components/admin-ai-included-switch";
+import { ManualInvoiceToggle } from "@/features/admin/components/manual-invoice-toggle";
 import { AdminPagination, AdminPaginationSearch } from "@/components/admin-pagination";
 import { RememberAdminListUrl } from "@/components/admin-list-position";
 import {
+  buildAdminListUrl,
   parsePageParam,
   tenantDetailHref,
 } from "@/lib/admin-list-url";
@@ -61,11 +63,13 @@ function getActivityLevel(
 export default async function TenantsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; search?: string }>;
+  searchParams: Promise<{ page?: string; search?: string; invoice?: string }>;
 }) {
   const params = await searchParams;
   const currentPage = parsePageParam(params.page);
   const searchTerm = params.search?.trim() || "";
+  const invoiceFilter = params.invoice === "yes" || params.invoice === "no" ? params.invoice : "";
+  const listExtra = invoiceFilter ? { invoice: invoiceFilter } : undefined;
 
   const session = await getServerSession(authOptions);
   const currentUser = session?.user?.email
@@ -79,7 +83,7 @@ export default async function TenantsPage({
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const searchFilter: Prisma.TenantWhereInput = searchTerm
+  const textFilter: Prisma.TenantWhereInput = searchTerm
     ? {
         OR: [
           { name: { contains: searchTerm } },
@@ -90,7 +94,20 @@ export default async function TenantsPage({
       }
     : {};
 
-  const totalItems = await prisma.tenant.count({ where: searchFilter });
+  const invoiceWhere: Prisma.TenantWhereInput =
+    invoiceFilter === "yes"
+      ? { manualInvoiced: true }
+      : invoiceFilter === "no"
+        ? { manualInvoiced: false }
+        : {};
+
+  const searchFilter: Prisma.TenantWhereInput = { AND: [textFilter, invoiceWhere] };
+
+  const [totalItems, invoicedCount, notInvoicedCount] = await Promise.all([
+    prisma.tenant.count({ where: searchFilter }),
+    prisma.tenant.count({ where: { AND: [textFilter, { manualInvoiced: true }] } }),
+    prisma.tenant.count({ where: { AND: [textFilter, { manualInvoiced: false }] } }),
+  ]);
   const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
 
   const tenants = await prisma.tenant.findMany({
@@ -218,12 +235,45 @@ export default async function TenantsPage({
               <CardTitle>Alle bedrifter ({totalItems})</CardTitle>
               <CardDescription>
                 Klikk på en bedrift for å se detaljer. Aktivitet er basert på siste 30 dager.
+                {isSuperAdmin && (
+                  <span className="mt-2 flex flex-wrap gap-2">
+                    <Link
+                      href={buildListHref(searchTerm, undefined)}
+                      className={`rounded-full border px-2.5 py-0.5 text-xs ${
+                        !invoiceFilter ? "border-primary bg-primary text-primary-foreground" : "text-muted-foreground"
+                      }`}
+                    >
+                      Alle ({invoicedCount + notInvoicedCount})
+                    </Link>
+                    <Link
+                      href={buildListHref(searchTerm, "no")}
+                      className={`rounded-full border px-2.5 py-0.5 text-xs ${
+                        invoiceFilter === "no"
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      Ikke fakturert ({notInvoicedCount})
+                    </Link>
+                    <Link
+                      href={buildListHref(searchTerm, "yes")}
+                      className={`rounded-full border px-2.5 py-0.5 text-xs ${
+                        invoiceFilter === "yes"
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      Fakturert ({invoicedCount})
+                    </Link>
+                  </span>
+                )}
               </CardDescription>
             </div>
             <AdminPaginationSearch
               basePath="/admin/tenants"
               searchTerm={searchTerm}
               placeholder="Søk bedrift, org.nr, e-post..."
+              extra={listExtra}
             />
           </div>
         </CardHeader>
@@ -241,7 +291,7 @@ export default async function TenantsPage({
                   {isSuperAdmin && <TableHead>Siste innlogging</TableHead>}
                   <TableHead className="text-center">Aktivitet (30d)</TableHead>
                   <TableHead>Engasjement</TableHead>
-                  {isSuperAdmin && <TableHead>Faktura</TableHead>}
+                  {isSuperAdmin && <TableHead>Fakturert</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -387,13 +437,17 @@ export default async function TenantsPage({
                     </TableCell>
                     {isSuperAdmin && (
                       <TableCell>
-                        {tenant.invoices.length > 0 ? (
-                          <Badge variant="destructive" className="flex w-fit items-center gap-1">
+                        <ManualInvoiceToggle
+                          tenantId={tenant.id}
+                          tenantName={tenant.name}
+                          invoiced={tenant.manualInvoiced}
+                          invoicedAt={tenant.manualInvoicedAt}
+                        />
+                        {tenant.invoices.length > 0 && (
+                          <Badge variant="destructive" className="mt-1 flex w-fit items-center gap-1">
                             <AlertTriangle className="h-3 w-3" />
                             {tenant.invoices.length} forfalt
                           </Badge>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">OK</span>
                         )}
                       </TableCell>
                     )}
@@ -410,11 +464,16 @@ export default async function TenantsPage({
             totalItems={totalItems}
             basePath="/admin/tenants"
             searchTerm={searchTerm}
+            extra={listExtra}
           />
         </CardContent>
       </Card>
     </div>
   );
+}
+
+function buildListHref(search: string, invoice?: "yes" | "no") {
+  return buildAdminListUrl("/admin/tenants", 1, search || undefined, invoice ? { invoice } : undefined);
 }
 
 function formatDaysAgo(date: Date): string {

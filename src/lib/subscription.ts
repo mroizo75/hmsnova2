@@ -77,6 +77,21 @@ export function getBindingPrice(period: BindingPeriod): BindingPricing {
   return BINDING_PRICES[period] || BINDING_PRICES["1year"];
 }
 
+/** Standard HMS Nova-programvare: 3 600 kr/år, 12 mnd. */
+export function standardSoftwareSubscription(status: "TRIAL" | "ACTIVE") {
+  const now = new Date();
+  const periodEnd = new Date(now);
+  periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+  return {
+    plan: "PROFESSIONAL" as const,
+    status,
+    price: getBindingPrice("1year").yearlyPrice,
+    billingInterval: "YEARLY" as const,
+    currentPeriodStart: now,
+    currentPeriodEnd: periodEnd,
+  };
+}
+
 /**
  * Sjekk om tenant har nådd maks antall brukere
  * Med ny prismodell er dette alltid false (ubegrenset brukere)

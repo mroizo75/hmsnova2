@@ -241,6 +241,9 @@ model Tenant {
   invoiceAddress    String? // Faktura-adresse (hvis ikke EHF)
   invoicePostalCode String? // Postnummer (hvis ikke EHF)
   invoiceCity       String? // Poststed (hvis ikke EHF)
+  /// Manuell sjekk inntil Fiken-integrasjon: om abonnementet er fakturert
+  manualInvoiced    Boolean   @default(false)
+  manualInvoicedAt  DateTime?
 
   // CRM/Onboarding fields
   employeeCount         Int? // Antall ansatte

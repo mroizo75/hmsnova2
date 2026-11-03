@@ -21,6 +21,7 @@ import { TenantOfferCard } from "@/features/admin/components/tenant-offer-card";
 import { IndustryPackageActions } from "@/features/admin/components/industry-package-actions";
 import { KursavtaleCard } from "@/features/admin/components/kursavtale-card";
 import { AdminAiIncludedCard } from "@/features/admin/components/admin-ai-included-card";
+import { ManualInvoiceToggle } from "@/features/admin/components/manual-invoice-toggle";
 import { GdprExportButton } from "@/features/admin/components/gdpr-export-button";
 import { BreakGlassRequestCard } from "@/features/whistleblowing/components/break-glass-request-card";
 import { HandbookServiceFillForm } from "@/features/admin/components/handbook-service-fill-form";
@@ -311,6 +312,25 @@ async function TenantDetails({
                     </p>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          )}
+
+          {isSuperAdmin && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Fakturert</CardTitle>
+                <CardDescription>
+                  Manuell sjekkliste inntil faktura går via Fiken. Kryss av når abonnementet er fakturert.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ManualInvoiceToggle
+                  tenantId={tenant.id}
+                  tenantName={tenant.name}
+                  invoiced={tenant.manualInvoiced}
+                  invoicedAt={tenant.manualInvoicedAt}
+                />
               </CardContent>
             </Card>
           )}

@@ -10,7 +10,7 @@ import { getPermissions } from "@/lib/permissions";
 import { Resend } from "resend";
 import { AuditLog } from "@/lib/audit-log";
 import { createOnboardingInvoice } from "@/server/actions/invoice.actions";
-import { getBindingPrice } from "@/lib/subscription";
+import { standardSoftwareSubscription } from "@/lib/subscription";
 import { provisionIndustryPackage } from "@/server/actions/industry-provision.actions";
 import { BASE_SIMPLE_MODULES, BRANSJE_MODULES } from "@/lib/bransje-modules";
 import { serializeWorkshopTypes } from "@/lib/automotive-workshop-types";
@@ -906,29 +906,18 @@ export async function activateTenant(input: z.infer<typeof activateTenantSchema>
         });
       }
 
-      const monthlyPrice = getBindingPrice("1year").monthlyPrice;
-      const now = new Date();
-      const periodEnd = new Date(now);
-      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
-
-      const subscriptionData = {
-        plan: "STARTER" as const,
-        price: monthlyPrice,
-        billingInterval: "MONTHLY" as const,
-        status: "ACTIVE" as const,
-        currentPeriodStart: now,
-        currentPeriodEnd: periodEnd,
-      };
-
       let subscription;
       if (tenant.subscription) {
         subscription = await tx.subscription.update({
           where: { tenantId: validated.tenantId },
-          data: subscriptionData,
+          data: { status: "ACTIVE" },
         });
       } else {
         subscription = await tx.subscription.create({
-          data: { tenantId: validated.tenantId, ...subscriptionData },
+          data: {
+            tenantId: validated.tenantId,
+            ...standardSoftwareSubscription("ACTIVE"),
+          },
         });
       }
 
