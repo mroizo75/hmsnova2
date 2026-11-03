@@ -1017,7 +1017,7 @@ export async function getWeekEntries(weekStartDate: string, userId?: string) {
         orderBy: [{ date: "asc" }],
       }),
       prisma.project.findMany({
-        where: { tenantId, status: { in: ["ACTIVE", "PLANNING"] } },
+        where: { tenantId, status: "ACTIVE" },
         select: { id: true, name: true, code: true },
         orderBy: { name: "asc" },
       }),

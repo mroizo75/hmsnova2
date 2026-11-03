@@ -34,6 +34,41 @@ export const confirmRiskImportSchema = riskImportPreviewSchema.extend({
 export type RiskImportPreview = z.infer<typeof riskImportPreviewSchema>;
 export type ConfirmRiskImportInput = z.infer<typeof confirmRiskImportSchema>;
 
+/** Prisma `String` mot MySQL er VARCHAR(191). Lengre tekst må i et Text-felt. */
+export const MYSQL_VARCHAR_MAX = 191;
+
+export function fitMysqlString(value: string, max = MYSQL_VARCHAR_MAX): string {
+  const trimmed = value.trim();
+  if (trimmed.length <= max) return trimmed;
+  return trimmed.slice(0, max).trimEnd();
+}
+
+export function measureFromImportText(text: string): {
+  title: string;
+  description: string | null;
+} {
+  const trimmed = text.trim();
+  if (trimmed.length <= MYSQL_VARCHAR_MAX) {
+    return { title: trimmed, description: null };
+  }
+  return { title: fitMysqlString(trimmed), description: trimmed };
+}
+
+export function fitRiskTitle(
+  title: string,
+  description: string | null,
+): { title: string; description: string | null } {
+  const trimmed = title.trim();
+  if (trimmed.length <= MYSQL_VARCHAR_MAX) {
+    return { title: trimmed, description };
+  }
+  const existing = description?.trim();
+  return {
+    title: fitMysqlString(trimmed),
+    description: existing ? `${trimmed}\n\n${existing}` : trimmed,
+  };
+}
+
 export function extractJsonObject(value: string): unknown {
   const fenced = value.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1];
   const candidate = fenced ?? value;

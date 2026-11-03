@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getAuthContext, requirePermission } from "@/lib/server-authorization";
-import { enqueueAccountingJob, ensureDefaultKmProducts, ensureProjectSyncedToAccounting, refreshAccountingCatalogIfStale, requeueAccountingJob } from "@/lib/accounting/sync";
+import { enqueueAccountingJob, ensureDefaultKmProducts, ensureProjectSyncedToAccounting, refreshAccountingCatalogIfStale, refreshAccountingProjectsIfStale, requeueAccountingJob } from "@/lib/accounting/sync";
 import { isAccountingEnabled } from "@/lib/accounting/factory";
 import {
   canRetrySyncJob,
@@ -16,7 +16,7 @@ import { canEnqueueTimesheetSync, isTimesheetEditableByEmployee } from "@/lib/ti
 import { splitDayHours, type DayRules } from "@/lib/time/split-day";
 import { assignmentCoversDate } from "@/lib/time/resource-overlap";
 import { applyTimeBankFactor, assertTimeBankBalance, nextTimeBankBalance, pickTimeBankFactor } from "@/lib/time/timebank";
-import { filterProductsByAndQuery, filterProductsByCategory, uniqueProductCategories } from "@/lib/time/product-search";
+import { filterProductsByAndQuery, filterProductsByCategory, tokenizeProductQuery, uniqueProductCategories } from "@/lib/time/product-search";
 import { buildKmRegistration, type CarKind } from "@/lib/time/km-product";
 import type { ProjectUsageKind, TimeEntryType } from "@prisma/client";
 
@@ -157,17 +157,28 @@ export async function getDayTimesheetContext(dateIso: string, projectId?: string
   const ctx = await getAuthContext();
   if (!ctx) return { success: false as const, error: "Ikke autentisert" };
 
-  await refreshAccountingCatalogIfStale(ctx.tenantId).catch(() => undefined);
+  // Tripletex er master for prosjekter: synk når timeregistreringen åpnes (throttlet).
+  const [, projectSync] = await Promise.allSettled([
+    refreshAccountingCatalogIfStale(ctx.tenantId),
+    refreshAccountingProjectsIfStale(ctx.tenantId),
+  ]);
+  const projectSyncError =
+    projectSync.status === "rejected"
+      ? formatActionError(projectSync.reason, "Kunne ikke hente prosjekter fra Tripletex")
+      : null;
 
   const date = new Date(`${dateIso.slice(0, 10)}T12:00:00`);
   const [projects, entries, usage, products, tenantSettings, salaryTypes, assignments, absences, customers] =
     await Promise.all([
       prisma.project.findMany({
-        where: { tenantId: ctx.tenantId, status: { in: ["ACTIVE", "PLANNING"] } },
+        // Kun aktive prosjekter kan stemples på (avsluttet i Tripletex = COMPLETED).
+        where: { tenantId: ctx.tenantId, status: "ACTIVE" },
         select: {
           id: true,
           name: true,
+          code: true,
           parentId: true,
+          parent: { select: { name: true } },
           clientName: true,
           jobKind: true,
           status: true,
@@ -252,7 +263,8 @@ export async function getDayTimesheetContext(dateIso: string, projectId?: string
     data: JSON.parse(
       JSON.stringify({
         date: dateIso.slice(0, 10),
-        projects,
+        projects: projects.map(({ parent, ...p }) => ({ ...p, parentName: parent?.name ?? null })),
+        projectSyncError,
         entries,
         usage,
         products,
@@ -292,11 +304,62 @@ export async function searchTimesheetProducts(query: string, category?: string |
   const ctx = await getAuthContext();
   if (!ctx) return [];
   await refreshAccountingCatalogIfStale(ctx.tenantId).catch(() => undefined);
+  // Søk i hele produktregisteret i databasen (ikke bare de 400 første): alle ord må treffe.
+  const words = tokenizeProductQuery(query).slice(0, 6);
   const products = await prisma.accountingProduct.findMany({
-    where: { tenantId: ctx.tenantId, isInactive: false },
-    take: 400,
+    where: {
+      tenantId: ctx.tenantId,
+      isInactive: false,
+      ...(category ? { categoryName: category } : {}),
+      AND: words.map((word) => ({
+        OR: [
+          { name: { contains: word } },
+          { number: { contains: word } },
+          { categoryName: { contains: word } },
+        ],
+      })),
+    },
+    orderBy: [{ number: "asc" }, { name: "asc" }],
+    take: 200,
   });
   return filterProductsByAndQuery(filterProductsByCategory(products, category), query).slice(0, 40);
+}
+
+/** Søk i kunderegisteret (Tripletex-cache) på navn eller org.nr. */
+export async function searchTimesheetCustomers(query: string) {
+  const ctx = await getAuthContext();
+  if (!ctx) return [];
+  const words = tokenizeProductQuery(query).slice(0, 5);
+  return prisma.accountingCustomer.findMany({
+    where: {
+      tenantId: ctx.tenantId,
+      isInactive: false,
+      AND: words.map((word) => ({
+        OR: [{ name: { contains: word } }, { organizationNumber: { contains: word.replace(/\s/g, "") } }],
+      })),
+    },
+    select: { externalId: true, name: true, organizationNumber: true },
+    orderBy: { name: "asc" },
+    take: 30,
+  });
+}
+
+/** «Oppdater fra Tripletex»-knappen: tving ny prosjektsynk. */
+export async function syncTimesheetProjectsNow() {
+  const ctx = await getAuthContext();
+  if (!ctx) return { success: false as const, error: "Ikke autentisert" };
+  if (!ctx.permissions.canAccessTimeRegistration) {
+    return { success: false as const, error: "Ingen tilgang til timeregistrering" };
+  }
+  try {
+    await refreshAccountingProjectsIfStale(ctx.tenantId, 0, { force: true });
+    return { success: true as const };
+  } catch (error: unknown) {
+    return {
+      success: false as const,
+      error: formatActionError(error, "Kunne ikke hente prosjekter fra Tripletex"),
+    };
+  }
 }
 
 export async function submitDayTimesheet(input: {
@@ -333,19 +396,36 @@ export async function submitDayTimesheet(input: {
     const project = await prisma.project.findFirst({
       where: { id: input.projectId, tenantId: ctx.tenantId },
     });
-    if (!project || (project.status !== "ACTIVE" && project.status !== "PLANNING")) {
+    if (!project) {
       return { success: false as const, error: "Prosjekt ikke funnet" };
+    }
+    if (project.status !== "ACTIVE") {
+      return {
+        success: false as const,
+        error: "Prosjektet er ikke aktivt (avsluttet eller satt på vent) og kan ikke føres timer på",
+      };
     }
 
     const date = new Date(`${input.date.slice(0, 10)}T12:00:00`);
     const rules = await loadDayRules(ctx.tenantId);
     const lunchMinutes = input.lunchMinutes ?? rules.lunchMinutes;
+    // Timer allerede ført i dag (andre prosjekt) teller med når overtid beregnes.
+    const prior = await prisma.timeEntry.aggregate({
+      where: {
+        tenantId: ctx.tenantId,
+        userId: ctx.userId,
+        date,
+        approvalStatus: { not: "REJECTED" },
+      },
+      _sum: { hours: true },
+    });
     const segments = splitDayHours({
       date,
       clockFrom: input.clockFrom,
       clockTo: input.clockTo,
       lunchMinutes,
       rules,
+      priorNetHours: Number(prior._sum.hours ?? 0),
     });
     if (segments.length === 0) {
       return { success: false as const, error: "Ugyldig fra–til" };

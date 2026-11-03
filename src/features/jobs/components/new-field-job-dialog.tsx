@@ -22,6 +22,7 @@ import {
   listCustomerContacts,
   searchBrregCompanies,
 } from "@/server/actions/customer.actions";
+import { searchTimesheetCustomers } from "@/server/actions/timesheet.actions";
 
 type Customer = { externalId: string; name: string; organizationNumber: string | null };
 type Contact = { externalId: string; firstName: string | null; lastName: string | null };
@@ -32,14 +33,15 @@ function todayIso() {
 }
 
 export function NewFieldJobDialog({
-  customers,
   isEmployee = false,
   triggerLabel,
+  parentProject = null,
   onCreated,
 }: {
-  customers: Customer[];
   isEmployee?: boolean;
   triggerLabel: string;
+  /** Valgt hovedprosjekt i timeregistreringen — gir valget «opprett som underprosjekt». */
+  parentProject?: { id: string; name: string } | null;
   onCreated: (project: { id: string }) => void;
 }) {
   const t = useTranslations("timesheet");
@@ -48,6 +50,10 @@ export function NewFieldJobDialog({
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
   const [customerId, setCustomerId] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [customerQuery, setCustomerQuery] = useState("");
+  const [customerHits, setCustomerHits] = useState<Customer[]>([]);
+  const [asSubproject, setAsSubproject] = useState(false);
   const [location, setLocation] = useState("");
   const [reference, setReference] = useState("");
   const [startDate, setStartDate] = useState(todayIso());
@@ -64,6 +70,14 @@ export function NewFieldJobDialog({
   }, [open]);
 
   useEffect(() => {
+    if (!open || customerId) return;
+    const handle = setTimeout(() => {
+      searchTimesheetCustomers(customerQuery).then(setCustomerHits);
+    }, 200);
+    return () => clearTimeout(handle);
+  }, [customerQuery, customerId, open]);
+
+  useEffect(() => {
     if (!customerId) {
       setContacts([]);
       setContactId("");
@@ -75,6 +89,10 @@ export function NewFieldJobDialog({
   function reset() {
     setName("");
     setCustomerId("");
+    setCustomerName("");
+    setCustomerQuery("");
+    setCustomerHits([]);
+    setAsSubproject(false);
     setLocation("");
     setReference("");
     setStartDate(todayIso());
@@ -92,10 +110,12 @@ export function NewFieldJobDialog({
       toast({ title: t("error"), description: res.error, variant: "destructive" });
       if ("duplicateExternalId" in res && res.duplicateExternalId) {
         setCustomerId(res.duplicateExternalId);
+        setCustomerName(companyName);
       }
       return;
     }
     setCustomerId(res.data.externalId);
+    setCustomerName(companyName);
     setBrregQuery("");
     setBrregHits([]);
     toast({ title: t("customerCreated") });
@@ -129,6 +149,7 @@ export function NewFieldJobDialog({
       startDate: startDate || undefined,
       contactExternalId: contactId || undefined,
       jobKind: hms ? "HMS" : "SERVICE",
+      parentId: asSubproject && parentProject ? parentProject.id : undefined,
     });
     setLoading(false);
     if (!res.success) {
@@ -195,27 +216,69 @@ export function NewFieldJobDialog({
               />
             </div>
           </div>
-          {customers.length > 0 && (
-            <div className="space-y-1">
-              <Label htmlFor="field-job-customer">
-                {isEmployee ? t("projectCustomerEmployee") : t("projectCustomer")}
-              </Label>
-              <select
-                id="field-job-customer"
-                className="h-10 w-full rounded-md border bg-transparent px-3 text-sm"
-                value={customerId}
-                onChange={(e) => setCustomerId(e.target.value)}
-              >
-                <option value="">{t("projectNoCustomer")}</option>
-                {customers.map((c) => (
-                  <option key={c.externalId} value={c.externalId}>
-                    {c.name}
-                    {c.organizationNumber ? ` (${c.organizationNumber})` : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
+          {parentProject && (
+            <label className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
+              <input
+                type="checkbox"
+                checked={asSubproject}
+                onChange={(e) => setAsSubproject(e.target.checked)}
+              />
+              {t("createAsSubproject", { name: parentProject.name })}
+            </label>
           )}
+          <div className="space-y-1">
+            <Label htmlFor="field-job-customer">
+              {isEmployee ? t("projectCustomerEmployee") : t("projectCustomer")}
+            </Label>
+            {customerId ? (
+              <div className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm">
+                <span className="truncate font-medium">{customerName || customerId}</span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="bg-transparent"
+                  onClick={() => {
+                    setCustomerId("");
+                    setCustomerName("");
+                  }}
+                >
+                  {t("changeCustomer")}
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Input
+                  id="field-job-customer"
+                  value={customerQuery}
+                  onChange={(e) => setCustomerQuery(e.target.value)}
+                  placeholder={
+                    asSubproject ? t("customerFromMainProject") : t("customerSearch")
+                  }
+                  autoComplete="off"
+                />
+                {customerHits.length > 0 && (
+                  <div className="max-h-48 space-y-1 overflow-y-auto">
+                    {customerHits.map((c) => (
+                      <button
+                        key={c.externalId}
+                        type="button"
+                        className="w-full rounded-md border px-3 py-2 text-left text-sm hover:bg-muted"
+                        onClick={() => {
+                          setCustomerId(c.externalId);
+                          setCustomerName(c.name);
+                          setCustomerQuery("");
+                        }}
+                      >
+                        {c.name}
+                        {c.organizationNumber ? ` (${c.organizationNumber})` : ""}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
           <div className="space-y-1">
             <Label>{t("newCustomerBrreg")}</Label>
             <Input

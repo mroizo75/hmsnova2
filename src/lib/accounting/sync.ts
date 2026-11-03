@@ -27,6 +27,7 @@ export async function pullAccountingMaster(tenantId: string): Promise<void> {
   await upsertSalaryTypes(tenantId, salaryTypes);
   await upsertContacts(tenantId, contacts);
   await upsertPulledProjects(tenantId, projects);
+  if (projects.length > 0) lastProjectPullAt.set(tenantId, Date.now());
   await ensureDefaultKmProducts(tenantId);
   await prisma.tenant.update({
     where: { id: tenantId },
@@ -86,6 +87,48 @@ export async function refreshAccountingCatalogIfStale(
     catalogPulls.delete(tenantId);
   });
   catalogPulls.set(tenantId, run);
+  await run;
+}
+
+const projectPulls = new Map<string, Promise<void>>();
+const lastProjectPullAt = new Map<string, number>();
+
+/** Hent prosjekter og underprosjekter fra Tripletex (master) og oppdater NOVA. */
+export async function pullAccountingProjects(tenantId: string): Promise<void> {
+  const provider = await getAccountingProvider(tenantId);
+  if (!provider) return;
+  const projects = await provider.listProjects();
+  await upsertPulledProjects(tenantId, projects);
+  lastProjectPullAt.set(tenantId, Date.now());
+}
+
+/**
+ * Synk prosjekter når timeregistreringen åpnes. Throttles per tenant (per server-instans)
+ * så dato-bytte og produktsøk ikke trigger nye API-kall hele tiden.
+ */
+export async function refreshAccountingProjectsIfStale(
+  tenantId: string,
+  maxAgeMs = 60_000,
+  options: { force?: boolean } = {}
+): Promise<void> {
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { accountingProvider: true },
+  });
+  if (!tenant || !isAccountingEnabled(tenant.accountingProvider)) return;
+
+  const last = lastProjectPullAt.get(tenantId);
+  if (!options.force && last && Date.now() - last < maxAgeMs) return;
+
+  const existing = projectPulls.get(tenantId);
+  if (existing) {
+    await existing;
+    return;
+  }
+  const run = pullAccountingProjects(tenantId).finally(() => {
+    projectPulls.delete(tenantId);
+  });
+  projectPulls.set(tenantId, run);
   await run;
 }
 

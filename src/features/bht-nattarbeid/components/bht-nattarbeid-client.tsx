@@ -54,14 +54,25 @@ export function BhtNattarbeidClient({ avtaler: initialAvtaler, vurderinger: init
           startDato: new Date(bhtForm.startDato).toISOString(),
           sluttDato: bhtForm.sluttDato ? new Date(bhtForm.sluttDato).toISOString() : null,
           arsTimeverk: bhtForm.arsTimeverk ? parseInt(bhtForm.arsTimeverk) : null,
+          kontaktEpost: bhtForm.kontaktEpost.trim() || null,
+          leverandorOrgnr: bhtForm.leverandorOrgnr.trim() || null,
+          kontaktperson: bhtForm.kontaktperson.trim() || null,
+          kontaktTelefon: bhtForm.kontaktTelefon.trim() || null,
+          naringskode: bhtForm.naringskode.trim() || null,
+          bransjeKrav: bhtForm.bransjeKrav.trim() || null,
+          notat: bhtForm.notat.trim() || null,
         }),
       });
-      if (!res.ok) throw new Error();
-      const { data } = await res.json();
-      setAvtaler((p) => [data.avtale, ...p]);
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(body?.message ?? "Kunne ikke lagre BHT-avtalen");
+      }
+      setAvtaler((prev) => [body.data.avtale, ...prev]);
       toast.success("BHT-avtale registrert");
       setShowBhtForm(false);
-    } catch { toast.error("Feil"); }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Kunne ikke lagre BHT-avtalen");
+    }
     finally { setSaving(false); }
   }
 

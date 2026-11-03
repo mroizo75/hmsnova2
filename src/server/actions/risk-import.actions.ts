@@ -15,6 +15,9 @@ import { getAuthContext } from "@/lib/server-authorization";
 import { generateFileKey, getStorage } from "@/lib/storage";
 import {
   confirmRiskImportSchema,
+  fitMysqlString,
+  fitRiskTitle,
+  measureFromImportText,
   parseRiskImportResponse,
   type ConfirmRiskImportInput,
 } from "@/features/risks/lib/risk-import";
@@ -228,7 +231,7 @@ export async function confirmRiskAssessmentImport(
     const created = await tx.riskAssessment.create({
       data: {
         tenantId: auth.tenantId,
-        title: validated.title,
+        title: fitMysqlString(validated.title),
         assessmentYear: validated.assessmentYear,
         participants: validated.participants,
         importSourceFileKey: validated.fileKey,
@@ -241,13 +244,14 @@ export async function confirmRiskAssessmentImport(
     });
 
     for (const row of validated.rows) {
+      const riskText = fitRiskTitle(row.title, row.description);
       const risk = await tx.risk.create({
         data: {
           tenantId: auth.tenantId,
           riskAssessmentId: created.id,
-          title: row.title,
+          title: riskText.title,
           context: row.context,
-          description: row.description,
+          description: riskText.description,
           riskStatement: row.riskStatement,
           likelihood: row.likelihood,
           consequence: row.consequence,
@@ -267,13 +271,17 @@ export async function confirmRiskAssessmentImport(
       });
       if (row.measures.length > 0) {
         await tx.measure.createMany({
-          data: row.measures.map((title) => ({
-            tenantId: auth.tenantId,
-            riskId: risk.id,
-            title,
-            dueAt,
-            responsibleId: validated.ownerId,
-          })),
+          data: row.measures.map((text) => {
+            const measure = measureFromImportText(text);
+            return {
+              tenantId: auth.tenantId,
+              riskId: risk.id,
+              title: measure.title,
+              description: measure.description,
+              dueAt,
+              responsibleId: validated.ownerId,
+            };
+          }),
         });
       }
     }

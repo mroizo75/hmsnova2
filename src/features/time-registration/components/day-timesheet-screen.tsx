@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
-import { Car, CheckCircle2, Package, Wrench } from "lucide-react";
+import { Car, CheckCircle2, Package, RefreshCw, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,9 +17,17 @@ import {
   getDayTimesheetContext,
   searchTimesheetProducts,
   submitDayTimesheet,
+  syncTimesheetProjectsNow,
   updateOwnTimesheetEntry,
 } from "@/server/actions/timesheet.actions";
-import { hoursToClock } from "@/lib/time/split-day";
+import { nextDefaultClock } from "@/lib/time/split-day";
+import {
+  childProjectsOf,
+  pickerRootId,
+  topLevelPickableProjects,
+  type PickableProject,
+} from "@/lib/time/project-search";
+import { ProjectPicker } from "./project-picker";
 import { DayAbsenceForm } from "./day-absence-form";
 import { NewFieldJobDialog } from "@/features/jobs/components/new-field-job-dialog";
 
@@ -110,19 +118,42 @@ export function DayTimesheetScreen({ isEmployee = false }: { isEmployee?: boolea
   const [afterQty, setAfterQty] = useState("1");
   const [afterKm, setAfterKm] = useState("");
   const [afterCarKind, setAfterCarKind] = useState<CarKind | "">("");
+  const [syncingProjects, setSyncingProjects] = useState(false);
   const noticeRef = useRef<HTMLDivElement>(null);
 
   async function reloadDay(nextDate = date, nextProjectId = projectId) {
     const res = await getDayTimesheetContext(nextDate, nextProjectId || undefined);
     setCtx(res);
     if (res.success) {
-      setLunchMinutes(res.data.lunchMinutes);
-      setClockFrom(hoursToClock(res.data.dayStartHour));
-      setClockTo(hoursToClock(res.data.dayEndHour));
-      if (!nextProjectId && res.data.suggestedProjectId) {
+      // Neste blokk starter der forrige registrering sluttet (krav 7).
+      const next = nextDefaultClock({
+        entries: res.data.entries,
+        dayStartHour: res.data.dayStartHour,
+        dayEndHour: res.data.dayEndHour,
+        lunchMinutes: res.data.lunchMinutes,
+      });
+      setLunchMinutes(next.lunchMinutes);
+      setClockFrom(next.clockFrom);
+      setClockTo(next.clockTo);
+      const activeIds = new Set(res.data.projects.map((p: { id: string }) => p.id));
+      if (nextProjectId && !activeIds.has(nextProjectId)) {
+        setProjectId("");
+      } else if (!nextProjectId && res.data.suggestedProjectId && activeIds.has(res.data.suggestedProjectId)) {
         setProjectId(res.data.suggestedProjectId);
       }
     }
+  }
+
+  async function onSyncProjects() {
+    setSyncingProjects(true);
+    const res = await syncTimesheetProjectsNow();
+    setSyncingProjects(false);
+    if (!res.success) {
+      toast({ title: t("error"), description: res.error, variant: "destructive" });
+      return;
+    }
+    toast({ title: t("projectsSynced") });
+    await reloadDay();
   }
 
   useEffect(() => {
@@ -138,21 +169,23 @@ export function DayTimesheetScreen({ isEmployee = false }: { isEmployee?: boolea
     return () => clearTimeout(handle);
   }, [productQuery, productCategory]);
 
-  const projects = ctx?.success ? ctx.data.projects : [];
+  const projects: Array<PickableProject & { externalProjectId?: string | null }> = ctx?.success
+    ? ctx.data.projects
+    : [];
+  const projectSyncError = ctx?.success ? ctx.data.projectSyncError : null;
   const entries: Entry[] = ctx?.success ? ctx.data.entries : [];
   const savedUsage: SavedUsage[] = ctx?.success ? ctx.data.usage ?? [] : [];
-  const customers = ctx?.success ? ctx.data.customers ?? [] : [];
   const canCreateFieldProject = ctx?.success ? Boolean(ctx.data.canCreateFieldProject) : false;
   const assignedToday = ctx?.success ? ctx.data.assignedProjects ?? [] : [];
-  const assignedIds = new Set(assignedToday.map((p: { id: string }) => p.id));
+  const assignedIds = new Set<string>(assignedToday.map((p: { id: string }) => p.id));
   const commentPresets: string[] = ctx?.success ? ctx.data.commentPresets ?? [] : [];
   const productCategories: string[] = ctx?.success ? ctx.data.productCategories ?? [] : [];
   const accountingConnected = Boolean(ctx?.success && ctx.data.accountingConnected);
   const absenceProjectId = ctx?.success ? ctx.data.absenceProjectId : null;
-  const parents = projects.filter((p: { parentId: string | null }) => !p.parentId);
-  const assignedParents = parents.filter((p: { id: string }) => assignedIds.has(p.id));
-  const otherParents = parents.filter((p: { id: string }) => !assignedIds.has(p.id));
-  const children = projects.filter((p: { parentId: string | null }) => p.parentId === projectId);
+  const parents = topLevelPickableProjects(projects);
+  const rootProjectId = projectId ? pickerRootId(projects, projectId) : "";
+  const rootProject = parents.find((p) => p.id === rootProjectId) ?? null;
+  const children = rootProjectId ? childProjectsOf(projects, rootProjectId) : [];
   const hasSubmittedDay = entries.some((e) => e.approvalStatus !== "DRAFT");
 
   const statusLabel = useMemo(
@@ -435,20 +468,40 @@ export function DayTimesheetScreen({ isEmployee = false }: { isEmployee?: boolea
           />
         </div>
         <div className="space-y-1">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <Label>{t("project")}</Label>
-            {canCreateFieldProject ? (
-              <NewFieldJobDialog
-                customers={customers}
-                isEmployee={isEmployee}
-                triggerLabel={t("newProject")}
-                onCreated={async (project) => {
-                  setProjectId(project.id);
-                  await reloadDay(date, project.id);
-                }}
-              />
-            ) : null}
+            <div className="flex gap-2">
+              {accountingConnected && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="bg-transparent"
+                  onClick={onSyncProjects}
+                  disabled={syncingProjects}
+                >
+                  <RefreshCw className={`mr-1 h-4 w-4 ${syncingProjects ? "animate-spin" : ""}`} />
+                  {syncingProjects ? t("syncingProjects") : t("syncProjects")}
+                </Button>
+              )}
+              {canCreateFieldProject ? (
+                <NewFieldJobDialog
+                  isEmployee={isEmployee}
+                  triggerLabel={t("newProject")}
+                  parentProject={rootProject ? { id: rootProject.id, name: rootProject.name } : null}
+                  onCreated={async (project) => {
+                    setProjectId(project.id);
+                    await reloadDay(date, project.id);
+                  }}
+                />
+              ) : null}
+            </div>
           </div>
+          {projectSyncError && !isEmployee && (
+            <p className="text-xs text-amber-700">
+              {t("projectSyncFailed")}: {projectSyncError}
+            </p>
+          )}
           {parents.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               {isEmployee && !canCreateFieldProject
@@ -458,56 +511,28 @@ export function DayTimesheetScreen({ isEmployee = false }: { isEmployee?: boolea
                   : t("noProjects")}
             </p>
           ) : (
-            <select
-              required
-              className="h-10 w-full rounded-md border bg-transparent px-3 text-sm"
-              value={projectId}
-              onChange={(e) => setProjectId(e.target.value)}
-            >
-              <option value="">{t("selectProject")}</option>
-              {assignedParents.length > 0 ? (
-                <optgroup label={t("assignedToday")}>
-                  {assignedParents.map((p: { id: string; name: string; clientName: string | null }) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                      {p.clientName ? ` · ${p.clientName}` : ""}
-                    </option>
-                  ))}
-                </optgroup>
-              ) : null}
-              {otherParents.length > 0 ? (
-                <optgroup label={assignedParents.length > 0 ? t("otherProjects") : t("project")}>
-                  {otherParents.map((p: { id: string; name: string; clientName: string | null; externalProjectId?: string | null }) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                      {p.clientName ? ` · ${p.clientName}` : ""}
-                      {!isEmployee &&
-                        (p.externalProjectId
-                          ? ` · ${t("inTripletex")}`
-                          : accountingConnected
-                            ? ` · ${t("notInTripletex")}`
-                            : "")}
-                    </option>
-                  ))}
-                </optgroup>
-              ) : null}
-            </select>
+            <ProjectPicker
+              projects={projects}
+              value={rootProjectId}
+              onChange={setProjectId}
+              assignedIds={assignedIds}
+              showSyncBadge={!isEmployee}
+              accountingConnected={accountingConnected}
+            />
           )}
         </div>
         {children.length > 0 && (
           <div className="space-y-1">
             <Label>{t("subproject")}</Label>
             <select
-              className="h-10 w-full rounded-md border bg-transparent px-3 text-sm"
-              value={children.some((c: { id: string }) => c.id === projectId) ? projectId : ""}
-              onChange={(e) => {
-                if (e.target.value) setProjectId(e.target.value);
-              }}
+              className="h-11 w-full rounded-md border bg-transparent px-3 text-sm"
+              value={children.some((c) => c.id === projectId) ? projectId : ""}
+              onChange={(e) => setProjectId(e.target.value || rootProjectId)}
             >
               <option value="">{t("mainProject")}</option>
-              {children.map((p: { id: string; name: string }) => (
+              {children.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name}
+                  {[p.code, p.name].filter(Boolean).join(" ")}
                 </option>
               ))}
             </select>

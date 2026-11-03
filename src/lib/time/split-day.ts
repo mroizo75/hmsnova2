@@ -56,6 +56,8 @@ export function splitDayHours(input: {
   clockTo: string;
   lunchMinutes: number;
   rules: DayRules;
+  /** Netto timer allerede ført samme dag (andre prosjekt/blokker). Brukes for riktig overtid. */
+  priorNetHours?: number;
 }): SplitSegment[] {
   const from = parseClockToHours(input.clockFrom);
   const to = parseClockToHours(input.clockTo);
@@ -83,13 +85,45 @@ export function splitDayHours(input: {
     return segments;
   }
 
-  const normalCap = weekdayNormHours({ ...input.rules, lunchMinutes: input.lunchMinutes });
-  const normal = Math.min(net, normalCap);
+  const prior = Math.max(0, input.priorNetHours ?? 0);
+  const normalCap =
+    prior > 0
+      ? weekdayNormHours(input.rules)
+      : weekdayNormHours({ ...input.rules, lunchMinutes: input.lunchMinutes });
+  const priorOvertime = Math.max(0, prior - normalCap);
+  const normal = Math.min(net, Math.max(0, normalCap - prior));
   pushSegment(segments, "NORMAL", normal);
   let overtime = Math.round((net - normal) * 100) / 100;
-  const ot50 = Math.min(overtime, input.rules.overtime50CapHours);
+  const ot50Left = Math.max(0, input.rules.overtime50CapHours - priorOvertime);
+  const ot50 = Math.min(overtime, ot50Left);
   pushSegment(segments, "OVERTIME_50", ot50);
   overtime = Math.round((overtime - ot50) * 100) / 100;
   pushSegment(segments, "OVERTIME_100", overtime);
   return segments;
+}
+
+/**
+ * Standard fra/til for neste blokk samme dag: starter der forrige registrering sluttet,
+ * og lunsj er allerede trukket hvis dagen har registreringer fra før.
+ */
+export function nextDefaultClock(input: {
+  entries: Array<{ clockTo: string | null; approvalStatus?: string }>;
+  dayStartHour: number;
+  dayEndHour: number;
+  lunchMinutes: number;
+}): { clockFrom: string; clockTo: string; lunchMinutes: number } {
+  const ends = input.entries
+    .filter((e) => e.approvalStatus !== "REJECTED")
+    .map((e) => (e.clockTo ? parseClockToHours(e.clockTo) : null))
+    .filter((h): h is number => h != null);
+  if (ends.length === 0) {
+    return {
+      clockFrom: hoursToClock(input.dayStartHour),
+      clockTo: hoursToClock(input.dayEndHour),
+      lunchMinutes: input.lunchMinutes,
+    };
+  }
+  const from = Math.max(...ends);
+  const to = input.dayEndHour > from ? input.dayEndHour : Math.min(from + 1, 23.75);
+  return { clockFrom: hoursToClock(from), clockTo: hoursToClock(to), lunchMinutes: 0 };
 }
