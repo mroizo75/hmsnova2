@@ -1,6 +1,6 @@
 "use client";
 
-import { signOut } from "next-auth/react";
+import { signOutToLogin } from "@/lib/sign-out-client";
 import { useTranslations } from "next-intl";
 import { LogOut } from "lucide-react";
 import {
@@ -38,7 +38,7 @@ export function LogoutButton() {
         <AlertDialogFooter>
           <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
           <AlertDialogAction
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={() => void signOutToLogin()}
             className="bg-red-600 hover:bg-red-700"
           >
             {t("confirm")}

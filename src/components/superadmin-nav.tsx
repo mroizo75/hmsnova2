@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { signOutToLogin } from "@/lib/sign-out-client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -130,7 +130,7 @@ function NavFooter({ onNavigate }: { onNavigate?: () => void }) {
         className="w-full justify-start"
         onClick={() => {
           onNavigate?.();
-          signOut({ callbackUrl: "/login" });
+          void signOutToLogin();
         }}
       >
         <LogOut className="mr-3 h-4 w-4" />

@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import { signOutToLogin } from "@/lib/sign-out-client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -125,7 +126,7 @@ export function MobileNav() {
                     className="h-8 w-full justify-start"
                     onClick={() => {
                       setOpen(false);
-                      signOut({ callbackUrl: "/login" });
+                      void signOutToLogin();
                     }}
                   >
                     <LogOut className="mr-2 h-4 w-4" />

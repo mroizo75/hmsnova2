@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { signOut } from "next-auth/react";
+import { signOutToLogin } from "@/lib/sign-out-client";
 import { LogOut, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -54,7 +54,7 @@ export function KonsernSidebarFooter({ userName, userEmail, groupRole, hasTenant
           variant="ghost"
           size="sm"
           className="w-full justify-start text-gray-500 hover:text-red-600 hover:bg-red-50"
-          onClick={() => signOut({ callbackUrl: "/login" })}
+          onClick={() => void signOutToLogin()}
         >
           <LogOut className="mr-2 h-4 w-4" />
           Logg ut

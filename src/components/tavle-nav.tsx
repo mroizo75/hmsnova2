@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { signOutToLogin } from "@/lib/sign-out-client";
 import { cn } from "@/lib/utils";
 import {
   Monitor,
@@ -80,7 +80,7 @@ export function TavleNav({ tenantName }: TavleNavProps) {
           Kontoinnstillinger
         </Link>
         <button
-          onClick={() => signOut({ callbackUrl: "/login" })}
+          onClick={() => void signOutToLogin()}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors"
         >
           <LogOut className="h-4 w-4 text-gray-400" />
@@ -128,7 +128,7 @@ export function TavleMobileNav({ tenantName }: TavleNavProps) {
           variant="ghost"
           size="icon"
           className="text-gray-500"
-          onClick={() => signOut({ callbackUrl: "/login" })}
+          onClick={() => void signOutToLogin()}
           title="Logg ut"
           aria-label="Logg ut"
         >

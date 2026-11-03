@@ -1,0 +1,31 @@
+---
+description: Ikke endre offentlig vertsnavn, porter eller innlogging uten eksplisitt beskjed
+alwaysApply: true
+---
+
+# Offentlig adresse og innlogging
+
+Produksjon starter med `next start -p 3040`. Port 3040 er intern. Den skal aldri ut i en adresse brukeren ser.
+
+## Ikke gjør dette uten at Kenneth ber om det
+
+- Ikke legg inn omdirigering mellom `hmsnova.no` og `www.hmsnova.no`.
+- Ikke endre `signOut`, `src/lib/auth.ts` sin `redirect`, eller `/api/auth`.
+- Ikke bytt canonical-vert, `NEXTAUTH_URL` eller cookie-domene som del av SEO, pixel eller en annen oppgave.
+
+## Hvis en offentlig URL må bygges
+
+Bruk en fast offentlig adresse uten port. Ikke `request.nextUrl`, `request.url` eller `request.nextUrl.clone()` som mål for en redirect. De inneholder lytteporten.
+
+```ts
+// Feil: Location blir https://hmsnova.no:3040/
+const url = request.nextUrl.clone();
+url.hostname = "hmsnova.no";
+return NextResponse.redirect(url, 308);
+
+// Riktig: ingen port, og bare når oppgaven faktisk er adressen
+const url = new URL(pathname + request.nextUrl.search, "https://www.hmsnova.no");
+return NextResponse.redirect(url, 302);
+```
+
+`api/auth` ligger utenfor `src/proxy.ts`. En redirect der retter ikke utlogging. Utlogging skal gå til `/login` på samme vert, uten port.
