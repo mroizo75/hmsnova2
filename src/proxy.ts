@@ -70,9 +70,33 @@ const applySecurityHeaders = (response: NextResponse): NextResponse => {
 };
 
 const JUNK_PATHS = new Set(["/$", "/&"]);
+const CANONICAL_ORIGIN = "https://www.hmsnova.no";
+
+function publicHost(request: NextRequest): string {
+  const forwarded = request.headers.get("x-forwarded-host");
+  const raw = (forwarded?.split(",")[0] ?? request.headers.get("host") ?? "").trim();
+  return raw.split(":")[0].toLowerCase();
+}
+
+function publicOrigin(request: NextRequest): string {
+  const host = publicHost(request);
+  if (host === "localhost" || host === "127.0.0.1") {
+    return request.nextUrl.origin;
+  }
+  if (host === "hmsnova.no" || host === "www.hmsnova.no") {
+    return CANONICAL_ORIGIN;
+  }
+  return host ? `https://${host}` : CANONICAL_ORIGIN;
+}
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  const host = publicHost(request);
+
+  if (host === "hmsnova.no") {
+    const url = new URL(pathname + request.nextUrl.search, CANONICAL_ORIGIN);
+    return NextResponse.redirect(url, 302);
+  }
   if (JUNK_PATHS.has(pathname) || pathname.startsWith("/cdn-cgi/")) {
     return new NextResponse("Not found", {
       status: 404,
@@ -91,8 +115,7 @@ export async function proxy(request: NextRequest) {
   const localePrefixMatch = pathname.match(/^\/(nb|nn|en)(\/.*)?$/);
   if (localePrefixMatch) {
     const normalizedPath = localePrefixMatch[2] || "/";
-    const url = request.nextUrl.clone();
-    url.pathname = normalizedPath;
+    const url = new URL(normalizedPath + request.nextUrl.search, publicOrigin(request));
     return NextResponse.redirect(url);
   }
 
@@ -140,7 +163,7 @@ export async function proxy(request: NextRequest) {
 
     if (!token) {
       // Redirect til login hvis ikke autentisert
-      const url = new URL("/login", request.url);
+      const url = new URL("/login", publicOrigin(request));
       url.searchParams.set("callbackUrl", pathname);
       return applySecurityHeaders(NextResponse.redirect(url));
     }
@@ -154,7 +177,7 @@ export async function proxy(request: NextRequest) {
       !pathname.startsWith("/konsern") &&
       !pathname.startsWith("/api")
     ) {
-      return applySecurityHeaders(NextResponse.redirect(new URL("/konsern", request.url)));
+      return applySecurityHeaders(NextResponse.redirect(new URL("/konsern", publicOrigin(request))));
     }
 
     // Multi-tenant: Redirect til tenant-velger hvis brukeren har flere tenants og ingen tenant er valgt
@@ -164,7 +187,7 @@ export async function proxy(request: NextRequest) {
       !pathname.startsWith("/select-tenant") &&
       !pathname.startsWith("/api")
     ) {
-      return applySecurityHeaders(NextResponse.redirect(new URL("/select-tenant", request.url)));
+      return applySecurityHeaders(NextResponse.redirect(new URL("/select-tenant", publicOrigin(request))));
     }
 
     // Superadmin/Support access control
@@ -173,7 +196,7 @@ export async function proxy(request: NextRequest) {
       const isSupport = token.isSupport === true;
 
       if (!isSuperAdmin && !isSupport) {
-        return applySecurityHeaders(NextResponse.redirect(new URL("/dashboard", request.url)));
+        return applySecurityHeaders(NextResponse.redirect(new URL("/dashboard", publicOrigin(request))));
       }
     }
 
@@ -188,7 +211,7 @@ export async function proxy(request: NextRequest) {
       });
 
       if (!allowed) {
-        return applySecurityHeaders(NextResponse.redirect(new URL("/dashboard", request.url)));
+        return applySecurityHeaders(NextResponse.redirect(new URL("/dashboard", publicOrigin(request))));
       }
     }
   }

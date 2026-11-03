@@ -276,6 +276,25 @@ export const authOptions: NextAuthOptions = {
     error: "/login",
   },
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      const base = new URL(baseUrl);
+      if (base.port === "3040") base.port = "";
+      if (base.hostname === "hmsnova.no") base.hostname = "www.hmsnova.no";
+      const origin = base.origin;
+
+      if (url.startsWith("/")) return `${origin}${url}`;
+
+      try {
+        const target = new URL(url);
+        if (target.port === "3040") target.port = "";
+        if (target.hostname === "hmsnova.no") target.hostname = "www.hmsnova.no";
+        if (target.origin === origin) return target.toString();
+      } catch {
+        return origin;
+      }
+
+      return origin;
+    },
     async signIn({ user, account, profile }) {
       if (account?.provider !== "azure-ad") {
         return true;
