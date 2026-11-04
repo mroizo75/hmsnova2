@@ -18,6 +18,10 @@ import {
   checkRateLimitPolicy,
   createRateLimitResponse,
 } from "@/lib/rate-limit";
+import {
+  INCIDENT_IMAGE_MAX_COUNT,
+  incidentImageRejection,
+} from "@/lib/incident-image";
 
 const allowedEmployeeIncidentTypes: IncidentType[] = [
   "ULYKKE",
@@ -138,6 +142,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const images = formData.getAll("images").filter((entry): entry is File => {
+      return (
+        typeof entry === "object" &&
+        entry !== null &&
+        "arrayBuffer" in entry &&
+        typeof entry.size === "number" &&
+        entry.size > 0
+      );
+    });
+    if (images.length > INCIDENT_IMAGE_MAX_COUNT) {
+      return NextResponse.json({ error: "Maks 5 bilder per avvik." }, { status: 400 });
+    }
+    for (const image of images) {
+      const rejection = incidentImageRejection({
+        name: image.name,
+        type: image.type,
+        size: image.size,
+      });
+      if (rejection) {
+        return NextResponse.json({ error: rejection }, { status: 400 });
+      }
+    }
+
     const avviksnummer = await generateSequenceNumber(
       tenantId,
       "AVVIK",
@@ -232,27 +259,29 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Håndter bildeopplasting
-    const images = formData.getAll("images") as File[];
+    // Bildene er allerede validert. Feil i lagring skal ikke skjule at avviket er registrert.
     const storage = getStorage();
+    let imagesUploaded = 0;
+    let imagesFailed = 0;
 
     for (const image of images) {
-      if (image && image.size > 0) {
-        // Last opp bilde til storage
+      try {
         const fileKey = generateFileKey(tenantId, "incidents", image.name);
         await storage.upload(fileKey, image);
-
-        // Opprett Attachment-record
         await prisma.attachment.create({
           data: {
             tenantId,
             incidentId: incident.id,
             fileKey,
-            name: image.name,
-            mime: image.type,
+            name: image.name || "bilde.jpg",
+            mime: image.type || "image/jpeg",
             size: image.size,
           },
         });
+        imagesUploaded += 1;
+      } catch (imageError) {
+        imagesFailed += 1;
+        console.error("Incident image upload error:", imageError);
       }
     }
 
@@ -264,7 +293,7 @@ export async function POST(request: NextRequest) {
           title,
           type,
           severity,
-          imageCount: images.filter((img) => img && img.size > 0).length,
+          imageCount: imagesUploaded,
         });
         await createNotification({
           tenantId,
@@ -299,12 +328,27 @@ export async function POST(request: NextRequest) {
       }
     })();
 
-    return NextResponse.json({ success: true, incident }, { status: 201 });
-  } catch (error: any) {
-    console.error("Report incident error:", error);
     return NextResponse.json(
-      { error: error.message || "Internal server error" },
-      { status: 500 }
+      { success: true, incident, imagesUploaded, imagesFailed },
+      { status: 201 }
+    );
+  } catch (error: unknown) {
+    console.error("Report incident error:", error);
+    const message = error instanceof Error ? error.message.toLowerCase() : "";
+    const bodyTooLarge =
+      message.includes("formdata") ||
+      message.includes("multipart") ||
+      message.includes("unexpected end of form") ||
+      message.includes("payload too large") ||
+      message.includes("request body exceeded") ||
+      message.includes("body exceeded");
+    return NextResponse.json(
+      {
+        error: bodyTooLarge
+          ? "Bildene er for store til å sendes. Ta færre bilder, eller prøv igjen."
+          : "Kunne ikke sende rapport. Prøv igjen.",
+      },
+      { status: bodyTooLarge ? 413 : 500 }
     );
   }
 }

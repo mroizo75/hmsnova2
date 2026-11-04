@@ -42,7 +42,7 @@ export function PersonnelEmployeeList({ employees }: PersonnelEmployeeListProps)
         </Button>
       </div>
       <p className="text-xs text-muted-foreground">
-        Filen er til lederens perm: navn, telefon og pårørende, så de kan nås ved en ulykke (AML § 3-1 og § 5-2). Diagnose tas ikke med.
+        Excel-fil til lederens perm: navn, telefon, avdeling og pårørende (AML § 3-1 og § 5-2). Filtrer på avdeling i Excel. Diagnose tas ikke med.
       </p>
 
       {filtered.length === 0 ? (

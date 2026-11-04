@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { generateDocumentPdf } from "@/lib/pdf-brand";
-import { buildEmergencyRoster } from "@/features/personnel/lib/emergency-roster";
+import { buildEmergencyRosterWorkbook } from "@/features/personnel/lib/emergency-roster";
 import { fetchEmergencyRoster } from "@/server/queries/personnel.queries";
 
 export async function GET() {
@@ -9,16 +8,15 @@ export async function GET() {
     return NextResponse.json({ error: "Du har ikke tilgang til beredskapsfilen" }, { status: 403 });
   }
 
-  const pdfBuffer = await generateDocumentPdf({
-    ...buildEmergencyRoster(roster),
-    generatedAt: new Date(),
-  });
+  const workbook = await buildEmergencyRosterWorkbook(roster);
+  const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
 
-  return new NextResponse(new Uint8Array(pdfBuffer), {
+  return new NextResponse(buffer, {
     headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": 'attachment; filename="Beredskapsfil.pdf"',
-      "Content-Length": pdfBuffer.byteLength.toString(),
+      "Content-Type":
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Disposition": 'attachment; filename="Beredskapsfil.xlsx"',
+      "Content-Length": buffer.byteLength.toString(),
     },
   });
 }

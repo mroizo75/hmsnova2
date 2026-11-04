@@ -19,6 +19,7 @@ import { Loader2, Camera, X, Sparkles } from "lucide-react";
 import Image from "next/image";
 import type { IncidentType } from "@prisma/client";
 import { enqueueSafe, formDataToOfflinePayload, isNetworkError, isAvailable } from "@/lib/offline-queue";
+import { compressIncidentImage } from "@/lib/compress-incident-image";
 import {
   getIncidentTypeGroups,
   getIncidentTypesForGroup,
@@ -118,13 +119,32 @@ export function ReportIncidentForm({
     setSelectedType(getSingleTypeForGroup(group, ruhModuleEnabled) ?? "");
   }
 
-  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
-    if (e.target.files) {
-      const files = Array.from(e.target.files);
-      const merged = [...imageFiles, ...files].slice(0, 5);
-      setImageFiles(merged);
-      setImagePreviews(merged.map((file) => URL.createObjectURL(file)));
+  async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const selected = e.target.files ? Array.from(e.target.files) : [];
+    e.target.value = "";
+    if (selected.length === 0) return;
+
+    const room = 5 - imageFiles.length;
+    const compressed: File[] = [];
+    for (const file of selected.slice(0, room)) {
+      try {
+        compressed.push(await compressIncidentImage(file));
+      } catch (error) {
+        toast({
+          title: t("toast.error.title"),
+          description: error instanceof Error ? error.message : t("errors.imageUnreadable"),
+          variant: "destructive",
+        });
+      }
     }
+
+    if (compressed.length === 0) return;
+    const merged = [...imageFiles, ...compressed].slice(0, 5);
+    setImagePreviews((current) => {
+      current.forEach((url) => URL.revokeObjectURL(url));
+      return merged.map((file) => URL.createObjectURL(file));
+    });
+    setImageFiles(merged);
   }
 
   async function handleAiDraft() {
@@ -171,7 +191,10 @@ export function ReportIncidentForm({
   function removeImage(index: number) {
     const newFiles = imageFiles.filter((_, i) => i !== index);
     setImageFiles(newFiles);
-    setImagePreviews(newFiles.map((f) => URL.createObjectURL(f)));
+    setImagePreviews((current) => {
+      current.forEach((url) => URL.revokeObjectURL(url));
+      return newFiles.map((file) => URL.createObjectURL(file));
+    });
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -227,14 +250,21 @@ export function ReportIncidentForm({
         body: formData,
       });
 
+      const body = (await response.json().catch(() => null)) as {
+        error?: string;
+        imagesFailed?: number;
+      } | null;
+
       if (!response.ok) {
-        throw new Error(t("errors.submitFailed"));
+        throw new Error(body?.error || t("toast.error.description"));
       }
 
+      const imagesMissing = (body?.imagesFailed ?? 0) > 0;
       toast({
         title: t("toast.success.title"),
-        description:
-          departmentId !== NO_DEPARTMENT
+        description: imagesMissing
+          ? t("toast.success.imagesFailed")
+          : departmentId !== NO_DEPARTMENT
             ? t("toast.success.description")
             : t("toast.success.descriptionWithoutDepartment"),
       });
@@ -271,7 +301,7 @@ export function ReportIncidentForm({
       }
       toast({
         title: t("toast.error.title"),
-        description: t("toast.error.description"),
+        description: error instanceof Error ? error.message : t("toast.error.description"),
         variant: "destructive",
       });
     } finally {

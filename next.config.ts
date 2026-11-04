@@ -57,6 +57,9 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "50mb",
     },
+    // Avvik med mobilbilder går gjennom proxy.ts. Standardgrensen er 10 MB,
+    // og to kamerabilder fra telefon overskrider den slik at innsendingen feiler.
+    proxyClientMaxBodySize: "50mb",
     workerThreads: false,
   },
   output: process.platform === "win32" ? undefined : "standalone",

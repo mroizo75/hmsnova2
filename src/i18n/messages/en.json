@@ -2123,13 +2123,15 @@
   },
   "employeeIncidentForm": {
     "errors": {
-      "submitFailed": "Could not submit report"
+      "submitFailed": "Could not submit report",
+      "imageUnreadable": "Could not read the photo. Try another photo."
     },
     "toast": {
       "success": {
         "title": "✅ Incident reported",
         "description": "Thank you for the report! The HSE responsible and the department manager have been notified.",
-        "descriptionWithoutDepartment": "Thank you for the report! The HSE responsible has been notified."
+        "descriptionWithoutDepartment": "Thank you for the report! The HSE responsible has been notified.",
+        "imagesFailed": "The report was sent, but one or more photos were not saved."
       },
       "error": {
         "title": "❌ Error",

@@ -2123,13 +2123,15 @@
   },
   "employeeIncidentForm": {
     "errors": {
-      "submitFailed": "Kunne ikke sende rapport"
+      "submitFailed": "Kunne ikke sende rapport",
+      "imageUnreadable": "Kunne ikke lese bildet. Prøv et annet bilde."
     },
     "toast": {
       "success": {
         "title": "✅ Avvik rapportert",
         "description": "Takk for rapporten! HMS-ansvarlig og lederen for avdelingen er varslet.",
-        "descriptionWithoutDepartment": "Takk for rapporten! HMS-ansvarlig er varslet."
+        "descriptionWithoutDepartment": "Takk for rapporten! HMS-ansvarlig er varslet.",
+        "imagesFailed": "Rapporten er sendt, men ett eller flere bilder ble ikke lagret."
       },
       "error": {
         "title": "❌ Feil",
