@@ -12,15 +12,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { nextDefaultClock } from "@/lib/time/split-day";
 import {
-  addUsageToDay,
   getDayTimesheetContext,
-  searchTimesheetProducts,
+  searchGeonorgeAddresses,
   submitDayTimesheet,
   syncTimesheetProjectsNow,
   updateOwnTimesheetEntry,
 } from "@/server/actions/timesheet.actions";
-import { nextDefaultClock } from "@/lib/time/split-day";
+import { ProductLineEditor, type PendingProductLine } from "./product-line-editor";
 import {
   childProjectsOf,
   pickerRootId,
@@ -31,25 +31,8 @@ import { ProjectPicker } from "./project-picker";
 import { DayAbsenceForm } from "./day-absence-form";
 import { NewFieldJobDialog } from "@/features/jobs/components/new-field-job-dialog";
 
-type Product = {
-  externalId: string;
-  name: string;
-  number: string | null;
-  unit: string | null;
-  categoryName: string | null;
-};
-
 type UsageKind = "PRODUCT" | "MACHINE";
 type CarKind = "COMPANY" | "PRIVATE";
-
-type PendingLine = {
-  kind: UsageKind;
-  productExternalId: string;
-  quantity: number;
-  name: string;
-  unit: string | null;
-  comment?: string;
-};
 
 type Entry = {
   id: string;
@@ -98,26 +81,22 @@ export function DayTimesheetScreen({ isEmployee = false }: { isEmployee?: boolea
   const [lunchMinutes, setLunchMinutes] = useState(30);
   const [projectId, setProjectId] = useState(searchParams.get("projectId") || "");
   const [comment, setComment] = useState("");
-  const [productQuery, setProductQuery] = useState("");
-  const [productCategory, setProductCategory] = useState("");
-  const [products, setProducts] = useState<Product[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [qty, setQty] = useState("1");
-  const [lineComment, setLineComment] = useState("");
-  const [usageKind, setUsageKind] = useState<UsageKind>("PRODUCT");
   const [carKind, setCarKind] = useState<CarKind | "">("");
   const [kilometers, setKilometers] = useState("");
   const [travelComment, setTravelComment] = useState("");
-  const [pendingLines, setPendingLines] = useState<PendingLine[]>([]);
+  const [fromAddress, setFromAddress] = useState("");
+  const [toAddress, setToAddress] = useState("");
+  const [pendingLines, setPendingLines] = useState<PendingProductLine[]>([]);
   const [loading, setLoading] = useState(false);
   const [ctx, setCtx] = useState<Awaited<ReturnType<typeof getDayTimesheetContext>> | null>(null);
   const [mode, setMode] = useState<"work" | "absence">(
     searchParams.get("mode") === "absence" ? "absence" : "work"
   );
   const [submittedNotice, setSubmittedNotice] = useState<{ hours: string; date: string } | null>(null);
-  const [afterQty, setAfterQty] = useState("1");
-  const [afterKm, setAfterKm] = useState("");
-  const [afterCarKind, setAfterCarKind] = useState<CarKind | "">("");
+  const [fromHits, setFromHits] = useState<Array<{ label: string; lat: number; lon: number }>>([]);
+  const [toHits, setToHits] = useState<Array<{ label: string; lat: number; lon: number }>>([]);
+  const [fromPoint, setFromPoint] = useState<{ lat: number; lon: number } | null>(null);
+  const [toPoint, setToPoint] = useState<{ lat: number; lon: number } | null>(null);
   const [syncingProjects, setSyncingProjects] = useState(false);
   const noticeRef = useRef<HTMLDivElement>(null);
 
@@ -159,15 +138,9 @@ export function DayTimesheetScreen({ isEmployee = false }: { isEmployee?: boolea
   useEffect(() => {
     reloadDay(date, searchParams.get("projectId") || projectId);
     setSubmittedNotice(null);
+    // Datoen styrer innlastingen. Kladd i feltene beholdes når fanen bare skjules.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date]);
-
-  useEffect(() => {
-    const q = productQuery.trim();
-    const handle = setTimeout(() => {
-      searchTimesheetProducts(q, productCategory || null).then(setProducts);
-    }, 200);
-    return () => clearTimeout(handle);
-  }, [productQuery, productCategory]);
 
   const projects: Array<PickableProject & { externalProjectId?: string | null }> = ctx?.success
     ? ctx.data.projects
@@ -179,14 +152,12 @@ export function DayTimesheetScreen({ isEmployee = false }: { isEmployee?: boolea
   const assignedToday = ctx?.success ? ctx.data.assignedProjects ?? [] : [];
   const assignedIds = new Set<string>(assignedToday.map((p: { id: string }) => p.id));
   const commentPresets: string[] = ctx?.success ? ctx.data.commentPresets ?? [] : [];
-  const productCategories: string[] = ctx?.success ? ctx.data.productCategories ?? [] : [];
   const accountingConnected = Boolean(ctx?.success && ctx.data.accountingConnected);
   const absenceProjectId = ctx?.success ? ctx.data.absenceProjectId : null;
   const parents = topLevelPickableProjects(projects);
   const rootProjectId = projectId ? pickerRootId(projects, projectId) : "";
   const rootProject = parents.find((p) => p.id === rootProjectId) ?? null;
   const children = rootProjectId ? childProjectsOf(projects, rootProjectId) : [];
-  const hasSubmittedDay = entries.some((e) => e.approvalStatus !== "DRAFT");
 
   const statusLabel = useMemo(
     () => ({
@@ -202,22 +173,6 @@ export function DayTimesheetScreen({ isEmployee = false }: { isEmployee?: boolea
     [isEmployee, t]
   );
 
-  function addPendingLine() {
-    if (!selectedProduct) return;
-    setPendingLines((rows) => [
-      ...rows,
-      {
-        kind: usageKind,
-        productExternalId: selectedProduct.externalId,
-        quantity: Number(qty),
-        name: selectedProduct.name,
-        unit: selectedProduct.unit,
-        comment: lineComment.trim() || undefined,
-      },
-    ]);
-    setLineComment("");
-  }
-
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     const km = Number(String(kilometers).replace(",", "."));
@@ -229,6 +184,10 @@ export function DayTimesheetScreen({ isEmployee = false }: { isEmployee?: boolea
       toast({ title: t("error"), description: t("travelCarRequired"), variant: "destructive" });
       return;
     }
+    if (km > 0 && (!fromAddress.trim() || !toAddress.trim())) {
+      toast({ title: t("error"), description: t("fromAddress"), variant: "destructive" });
+      return;
+    }
     setLoading(true);
     const usageLines: Array<{
       kind: "PRODUCT" | "MACHINE" | "KM";
@@ -237,20 +196,24 @@ export function DayTimesheetScreen({ isEmployee = false }: { isEmployee?: boolea
       comment?: string;
       isPrivateCar?: boolean;
       carKind?: CarKind;
-    }> = pendingLines.map((l) => ({
-      kind: l.kind,
-      productExternalId: l.productExternalId,
-      quantity: l.quantity,
-      comment: l.comment,
+      fromAddress?: string;
+      toAddress?: string;
+    }> = pendingLines.map((line) => ({
+      kind: line.kind,
+      productExternalId: line.productExternalId,
+      quantity: line.quantity,
+      comment: line.comment,
     }));
     if (km > 0 && carKind) {
       usageLines.push({
-        kind: "KM" as const,
+        kind: "KM",
         productExternalId: "km",
         quantity: km,
         comment: travelComment.trim() || undefined,
         isPrivateCar: carKind === "PRIVATE",
         carKind,
+        fromAddress: fromAddress.trim(),
+        toAddress: toAddress.trim(),
       });
     }
     const res = await submitDayTimesheet({
@@ -283,6 +246,10 @@ export function DayTimesheetScreen({ isEmployee = false }: { isEmployee?: boolea
     setKilometers("");
     setCarKind("");
     setTravelComment("");
+    setFromAddress("");
+    setToAddress("");
+    setFromPoint(null);
+    setToPoint(null);
     router.refresh();
     await queryClient.invalidateQueries({ queryKey: ["time-registration-week"] });
     await queryClient.invalidateQueries({ queryKey: ["time-registration"] });
@@ -290,57 +257,6 @@ export function DayTimesheetScreen({ isEmployee = false }: { isEmployee?: boolea
     requestAnimationFrame(() => {
       noticeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
-  }
-
-  async function onAddUsageAfter() {
-    if (!projectId) return;
-    const res = await addUsageToDay({
-      date,
-      projectId,
-      kind: usageKind,
-      productExternalId: selectedProduct?.externalId ?? "",
-      quantity: Number(afterQty),
-      comment: lineComment.trim() || undefined,
-    });
-    if (!res.success) {
-      toast({ title: t("error"), description: res.error, variant: "destructive" });
-      return;
-    }
-    toast({ title: t("usageAdded") });
-    setLineComment("");
-    await reloadDay();
-  }
-
-  async function onAddTravelAfter() {
-    if (!projectId) return;
-    const km = Number(String(afterKm).replace(",", "."));
-    if (Number.isNaN(km) || km <= 0) {
-      toast({ title: t("error"), description: t("travelKmInvalid"), variant: "destructive" });
-      return;
-    }
-    if (!afterCarKind) {
-      toast({ title: t("error"), description: t("travelCarRequired"), variant: "destructive" });
-      return;
-    }
-    const res = await addUsageToDay({
-      date,
-      projectId,
-      kind: "KM",
-      productExternalId: "km",
-      quantity: km,
-      comment: travelComment.trim() || undefined,
-      isPrivateCar: afterCarKind === "PRIVATE",
-      carKind: afterCarKind,
-    });
-    if (!res.success) {
-      toast({ title: t("error"), description: res.error, variant: "destructive" });
-      return;
-    }
-    toast({ title: t("travelAdded") });
-    setAfterKm("");
-    setAfterCarKind("");
-    setTravelComment("");
-    await reloadDay();
   }
 
   const absences = ctx?.success ? ctx.data.absences ?? [] : [];
@@ -447,7 +363,7 @@ export function DayTimesheetScreen({ isEmployee = false }: { isEmployee?: boolea
           onSaved={() => reloadDay()}
         />
       ) : (
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form onSubmit={onSubmit} noValidate className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1">
             <Label>{t("from")}</Label>
@@ -556,7 +472,7 @@ export function DayTimesheetScreen({ isEmployee = false }: { isEmployee?: boolea
               ))}
             </div>
           )}
-          <Textarea required minLength={2} value={comment} onChange={(e) => setComment(e.target.value)} />
+          <Textarea value={comment} onChange={(e) => setComment(e.target.value)} />
         </div>
 
         <Card>
@@ -590,6 +506,51 @@ export function DayTimesheetScreen({ isEmployee = false }: { isEmployee?: boolea
                 placeholder={t("kilometersPlaceholder")}
               />
             </div>
+            <AddressField
+              label={t("fromAddress")}
+              value={fromAddress}
+              hits={fromHits}
+              onChange={(value) => {
+                setFromAddress(value);
+                setFromPoint(null);
+                if (value.trim().length < 3) {
+                  setFromHits([]);
+                  return;
+                }
+                searchGeonorgeAddresses(value).then(setFromHits);
+              }}
+              onPick={(hit) => {
+                setFromAddress(hit.label);
+                setFromPoint({ lat: hit.lat, lon: hit.lon });
+                setFromHits([]);
+              }}
+            />
+            <AddressField
+              label={t("toAddress")}
+              value={toAddress}
+              hits={toHits}
+              onChange={(value) => {
+                setToAddress(value);
+                setToPoint(null);
+                if (value.trim().length < 3) {
+                  setToHits([]);
+                  return;
+                }
+                searchGeonorgeAddresses(value).then(setToHits);
+              }}
+              onPick={(hit) => {
+                setToAddress(hit.label);
+                setToPoint({ lat: hit.lat, lon: hit.lon });
+                setToHits([]);
+              }}
+            />
+            {fromPoint && toPoint && (
+              <iframe
+                title={t("travel")}
+                className="h-40 w-full rounded-md border"
+                src={`https://www.openstreetmap.org/export/embed.html?bbox=${Math.min(fromPoint.lon, toPoint.lon) - 0.02},${Math.min(fromPoint.lat, toPoint.lat) - 0.02},${Math.max(fromPoint.lon, toPoint.lon) + 0.02},${Math.max(fromPoint.lat, toPoint.lat) + 0.02}&layer=mapnik&marker=${fromPoint.lat},${fromPoint.lon}`}
+              />
+            )}
             <Input
               value={travelComment}
               onChange={(e) => setTravelComment(e.target.value)}
@@ -601,80 +562,11 @@ export function DayTimesheetScreen({ isEmployee = false }: { isEmployee?: boolea
         <Card>
           <CardContent className="space-y-3 py-4">
             <p className="font-medium">{t("usage")}</p>
-            <div className="flex gap-2">
-              {(["PRODUCT", "MACHINE"] as const).map((k) => (
-                <Button
-                  key={k}
-                  type="button"
-                  size="sm"
-                  variant={usageKind === k ? "default" : "outline"}
-                  className={usageKind === k ? "" : "bg-transparent"}
-                  onClick={() => setUsageKind(k)}
-                >
-                  <UsageIcon kind={k} className="mr-1 h-4 w-4" />
-                  {t(`kind.${k}`)}
-                </Button>
-              ))}
-            </div>
-            {productCategories.length > 0 && (
-              <select
-                className="h-10 w-full rounded-md border bg-transparent px-3 text-sm"
-                value={productCategory}
-                onChange={(e) => setProductCategory(e.target.value)}
-              >
-                <option value="">{t("allCategories")}</option>
-                {productCategories.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            )}
-            <Input
-              value={productQuery}
-              onChange={(e) => setProductQuery(e.target.value)}
-              placeholder={t("productSearch")}
+            <ProductLineEditor
+              groups={ctx?.success ? (ctx.data.productGroups ?? []) : []}
+              lines={pendingLines}
+              onChange={setPendingLines}
             />
-            <div className="space-y-1">
-              {products.slice(0, 8).map((p) => (
-                <button
-                  key={p.externalId}
-                  type="button"
-                  className={`w-full rounded-md border px-3 py-2 text-left text-sm ${
-                    selectedProduct?.externalId === p.externalId ? "border-primary" : ""
-                  }`}
-                  onClick={() => setSelectedProduct(p)}
-                >
-                  <span className="font-medium">{p.name}</span>
-                  {p.number ? ` · ${p.number}` : ""}
-                  {p.unit ? ` · ${p.unit}` : ""}
-                </button>
-              ))}
-            </div>
-            <Input
-              value={lineComment}
-              onChange={(e) => setLineComment(e.target.value)}
-              placeholder={t("lineComment")}
-            />
-            <div className="flex gap-2">
-              <Input
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={qty}
-                onChange={(e) => setQty(e.target.value)}
-              />
-              <Button type="button" variant="outline" className="bg-transparent" onClick={addPendingLine}>
-                {t("addLine")}
-              </Button>
-            </div>
-            {pendingLines.map((l, i) => (
-              <p key={`${l.productExternalId}-${i}`} className="flex items-center gap-2 text-sm text-muted-foreground">
-                <UsageIcon kind={l.kind} className="h-4 w-4" />
-                {l.name} · {l.quantity} {l.unit}
-                {l.comment ? ` · ${l.comment}` : ""}
-              </p>
-            ))}
           </CardContent>
         </Card>
 
@@ -726,47 +618,6 @@ export function DayTimesheetScreen({ isEmployee = false }: { isEmployee?: boolea
             </CardContent>
           </Card>
         ))}
-        {hasSubmittedDay && (
-          <div className="space-y-3 rounded-md border p-3">
-            <p className="text-sm font-medium">{t("addUsageAfter")}</p>
-            <div className="space-y-2">
-              <p className="text-xs font-medium">{t("travel")}</p>
-              <div className="flex flex-wrap gap-2">
-                {(["COMPANY", "PRIVATE"] as const).map((kind) => (
-                  <Button
-                    key={kind}
-                    type="button"
-                    size="sm"
-                    variant={afterCarKind === kind ? "default" : "outline"}
-                    className={afterCarKind === kind ? "" : "bg-transparent"}
-                    onClick={() => setAfterCarKind(kind)}
-                  >
-                    {kind === "PRIVATE" ? t("privateCar") : t("companyCar")}
-                  </Button>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  type="number"
-                  min="0.01"
-                  step="1"
-                  value={afterKm}
-                  onChange={(e) => setAfterKm(e.target.value)}
-                  placeholder={t("kilometers")}
-                />
-                <Button type="button" variant="outline" className="bg-transparent" onClick={onAddTravelAfter}>
-                  {t("addTravel")}
-                </Button>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Input type="number" min="0.01" step="0.01" value={afterQty} onChange={(e) => setAfterQty(e.target.value)} />
-              <Button type="button" variant="outline" className="bg-transparent" onClick={onAddUsageAfter}>
-                {t("addLine")}
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
       )}
     </div>
@@ -781,6 +632,7 @@ export function AfterRegisterComment({
   initial: string;
 }) {
   const t = useTranslations("timesheet");
+  const { toast } = useToast();
   const [value, setValue] = useState(initial);
   return (
     <Button
@@ -789,10 +641,50 @@ export function AfterRegisterComment({
       variant="outline"
       className="bg-transparent"
       onClick={async () => {
-        await updateOwnTimesheetEntry(id, { comment: value });
+        const res = await updateOwnTimesheetEntry(id, { comment: value });
+        toast({
+          title: res.success ? t("saved") : t("error"),
+          description: res.success ? undefined : res.error,
+          variant: res.success ? "default" : "destructive",
+        });
       }}
     >
       {t("saveComment")}
     </Button>
+  );
+}
+
+function AddressField({
+  label,
+  value,
+  hits,
+  onChange,
+  onPick,
+}: {
+  label: string;
+  value: string;
+  hits: Array<{ label: string; lat: number; lon: number }>;
+  onChange: (value: string) => void;
+  onPick: (hit: { label: string; lat: number; lon: number }) => void;
+}) {
+  return (
+    <div className="space-y-1">
+      <Label>{label}</Label>
+      <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={label} />
+      {hits.length > 0 && (
+        <div className="max-h-40 space-y-1 overflow-y-auto">
+          {hits.map((hit) => (
+            <button
+              key={hit.label}
+              type="button"
+              className="w-full rounded-md border px-3 py-2 text-left text-sm hover:bg-muted"
+              onClick={() => onPick(hit)}
+            >
+              {hit.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

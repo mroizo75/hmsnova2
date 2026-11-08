@@ -2,8 +2,8 @@
 
 import { prisma } from "@/lib/db";
 import { getAuthContext } from "@/lib/server-authorization";
-import { isQualityOnlyIncident } from "@/lib/incident-visibility";
-import { incidentListWhere } from "@/server/lib/incident-access";
+import { incidentPassesSafetyQualityFilter } from "@/lib/incident-visibility";
+import { loadViewerIncidentAccess } from "@/server/lib/incident-access";
 import type { IncidentType } from "@prisma/client";
 
 export async function fetchIncidents(options?: { kilde?: string }) {
@@ -11,7 +11,7 @@ export async function fetchIncidents(options?: { kilde?: string }) {
   if (!auth) return [];
   const { permissions, tenantId, userId, role, departmentId } = auth;
 
-  const where = await incidentListWhere({
+  const access = await loadViewerIncidentAccess({
     role,
     tenantId,
     userId,
@@ -19,6 +19,7 @@ export async function fetchIncidents(options?: { kilde?: string }) {
     canReadOwnIncidents: permissions.canReadOwnIncidents,
     departmentId,
   });
+  const where = access.where;
 
   if (!where) return [];
 
@@ -39,10 +40,17 @@ export async function fetchIncidents(options?: { kilde?: string }) {
     orderBy: { occurredAt: "desc" },
   });
 
-  const filtered =
-    role === "VERNEOMBUD"
-      ? incidents.filter((incident) => !isQualityOnlyIncident(incident.type as IncidentType, incident.subcategoryKeys))
-      : incidents;
+  const filtered = incidents.filter((incident) =>
+    incidentPassesSafetyQualityFilter({
+      scope: access.scope,
+      leaderDepartmentIds: access.leaderDepartmentIds,
+      viewerId: userId,
+      reportedBy: incident.reportedBy,
+      type: incident.type as IncidentType,
+      subcategoryKeys: incident.subcategoryKeys,
+      incidentDepartmentId: incident.departmentId,
+    }),
+  );
 
   return JSON.parse(JSON.stringify(filtered));
 }

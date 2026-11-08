@@ -61,6 +61,18 @@ export async function createCustomerFromBrreg(input: {
       return { success: false as const, error: "Fant ikke enheten i Brønnøysund" };
     }
 
+    const email = (input.email || enhet.epost || "").trim();
+    if (!email) {
+      return { success: false as const, error: "E-post er påkrevd for EHF" };
+    }
+    const address = enhet.forretningsadresse ?? enhet.postadresse;
+    const addressLine1 = address?.adresse?.[0]?.trim() ?? "";
+    const postalCode = address?.postnummer?.trim() ?? "";
+    const city = address?.poststed?.trim() ?? "";
+    if (!addressLine1 || !postalCode || !city) {
+      return { success: false as const, error: "Kunden mangler postadresse i Brønnøysund, som EHF krever" };
+    }
+
     const provider = await getAccountingProvider(ctx.tenantId);
     if (!provider) {
       const local = await prisma.accountingCustomer.create({
@@ -69,7 +81,7 @@ export async function createCustomerFromBrreg(input: {
           externalId: `local-${org}`,
           name: input.name?.trim() || enhet.navn,
           organizationNumber: org,
-          email: input.email || enhet.epost || null,
+          email: email,
           phone: input.phone || enhet.telefon || null,
         },
       });
@@ -79,8 +91,9 @@ export async function createCustomerFromBrreg(input: {
     const created = await provider.createCustomer({
       name: input.name?.trim() || enhet.navn,
       organizationNumber: org,
-      email: input.email || enhet.epost || null,
+      email: email,
       phone: input.phone || enhet.telefon || null,
+      postalAddress: { addressLine1, postalCode, city },
     });
     await upsertCustomers(ctx.tenantId, [created]);
     revalidatePath("/dashboard/projects/new");
@@ -106,8 +119,11 @@ export async function createCustomerContact(input: {
     const existing = await prisma.accountingContact.findMany({
       where: { tenantId: ctx.tenantId, customerExternalId: input.customerExternalId },
     });
-    const email = input.email?.trim().toLowerCase();
-    const phone = input.phone?.trim();
+    const email = input.email?.trim().toLowerCase() ?? "";
+    const phone = input.phone?.trim() ?? "";
+    if (!email || !phone) {
+      return { success: false as const, error: "Kontaktperson krever e-post og telefon" };
+    }
     const dup = existing.find(
       (c) =>
         (email && c.email?.toLowerCase() === email) ||
@@ -137,8 +153,8 @@ export async function createCustomerContact(input: {
       customerExternalId: input.customerExternalId,
       firstName: input.firstName.trim(),
       lastName: input.lastName?.trim() || null,
-      email: email || null,
-      phone: phone || null,
+      email: email,
+      phone: phone,
     });
     await upsertContacts(ctx.tenantId, [created]);
     return { success: true as const, data: created };

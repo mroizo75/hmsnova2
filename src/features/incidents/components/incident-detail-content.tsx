@@ -12,6 +12,7 @@ import { MeasureForm } from "@/features/measures/components/measure-form";
 import { MeasureList } from "@/features/measures/components/measure-list";
 import { InvestigationForm } from "@/features/incidents/components/investigation-form";
 import { CloseIncidentForm } from "@/features/incidents/components/close-incident-form";
+import { ReopenIncidentButton } from "@/features/incidents/components/reopen-incident-button";
 import { IncidentTreatmentForm } from "@/components/incidents/incident-treatment-form";
 import { IncidentPDFExport } from "@/components/incidents/incident-pdf-export";
 import { NavMeldingDialog } from "@/features/incidents/components/nav-melding-dialog";
@@ -49,6 +50,7 @@ interface IncidentDetailContentProps {
   incidentId: string;
   userId: string;
   locale: string;
+  canReopen?: boolean;
 }
 
 const STEPPER_STEPS = [
@@ -108,6 +110,7 @@ export function IncidentDetailContent({
   incidentId,
   userId,
   locale,
+  canReopen = false,
 }: IncidentDetailContentProps) {
   const t = useTranslations("dashboardIncidentDetailPage");
 
@@ -722,6 +725,7 @@ export function IncidentDetailContent({
                   <User className="h-4 w-4" />
                   <span>{t("sections.closed.closedAt", { date: formatDate(incident.closedAt) })}</span>
                 </div>
+                {canReopen && <ReopenIncidentButton incidentId={incident.id} />}
               </CardContent>
             </Card>
           ) : canClose ? (

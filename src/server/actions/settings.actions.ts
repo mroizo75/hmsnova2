@@ -9,7 +9,7 @@ import { assertNoManagerCycle } from "@/lib/incident-notification-routing";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
 import { Role } from "@prisma/client";
 import { getInvitableRoles } from "@/lib/permissions";
-import { parseExtraRoles, serializeExtraRoles } from "@/lib/extra-roles";
+import { membershipRoles, parseExtraRoles, serializeExtraRoles } from "@/lib/extra-roles";
 import { aliasDashboardMenuHrefs } from "@/lib/legal-link-repair";
 import {
   importUsersIntoTenant,
@@ -418,6 +418,8 @@ export async function updateUserRole(userId: string, role: string) {
       select: { extraRoles: true },
     });
 
+    const extraRoles = serializeExtraRoles(existing?.extraRoles, role);
+    const keepsSafetyRole = membershipRoles(role as Role, extraRoles).includes("VERNEOMBUD");
     const updatedUserTenant = await prisma.userTenant.update({
       where: {
         userId_tenantId: {
@@ -427,7 +429,8 @@ export async function updateUserRole(userId: string, role: string) {
       },
       data: {
         role: role as Role,
-        extraRoles: serializeExtraRoles(existing?.extraRoles, role),
+        extraRoles,
+        ...(keepsSafetyRole ? {} : { isChiefSafetyRep: false }),
       },
     });
 
@@ -465,9 +468,13 @@ export async function updateUserExtraRoles(userId: string, roles: string[]) {
     if (!membership) return { success: false, error: "Brukeren finnes ikke i bedriften" };
 
     const next = parseExtraRoles(roles, membership.role).filter((role) => allowed.has(role));
+    const keepsSafetyRole = membershipRoles(membership.role, next).includes("VERNEOMBUD");
     await prisma.userTenant.update({
       where: { userId_tenantId: { userId, tenantId } },
-      data: { extraRoles: serializeExtraRoles(next, membership.role) },
+      data: {
+        extraRoles: serializeExtraRoles(next, membership.role),
+        ...(keepsSafetyRole ? {} : { isChiefSafetyRep: false }),
+      },
     });
 
     await AuditLog.log(tenantId, user.id, "USER_ROLE_UPDATED", "User", userId, {
@@ -478,6 +485,41 @@ export async function updateUserExtraRoles(userId: string, roles: string[]) {
     return { success: true };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Kunne ikke oppdatere tilleggsroller";
+    return { success: false, error: message };
+  }
+}
+
+export async function updateChiefSafetyRep(userId: string, isChiefSafetyRep: boolean) {
+  try {
+    const { user, tenantId } = await getSessionContext();
+    const actor = user.tenants.find((item) => item.tenantId === tenantId);
+    if (!actor || getInvitableRoles(actor.role).length === 0) {
+      return { success: false, error: "Kun administratorer og HR kan endre dette" };
+    }
+
+    const membership = await prisma.userTenant.findUnique({
+      where: { userId_tenantId: { userId, tenantId } },
+      select: { role: true, extraRoles: true },
+    });
+    if (!membership) return { success: false, error: "Brukeren finnes ikke i bedriften" };
+
+    if (isChiefSafetyRep && !membershipRoles(membership.role, membership.extraRoles).includes("VERNEOMBUD")) {
+      return { success: false, error: "Gi personen rollen Verneombud før du setter hovedverneombud" };
+    }
+
+    await prisma.userTenant.update({
+      where: { userId_tenantId: { userId, tenantId } },
+      data: { isChiefSafetyRep },
+    });
+
+    await AuditLog.log(tenantId, user.id, "USER_ROLE_UPDATED", "User", userId, {
+      isChiefSafetyRep,
+    });
+    revalidatePath("/dashboard/brukere");
+    triggerRealtimeEvent(tenantId, "settings-updated");
+    return { success: true };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Kunne ikke oppdatere hovedverneombud";
     return { success: false, error: message };
   }
 }

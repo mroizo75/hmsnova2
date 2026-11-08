@@ -43,14 +43,19 @@ interface TripletexIntegrationProps {
     productKmId?: string | null;
     productKmNonTaxableId?: string | null;
     productMachineHoursId?: string | null;
+    salaryNormalId?: string | null;
+    salaryOt50Id?: string | null;
+    salaryOt100Id?: string | null;
+    templateProjectExternalId?: string | null;
     absenceProjectId?: string | null;
     absencePayrollTypes?: string[] | null;
   };
   activities: Activity[];
+  salaryTypes?: Activity[];
   products: Product[];
   employees: Employee[];
   txEmployees: Array<{ externalId: string; firstName?: string | null; lastName?: string | null; email?: string | null }>;
-  projects?: Array<{ id: string; name: string }>;
+  projects?: Array<{ id: string; name: string; externalProjectId?: string | null }>;
 }
 
 export function TripletexIntegration({
@@ -62,6 +67,7 @@ export function TripletexIntegration({
   lastPullAt,
   mapping,
   activities,
+  salaryTypes = [],
   products,
   employees,
   txEmployees,
@@ -261,6 +267,35 @@ export function TripletexIntegration({
                 value={mapState.productMachineHoursId ?? ""}
                 onChange={(v) => setMapState((s) => ({ ...s, productMachineHoursId: v || null }))}
                 options={products.map((p) => ({ value: p.externalId, label: p.name }))}
+              />
+              <SelectField
+                label="Timeart ordinær tid"
+                value={mapState.salaryNormalId ?? ""}
+                onChange={(v) => setMapState((s) => ({ ...s, salaryNormalId: v || null }))}
+                options={salaryTypes.map((a) => ({ value: a.externalId, label: a.name }))}
+              />
+              <SelectField
+                label="Timeart overtid 50 %"
+                value={mapState.salaryOt50Id ?? ""}
+                onChange={(v) => setMapState((s) => ({ ...s, salaryOt50Id: v || null }))}
+                options={salaryTypes.map((a) => ({ value: a.externalId, label: a.name }))}
+              />
+              <SelectField
+                label="Timeart overtid 100 %"
+                value={mapState.salaryOt100Id ?? ""}
+                onChange={(v) => setMapState((s) => ({ ...s, salaryOt100Id: v || null }))}
+                options={salaryTypes.map((a) => ({ value: a.externalId, label: a.name }))}
+              />
+              <SelectField
+                label="Malprosjekt for timepriser"
+                value={mapState.templateProjectExternalId ?? ""}
+                onChange={(v) => setMapState((s) => ({ ...s, templateProjectExternalId: v || null }))}
+                options={projects
+                  .filter((p) => p.externalProjectId)
+                  .map((p) => ({
+                    value: String(p.externalProjectId),
+                    label: p.name,
+                  }))}
               />
               <SelectField
                 label="Fraværsprosjekt (uten helsedata)"

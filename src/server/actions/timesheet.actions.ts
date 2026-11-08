@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getAuthContext, requirePermission } from "@/lib/server-authorization";
-import { enqueueAccountingJob, ensureDefaultKmProducts, ensureProjectSyncedToAccounting, refreshAccountingCatalogIfStale, refreshAccountingProjectsIfStale, requeueAccountingJob } from "@/lib/accounting/sync";
+import { enqueueAccountingJob, ensureDefaultKmProducts, ensureDefaultSalaryTypes, ensureProjectSyncedToAccounting, refreshAccountingProjectsIfStale, requeueAccountingJob } from "@/lib/accounting/sync";
 import { isAccountingEnabled } from "@/lib/accounting/factory";
 import {
   canRetrySyncJob,
@@ -13,10 +13,10 @@ import {
 } from "@/lib/accounting/sync-copy";
 import { activityIdForTimeType } from "@/lib/accounting/timesheet";
 import { canEnqueueTimesheetSync, isTimesheetEditableByEmployee } from "@/lib/time/approval";
-import { splitDayHours, type DayRules } from "@/lib/time/split-day";
+import { clocksOverlap, splitDayHours, type DayRules } from "@/lib/time/split-day";
 import { assignmentCoversDate } from "@/lib/time/resource-overlap";
 import { applyTimeBankFactor, assertTimeBankBalance, nextTimeBankBalance, pickTimeBankFactor } from "@/lib/time/timebank";
-import { filterProductsByAndQuery, filterProductsByCategory, tokenizeProductQuery, uniqueProductCategories } from "@/lib/time/product-search";
+import { filterProductsByAndQuery, groupIdsWithDescendants, tokenizeProductQuery, uniqueProductCategories } from "@/lib/time/product-search";
 import { buildKmRegistration, type CarKind } from "@/lib/time/km-product";
 import type { ProjectUsageKind, TimeEntryType } from "@prisma/client";
 
@@ -43,6 +43,8 @@ async function createDayKmLine(input: {
   defaultKmRate: number | null;
   kmAllowanceTaxable: boolean;
   syncStatus: "IDLE" | "PENDING";
+  fromAddress?: string | null;
+  toAddress?: string | null;
 }) {
   const built = buildKmRegistration({
     carKind: input.carKind,
@@ -73,6 +75,8 @@ async function createDayKmLine(input: {
       comment: input.comment,
       isPrivateCar: built.isPrivateCar,
       kmTaxable: built.kmTaxable,
+      fromAddress: input.fromAddress?.trim() || null,
+      toAddress: input.toAddress?.trim() || null,
       syncStatus: input.syncStatus,
     },
   });
@@ -157,16 +161,6 @@ export async function getDayTimesheetContext(dateIso: string, projectId?: string
   const ctx = await getAuthContext();
   if (!ctx) return { success: false as const, error: "Ikke autentisert" };
 
-  // Tripletex er master for prosjekter: synk når timeregistreringen åpnes (throttlet).
-  const [, projectSync] = await Promise.allSettled([
-    refreshAccountingCatalogIfStale(ctx.tenantId),
-    refreshAccountingProjectsIfStale(ctx.tenantId),
-  ]);
-  const projectSyncError =
-    projectSync.status === "rejected"
-      ? formatActionError(projectSync.reason, "Kunne ikke hente prosjekter fra Tripletex")
-      : null;
-
   const date = new Date(`${dateIso.slice(0, 10)}T12:00:00`);
   const [projects, entries, usage, products, tenantSettings, salaryTypes, assignments, absences, customers] =
     await Promise.all([
@@ -216,6 +210,7 @@ export async function getDayTimesheetContext(dateIso: string, projectId?: string
           accountingProvider: true,
           absenceProjectId: true,
           absencePayrollTypes: true,
+          tripletexTemplateProjectExternalId: true,
         },
       }),
       prisma.accountingSalaryType.findMany({
@@ -253,23 +248,32 @@ export async function getDayTimesheetContext(dateIso: string, projectId?: string
     ]);
 
   const suggested = assignments.find((a) => assignmentCoversDate(a, date));
-  const provider = await import("@/lib/accounting/factory").then((m) =>
-    m.getAccountingProvider(ctx.tenantId)
-  );
-  const liveActivities = provider ? await provider.listActivities().catch(() => []) : [];
+  const templateId = tenantSettings?.tripletexTemplateProjectExternalId;
+  const stampable = templateId
+    ? projects.filter((project) => project.externalProjectId !== templateId)
+    : projects;
+  const activities = await prisma.accountingActivity.findMany({
+    where: { tenantId: ctx.tenantId },
+    orderBy: { name: "asc" },
+  });
+  const productGroups = await prisma.accountingProductGroup.findMany({
+    where: { tenantId: ctx.tenantId },
+    orderBy: { name: "asc" },
+  });
 
   return {
     success: true as const,
     data: JSON.parse(
       JSON.stringify({
         date: dateIso.slice(0, 10),
-        projects: projects.map(({ parent, ...p }) => ({ ...p, parentName: parent?.name ?? null })),
-        projectSyncError,
+        projects: stampable.map(({ parent, ...p }) => ({ ...p, parentName: parent?.name ?? null })),
+        projectSyncError: null,
         entries,
         usage,
         products,
         salaryTypes: ctx.permissions.canApproveTimesheet ? salaryTypes : [],
-        activities: liveActivities,
+        activities,
+        productGroups,
         suggestedProjectId: projectId || suggested?.projectId || null,
         assignedProjects: assignments
           .filter((a) => assignmentCoversDate(a, date))
@@ -300,29 +304,79 @@ export async function getDayTimesheetContext(dateIso: string, projectId?: string
   };
 }
 
-export async function searchTimesheetProducts(query: string, category?: string | null) {
+export async function searchTimesheetProducts(
+  query: string,
+  options?: { groupExternalId?: string | null; kind?: "PRODUCT" | "MACHINE" }
+) {
   const ctx = await getAuthContext();
   if (!ctx) return [];
-  await refreshAccountingCatalogIfStale(ctx.tenantId).catch(() => undefined);
-  // Søk i hele produktregisteret i databasen (ikke bare de 400 første): alle ord må treffe.
   const words = tokenizeProductQuery(query).slice(0, 6);
+  const groupId = options?.groupExternalId || null;
+  const groupIds = groupId
+    ? groupIdsWithDescendants(
+        await prisma.accountingProductGroup.findMany({
+          where: { tenantId: ctx.tenantId },
+          select: { externalId: true, parentExternalId: true },
+        }),
+        groupId
+      )
+    : null;
+  const memberIds = groupIds
+    ? (
+        await prisma.accountingProductGroupMember.findMany({
+          where: { tenantId: ctx.tenantId, groupExternalId: { in: groupIds } },
+          select: { productExternalId: true },
+        })
+      ).map((row) => row.productExternalId)
+    : null;
   const products = await prisma.accountingProduct.findMany({
     where: {
       tenantId: ctx.tenantId,
       isInactive: false,
-      ...(category ? { categoryName: category } : {}),
+      ...(memberIds ? { externalId: { in: memberIds.length > 0 ? memberIds : ["__none__"] } } : {}),
       AND: words.map((word) => ({
         OR: [
           { name: { contains: word } },
           { number: { contains: word } },
-          { categoryName: { contains: word } },
         ],
       })),
     },
     orderBy: [{ number: "asc" }, { name: "asc" }],
-    take: 200,
+    take: 80,
   });
-  return filterProductsByAndQuery(filterProductsByCategory(products, category), query).slice(0, 40);
+  const { isMachineProduct } = await import("@/lib/time/product-search");
+  const filtered = products.filter((product) =>
+    options?.kind === "MACHINE" ? isMachineProduct(product) : options?.kind === "PRODUCT" ? !isMachineProduct(product) : true
+  );
+  return filterProductsByAndQuery(filtered, query).slice(0, 40);
+}
+
+export async function searchGeonorgeAddresses(query: string) {
+  const ctx = await getAuthContext();
+  if (!ctx) return [];
+  const q = query.trim();
+  if (q.length < 3) return [];
+  const url = new URL("https://ws.geonorge.no/adresser/v1/sok");
+  url.searchParams.set("sok", q);
+  url.searchParams.set("treffPerSide", "6");
+  url.searchParams.set("asciiKompatibel", "true");
+  const res = await fetch(url.toString(), { cache: "no-store" });
+  if (!res.ok) return [];
+  const data = (await res.json()) as {
+    adresser?: Array<{
+      adressetekst?: string;
+      postnummer?: string;
+      poststed?: string;
+      representasjonspunkt?: { lat?: number; lon?: number };
+    }>;
+  };
+  return (data.adresser ?? [])
+    .map((row) => ({
+      label: [row.adressetekst, row.postnummer, row.poststed].filter(Boolean).join(", "),
+      lat: row.representasjonspunkt?.lat ?? 0,
+      lon: row.representasjonspunkt?.lon ?? 0,
+    }))
+    .filter((row) => row.label && row.lat && row.lon);
 }
 
 /** Søk i kunderegisteret (Tripletex-cache) på navn eller org.nr. */
@@ -379,6 +433,8 @@ export async function submitDayTimesheet(input: {
     isPrivateCar?: boolean;
     kmTaxable?: boolean;
     carKind?: CarKind;
+    fromAddress?: string;
+    toAddress?: string;
   }>;
 }) {
   try {
@@ -430,6 +486,26 @@ export async function submitDayTimesheet(input: {
     if (segments.length === 0) {
       return { success: false as const, error: "Ugyldig fra–til" };
     }
+    const sameDay = await prisma.timeEntry.findMany({
+      where: {
+        tenantId: ctx.tenantId,
+        userId: ctx.userId,
+        date,
+        approvalStatus: { not: "REJECTED" },
+      },
+      select: { clockFrom: true, clockTo: true },
+    });
+    const overlaps = sameDay.some(
+      (row) => row.clockFrom && row.clockTo && clocksOverlap(input.clockFrom, input.clockTo, row.clockFrom, row.clockTo)
+    );
+    if (overlaps) {
+      return { success: false as const, error: "Tiden overlapper en registrering samme dag" };
+    }
+
+    const kmLine = (input.usageLines ?? []).find((line) => line.kind === "KM" && line.quantity > 0);
+    if (kmLine && (!kmLine.fromAddress?.trim() || !kmLine.toAddress?.trim())) {
+      return { success: false as const, error: "Kjøring krever fra- og til-adresse" };
+    }
 
     const tenant = await prisma.tenant.findUnique({
       where: { id: ctx.tenantId },
@@ -446,6 +522,7 @@ export async function submitDayTimesheet(input: {
     });
 
     const kmMapping = await ensureDefaultKmProducts(ctx.tenantId);
+    const salaryMapping = await ensureDefaultSalaryTypes(ctx.tenantId);
 
     const created = await prisma.$transaction(async (tx) => {
       const rows = [];
@@ -468,7 +545,7 @@ export async function submitDayTimesheet(input: {
             lunchMinutes,
             comment,
             billingActivityId: mapped,
-            salaryTypeId: null,
+            salaryTypeId: activityIdForTimeType(segment.timeType, salaryMapping),
             approvalStatus: "SUBMITTED",
             syncStatus: "IDLE",
           },
@@ -495,6 +572,8 @@ export async function submitDayTimesheet(input: {
             defaultKmRate: tenant?.defaultKmRate ?? null,
             kmAllowanceTaxable: Boolean(tenant?.kmAllowanceTaxable),
             syncStatus: "IDLE",
+            fromAddress: line.fromAddress,
+            toAddress: line.toAddress,
           });
           continue;
         }
@@ -557,16 +636,30 @@ export async function updateOwnTimesheetEntry(
       return { success: false as const, error: "Kommentar er påkrevd" };
     }
 
+    const comment = input.comment?.trim();
     await prisma.timeEntry.update({
       where: { id },
       data: {
-        comment: input.comment?.trim(),
+        comment,
         projectId: input.projectId,
         clockFrom: input.clockFrom,
         clockTo: input.clockTo,
         approvalStatus: "SUBMITTED",
       },
     });
+    if (comment) {
+      await prisma.timeEntry.updateMany({
+        where: {
+          tenantId: ctx.tenantId,
+          userId: entry.userId,
+          projectId: entry.projectId,
+          date: entry.date,
+          clockFrom: entry.clockFrom,
+          clockTo: entry.clockTo,
+        },
+        data: { comment },
+      });
+    }
     revalidateTimesheet();
     return { success: true as const };
   } catch (error: unknown) {
@@ -593,19 +686,26 @@ export async function getWeekTimesheetSummary(weekStartIso: string) {
   return { success: true as const, data: { entries, hours } };
 }
 
-export async function listTimesheetApprovalQueue(status?: "SUBMITTED" | "APPROVED" | "SYNC_ERROR") {
+export async function listTimesheetApprovalQueue(input?: {
+  from?: string;
+  to?: string;
+  status?: "SUBMITTED" | "APPROVED" | "SYNC_ERROR";
+}) {
   const ctx = await requirePermission("canApproveTimesheet");
+  const from = input?.from ? new Date(`${input.from.slice(0, 10)}T00:00:00`) : null;
+  const to = input?.to ? new Date(`${input.to.slice(0, 10)}T23:59:59`) : null;
   const entries = await prisma.timeEntry.findMany({
     where: {
       tenantId: ctx.tenantId,
-      approvalStatus: status ?? { in: ["SUBMITTED", "SYNC_ERROR"] },
+      ...(from && to ? { date: { gte: from, lte: to } } : {}),
+      approvalStatus: input?.status ?? { in: ["SUBMITTED", "SYNC_ERROR", "REJECTED", "APPROVED", "SYNCED"] },
     },
     include: {
       user: { select: { name: true, email: true } },
-      project: { select: { name: true, parentId: true } },
+      project: { select: { name: true, parentId: true, parent: { select: { name: true } } } },
     },
     orderBy: [{ date: "desc" }, { createdAt: "asc" }],
-    take: 200,
+    take: 1000,
   });
   const [mapping, salaryTypes] = await Promise.all([
     prisma.tenant.findUnique({
@@ -621,11 +721,120 @@ export async function listTimesheetApprovalQueue(status?: "SUBMITTED" | "APPROVE
       orderBy: { name: "asc" },
     }),
   ]);
-  const provider = await import("@/lib/accounting/factory").then((m) =>
-    m.getAccountingProvider(ctx.tenantId)
-  );
-  const activities = provider ? await provider.listActivities().catch(() => []) : [];
-  return JSON.parse(JSON.stringify({ entries, mapping, salaryTypes, activities }));
+  const activities = await prisma.accountingActivity.findMany({
+    where: { tenantId: ctx.tenantId },
+    orderBy: { name: "asc" },
+  });
+  const projects = await prisma.project.findMany({
+    where: { tenantId: ctx.tenantId, status: { in: ["ACTIVE", "PLANNING"] } },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+    take: 300,
+  });
+  const usage =
+    entries.length === 0
+      ? []
+      : await prisma.projectUsageLine.findMany({
+          where: {
+            tenantId: ctx.tenantId,
+            userId: { in: [...new Set(entries.map((entry) => entry.userId))] },
+            date: { in: entries.map((entry) => entry.date) },
+          },
+        });
+  const rows = entries.map((entry) => ({
+    ...entry,
+    project: {
+      name: entry.project.name,
+      parentName: entry.project.parent?.name ?? null,
+    },
+  }));
+  return JSON.parse(JSON.stringify({ entries: rows, usage, mapping, salaryTypes, activities, projects }));
+}
+
+export async function reviseApprovalDay(input: {
+  entryIds: string[];
+  projectId?: string;
+  clockFrom?: string;
+  clockTo?: string;
+  lunchMinutes?: number;
+  comment?: string;
+  billingActivityId?: string | null;
+  salaryTypeId?: string | null;
+  usage?: Array<{ id: string; quantity: number; fromAddress?: string; toAddress?: string }>;
+}) {
+  try {
+    const ctx = await requirePermission("canApproveTimesheet");
+    const entries = await prisma.timeEntry.findMany({
+      where: { tenantId: ctx.tenantId, id: { in: input.entryIds }, approvalStatus: { in: ["SUBMITTED", "SYNC_ERROR"] } },
+    });
+    if (entries.length === 0) return { success: false as const, error: "Ingen linjer å endre" };
+    const comment = input.comment?.trim();
+    if (comment !== undefined && comment.length < 2) {
+      return { success: false as const, error: "Kommentar er påkrevd" };
+    }
+    const first = entries[0];
+    if (!first) return { success: false as const, error: "Ingen linjer å endre" };
+    const clockFrom = input.clockFrom || first.clockFrom || "07:00";
+    const clockTo = input.clockTo || first.clockTo || "15:30";
+    const lunchMinutes = input.lunchMinutes ?? first.lunchMinutes ?? 0;
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: ctx.tenantId },
+      select: {
+        dayStartHour: true,
+        dayEndHour: true,
+        overtime50CapHours: true,
+        saturdayOt50UntilHour: true,
+        lunchBreakMinutes: true,
+      },
+    });
+    const segments = splitDayHours({
+      date: first.date,
+      clockFrom,
+      clockTo,
+      lunchMinutes,
+      rules: {
+        dayStartHour: tenant?.dayStartHour ?? 7,
+        dayEndHour: tenant?.dayEndHour ?? 15.5,
+        overtime50CapHours: tenant?.overtime50CapHours ?? 4.5,
+        saturdayOt50UntilHour: tenant?.saturdayOt50UntilHour ?? 12,
+        lunchMinutes: tenant?.lunchBreakMinutes ?? 30,
+      },
+    });
+    for (const entry of entries) {
+      const segment = segments.find((row) => row.timeType === entry.timeType);
+      await prisma.timeEntry.update({
+        where: { id: entry.id },
+        data: {
+          projectId: input.projectId || entry.projectId,
+          clockFrom,
+          clockTo,
+          lunchMinutes,
+          comment: comment ?? entry.comment,
+          hours: segment?.hours ?? entry.hours,
+          billingActivityId: input.billingActivityId !== undefined ? input.billingActivityId : entry.billingActivityId,
+          salaryTypeId: input.salaryTypeId !== undefined && input.salaryTypeId ? input.salaryTypeId : entry.salaryTypeId,
+          editedById: ctx.userId,
+          editedAt: new Date(),
+        },
+      });
+    }
+    for (const line of input.usage ?? []) {
+      if (!Number.isFinite(line.quantity) || line.quantity <= 0) continue;
+      await prisma.projectUsageLine.updateMany({
+        where: { id: line.id, tenantId: ctx.tenantId, syncStatus: { not: "SYNCED" } },
+        data: {
+          quantity: line.quantity,
+          fromAddress: line.fromAddress?.trim() || null,
+          toAddress: line.toAddress?.trim() || null,
+          projectId: input.projectId || undefined,
+        },
+      });
+    }
+    revalidateTimesheet();
+    return { success: true as const };
+  } catch (error: unknown) {
+    return { success: false as const, error: formatActionError(error, "Kunne ikke endre dagen") };
+  }
 }
 
 export async function updateTimesheetStreams(

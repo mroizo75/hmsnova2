@@ -39,11 +39,13 @@ import {
   updateUserManager,
   updateUserPosition,
   updateUserExtraRoles,
+  updateChiefSafetyRep,
   assignManagerToUsers,
 } from "@/server/actions/settings.actions";
 import { assignUserDepartment } from "@/server/actions/department.actions";
 import { getRoleDisplayName } from "@/lib/permissions";
-import { parseExtraRoles } from "@/lib/extra-roles";
+import { membershipRoles, parseExtraRoles } from "@/lib/extra-roles";
+import type { Role } from "@prisma/client";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useRefreshAfterSave } from "@/hooks/use-refresh-after-save";
@@ -60,6 +62,7 @@ interface UserManagementProps {
     managerId: string | null;
   departmentId: string | null;
   extraRoles: string | null;
+  isChiefSafetyRep?: boolean;
   user: {
       id: string;
       name: string | null;
@@ -243,6 +246,28 @@ export function UserManagement({
         variant: "destructive",
         title: "Feil",
         description: result.error || "Kunne ikke oppdatere tilleggsroller",
+      });
+    }
+    setLoading(null);
+  };
+
+  const handleChiefToggle = async (userId: string, checked: boolean) => {
+    setLoading(userId);
+    const result = await updateChiefSafetyRep(userId, checked);
+    if (result.success) {
+      toast({
+        title: checked ? "Hovedverneombud satt" : "Hovedverneombud fjernet",
+        description: checked
+          ? "Personen ser arbeidsmiljøavvik i hele virksomheten."
+          : "Personen ser bare avvik i sine verneområder.",
+        className: "bg-green-50 border-green-200",
+      });
+      await refreshAfterSave();
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Feil",
+        description: result.error || "Kunne ikke oppdatere hovedverneombud",
       });
     }
     setLoading(null);
@@ -988,6 +1013,18 @@ export function UserManagement({
                             </Select>
                             <div className="space-y-1">
                               <p className="text-[11px] text-muted-foreground">Også disse rollene. Verneombud etter AML § 6-2.</p>
+                              {membershipRoles(userTenant.role as Role, userTenant.extraRoles).includes("VERNEOMBUD") && (
+                                <label className="flex items-center gap-2 text-xs">
+                                  <Checkbox
+                                    checked={userTenant.isChiefSafetyRep === true}
+                                    disabled={loading === userTenant.userId}
+                                    onCheckedChange={(checked) =>
+                                      handleChiefToggle(userTenant.userId, checked === true)
+                                    }
+                                  />
+                                  Hovedverneombud (ser alle avvik)
+                                </label>
+                              )}
                               {(invitableRoles ?? [])
                                 .filter((role) => role !== userTenant.role && role !== "ADMIN")
                                 .map((role) => {
@@ -1013,6 +1050,9 @@ export function UserManagement({
                             {parseExtraRoles(userTenant.extraRoles, userTenant.role).map((role) => (
                               <div key={role}>{getRoleBadge(role)}</div>
                             ))}
+                            {userTenant.isChiefSafetyRep && (
+                              <Badge className="bg-green-100 text-green-800 border-green-200">Hovedverneombud</Badge>
+                            )}
                           </div>
                         )}
                       </TableCell>

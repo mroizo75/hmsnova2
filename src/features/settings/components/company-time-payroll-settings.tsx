@@ -24,6 +24,7 @@ import { hoursToClock, parseClockToHours, weekdayNormHours } from "@/lib/time/sp
 
 export type CompanyTimePayrollConfig = {
   timeRegistrationEnabled: boolean;
+  payrollInTripletex?: boolean;
   employeesCanCreateProjects: boolean;
   weeklyHoursNorm: number;
   lunchBreakMinutes: number;
@@ -379,6 +380,10 @@ export function CompanyTimePayrollSettings({
         </CardContent>
       </Card>
 
+      {config.payrollInTripletex ? (
+        <p className="text-sm text-muted-foreground">{t("payrollInTripletex")}</p>
+      ) : (
+      <>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
@@ -469,6 +474,8 @@ export function CompanyTimePayrollSettings({
           </Button>
         </CardContent>
       </Card>
+      </>
+      )}
     </div>
   );
 }

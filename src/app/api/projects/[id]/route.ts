@@ -17,6 +17,9 @@ const updateProjectSchema = z.object({
   startDate: z.string().optional().nullable(),
   endDate: z.string().optional().nullable(),
   projectManagerId: z.string().optional().nullable(),
+  parentId: z.string().optional().nullable(),
+  customerExternalId: z.string().optional().nullable(),
+  contactExternalId: z.string().optional().nullable(),
 });
 
 export async function GET(
@@ -133,6 +136,13 @@ export async function PATCH(
         }),
         ...(validatedProjectManagerId !== undefined && {
           projectManagerId: validatedProjectManagerId,
+        }),
+        ...(validated.parentId !== undefined && { parentId: validated.parentId || null }),
+        ...(validated.customerExternalId !== undefined && {
+          externalCustomerId: validated.customerExternalId || null,
+        }),
+        ...(validated.contactExternalId !== undefined && {
+          contactExternalId: validated.contactExternalId || null,
         }),
       },
     });

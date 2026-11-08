@@ -41,8 +41,23 @@ export default async function DashboardLayout({
           where: { tenantId: user.tenantId, projectManagerId: user.id },
         })
       : 0;
-    if (!isLeader && managesProject === 0) {
-      redirect("/ansatt");
+    const isSafetyRep = extraRoles.includes("VERNEOMBUD");
+    if (!isLeader && !isSafetyRep && managesProject === 0) {
+      const tenantId = user.tenantId;
+      const [membership, safetyAreas] = tenantId
+        ? await Promise.all([
+            prisma.userTenant.findUnique({
+              where: { userId_tenantId: { userId: user.id, tenantId } },
+              select: { isChiefSafetyRep: true },
+            }),
+            prisma.department.count({
+              where: { tenantId, safetyRepresentativeId: user.id },
+            }),
+          ])
+        : [null, 0];
+      if (!membership?.isChiefSafetyRep && safetyAreas === 0) {
+        redirect("/ansatt");
+      }
     }
   }
 

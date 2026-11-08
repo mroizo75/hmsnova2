@@ -36,12 +36,15 @@ export function buildTripletexProjectPayload(
     description?: string | null;
     reference?: string | null;
     contactExternalId?: string | null;
+    projectManagerExternalId?: string | null;
+    markUpOrderLines?: number | null;
+    markUpFeesEarned?: number | null;
   },
   projectManagerId?: string | null
 ): Record<string, unknown> {
   const customerId = tripletexNumericId(input.customerExternalId);
   const parentId = tripletexNumericId(input.parentExternalId);
-  const managerId = tripletexNumericId(projectManagerId);
+  const managerId = tripletexNumericId(input.projectManagerExternalId ?? projectManagerId);
   const contactId = tripletexNumericId(input.contactExternalId);
 
   const body: Record<string, unknown> = {
@@ -57,6 +60,8 @@ export function buildTripletexProjectPayload(
   if (contactId) body.contact = { id: contactId };
   if (input.description) body.description = input.description;
   if (input.reference) body.reference = input.reference;
+  if (input.markUpOrderLines != null) body.markUpOrderLines = input.markUpOrderLines;
+  if (input.markUpFeesEarned != null) body.markUpFeesEarned = input.markUpFeesEarned;
   return body;
 }
 
@@ -68,6 +73,10 @@ export function buildTripletexProjectUpdatePayload(input: {
   reference?: string | null;
   isReadyForInvoicing?: boolean;
   isClosed?: boolean;
+  customerExternalId?: string | null;
+  parentExternalId?: string | null;
+  contactExternalId?: string | null;
+  projectManagerExternalId?: string | null;
 }): Record<string, unknown> {
   const body: Record<string, unknown> = {};
   if (input.name) body.name = input.name;
@@ -77,6 +86,14 @@ export function buildTripletexProjectUpdatePayload(input: {
   if (input.reference !== undefined) body.reference = input.reference;
   if (input.isReadyForInvoicing !== undefined) body.isReadyForInvoicing = input.isReadyForInvoicing;
   if (input.isClosed !== undefined) body.isClosed = input.isClosed;
+  const customerId = tripletexNumericId(input.customerExternalId);
+  const parentId = tripletexNumericId(input.parentExternalId);
+  const contactId = tripletexNumericId(input.contactExternalId);
+  const managerId = tripletexNumericId(input.projectManagerExternalId);
+  if (customerId) body.customer = { id: customerId };
+  if (input.parentExternalId !== undefined) body.mainProject = parentId ? { id: parentId } : null;
+  if (contactId) body.contact = { id: contactId };
+  if (managerId) body.projectManager = { id: managerId };
   return body;
 }
 

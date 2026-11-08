@@ -38,3 +38,17 @@ export function getIncidentCloseBlockers(incident: IncidentCloseInput): string[]
 export function canCloseIncident(incident: IncidentCloseInput): boolean {
   return getIncidentCloseBlockers(incident).length === 0;
 }
+
+/**
+ * Gjenåpning når lukkingen var for tidlig. Effektvurderingen beholdes til ny lukking
+ * (IK-HMS § 5 nr. 7: oppfølgingen skal kunne dokumenteres).
+ */
+export function reopenedIncidentState(rootCause: string | null | undefined): {
+  status: "INVESTIGATING";
+  stage: "ROOT_CAUSE" | "UNDER_REVIEW";
+} {
+  if (rootCause?.trim()) {
+    return { status: "INVESTIGATING", stage: "ROOT_CAUSE" };
+  }
+  return { status: "INVESTIGATING", stage: "UNDER_REVIEW" };
+}

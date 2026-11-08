@@ -41,6 +41,7 @@ function DepartmentEditor({
 }) {
   const [parentId, setParentId] = useState(department.parentId ?? NONE);
   const [leaderId, setLeaderId] = useState(department.leaderId ?? NONE);
+  const [safetyRepresentativeId, setSafetyRepresentativeId] = useState(department.safetyRepresentativeId ?? NONE);
   const [error, setError] = useState<string | null>(null);
   const blocked = new Set(
     ledDepartmentIds(
@@ -59,6 +60,7 @@ function DepartmentEditor({
       isActive,
       parentId: parentId === NONE ? null : parentId,
       leaderId: leaderId === NONE ? null : leaderId,
+      safetyRepresentativeId: safetyRepresentativeId === NONE ? null : safetyRepresentativeId,
     });
     if (result.success === false) {
       setError(result.error);
@@ -76,13 +78,14 @@ function DepartmentEditor({
             {department.code ?? "Uten kode"} · {department.memberCount} ansatte
             {department.isActive ? "" : " · inaktiv"}
             {department.leaderName ? ` · Leder: ${department.leaderName}` : ""}
+            {department.safetyRepresentativeName ? ` · VO: ${department.safetyRepresentativeName}` : ""}
           </p>
         </div>
         <Button type="button" variant="outline" size="sm" className="bg-transparent" onClick={() => void save(!department.isActive)}>
           {department.isActive ? "Deaktiver" : "Aktiver"}
         </Button>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-3">
         <div className="space-y-2">
           <Label>Overordnet avdeling</Label>
           <Select value={parentId} onValueChange={setParentId}>
@@ -109,9 +112,21 @@ function DepartmentEditor({
             </SelectContent>
           </Select>
         </div>
+        <div className="space-y-2">
+          <Label>Verneombud</Label>
+          <Select value={safetyRepresentativeId} onValueChange={setSafetyRepresentativeId}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NONE}>Ingen</SelectItem>
+              {leaders.map((leader) => (
+                <SelectItem key={leader.id} value={leader.id}>{leader.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
-      <Button type="button" size="sm" onClick={() => void save()}>Lagre ledelse</Button>
+      <Button type="button" size="sm" onClick={() => void save()}>Lagre</Button>
     </div>
   );
 }
@@ -154,7 +169,7 @@ export function DepartmentsContent({
           Avdelinger
         </h1>
         <p className="mt-1 text-muted-foreground">
-          Organisasjonsenheter for personal, avvik og rapporter. Samme person kan lede flere avdelinger. Overordnet leder ser også avdelingene under.
+          Avdelingene er verneområdene du definerer selv. Et verneombud kan stå på flere områder og ser avvikene der, inkludert underavdelinger. Hovedverneombud settes på brukeren og ser alle arbeidsmiljøavvik.
         </p>
       </div>
 

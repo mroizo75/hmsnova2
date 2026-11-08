@@ -206,7 +206,7 @@ export class TripletexClient {
         ...init,
         headers: {
           Authorization: authHeader(sessionToken),
-          Accept: "application/json",
+          Accept: (init?.headers as Record<string, string> | undefined)?.Accept ?? "application/json",
           ...(init?.body ? { "Content-Type": "application/json; charset=utf-8" } : {}),
           ...init?.headers,
         },
@@ -238,6 +238,24 @@ export class TripletexClient {
     const text = await res.text();
     if (!text) return undefined as T;
     return JSON.parse(text) as T;
+  }
+
+  async requestBuffer(path: string): Promise<{ bytes: Uint8Array; contentType: string } | null> {
+    const token = await this.getSessionToken();
+    const url = path.startsWith("http") ? path : `${this.activeBaseUrl()}${path.startsWith("/") ? "" : "/"}${path}`;
+    const res = await this.fetchImpl(url, {
+      headers: {
+        Authorization: authHeader(token),
+        Accept: "*/*",
+      },
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) {
+      const body = await res.text();
+      throw new TripletexApiError(`Tripletex API-feil ${res.status}`, res.status, body);
+    }
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    return { bytes, contentType: res.headers.get("content-type") || "application/octet-stream" };
   }
 
   static clearSession(tenantId?: string) {

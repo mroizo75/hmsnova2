@@ -1,6 +1,9 @@
 import type {
   AccountingActivityDto,
   AccountingContactDto,
+  AccountingProductGroupDto,
+  AccountingProductGroupMemberDto,
+  CreateMileageAllowanceInput,
   AccountingCustomerDto,
   AccountingEmployeeDto,
   AccountingProductDto,
@@ -25,6 +28,9 @@ export interface AccountingProvider {
   createContact(input: CreateAccountingContactInput): Promise<AccountingContactDto>;
   listProducts(): Promise<AccountingProductDto[]>;
   getProduct(externalId: string): Promise<AccountingProductDto | null>;
+  listProductGroups(): Promise<AccountingProductGroupDto[]>;
+  listProductGroupMembers(): Promise<AccountingProductGroupMemberDto[]>;
+  getProductImage(externalId: string): Promise<{ bytes: Uint8Array; contentType: string } | null>;
   listActivities(): Promise<AccountingActivityDto[]>;
   listSalaryTypes(): Promise<AccountingSalaryTypeDto[]>;
   listEmployees(): Promise<AccountingEmployeeDto[]>;
@@ -35,6 +41,9 @@ export interface AccountingProvider {
   upsertTimeEntry(input: UpsertTimeEntryInput): Promise<{ externalId: string }>;
   deleteTimeEntry(externalId: string): Promise<void>;
   upsertOrderLine(input: UpsertOrderLineInput): Promise<{ orderExternalId: string; lineExternalId: string }>;
+  copyProjectPricing(sourceExternalId: string, targetExternalId: string): Promise<void>;
+  createMileageAllowance(input: CreateMileageAllowanceInput): Promise<{ externalId: string; rateTypeExternalId: string }>;
+  listMileageRateTypes(): Promise<Array<{ externalId: string; name: string }>>;
   createUnsentInvoice(input: CreateUnsentInvoiceInput): Promise<{
     invoiceId: string;
     number: string | null;

@@ -17,8 +17,20 @@ export type AccountingProductDto = {
   categoryName?: string | null;
   priceExclVat?: number | null;
   priceInclVat?: number | null;
+  imageDocumentId?: string | null;
   isStockItem: boolean;
   isInactive: boolean;
+};
+
+export type AccountingProductGroupDto = {
+  externalId: string;
+  name: string;
+  parentExternalId?: string | null;
+};
+
+export type AccountingProductGroupMemberDto = {
+  productExternalId: string;
+  groupExternalId: string;
 };
 
 export type AccountingContactDto = {
@@ -56,11 +68,18 @@ export type AccountingProjectDto = {
   reference?: string | null;
 };
 
+export type PostalAddressInput = {
+  addressLine1: string;
+  postalCode: string;
+  city: string;
+};
+
 export type CreateAccountingCustomerInput = {
   name: string;
   organizationNumber?: string | null;
   email?: string | null;
   phone?: string | null;
+  postalAddress?: PostalAddressInput | null;
 };
 
 export type CreateAccountingContactInput = {
@@ -91,9 +110,12 @@ export type CreateAccountingProjectInput = {
   customerExternalId?: string | null;
   parentExternalId?: string | null;
   contactExternalId?: string | null;
+  projectManagerExternalId?: string | null;
   description?: string | null;
   location?: string | null;
   reference?: string | null;
+  markUpOrderLines?: number | null;
+  markUpFeesEarned?: number | null;
 };
 
 export type UpdateAccountingProjectInput = {
@@ -104,6 +126,20 @@ export type UpdateAccountingProjectInput = {
   isClosed?: boolean;
   description?: string | null;
   reference?: string | null;
+  customerExternalId?: string | null;
+  parentExternalId?: string | null;
+  contactExternalId?: string | null;
+  projectManagerExternalId?: string | null;
+};
+
+export type CreateMileageAllowanceInput = {
+  employeeExternalId: string;
+  projectExternalId: string;
+  date: string;
+  km: number;
+  fromAddress: string;
+  toAddress: string;
+  rateTypeExternalId?: string | null;
 };
 
 export type UpsertTimeEntryInput = {

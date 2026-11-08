@@ -5,6 +5,9 @@ import type {
   AccountingCustomerDto,
   AccountingEmployeeDto,
   AccountingProductDto,
+  AccountingProductGroupDto,
+  AccountingProductGroupMemberDto,
+  CreateMileageAllowanceInput,
   AccountingSalaryTypeDto,
   AccountingProjectDto,
   CreateAccountingContactInput,
@@ -22,6 +25,9 @@ import { paginatedGet, TripletexClient } from "./client";
 import {
   buildTripletexOrderLinePayload,
   buildTripletexOrderPayload,
+  buildTripletexCustomerBody,
+  buildTripletexMileagePayload,
+  buildTripletexProjectOrderLinePayload,
 } from "./order-payload";
 import { buildTripletexProjectPayload, buildTripletexProjectUpdatePayload } from "./project-payload";
 import { buildTripletexTimesheetPayload } from "./timesheet-payload";
@@ -44,6 +50,7 @@ type TxProduct = TxId & {
   priceIncludingVatCurrency?: number;
   isStockItem?: boolean;
   isInactive?: boolean;
+  image?: { id?: number };
 };
 type TxContact = TxId & {
   firstName?: string;
@@ -90,7 +97,23 @@ function idStr(value?: number | string | null): string {
 const PROJECT_FIELDS =
   "id,name,number,description,startDate,endDate,isClosed,isReadyForInvoicing,isOffer,reference,mainProject(id),customer(id,name),contact(id),deliveryAddress(addressLine1)";
 const PRODUCT_FIELDS =
-  "id,name,number,priceExcludingVatCurrency,priceIncludingVatCurrency,productUnit(id,name),isStockItem,isInactive";
+  "id,name,number,priceExcludingVatCurrency,priceIncludingVatCurrency,productUnit(id,name),isStockItem,isInactive,image(id)";
+
+function mapTxProduct(p: TxProduct): AccountingProductDto {
+  return {
+    externalId: idStr(p.id),
+    name: p.name ?? "",
+    number: p.number ?? null,
+    unit: p.productUnit?.name ?? null,
+    categoryExternalId: p.productCategory?.id != null ? idStr(p.productCategory.id) : null,
+    categoryName: p.productCategory?.name ?? null,
+    priceExclVat: p.priceExcludingVatCurrency ?? null,
+    priceInclVat: p.priceIncludingVatCurrency ?? null,
+    imageDocumentId: p.image?.id != null ? idStr(p.image.id) : null,
+    isStockItem: Boolean(p.isStockItem),
+    isInactive: Boolean(p.isInactive),
+  };
+}
 
 function mapTxProject(p: TxProject): AccountingProjectDto | null {
   const externalId = idStr(p.id);
@@ -177,18 +200,7 @@ export class TripletexAdapter implements AccountingProvider {
       "/product?isInactive=false",
       PRODUCT_FIELDS
     );
-    return rows.map((p) => ({
-      externalId: idStr(p.id),
-      name: p.name ?? "",
-      number: p.number ?? null,
-      unit: p.productUnit?.name ?? null,
-      categoryExternalId: p.productCategory?.id != null ? idStr(p.productCategory.id) : null,
-      categoryName: p.productCategory?.name ?? null,
-      priceExclVat: p.priceExcludingVatCurrency ?? null,
-      priceInclVat: p.priceIncludingVatCurrency ?? null,
-      isStockItem: Boolean(p.isStockItem),
-      isInactive: Boolean(p.isInactive),
-    }));
+    return rows.map((p) => mapTxProduct(p));
   }
 
   async getProduct(externalId: string): Promise<AccountingProductDto | null> {
@@ -197,31 +209,11 @@ export class TripletexAdapter implements AccountingProvider {
     );
     const p = data.value;
     if (!p?.id) return null;
-    return {
-      externalId: idStr(p.id),
-      name: p.name ?? "",
-      number: p.number ?? null,
-      unit: p.productUnit?.name ?? null,
-      categoryExternalId: p.productCategory?.id != null ? idStr(p.productCategory.id) : null,
-      categoryName: p.productCategory?.name ?? null,
-      priceExclVat: p.priceExcludingVatCurrency ?? null,
-      priceInclVat: p.priceIncludingVatCurrency ?? null,
-      isStockItem: Boolean(p.isStockItem),
-      isInactive: Boolean(p.isInactive),
-    };
+    return mapTxProduct(p);
   }
 
   async createCustomer(input: CreateAccountingCustomerInput): Promise<AccountingCustomerDto> {
-    const body: Record<string, unknown> = {
-      name: input.name,
-      isCustomer: true,
-    };
-    if (input.organizationNumber) body.organizationNumber = input.organizationNumber.replace(/\s/g, "");
-    if (input.email) {
-      body.email = input.email;
-      body.invoiceEmail = input.email;
-    }
-    if (input.phone) body.phoneNumber = input.phone;
+    const body = buildTripletexCustomerBody(input);
 
     const created = await this.client.request<TxValue<TxCustomer>>("/customer", {
       method: "POST",
@@ -348,7 +340,10 @@ export class TripletexAdapter implements AccountingProvider {
 
   async createProject(input: CreateAccountingProjectInput): Promise<{ externalId: string; number?: string }> {
     const who = await this.testConnection();
-    const body = buildTripletexProjectPayload(input, who.employeeId);
+    const body = buildTripletexProjectPayload(
+      input,
+      input.projectManagerExternalId ?? who.employeeId
+    );
     const created = await this.client.request<TxValue<TxId & { number?: string }>>("/project", {
       method: "POST",
       body: JSON.stringify(body),
@@ -440,50 +435,188 @@ export class TripletexAdapter implements AccountingProvider {
   }
 
   async upsertOrderLine(input: UpsertOrderLineInput): Promise<{ orderExternalId: string; lineExternalId: string }> {
-    let orderId = input.orderExternalId;
-    if (!orderId) {
-      const created = await this.client.request<TxValue<TxId>>("/order", {
-        method: "POST",
-        body: JSON.stringify(
-          buildTripletexOrderPayload({
-            customerExternalId: input.customerExternalId,
-            projectExternalId: input.projectExternalId,
-            orderDate: input.orderDate,
-            deliveryDate: input.orderDate,
-          })
-        ),
-      });
-      orderId = idStr(created.value?.id);
-      if (!orderId) throw new Error("Tripletex returnerte ikke ordre-ID");
-    }
+    const body = buildTripletexProjectOrderLinePayload({
+      projectExternalId: input.projectExternalId,
+      productExternalId: input.productExternalId,
+      date: input.orderDate,
+      count: input.count,
+      description: input.description,
+      unitPriceExclVat: input.unitPriceExclVat,
+    });
 
     if (input.existingExternalId) {
-      await this.client.request(`/order/orderline/${input.existingExternalId}`, {
+      await this.client.request(`/project/orderline/${input.existingExternalId}`, {
         method: "PUT",
         body: JSON.stringify({
           count: input.count,
           description: input.description ?? undefined,
           unitPriceExcludingVatCurrency: input.unitPriceExclVat ?? undefined,
+          isChargeable: true,
         }),
       });
-      return { orderExternalId: orderId, lineExternalId: input.existingExternalId };
+      return { orderExternalId: input.projectExternalId, lineExternalId: input.existingExternalId };
     }
 
-    const line = await this.client.request<TxValue<TxId>>("/order/orderline", {
+    const line = await this.client.request<TxValue<TxId>>("/project/orderline", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+    const lineId = idStr(line.value?.id);
+    if (!lineId) throw new Error("Tripletex returnerte ikke prosjekt-ordrelinje");
+    return { orderExternalId: input.projectExternalId, lineExternalId: lineId };
+  }
+
+  async listProductGroups(): Promise<AccountingProductGroupDto[]> {
+    try {
+      const rows = await paginatedGet<TxId & { name?: string; parentGroup?: TxId }>(
+        this.client,
+        "/product/group",
+        "id,name,parentGroup(id)"
+      );
+      return rows
+        .filter((row) => row.id && row.name)
+        .map((row) => ({
+          externalId: idStr(row.id),
+          name: row.name ?? "",
+          parentExternalId: row.parentGroup?.id != null ? idStr(row.parentGroup.id) : null,
+        }));
+    } catch {
+      return [];
+    }
+  }
+
+  async listProductGroupMembers(): Promise<AccountingProductGroupMemberDto[]> {
+    try {
+      const rows = await paginatedGet<TxId & { product?: TxId; productGroup?: TxId }>(
+        this.client,
+        "/product/groupRelation",
+        "id,product(id),productGroup(id)"
+      );
+      return rows
+        .filter((row) => row.product?.id && row.productGroup?.id)
+        .map((row) => ({
+          productExternalId: idStr(row.product?.id),
+          groupExternalId: idStr(row.productGroup?.id),
+        }));
+    } catch {
+      return [];
+    }
+  }
+
+  async getProductImage(externalId: string): Promise<{ bytes: Uint8Array; contentType: string } | null> {
+    const product = await this.getProduct(externalId);
+    if (!product?.imageDocumentId) return null;
+    return this.client.requestBuffer(`/document/${product.imageDocumentId}/content`);
+  }
+
+  async listMileageRateTypes(): Promise<Array<{ externalId: string; name: string }>> {
+    const rows = await paginatedGet<TxId & { name?: string; description?: string }>(
+      this.client,
+      "/travelExpense/rate",
+      "id,name,description"
+    );
+    return rows
+      .filter((row) => row.id)
+      .map((row) => ({
+        externalId: idStr(row.id),
+        name: row.name || row.description || "Kjøresats",
+      }));
+  }
+
+  async createMileageAllowance(
+    input: CreateMileageAllowanceInput
+  ): Promise<{ externalId: string; rateTypeExternalId: string }> {
+    let rateTypeId = input.rateTypeExternalId;
+    if (!rateTypeId) {
+      const rates = await this.listMileageRateTypes();
+      const car =
+        rates.find((row) => /bil|km|kjøring|kjoring/i.test(row.name)) ?? rates[0];
+      if (!car) throw new Error("Fant ingen kjøresats i Tripletex");
+      rateTypeId = car.externalId;
+    }
+    const created = await this.client.request<TxValue<TxId>>("/travelExpense", {
       method: "POST",
       body: JSON.stringify(
-        buildTripletexOrderLinePayload({
-          orderId,
-          productExternalId: input.productExternalId,
-          count: input.count,
-          description: input.description,
-          unitPriceExclVat: input.unitPriceExclVat,
+        buildTripletexMileagePayload({
+          employeeExternalId: input.employeeExternalId,
+          projectExternalId: input.projectExternalId,
+          rateTypeExternalId: rateTypeId,
+          date: input.date,
+          km: input.km,
+          fromAddress: input.fromAddress,
+          toAddress: input.toAddress,
         })
       ),
     });
-    const lineId = idStr(line.value?.id);
-    if (!lineId) throw new Error("Tripletex returnerte ikke ordrelinje-ID");
-    return { orderExternalId: orderId, lineExternalId: lineId };
+    const id = idStr(created.value?.id);
+    if (!id) throw new Error("Tripletex returnerte ikke reiseregning");
+    return { externalId: id, rateTypeExternalId: rateTypeId };
+  }
+
+  async copyProjectPricing(sourceExternalId: string, targetExternalId: string): Promise<void> {
+    const targetId = Number(targetExternalId);
+    const sourceQuery = encodeURIComponent(sourceExternalId);
+    const [rates, specific, activities, template] = await Promise.all([
+      paginatedGet<Record<string, unknown>>(
+        this.client,
+        `/project/hourlyRates?projectId=${sourceQuery}`,
+        "id,activity(id),employee(id),hourlyRate,hourlyCost,startDate"
+      ).catch(() => []),
+      paginatedGet<Record<string, unknown>>(
+        this.client,
+        `/project/hourlyRates/projectSpecificRates?projectId=${sourceQuery}`,
+        "id,activity(id),employee(id),hourlyRate,hourlyCost,startDate"
+      ).catch(() => []),
+      paginatedGet<Record<string, unknown>>(
+        this.client,
+        `/project/projectActivity?projectId=${sourceQuery}`,
+        "id,activity(id),startDate,endDate"
+      ).catch(() => []),
+      this.client
+        .request<TxValue<Record<string, unknown>>>(`/project/template/${sourceExternalId}?fields=markUpOrderLines,markUpFeesEarned`)
+        .catch(() => null),
+    ]);
+
+    const markup = template?.value;
+    if (markup && (markup.markUpOrderLines != null || markup.markUpFeesEarned != null)) {
+      await this.client.request(`/project/${targetExternalId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          ...(markup.markUpOrderLines != null ? { markUpOrderLines: markup.markUpOrderLines } : {}),
+          ...(markup.markUpFeesEarned != null ? { markUpFeesEarned: markup.markUpFeesEarned } : {}),
+        }),
+      });
+    }
+
+    const retarget = (row: Record<string, unknown>) => {
+      const next: Record<string, unknown> = { project: { id: targetId } };
+      if (row.activity) next.activity = row.activity;
+      if (row.employee) next.employee = row.employee;
+      if (row.hourlyRate != null) next.hourlyRate = row.hourlyRate;
+      if (row.hourlyCost != null) next.hourlyCost = row.hourlyCost;
+      if (row.startDate) next.startDate = row.startDate;
+      if (row.endDate) next.endDate = row.endDate;
+      return next;
+    };
+
+    if (rates.length > 0) {
+      await this.client.request("/project/hourlyRates/list", {
+        method: "POST",
+        body: JSON.stringify(rates.map(retarget)),
+      });
+    }
+    if (specific.length > 0) {
+      await this.client.request("/project/hourlyRates/projectSpecificRates/list", {
+        method: "POST",
+        body: JSON.stringify(specific.map(retarget)),
+      });
+    }
+    if (activities.length > 0) {
+      await this.client.request("/project/projectActivity/list", {
+        method: "POST",
+        body: JSON.stringify(activities.map(retarget)),
+      });
+    }
   }
 
   async createUnsentInvoice(input: CreateUnsentInvoiceInput): Promise<{

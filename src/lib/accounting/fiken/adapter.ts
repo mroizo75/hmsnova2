@@ -45,6 +45,15 @@ export class FikenAccountingAdapter implements AccountingProvider {
   getProduct(): never {
     throw new AccountingProviderNotImplementedError("Fiken");
   }
+  listProductGroups(): never {
+    throw new AccountingProviderNotImplementedError("Fiken");
+  }
+  listProductGroupMembers(): never {
+    throw new AccountingProviderNotImplementedError("Fiken");
+  }
+  getProductImage(): never {
+    throw new AccountingProviderNotImplementedError("Fiken");
+  }
   listActivities(): never {
     throw new AccountingProviderNotImplementedError("Fiken");
   }
@@ -73,6 +82,15 @@ export class FikenAccountingAdapter implements AccountingProvider {
     throw new AccountingProviderNotImplementedError("Fiken");
   }
   upsertOrderLine(): never {
+    throw new AccountingProviderNotImplementedError("Fiken");
+  }
+  copyProjectPricing(): never {
+    throw new AccountingProviderNotImplementedError("Fiken");
+  }
+  createMileageAllowance(): never {
+    throw new AccountingProviderNotImplementedError("Fiken");
+  }
+  listMileageRateTypes(): never {
     throw new AccountingProviderNotImplementedError("Fiken");
   }
   createUnsentInvoice(): never {

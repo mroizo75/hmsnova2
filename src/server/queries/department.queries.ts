@@ -14,6 +14,8 @@ export type DepartmentRow = {
   parentId: string | null;
   leaderId: string | null;
   leaderName: string | null;
+  safetyRepresentativeId: string | null;
+  safetyRepresentativeName: string | null;
 };
 
 export async function leaderDepartmentIds(
@@ -66,6 +68,7 @@ export async function fetchDepartments(opts?: { includeInactive?: boolean }): Pr
     include: {
       _count: { select: { memberships: true } },
       leader: { select: { name: true, email: true } },
+      safetyRepresentative: { select: { name: true, email: true } },
     },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
   });
@@ -80,5 +83,8 @@ export async function fetchDepartments(opts?: { includeInactive?: boolean }): Pr
     parentId: department.parentId,
     leaderId: department.leaderId,
     leaderName: department.leader?.name ?? department.leader?.email ?? null,
+    safetyRepresentativeId: department.safetyRepresentativeId,
+    safetyRepresentativeName:
+      department.safetyRepresentative?.name ?? department.safetyRepresentative?.email ?? null,
   }));
 }

@@ -57,6 +57,7 @@ export async function GET(request: NextRequest) {
             overtime40Multiplier: true,
             overtime50Multiplier: true,
             overtime100Multiplier: true,
+            accountingProvider: true,
           },
         }),
         prisma.timeEntry.findMany({
@@ -150,6 +151,7 @@ export async function GET(request: NextRequest) {
         overtime40Multiplier: tenant.overtime40Multiplier ?? 1.4,
         overtime50Multiplier: tenant.overtime50Multiplier ?? 1.5,
         overtime100Multiplier: tenant.overtime100Multiplier ?? 2,
+        payrollInTripletex: tenant.accountingProvider === "TRIPLETEX",
       },
     };
 

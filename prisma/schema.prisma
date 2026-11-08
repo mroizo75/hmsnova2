@@ -92,6 +92,7 @@ model User {
   tenants                         UserTenant[]
   managedUserTenants              UserTenant[]                   @relation("UserTenantManager") // Ansatte denne brukeren er nærmeste leder for
   ledDepartments                  Department[]                   @relation("DepartmentLeader")
+  safetyDepartments               Department[]                   @relation("DepartmentSafetyRep")
   incidentComments                IncidentComment[]            @relation("IncidentCommentAuthor")
   blogPosts                       BlogPost[] // Blogg-artikler skrevet av bruker
   passwordResetTokens             PasswordResetToken[]
@@ -394,6 +395,11 @@ model Tenant {
   tripletexActivityNormalId           String?
   tripletexActivityOt50Id             String?
   tripletexActivityOt100Id            String?
+  tripletexSalaryNormalId             String?
+  tripletexSalaryOt50Id               String?
+  tripletexSalaryOt100Id              String?
+  tripletexMileageRateTypeId          String?
+  tripletexTemplateProjectExternalId  String?
   tripletexProductKmId                String?
   tripletexProductKmNonTaxableId      String? // Km uten skattbar sats (krav: skattbar vs ikke skattbar)
   tripletexProductMachineHoursId      String?
@@ -403,6 +409,9 @@ model Tenant {
   accountingProducts                  AccountingProduct[]
   accountingContacts                  AccountingContact[]
   accountingSalaryTypes               AccountingSalaryType[]
+  accountingActivities                AccountingActivity[]
+  accountingProductGroups             AccountingProductGroup[]
+  accountingProductGroupMembers       AccountingProductGroupMember[]
   accountingSyncJobs                  AccountingSyncJob[]
   projectUsageLines                   ProjectUsageLine[]
   projectInvoices                     ProjectInvoice[]
@@ -872,6 +881,9 @@ model Department {
   parentId  String?
   /// Avdelingsleder. Samme person kan lede flere avdelinger.
   leaderId  String?
+  /// Verneombud for området. AML § 6-1 og forskrift om organisering, ledelse og medvirkning § 3-1.
+  /// Samme person kan være verneombud for flere områder, slik som ett VO for Bergen og Haugesund.
+  safetyRepresentativeId String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -879,6 +891,7 @@ model Department {
   parent       Department?  @relation("DepartmentTree", fields: [parentId], references: [id], onDelete: SetNull)
   children     Department[] @relation("DepartmentTree")
   leader       User?        @relation("DepartmentLeader", fields: [leaderId], references: [id], onDelete: SetNull)
+  safetyRepresentative User? @relation("DepartmentSafetyRep", fields: [safetyRepresentativeId], references: [id], onDelete: SetNull)
   memberships  UserTenant[]
   incidents    Incident[]
 
@@ -886,6 +899,7 @@ model Department {
   @@index([tenantId])
   @@index([parentId])
   @@index([leaderId])
+  @@index([safetyRepresentativeId])
 }
 
 /// AML § 14-9: fast er hovedregelen. Skoleungdom er tidsbegrenset elevjobb.
@@ -957,6 +971,8 @@ model UserTenant {
   /// Tilleggsroller utover hovedrollen i `role`. Kommaseparert, f.eks. "HMS,VERNEOMBUD".
   /// Verneombud registreres etter AML § 6-2. HMS-ansvarlig etter AML § 3-1.
   extraRoles String? @db.VarChar(255)
+  /// AML § 6-1: hovedverneombud samordner verneombudene og ser arbeidsmiljøavvik i hele virksomheten.
+  isChiefSafetyRep Boolean @default(false)
 
   // Tenant-spesifikke brukerinnstillinger (kan være ulike per tenant)
   displayName String? // Visningsnavn i denne tenanten (kan være annerledes enn User.name)
@@ -5149,6 +5165,9 @@ model ProjectUsageLine {
   comment     String?          @db.Text
   isPrivateCar Boolean         @default(false)
   kmTaxable   Boolean          @default(false)
+  fromAddress String?
+  toAddress   String?
+  travelExternalId String?
   externalId  String?
   syncStatus  AccountingSyncStatus @default(IDLE)
   invoicedAt  DateTime?
@@ -5213,13 +5232,53 @@ model AccountingProduct {
   priceInclVat     Float?
   isStockItem      Boolean  @default(false)
   isInactive       Boolean  @default(false)
+  imageDocumentId  String?
   updatedAt        DateTime @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, externalId])
   @@index([tenantId])
-  @@index([name])
+}
+
+model AccountingActivity {
+  id         String   @id @default(cuid())
+  tenantId   String
+  externalId String
+  name       String
+  number     String?
+  updatedAt  DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, externalId])
+  @@index([tenantId])
+}
+
+model AccountingProductGroup {
+  id               String   @id @default(cuid())
+  tenantId         String
+  externalId       String
+  name             String
+  parentExternalId String?
+  updatedAt        DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, externalId])
+  @@index([tenantId])
+}
+
+model AccountingProductGroupMember {
+  id                 String @id @default(cuid())
+  tenantId           String
+  productExternalId  String
+  groupExternalId    String
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, productExternalId, groupExternalId])
+  @@index([tenantId, groupExternalId])
 }
 
 model AccountingSyncJob {

@@ -568,7 +568,6 @@ export function ReportIncidentForm({
             id="images"
             type="file"
             accept="image/*"
-            capture="environment"
             multiple
             onChange={handleImageChange}
             disabled={isSubmitting || imageFiles.length >= 5}

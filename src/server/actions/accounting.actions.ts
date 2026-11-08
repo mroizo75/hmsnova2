@@ -74,6 +74,10 @@ export async function getAccountingSettings() {
       tripletexProductKmId: true,
       tripletexProductKmNonTaxableId: true,
       tripletexProductMachineHoursId: true,
+      tripletexSalaryNormalId: true,
+      tripletexSalaryOt50Id: true,
+      tripletexSalaryOt100Id: true,
+      tripletexTemplateProjectExternalId: true,
       accountingLastPullAt: true,
       timeRegistrationEnabled: true,
       absenceProjectId: true,
@@ -89,12 +93,16 @@ export async function getAccountingSettings() {
     await refreshAccountingCatalogIfStale(ctx.tenantId, 60_000).catch(() => undefined);
   }
 
-  const [products, activities, txEmployees, employees, projects] = await Promise.all([
+  const [products, activities, salaryTypes, txEmployees, employees, projects] = await Promise.all([
     prisma.accountingProduct.findMany({
       where: { tenantId: ctx.tenantId, isInactive: false },
       orderBy: { name: "asc" },
     }),
     provider ? provider.listActivities().catch(() => []) : Promise.resolve([]),
+    prisma.accountingSalaryType.findMany({
+      where: { tenantId: ctx.tenantId, isInactive: false },
+      orderBy: { name: "asc" },
+    }),
     provider ? provider.listEmployees().catch(() => []) : Promise.resolve([]),
     prisma.userTenant.findMany({
       where: { tenantId: ctx.tenantId },
@@ -102,7 +110,7 @@ export async function getAccountingSettings() {
     }),
     prisma.project.findMany({
       where: { tenantId: ctx.tenantId },
-      select: { id: true, name: true, isAbsenceProject: true },
+      select: { id: true, name: true, isAbsenceProject: true, externalProjectId: true },
       orderBy: { name: "asc" },
       take: 200,
     }),
@@ -115,6 +123,7 @@ export async function getAccountingSettings() {
       connected: isAccountingEnabled(tenant?.accountingProvider),
       products,
       activities,
+      salaryTypes,
       txEmployees,
       employees: employees.map((e) => ({
         userId: e.userId,
@@ -259,6 +268,10 @@ export async function saveTripletexMapping(input: {
   productMachineHoursId?: string | null;
   absenceProjectId?: string | null;
   absencePayrollTypes?: string[] | null;
+  salaryNormalId?: string | null;
+  salaryOt50Id?: string | null;
+  salaryOt100Id?: string | null;
+  templateProjectExternalId?: string | null;
 }) {
   try {
     const ctx = await requirePermission("canUpdateSettings");
@@ -283,6 +296,10 @@ export async function saveTripletexMapping(input: {
         tripletexProductMachineHoursId: input.productMachineHoursId || null,
         absenceProjectId,
         absencePayrollTypes: input.absencePayrollTypes ?? undefined,
+        tripletexSalaryNormalId: input.salaryNormalId || null,
+        tripletexSalaryOt50Id: input.salaryOt50Id || null,
+        tripletexSalaryOt100Id: input.salaryOt100Id || null,
+        tripletexTemplateProjectExternalId: input.templateProjectExternalId || null,
       },
     });
     if (absenceProjectId) {
@@ -348,6 +365,44 @@ export async function listCachedProducts(query?: string) {
   return filterProductsByAndQuery(products, query ?? "").slice(0, 80);
 }
 
+export async function listFieldJobOptions() {
+  const ctx = await getAuthContext();
+  if (!ctx) return { managers: [], templates: [], defaultTemplateId: null as string | null };
+  const [managers, templates, tenant] = await Promise.all([
+    prisma.userTenant.findMany({
+      where: { tenantId: ctx.tenantId, externalEmployeeId: { not: null } },
+      include: { user: { select: { name: true, email: true } } },
+      orderBy: { user: { name: "asc" } },
+    }),
+    prisma.project.findMany({
+      where: { tenantId: ctx.tenantId, externalProjectId: { not: null } },
+      select: { name: true, externalProjectId: true },
+      orderBy: { name: "asc" },
+      take: 200,
+    }),
+    prisma.tenant.findUnique({
+      where: { id: ctx.tenantId },
+      select: { tripletexTemplateProjectExternalId: true },
+    }),
+  ]);
+  const defaultTemplateId = tenant?.tripletexTemplateProjectExternalId ?? null;
+  const ordered = [...templates].sort((a, b) => {
+    if (a.externalProjectId === defaultTemplateId) return -1;
+    if (b.externalProjectId === defaultTemplateId) return 1;
+    return a.name.localeCompare(b.name, "nb");
+  });
+  return {
+    managers: managers.map((row) => ({
+      userId: row.userId,
+      name: row.user.name || row.user.email,
+    })),
+    templates: ordered
+      .filter((row): row is { name: string; externalProjectId: string } => Boolean(row.externalProjectId))
+      .map((row) => ({ externalId: row.externalProjectId, name: row.name })),
+    defaultTemplateId,
+  };
+}
+
 export async function createFieldJob(input: {
   name: string;
   customerExternalId?: string;
@@ -358,6 +413,8 @@ export async function createFieldJob(input: {
   contactExternalId?: string;
   reference?: string;
   startDate?: string;
+  projectManagerId?: string;
+  priceTemplateExternalId?: string;
 }) {
   try {
     const ctx = await getAuthContext();
@@ -427,6 +484,7 @@ export async function createFieldJob(input: {
         externalCustomerId,
         parentId,
         contactExternalId: input.contactExternalId || null,
+        projectManagerId: input.projectManagerId || null,
         createdById: ctx.userId,
       },
     });
@@ -437,7 +495,10 @@ export async function createFieldJob(input: {
         entityType: "Project",
         entityId: project.id,
         action: "CREATE_PROJECT",
-        payload: { customerExternalId: externalCustomerId },
+        payload: {
+          customerExternalId: externalCustomerId,
+          priceTemplateExternalId: input.priceTemplateExternalId || null,
+        },
       });
     }
 

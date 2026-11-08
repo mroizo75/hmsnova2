@@ -58,6 +58,8 @@ export interface TimeRegistrationReportConfig {
   overtime40Multiplier: number;
   overtime50Multiplier: number;
   overtime100Multiplier: number;
+  /** Når Tripletex er på, skal Excel ikke regne kroner fra Nova-satser. */
+  payrollInTripletex?: boolean;
 }
 
 export interface TimeRegistrationReportData {
@@ -225,7 +227,8 @@ export async function generateTimeRegistrationExcel(
     fgColor: { argb: "FFE0E0E0" },
   };
 
-  const defaultKmRateForSheet = config?.defaultKmRate ?? 4.5;
+  const payrollInTripletex = config?.payrollInTripletex === true;
+  const defaultKmRateForSheet = payrollInTripletex ? null : (config?.defaultKmRate ?? 4.5);
   for (const e of mileageEntries) {
     const name =
       userDisplayNames[e.user.id] ||
@@ -238,19 +241,21 @@ export async function generateTimeRegistrationExcel(
       project: e.project.name,
       code: e.project.code || "",
       km: Math.round(e.kilometers),
-      rate: e.ratePerKm ?? "",
-      amount: Math.round(
-        e.amount ?? e.kilometers * (e.ratePerKm ?? defaultKmRateForSheet)
-      ),
+      rate: payrollInTripletex ? "" : (e.ratePerKm ?? ""),
+      amount: payrollInTripletex
+        ? ""
+        : Math.round(e.amount ?? e.kilometers * (e.ratePerKm ?? defaultKmRateForSheet ?? 0)),
       comment: e.comment || "",
     });
   }
 
-  const totalAmount = mileageEntries.reduce(
-    (s, e) =>
-      s + (e.amount ?? e.kilometers * (e.ratePerKm ?? defaultKmRateForSheet)),
-    0
-  );
+  const totalAmount = payrollInTripletex
+    ? 0
+    : mileageEntries.reduce(
+        (s, e) =>
+          s + (e.amount ?? e.kilometers * (e.ratePerKm ?? defaultKmRateForSheet ?? 0)),
+        0
+      );
   const totalKm = mileageEntries.reduce((s, e) => s + e.kilometers, 0);
   mileageSheet.addRow([]);
   mileageSheet.addRow([
@@ -274,9 +279,9 @@ export async function generateTimeRegistrationExcel(
     },
   });
 
-  const rate = config?.defaultHourlyRate ?? 0;
+  const rate = payrollInTripletex ? 0 : (config?.defaultHourlyRate ?? 0);
   const taxPercent = config?.approximateTaxPercent ?? 25;
-  const defaultKmRate = config?.defaultKmRate ?? 4.5;
+  const defaultKmRate = payrollInTripletex ? 0 : (config?.defaultKmRate ?? 4.5);
   const kmAllowanceTaxable = config?.kmAllowanceTaxable ?? false;
   const mult40 = config?.overtime40Multiplier ?? 1.4;
   const mult50 = config?.overtime50Multiplier ?? 1.5;
@@ -339,10 +344,12 @@ export async function generateTimeRegistrationExcel(
         : 0;
 
     const userMileageEntries = mileageEntries.filter((e) => e.user.id === uid);
-    const kmAmount = userMileageEntries.reduce(
-      (s, e) => s + (e.amount ?? e.kilometers * (e.ratePerKm ?? defaultKmRate)),
-      0
-    );
+    const kmAmount = payrollInTripletex
+      ? 0
+      : userMileageEntries.reduce(
+          (s, e) => s + (e.amount ?? e.kilometers * (e.ratePerKm ?? defaultKmRate)),
+          0
+        );
     const skattepliktigKmAmount = kmAllowanceTaxable
       ? userMileageEntries.reduce(
           (s, e) => {
@@ -412,7 +419,13 @@ export async function generateTimeRegistrationExcel(
     });
   }
 
-  if (rate === 0) {
+  if (payrollInTripletex) {
+    payrollSheet.addRow([]);
+    payrollSheet.addRow([
+      "",
+      "Lønn og kjøregodtgjørelse styres i Tripletex. Dette arket viser bare timer.",
+    ]);
+  } else if (rate === 0) {
     payrollSheet.addRow([]);
     payrollSheet.addRow([
       "",
@@ -429,7 +442,8 @@ export async function generateTimeRegistrationPdf(
 ): Promise<Buffer> {
   const { generateBrandedPdf } = await import("@/lib/pdf-brand");
   const { tenantName, dateRange, timeEntries, mileageEntries, userDisplayNames, filterSummary } = data;
-  const defaultKmRate = data.config?.defaultKmRate ?? 4.5;
+  const payrollInTripletex = data.config?.payrollInTripletex === true;
+  const defaultKmRate = payrollInTripletex ? 0 : (data.config?.defaultKmRate ?? 4.5);
 
   const periodStr = `${format(dateRange.from, "d. MMM yyyy", { locale: nb })} – ${format(dateRange.to, "d. MMM yyyy", { locale: nb })}`;
   const subtitle = filterSummary
@@ -457,7 +471,7 @@ export async function generateTimeRegistrationPdf(
 
   const kmRows = mileageEntries.map((e) => {
     const name = userDisplayNames[e.user.id] || e.user.name || e.user.email || "–";
-    const amt = e.amount ?? e.kilometers * (e.ratePerKm ?? defaultKmRate);
+    const amt = payrollInTripletex ? 0 : (e.amount ?? e.kilometers * (e.ratePerKm ?? defaultKmRate));
     totalKm += e.kilometers;
     totalKmAmount += amt;
     return [

@@ -169,7 +169,7 @@ export function TimeRegistrationContent({
           )}
         </TabsList>
 
-        <TabsContent value="day">
+        <TabsContent value="day" forceMount className="data-[state=inactive]:hidden">
           <Suspense fallback={<p className="text-sm text-muted-foreground">{t("loading")}</p>}>
             <DayTimesheetScreen isEmployee={isEmployee} />
           </Suspense>

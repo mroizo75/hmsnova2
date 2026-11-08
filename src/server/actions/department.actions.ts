@@ -57,6 +57,7 @@ export async function updateDepartment(input: {
   isActive?: boolean;
   parentId?: string | null;
   leaderId?: string | null;
+  safetyRepresentativeId?: string | null;
 }) {
   const auth = await getAuthContext();
   if (!auth?.permissions.canManageDepartments) {
@@ -106,6 +107,14 @@ export async function updateDepartment(input: {
       if (!leader) return fail("Avdelingslederen er ikke medlem i virksomheten");
     }
 
+    if (input.safetyRepresentativeId) {
+      const representative = await prisma.userTenant.findUnique({
+        where: { userId_tenantId: { userId: input.safetyRepresentativeId, tenantId: auth.tenantId } },
+        select: { userId: true },
+      });
+      if (!representative) return fail("Verneombudet er ikke medlem i virksomheten");
+    }
+
     await prisma.department.update({
       where: { id: input.id },
       data: {
@@ -114,6 +123,9 @@ export async function updateDepartment(input: {
         isActive: input.isActive,
         ...(input.parentId !== undefined ? { parentId: input.parentId } : {}),
         ...(input.leaderId !== undefined ? { leaderId: input.leaderId } : {}),
+        ...(input.safetyRepresentativeId !== undefined
+          ? { safetyRepresentativeId: input.safetyRepresentativeId }
+          : {}),
       },
     });
 

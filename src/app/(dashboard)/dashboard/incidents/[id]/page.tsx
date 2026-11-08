@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getLocale, getTranslations } from "next-intl/server";
 import { fetchIncidentDetail } from "@/server/queries/incident-detail.queries";
+import { getPermissions } from "@/lib/permissions";
 import { IncidentDetailContent } from "@/features/incidents/components/incident-detail-content";
 
 export default async function IncidentDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -45,6 +46,7 @@ export default async function IncidentDetailPage({ params }: { params: Promise<{
         incidentId={id}
         userId={user.id}
         locale={locale}
+        canReopen={getPermissions(selectedMembership.role, selectedMembership.extraRoles).canCloseIncidents}
       />
     </div>
   );

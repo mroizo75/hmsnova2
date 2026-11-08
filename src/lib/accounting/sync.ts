@@ -6,7 +6,7 @@ import type { AccountingProvider } from "./provider";
 import { activityIdForTimeType, pickDefaultTimesheetActivities } from "./timesheet";
 import { canEnqueueTimesheetSync } from "@/lib/time/approval";
 import { pickTripletexEmployeeId } from "./employee-map";
-import { upsertContacts, upsertCustomers, upsertProducts, upsertSalaryTypes } from "./cache";
+import { upsertActivities, upsertContacts, upsertCustomers, upsertProducts, upsertSalaryTypes, replaceProductGroups } from "./cache";
 import { upsertPulledProjects } from "./project-pull";
 import { kmProductExternalId, pickDefaultKmProducts } from "@/lib/time/km-product";
 import { earliestIsoDate, isoDateOnly, projectStartNeedsMove } from "./tripletex/project-payload";
@@ -15,17 +15,22 @@ export async function pullAccountingMaster(tenantId: string): Promise<void> {
   const provider = await getAccountingProvider(tenantId);
   if (!provider) return;
 
-  const [customers, products, salaryTypes, contacts, projects] = await Promise.all([
+  const [customers, products, salaryTypes, contacts, projects, activities, groups, members] = await Promise.all([
     provider.listCustomers().catch(() => []),
     provider.listProducts().catch(() => []),
     provider.listSalaryTypes().catch(() => []),
     provider.listContacts().catch(() => []),
     provider.listProjects().catch(() => []),
+    provider.listActivities().catch(() => []),
+    provider.listProductGroups().catch(() => []),
+    provider.listProductGroupMembers().catch(() => []),
   ]);
   await upsertCustomers(tenantId, customers);
   await upsertProducts(tenantId, products);
   await upsertSalaryTypes(tenantId, salaryTypes);
   await upsertContacts(tenantId, contacts);
+  await upsertActivities(tenantId, activities);
+  await replaceProductGroups(tenantId, groups, members);
   await upsertPulledProjects(tenantId, projects);
   if (projects.length > 0) lastProjectPullAt.set(tenantId, Date.now());
   await ensureDefaultKmProducts(tenantId);
@@ -41,16 +46,21 @@ export async function pullAccountingCatalog(tenantId: string): Promise<void> {
   const provider = await getAccountingProvider(tenantId);
   if (!provider) return;
 
-  const [customers, products, salaryTypes, contacts] = await Promise.all([
+  const [customers, products, salaryTypes, contacts, activities, groups, members] = await Promise.all([
     provider.listCustomers().catch(() => []),
     provider.listProducts().catch(() => []),
     provider.listSalaryTypes().catch(() => []),
     provider.listContacts().catch(() => []),
+    provider.listActivities().catch(() => []),
+    provider.listProductGroups().catch(() => []),
+    provider.listProductGroupMembers().catch(() => []),
   ]);
   await upsertCustomers(tenantId, customers);
   await upsertProducts(tenantId, products);
   await upsertSalaryTypes(tenantId, salaryTypes);
   await upsertContacts(tenantId, contacts);
+  await upsertActivities(tenantId, activities);
+  await replaceProductGroups(tenantId, groups, members);
   await ensureDefaultKmProducts(tenantId);
   await prisma.tenant.update({
     where: { id: tenantId },
@@ -327,6 +337,52 @@ export async function ensureDefaultTimesheetActivities(
   };
 }
 
+export async function ensureDefaultSalaryTypes(tenantId: string): Promise<{
+  normal: string | null;
+  ot50: string | null;
+  ot100: string | null;
+}> {
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: {
+      tripletexSalaryNormalId: true,
+      tripletexSalaryOt50Id: true,
+      tripletexSalaryOt100Id: true,
+    },
+  });
+  if (tenant?.tripletexSalaryNormalId) {
+    return {
+      normal: tenant.tripletexSalaryNormalId,
+      ot50: tenant.tripletexSalaryOt50Id,
+      ot100: tenant.tripletexSalaryOt100Id,
+    };
+  }
+  const salaryTypes = await prisma.accountingSalaryType.findMany({
+    where: { tenantId, isInactive: false },
+    select: { externalId: true, name: true },
+  });
+  const picked = pickDefaultTimesheetActivities(salaryTypes);
+  if (!picked.normal) return { normal: null, ot50: null, ot100: null };
+  await prisma.tenant.update({
+    where: { id: tenantId },
+    data: {
+      tripletexSalaryNormalId: picked.normal,
+      tripletexSalaryOt50Id: picked.ot50,
+      tripletexSalaryOt100Id: picked.ot100,
+    },
+  });
+  return picked;
+}
+
+async function projectManagerExternalId(tenantId: string, userId: string | null): Promise<string | null> {
+  if (!userId) return null;
+  const row = await prisma.userTenant.findUnique({
+    where: { userId_tenantId: { userId, tenantId } },
+    select: { externalEmployeeId: true },
+  });
+  return row?.externalEmployeeId ?? null;
+}
+
 export async function ensureDefaultKmProducts(
   tenantId: string
 ): Promise<{ taxable: string | null; nonTaxable: string | null }> {
@@ -467,39 +523,62 @@ async function dispatchJob(
       include: { parent: { select: { externalProjectId: true } } },
     });
     if (!project) return;
+    if (project.parentId && project.parentId !== project.id && !project.parent?.externalProjectId) {
+      await ensureProjectSyncedToAccounting(tenantId, project.parentId);
+    }
+    const parentAfter = project.parentId
+      ? await prisma.project.findFirst({
+          where: { id: project.parentId, tenantId },
+          select: { externalProjectId: true },
+        })
+      : null;
     const parentExternalId =
-      String(data.parentExternalId ?? project.parent?.externalProjectId ?? "") || null;
+      String(data.parentExternalId ?? parentAfter?.externalProjectId ?? project.parent?.externalProjectId ?? "") || null;
     const firstWork = await earliestLocalProjectDate(tenantId, project.id);
     const startDate =
       earliestIsoDate([project.startDate, project.createdAt, firstWork]) ??
       isoDateOnly(new Date());
+    const managerExternalId = await projectManagerExternalId(tenantId, project.projectManagerId);
     const created = await provider.createProject({
       name: project.name,
       startDate,
       customerExternalId: String(data.customerExternalId ?? project.externalCustomerId ?? "") || null,
       parentExternalId,
       contactExternalId: project.contactExternalId,
+      projectManagerExternalId: managerExternalId,
       description: project.description,
       location: project.location,
       reference: project.orderNumber,
     });
-            await prisma.project.update({
-              where: { id: project.id },
-              data: {
-                externalProjectId: created.externalId,
-                code: project.code || created.number || project.code,
-                startDate: new Date(`${startDate}T12:00:00`),
-              },
-            });
-            await processFollowUpJobsForProject(tenantId, project.id).catch(() => undefined);
-            return;
+    await prisma.project.update({
+      where: { id: project.id },
+      data: {
+        externalProjectId: created.externalId,
+        code: project.code || created.number || project.code,
+        startDate: new Date(`${startDate}T12:00:00`),
+      },
+    });
+    const tenantTemplate = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { tripletexTemplateProjectExternalId: true },
+    });
+    const templateId = String(data.priceTemplateExternalId ?? tenantTemplate?.tripletexTemplateProjectExternalId ?? "");
+    if (templateId && templateId !== created.externalId) {
+      await provider.copyProjectPricing(templateId, created.externalId);
+    }
+    await processFollowUpJobsForProject(tenantId, project.id).catch(() => undefined);
+    return;
   }
 
   if (action === "UPDATE_PROJECT") {
-    const project = await prisma.project.findFirst({ where: { id: entityId, tenantId } });
+    const project = await prisma.project.findFirst({
+      where: { id: entityId, tenantId },
+      include: { parent: { select: { externalProjectId: true } } },
+    });
     if (!project?.externalProjectId) return;
     const firstWork = await earliestLocalProjectDate(tenantId, project.id);
     const startDate = earliestIsoDate([project.startDate, firstWork, project.createdAt]);
+    const managerExternalId = await projectManagerExternalId(tenantId, project.projectManagerId);
     await provider.updateProject(project.externalProjectId, {
       name: project.name,
       startDate: startDate ?? undefined,
@@ -508,6 +587,10 @@ async function dispatchJob(
       reference: project.orderNumber,
       isReadyForInvoicing: project.billingStatus === "READY" || project.billingStatus === "INVOICED",
       isClosed: project.billingStatus === "INVOICED" || project.status === "COMPLETED" || project.status === "ARCHIVED",
+      customerExternalId: project.externalCustomerId,
+      parentExternalId: project.parent?.externalProjectId ?? null,
+      contactExternalId: project.contactExternalId,
+      projectManagerExternalId: managerExternalId,
     });
     return;
   }
@@ -537,10 +620,12 @@ async function dispatchJob(
       throw new Error("Ansatt er ikke koblet til Tripletex-bruker");
     }
     const mapping = await ensureDefaultTimesheetActivities(tenantId, provider);
+    const salary = await ensureDefaultSalaryTypes(tenantId);
     const activityId =
       entry.billingActivityId ||
       activityIdForTimeType(entry.timeType, mapping);
     if (!activityId) throw new Error("Timeaktivitet er ikke mappet i innstillinger");
+    const salaryTypeId = entry.salaryTypeId || activityIdForTimeType(entry.timeType, salary);
     const dateIso = entry.date.toISOString().slice(0, 10);
     await ensureProjectCoversDate(provider, {
       tenantId,
@@ -552,7 +637,7 @@ async function dispatchJob(
       projectExternalId: entry.project.externalProjectId,
       employeeExternalId,
       activityExternalId: activityId,
-      salaryTypeExternalId: entry.salaryTypeId,
+      salaryTypeExternalId: salaryTypeId,
       date: dateIso,
       hours: entry.hours,
       comment: entry.comment,
@@ -611,28 +696,63 @@ async function dispatchJob(
       dateIso: orderDate,
     });
     const result = await provider.upsertOrderLine({
-      orderExternalId: line.project.externalOrderId,
       projectExternalId: line.project.externalProjectId,
       customerExternalId: line.project.externalCustomerId,
       productExternalId,
       count: line.quantity,
       description:
         line.comment ||
-        (carLabel ? `${productName} · ${line.quantity} km · ${carLabel}` : productName),
+        (carLabel
+          ? `${productName} · ${line.quantity} km · ${carLabel}${line.fromAddress ? ` · ${line.fromAddress}–${line.toAddress ?? ""}` : ""}`
+          : productName),
       unitPriceExclVat: line.unitPrice,
       existingExternalId: line.externalId,
       orderDate,
     });
+    let travelExternalId = line.travelExternalId;
+    if (line.kind === "KM" && line.isPrivateCar && !travelExternalId) {
+      if (!line.fromAddress || !line.toAddress) {
+        throw new Error("Kjøring med privatbil krever fra- og til-adresse");
+      }
+      const user = await prisma.user.findUnique({
+        where: { id: line.userId },
+        include: { tenants: true },
+      });
+      const membership = user?.tenants.find((row) => row.tenantId === tenantId);
+      const employeeExternalId = await resolveAndPersistEmployeeId({
+        tenantId,
+        membershipId: membership?.id,
+        mappedId: membership?.externalEmployeeId,
+        email: user?.email,
+        employeeNumber: membership?.employeeNumber,
+        provider,
+      });
+      if (!employeeExternalId) throw new Error("Ansatt er ikke koblet til Tripletex-bruker");
+      const tenantRate = await prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { tripletexMileageRateTypeId: true },
+      });
+      const travel = await provider.createMileageAllowance({
+        employeeExternalId,
+        projectExternalId: line.project.externalProjectId,
+        date: orderDate,
+        km: line.quantity,
+        fromAddress: line.fromAddress,
+        toAddress: line.toAddress,
+        rateTypeExternalId: tenantRate?.tripletexMileageRateTypeId,
+      });
+      travelExternalId = travel.externalId;
+      if (!tenantRate?.tripletexMileageRateTypeId) {
+        await prisma.tenant.update({
+          where: { id: tenantId },
+          data: { tripletexMileageRateTypeId: travel.rateTypeExternalId },
+        });
+      }
+    }
     await prisma.projectUsageLine.update({
       where: { id: line.id },
-      data: { externalId: result.lineExternalId, syncStatus: "SYNCED" },
+      data: { externalId: result.lineExternalId, travelExternalId, syncStatus: "SYNCED" },
     });
-    if (!line.project.externalOrderId) {
-      await prisma.project.update({
-        where: { id: line.projectId },
-        data: { externalOrderId: result.orderExternalId },
-      });
-    }
     return;
   }
 

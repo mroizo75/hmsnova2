@@ -15,7 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { createFieldJob } from "@/server/actions/accounting.actions";
+import { createFieldJob, listFieldJobOptions } from "@/server/actions/accounting.actions";
 import {
   createCustomerContact,
   createCustomerFromBrreg,
@@ -61,12 +61,24 @@ export function NewFieldJobDialog({
   const [contactId, setContactId] = useState("");
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [newContactFirst, setNewContactFirst] = useState("");
+  const [newContactEmail, setNewContactEmail] = useState("");
+  const [newContactPhone, setNewContactPhone] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [managerId, setManagerId] = useState("");
+  const [templateId, setTemplateId] = useState("");
+  const [managers, setManagers] = useState<Array<{ userId: string; name: string }>>([]);
+  const [templates, setTemplates] = useState<Array<{ externalId: string; name: string }>>([]);
   const [brregQuery, setBrregQuery] = useState("");
   const [brregHits, setBrregHits] = useState<BrregHit[]>([]);
 
   useEffect(() => {
     if (!open) return;
     setStartDate(todayIso());
+    listFieldJobOptions().then((options) => {
+      setManagers(options.managers);
+      setTemplates(options.templates);
+      setTemplateId((current) => current || options.defaultTemplateId || "");
+    });
   }, [open]);
 
   useEffect(() => {
@@ -100,12 +112,25 @@ export function NewFieldJobDialog({
     setContactId("");
     setContacts([]);
     setNewContactFirst("");
+    setNewContactEmail("");
+    setNewContactPhone("");
+    setCustomerEmail("");
+    setManagerId("");
+    setTemplateId("");
     setBrregQuery("");
     setBrregHits([]);
   }
 
   async function onCreateCustomer(org: string, companyName: string) {
-    const res = await createCustomerFromBrreg({ organizationNumber: org, name: companyName });
+    if (!customerEmail.trim()) {
+      toast({ title: t("error"), description: t("customerEmail"), variant: "destructive" });
+      return;
+    }
+    const res = await createCustomerFromBrreg({
+      organizationNumber: org,
+      name: companyName,
+      email: customerEmail.trim(),
+    });
     if (!res.success) {
       toast({ title: t("error"), description: res.error, variant: "destructive" });
       if ("duplicateExternalId" in res && res.duplicateExternalId) {
@@ -122,10 +147,12 @@ export function NewFieldJobDialog({
   }
 
   async function onAddContact() {
-    if (!customerId || !newContactFirst.trim()) return;
+    if (!customerId || !newContactFirst.trim() || !newContactEmail.trim() || !newContactPhone.trim()) return;
     const res = await createCustomerContact({
       customerExternalId: customerId,
       firstName: newContactFirst.trim(),
+      email: newContactEmail.trim(),
+      phone: newContactPhone.trim(),
     });
     if (!res.success) {
       toast({ title: t("error"), description: res.error, variant: "destructive" });
@@ -133,6 +160,8 @@ export function NewFieldJobDialog({
     }
     setContactId(res.data.externalId);
     setNewContactFirst("");
+    setNewContactEmail("");
+    setNewContactPhone("");
     setContacts(await listCustomerContacts(customerId));
   }
 
@@ -150,6 +179,8 @@ export function NewFieldJobDialog({
       contactExternalId: contactId || undefined,
       jobKind: hms ? "HMS" : "SERVICE",
       parentId: asSubproject && parentProject ? parentProject.id : undefined,
+      projectManagerId: managerId || undefined,
+      priceTemplateExternalId: templateId || undefined,
     });
     setLoading(false);
     if (!res.success) {
@@ -282,6 +313,12 @@ export function NewFieldJobDialog({
           <div className="space-y-1">
             <Label>{t("newCustomerBrreg")}</Label>
             <Input
+              type="email"
+              value={customerEmail}
+              onChange={(e) => setCustomerEmail(e.target.value)}
+              placeholder={t("customerEmail")}
+            />
+            <Input
               value={brregQuery}
               onChange={(e) => {
                 const value = e.target.value;
@@ -328,11 +365,22 @@ export function NewFieldJobDialog({
                   </option>
                 ))}
               </select>
-              <div className="flex gap-2">
+              <div className="grid gap-2">
                 <Input
                   value={newContactFirst}
                   onChange={(e) => setNewContactFirst(e.target.value)}
                   placeholder={t("newContact")}
+                />
+                <Input
+                  type="email"
+                  value={newContactEmail}
+                  onChange={(e) => setNewContactEmail(e.target.value)}
+                  placeholder={t("contactEmail")}
+                />
+                <Input
+                  value={newContactPhone}
+                  onChange={(e) => setNewContactPhone(e.target.value)}
+                  placeholder={t("contactPhone")}
                 />
                 <Button type="button" variant="outline" className="bg-transparent" onClick={onAddContact}>
                   {t("addContact")}
@@ -348,6 +396,35 @@ export function NewFieldJobDialog({
               onChange={(e) => setLocation(e.target.value)}
             />
           </div>
+          <div className="space-y-1">
+            <Label>{t("projectManager")}</Label>
+            <select
+              className="h-10 w-full rounded-md border bg-transparent px-3 text-sm"
+              value={managerId}
+              onChange={(e) => setManagerId(e.target.value)}
+            >
+              <option value="">{t("projectManager")}</option>
+              {managers.map((manager) => (
+                <option key={manager.userId} value={manager.userId}>{manager.name}</option>
+              ))}
+            </select>
+          </div>
+          {templates.length > 0 && (
+            <div className="space-y-1">
+              <Label>{t("priceTemplate")}</Label>
+              <select
+                className="h-10 w-full rounded-md border bg-transparent px-3 text-sm"
+                value={templateId}
+                onChange={(e) => setTemplateId(e.target.value)}
+              >
+                <option value="">{t("priceTemplate")}</option>
+                {templates.map((template) => (
+                  <option key={template.externalId} value={template.externalId}>{template.name}</option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">{t("priceTemplateHelp")}</p>
+            </div>
+          )}
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={hms} onChange={(e) => setHms(e.target.checked)} />
             {t("hmsProject")}

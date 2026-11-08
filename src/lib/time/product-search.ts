@@ -41,3 +41,40 @@ export function filterProductsByCategory<T extends { categoryName?: string | nul
   if (!category) return products;
   return products.filter((p) => p.categoryName === category);
 }
+
+/** Valgt produktgruppe inkluderer undergrupper. */
+export function groupIdsWithDescendants(
+  groups: Array<{ externalId: string; parentExternalId: string | null }>,
+  selectedId: string
+): string[] {
+  const children = new Map<string, string[]>();
+  for (const group of groups) {
+    if (!group.parentExternalId) continue;
+    const list = children.get(group.parentExternalId) ?? [];
+    list.push(group.externalId);
+    children.set(group.parentExternalId, list);
+  }
+  const out: string[] = [];
+  const stack = [selectedId];
+  const seen = new Set<string>();
+  while (stack.length > 0) {
+    const id = stack.pop();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+    for (const child of children.get(id) ?? []) stack.push(child);
+  }
+  return out;
+}
+
+export function isMachineProduct(product: {
+  name: string;
+  unit?: string | null;
+  categoryName?: string | null;
+}): boolean {
+  const unit = (product.unit ?? "").trim().toLowerCase();
+  const category = (product.categoryName ?? "").toLowerCase();
+  const name = product.name.toLowerCase();
+  const timeUnit = unit === "t" || unit === "time" || unit === "timer" || unit.startsWith("time");
+  return category.includes("maskin") || name.includes("maskin") || timeUnit;
+}

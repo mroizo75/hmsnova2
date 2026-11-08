@@ -36,11 +36,12 @@ import { normalizeProjectReference } from "@/lib/incident-project-reference";
 import { logAiFeedback } from "@/lib/ai-feedback";
 import { resolveIncidentProjectId } from "@/lib/incident-project-reference.server";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
-import { getIncidentCloseBlockers } from "@/lib/incident-close-rules";
+import { getIncidentCloseBlockers, reopenedIncidentState } from "@/lib/incident-close-rules";
 import { suggestHandbookUpdates } from "@/lib/handbook-suggestions";
 import { resolveIncidentStage } from "@/lib/incident-stage";
-import { isQualityOnlyIncident, copyRolesForNewIncident } from "@/lib/incident-visibility";
-import { incidentListWhere, viewerCanSeeIncident } from "@/server/lib/incident-access";
+import { copyRolesForNewIncident } from "@/lib/incident-visibility";
+import { loadViewerIncidentAccess, viewerCanSeeIncident } from "@/server/lib/incident-access";
+import { incidentPassesSafetyQualityFilter } from "@/lib/incident-visibility";
 import type { IncidentType } from "@prisma/client";
 
 async function getSessionContext() {
@@ -209,7 +210,7 @@ export async function getIncidents(_tenantId: string) {
     }
 
     const { tenantId, userId, role, departmentId } = auth;
-    const where = await incidentListWhere({
+    const access = await loadViewerIncidentAccess({
       role,
       tenantId,
       userId,
@@ -217,6 +218,7 @@ export async function getIncidents(_tenantId: string) {
       canReadOwnIncidents: canReadOwn,
       departmentId,
     });
+    const where = access.where;
     if (!where) {
       throw new Error("Ikke autorisert til å se avvik");
     }
@@ -253,10 +255,17 @@ export async function getIncidents(_tenantId: string) {
       ],
     });
     
-    const visible =
-      role === "VERNEOMBUD"
-        ? incidents.filter((incident) => !isQualityOnlyIncident(incident.type as IncidentType, incident.subcategoryKeys))
-        : incidents;
+    const visible = incidents.filter((incident) =>
+      incidentPassesSafetyQualityFilter({
+        scope: access.scope,
+        leaderDepartmentIds: access.leaderDepartmentIds,
+        viewerId: userId,
+        reportedBy: incident.reportedBy,
+        type: incident.type as IncidentType,
+        subcategoryKeys: incident.subcategoryKeys,
+        incidentDepartmentId: incident.departmentId,
+      }),
+    );
 
     return { success: true, data: visible, ownOnly: !canReadAll };
   } catch (error: unknown) {
@@ -927,6 +936,87 @@ export async function closeIncident(input: any) {
   } catch (error: unknown) {
     console.error("Close incident error:", error);
     return { success: false, error: formatActionError(error, "Kunne ikke lukke avvik") };
+  }
+}
+
+export async function reopenIncident(id: string) {
+  try {
+    const auth = await getAuthContext();
+    if (!auth?.permissions.canCloseIncidents) {
+      return { success: false, error: "Du kan ikke gjenåpne avvik" };
+    }
+
+    const existing = await prisma.incident.findFirst({
+      where: { id, tenantId: auth.tenantId },
+      select: {
+        id: true,
+        status: true,
+        rootCause: true,
+        title: true,
+        type: true,
+        reportedBy: true,
+        effectivenessReview: true,
+      },
+    });
+
+    if (!existing) {
+      return { success: false, error: "Avviket ble ikke funnet" };
+    }
+    if (existing.status !== "CLOSED") {
+      return { success: false, error: "Bare lukkede avvik kan gjenåpnes" };
+    }
+
+    const next = reopenedIncidentState(existing.rootCause);
+    const incident = await prisma.incident.update({
+      where: { id, tenantId: auth.tenantId },
+      data: {
+        status: next.status,
+        stage: next.stage,
+        closedBy: null,
+        closedAt: null,
+        updatedAt: new Date(),
+      },
+    });
+
+    void (async () => {
+      try {
+        await prisma.auditLog.create({
+          data: {
+            tenantId: auth.tenantId,
+            userId: auth.userId,
+            action: "INCIDENT_REOPENED",
+            resource: `Incident:${incident.id}`,
+            metadata: JSON.stringify({
+              title: incident.title,
+              previousEffectivenessReview: existing.effectivenessReview,
+            }),
+          },
+        });
+        await notifyIncidentReporter({
+          tenantId: auth.tenantId,
+          incidentId: incident.id,
+          reportedBy: incident.reportedBy,
+          actorId: auth.userId,
+          title: incident.title,
+          typeLabel: incident.type,
+          event: "status",
+          statusLabel: "under behandling",
+        });
+      } catch (bgError) {
+        console.error("Background notification error:", bgError);
+      }
+    })();
+
+    revalidatePath("/dashboard/incidents");
+    revalidatePath(`/dashboard/incidents/${incident.id}`);
+    revalidatePath("/ansatt/avvik");
+    revalidatePath(`/ansatt/avvik/${incident.id}`);
+    triggerRealtimeEvent(auth.tenantId, "incident-updated", { id: incident.id });
+
+    return { success: true, data: incident };
+  } catch (error: unknown) {
+    console.error("Reopen incident error:", error);
+    return { success: false, error: formatActionError(error, "Kunne ikke gjenåpne avvik") };
   }
 }
 

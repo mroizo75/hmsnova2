@@ -67,6 +67,7 @@ export async function fetchUsers() {
     managerId: ut.managerId ?? null,
     departmentId: ut.departmentId ?? null,
     extraRoles: ut.extraRoles ?? null,
+    isChiefSafetyRep: ut.isChiefSafetyRep,
   }));
 
   const { getSubscriptionLimits } = await import("@/lib/subscription");

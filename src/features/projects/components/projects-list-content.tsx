@@ -42,6 +42,7 @@ export function ProjectsListContent({
   const locale = useLocale();
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<Filter>("all");
+  const [search, setSearch] = useState("");
 
   const { data: projects } = useQuery({
     queryKey: ["projects"],
@@ -59,6 +60,13 @@ export function ProjectsListContent({
     if (filter === "hms") return p.jobKind === "HMS";
     if (filter === "ready") return p.billingStatus === "READY";
     return true;
+  });
+  const searched = visible.filter((p: { name?: string; clientName?: string | null; code?: string | null; projectManager?: { name?: string | null; email?: string } | null }) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return [p.name, p.clientName, p.code, p.projectManager?.name, p.projectManager?.email]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(q));
   });
 
   return (
@@ -107,7 +115,7 @@ export function ProjectsListContent({
         </div>
       )}
 
-      {visible.length === 0 ? (
+      {searched.length === 0 ? (
         <Card>
           <CardContent className="py-16 text-center">
             <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -122,8 +130,14 @@ export function ProjectsListContent({
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {visible.map((project: any) => {
+        <div className="space-y-2">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t("search")}
+            className="h-10 w-full rounded-md border bg-transparent px-3 text-sm"
+          />
+          {searched.map((project: any) => {
             const sc = statusConfig[project.status as ProjectStatus];
             return (
               <Card key={project.id} className="h-full border-l-4 border-l-blue-500">
@@ -133,8 +147,8 @@ export function ProjectsListContent({
                       <CardTitle className="text-base leading-tight">{project.name}</CardTitle>
                       <Badge className={`shrink-0 text-xs border ${sc.color}`}>{sc.label}</Badge>
                     </div>
-                    {project.code && (
-                      <p className="text-xs text-muted-foreground font-mono">{project.code}</p>
+                    {project.parent?.name && (
+                      <p className="text-xs text-muted-foreground">Under {project.parent.name}</p>
                     )}
                   </CardHeader>
                 </Link>

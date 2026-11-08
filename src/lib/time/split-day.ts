@@ -127,3 +127,13 @@ export function nextDefaultClock(input: {
   const to = input.dayEndHour > from ? input.dayEndHour : Math.min(from + 1, 23.75);
   return { clockFrom: hoursToClock(from), clockTo: hoursToClock(to), lunchMinutes: 0 };
 }
+
+/** Kant i kant (slutt 15:30, neste start 15:30) er lov. Ekte overlapp er ikke det. */
+export function clocksOverlap(aFrom: string, aTo: string, bFrom: string, bTo: string): boolean {
+  const af = parseClockToHours(aFrom);
+  const at = parseClockToHours(aTo);
+  const bf = parseClockToHours(bFrom);
+  const bt = parseClockToHours(bTo);
+  if (af == null || at == null || bf == null || bt == null) return false;
+  return af < bt && bf < at;
+}

@@ -50,6 +50,7 @@ export async function upsertProducts(
     priceInclVat?: number | null;
     isStockItem: boolean;
     isInactive: boolean;
+    imageDocumentId?: string | null;
   }>
 ) {
   for (const p of products) {
@@ -67,6 +68,7 @@ export async function upsertProducts(
         priceInclVat: p.priceInclVat,
         isStockItem: p.isStockItem,
         isInactive: p.isInactive,
+        imageDocumentId: p.imageDocumentId,
       },
       update: {
         name: p.name,
@@ -78,6 +80,7 @@ export async function upsertProducts(
         priceInclVat: p.priceInclVat,
         isStockItem: p.isStockItem,
         isInactive: p.isInactive,
+        imageDocumentId: p.imageDocumentId,
       },
     });
   }
@@ -146,4 +149,49 @@ export async function upsertContacts(
       },
     });
   }
+}
+
+export async function upsertActivities(
+  tenantId: string,
+  rows: Array<{ externalId: string; name: string; number?: string | null }>
+) {
+  for (const row of rows) {
+    if (!row.externalId || !row.name) continue;
+    await prisma.accountingActivity.upsert({
+      where: { tenantId_externalId: { tenantId, externalId: row.externalId } },
+      create: {
+        tenantId,
+        externalId: row.externalId,
+        name: row.name,
+        number: row.number ?? null,
+      },
+      update: { name: row.name, number: row.number ?? null },
+    });
+  }
+}
+
+export async function replaceProductGroups(
+  tenantId: string,
+  groups: Array<{ externalId: string; name: string; parentExternalId?: string | null }>,
+  members: Array<{ productExternalId: string; groupExternalId: string }>
+) {
+  await prisma.accountingProductGroupMember.deleteMany({ where: { tenantId } });
+  await prisma.accountingProductGroup.deleteMany({ where: { tenantId } });
+  if (groups.length === 0) return;
+  await prisma.accountingProductGroup.createMany({
+    data: groups.map((group) => ({
+      tenantId,
+      externalId: group.externalId,
+      name: group.name,
+      parentExternalId: group.parentExternalId ?? null,
+    })),
+  });
+  if (members.length === 0) return;
+  await prisma.accountingProductGroupMember.createMany({
+    data: members.map((member) => ({
+      tenantId,
+      productExternalId: member.productExternalId,
+      groupExternalId: member.groupExternalId,
+    })),
+  });
 }

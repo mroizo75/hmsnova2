@@ -4,8 +4,9 @@ import {
   resolveIncidentRecipients,
   type IncidentRoutingLookups,
 } from "@/lib/incident-notification-routing";
-import { roleMatchFilter } from "@/lib/extra-roles";
-import { copyRolesForNewIncident } from "@/lib/incident-visibility";
+import { membershipRoles, roleMatchFilter } from "@/lib/extra-roles";
+import { copyRolesForNewIncident, receivesSafetyIncidentNotice } from "@/lib/incident-visibility";
+import { safetyRepresentativeAreaIds } from "@/features/departments/lib/department-tree";
 import { getNotifyRolesForModule, parseModuleVisibilityConfig } from "@/lib/module-visibility";
 import { createNotification } from "@/server/actions/notification.actions";
 import {
@@ -95,6 +96,45 @@ export function createIncidentRoutingLookups(tenantId: string): IncidentRoutingL
   };
 }
 
+async function safetyCopiesWhoCanOpen(input: {
+  tenantId: string;
+  incidentDepartmentId: string | null;
+  reporterId: string;
+  candidateIds: string[];
+}): Promise<string[]> {
+  if (input.candidateIds.length === 0) return [];
+
+  const [memberships, departments, reporter] = await Promise.all([
+    prisma.userTenant.findMany({
+      where: { tenantId: input.tenantId, userId: { in: input.candidateIds } },
+      select: { userId: true, role: true, extraRoles: true, isChiefSafetyRep: true },
+    }),
+    prisma.department.findMany({
+      where: { tenantId: input.tenantId, isActive: true },
+      select: { id: true, parentId: true, safetyRepresentativeId: true },
+    }),
+    prisma.userTenant.findUnique({
+      where: { userId_tenantId: { userId: input.reporterId, tenantId: input.tenantId } },
+      select: { departmentId: true },
+    }),
+  ]);
+  const byUser = new Map(memberships.map((membership) => [membership.userId, membership]));
+
+  return input.candidateIds.filter((userId) => {
+    const membership = byUser.get(userId);
+    if (!membership) return false;
+    const roles = membershipRoles(membership.role, membership.extraRoles);
+    return receivesSafetyIncidentNotice({
+      isChiefSafetyRep: membership.isChiefSafetyRep,
+      hasSafetyRole: roles.includes("VERNEOMBUD"),
+      areaDepartmentIds: safetyRepresentativeAreaIds(departments, userId),
+      incidentDepartmentId: input.incidentDepartmentId,
+      reporterDepartmentId: reporter?.departmentId ?? null,
+      hasFullCopyRole: roles.includes("ADMIN") || roles.includes("HMS"),
+    });
+  });
+}
+
 interface DispatchNewIncidentNotificationsInput {
   tenantId: string;
   reporterId: string;
@@ -128,6 +168,12 @@ export async function dispatchNewIncidentNotifications(
 
   const link = `/dashboard/incidents/${input.incidentId}`;
   const message = `${input.typeLabel}: ${input.title}`;
+  const copyRecipientIds = await safetyCopiesWhoCanOpen({
+    tenantId: input.tenantId,
+    incidentDepartmentId: input.departmentId ?? null,
+    reporterId: input.reporterId,
+    candidateIds: routing.copyRecipientIds,
+  });
 
   await Promise.all([
     ...routing.recipientIds.map((userId) =>
@@ -140,7 +186,7 @@ export async function dispatchNewIncidentNotifications(
         link,
       })
     ),
-    ...routing.copyRecipientIds.map((userId) =>
+    ...copyRecipientIds.map((userId) =>
       createNotification({
         tenantId: input.tenantId,
         userId,

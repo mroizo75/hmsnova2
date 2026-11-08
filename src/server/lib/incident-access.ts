@@ -1,10 +1,24 @@
 import type { IncidentType, Role } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { membershipRoles } from "@/lib/extra-roles";
 import {
   canRoleSeeIncident,
   prismaIncidentWhereForRole,
+  resolveSafetyIncidentScope,
+  type SafetyIncidentScope,
 } from "@/lib/incident-visibility";
+import { safetyRepresentativeAreaIds } from "@/features/departments/lib/department-tree";
 import { leaderDepartmentIds } from "@/server/queries/department.queries";
+
+export interface ViewerIncidentAccess {
+  roles: Role[];
+  isLeader: boolean;
+  scope: SafetyIncidentScope;
+  leaderDepartmentIds: string[];
+  safetyMemberUserIds: string[];
+  managedProjectIds: string[];
+  where: Record<string, unknown> | null;
+}
 
 export async function opensIncidentOverview(input: {
   role: Role | null | undefined;
@@ -26,6 +40,74 @@ export async function managedProjectIdsFor(tenantId: string, userId: string): Pr
   return projects.map((project) => project.id);
 }
 
+export async function loadViewerIncidentAccess(input: {
+  role: Role;
+  tenantId: string;
+  userId: string;
+  canReadIncidents: boolean;
+  canReadOwnIncidents: boolean;
+  departmentId: string | null;
+}): Promise<ViewerIncidentAccess> {
+  const [membership, departments, managedProjectIds] = await Promise.all([
+    prisma.userTenant.findUnique({
+      where: { userId_tenantId: { userId: input.userId, tenantId: input.tenantId } },
+      select: { role: true, extraRoles: true, isChiefSafetyRep: true },
+    }),
+    prisma.department.findMany({
+      where: { tenantId: input.tenantId, isActive: true },
+      select: { id: true, parentId: true, safetyRepresentativeId: true },
+    }),
+    managedProjectIdsFor(input.tenantId, input.userId),
+  ]);
+
+  const roles = membershipRoles(membership?.role ?? input.role, membership?.extraRoles);
+  if (!roles.includes(input.role)) roles.unshift(input.role);
+  const isLeader = roles.includes("LEDER");
+  const areaDepartmentIds = safetyRepresentativeAreaIds(departments, input.userId);
+  const scope = resolveSafetyIncidentScope({
+    isChiefSafetyRep: membership?.isChiefSafetyRep ?? false,
+    areaDepartmentIds,
+    hasSafetyRole: roles.includes("VERNEOMBUD"),
+  });
+  const leaderIds = isLeader
+    ? await leaderDepartmentIds(input.tenantId, input.userId, input.departmentId)
+    : [];
+  const [departmentMembers, safetyMembers] = await Promise.all([
+    leaderIds.length > 0
+      ? prisma.userTenant.findMany({
+          where: { tenantId: input.tenantId, departmentId: { in: leaderIds } },
+          select: { userId: true },
+        })
+      : Promise.resolve([]),
+    scope.kind === "areas"
+      ? prisma.userTenant.findMany({
+          where: { tenantId: input.tenantId, departmentId: { in: scope.departmentIds } },
+          select: { userId: true },
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const where = prismaIncidentWhereForRole({
+    ...input,
+    roles,
+    safetyScope: scope,
+    safetyMemberUserIds: safetyMembers.map((member) => member.userId),
+    departmentIds: leaderIds,
+    departmentUserIds: departmentMembers.map((member) => member.userId),
+    managedProjectIds,
+  });
+
+  return {
+    roles,
+    isLeader,
+    scope,
+    leaderDepartmentIds: leaderIds,
+    safetyMemberUserIds: safetyMembers.map((member) => member.userId),
+    managedProjectIds,
+    where,
+  };
+}
+
 export async function incidentListWhere(input: {
   role: Role;
   tenantId: string;
@@ -34,26 +116,8 @@ export async function incidentListWhere(input: {
   canReadOwnIncidents: boolean;
   departmentId: string | null;
 }): Promise<Record<string, unknown> | null> {
-  const departmentIds =
-    input.role === "LEDER"
-      ? await leaderDepartmentIds(input.tenantId, input.userId, input.departmentId)
-      : [];
-  const [managedProjectIds, departmentMembers] = await Promise.all([
-    managedProjectIdsFor(input.tenantId, input.userId),
-    departmentIds.length > 0
-      ? prisma.userTenant.findMany({
-          where: { tenantId: input.tenantId, departmentId: { in: departmentIds } },
-          select: { userId: true },
-        })
-      : Promise.resolve([]),
-  ]);
-
-  return prismaIncidentWhereForRole({
-    ...input,
-    departmentIds,
-    departmentUserIds: departmentMembers.map((member) => member.userId),
-    managedProjectIds,
-  });
+  const access = await loadViewerIncidentAccess(input);
+  return access.where;
 }
 
 export async function viewerCanSeeIncident(input: {
@@ -72,16 +136,14 @@ export async function viewerCanSeeIncident(input: {
     projectId: string | null;
   };
 }): Promise<boolean> {
-  const [managedProjectIds, reporter, departmentIds] = await Promise.all([
-    managedProjectIdsFor(input.tenantId, input.userId),
+  const [access, reporter] = await Promise.all([
+    loadViewerIncidentAccess(input),
     prisma.userTenant.findUnique({
       where: { userId_tenantId: { userId: input.incident.reportedBy, tenantId: input.tenantId } },
       select: { departmentId: true },
     }),
-    input.role === "LEDER"
-      ? leaderDepartmentIds(input.tenantId, input.userId, input.departmentId)
-      : Promise.resolve([]),
   ]);
+  const managedProjectIds = access.managedProjectIds;
 
   return canRoleSeeIncident({
     role: input.role,
@@ -93,10 +155,12 @@ export async function viewerCanSeeIncident(input: {
     subcategoryKeysRaw: input.incident.subcategoryKeys,
     reporterDepartmentId: reporter?.departmentId ?? null,
     viewerDepartmentId: input.departmentId,
-    viewerDepartmentIds: departmentIds,
+    viewerDepartmentIds: access.leaderDepartmentIds,
     incidentDepartmentId: input.incident.departmentId,
     responsibleId: input.incident.responsibleId,
     projectId: input.incident.projectId,
     managedProjectIds,
+    isLeader: access.isLeader,
+    safetyScope: access.scope,
   });
 }
