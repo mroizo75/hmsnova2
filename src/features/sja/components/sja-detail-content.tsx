@@ -414,6 +414,7 @@ export function SjaDetailContent({ initialData, history }: SjaDetailContentProps
               analysisId={analysis.id}
               currentStatus={analysis.status}
               currentConclusion={analysis.conclusion}
+              approvalRequired={analysis.sjaApprovalRequired}
             />
           )}
 

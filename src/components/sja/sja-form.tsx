@@ -657,7 +657,9 @@ export function SjaForm({
 
       toast({
         title: t("toast.submitSuccess.title"),
-        description: t("toast.submitSuccess.description"),
+        description: result.approvalRequired
+          ? t("toast.submitSuccess.pendingApproval")
+          : t("toast.submitSuccess.description"),
       });
 
       if (onSuccess) {

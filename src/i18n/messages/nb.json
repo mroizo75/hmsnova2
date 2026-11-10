@@ -2501,6 +2501,7 @@
     "conditional": "Betinget godkjent",
     "reject": "Avvis - arbeid kan IKKE starte",
     "complete": "Fullfør SJA - arbeid er avsluttet",
+    "draftReady": "Dette er et utkast. Godkjenning er ikke påkrevd når SJA-en sendes inn.",
     "done": "Denne SJA-en er {status}.",
     "status": {
       "completed": "fullført",
@@ -2702,7 +2703,8 @@
       },
       "submitSuccess": {
         "title": "SJA innsendt",
-        "description": "Sikker jobb-analysen er registrert og klar for godkjenning."
+        "description": "Sikker jobb-analysen er registrert og klar til bruk.",
+        "pendingApproval": "Sikker jobb-analysen er registrert og venter på godkjenning."
       },
       "aiMissingData": {
         "title": "Mangler grunnlag",

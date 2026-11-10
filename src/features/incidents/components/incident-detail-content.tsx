@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchIncidentDetail } from "@/server/queries/incident-detail.queries";
+import { inspectionSourcesFromFindings } from "@/features/incidents/lib/inspection-source";
 import { MocRelatedCard } from "@/features/moc/components/moc-related-card";
 
 type IncidentDetailData = NonNullable<Awaited<ReturnType<typeof fetchIncidentDetail>>>;
@@ -256,6 +257,19 @@ export function IncidentDetailContent({
           </span>
         </Link>
       )}
+
+      {inspectionSourcesFromFindings(incident.inspectionFindings).map((inspection) => (
+        <Link
+          key={inspection.id}
+          href={`/dashboard/inspections/${inspection.id}`}
+          className="block rounded-xl border border-orange-300 bg-orange-50 px-4 py-3 text-sm"
+        >
+          <span className="font-medium">
+            {inspection.type === "VERNERUNDE" ? "Fra vernerunde" : "Fra inspeksjon"}
+          </span>
+          <span className="mt-1 block">{inspection.title}</span>
+        </Link>
+      ))}
 
       {/* Stepper */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b -mx-1 px-1 py-3">

@@ -160,6 +160,30 @@ export function useOfflineQueue(options: UseOfflineQueueOptions = {}) {
 }
 
 async function syncFormDataEntry(entry: OfflineQueueEntry): Promise<void> {
+  if (entry.endpoint === "/api/incidents/report" && entry.files.length > 0) {
+    const reportData = offlinePayloadToFormData({ ...entry, files: [] });
+    const response = await attemptWithRetry(() =>
+      fetch(entry.endpoint, { method: "POST", body: reportData }),
+    );
+    if (!response.ok) {
+      throw new Error(`Server responded ${response.status}`);
+    }
+    const body = (await response.json().catch(() => null)) as { incident?: { id?: string } } | null;
+    const incidentId = body?.incident?.id;
+    if (!incidentId) return;
+    for (const file of entry.files) {
+      const imageData = new FormData();
+      imageData.append("images", new File([file.blob], file.name, { type: file.type }));
+      const imageResponse = await attemptWithRetry(() =>
+        fetch(`/api/incidents/${incidentId}/attachments`, { method: "POST", body: imageData }),
+      );
+      if (!imageResponse.ok && imageResponse.status >= 500) {
+        throw new Error(`Server responded ${imageResponse.status}`);
+      }
+    }
+    return;
+  }
+
   const formData = offlinePayloadToFormData(entry);
   const response = await attemptWithRetry(() =>
     fetch(entry.endpoint, { method: "POST", body: formData }),

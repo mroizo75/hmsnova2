@@ -35,6 +35,8 @@ export interface AccountingProvider {
   listSalaryTypes(): Promise<AccountingSalaryTypeDto[]>;
   listEmployees(): Promise<AccountingEmployeeDto[]>;
   listProjects(): Promise<AccountingProjectDto[]>;
+  /** Id-er for avsluttede prosjekter. Brukes til å ta dem ut av timelisten, uten å laste hele prosjektet. */
+  listClosedProjectIds(): Promise<string[]>;
   getProject(externalId: string): Promise<AccountingProjectDto | null>;
   createProject(input: CreateAccountingProjectInput): Promise<{ externalId: string; number?: string }>;
   updateProject(externalId: string, input: UpdateAccountingProjectInput): Promise<void>;

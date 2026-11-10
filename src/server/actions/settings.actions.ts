@@ -860,6 +860,44 @@ export async function updateRuhModuleEnabled(enabled: boolean) {
  * Slår MoC-modulen av eller på. ISO 45001 8.1.3 krever prosess for endringer
  * som påvirker HMS; virksomheter uten formell MoC kan holde den av.
  */
+/**
+ * Virksomheten velger selv om innsendt SJA skal godkjennes av leder eller HMS.
+ * AML § 3-1 og IK-HMS § 5 nr. 6 krever risikovurderingen, ikke et eget godkjenningsledd.
+ */
+export async function updateSjaApprovalRequired(required: boolean) {
+  try {
+    const { user, tenantId } = await getSessionContext();
+
+    const userTenant = user.tenants.find((t) => t.tenantId === tenantId);
+    if (!userTenant || userTenant.role !== "ADMIN") {
+      return { success: false, error: "Kun administratorer kan endre SJA-godkjenning" };
+    }
+
+    const previous = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { sjaApprovalRequired: true },
+    });
+
+    await prisma.tenant.update({
+      where: { id: tenantId },
+      data: { sjaApprovalRequired: required },
+    });
+
+    await AuditLog.log(tenantId, user.id, "SJA_APPROVAL_SETTING_UPDATED", "Tenant", tenantId, {
+      before: previous?.sjaApprovalRequired ?? false,
+      after: required,
+    });
+
+    revalidatePath("/dashboard/settings");
+    revalidatePath("/dashboard/sja");
+    revalidatePath("/ansatt/sja");
+    triggerRealtimeEvent(tenantId, "settings-updated");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Kunne ikke oppdatere SJA-godkjenning" };
+  }
+}
+
 export async function updateMocModuleEnabled(enabled: boolean) {
   try {
     const { user, tenantId } = await getSessionContext();

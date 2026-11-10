@@ -32,7 +32,10 @@ export async function pullAccountingMaster(tenantId: string): Promise<void> {
   await upsertActivities(tenantId, activities);
   await replaceProductGroups(tenantId, groups, members);
   await upsertPulledProjects(tenantId, projects);
-  if (projects.length > 0) lastProjectPullAt.set(tenantId, Date.now());
+  if (projects.length > 0) {
+    lastProjectPullAt.set(tenantId, Date.now());
+    await closePulledProjects(tenantId, provider);
+  }
   await ensureDefaultKmProducts(tenantId);
   await prisma.tenant.update({
     where: { id: tenantId },
@@ -109,7 +112,26 @@ export async function pullAccountingProjects(tenantId: string): Promise<void> {
   if (!provider) return;
   const projects = await provider.listProjects();
   await upsertPulledProjects(tenantId, projects);
+  await closePulledProjects(tenantId, provider);
   lastProjectPullAt.set(tenantId, Date.now());
+}
+
+/** Prosjekt som er avsluttet i Tripletex skal ikke kunne stemples på. Tom liste betyr at kallet feilet eller at ingen er avsluttet. */
+async function closePulledProjects(tenantId: string, provider: AccountingProvider): Promise<void> {
+  const closedIds = await provider.listClosedProjectIds().catch(() => [] as string[]);
+  const chunkSize = 500;
+  for (let index = 0; index < closedIds.length; index += chunkSize) {
+    const chunk = closedIds.slice(index, index + chunkSize);
+    await prisma.project.updateMany({
+      where: {
+        tenantId,
+        externalProjectId: { in: chunk },
+        isAbsenceProject: false,
+        status: { in: ["ACTIVE", "PLANNING"] },
+      },
+      data: { status: "COMPLETED" },
+    });
+  }
 }
 
 /**

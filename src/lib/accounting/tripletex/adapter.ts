@@ -323,10 +323,19 @@ export class TripletexAdapter implements AccountingProvider {
   async listProjects(): Promise<AccountingProjectDto[]> {
     const rows = await paginatedGet<TxProject>(
       this.client,
-      "/project?isOffer=false",
+      "/project?isOffer=false&isClosed=false",
       PROJECT_FIELDS
     );
-    return rows.map(mapTxProject).filter((p): p is AccountingProjectDto => p != null && !p.isOffer);
+    return rows.map(mapTxProject).filter((p): p is AccountingProjectDto => p != null && !p.isOffer && !p.isClosed);
+  }
+
+  async listClosedProjectIds(): Promise<string[]> {
+    const rows = await paginatedGet<TxId>(
+      this.client,
+      "/project?isOffer=false&isClosed=true",
+      "id"
+    );
+    return rows.map((row) => idStr(row.id)).filter(Boolean);
   }
 
   async getProject(externalId: string): Promise<AccountingProjectDto | null> {

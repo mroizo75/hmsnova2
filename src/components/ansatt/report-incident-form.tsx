@@ -213,10 +213,6 @@ export function ReportIncidentForm({
 
     const formData = new FormData(e.currentTarget);
 
-    imageFiles.forEach((file) => {
-      formData.append("images", file);
-    });
-
     formData.set("type", selectedType);
     formData.append("tenantId", tenantId);
     formData.append("reportedBy", reportedBy);
@@ -253,13 +249,28 @@ export function ReportIncidentForm({
       const body = (await response.json().catch(() => null)) as {
         error?: string;
         imagesFailed?: number;
+        incident?: { id?: string };
       } | null;
 
       if (!response.ok) {
         throw new Error(body?.error || t("toast.error.description"));
       }
 
-      const imagesMissing = (body?.imagesFailed ?? 0) > 0;
+      let imagesFailed = body?.imagesFailed ?? 0;
+      const incidentId = body?.incident?.id;
+      if (incidentId && imageFiles.length > 0) {
+        for (const file of imageFiles) {
+          const imageData = new FormData();
+          imageData.append("images", file);
+          const imageResponse = await fetch(`/api/incidents/${incidentId}/attachments`, {
+            method: "POST",
+            body: imageData,
+          });
+          if (!imageResponse.ok) imagesFailed += 1;
+        }
+      }
+
+      const imagesMissing = imagesFailed > 0;
       toast({
         title: t("toast.success.title"),
         description: imagesMissing
@@ -273,6 +284,9 @@ export function ReportIncidentForm({
     } catch (error) {
       if (isNetworkError(error) && isAvailable()) {
         const { payload, files } = formDataToOfflinePayload(formData);
+        for (const file of imageFiles) {
+          files.push({ fieldName: "images", name: file.name, type: file.type, blob: file });
+        }
         const result = await enqueueSafe({
           id: `incident-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           type: "incident",

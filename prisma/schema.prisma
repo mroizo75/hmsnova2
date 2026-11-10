@@ -386,6 +386,8 @@ model Tenant {
   lockedDashboardConfig               Json? // Widget-konfig som brukes av alle når dashboardet er låst
   moduleVisibilityConfig              Json? // Hvilke roller kan se hvert modul (null = systemstandard)
   ruhModuleEnabled                    Boolean                        @default(true) // false = skjul RUH, kun Avvik brukes (IK-HMS § 5: virksomheten velger egen avviksstruktur)
+  // AML § 3-1 og IK-HMS § 5 nr. 6 krever risikovurdering, ikke at en annen person godkjenner hver SJA.
+  sjaApprovalRequired                 Boolean                        @default(false)
   mocModuleEnabled                    Boolean                        @default(true) // ISO 45001 8.1.3 og ISO 9001 6.3: endringsstyring for alle kunder.
   hmsAnnualPlanCompletions            HmsAnnualPlanCompletion[] // Avkryssing av årlig HMS-plan (sjekkliste)
   // Regnskap / Tripletex (feltjobber og kundefaktura — ikke SaaS-Invoice)
@@ -4335,6 +4337,7 @@ enum NotificationType {
   BREAK_GLASS_REQUEST
   MOC_UPDATED // ISO 45001 8.1.3: statusendring på endringssak
   ROUTINE_CHANGED // IK-HMS § 5: gjeldende rutine er endret og skal være kjent
+  SJA_SUBMITTED // Ny SJA er sendt inn
 }
 
 // ============================================

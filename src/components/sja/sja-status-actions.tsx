@@ -16,12 +16,14 @@ interface SjaStatusActionsProps {
   analysisId: string;
   currentStatus: SjaStatus;
   currentConclusion: SjaConclusion;
+  approvalRequired?: boolean;
 }
 
 export function SjaStatusActions({
   analysisId,
   currentStatus,
   currentConclusion,
+  approvalRequired = false,
 }: SjaStatusActionsProps) {
   const t = useTranslations("employeeSjaStatusActions");
   const router = useRouter();
@@ -66,7 +68,11 @@ export function SjaStatusActions({
         <CardTitle className="text-sm">{t("title")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {currentStatus === "DRAFT" && (
+        {currentStatus === "DRAFT" && !approvalRequired && (
+          <p className="text-sm text-muted-foreground">{t("draftReady")}</p>
+        )}
+
+        {currentStatus === "DRAFT" && approvalRequired && (
           <>
             <div className="space-y-2">
               <Label className="text-sm">{t("commentLabel")}</Label>

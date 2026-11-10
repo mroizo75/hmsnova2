@@ -75,7 +75,7 @@ export async function fetchSjaDetail(id: string) {
     }),
     prisma.tenant.findUnique({
       where: { id: tenantId },
-      select: { mocModuleEnabled: true, name: true, logoUrl: true },
+      select: { mocModuleEnabled: true, name: true, logoUrl: true, sjaApprovalRequired: true },
     }),
   ]);
 
@@ -87,5 +87,6 @@ export async function fetchSjaDetail(id: string) {
     tenantName: tenant?.name ?? null,
     tenantLogoUrl: tenant?.logoUrl ?? null,
     canApproveSja: permissions.canApproveSja,
+    sjaApprovalRequired: tenant?.sjaApprovalRequired ?? false,
   }));
 }

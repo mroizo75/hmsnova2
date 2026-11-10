@@ -19,6 +19,10 @@ import {
   getRequiredCourseKeys,
 } from "@/features/sja/lib/sja-fse";
 import { createSjaRiskSnapshot } from "@/features/sja/lib/sja-risk-source";
+import { submittedSjaState } from "@/features/sja/lib/sja-submission";
+import { createNotification } from "@/server/actions/notification.actions";
+import { roleMatchFilter } from "@/lib/extra-roles";
+import { getNotifyRolesForModule, parseModuleVisibilityConfig } from "@/lib/module-visibility";
 
 async function getSessionContext() {
   const context = await getRequiredTenantContext();
@@ -392,6 +396,13 @@ export async function createSjaAnalysis(input: any) {
       }
     }
 
+    const tenantSettings = await prisma.tenant.findUnique({
+      where: { id: validated.tenantId },
+      select: { sjaApprovalRequired: true, moduleVisibilityConfig: true },
+    });
+    const approvalRequired = tenantSettings?.sjaApprovalRequired ?? false;
+    const submitted = submittedSjaState(approvalRequired);
+
     const sjaNummer = await generateSequenceNumber(
       validated.tenantId,
       "SJA",
@@ -428,8 +439,8 @@ export async function createSjaAnalysis(input: any) {
         projectId: validated.projectId ?? null,
         submittedAt: new Date(),
         signedByNames: validated.participants,
-        status: SjaStatus.DRAFT,
-        conclusion: SjaConclusion.NOT_DECIDED,
+        status: submitted.status,
+        conclusion: submitted.conclusion,
         hazards: {
           create: validated.hazards.map((h, i) => ({
             sortOrder: i,
@@ -457,7 +468,22 @@ export async function createSjaAnalysis(input: any) {
     AuditLog.log(tenantId, user.id, "SJA_CREATED", "SjaAnalysis", analysis.id, {
       title: analysis.title,
       aiGenerated: validated.aiGenerated,
+      approvalRequired,
     }).catch(() => {});
+
+    try {
+      await notifySjaSubmitted({
+        tenantId,
+        actorId: user.id,
+        analysisId: analysis.id,
+        sjaNummer: analysis.sjaNummer,
+        title: analysis.title,
+        approvalRequired,
+        moduleVisibilityConfig: tenantSettings?.moduleVisibilityConfig,
+      });
+    } catch (notifyError) {
+      console.error("SJA notification error:", notifyError);
+    }
 
     revalidatePath("/dashboard/sja");
     if (validated.projectId) {
@@ -465,10 +491,55 @@ export async function createSjaAnalysis(input: any) {
     }
     revalidatePath("/ansatt/sja");
     triggerRealtimeEvent(tenantId, "sja-updated");
-    return { success: true, data: analysis };
+    return { success: true, data: analysis, approvalRequired };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke opprette SJA" };
   }
+}
+
+async function notifySjaSubmitted(input: {
+  tenantId: string;
+  actorId: string;
+  analysisId: string;
+  sjaNummer: string | null;
+  title: string;
+  approvalRequired: boolean;
+  moduleVisibilityConfig: unknown;
+}) {
+  const roles = getNotifyRolesForModule(
+    parseModuleVisibilityConfig(input.moduleVisibilityConfig),
+    "sja",
+    ["ADMIN", "HMS", "LEDER"],
+  );
+  if (roles.length === 0) return;
+
+  const members = await prisma.userTenant.findMany({
+    where: {
+      tenantId: input.tenantId,
+      userId: { not: input.actorId },
+      ...roleMatchFilter(roles),
+    },
+    select: { userId: true },
+    distinct: ["userId"],
+  });
+
+  const label = input.sjaNummer ? `${input.sjaNummer} ${input.title}` : input.title;
+  const message = input.approvalRequired
+    ? `${label} er sendt inn og venter godkjenning.`
+    : `${label} er registrert og klar til bruk.`;
+
+  await Promise.all(
+    members.map((member) =>
+      createNotification({
+        tenantId: input.tenantId,
+        userId: member.userId,
+        type: "SJA_SUBMITTED",
+        title: "Ny SJA sendt inn",
+        message,
+        link: `/dashboard/sja/${input.analysisId}`,
+      }),
+    ),
+  );
 }
 
 export async function saveSjaDraft(input: any) {

@@ -61,6 +61,14 @@ export async function fetchIncidentDetail(id: string) {
           },
         },
       },
+      inspectionFindings: {
+        select: {
+          id: true,
+          inspection: {
+            select: { id: true, title: true, type: true, scheduledDate: true },
+          },
+        },
+      },
       department: {
         select: { id: true, name: true },
       },

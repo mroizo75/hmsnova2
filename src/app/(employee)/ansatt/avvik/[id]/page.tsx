@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { EmployeeIncidentCommentForm } from "@/features/incidents/components/employee-incident-comment-form";
+import { inspectionSourcesFromFindings } from "@/features/incidents/lib/inspection-source";
 
 export default async function AnsattAvvikDetalj({
   params,
@@ -31,6 +32,11 @@ export default async function AnsattAvvikDetalj({
         orderBy: { createdAt: "asc" },
       },
       equipmentApproval: { select: { name: true } },
+      inspectionFindings: {
+        select: {
+          inspection: { select: { id: true, title: true, type: true } },
+        },
+      },
       checklistAnswers: {
         take: 1,
         select: {
@@ -72,6 +78,15 @@ export default async function AnsattAvvikDetalj({
               Fra sjekkliste {incident.checklistAnswers[0].run.checklist.title} · {incident.checklistAnswers[0].run.reference}
             </Link>
           )}
+          {inspectionSourcesFromFindings(incident.inspectionFindings).map((inspection) => (
+            <Link
+              key={inspection.id}
+              href={`/ansatt/vernerunder/${inspection.id}/fill`}
+              className="block text-sm underline"
+            >
+              {inspection.type === "VERNERUNDE" ? "Fra vernerunde" : "Fra inspeksjon"} {inspection.title}
+            </Link>
+          ))}
         </div>
       </div>
 

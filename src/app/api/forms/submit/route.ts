@@ -372,6 +372,10 @@ export async function POST(request: NextRequest) {
             location: location || inspection.location || null,
           },
         });
+        await prisma.inspectionFinding.update({
+          where: { id: finding.id },
+          data: { linkedIncidentId: incident.id },
+        });
         await notifyCreatedIncident({
           tenantId: inspection.tenantId,
           reporterId: session.user.id,

@@ -66,6 +66,9 @@ export class FikenAccountingAdapter implements AccountingProvider {
   listProjects(): never {
     throw new AccountingProviderNotImplementedError("Fiken");
   }
+  listClosedProjectIds(): Promise<string[]> {
+    return Promise.resolve([]);
+  }
   getProject(): never {
     throw new AccountingProviderNotImplementedError("Fiken");
   }

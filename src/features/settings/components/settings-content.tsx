@@ -16,6 +16,7 @@ import { NotificationSettings } from "@/features/settings/components/notificatio
 import { SimpleMenuSettings } from "@/features/settings/components/simple-menu-settings";
 import { ModuleVisibilitySettings } from "@/features/settings/components/module-visibility-settings";
 import { RuhModuleSettings } from "@/features/settings/components/ruh-module-settings";
+import { SjaApprovalSettings } from "@/features/settings/components/sja-approval-settings";
 import { MocModuleSettings } from "@/features/settings/components/moc-module-settings";
 import { AiSettings } from "@/features/settings/components/ai-settings";
 import { DataExportCard } from "@/features/settings/components/data-export-card";
@@ -133,6 +134,10 @@ export function SettingsContent({
       <TabsContent value="visibility" className="space-y-6">
         <RuhModuleSettings
           initialEnabled={tenant.ruhModuleEnabled}
+          isAdmin={isAdmin}
+        />
+        <SjaApprovalSettings
+          initialRequired={Boolean(tenant.sjaApprovalRequired)}
           isAdmin={isAdmin}
         />
         <MocModuleSettings

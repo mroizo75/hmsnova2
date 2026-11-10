@@ -2501,6 +2501,7 @@
     "conditional": "Conditionally approved",
     "reject": "Reject - work CANNOT start",
     "complete": "Complete SJA - work finished",
+    "draftReady": "This is a draft. Approval is not required when the SJA is submitted.",
     "done": "This SJA is {status}.",
     "status": {
       "completed": "completed",
@@ -2702,7 +2703,8 @@
       },
       "submitSuccess": {
         "title": "SJA submitted",
-        "description": "Safe job analysis is registered and ready for approval."
+        "description": "The safe job analysis is registered and ready to use.",
+        "pendingApproval": "The safe job analysis is registered and waiting for approval."
       },
       "aiMissingData": {
         "title": "Missing input",

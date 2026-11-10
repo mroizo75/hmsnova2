@@ -67,6 +67,7 @@ const immediateEmailTypes = new Set<NotificationType>([
   "SUPPORT_MSG",
   "LAW_CHANGE_ALERT",
   "ROUTINE_CHANGED",
+  "SJA_SUBMITTED",
 ]);
 
 export function isNotificationTypeEnabledForUser(
