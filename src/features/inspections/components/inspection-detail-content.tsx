@@ -24,6 +24,7 @@ import { InspectionFindingList } from "@/features/inspections/components/inspect
 import { UpdateInspectionStatusForm } from "@/features/inspections/components/update-inspection-status-form";
 import { DeleteInspectionButton } from "@/features/inspections/components/delete-inspection-button";
 import { fetchInspectionDetail } from "@/server/queries/inspection.queries";
+import { displayedFindingStatus } from "@/lib/inspection-finding-status";
 
 type InspectionDetailData = NonNullable<Awaited<ReturnType<typeof fetchInspectionDetail>>>;
 
@@ -77,10 +78,10 @@ export function InspectionDetailContent({
 
   const findingStats = {
     total: inspection.findings.length,
-    open: inspection.findings.filter((f: any) => f.status === "OPEN").length,
-    inProgress: inspection.findings.filter((f: any) => f.status === "IN_PROGRESS").length,
-    resolved: inspection.findings.filter((f: any) => f.status === "RESOLVED").length,
-    closed: inspection.findings.filter((f: any) => f.status === "CLOSED").length,
+    open: inspection.findings.filter((f) => displayedFindingStatus(f.status, f.linkedIncident?.status) === "OPEN").length,
+    inProgress: inspection.findings.filter((f) => displayedFindingStatus(f.status, f.linkedIncident?.status) === "IN_PROGRESS").length,
+    resolved: inspection.findings.filter((f) => displayedFindingStatus(f.status, f.linkedIncident?.status) === "RESOLVED").length,
+    closed: inspection.findings.filter((f) => displayedFindingStatus(f.status, f.linkedIncident?.status) === "CLOSED").length,
     critical: inspection.findings.filter((f: any) => f.severity === 5).length,
     high: inspection.findings.filter((f: any) => f.severity === 4).length,
     medium: inspection.findings.filter((f: any) => f.severity === 3).length,

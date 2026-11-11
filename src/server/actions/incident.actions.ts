@@ -15,6 +15,34 @@ import {
   getIncidentStatusLabel,
 } from "@/features/incidents/schemas/incident.schema";
 
+/** IK-HMS § 5: funn fra vernerunde skal stå som lukket når det tilknyttede avviket er lukket. */
+async function syncInspectionFindingsForIncident(incidentId: string, status: "CLOSED" | "OPEN") {
+  const findings = await prisma.inspectionFinding.findMany({
+    where: { linkedIncidentId: incidentId },
+    select: { inspectionId: true },
+  });
+  if (findings.length === 0) return;
+
+  if (status === "CLOSED") {
+    await prisma.inspectionFinding.updateMany({
+      where: { linkedIncidentId: incidentId, status: { not: "CLOSED" } },
+      data: { status: "CLOSED", resolvedAt: new Date() },
+    });
+  } else {
+    await prisma.inspectionFinding.updateMany({
+      where: { linkedIncidentId: incidentId, status: "CLOSED" },
+      data: { status: "OPEN", resolvedAt: null },
+    });
+  }
+
+  const inspectionIds = [...new Set(findings.map((finding) => finding.inspectionId))];
+  for (const inspectionId of inspectionIds) {
+    revalidatePath(`/dashboard/inspections/${inspectionId}`);
+    revalidatePath(`/dashboard/inspections/${inspectionId}/mobil`);
+  }
+  revalidatePath("/dashboard/inspections");
+}
+
 function formatActionError(error: unknown, fallback: string): string {
   if (error instanceof ZodError) {
     const messages = error.issues.map((e) => e.message);
@@ -952,6 +980,8 @@ export async function closeIncident(input: any) {
       }
     })();
 
+    await syncInspectionFindingsForIncident(incident.id, "CLOSED");
+
     revalidatePath("/dashboard/incidents");
     revalidatePath(`/dashboard/incidents/${incident.id}`);
     revalidatePath("/ansatt/avvik");
@@ -1036,6 +1066,8 @@ export async function reopenIncident(id: string) {
         console.error("Background notification error:", bgError);
       }
     })();
+
+    await syncInspectionFindingsForIncident(incident.id, "OPEN");
 
     revalidatePath("/dashboard/incidents");
     revalidatePath(`/dashboard/incidents/${incident.id}`);

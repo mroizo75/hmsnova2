@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, CheckCircle, Clock, MapPin } from "lucide-react";
 import Link from "next/link";
 import { fetchInspectionMobile } from "@/server/queries/inspection.queries";
+import { displayedFindingStatus } from "@/lib/inspection-finding-status";
 
 type InspectionMobileData = NonNullable<Awaited<ReturnType<typeof fetchInspectionMobile>>>;
 
@@ -116,7 +117,7 @@ export function InspectionMobileContent({ initialData, inspectionId }: Inspectio
           </div>
           <div className="bg-white rounded-lg border p-4 text-center">
             <div className="text-3xl font-bold text-orange-600">
-              {inspection.findings.filter((f: any) => f.status === "OPEN").length}
+              {inspection.findings.filter((f) => displayedFindingStatus(f.status, f.linkedIncident?.status) === "OPEN").length}
             </div>
             <div className="text-sm text-muted-foreground mt-1">{t("stats.openFindings")}</div>
           </div>

@@ -28,6 +28,7 @@ import { format } from "date-fns";
 import { enUS, nb } from "date-fns/locale";
 import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
+import { displayedFindingStatus } from "@/lib/inspection-finding-status";
 import { moveInspectionFindingCheckpoint } from "@/server/actions/inspection.actions";
 import { resolveCheckpointFieldId } from "@/features/inspections/lib/move-checkpoint";
 
@@ -167,7 +168,7 @@ function UpdateFindingStatusDialog({ finding }: { finding: Finding }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="status">{t("labels.status")}</Label>
-            <Select name="status" defaultValue={finding.status} required>
+            <Select name="status" defaultValue={displayedFindingStatus(finding.status, finding.linkedIncident?.status)} required>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -286,9 +287,10 @@ export function InspectionFindingList({
     <div className="space-y-4">
       {findings.map((finding) => {
         const images = finding.imageKeys ? JSON.parse(finding.imageKeys) : [];
+        const shownStatus = displayedFindingStatus(finding.status, finding.linkedIncident?.status);
         
         return (
-          <Card key={finding.id} className="border-l-4 border-l-orange-500">
+          <Card key={finding.id} className={`border-l-4 ${shownStatus === "CLOSED" || shownStatus === "RESOLVED" ? "border-l-gray-300" : "border-l-orange-500"}`}>
             <CardHeader>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
@@ -302,7 +304,7 @@ export function InspectionFindingList({
                 </div>
                 <div className="flex flex-col gap-2 items-end">
                   {getSeverityBadge(finding.severity, t)}
-                  {getStatusBadge(finding.status, t)}
+                  {getStatusBadge(shownStatus, t)}
                 </div>
               </div>
             </CardHeader>

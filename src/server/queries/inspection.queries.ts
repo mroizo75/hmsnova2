@@ -14,6 +14,7 @@ export async function fetchInspections() {
       findings: {
         where: {
           status: { in: ["OPEN", "IN_PROGRESS"] },
+          NOT: { linkedIncident: { is: { status: "CLOSED" } } },
         },
       },
       template: {
@@ -93,6 +94,9 @@ export async function fetchInspectionMobile(id: string) {
     include: {
       findings: {
         orderBy: { createdAt: "desc" },
+        include: {
+          linkedIncident: { select: { status: true } },
+        },
       },
       formTemplate: {
         include: {
