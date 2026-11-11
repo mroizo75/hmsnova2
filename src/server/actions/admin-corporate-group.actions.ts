@@ -9,6 +9,9 @@ import { Resend } from "resend";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { createTenantAdminAndSendEmail } from "@/lib/konsern-tenant-email";
+import { isKonsernCreatedSlug } from "@/lib/orphan-konsern-tenants";
+import { purgeTenants } from "@/lib/purge-tenants";
+import { deleteTenantFiles } from "@/lib/storage";
 import { isMocDefaultIndustry } from "@/lib/moc-industry";
 import { standardSoftwareSubscription } from "@/lib/subscription";
 
@@ -415,38 +418,106 @@ export async function getAvailableTenantsForGroup() {
   });
 }
 
+export async function listOrphanKonsernTenants() {
+  await requireSuperAdmin();
+
+  const tenants = await prisma.tenant.findMany({
+    where: { corporateGroupMemberships: { none: {} } },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      orgNumber: true,
+      status: true,
+    },
+    orderBy: { name: "asc" },
+  });
+
+  return tenants.filter((tenant) => isKonsernCreatedSlug(tenant.slug));
+}
+
+export async function deleteOrphanKonsernTenants(confirmation: string) {
+  await requireSuperAdmin();
+
+  if (confirmation !== "SLETT") {
+    throw new Error("Skriv SLETT for å bekrefte");
+  }
+
+  const orphans = await listOrphanKonsernTenants();
+  if (orphans.length === 0) {
+    throw new Error("Ingen bedrifter står igjen etter et slettet konsern");
+  }
+
+  await purgeTenants(orphans.map((tenant) => tenant.id));
+
+  revalidatePath("/admin/konsern");
+  revalidatePath("/admin/tenants");
+
+  return { deleted: orphans.length };
+}
+
 export async function deleteCorporateGroup(groupId: string) {
   await requireSuperAdmin();
 
   const group = await prisma.corporateGroup.findUnique({
     where: { id: groupId },
     include: {
-      tenants: { select: { tenantId: true } },
+      tenants: { select: { tenantId: true, status: true } },
     },
   });
 
   if (!group) throw new Error("Konsernet finnes ikke");
 
-  // Finn morselskap-tenant (auto-opprettet med slug `konsern-{slug}`)
-  const parentTenantSlug = `konsern-${group.slug}`;
+  // Morselskap opprettes med slug `konsern-{slug}` og er vanligvis også koblet som medlem.
   const parentTenant = await prisma.tenant.findUnique({
-    where: { slug: parentTenantSlug },
+    where: { slug: `konsern-${group.slug}` },
+    select: { id: true },
   });
 
-  await prisma.$transaction(async (tx) => {
-    await tx.corporateGroupDistribution.deleteMany({ where: { groupId } });
-    await tx.corporateGroupContent.deleteMany({ where: { groupId } });
-    await tx.corporateGroupAuditLog.deleteMany({ where: { groupId } });
-    await tx.corporateGroupUser.deleteMany({ where: { groupId } });
-    await tx.corporateGroupTenant.deleteMany({ where: { groupId } });
-    await tx.corporateGroup.delete({ where: { id: groupId } });
+  // REMOVED er bevisst frakoblet og skal bestå som egen bedrift.
+  const tenantIds = [
+    ...new Set([
+      ...group.tenants.filter((link) => link.status !== "REMOVED").map((link) => link.tenantId),
+      ...(parentTenant ? [parentTenant.id] : []),
+    ]),
+  ];
 
-    // Slett morselskap-tenant og tilhørende data
-    if (parentTenant) {
-      await tx.userTenant.deleteMany({ where: { tenantId: parentTenant.id } });
-      await tx.tenant.delete({ where: { id: parentTenant.id } });
-    }
-  });
+  const tenantUserLinks =
+    tenantIds.length === 0
+      ? []
+      : await prisma.userTenant.findMany({
+          where: { tenantId: { in: tenantIds } },
+          select: { userId: true },
+        });
+  const candidateUserIds = [...new Set(tenantUserLinks.map((link) => link.userId))];
+
+  for (const tenantId of tenantIds) {
+    await deleteTenantFiles(tenantId);
+  }
+
+  await prisma.$transaction(
+    async (tx) => {
+      for (const tenantId of tenantIds) {
+        await tx.tenant.delete({ where: { id: tenantId } });
+      }
+
+      await tx.corporateGroup.delete({ where: { id: groupId } });
+
+      if (candidateUserIds.length > 0) {
+        await tx.user.deleteMany({
+          where: {
+            id: { in: candidateUserIds },
+            isSuperAdmin: false,
+            isSupport: false,
+            tenants: { none: {} },
+            corporateGroupMemberships: { none: {} },
+          },
+        });
+      }
+    },
+    { maxWait: 15_000, timeout: 180_000 },
+  );
 
   revalidatePath("/admin/konsern");
+  revalidatePath("/admin/tenants");
 }

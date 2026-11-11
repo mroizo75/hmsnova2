@@ -340,6 +340,7 @@ export async function POST(request: NextRequest) {
             severity,
             location: location || null,
             imageKeys: imageKeys.length > 0 ? JSON.stringify(imageKeys) : null,
+            checklistFieldId: findingInput.fieldId || null,
             status: "OPEN",
           },
         });

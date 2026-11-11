@@ -1,12 +1,11 @@
 import { prisma } from "@/lib/db";
 import {
-  pickDepartmentLeaderIds,
   resolveIncidentRecipients,
   type IncidentRoutingLookups,
 } from "@/lib/incident-notification-routing";
 import { membershipRoles, roleMatchFilter } from "@/lib/extra-roles";
 import { copyRolesForNewIncident, receivesSafetyIncidentNotice } from "@/lib/incident-visibility";
-import { safetyRepresentativeAreaIds } from "@/features/departments/lib/department-tree";
+import { leadersCoveringDepartment, safetyRepresentativeAreaIds } from "@/features/departments/lib/department-tree";
 import { getNotifyRolesForModule, parseModuleVisibilityConfig } from "@/lib/module-visibility";
 import { createNotification } from "@/server/actions/notification.actions";
 import {
@@ -52,34 +51,25 @@ export function createIncidentRoutingLookups(tenantId: string): IncidentRoutingL
     },
 
     async getDepartmentLeaderIds(departmentId) {
-      const department = await prisma.department.findFirst({
-        where: { id: departmentId, tenantId, isActive: true },
-        select: { id: true },
-      });
-      if (!department) return [];
-
-      const placed = await prisma.userTenant.findMany({
-        where: { tenantId, departmentId, role: "LEDER" },
-        select: { userId: true },
-      });
-      const members = await prisma.userTenant.findMany({
-        where: { tenantId, departmentId, managerId: { not: null } },
-        select: { managerId: true },
-      });
-      const managerIds = members
-        .map((member) => member.managerId)
-        .filter((managerId): managerId is string => Boolean(managerId));
-      const managerLeaders = managerIds.length
-        ? await prisma.userTenant.findMany({
-            where: { tenantId, userId: { in: managerIds }, role: "LEDER" },
-            select: { userId: true },
-          })
-        : [];
-
-      return pickDepartmentLeaderIds({
-        leadersInDepartment: placed.map((leader) => leader.userId),
-        managersOfMembers: managerLeaders.map((leader) => leader.userId),
-      });
+      const [departments, leaders] = await Promise.all([
+        prisma.department.findMany({
+          where: { tenantId, isActive: true },
+          select: { id: true, parentId: true, leaderId: true },
+        }),
+        prisma.userTenant.findMany({
+          where: { tenantId, ...roleMatchFilter(["LEDER"]) },
+          select: { userId: true, departmentId: true },
+        }),
+      ]);
+      if (!departments.some((department) => department.id === departmentId)) return [];
+      return leadersCoveringDepartment(
+        departments,
+        leaders.map((leader) => ({
+          userId: leader.userId,
+          ownDepartmentId: leader.departmentId,
+        })),
+        departmentId,
+      );
     },
 
     async getUserIdsByRoles(roles) {
@@ -201,6 +191,31 @@ export async function dispatchNewIncidentNotifications(
   return routing;
 }
 
+export async function notifyIncidentDepartmentLeaders(input: {
+  tenantId: string;
+  departmentId: string | null | undefined;
+  notification: {
+    type: "NEW_INCIDENT" | "INCIDENT_UPDATED" | "INCIDENT_CLOSED";
+    title: string;
+    message: string;
+    link?: string;
+  };
+}) {
+  if (!input.departmentId) return;
+  const leaderIds = await createIncidentRoutingLookups(input.tenantId).getDepartmentLeaderIds(
+    input.departmentId,
+  );
+  await Promise.all(
+    leaderIds.map((userId) =>
+      createNotification({
+        tenantId: input.tenantId,
+        userId,
+        ...input.notification,
+      }),
+    ),
+  );
+}
+
 /** Felles inngang når et avvik opprettes utenfor det vanlige skjemaet. */
 export async function notifyCreatedIncident(input: {
   tenantId: string;
@@ -219,7 +234,7 @@ export async function notifyCreatedIncident(input: {
   const fallbackRoles = getNotifyRolesForModule(
     parseModuleVisibilityConfig(tenant?.moduleVisibilityConfig),
     "incidents",
-    ["ADMIN", "HMS", "LEDER"],
+    ["ADMIN", "HMS"],
   );
 
   return dispatchNewIncidentNotifications({

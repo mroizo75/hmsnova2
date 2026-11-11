@@ -55,7 +55,11 @@ export default async function AdminCorporateGroupDetailPage({
               Fyll HMS-håndbok for alle bedrifter
             </Link>
           </Button>
-          <DeleteGroupButton groupId={group.id} groupName={group.name} />
+          <DeleteGroupButton
+            groupId={group.id}
+            groupName={group.name}
+            companyCount={group.tenants.filter((link) => link.status !== "REMOVED").length}
+          />
         </div>
       </div>
 

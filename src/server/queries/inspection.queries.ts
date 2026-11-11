@@ -44,7 +44,7 @@ export async function fetchInspectionDetail(id: string) {
             select: { id: true, title: true, status: true },
           },
           linkedIncident: {
-            select: { id: true, avviksnummer: true, status: true, stage: true },
+            select: { id: true, avviksnummer: true, status: true, stage: true, description: true },
           },
         },
       },

@@ -353,7 +353,20 @@ export function InspectionDetailContent({
               <p className="text-sm mt-1">{t("findings.noneHelp")}</p>
             </div>
           ) : (
-            <InspectionFindingList findings={inspection.findings} inspectionId={inspection.id} />
+            <InspectionFindingList
+              findings={inspection.findings}
+              inspectionId={inspection.id}
+              checkpoints={(inspection.formTemplate?.fields ?? [])
+                .filter((field: { fieldType: string }) =>
+                  field.fieldType === "RADIO" ||
+                  field.fieldType === "SELECT" ||
+                  field.fieldType === "CHECKBOX",
+                )
+                .map((field: { id: string; label: string }) => ({
+                  id: field.id,
+                  label: field.label,
+                }))}
+            />
           )}
         </CardContent>
       </Card>

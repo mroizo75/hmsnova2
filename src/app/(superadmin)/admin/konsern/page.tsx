@@ -6,6 +6,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { AdminPagination, AdminPaginationSearch } from "@/components/admin-pagination";
+import { isKonsernCreatedSlug } from "@/lib/orphan-konsern-tenants";
+import { OrphanTenantsCleanup } from "./orphan-tenants-cleanup";
 
 const ITEMS_PER_PAGE = 25;
 
@@ -33,7 +35,7 @@ export default async function AdminCorporateGroupsPage({
       }
     : {};
 
-  const [totalItems, groups] = await Promise.all([
+  const [totalItems, groups, unlinkedTenants] = await Promise.all([
     prisma.corporateGroup.count({ where }),
     prisma.corporateGroup.findMany({
       where,
@@ -46,7 +48,13 @@ export default async function AdminCorporateGroupsPage({
       skip: (currentPage - 1) * ITEMS_PER_PAGE,
       take: ITEMS_PER_PAGE,
     }),
+    prisma.tenant.findMany({
+      where: { corporateGroupMemberships: { none: {} } },
+      select: { id: true, name: true, slug: true, orgNumber: true, status: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
+  const orphanTenants = unlinkedTenants.filter((tenant) => isKonsernCreatedSlug(tenant.slug));
 
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
 
@@ -66,6 +74,8 @@ export default async function AdminCorporateGroupsPage({
           </Button>
         </Link>
       </div>
+
+      <OrphanTenantsCleanup tenants={orphanTenants} />
 
       <Card>
         <CardHeader>

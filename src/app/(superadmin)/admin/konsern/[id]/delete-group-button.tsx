@@ -19,9 +19,10 @@ import { useToast } from "@/hooks/use-toast";
 interface DeleteGroupButtonProps {
   groupId: string;
   groupName: string;
+  companyCount: number;
 }
 
-export function DeleteGroupButton({ groupId, groupName }: DeleteGroupButtonProps) {
+export function DeleteGroupButton({ groupId, groupName, companyCount }: DeleteGroupButtonProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -32,7 +33,13 @@ export function DeleteGroupButton({ groupId, groupName }: DeleteGroupButtonProps
     setDeleting(true);
     try {
       await deleteCorporateGroup(groupId);
-      toast({ title: "Konsern slettet", description: `${groupName} er nå slettet.` });
+      toast({
+        title: "Konsern slettet",
+        description:
+          companyCount === 1
+            ? `${groupName} og 1 bedrift er slettet.`
+            : `${groupName} og ${companyCount} bedrifter er slettet.`,
+      });
       router.push("/admin/konsern");
     } catch (err) {
       toast({
@@ -56,9 +63,10 @@ export function DeleteGroupButton({ groupId, groupName }: DeleteGroupButtonProps
         <DialogHeader>
           <DialogTitle>Slett konsern</DialogTitle>
           <DialogDescription>
-            Dette vil permanent slette konsernet <strong>{groupName}</strong> og alle
-            tilhørende data: brukertilknytninger, bedriftstilknytninger, innhold,
-            distribusjoner og audit-logg. Bedriftene selv blir ikke slettet.
+            Dette sletter konsernet <strong>{groupName}</strong> permanent, sammen med{" "}
+            {companyCount === 1 ? "1 tilknyttet bedrift" : `${companyCount} tilknyttede bedrifter`}.
+            HMS-data, brukere som bare hører til disse bedriftene, og filer slettes også.
+            Bedrifter som allerede er fjernet fra konsernet, blir stående. Dette kan ikke angres.
           </DialogDescription>
         </DialogHeader>
 

@@ -9,7 +9,8 @@
  *   1. Leder for avdelingen avviket er meldt på (AML § 3-1: ansvaret ligger i linjen)
  *   2. Prosjektleder for prosjektet avviket gjelder
  *   3. Melderens nærmeste leder
- *   4. Rollebasert varsling (ADMIN/HMS/LEDER) når ingen leder er satt
+ *   4. Rollebasert varsling (ADMIN/HMS) når ingen leder er satt.
+ *      Andre avdelingsledere varsles ikke. De kan ikke åpne avviket.
  *
  * Admin og HMS-ansvarlig er alltid på kopi, slik at virksomheten har systematisk
  * oversikt (internkontrollforskriften § 5). Melderen varsles aldri som mottaker
@@ -100,7 +101,9 @@ export async function resolveIncidentRecipients(
   }
 
   if (recipientIds.length === 0) {
-    recipientIds = await lookups.getUserIdsByRoles(input.fallbackRoles);
+    // LEDER varsles bare for egen avdeling over. Resten av rollen skal ikke få e-post de ikke kan åpne.
+    const broadcastRoles = input.fallbackRoles.filter((role) => role !== "LEDER");
+    recipientIds = await lookups.getUserIdsByRoles(broadcastRoles);
     source = "ROLES";
   }
 

@@ -36,6 +36,28 @@ export function ledDepartmentIds(
   return [...seen];
 }
 
+/**
+ * Ledere som kan åpne et avvik på avdelingen: den som er satt som leder,
+ * og ledere som selv sitter på avdelingen eller en overordnet avdeling.
+ * AML § 3-1: oppfølgingen ligger i linjen, ikke hos alle ledere i virksomheten.
+ */
+export function leadersCoveringDepartment(
+  departments: DepartmentNode[],
+  leaders: ReadonlyArray<{ userId: string; ownDepartmentId: string | null }>,
+  incidentDepartmentId: string,
+): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const leader of leaders) {
+    if (!leader.userId || seen.has(leader.userId)) continue;
+    const covers = ledDepartmentIds(departments, leader.userId, leader.ownDepartmentId);
+    if (!covers.includes(incidentDepartmentId)) continue;
+    seen.add(leader.userId);
+    result.push(leader.userId);
+  }
+  return result;
+}
+
 function idsWithDescendants(
   departments: Array<{ id: string; parentId: string | null }>,
   roots: readonly string[],

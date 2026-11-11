@@ -28,6 +28,8 @@ import { format } from "date-fns";
 import { enUS, nb } from "date-fns/locale";
 import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
+import { moveInspectionFindingCheckpoint } from "@/server/actions/inspection.actions";
+import { resolveCheckpointFieldId } from "@/features/inspections/lib/move-checkpoint";
 
 interface Finding {
   id: string;
@@ -44,12 +46,25 @@ interface Finding {
   linkedMeasureId: string | null;
   linkedMeasure: { id: string; title: string; status: string } | null;
   linkedIncidentId: string | null;
-  linkedIncident: { id: string; avviksnummer: string | null; status: string; stage: string } | null;
+  linkedIncident: {
+    id: string;
+    avviksnummer: string | null;
+    status: string;
+    stage: string;
+    description: string;
+  } | null;
+  checklistFieldId: string | null;
+}
+
+interface CheckpointOption {
+  id: string;
+  label: string;
 }
 
 interface InspectionFindingListProps {
   findings: Finding[];
   inspectionId: string;
+  checkpoints?: CheckpointOption[];
 }
 
 function getSeverityBadge(severity: number, t: ReturnType<typeof useTranslations>) {
@@ -195,13 +210,41 @@ function UpdateFindingStatusDialog({ finding }: { finding: Finding }) {
   );
 }
 
-export function InspectionFindingList({ findings, inspectionId }: InspectionFindingListProps) {
+export function InspectionFindingList({
+  findings,
+  inspectionId,
+  checkpoints = [],
+}: InspectionFindingListProps) {
   const t = useTranslations("dashboardInspectionComponents.findingList");
   const locale = useLocale();
   const dateLocale = locale === "en" ? enUS : nb;
   const router = useRouter();
   const { toast } = useToast();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [movingId, setMovingId] = useState<string | null>(null);
+
+  async function handleCheckpointChange(finding: Finding, fieldId: string) {
+    setMovingId(finding.id);
+    try {
+      const result = await moveInspectionFindingCheckpoint(finding.id, fieldId);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      toast({
+        title: "Sjekkpunkt endret",
+        description: "Avviket er knyttet til det valgte punktet. Vernerunden er fortsatt ferdig.",
+      });
+      router.refresh();
+    } catch (error: unknown) {
+      toast({
+        title: "Kunne ikke endre sjekkpunkt",
+        description: error instanceof Error ? error.message : "Prøv igjen.",
+        variant: "destructive",
+      });
+    } finally {
+      setMovingId(null);
+    }
+  }
 
   const handleDelete = async (id: string, title: string) => {
     if (!confirm(t("confirmDelete", { title }))) {
@@ -268,6 +311,37 @@ export function InspectionFindingList({ findings, inspectionId }: InspectionFind
                 <p className="text-sm font-medium text-muted-foreground mb-1">{t("labels.description")}</p>
                 <p className="text-sm whitespace-pre-wrap">{finding.description}</p>
               </div>
+
+              {checkpoints.length > 0 && (
+                <div className="space-y-1">
+                  <Label htmlFor={`checkpoint-${finding.id}`}>Sjekkpunkt</Label>
+                  <Select
+                    value={
+                      resolveCheckpointFieldId({
+                        storedFieldId: finding.checklistFieldId,
+                        incidentDescription: finding.linkedIncident?.description,
+                        fields: checkpoints,
+                      }) ?? undefined
+                    }
+                    disabled={movingId === finding.id}
+                    onValueChange={(value) => void handleCheckpointChange(finding, value)}
+                  >
+                    <SelectTrigger id={`checkpoint-${finding.id}`}>
+                      <SelectValue placeholder="Velg sjekkpunkt" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {checkpoints.map((checkpoint) => (
+                        <SelectItem key={checkpoint.id} value={checkpoint.id}>
+                          {checkpoint.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Vernerunden er ferdig. Her flytter du avviket til riktig punkt.
+                  </p>
+                </div>
+              )}
 
               {images.length > 0 && (
                 <div className="grid grid-cols-3 gap-2">

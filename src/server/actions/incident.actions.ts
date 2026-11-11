@@ -31,7 +31,7 @@ import {
   parseModuleVisibilityConfig,
   getNotifyRolesForModule,
 } from "@/lib/module-visibility";
-import { dispatchNewIncidentNotifications, notifyIncidentReporter } from "@/lib/incident-notification-routing.server";
+import { dispatchNewIncidentNotifications, notifyIncidentDepartmentLeaders, notifyIncidentReporter } from "@/lib/incident-notification-routing.server";
 import { normalizeProjectReference } from "@/lib/incident-project-reference";
 import { logAiFeedback } from "@/lib/ai-feedback";
 import { resolveIncidentProjectId } from "@/lib/incident-project-reference.server";
@@ -476,7 +476,7 @@ export async function createIncident(input: any) {
           },
         });
         const visConfig = await getTenantModuleVisibility(tenantId);
-        const notifyRoles = getNotifyRolesForModule(visConfig, "incidents", ["ADMIN", "HMS", "LEDER"]);
+        const notifyRoles = getNotifyRolesForModule(visConfig, "incidents", ["ADMIN", "HMS"]);
         await dispatchNewIncidentNotifications({
           tenantId,
           reporterId: user.id,
@@ -641,12 +641,22 @@ export async function updateIncident(input: any) {
         });
         const visConfig = await getTenantModuleVisibility(tenantId);
         if (statusChanged) {
-          const notifyRoles = getNotifyRolesForModule(visConfig, "incidents", ["ADMIN", "HMS", "LEDER"]);
+          const notifyRoles = getNotifyRolesForModule(visConfig, "incidents", ["ADMIN", "HMS"]);
           await notifyUsersByRoles(tenantId, notifyRoles, {
             type: "INCIDENT_UPDATED",
             title: "Avvik oppdatert",
             message: `${incident.type}: ${incident.title} – Status endret til ${incident.status}`,
             link: `/dashboard/incidents/${incident.id}`,
+          });
+          await notifyIncidentDepartmentLeaders({
+            tenantId,
+            departmentId: incident.departmentId,
+            notification: {
+              type: "INCIDENT_UPDATED",
+              title: "Avvik oppdatert",
+              message: `${incident.type}: ${incident.title} – Status endret til ${incident.status}`,
+              link: `/dashboard/incidents/${incident.id}`,
+            },
           });
           await notifyIncidentReporter({
             tenantId,
@@ -761,12 +771,22 @@ export async function investigateIncident(input: any) {
         });
 
         const visConfig = await getTenantModuleVisibility(tenantId);
-        const notifyRoles = getNotifyRolesForModule(visConfig, "incidents", ["ADMIN", "HMS", "LEDER"]);
+        const notifyRoles = getNotifyRolesForModule(visConfig, "incidents", ["ADMIN", "HMS"]);
         await notifyUsersByRoles(tenantId, notifyRoles, {
           type: "INCIDENT_UPDATED",
           title: "Årsaksanalyse fullført",
           message: `${incident.type}: ${incident.title} – Årsaksanalyse er gjennomført av ${user.name ?? "ukjent"}`,
-          link: `/dashboard/incidents/${incident.id}`,
+            link: `/dashboard/incidents/${incident.id}`,
+          });
+        await notifyIncidentDepartmentLeaders({
+          tenantId,
+          departmentId: incident.departmentId,
+          notification: {
+            type: "INCIDENT_UPDATED",
+            title: "Årsaksanalyse fullført",
+            message: `${incident.type}: ${incident.title} – Årsaksanalyse er gjennomført av ${user.name ?? "ukjent"}`,
+            link: `/dashboard/incidents/${incident.id}`,
+          },
         });
         await notifyIncidentReporter({
           tenantId,
@@ -901,12 +921,22 @@ export async function closeIncident(input: any) {
           },
         });
         const visConfig = await getTenantModuleVisibility(tenantId);
-        const notifyRoles = getNotifyRolesForModule(visConfig, "incidents", ["ADMIN", "HMS", "LEDER"]);
+        const notifyRoles = getNotifyRolesForModule(visConfig, "incidents", ["ADMIN", "HMS"]);
         await notifyUsersByRoles(tenantId, notifyRoles, {
           type: "INCIDENT_CLOSED",
           title: "Avvik lukket",
           message: `${incident.type}: ${incident.title} er nå lukket`,
-          link: `/dashboard/incidents/${incident.id}`,
+            link: `/dashboard/incidents/${incident.id}`,
+          });
+        await notifyIncidentDepartmentLeaders({
+          tenantId,
+          departmentId: incident.departmentId,
+          notification: {
+            type: "INCIDENT_CLOSED",
+            title: "Avvik lukket",
+            message: `${incident.type}: ${incident.title} er nå lukket`,
+            link: `/dashboard/incidents/${incident.id}`,
+          },
         });
         await notifyIncidentReporter({
           tenantId,
@@ -1094,12 +1124,22 @@ export async function createUploadedIncident(formData: FormData) {
           },
         });
         const visConfig = await getTenantModuleVisibility(tenantId);
-        const notifyRoles = getNotifyRolesForModule(visConfig, "incidents", ["ADMIN", "HMS", "LEDER"]);
+        const notifyRoles = getNotifyRolesForModule(visConfig, "incidents", ["ADMIN", "HMS"]);
         await notifyUsersByRoles(tenantId, notifyRoles, {
           type: "NEW_INCIDENT",
           title: "Nytt avvik registrert",
           message: `${source === "EXTERNAL" ? "Eksternt" : "Internt"} avvik: ${incident.title}`,
-          link: `/dashboard/incidents/${incident.id}`,
+            link: `/dashboard/incidents/${incident.id}`,
+          });
+        await notifyIncidentDepartmentLeaders({
+          tenantId,
+          departmentId: incident.departmentId,
+          notification: {
+            type: "NEW_INCIDENT",
+            title: "Nytt avvik registrert",
+            message: `${source === "EXTERNAL" ? "Eksternt" : "Internt"} avvik: ${incident.title}`,
+            link: `/dashboard/incidents/${incident.id}`,
+          },
         });
       } catch (bgError) {
         console.error("Background notification error:", bgError);

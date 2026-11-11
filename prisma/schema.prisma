@@ -3151,6 +3151,8 @@ model InspectionFinding {
   severity        Int // 1-5 (1=Lav, 5=Kritisk)
   location        String?
   imageKeys       String?                 @db.Text // JSON array of R2 keys
+  // Sjekkpunktet i vernerundeskjemaet funnet hører til. Kan rettes etter ferdigstilling.
+  checklistFieldId String?
   status          InspectionFindingStatus @default(OPEN)
   responsibleId   String?
   dueDate         DateTime?
@@ -3173,6 +3175,7 @@ model InspectionFinding {
   @@index([linkedRiskId])
   @@index([linkedMeasureId])
   @@index([linkedIncidentId])
+  @@index([checklistFieldId])
 }
 
 enum InspectionType {
