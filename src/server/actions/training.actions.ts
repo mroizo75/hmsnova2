@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { ZodError } from "zod";
 import { prisma } from "@/lib/db";
 import { getRequiredTenantContext } from "@/lib/tenant-context";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
@@ -14,6 +15,20 @@ import { runHealthcareTrainingExpiryAlerts } from "@/lib/healthcare-training-ale
 import { canViewEmployee, listVisibleEmployeeIds } from "@/server/lib/leader-employees";
 import { pickCurrentTrainings } from "@/features/training/lib/current-training";
 import { createdByForEmployerEntry } from "@/features/training/lib/training-approval";
+
+function formatActionError(error: unknown, fallback: string): string {
+  if (error instanceof ZodError) {
+    return error.issues.map((issue) => issue.message).join(". ");
+  }
+  if (error instanceof Error) {
+    const message = error.message;
+    if (message.includes("Invalid `") || message.includes("prisma.") || message.length > 240) {
+      return fallback;
+    }
+    return message;
+  }
+  return fallback;
+}
 
 async function getSessionContext() {
   const tenantContext = await getRequiredTenantContext();
@@ -55,7 +70,7 @@ export async function getTrainings(_tenantId: string) {
     return { success: true, data: trainings };
   } catch (error: any) {
     console.error("Get trainings error:", error);
-    return { success: false, error: error.message || "Kunne ikke hente opplæring" };
+    return { success: false, error: formatActionError(error, "Kunne ikke hente opplæring") };
   }
 }
 
@@ -73,7 +88,7 @@ export async function getUserTrainings(userId: string) {
     return { success: true, data: trainings };
   } catch (error: any) {
     console.error("Get user trainings error:", error);
-    return { success: false, error: error.message || "Kunne ikke hente opplæring" };
+    return { success: false, error: formatActionError(error, "Kunne ikke hente opplæring") };
   }
 }
 
@@ -139,7 +154,7 @@ export async function createTraining(input: any) {
     return { success: true, data: training };
   } catch (error: any) {
     console.error("Create training error:", error);
-    return { success: false, error: error.message || "Kunne ikke registrere opplæring" };
+    return { success: false, error: formatActionError(error, "Kunne ikke registrere opplæring") };
   }
 }
 
@@ -195,7 +210,7 @@ export async function updateTraining(input: any) {
     return { success: true, data: training };
   } catch (error: any) {
     console.error("Update training error:", error);
-    return { success: false, error: error.message || "Kunne ikke oppdatere opplæring" };
+    return { success: false, error: formatActionError(error, "Kunne ikke oppdatere opplæring") };
   }
 }
 
@@ -233,7 +248,7 @@ export async function evaluateTraining(input: any) {
     return { success: true, data: training };
   } catch (error: any) {
     console.error("Evaluate training error:", error);
-    return { success: false, error: error.message || "Kunne ikke evaluere opplæring" };
+    return { success: false, error: formatActionError(error, "Kunne ikke evaluere opplæring") };
   }
 }
 
@@ -278,7 +293,7 @@ export async function deleteTraining(id: string) {
     return { success: true };
   } catch (error: any) {
     console.error("Delete training error:", error);
-    return { success: false, error: error.message || "Kunne ikke slette opplæring" };
+    return { success: false, error: formatActionError(error, "Kunne ikke slette opplæring") };
   }
 }
 
@@ -322,7 +337,7 @@ export async function getTrainingStats(_tenantId: string) {
     return { success: true, data: stats };
   } catch (error: any) {
     console.error("Get training stats error:", error);
-    return { success: false, error: error.message || "Kunne ikke hente statistikk" };
+    return { success: false, error: formatActionError(error, "Kunne ikke hente statistikk") };
   }
 }
 
@@ -386,7 +401,7 @@ export async function createEmployeeTrainings(input: {
     return { success: true, data: created };
   } catch (error: any) {
     console.error("Create employee trainings error:", error);
-    return { success: false, error: error.message || "Kunne ikke registrere kursene" };
+    return { success: false, error: formatActionError(error, "Kunne ikke registrere kursene") };
   }
 }
 
@@ -454,7 +469,7 @@ export async function createBulkTrainings(input: {
     return { success: true, data: created };
   } catch (error: any) {
     console.error("Create bulk trainings error:", error);
-    return { success: false, error: error.message || "Kunne ikke registrere opplæringene" };
+    return { success: false, error: formatActionError(error, "Kunne ikke registrere opplæringene") };
   }
 }
 
@@ -490,7 +505,7 @@ export async function getCompetenceMatrix(_tenantId: string) {
     return { success: true, data: matrix };
   } catch (error: any) {
     console.error("Get competence matrix error:", error);
-    return { success: false, error: error.message || "Kunne ikke hente kompetansematrise" };
+    return { success: false, error: formatActionError(error, "Kunne ikke hente kompetansematrise") };
   }
 }
 
@@ -520,7 +535,7 @@ export async function sendHealthcareTrainingExpiryAlerts() {
     return { success: true, data: { sent: result.totalSent } };
   } catch (error: any) {
     console.error("Send healthcare training expiry alerts error:", error);
-    return { success: false, error: error.message || "Kunne ikke sende kompetansevarsler" };
+    return { success: false, error: formatActionError(error, "Kunne ikke sende kompetansevarsler") };
   }
 }
 

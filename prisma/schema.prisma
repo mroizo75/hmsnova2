@@ -1039,7 +1039,7 @@ model Document {
   slug                    String
   version                 String // Gjeldende versjon (v1.0, v1.1, v2.0)
   status                  DocStatus    @default(DRAFT)
-  fileKey                 String // Gjeldende fil
+  fileKey                 String       @db.Text // Gjeldende fil
   mime                    String       @default("application/pdf") // MIME-type (f.eks. application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document)
   approvedBy              String?
   approvedAt              DateTime?
@@ -1088,7 +1088,7 @@ model DocumentVersion {
   tenantId      String
   documentId    String
   version       String // v1.0, v1.1, v2.0
-  fileKey       String // Fil for denne versjonen
+  fileKey       String    @db.Text // Fil for denne versjonen
   mime          String    @default("application/pdf") // MIME-type for denne versjonen
   changeComment String?   @db.Text // Hva ble endret?
   uploadedBy    String
@@ -1220,7 +1220,7 @@ model ElectroComplianceDeclaration {
   tenantId         String
   title            String
   category         String    @default("ELEKTRO") // ELEKTRO | RORLEGGER | VENTILASJON | BRANN | ANNET
-  fileKey          String
+  fileKey          String    @db.Text
   mime             String    @default("application/pdf")
   originalFileName String
   contractorName   String? // Utførende firma
@@ -1244,7 +1244,7 @@ model RoutineUploadedDocument {
   title            String
   description      String?  @db.Text
   documentType     String   @default("RUTINE") // RUTINE | INSTRUKS
-  fileKey          String
+  fileKey          String   @db.Text
   mime             String   @default("application/pdf")
   originalFileName String
   sortOrder        Int      @default(0)
@@ -1800,7 +1800,7 @@ model SecurityEvidence {
   controlId     String
   title         String
   description   String?  @db.Text
-  attachmentKey String?
+  attachmentKey String?  @db.Text
   collectedById String?
   collectedAt   DateTime @default(now())
   reviewResult  String?
@@ -2039,7 +2039,7 @@ model EnvironmentalMeasurement {
   status          EnvironmentalMeasurementStatus @default(COMPLIANT)
   notes           String?                        @db.Text
   responsibleId   String?
-  attachmentKey   String?
+  attachmentKey   String?                        @db.Text
   createdAt       DateTime                       @default(now())
   updatedAt       DateTime                       @updatedAt
 
@@ -2570,7 +2570,7 @@ model Training {
   description   String?   @db.Text
   completedAt   DateTime? // ISO 9001: Når ble opplæringen fullført
   validUntil    DateTime? // For kurs med utløpsdato
-  proofDocKey   String? // ISO 9001: Dokumentert bevis (sertifikat PDF/bilde)
+  proofDocKey   String?   @db.Text // ISO 9001: ett eller flere sertifikat (JSON når det er flere)
   isRequired    Boolean   @default(false) // Obligatorisk for alle/visse roller
   effectiveness String?   @db.Text // ISO 9001: Evaluering av effektivitet
   evaluatedBy   String?
@@ -2873,7 +2873,7 @@ model Chemical {
   precautionaryStatements String?        @db.Text // P-setninger (P210, P261, etc)
   warningPictograms       String?        @db.Text // JSON array av faresymboler (filnavn)
   requiredPPE             String?        @db.Text // JSON array av påkrevd PPE (ISO 7010)
-  sdsKey                  String? // Sikkerhetsdatablad (PDF) i storage
+  sdsKey                  String?        @db.Text // Sikkerhetsdatablad (PDF) i storage
   sdsVersion              String? // Versjon av sikkerhetsdatablad
   sdsDate                 DateTime? // Dato for sikkerhetsdatablad
   nextReviewDate          DateTime? // Neste revisjonsdata for datablad
@@ -3024,7 +3024,7 @@ model Attachment {
   sjaAnalysisId String?
   objectType    String?
   objectId      String?
-  fileKey       String
+  fileKey       String   @db.Text
   name          String
   mime          String
   size          Int?
@@ -3438,7 +3438,7 @@ model FormFieldValue {
   submissionId String
   fieldId      String
   value        String?        @db.Text // JSON for komplekse verdier
-  fileKey      String? // Hvis file upload
+  fileKey      String?        @db.Text // Hvis file upload
   submission   FormSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   field        FormField      @relation(fields: [fieldId], references: [id])
 
@@ -3569,7 +3569,7 @@ model ChecklistAnswer {
 model ChecklistAnswerPhoto {
   id        String          @id @default(cuid())
   answerId  String
-  fileKey   String
+  fileKey   String          @db.Text
   fileName  String
   mimeType  String
   answer    ChecklistAnswer @relation(fields: [answerId], references: [id], onDelete: Cascade)
@@ -7109,7 +7109,7 @@ model CorporateGroupContent {
   title            String
   description      String?                     @db.Text
   content          Json?
-  fileKey          String?
+  fileKey          String?                     @db.Text
   mime             String?
   distributionMode CorporateGroupDistMode      @default(CUSTOMIZABLE)
   status           CorporateGroupContentStatus @default(DRAFT)
@@ -7759,7 +7759,7 @@ model PersonnelDocument {
   userId       String
   category     PersonnelDocumentCategory
   title        String
-  fileKey      String                    @db.VarChar(512)
+  fileKey      String                    @db.Text
   fileName     String
   mime         String                    @default("application/pdf")
   fileSize     Int
@@ -8160,7 +8160,7 @@ model EquipmentApprovalDocument {
   id            String   @id @default(cuid())
   tenantId      String
   equipmentId   String
-  fileKey       String
+  fileKey       String   @db.Text
   name          String
   mime          String
   size          Int?
