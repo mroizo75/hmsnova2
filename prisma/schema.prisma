@@ -127,6 +127,10 @@ model User {
   timeEntries                     TimeEntry[]
   editedTimeEntries               TimeEntry[]                    @relation("TimeEntryEditedBy")
   approvedTimeEntries             TimeEntry[]                    @relation("TimeEntryApprovedBy")
+  overtimeRequests                OvertimeRequest[]              @relation("OvertimeRequestEmployee")
+  overtimeRequestsDecided         OvertimeRequest[]              @relation("OvertimeRequestDecidedBy")
+  wellbeingRoundsCreated          WellbeingRound[]               @relation("WellbeingRoundCreatedBy")
+  wellbeingRoundRecipients        WellbeingRoundRecipient[]
   mileageEntries                  MileageEntry[]
   editedMileageEntries            MileageEntry[]                 @relation("MileageEntryEditedBy")
   projectInvoicesCreated          ProjectInvoice[]               @relation("ProjectInvoiceCreatedBy")
@@ -134,6 +138,7 @@ model User {
   timeBankLedgers                 TimeBankLedger[]
   timeBankCorrections             TimeBankLedger[]               @relation("TimeBankCorrectedBy")
   constructionRosterChecks        ConstructionRosterDailyCheck[] @relation("ConstructionRosterCheckedBy")
+  tavleCheckins                   TavleCheckin[]
   exposureRegisters               ExposureRegister[]             @relation("ExposureRegisterEmployee")
   routinesResponsible             Routine[]                      @relation("RoutineResponsible")
   electroComplianceCreated        ElectroComplianceDeclaration[] @relation("ElectroComplianceCreatedBy")
@@ -359,6 +364,7 @@ model Tenant {
   offers                              TenantOffer[]
   invoices                            Invoice[]
   formTemplates                       FormTemplate[] // Digital forms
+  wellbeingRounds                     WellbeingRound[]
   notifications                       Notification[]
   notificationPushTokens              NotificationPushToken[]
   formSubmissions                     FormSubmission[] // Digital forms
@@ -457,6 +463,7 @@ model Tenant {
   constructionRosterEntries           ConstructionRosterEntry[]
   constructionRosterChecks            ConstructionRosterDailyCheck[]
   timeEntries                         TimeEntry[]
+  overtimeRequests                    OvertimeRequest[]
   mileageEntries                      MileageEntry[]
   sequences                           TenantSequence[]
   ruhReports                          RuhReport[]
@@ -2139,6 +2146,9 @@ model Incident {
   // Underkategorier (JSON-array med keys fra IncidentSubcategoryOption)
   subcategoryKeys          String?              @db.Text
   treatmentOtherText      String?              @db.Text
+  // Intern pasient-ID ved pasientrelatert hendelse. Ikke fødselsnummer.
+  // GDPR art. 5 og 9, pasientjournalloven: minst mulig, bare for helsevirksomhet.
+  patientReference         String?              @db.VarChar(40)
   // Avdeling avviket gjelder (AML § 3-1: oppfølging i linjen)
   departmentId             String?
   // Prosjektkobling (valgfritt – AML § 3-1 systematisk HMS per arbeidssted)
@@ -3235,6 +3245,7 @@ model FormTemplate {
   createdBy   String
   fields      FormField[]
   submissions FormSubmission[]
+  wellbeingRounds WellbeingRound[]
   inspections Inspection[]     @relation("InspectionFormTemplates")
   tenant      Tenant?          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   createdAt   DateTime         @default(now())
@@ -3332,6 +3343,54 @@ model FormSubmission {
   @@index([formTemplateId])
   @@index([status])
   @@index([createdAt])
+}
+
+/// Kartlegging som bedriften selv setter i gang. AML § 4-3.
+/// Deltakelse spores. Selve svaret lagres uten bruker, så innholdet er anonymt.
+model WellbeingRound {
+  id             String               @id @default(cuid())
+  tenantId       String
+  formTemplateId String
+  title          String
+  message        String?              @db.Text
+  dueDate        DateTime?
+  status         WellbeingRoundStatus @default(ACTIVE)
+  createdById    String
+  createdAt      DateTime             @default(now())
+  closedAt       DateTime?
+
+  tenant       Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  formTemplate FormTemplate              @relation(fields: [formTemplateId], references: [id], onDelete: Restrict)
+  createdBy    User                      @relation("WellbeingRoundCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  recipients   WellbeingRoundRecipient[]
+
+  @@index([tenantId, status])
+  @@index([formTemplateId])
+}
+
+model WellbeingRoundRecipient {
+  id         String                    @id @default(cuid())
+  roundId    String
+  userId     String
+  status     WellbeingRecipientStatus  @default(PENDING)
+  answeredAt DateTime?
+  createdAt  DateTime                  @default(now())
+
+  round WellbeingRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roundId, userId])
+  @@index([userId, status])
+}
+
+enum WellbeingRoundStatus {
+  ACTIVE
+  CLOSED
+}
+
+enum WellbeingRecipientStatus {
+  PENDING
+  ANSWERED
 }
 
 enum SubmissionStatus {
@@ -4341,6 +4400,11 @@ enum NotificationType {
   MOC_UPDATED // ISO 45001 8.1.3: statusendring på endringssak
   ROUTINE_CHANGED // IK-HMS § 5: gjeldende rutine er endret og skal være kjent
   SJA_SUBMITTED // Ny SJA er sendt inn
+
+  // Overtid (AML § 10-6). Nye verdier bakerst, slik MySQL kan utvide ENUM in-place.
+  OVERTIME_REQUESTED
+  OVERTIME_DECIDED
+  WELLBEING_ASSIGNED // Psykososial kartlegging sendt til ansatt, AML § 4-3
 }
 
 // ============================================
@@ -5109,6 +5173,37 @@ model TimeEntry {
   @@index([approvalStatus])
 }
 
+/// Avtale om overtid før eller etter at timene føres. AML § 10-6.
+/// Søknaden er ikke et vilkår for å registrere timer.
+model OvertimeRequest {
+  id           String                 @id @default(cuid())
+  tenantId     String
+  userId       String
+  date         DateTime               @db.Date
+  hours        Float
+  reason       String                 @db.Text
+  status       OvertimeRequestStatus  @default(PENDING)
+  decidedById  String?
+  decidedAt    DateTime?
+  decisionNote String?                @db.Text
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User   @relation("OvertimeRequestEmployee", fields: [userId], references: [id], onDelete: Cascade)
+  decidedBy User?  @relation("OvertimeRequestDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, userId, date])
+  @@index([tenantId, status])
+}
+
+enum OvertimeRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
 enum TimeEntryType {
   NORMAL // Ordinær tid
   OVERTIME_50 // Overtid 50 %
@@ -5602,6 +5697,13 @@ model HmsTavle {
   /// oppbevares i seks måneder etter avsluttet arbeid – Byggherreforskriften § 15.
   workEndedAt DateTime?
 
+  /// Valgfri geofence rundt prosjektlokasjonen. Kun senter og radius lagres.
+  /// Arbeidstakerens posisjon brukes i øyeblikket og lagres ikke (GDPR art. 5).
+  /// Formålet er å holde oversiktslisten etter Byggherreforskriften § 15 à jour.
+  siteLatitude         Float?
+  siteLongitude        Float?
+  geofenceRadiusMeters Int?
+
   // Branding
   logoUrl    String?
   brandColor String? // Hex-farge for aksentfarge
@@ -5972,14 +6074,19 @@ model TavleCheckin {
   hmsCardNr     String? // HMS-kortnummer – § 15 bokstav e
   birthDate     String? // Fødselsdato (YYYY-MM-DD) – § 15 bokstav e
   phone         String?
+  /// HMS Nova-bruker når innsjekken er knyttet til en konto. Kort og fødselsdato
+  /// hentes fra oversiktslisten, slik at de ikke skrives inn på nytt.
+  userId        String?
   checkedInAt   DateTime  @default(now())
   checkedOutAt  DateTime?
   date          String // YYYY-MM-DD – for daglig filtrering
 
   tavle HmsTavle @relation(fields: [tavleId], references: [id], onDelete: Cascade)
+  user  User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([tavleId])
   @@index([date])
+  @@index([userId])
   // Historikkvisning, CSV-eksport og oppbevaringsjobben for § 15
   @@index([tavleId, checkedInAt])
 }

@@ -23,6 +23,12 @@ import { toast } from "sonner";
 import { HmsTavleSectionType } from "@prisma/client";
 import { Upload, Loader2, X, Plus, FileText, Image as ImageIcon, ExternalLink, Trash2 } from "lucide-react";
 
+interface RisikoValg {
+  id: string;
+  title: string;
+  assessmentYear: number;
+}
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -30,6 +36,7 @@ interface Props {
   config: Record<string, any>;
   isAddon: boolean;
   tavleId: string;
+  risikovurderinger?: RisikoValg[];
   onSave: (config: Record<string, any>) => void;
 }
 
@@ -96,7 +103,24 @@ function FileUploader({
 
 /* ─── SHA-plan konfig ─── */
 function ShaPlanConfig({ cfg, set, tavleId, isAddon }: { cfg: any; set: (k: string, v: any) => void; tavleId: string; isAddon: boolean }) {
-  if (isAddon) return <p className="text-sm text-muted-foreground">HMS Nova-tilkobling: SHA-planstatus hentes automatisk fra prosjektet.</p>;
+  if (isAddon) {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          SHA-planen er den overordnede planen etter byggherreforskriften § 7 og § 8, og status hentes fra prosjektet.
+          På tavlen vises virksomhetens HMS-plan. Det er den planen de som jobber på plassen skal bruke
+          (arbeidsmiljøloven § 3-1 og internkontrollforskriften § 5). Teksten ligger som «egen HMS-plan» i SHA-modulen.
+        </p>
+        <FileUploader
+          label="HMS-plan (PDF)"
+          accept=".pdf"
+          currentUrl={cfg.pdfUrl}
+          tavleId={tavleId}
+          onUploaded={(url) => set("pdfUrl", url)}
+        />
+      </div>
+    );
+  }
   return (
     <div className="space-y-4">
       <div className="space-y-1.5">
@@ -120,7 +144,7 @@ function ShaPlanConfig({ cfg, set, tavleId, isAddon }: { cfg: any; set: (k: stri
           <Input type="date" value={cfg.approvedDate ?? ""} onChange={(e) => set("approvedDate", e.target.value)} />
         </div>
       </div>
-      <FileUploader label="SHA-plan PDF" accept=".pdf" currentUrl={cfg.pdfUrl} tavleId={tavleId} onUploaded={(url) => set("pdfUrl", url)} />
+      <FileUploader label="HMS-plan (PDF)" accept=".pdf" currentUrl={cfg.pdfUrl} tavleId={tavleId} onUploaded={(url) => set("pdfUrl", url)} />
       <FileUploader label="Riggplan / bilde" accept="image/*,.pdf" currentUrl={cfg.imageUrl} tavleId={tavleId} onUploaded={(url) => set("imageUrl", url)} />
     </div>
   );
@@ -1017,7 +1041,57 @@ const SECTION_TITLES: Partial<Record<HmsTavleSectionType, string>> = {
   VAERMELDING: "Rediger værvarsling",
 };
 
-export function TavleSectionConfigDialog({ open, onClose, type, config, isAddon, tavleId, onSave }: Props) {
+function RisikoKildeConfig({
+  cfg,
+  set,
+  tavleId,
+  risikovurderinger,
+}: {
+  cfg: any;
+  set: (k: string, v: any) => void;
+  tavleId: string;
+  risikovurderinger: RisikoValg[];
+}) {
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Velg risikovurderingen som skal stå på tavlen (internkontrollforskriften § 5 nr. 6).
+        Tavlen viser tittel, antall åpne risikoer og de høyeste scorene. Ikke eier eller fritekst.
+      </p>
+      <div className="space-y-1.5">
+        <Label>Risikovurdering fra HMS Nova</Label>
+        <Select
+          value={cfg.riskAssessmentId ?? "none"}
+          onValueChange={(value) => set("riskAssessmentId", value === "none" ? null : value)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Velg risikovurdering" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Ingen valgt</SelectItem>
+            {risikovurderinger.map((vurdering) => (
+              <SelectItem key={vurdering.id} value={vurdering.id}>
+                {vurdering.title} ({vurdering.assessmentYear})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <GenericMediaConfig cfg={cfg} set={set} tavleId={tavleId} />
+    </div>
+  );
+}
+
+export function TavleSectionConfigDialog({
+  open,
+  onClose,
+  type,
+  config,
+  isAddon,
+  tavleId,
+  risikovurderinger = [],
+  onSave,
+}: Props) {
   const [cfg, setCfg] = useState<Record<string, any>>(config ?? {});
 
   function set(key: string, value: any) {
@@ -1084,6 +1158,14 @@ export function TavleSectionConfigDialog({ open, onClose, type, config, isAddon,
       case "RIGGPLAN":
         return <RiggplanConfig cfg={cfg} set={set} tavleId={tavleId} />;
       case "RISIKOMATRISE":
+        return (
+          <RisikoKildeConfig
+            cfg={cfg}
+            set={set}
+            tavleId={tavleId}
+            risikovurderinger={risikovurderinger}
+          />
+        );
       case "DOKUMENT_HUB":
         return <GenericMediaConfig cfg={cfg} set={set} tavleId={tavleId} />;
       case "SNARVEIER":

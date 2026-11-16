@@ -20,6 +20,7 @@ const KIND_LABEL = {
   absence: "Fravær",
   boarding: "Onboarding",
   review: "Samtale",
+  overtime: "Overtid",
 } as const;
 
 function StatCard({
@@ -62,6 +63,12 @@ export function HrOverviewContent({ overview }: { overview: HrOverview }) {
       title: "Til godkjenning",
       value: overview.pendingAbsences,
       hint: "Fravær som venter",
+    },
+    {
+      href: "/dashboard/time-registration?tab=overtime",
+      title: "Overtid",
+      value: overview.pendingOvertime,
+      hint: "Søknader som venter. Stopper ikke timeføring.",
     },
     {
       href: "/dashboard/fravaer",

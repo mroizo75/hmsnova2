@@ -12,3 +12,19 @@ export function toImageUrl(stored: string | null | undefined): string {
   if (stored.startsWith("hms-tavle/")) return `/api/hms-tavle/images/${stored}`;
   return stored;
 }
+
+/** Gjør en lagret fil eller ekstern lenke om til en adresse nettleseren kan åpne. */
+export function toFileUrl(stored: string | null | undefined): string {
+  const url = toImageUrl(stored);
+  if (!url) return "";
+  if (
+    url.startsWith("/") ||
+    url.startsWith("http://") ||
+    url.startsWith("https://") ||
+    url.startsWith("mailto:") ||
+    url.startsWith("tel:")
+  ) {
+    return url;
+  }
+  return `https://${url}`;
+}

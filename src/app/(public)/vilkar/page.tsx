@@ -359,8 +359,8 @@ export default function VilkarPage() {
               <div>
                 <h4 className="font-semibold mb-2">7.5 Tredjepartstjenester</h4>
                 <p className="text-sm text-muted-foreground">
-                  HMS Nova kan integreres med tredjepartstjenester (f.eks. eksterne kursleverandører). 
-                  BHT tilbys av HMS Nova (under etablering). Vi er ikke ansvarlige for tredjepartstjenesters funksjoner, tilgjengelighet eller kvalitet.
+                  HMS Nova kan integreres med tredjepartstjenester. Sertifiserte kurs leveres av KKS AS.
+                  Bedriftshelsetjeneste leveres av Dr.Dropin, ikke av HMS Nova. Vi er ikke ansvarlige for tredjepartstjenesters funksjoner, tilgjengelighet eller kvalitet.
                 </p>
               </div>
 

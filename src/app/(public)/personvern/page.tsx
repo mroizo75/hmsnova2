@@ -253,7 +253,6 @@ export default function PersonvernPage() {
                   <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-2">
                     <li><strong>Cloudflare:</strong> Hosting og sikkerhet (EU/EØS)</li>
                     <li><strong>Resend:</strong> E-postutsendelse (EU/EØS)</li>
-                    <li><strong>HMS Nova:</strong> BHT-tjenester (eget tilbud, under etablering)</li>
                   </ul>
                   <p className="text-xs text-muted-foreground mt-2">
                     Alle databehandlere har signert databehandleravtale og følger GDPR.

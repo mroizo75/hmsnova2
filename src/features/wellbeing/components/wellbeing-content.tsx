@@ -3,7 +3,6 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   FileText,
@@ -23,15 +22,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { fetchWellbeingData } from "@/server/queries/wellbeing.queries";
+import { WellbeingPlan } from "./wellbeing-plan";
 
 type WellbeingData = Awaited<ReturnType<typeof fetchWellbeingData>>;
 
 interface WellbeingContentProps {
   initialData: WellbeingData;
-  userRole: string;
 }
 
-export function WellbeingContent({ initialData, userRole }: WellbeingContentProps) {
+export function WellbeingContent({ initialData }: WellbeingContentProps) {
   const { data } = useQuery({
     queryKey: ["wellbeing"],
     queryFn: () => fetchWellbeingData(),
@@ -46,6 +45,10 @@ export function WellbeingContent({ initialData, userRole }: WellbeingContentProp
     submissionsThisMonth,
     averageScore,
     criticalIncidents,
+    canStart,
+    employees,
+    assignments,
+    rounds,
   } = data;
 
   return (
@@ -56,19 +59,21 @@ export function WellbeingContent({ initialData, userRole }: WellbeingContentProp
             <Heart className="h-5 w-5 text-blue-700 mt-0.5" />
             <div>
               <p className="text-sm text-blue-900">
-                <strong>Om psykososial kartlegging:</strong> Arbeidsgivere er pålagt å kartlegge psykososialt arbeidsmiljø årlig
-                (Arbeidsmiljøloven § 4-3). Skjemaene nedenfor er utarbeidet i tråd med ISO 45003 og Arbeidstilsynets anbefalinger.
+                <strong>Om psykososial kartlegging:</strong> Arbeidsgiver skal kartlegge og følge opp det psykososiale arbeidsmiljøet
+                (Arbeidsmiljøloven § 4-3). Administrator, HR eller HMS sender kartleggingen til de ansatte som skal svare.
               </p>
-              {(userRole === "ADMIN" || userRole === "LEDER") && (
-                <p className="text-sm text-blue-900 mt-2">
-                  💡 <strong>Ledelse:</strong> Du kan sende ut skjemaer til ansatte og følge opp resultatene her.
-                  Alle svar behandles konfidensielt.
-                </p>
-              )}
             </div>
           </div>
         </CardContent>
       </Card>
+
+      <WellbeingPlan
+        canStart={canStart}
+        forms={wellbeingForms.map((form: { id: string; title: string }) => ({ id: form.id, title: form.title }))}
+        employees={employees}
+        assignments={assignments}
+        rounds={rounds}
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Card>
@@ -210,15 +215,8 @@ export function WellbeingContent({ initialData, userRole }: WellbeingContentProp
                         <span className="text-sm text-muted-foreground">Aldri</span>
                       )}
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-2">
-                        <Link href={`/dashboard/wellbeing/${form.id}/fill`}>
-                          <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                            <FileText className="h-4 w-4 mr-1" />
-                            Fyll ut
-                          </Button>
-                        </Link>
-                      </div>
+                    <TableCell className="text-right text-sm text-muted-foreground">
+                      {canStart ? "Sendes ovenfor" : "Svares når den er sendt til deg"}
                     </TableCell>
                   </TableRow>
                 ))}

@@ -66,52 +66,18 @@ export const PRICING_SCHEMA = {
 export const COURSE_SCHEMA = {
   "@context": "https://schema.org",
   "@type": "ItemList",
-  name: "HMS-kurs og Førstehjelp",
-  description: "20% rabatt på alle HMS-kurs for HMS Nova-medlemmer",
+  name: "Dokumentert opplæring og kurs hos KKS AS",
+  description: "HMS Nova dokumenterer opplæring. Sertifiserte kurs leveres av KKS AS.",
   itemListElement: [
     {
       "@type": "Course",
       position: 1,
-      name: "Verneombudkurs",
-      description: "Lovpålagt 40-timers verneombudkurs",
+      name: "Sertifiserte kurs hos KKS AS",
+      description: "Kurskatalog og priser står på kksas.no. HMS Nova oppgir ikke egne kurspriser.",
       provider: {
         "@type": "Organization",
-        name: "HMS Nova AS",
-      },
-      hasCourseInstance: {
-        "@type": "CourseInstance",
-        courseMode: ["onsite", "online", "blended"],
-        duration: "P40H",
-      },
-    },
-    {
-      "@type": "Course",
-      position: 2,
-      name: "Førstehjelp for voksne",
-      description: "Grunnleggende førstehjelp med sertifikat",
-      provider: {
-        "@type": "Organization",
-        name: "HMS Nova AS",
-      },
-      hasCourseInstance: {
-        "@type": "CourseInstance",
-        courseMode: ["onsite"],
-        duration: "P8H",
-      },
-    },
-    {
-      "@type": "Course",
-      position: 3,
-      name: "Førstehjelp for barn",
-      description: "Førstehjelp spesielt tilpasset barn",
-      provider: {
-        "@type": "Organization",
-        name: "HMS Nova AS",
-      },
-      hasCourseInstance: {
-        "@type": "CourseInstance",
-        courseMode: ["onsite"],
-        duration: "P4H",
+        name: "KKS AS",
+        url: "https://www.kksas.no/kurs",
       },
     },
   ],
@@ -122,19 +88,16 @@ export const BHT_SERVICE_SCHEMA = {
   "@context": "https://schema.org",
   "@type": "Service",
   name: "Bedriftshelsetjeneste (BHT)",
-  description: "HMS Nova etablerer seg som godkjent bedriftshelsetjeneste. Minimum lovkrav, tilleggstjenester og bredt kursutbud inkludert Diisocyanater.",
+  description: "Bedriftshelsetjeneste gjennom Dr.Dropin. HMS Nova er ikke selv godkjent BHT, og publiserer ikke en BHT-pris.",
   provider: {
     "@type": "Organization",
-    name: SITE_CONFIG.name,
+    name: "Dr.Dropin",
+    url: "https://www.drdropin.no/bedrift",
   },
   serviceType: "Bedriftshelsetjeneste",
   areaServed: {
     "@type": "Country",
     name: "Norway",
-  },
-  offers: {
-    "@type": "Offer",
-    description: "Grunnpakke BHT og tilleggstjenester. Kontakt for tilbud.",
   },
 } as const;
 

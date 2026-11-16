@@ -39,6 +39,8 @@ const nextConfig: NextConfig = {
       { source: "/beste-hms-system-helse", destination: "/bransjer/helse-og-omsorg", permanent: true },
       { source: "/beste-hms-system-transport", destination: "/bransjer/transport-og-logistikk", permanent: true },
       { source: "/beste-hms-system-kontor", destination: "/bransjer/teknologi-og-it", permanent: true },
+      { source: "/beste-hms-system-sma-bedrifter", destination: "/bransjer", permanent: true },
+      { source: "/beste-hms-system-iso-9001", destination: "/hms-system/iso-9001", permanent: true },
     ];
   },
   outputFileTracingExcludes: {

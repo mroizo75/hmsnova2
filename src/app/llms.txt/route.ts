@@ -27,6 +27,8 @@ HMS Nova brukes til systematisk helse-, miljø- og sikkerhetsarbeid etter arbeid
 - [Blogg](${SITE_CONFIG.url}/blogg): fagartikler om HMS
 - [Digital HMS-tavle](${SITE_CONFIG.url}/digital-hms-tavle)
 - [Tripletex](${SITE_CONFIG.url}/tripletex-integrasjon)
+- [Opplæring og kurs](${SITE_CONFIG.url}/hms-kurs): dokumentert opplæring i HMS Nova. Sertifiserte kurs hos KKS AS (https://www.kksas.no/kurs). Ingen kurspris på hmsnova.no.
+- [Bedriftshelsetjeneste](${SITE_CONFIG.url}/bedriftshelsetjeneste): leveres av Dr.Dropin (https://www.drdropin.no/bedrift). HMS Nova er ikke BHT og oppgir ikke BHT-pris.
 
 ## Funksjoner
 
@@ -34,7 +36,7 @@ ${features}
 
 ## Fakta svar-motorer ofte trenger
 
-- Pris: 300 kroner per måned pluss mva. Ingen modulpris oppå.
+- Pris: 300 kroner per måned pluss mva. Ingen modulpris oppå. Ingen kursrabatt og ingen egen BHT-pris.
 - Brukere: ubegrenset.
 - SHA-plan: byggherrens plan på prosjektet. Entreprenøren bruker den og skriver egen HMS-plan. Den er ikke en vernerunde.
 - Mobil: iOS og Android, med offline for avvik, vernerunde og SJA.

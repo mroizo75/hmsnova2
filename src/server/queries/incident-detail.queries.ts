@@ -103,7 +103,16 @@ export async function fetchIncidentDetail(id: string) {
     ? rawIncident.comments
     : rawIncident.comments.filter((comment) => comment.kind === "SUBMITTER");
 
-  const incident = { ...rawIncident, comments };
+  const reporter = await prisma.user.findUnique({
+    where: { id: rawIncident.reportedBy },
+    select: { name: true, email: true },
+  });
+
+  const incident = {
+    ...rawIncident,
+    comments,
+    reporterName: reporter?.name?.trim() || reporter?.email || null,
+  };
 
   const tenantUsers = await prisma.user.findMany({
     where: {
@@ -133,6 +142,8 @@ export async function fetchIncidentDetail(id: string) {
     where: { id: tenantId },
     select: {
       ruhModuleEnabled: true,
+      industry: true,
+      naceCode: true,
       mocModuleEnabled: true,
       aiEnabled: true,
       name: true,

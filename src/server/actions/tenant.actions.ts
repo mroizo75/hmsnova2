@@ -9,6 +9,7 @@ import { sendEmail } from "@/lib/email";
 import { deleteTenantFiles } from "@/lib/storage";
 import { getBindingPrice, standardSoftwareSubscription } from "@/lib/subscription";
 import { provisionIndustryPackage } from "@/server/actions/industry-provision.actions";
+import { ensureTenantHandbook } from "@/server/actions/hms-handbok.actions";
 import {
   getIndustryPackage,
   getIndustryLabel,
@@ -462,6 +463,7 @@ export async function generateAiRiskSuggestionsForTenant(tenantId: string) {
               responsibleId: ownerCandidate.userId,
               category: "MITIGATION",
               followUpFrequency: "ANNUAL",
+              status: "IN_PROGRESS",
             })),
           });
         }
@@ -729,6 +731,7 @@ export async function applyAiRiskSuggestionsForTenant(input: {
               responsibleId: ownerCandidate.userId,
               category: "MITIGATION",
               followUpFrequency: "ANNUAL",
+              status: "IN_PROGRESS",
             })),
           });
         }
@@ -1660,6 +1663,11 @@ export async function createTenant(input: z.infer<typeof createTenantSchema>) {
     }
 
     await provisionIndustryPackage(tenant.id);
+    try {
+      await ensureTenantHandbook(tenant.id);
+    } catch (error) {
+      console.error("Failed to seed handbook:", error);
+    }
 
     revalidatePath("/admin/tenants");
     revalidatePath("/admin/registrations");

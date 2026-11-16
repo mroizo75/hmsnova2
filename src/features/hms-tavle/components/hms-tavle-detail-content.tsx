@@ -42,6 +42,8 @@ export function HmsTavleDetailContent({
       appUrl={appUrl}
       defaultTab={defaultTab}
       teamMembers={data.teamMembers}
+      prosjekter={data.prosjekter}
+      risikovurderinger={data.risikovurderinger}
     />
   );
 }

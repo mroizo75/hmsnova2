@@ -16,7 +16,6 @@ export default async function WellbeingPage() {
     redirect("/login");
   }
 
-  const userRole = session.user.role;
   const initialData = await fetchWellbeingData();
 
   return (
@@ -44,7 +43,7 @@ export default async function WellbeingPage() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          <WellbeingContent initialData={initialData} userRole={userRole} />
+          <WellbeingContent initialData={initialData} />
         </TabsContent>
 
         <TabsContent value="report">

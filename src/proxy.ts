@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
+import { prisma } from "@/lib/db";
 import { canAccessKonsernPortal } from "@/lib/konsern-access";
+import { tenantStatusBlocksAccess } from "@/lib/tenant-access";
 import {
   checkRateLimitPolicy,
   createRateLimitResponse,
@@ -13,6 +15,25 @@ const RATE_LIMIT_EXEMPT_API_PREFIXES = [
   "/api/webhooks/",
   "/api/cron/",
   "/api/internal/",
+];
+
+const SUSPEND_EXEMPT_PREFIXES = [
+  "/api/webhooks/",
+  "/api/cron/",
+  "/api/internal/",
+  "/api/auth",
+  "/api/courses/",
+  "/api/brreg/",
+  "/api/ring-me",
+  "/api/ring-meg",
+  "/api/komplett-pakke/",
+  "/api/whistleblowing",
+  "/api/hms-tavle/public/",
+  "/api/subcontractor/",
+  "/api/tilfredshet/",
+  "/api/weather",
+  "/select-tenant",
+  "/login",
 ];
 
 const applySecurityHeaders = (response: NextResponse): NextResponse => {
@@ -168,6 +189,9 @@ export async function proxy(request: NextRequest) {
       return applySecurityHeaders(NextResponse.redirect(url));
     }
 
+    const blocked = await blockedTenantResponse(request, token, pathname);
+    if (blocked) return blocked;
+
     // Konsern-bruker uten tenant: redirect til konsern-dashboard
     if (
       !token.tenantId &&
@@ -216,7 +240,45 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  if (pathname.startsWith("/api/") && !SUSPEND_EXEMPT_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+    token ??= await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+    if (token) {
+      const blocked = await blockedTenantResponse(request, token, pathname);
+      if (blocked) return blocked;
+    }
+  }
+
   return applySecurityHeaders(response);
+}
+
+async function blockedTenantResponse(
+  request: NextRequest,
+  token: { tenantId?: unknown; isSuperAdmin?: unknown; isSupport?: unknown; hasMultipleTenants?: unknown },
+  pathname: string,
+) {
+  if (token.isSuperAdmin === true || token.isSupport === true) return null;
+  if (typeof token.tenantId !== "string" || !token.tenantId) return null;
+  if (SUSPEND_EXEMPT_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return null;
+
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: token.tenantId },
+    select: { status: true },
+  });
+  if (!tenant || !tenantStatusBlocksAccess(tenant.status)) return null;
+
+  if (pathname.startsWith("/api/")) {
+    return applySecurityHeaders(
+      NextResponse.json({ error: "Bedriften er suspendert" }, { status: 403 }),
+    );
+  }
+
+  const target = token.hasMultipleTenants === true ? "/select-tenant" : "/login";
+  const url = new URL(target, publicOrigin(request));
+  if (target === "/login") url.searchParams.set("error", "Suspended");
+  return applySecurityHeaders(NextResponse.redirect(url));
 }
 
 export const config = {

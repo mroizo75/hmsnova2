@@ -249,7 +249,7 @@ export const PUBLIC_FEATURE_GROUPS: PublicFeatureGroup[] = [
       },
       {
         name: "Timeregistrering",
-        description: "Ordinær tid og overtid, med godkjenning. Arbeidstidsloven kap. 10.",
+        description: "Ordinær tid og overtid. Søknad etter AML § 10-6, og timeføring som virker uansett.",
         moduleHref: "/dashboard/time-registration",
       },
       {

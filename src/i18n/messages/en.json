@@ -268,7 +268,43 @@
       "approval": "Approval",
       "plan": "Resource plan",
       "timebank": "Time bank",
+      "overtime": "Overtime",
       "team": "Team"
+    },
+    "overtime": {
+      "title": "Request overtime",
+      "intro": "The request records that the overtime was agreed, cf. the Working Environment Act section 10-6. It does not stop time entry. Hours are registered as usual, even before the request is decided.",
+      "date": "Date",
+      "hours": "Hours",
+      "reason": "Need",
+      "reasonPlaceholder": "Briefly why it is needed, for example a project deadline",
+      "submit": "Send request",
+      "sending": "Sending…",
+      "mine": "My requests",
+      "empty": "No requests yet.",
+      "pending": "To approve",
+      "pendingEmpty": "No requests are waiting.",
+      "approve": "Approve",
+      "reject": "Reject",
+      "cancel": "Withdraw",
+      "limitsTitle": "Registered overtime against the limits",
+      "limitsHelp": "The numbers come from hours already registered. They are a warning, and do not block new hours.",
+      "status": {
+        "PENDING": "Waiting",
+        "APPROVED": "Approved",
+        "REJECTED": "Rejected",
+        "CANCELLED": "Withdrawn"
+      },
+      "level": {
+        "ok": "Within limit",
+        "near": "Nearing limit",
+        "over": "Over the limit"
+      },
+      "window": {
+        "sevenDays": "7 days",
+        "fourWeeks": "4 weeks",
+        "year": "52 weeks"
+      }
     },
     "disabled": {
       "title": "Time registration is off",
@@ -3024,6 +3060,8 @@
         "title": "What happened?",
         "description": "ISO 9001: Nature of nonconformity",
         "descriptionLabel": "Description",
+        "registeredBy": "Registered by",
+        "registeredAt": "Registered {date}",
         "time": "Time",
         "location": "Location",
         "department": "Department",

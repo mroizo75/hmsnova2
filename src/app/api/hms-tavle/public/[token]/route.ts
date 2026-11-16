@@ -28,9 +28,18 @@ export async function GET(
         tenant: { select: { name: true, isTavleOnly: true } },
         project: {
           select: {
+            id: true,
             name: true,
             location: true,
-            constructionShaPlan: { select: { status: true, availableOnSite: true, updatedAt: true } },
+            constructionShaPlan: {
+              select: {
+                status: true,
+                availableOnSite: true,
+                updatedAt: true,
+                ownHmsPlan: true,
+                shaIncorporated: true,
+              },
+            },
             constructionPreNotification: { select: { status: true, sentAt: true } },
           },
         },
@@ -64,11 +73,11 @@ export async function GET(
 
     // Live HMS Nova-data er forbeholdt planer med full integrasjon
     const liveData =
-      getPlanLimits(subscription.plan).hasLiveHmsNovaData
+      getPlanLimits(subscription.plan).hasLiveHmsNovaData || subscription.isAddon
         ? await getTavleLiveData({
             tenantId: tavle.tenantId,
             projectId: tavle.projectId,
-            sectionTypes: tavle.sections.map((s) => s.type),
+            sections: tavle.sections.map((s) => ({ type: s.type, config: s.config })),
           })
         : null;
 

@@ -98,6 +98,8 @@ export const updateIncidentSchema = z.object({
   // Underkategorier
   subcategoryKeys: z.array(z.string()).optional(),
   treatmentOtherText: z.string().max(500).optional().nullable(),
+  // Intern pasient-ID. Valgfri, bare helse. Ikke fødselsnummer (GDPR art. 9).
+  patientReference: z.string().max(40).optional().nullable(),
   // RUH-felt
   involvedPersons: z.string().optional(),
   injuryDescription: z.string().optional(),

@@ -52,6 +52,7 @@ interface FormFillerProps {
   tenantId: string;
   returnUrl?: string;
   inspectionId?: string;
+  roundId?: string;
   projects?: Array<{
     id: string;
     name: string;
@@ -111,6 +112,7 @@ export function FormFiller({
   tenantId,
   returnUrl = "/dashboard",
   inspectionId,
+  roundId,
   projects = [],
   initialProjectId,
   industryScopeBypass = false,
@@ -413,6 +415,9 @@ export function FormFiller({
       formData.append("status", status);
       if (inspectionId) {
         formData.append("inspectionId", inspectionId);
+      }
+      if (roundId) {
+        formData.append("roundId", roundId);
       }
       formData.append("values", JSON.stringify(formValues));
       // Send merknader for alle felt som har tekst

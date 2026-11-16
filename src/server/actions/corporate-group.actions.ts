@@ -13,6 +13,7 @@ import {
 import { createTenantAdminAndSendEmail } from "@/lib/konsern-tenant-email";
 import { isMocDefaultIndustry } from "@/lib/moc-industry";
 import { standardSoftwareSubscription } from "@/lib/subscription";
+import { ensureTenantHandbook } from "@/server/actions/hms-handbok.actions";
 
 export async function getCorporateGroupDetails() {
   const context = await requireCorporateGroupContext();
@@ -159,6 +160,12 @@ export async function createTenantForGroup(data: {
   await prisma.corporateGroupTenant.create({
     data: { groupId: context.groupId, tenantId: tenant.id },
   });
+
+  try {
+    await ensureTenantHandbook(tenant.id);
+  } catch (error) {
+    console.error("Failed to seed handbook:", error);
+  }
 
   // Opprett admin-bruker og send velkomst-e-post
   let emailSent = false;

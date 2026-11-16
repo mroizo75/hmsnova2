@@ -6,6 +6,7 @@ import { fetchRiskDetail } from "@/server/queries/risk-register.queries";
 import { RiskForm } from "@/features/risks/components/risk-form";
 import { MeasureForm } from "@/features/measures/components/measure-form";
 import { MeasureList } from "@/features/measures/components/measure-list";
+import { MarkMeasuresInProgressButton } from "@/features/measures/components/mark-measures-in-progress-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, HardHat } from "lucide-react";
@@ -90,6 +91,10 @@ export function RiskDetailContent({
                     ownerId={risk.ownerId}
                     users={tenantUsers}
                     enabled={canSuggestMeasures}
+                  />
+                  <MarkMeasuresInProgressButton
+                    riskId={risk.id}
+                    pendingCount={risk.measures.filter((measure: { status: string }) => measure.status === "PENDING").length}
                   />
                   <MeasureForm tenantId={tenantId} riskId={risk.id} users={tenantUsers} />
                 </div>

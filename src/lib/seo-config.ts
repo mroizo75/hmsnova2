@@ -121,7 +121,7 @@ export const ORGANIZATION_SCHEMA = {
         itemOffered: {
           "@type": "Service",
           name: "Bedriftshelsetjeneste",
-          description: "HMS Nova etablerer seg som godkjent bedriftshelsetjeneste med minimum krav, tilleggstjenester og kurs.",
+          description: "Bedriftshelsetjeneste gjennom Dr.Dropin. HMS Nova er ikke selv godkjent BHT.",
         },
       },
       {
@@ -129,7 +129,7 @@ export const ORGANIZATION_SCHEMA = {
         itemOffered: {
           "@type": "Service",
           name: "HMS-kurs",
-          description: "Lovpålagte HMS-kurs og førstehjelp",
+          description: "Dokumentert opplæring i HMS Nova. Sertifiserte kurs hos KKS AS.",
         },
       },
     ],
@@ -178,7 +178,7 @@ export const FAQ_SCHEMA = {
       name: "Hva koster HMS Nova?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "HMS Nova koster 300 kr/mnd (3 600 kr/år) med 12 måneders abonnement. Ubegrenset antall brukere inkludert. Ingen oppstartskostnader, alt inkludert.",
+        text: "HMS Nova koster 300 kr/mnd + mva (3 600 kr/år + mva) med 12 måneders abonnement. Prisen er den samme for 5 og 20 ansatte. Ubegrenset antall brukere er inkludert. AI-tillegg er 49 kr/mnd + mva og er av som standard.",
       },
     },
     {
@@ -194,7 +194,7 @@ export const FAQ_SCHEMA = {
       name: "Tilbyr HMS Nova bedriftshelsetjeneste?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "HMS Nova etablerer seg som godkjent bedriftshelsetjeneste (BHT) og vil tilby minimum lovkrav, tilleggstjenester og et bredt kursutbud inkludert Diisocyanater. HMS-system og BHT vil være under ett tak.",
+        text: "HMS Nova er ikke en godkjent bedriftshelsetjeneste. BHT tilbys gjennom Dr.Dropin, som er eneste samarbeidspartner. Pris og avtale avtales med Dr.Dropin. Sertifiserte kurs leveres av KKS AS.",
       },
     },
     {
@@ -241,19 +241,19 @@ export const PAGE_METADATA = {
     keywords: "hms system pris, hms programvare kostnad, billig hms system, hms system alle bedrifter, beste hms system pris",
   },
   kurs: {
-    title: "HMS-kurs - Lovpålagte Kurs & Førstehjelp | HMS Nova",
-    description: "20% rabatt på HMS-kurs for medlemmer. Verneombud, førstehjelp og diisocyanater. Fysisk, digitalt eller hybrid. Bestill kurs hos HMS Nova i dag.",
-    keywords: "hms kurs, verneombud kurs, førstehjelp kurs, hms opplæring, lovpålagt hms kurs",
+    title: "HMS-kurs og dokumentert opplæring | HMS Nova",
+    description: "HMS Nova dokumenterer opplæring og kompetanse. Sertifiserte kurs bestilles hos KKS AS. Ingen egne kurspriser på denne siden.",
+    keywords: "hms kurs, dokumentert opplæring, kompetansematrise, kks as, lovpålagt hms opplæring",
   },
   bht: {
-    title: "Bedriftshelsetjeneste (BHT) - HMS Nova blir BHT-organ | Minimum krav + kurs",
-    description: "HMS Nova etablerer seg som godkjent BHT · Minimum lovkrav + tilleggstjenester + Diisocyanater og HMS-kurs · Ett sted for HMS og BHT · Registrer interesse →",
-    keywords: "bedriftshelsetjeneste, BHT, godkjent bedriftshelsetjeneste, arbeidstilsynet bht, diisocyanater kurs, AMO-kurs",
+    title: "Bedriftshelsetjeneste (BHT) via Dr.Dropin | HMS Nova",
+    description: "HMS Nova er ikke godkjent BHT. Bedriftshelsetjeneste tilbys gjennom Dr.Dropin. Pris og avtale avtales med Dr.Dropin.",
+    keywords: "bedriftshelsetjeneste, BHT, Dr.Dropin, arbeidsmiljøloven § 3-3",
   },
   komplettPakke: {
-    title: "Komplett HMS-pakke - BHT + HMS Nova fra 6 900 kr/år | HMS Nova",
-    description: "Lovpålagt BHT + HMS Nova. START 6 900 kr/år (1-5 ansatte), PRO 14 900 kr/år (6-20), PREMIUM fra 29 900 kr/år (20+). Tilleggstjenester til fast pris. Ring salg eller venteliste.",
-    keywords: "komplett hms pakke, bht pakke, hms oppsett, implementering hms, hms nova pakke, bht pris",
+    title: "Bedriftshelsetjeneste (BHT) via Dr.Dropin | HMS Nova",
+    description: "HMS Nova er ikke godkjent BHT. Bedriftshelsetjeneste tilbys gjennom Dr.Dropin. Pris og avtale avtales med Dr.Dropin.",
+    keywords: "bedriftshelsetjeneste, BHT, Dr.Dropin",
   },
   handbook: {
     title: "HMS-håndbok - Digital & Oppdatert | HMS Nova",

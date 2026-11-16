@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { ArrowLeft, CheckCircle2, Users, LogIn, LogOut, ChevronDown } from "lucide-react";
+import { isClearlyOutside, type SiteGeofence } from "@/features/hms-tavle/lib/geofence";
 
 const LS_KEY = (token: string) => `innsjekk_info_${token}`;
 const LS_AKTIV_KEY = (token: string) => `innsjekk_aktiv_${token}`;
@@ -16,6 +17,9 @@ interface HmsNovaUser {
   name: string;
   employer: string;
   phone: string;
+  employerOrgNr: string;
+  hmsCardNr: string;
+  birthDate: string;
 }
 
 interface AktivInnsjekk {
@@ -32,6 +36,7 @@ interface Props {
   brandColor: string | null;
   todayCount: number;
   hmsNovaUser: HmsNovaUser | null;
+  geofence: SiteGeofence | null;
 }
 
 function iDag(): string {
@@ -46,6 +51,7 @@ export function InnsjekksClient({
   brandColor,
   todayCount,
   hmsNovaUser,
+  geofence,
 }: Props) {
   const [step, setStep] = useState<"form" | "success">("form");
   const [count, setCount] = useState(todayCount);
@@ -53,6 +59,7 @@ export function InnsjekksClient({
   const [showManual, setShowManual] = useState(!hmsNovaUser);
   const [checkedInAs, setCheckedInAs] = useState<string>("");
   const [aktiv, setAktiv] = useState<AktivInnsjekk | null>(null);
+  const sjekkerUt = useRef(false);
 
   // Manuelt skjema — laster lagret info fra localStorage
   const [form, setForm] = useState({
@@ -100,6 +107,22 @@ export function InnsjekksClient({
     }
   }
 
+  function hentPosisjon(): Promise<{ latitude: number; longitude: number; accuracy: number } | null> {
+    if (!geofence || !navigator.geolocation) return Promise.resolve(null);
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) =>
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+          }),
+        () => reject(new Error("Posisjon må tillates for å sjekke inn på dette prosjektet")),
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 15000 }
+      );
+    });
+  }
+
   async function doCheckin(data: {
     name: string;
     employer: string;
@@ -110,14 +133,18 @@ export function InnsjekksClient({
   }) {
     setSubmitting(true);
     try {
+      const posisjon = await hentPosisjon();
+      if (geofence && !posisjon) {
+        throw new Error("Posisjon må tillates for å sjekke inn på dette prosjektet");
+      }
       const res = await fetch(`/api/hms-tavle/public/${publicToken}/innsjekk`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, ...posisjon }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Feil ved innsjekk");
-      setCount((prev) => prev + 1);
+      if (!res.ok) throw new Error(json.message ?? json.error ?? "Feil ved innsjekk");
+      if (!json.data?.alreadyCheckedIn) setCount((prev) => prev + 1);
       setCheckedInAs(data.name);
       const checkinId = json.data?.checkin?.id;
       if (checkinId) lagreAktiv({ checkinId, date: iDag(), name: data.name });
@@ -129,8 +156,9 @@ export function InnsjekksClient({
     }
   }
 
-  async function handleCheckout() {
-    if (!aktiv) return;
+  async function handleCheckout(grunn?: "omrade") {
+    if (!aktiv || sjekkerUt.current) return;
+    sjekkerUt.current = true;
     setSubmitting(true);
     try {
       const res = await fetch(`/api/hms-tavle/public/${publicToken}/innsjekk`, {
@@ -139,21 +167,45 @@ export function InnsjekksClient({
         body: JSON.stringify({ checkinId: aktiv.checkinId }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Feil ved utsjekk");
+      if (!res.ok) throw new Error(json.message ?? json.error ?? "Feil ved utsjekk");
       lagreAktiv(null);
-      toast.success("Du er sjekket ut");
+      setCount((prev) => Math.max(prev - 1, 0));
+      toast.success(
+        grunn === "omrade"
+          ? "Du er sjekket ut fordi du er utenfor prosjektområdet"
+          : "Du er sjekket ut"
+      );
     } catch (err: any) {
       toast.error(err.message);
     } finally {
+      sjekkerUt.current = false;
       setSubmitting(false);
     }
   }
+
+  useEffect(() => {
+    if (!geofence || !aktiv || !navigator.geolocation) return;
+    const watch = navigator.geolocation.watchPosition((position) => {
+      const utenfor = isClearlyOutside(
+        { latitude: position.coords.latitude, longitude: position.coords.longitude },
+        position.coords.accuracy,
+        geofence
+      );
+      if (utenfor) void handleCheckout("omrade");
+    });
+    return () => navigator.geolocation.clearWatch(watch);
+    // handleCheckout leser aktiv fra closure via lagreAktiv; ny watch når innsjekk endres.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aktiv?.checkinId, geofence]);
 
   async function handleHmsNovaCheckin() {
     if (!hmsNovaUser) return;
     await doCheckin({
       name: hmsNovaUser.name,
       employer: hmsNovaUser.employer,
+      employerOrgNr: hmsNovaUser.employerOrgNr,
+      hmsCardNr: hmsNovaUser.hmsCardNr,
+      birthDate: hmsNovaUser.birthDate,
       phone: hmsNovaUser.phone,
     });
   }
@@ -202,7 +254,7 @@ export function InnsjekksClient({
           </p>
           <div className="mt-3 inline-flex items-center gap-2 bg-green-50 text-green-800 text-sm px-3 py-1 rounded-full border border-green-200">
             <Users className="h-3.5 w-3.5" />
-            {count} innsjekket i dag
+            {count} på plassen nå
           </div>
         </div>
 
@@ -219,7 +271,7 @@ export function InnsjekksClient({
               <Button
                 variant="outline"
                 className="w-full bg-transparent"
-                onClick={handleCheckout}
+                onClick={() => void handleCheckout()}
                 disabled={submitting}
               >
                 <LogOut className="h-4 w-4 mr-1.5" />
@@ -247,6 +299,9 @@ export function InnsjekksClient({
                       <p className="text-muted-foreground text-xs truncate">{hmsNovaUser.employer}</p>
                       {hmsNovaUser.phone && (
                         <p className="text-muted-foreground text-xs">{hmsNovaUser.phone}</p>
+                      )}
+                      {hmsNovaUser.hmsCardNr && (
+                        <p className="text-muted-foreground text-xs">HMS-kort {hmsNovaUser.hmsCardNr}</p>
                       )}
                     </div>
                     <span className="ml-auto text-[10px] bg-green-100 text-green-700 border border-green-200 rounded px-1.5 py-0.5 font-medium shrink-0">

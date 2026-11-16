@@ -82,7 +82,7 @@ export function getSectionLabels(bransje: string | null | undefined): Record<str
  */
 export function getLovkravItems(
   bransje: string | null | undefined,
-  isAddon: boolean,
+  _isAddon: boolean,
   tavle: any,
   checkinsToday?: number
 ): Array<{
@@ -95,9 +95,14 @@ export function getLovkravItems(
   if (isConstruction) {
     return [
       // § 7 krever SHA-plan, § 8 stiller kravene til innholdet i planen
-      { label: "SHA-plan godkjent",           ok: isAddon ? shaPlan?.status === "ACTIVE" : null, ref: "§ 7+8" },
+      { label: "SHA-plan godkjent",           ok: shaPlan ? shaPlan.status === "ACTIVE" : null, ref: "§ 7+8" },
+      {
+        label: "HMS-plan i bruk på plassen",
+        ok: shaPlan ? Boolean(String(shaPlan.ownHmsPlan ?? "").trim()) : null,
+        ref: "AML § 3-1",
+      },
       // Forhåndsmelding til Arbeidstilsynet er § 10, og skal stå synlig på plassen
-      { label: "Forhåndsmelding sendt",       ok: isAddon ? !!preNotif?.sentAt : null,           ref: "§ 10" },
+      { label: "Forhåndsmelding sendt",       ok: preNotif ? !!preNotif.sentAt : null,           ref: "§ 10" },
       // § 15 krever at oversiktslisten kontrolleres og oppdateres daglig
       {
         label: "Mannskapsliste ført i dag",

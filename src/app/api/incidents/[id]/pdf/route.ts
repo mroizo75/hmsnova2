@@ -71,6 +71,12 @@ export async function GET(
     return NextResponse.json({ error: "Avvik ikke funnet" }, { status: 404 });
   }
 
+  const reporter = await prisma.user.findUnique({
+    where: { id: incident.reportedBy },
+    select: { name: true, email: true },
+  });
+  const reporterName = reporter?.name?.trim() || reporter?.email || "Ukjent";
+
   const now = new Date();
   const severity = incident.severity;
 
@@ -88,6 +94,7 @@ export async function GET(
             ...(severity != null ? [["Alvorlighetsgrad", `${severity}/5`] as [string, string]] : []),
             ["Dato", fmtDate(incident.occurredAt)],
             ["Registrert", fmtDate(incident.createdAt)],
+            ["Registrert av", reporterName],
             ...(incident.location ? [["Sted", incident.location] as [string, string]] : []),
             ...(incident.witnessName ? [["Vitne", incident.witnessName] as [string, string]] : []),
             ...(incident.closedAt ? [["Lukket", fmtDate(incident.closedAt)] as [string, string]] : []),

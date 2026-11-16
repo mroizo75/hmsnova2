@@ -540,21 +540,22 @@ export function OrgChartTree({ nodes, canManage }: OrgChartTreeProps) {
         <Card>
           <CardContent className="py-16 text-center">
             <Building2 className="h-14 w-14 mx-auto text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Ingen roller lagt til ennå</h3>
+            <h3 className="text-lg font-semibold mb-2">Ingen ansatte i kartet ennå</h3>
             <p className="mx-auto mb-6 max-w-md text-sm text-muted-foreground">
-              Start med å legge til øverste leder (f.eks. Daglig leder) for å bygge opp organisasjonskartet.
-              Du kan deretter legge til underordnede roller fra hver boks.
+              Kartet fylles automatisk når ansatte og avdelinger er lagt inn. Administrator blir daglig leder, ledere ligger under, og ansatte samles i avdelingene sine.
             </p>
             {canManage && (
-              <NodeDialog
-                allNodes={nodes}
-                trigger={
-                  <Button size="lg" className="w-full sm:w-auto">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Legg til øverste leder
-                  </Button>
-                }
-              />
+              <div className="flex flex-col items-center justify-center gap-2 sm:flex-row">
+                <NodeDialog
+                  allNodes={nodes}
+                  trigger={
+                    <Button size="lg" className="w-full sm:w-auto">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Legg til øverste leder
+                    </Button>
+                  }
+                />
+              </div>
             )}
           </CardContent>
         </Card>
@@ -562,11 +563,11 @@ export function OrgChartTree({ nodes, canManage }: OrgChartTreeProps) {
         <Card>
           <CardContent className="px-3 pb-6 pt-4 sm:px-6 sm:pb-8 sm:pt-6">
             {canManage ? (
-              <div className="mb-4 flex justify-stretch sm:justify-end">
+              <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
                 <NodeDialog
                   allNodes={nodes}
                   trigger={
-                    <Button variant="outline" className="w-full sm:w-auto">
+                    <Button variant="outline" className="w-full bg-transparent sm:w-auto">
                       <Plus className="mr-2 h-4 w-4" />
                       Legg til toppnivå
                     </Button>
@@ -618,12 +619,9 @@ export function OrgChartTree({ nodes, canManage }: OrgChartTreeProps) {
               </div>
             </div>
 
-            {canManage ? (
-              <p className="mt-6 text-center text-xs text-muted-foreground">
-                <span className="lg:hidden">Bruk knappene på hver rolle for å legge til underordnede, redigere eller slette</span>
-                <span className="hidden lg:inline">Hold musepekeren over en boks for å legge til underordnede, redigere eller slette</span>
-              </p>
-            ) : null}
+            <p className="mt-6 text-center text-xs text-muted-foreground">
+              Kartet følger ansatte, roller og avdelinger. Endringer der vises her automatisk.
+            </p>
           </CardContent>
         </Card>
       )}

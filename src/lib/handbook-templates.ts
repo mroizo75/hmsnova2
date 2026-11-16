@@ -67,7 +67,7 @@ const UNIVERSAL_CONTENT: Record<string, string> = {
   <li>HMS-mål fastsettes og følges opp</li>
 </ul>
 <h3>HMS-ansvarlig</h3>
-<p><strong>{{hmsAnsvarlig}}</strong> er utpekt som HMS-ansvarlig og koordinerer det daglige HMS-arbeidet. Oppgavene inkluderer:</p>
+<p><strong>{{hmsAnsvarlig}}</strong> koordinerer det daglige HMS-arbeidet. Daglig leder utpeker rollen og sørger for at oppgavene er dekket. Oppgavene inkluderer:</p>
 <ul>
   <li>Holde HMS-håndboken oppdatert</li>
   <li>Koordinere risikovurderinger, vernerunder og opplæring</li>
@@ -75,9 +75,9 @@ const UNIVERSAL_CONTENT: Record<string, string> = {
   <li>Rapportere HMS-status til ledelsen</li>
 </ul>
 <h3>Verneombud</h3>
-<p><strong>{{verneombud}}</strong> er valgt som verneombud, jf. AML § 6-1. Verneombudet skal ivareta arbeidstakernes interesser i saker som angår arbeidsmiljøet, og har rett til å stanse farlig arbeid (AML § 6-3).</p>
+<p>Verneombud velges etter AML § 6-1. I virksomheter med færre enn ti ansatte kan partene skriftlig avtale en annen ordning. <strong>{{verneombud}}</strong> skal ivareta arbeidstakernes interesser i saker som angår arbeidsmiljøet, og har rett til å stanse farlig arbeid (AML § 6-3). Valget registreres i HMS Nova.</p>
 <h3>Brannvernleder</h3>
-<p><strong>{{brannvernleder}}</strong> er utpekt som brannvernleder og har ansvar for at brannverntiltak gjennomføres i henhold til forskrift om brannforebygging.</p>
+<p><strong>{{brannvernleder}}</strong> har ansvar for at brannverntiltak gjennomføres i henhold til forskrift om brannforebygging. Rollen utpekes av virksomheten og registreres i organisasjonskartet.</p>
 <h3>Organisasjonskart</h3>
 <p><em>Se organisasjonskart i systemet for fullstendig oversikt over ansvarsfordeling.</em></p>`,
 
@@ -172,7 +172,7 @@ const UNIVERSAL_CONTENT: Record<string, string> = {
 <h4>Obligatorisk HMS-opplæring</h4>
 <ul>
   <li><strong>Grunnleggende HMS-opplæring</strong> — Alle nyansatte skal gjennomføre HMS-introduksjon før selvstendig arbeid</li>
-  <li><strong>HMS for ledere</strong> — Alle med personalansvar skal gjennomføre HMS-kurs (40 timer), jf. AML § 3-5</li>
+  <li><strong>HMS for daglig leder</strong> — Daglig leder skal ha opplæring i HMS-arbeid, tilpasset virksomhetens art, aktiviteter og risiko, jf. AML § 3-5</li>
   <li><strong>Brannvernopplæring</strong> — Alle ansatte skal kjenne rømningsveier, slokkeutstyr og evakueringsprosedyre</li>
   <li><strong>Førstehjelp</strong> — Tilstrekkelig antall ansatte skal ha førstehjelpsopplæring</li>
 </ul>
@@ -203,7 +203,7 @@ const UNIVERSAL_CONTENT: Record<string, string> = {
   s7: `<h3>Brannvernorganisering</h3>
 <p>{{bedriftsnavn}} har etablert brannvernorganisering i henhold til brann- og eksplosjonsvernloven og forskrift om brannforebygging.</p>
 <h4>Brannvernleder</h4>
-<p>{{brannvernleder}} er utpekt som brannvernleder og har ansvar for:</p>
+<p>{{brannvernleder}} har ansvar for:</p>
 <ul>
   <li>Vedlikehold av slokkeutstyr og brannvarslingsanlegg</li>
   <li>Gjennomføring av brannøvelser (minimum årlig)</li>
@@ -751,7 +751,7 @@ export const DEFAULT_HR_SECTIONS: HandbookHrSectionDef[] = [
 <h3>Pauser og hvile</h3>
 <p>Arbeidstaker har rett til pause når arbeidstiden er mer enn fem og en halv time, jf. AML § 10-9. Daglig og ukentlig arbeidsfri skal overholdes etter AML § 10-8.</p>
 <h3>Overtid</h3>
-<p>Arbeid utover alminnelig arbeidstid er overtid og skal være pålagt når det er et særlig og tidsavgrenset behov, jf. AML § 10-6. Overtid registreres i timeregistreringen.</p>`,
+<p>Arbeid utover alminnelig arbeidstid er overtid og skal være pålagt når det er et særlig og tidsavgrenset behov, jf. AML § 10-6. Behovet søkes under Overtid i timeregistreringen og godkjennes av leder. Timene føres som vanlig, også før søknaden er behandlet. Rammene er 10 timer på 7 dager, 25 timer på 4 uker og 200 timer på 52 uker. Det er et varsel, ikke en sperre for å føre timer.</p>`,
   },
   {
     sectionKey: "hr-ferie",
@@ -868,6 +868,76 @@ export function replaceTemplateVariables(
     result = result.replaceAll(`{{${key}}}`, value || `[${key}]`);
   }
   return result;
+}
+
+export type HandbookVariableSource = {
+  name: string;
+  orgNumber?: string | null;
+  industry?: string | null;
+  industryLabel?: string | null;
+  address?: string | null;
+  postalCode?: string | null;
+  city?: string | null;
+  contactPerson?: string | null;
+};
+
+/** Roller uten navn beskrives med rolleordet, slik at teksten er sann før noen er valgt. */
+export function handbookVariablesFromTenant(
+  source: HandbookVariableSource,
+): Record<string, string> {
+  const contact = source.contactPerson?.trim() || "";
+  const cityLine = [source.postalCode, source.city].filter(Boolean).join(" ");
+  const address = [source.address, cityLine].filter(Boolean).join(", ");
+  return {
+    bedriftsnavn: source.name.trim() || "virksomheten",
+    orgNummer: source.orgNumber?.trim() || "ikke oppgitt",
+    dagligLeder: contact || "Daglig leder",
+    hmsAnsvarlig: contact || "HMS-ansvarlig",
+    verneombud: "Verneombud",
+    brannvernleder: contact || "Brannvernleder",
+    adresse: address || "virksomhetens adresse",
+    bransje: source.industryLabel?.trim() || "virksomheten",
+  };
+}
+
+/** Minstekrav-tekst for et standardkapittel. Bransjeoverstyring brukes når den finnes. */
+export function minimumHandbookSectionHtml(
+  sectionKey: string,
+  industryKey?: string | null,
+): string | null {
+  const override = industryKey ? INDUSTRY_OVERRIDES[industryKey]?.[sectionKey] : undefined;
+  return override ?? UNIVERSAL_CONTENT[sectionKey] ?? null;
+}
+
+/**
+ * Korttekst som ble lagt inn automatisk før minstekrav-malen.
+ * Bare kapitler som fortsatt har denne teksten ord for ord, oppgraderes.
+ */
+export const HANDBOOK_STUB_CONTENT: Record<string, string> = {
+  s1: "<p>Bedriftens overordnede HMS-policy, konkrete mål for helse, miljø og sikkerhet, og hvordan disse følges opp. Målene skal være målbare og gjennomgås minimum årlig.</p>",
+  s2: "<p>Daglig leder, HMS-ansvarlig, verneombud, brannvernleder og organisasjonskart. Oversikt over hvordan ansvar, oppgaver og myndighet for HMS-arbeidet er fordelt.</p>",
+  s2b: "<p>Hvordan ansatte medvirker i HMS-arbeidet. Verneombudets rolle, arbeidsmiljøutvalg (AMU) der det er påkrevd, og prosesser for at samlet kunnskap og erfaring utnyttes i HMS-arbeidet.</p>",
+  s2c: "<p>Oversikt over de lover og forskrifter i HMS-lovgivningen som gjelder for virksomheten, med særlig fokus på krav som er av spesiell viktighet for bedriftens bransje og aktiviteter.</p>",
+  s3: "<p>Prinsipp for risikostyring, metode for risikovurdering og tiltaksstyring.</p>",
+  s4: "<p>Avviksprosess, alvorlige hendelser, trendanalyse og RUH-rapportering. Meldeplikt til Arbeidstilsynet og politi ved alvorlige personskader og dødsfall.</p>",
+  s5: "<p>Kompetansekartlegging, påkrevd opplæring, opplæringsplan for nyansatte og dokumentasjon av gjennomført opplæring.</p>",
+  s6: "<p>Bransje-spesifikke prosedyrer, SJA og daglige kontroller.</p>",
+  s7: "<p>Brannvernorganisering, slokkeutstyr, evakueringsplan og øvelser.</p>",
+  s8: "<p>Frekvens, sjekklister, funn og oppfølging av vernerunder.</p>",
+  s9: "<p>Frekvens, deltakere, innhold og beslutninger fra ledelsens gjennomgang.</p>",
+  s10: "<p>Versjonskontroll, tilgang, arkivering og styrende dokumenter.</p>",
+  s11: "<p>Kartlegging av fysisk og psykososialt arbeidsmiljø, medarbeiderundersøkelser, varsling og sykefravær. Systemet for psykososialt arbeidsmiljø gir oversikt over trivsel, arbeidsmiljøundersøkelser og oppfølging.</p>",
+  s12: "<p>Miljørisiko, avfallshåndtering, kjemikaliehåndtering og beredskap. Farlig avfall, inkludert kjølevæske, skal deklareres før levering til godkjent mottak.</p>",
+  s13: "<p>Planlagte HMS-aktiviteter gjennom året med ansvarlige og frister.</p>",
+  s14: "<p>Formål, gjennomføring, rapportering og oppfølging av internrevisjoner.</p>",
+  s15: "<p>Oversikt over bedriftens styrende rutiner og instrukser, med lesebekreftelse og gjennomgangspåminnelser. Rutinene kobles til relevante lovkrav og oppdateres ved behov.</p>",
+  s11b: "<p>Varslingsrutiner, intern varslingskanal, behandlingsprosess for varsler og vern av varslere. Alle ansatte skal ha tilgang til informasjon om hvordan varsling foregår.</p>",
+};
+
+export function isUntouchedHandbookStub(sectionKey: string, content: string): boolean {
+  const stub = HANDBOOK_STUB_CONTENT[sectionKey];
+  if (!stub) return false;
+  return content.trim() === stub.trim();
 }
 
 export function getAvailableTemplates(): Array<{

@@ -23,14 +23,23 @@ export async function fetchHmsTavleList() {
   ]);
 
   const today = new Date().toISOString().slice(0, 10);
-  const todayCheckins = await prisma.tavleCheckin.count({
+  const presentGroups = await prisma.tavleCheckin.groupBy({
+    by: ["tavleId"],
     where: {
       tavle: { tenantId: auth.tenantId },
       date: today,
+      checkedOutAt: null,
     },
+    _count: { _all: true },
   });
+  const presentByTavle = new Map(presentGroups.map((group) => [group.tavleId, group._count._all]));
+  const tavlerMedNaa = tavler.map((tavle) => ({
+    ...tavle,
+    presentCount: presentByTavle.get(tavle.id) ?? 0,
+  }));
+  const todayCheckins = tavlerMedNaa.reduce((sum, tavle) => sum + tavle.presentCount, 0);
 
-  return JSON.parse(JSON.stringify({ tavler, subscription, tenant, todayCheckins }));
+  return JSON.parse(JSON.stringify({ tavler: tavlerMedNaa, subscription, tenant, todayCheckins }));
 }
 
 export async function fetchHmsTavleDetail(id: string) {
@@ -54,7 +63,14 @@ export async function fetchHmsTavleDetail(id: string) {
         project: {
           include: {
             constructionShaPlan: {
-              select: { id: true, status: true, updatedAt: true, availableOnSite: true },
+              select: {
+                id: true,
+                status: true,
+                updatedAt: true,
+                availableOnSite: true,
+                ownHmsPlan: true,
+                shaIncorporated: true,
+              },
             },
             constructionPreNotification: {
               select: { id: true, status: true, sentAt: true },
@@ -116,5 +132,24 @@ export async function fetchHmsTavleDetail(id: string) {
     name: medlem.user.name ?? medlem.user.email ?? "Ukjent bruker",
   }));
 
-  return JSON.parse(JSON.stringify({ tavle, subscription, hmsStats, teamMembers }));
+  const prosjekter = await prisma.project.findMany({
+    where: { tenantId: auth.tenantId, isAbsenceProject: false },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+    take: 200,
+  });
+
+  const risikovurderinger = await prisma.riskAssessment.findMany({
+    where: {
+      tenantId: auth.tenantId,
+      ...(tavle.projectId ? { OR: [{ projectId: tavle.projectId }, { projectId: null }] } : {}),
+    },
+    select: { id: true, title: true, assessmentYear: true, projectId: true },
+    orderBy: [{ assessmentYear: "desc" }, { title: "asc" }],
+    take: 100,
+  });
+
+  return JSON.parse(
+    JSON.stringify({ tavle, subscription, hmsStats, teamMembers, prosjekter, risikovurderinger })
+  );
 }

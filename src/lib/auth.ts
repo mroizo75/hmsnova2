@@ -24,6 +24,7 @@ import { syncAzureAdOrgProfile } from "@/lib/azure-ad-org-sync";
 import bcrypt from "bcryptjs";
 import type { Role } from "@prisma/client";
 import { parseExtraRoles } from "@/lib/extra-roles";
+import { tenantStatusBlocksAccess } from "@/lib/tenant-access";
 
 const prismaAdapter = PrismaAdapter(prisma);
 
@@ -212,35 +213,27 @@ export const authOptions: NextAuthOptions = {
           }
         }
 
-        // SIKKERHET: Sjekk om tenant er suspendert pga ubetalt faktura
+        // SIKKERHET: Ingen åpen bedrift igjen. Allerede innloggede økter stenges i proxy.
         if (!user.isSuperAdmin && !user.isSupport && user.tenants.length > 0) {
-          const preferredTenant = user.lastTenantId
-            ? user.tenants.find((membership) => membership.tenantId === user.lastTenantId)
-            : null;
-          const activeTenant =
-            user.tenants.find(
-              (membership) =>
-                membership.tenant.status === "ACTIVE" || membership.tenant.status === "TRIAL",
-            ) ?? null;
-          const firstTenantMembership = user.tenants.at(0) ?? null;
-          const tenant =
-            preferredTenant?.tenant ?? activeTenant?.tenant ?? firstTenantMembership?.tenant ?? null;
-          if (!tenant) {
-            throw new Error("Kontoen mangler gyldig tenant-tilknytning.");
-          }
-          
-          if (tenant.status === "SUSPENDED") {
-            if (tenant.invoices.length > 0) {
+          const openMembership = user.tenants.find(
+            (membership) => !tenantStatusBlocksAccess(membership.tenant.status),
+          );
+          if (!openMembership) {
+            const suspended = user.tenants.find((membership) => membership.tenant.status === "SUSPENDED");
+            if (suspended && suspended.tenant.invoices.length > 0) {
               throw new Error(
                 "Din konto er suspendert på grunn av ubetalt faktura. " +
                 "Kontakt support@hmsnova.com eller betal fakturaen for å reaktivere kontoen."
               );
-            } else {
+            }
+            if (suspended) {
               throw new Error(
                 "Din konto er suspendert. Kontakt support@hmsnova.com for mer informasjon."
               );
             }
+            throw new Error("Bedriftskontoen er avsluttet. Kontakt support@hmsnova.com.");
           }
+          const tenant = openMembership.tenant;
 
           // Advarsel hvis faktura snart forfaller
           const pendingInvoices = await prisma.invoice.findMany({
@@ -376,7 +369,6 @@ export const authOptions: NextAuthOptions = {
               ? eligibleTenants.find((membership) => membership.tenantId === dbUser.lastTenantId)
               : null) ??
             eligibleTenants[0] ??
-            dbUser.tenants.at(0) ??
             null;
           
           token.tenantId = selectedTenant?.tenantId || null;
@@ -454,13 +446,21 @@ export const authOptions: NextAuthOptions = {
               },
             },
           });
-          if (newMembership) {
+          if (newMembership && !tenantStatusBlocksAccess(newMembership.tenant.status)) {
             token.tenantId = effectiveTenantId;
             token.role = newMembership.role;
             token.extraRoles = parseExtraRoles(newMembership.extraRoles, newMembership.role);
             token.tenantName = newMembership.tenant.name;
             token.isTavleOnly = newMembership.tenant.isTavleOnly ?? false;
             token.roleUpdatedAt = newMembership.updatedAt.getTime();
+          } else if (
+            newMembership &&
+            tenantStatusBlocksAccess(newMembership.tenant.status) &&
+            token.isSuperAdmin !== true &&
+            token.isSupport !== true
+          ) {
+            token.tenantId = null;
+            token.role = undefined;
           }
         }
 
@@ -472,9 +472,22 @@ export const authOptions: NextAuthOptions = {
                 tenantId: token.tenantId as string,
               },
             },
-            select: { role: true, extraRoles: true, updatedAt: true },
+            select: {
+              role: true,
+              extraRoles: true,
+              updatedAt: true,
+              tenant: { select: { status: true } },
+            },
           });
-          if (membership) {
+          if (
+            membership &&
+            tenantStatusBlocksAccess(membership.tenant.status) &&
+            token.isSuperAdmin !== true &&
+            token.isSupport !== true
+          ) {
+            token.tenantId = null;
+            token.role = undefined;
+          } else if (membership) {
             const dbUpdatedAt = membership.updatedAt.getTime();
             const tokenUpdatedAt = token.roleUpdatedAt as number | null;
             token.extraRoles = parseExtraRoles(membership.extraRoles, membership.role);

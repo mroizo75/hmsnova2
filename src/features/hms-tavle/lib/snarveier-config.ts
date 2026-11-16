@@ -141,6 +141,38 @@ export function getSnarveiDef(id: string): SnarveiDefinisjon | undefined {
   return ALLE_SNARVEIER.find((s) => s.id === id);
 }
 
+/**
+ * Adresse for en snarvei. Avvik, SJA og SHA-plan peker på tavlens prosjekt,
+ * slik at registreringen havner på riktig arbeidssted.
+ */
+export function buildSnarveiHref(
+  shortcut: SnarveiConfig,
+  options: { isAddon: boolean; publicToken: string; projectId?: string | null }
+): string | null {
+  const def = getSnarveiDef(shortcut.id);
+  if (!def) return null;
+  if (def.id === "innsjekk") return `/tavle/${options.publicToken}/innsjekk`;
+  const external = shortcut.externalUrl?.trim();
+  if (external) {
+    if (
+      external.startsWith("/") ||
+      external.startsWith("http://") ||
+      external.startsWith("https://")
+    ) {
+      return external;
+    }
+    return `https://${external}`;
+  }
+  if (!options.isAddon || !def.hmsFunksjon) return null;
+  if (def.id === "sha_plan" && options.projectId) {
+    return `/dashboard/projects/${options.projectId}/construction-compliance`;
+  }
+  if (options.projectId && (def.id === "avvik" || def.id === "sja")) {
+    return `${def.hmsFunksjon}?projectId=${options.projectId}`;
+  }
+  return def.hmsFunksjon;
+}
+
 /** Standard-konfig: avvik, sja, sha_plan, vernerunde, innsjekk synlige */
 export const DEFAULT_SNARVEIER_CONFIG: SnarveiConfig[] = ALLE_SNARVEIER.map((s) => ({
   id: s.id,

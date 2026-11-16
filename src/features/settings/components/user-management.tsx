@@ -1050,6 +1050,24 @@ export function UserManagement({
                             {parseExtraRoles(userTenant.extraRoles, userTenant.role).map((role) => (
                               <div key={role}>{getRoleBadge(role)}</div>
                             ))}
+                            {isCurrentUser && isAdmin && userTenant.role === "ADMIN" && (
+                              <label className="flex items-center gap-2 pt-1 text-xs">
+                                <Checkbox
+                                  checked={membershipRoles(userTenant.role as Role, userTenant.extraRoles).includes("HMS")}
+                                  disabled={loading === userTenant.userId}
+                                  onCheckedChange={(checked) =>
+                                    handleExtraToggle(
+                                      userTenant.userId,
+                                      userTenant.role,
+                                      userTenant.extraRoles,
+                                      "HMS",
+                                      checked === true,
+                                    )
+                                  }
+                                />
+                                Også HMS-ansvarlig
+                              </label>
+                            )}
                             {userTenant.isChiefSafetyRep && (
                               <Badge className="bg-green-100 text-green-800 border-green-200">Hovedverneombud</Badge>
                             )}

@@ -198,6 +198,12 @@ function SortableSection({
   );
 }
 
+interface RisikoValg {
+  id: string;
+  title: string;
+  assessmentYear: number;
+}
+
 interface Props {
   tavleId: string;
   sections: HmsTavleSection[];
@@ -205,9 +211,18 @@ interface Props {
   canManage: boolean;
   isAddon: boolean;
   bransje?: string | null;
+  risikovurderinger?: RisikoValg[];
 }
 
-export function TavleSectionBuilder({ tavleId, sections: initial, plan, canManage, isAddon, bransje }: Props) {
+export function TavleSectionBuilder({
+  tavleId,
+  sections: initial,
+  plan,
+  canManage,
+  isAddon,
+  bransje,
+  risikovurderinger = [],
+}: Props) {
   const sectionLabels = { ...SECTION_LABELS, ...getSectionLabels(bransje) };
   const router = useRouter();
   const [sections, setSections] = useState(initial);
@@ -367,6 +382,7 @@ export function TavleSectionBuilder({ tavleId, sections: initial, plan, canManag
           config={(editingSection.config as Record<string, any>) ?? {}}
           isAddon={isAddon}
           tavleId={tavleId}
+          risikovurderinger={risikovurderinger}
           onSave={(cfg) => updateConfig(editingSection.id, cfg)}
         />
       )}

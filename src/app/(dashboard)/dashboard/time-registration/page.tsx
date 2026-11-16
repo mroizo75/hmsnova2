@@ -6,7 +6,7 @@ import { fetchTimeRegistrationData } from "@/server/queries/time-registration.qu
 import { TimeRegistrationContent } from "@/features/time-registration/components/time-registration-content";
 
 interface TimeRegistrationPageProps {
-  searchParams: Promise<{ projectId?: string }>;
+  searchParams: Promise<{ projectId?: string; tab?: string }>;
 }
 
 export default async function TimeRegistrationPage({ searchParams }: TimeRegistrationPageProps) {
@@ -24,7 +24,7 @@ export default async function TimeRegistrationPage({ searchParams }: TimeRegistr
 
   const role = session.user.role!;
   const isAdmin = ["ADMIN", "HMS", "LEDER"].includes(role);
-  const { projectId } = await searchParams;
+  const { projectId, tab } = await searchParams;
 
   const initialData = await fetchTimeRegistrationData();
 
@@ -35,6 +35,7 @@ export default async function TimeRegistrationPage({ searchParams }: TimeRegistr
         isAdmin={isAdmin}
         role={role}
         selectedProjectId={projectId}
+        initialTab={tab}
       />
     </div>
   );

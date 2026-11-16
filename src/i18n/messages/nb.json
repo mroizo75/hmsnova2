@@ -268,7 +268,43 @@
       "approval": "Godkjenning",
       "plan": "Ressursplan",
       "timebank": "Timebank",
+      "overtime": "Overtid",
       "team": "Team"
+    },
+    "overtime": {
+      "title": "Søk overtid",
+      "intro": "Søknaden dokumenterer at overtiden er avtalt, jf. AML § 10-6. Den stopper ikke timeføring. Timer registreres som før, også før søknaden er behandlet.",
+      "date": "Dato",
+      "hours": "Timer",
+      "reason": "Behov",
+      "reasonPlaceholder": "Kort hvorfor det trengs, for eksempel innspurt på prosjekt",
+      "submit": "Send søknad",
+      "sending": "Sender…",
+      "mine": "Mine søknader",
+      "empty": "Ingen søknader ennå.",
+      "pending": "Til godkjenning",
+      "pendingEmpty": "Ingen søknader venter.",
+      "approve": "Godkjenn",
+      "reject": "Avvis",
+      "cancel": "Trekk",
+      "limitsTitle": "Ført overtid mot rammene",
+      "limitsHelp": "Tallene kommer fra timene som er ført. De er et varsel, og stenger ikke for nye timer.",
+      "status": {
+        "PENDING": "Venter",
+        "APPROVED": "Godkjent",
+        "REJECTED": "Avvist",
+        "CANCELLED": "Trukket"
+      },
+      "level": {
+        "ok": "Innenfor",
+        "near": "Nærmer seg",
+        "over": "Over rammen"
+      },
+      "window": {
+        "sevenDays": "7 dager",
+        "fourWeeks": "4 uker",
+        "year": "52 uker"
+      }
     },
     "disabled": {
       "title": "Timeregistrering er av",
@@ -3024,6 +3060,8 @@
         "title": "Hva skjedde?",
         "description": "ISO 9001: Natur av avvik",
         "descriptionLabel": "Beskrivelse",
+        "registeredBy": "Registrert av",
+        "registeredAt": "Registrert {date}",
         "time": "Tidspunkt",
         "location": "Sted",
         "department": "Avdeling",

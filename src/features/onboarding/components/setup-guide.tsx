@@ -152,16 +152,24 @@ export function SetupGuide({ tenantId, progress }: SetupGuideProps) {
 
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold text-foreground">Grunnoppsett</h3>
+              <h3 className="text-sm font-semibold text-foreground">Anbefalt først</h3>
               <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
                 {quickDone ? "Ferdig" : `${progress.quickPercentage}%`}
               </span>
             </div>
             <p className="text-xs text-muted-foreground">
               {quickDone
-                ? "Grunnleggende HMS-krav er oppfylt."
-                : "Fullfør disse stegene for å komme i gang med HMS-systemet."}
+                ? "Lover, rutiner og risikovurdering er på plass. Systemet er klart til bruk."
+                : "HMS-håndboken er fylt ut med minstekrav. Start med veiviseren for lover og rutiner, og gjør deretter risikovurderingen."}
             </p>
+            {progress.nextRecommendedAction && !quickDone && (
+              <Button asChild size="sm" className="mt-1">
+                <Link href={progress.nextRecommendedAction.href}>
+                  {progress.nextRecommendedAction.title}
+                  <ArrowRight className="ml-1 h-4 w-4" />
+                </Link>
+              </Button>
+            )}
             <div className="space-y-3">
               {quickGroups.map((group) => (
                 <StepGroup
@@ -177,13 +185,13 @@ export function SetupGuide({ tenantId, progress }: SetupGuideProps) {
           {fullGroups.length > 0 && (
             <div className="space-y-2 border-t pt-4">
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-foreground">Fullstendig tilsynsklar</h3>
+                <h3 className="text-sm font-semibold text-foreground">Når dere er i gang</h3>
                 <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-medium text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
                   {progress.fullPercentage === 100 ? "Ferdig" : `${progress.fullPercentage}%`}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                For full compliance ved tilsyn fra Arbeidstilsynet, brannvesen o.l.
+                Legg inn ansatte, roller og resten av tilsynskravene når det passer.
               </p>
               <div className="space-y-3">
                 {fullGroups.map((group) => (

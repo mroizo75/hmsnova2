@@ -66,9 +66,13 @@ export type CreateMeasureInput = z.infer<typeof createMeasureSchema>;
 export type UpdateMeasureInput = z.infer<typeof updateMeasureSchema>;
 export type CompleteMeasureInput = z.infer<typeof completeMeasureSchema>;
 
-/**
- * Helper function to determine if measure is overdue
- */
+/** AI-tiltak i risikovurdering er iverksatt og følges, ikke «ikke startet». IK-HMS § 5 nr. 6. */
+export const AI_RISK_MEASURE_STATUS = "IN_PROGRESS" as const satisfies ActionStatus;
+
+export function pendingMeasureIds(measures: Array<{ id: string; status: string }>): string[] {
+  return measures.filter((measure) => measure.status === "PENDING").map((measure) => measure.id);
+}
+
 export function isMeasureOverdue(dueAt: Date, status: ActionStatus): boolean {
   if (status === "DONE") return false;
   return new Date() > new Date(dueAt);

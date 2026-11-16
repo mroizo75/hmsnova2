@@ -53,6 +53,8 @@ interface IncidentTreatmentFormProps {
   currentInjuryDescription: string | null;
   currentSuggestedActions: string | null;
   currentTreatmentOtherText?: string | null;
+  showPatientReference?: boolean;
+  currentPatientReference?: string | null;
   comments?: Array<{
     id: string;
     body: string;
@@ -104,6 +106,8 @@ export function IncidentTreatmentForm({
   currentInjuryDescription,
   currentSuggestedActions,
   currentTreatmentOtherText = null,
+  showPatientReference = false,
+  currentPatientReference = null,
   comments = [],
   users,
   projects,
@@ -123,6 +127,7 @@ export function IncidentTreatmentForm({
     currentSubcategoryKeys
   );
   const [treatmentOtherText, setTreatmentOtherText] = useState(currentTreatmentOtherText ?? "");
+  const [patientReference, setPatientReference] = useState(currentPatientReference ?? "");
   const [treatmentComment, setTreatmentComment] = useState("");
   const [commentSaving, setCommentSaving] = useState(false);
   const [loadingSubcategories, setLoadingSubcategories] = useState(false);
@@ -295,6 +300,9 @@ export function IncidentTreatmentForm({
           suggestedActions: suggestedActions.trim() || null,
           source,
           treatmentOtherText: treatmentOtherText.trim() || null,
+          ...(showPatientReference
+            ? { patientReference: patientReference.trim() || null }
+            : {}),
         }),
       });
 
@@ -401,6 +409,7 @@ export function IncidentTreatmentForm({
     suggestedActions !== (currentSuggestedActions ?? "") ||
     source !== (currentSource || "INTERNAL") ||
     treatmentOtherText.trim() !== (currentTreatmentOtherText ?? "") ||
+    (showPatientReference && patientReference.trim() !== (currentPatientReference ?? "")) ||
     treatmentFiles.length > 0;
 
   return (
@@ -620,6 +629,24 @@ export function IncidentTreatmentForm({
           </div>
         )}
       </div>
+
+      {showPatientReference && (
+        <div className="space-y-2">
+          <Label htmlFor="patientReference">Pasient-ID (valgfritt)</Label>
+          <Input
+            id="patientReference"
+            value={patientReference}
+            onChange={(event) => setPatientReference(event.target.value)}
+            placeholder="Intern ID fra pasientjournalen"
+            maxLength={40}
+            autoComplete="off"
+          />
+          <p className="text-xs text-muted-foreground">
+            Bare for helsevirksomheter. Bruk intern pasient-ID, ikke fødselsnummer
+            (GDPR art. 9 og pasientjournalloven).
+          </p>
+        </div>
+      )}
 
       <div className="rounded-lg border p-4 space-y-3">
         <div>

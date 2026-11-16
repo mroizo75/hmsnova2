@@ -10,6 +10,10 @@ const HEALTHCARE_INDUSTRY_VALUES = new Set([
   "helse",
   "helsevesen",
   "health",
+  "helse og omsorg",
+  "helse-og-omsorg",
+  "helse_og_omsorg",
+  "helseomsorg",
 ]);
 
 function normalizeIndustry(industry: string | null | undefined): string {

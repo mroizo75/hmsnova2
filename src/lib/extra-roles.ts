@@ -35,6 +35,17 @@ export function serializeExtraRoles(
   return roles.length > 0 ? roles.join(",") : null;
 }
 
+/** Eier (admin) kan legge HMS på seg selv uten å bytte hovedrolle. */
+export function extraRolesWithSelfHms(
+  existing: string | readonly string[] | null | undefined,
+  primary: string | null | undefined,
+  wantsHms: boolean,
+): Role[] {
+  const next: Role[] = parseExtraRoles(existing, primary).filter((role) => role !== "HMS");
+  if (wantsHms && primary !== "HMS") next.push("HMS");
+  return next;
+}
+
 export function membershipRoles(primary: Role | null | undefined, extra?: string | readonly string[] | null): Role[] {
   const roles: Role[] = [];
   if (primary) roles.push(primary);

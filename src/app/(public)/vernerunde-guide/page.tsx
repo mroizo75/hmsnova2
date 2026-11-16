@@ -57,7 +57,7 @@ export default function VernerundeGuidePage() {
               </Link>
             </div>
             <p className="text-sm text-muted-foreground mt-4">
-              ✓ 14 dagers angrefrist  ✓ Full tilgang  ✓ Fra 225 kr/mnd
+              ✓ 14 dagers angrefrist  ✓ Full tilgang  ✓ 300 kr/mnd + mva
             </p>
           </div>
         </div>

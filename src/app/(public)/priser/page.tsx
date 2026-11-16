@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { RegisterDialog } from "@/components/register-dialog";
 import { RingMegDialog } from "@/components/ring-meg-dialog";
 import { PRICING_SCHEMA } from "@/lib/seo-schemas";
+import { FAQSection } from "@/components/faq-section";
 import { AI_ADDON_NET_MONTHLY_NOK } from "@/lib/ai-addon";
 import { getBreadcrumbSchema } from "@/lib/seo-config";
 import { 
@@ -15,14 +16,7 @@ import {
   X,
   ArrowRight,
   Download,
-  Shield,
-  Users,
-  Zap,
-  Clock,
-  HeartHandshake,
   Phone,
-  GraduationCap,
-  Award,
   Settings
 } from "lucide-react";
 
@@ -46,7 +40,35 @@ export default function PriserPage() {
     },
   ];
 
-  const allFeatures = [
+  const priceFaqs = [
+  {
+    question: "Hva koster et HMS-system?",
+    answer:
+      "HMS Nova koster 300 kr/mnd + mva, 3 600 kr/år + mva. Abonnementet er 12 måneder. Antall brukere er ubegrenset, og prisen er den samme enten bedriften har 5 eller 20 ansatte. AI-tillegg er 49 kr/mnd + mva og er av som standard.",
+  },
+  {
+    question: "Hva koster HMS-system for 5 ansatte?",
+    answer:
+      "300 kr/mnd + mva. HMS Nova tar ikke betalt per ansatt. Fem brukere koster det samme som én bruker.",
+  },
+  {
+    question: "Hva koster HMS-system for 20 ansatte?",
+    answer:
+      "300 kr/mnd + mva. Prisen endres ikke ved 20 ansatte. Ubegrenset antall brukere er inkludert.",
+  },
+  {
+    question: "Hva er inkludert i 300 kr/mnd?",
+    answer:
+      "Avvik, risikovurdering, vernerunde, dokumenter, HMS-håndbok, stoffkartotek, varsling, SJA og digital signatur. Det er ingen oppstartsavgift i abonnementet. AI-tillegget på 49 kr/mnd + mva kommer bare når en administrator slår det på.",
+  },
+  {
+    question: "Hva koster et system for HMS-onboarding på byggeplass?",
+    answer:
+      "Onboarding av ansatte er inkludert i HMS Nova til 300 kr/mnd + mva. Det er ingen egen pris for onboarding på byggeplass.",
+  },
+];
+
+const allFeatures = [
     "Ubegrenset antall brukere",
     "Dokumenthåndtering med versjonskontroll",
     "Risikovurdering (5x5 matrise)",
@@ -95,12 +117,14 @@ export default function PriserPage() {
         <Badge variant="secondary" className="mb-6">
           Ingen skjulte kostnader
         </Badge>
-        <h1 className="text-5xl md:text-6xl font-bold mb-6">
-          Transparent prising.<br />Ingen overraskelser.
+        <h1 className="text-4xl md:text-6xl font-bold mb-6">
+          HMS-system koster 300 kr/mnd + mva
         </h1>
         <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-          Velg planen som passer din bedrift. 14 dagers avtalt angrefrist, deretter
-          12 måneders binding og 3 måneders skriftlig oppsigelse.
+          Prisen er den samme for 5 og 20 ansatte. Ubegrenset antall brukere.
+          Avvik, risikovurdering, vernerunde, stoffkartotek, varsling og digital
+          signatur er inkludert. 3 600 kr/år + mva med 12 måneders abonnement.
+          Valgfritt AI-tillegg {AI_ADDON_NET_MONTHLY_NOK} kr/mnd + mva.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link href="/registrer-bedrift">
@@ -347,92 +371,49 @@ export default function PriserPage() {
         </div>
       </section>
 
-      {/* Medlemsfordeler */}
       <section className="container mx-auto px-4 py-20">
-        <Card className="max-w-4xl mx-auto bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200">
-          <CardContent className="p-12">
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
-                <Award className="h-8 w-8 text-green-600" />
-              </div>
-              <h2 className="text-3xl font-bold mb-4">🎁 Ekstra medlemsfordeler inkludert!</h2>
-              <p className="text-lg text-muted-foreground">
-                Som HMS Nova-medlem får du ikke bare et komplett HMS-system – du får også <strong className="text-green-600">ekskl usive rabatter</strong> på viktige tjenester:
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6 mb-8">
-              <Card className="bg-white border-green-200">
-                <CardContent className="pt-6">
-                  <div className="flex flex-col items-center text-center space-y-3">
-                    <GraduationCap className="h-12 w-12 text-green-600" />
-                    <h3 className="font-bold text-lg">20% rabatt på alle HMS-kurs</h3>
-                    <ul className="text-sm text-muted-foreground space-y-1">
-                      <li>✅ Lovpålagte HMS-kurs (verneombud, ledelse, etc.)</li>
-                      <li>✅ Førstehjelp for barn og voksne</li>
-                      <li>✅ Spesialkurs fra HMS Nova AS (inkl. diisocyanater)</li>
-                      <li>✅ Fysisk, digitalt eller hybrid format</li>
-                    </ul>
-                    <Link href="/hms-kurs">
-                      <Button size="sm" variant="outline" className="mt-4">
-                        Se alle kurs
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white border-green-200">
-                <CardContent className="pt-6">
-                  <div className="flex flex-col items-center text-center space-y-3">
-                    <HeartHandshake className="h-12 w-12 text-green-600" />
-                    <h3 className="font-bold text-lg">BHT fra HMS Nova (kommende)</h3>
-                    <ul className="text-sm text-muted-foreground space-y-1">
-                      <li>✅ Vi blir godkjent BHT-organ i løpet av året</li>
-                      <li>✅ Minimum krav + tilleggstjenester + kurs</li>
-                      <li>✅ Diisocyanater og spesialkurs via sertifisert partner</li>
-                      <li>✅ Ett sted for HMS og BHT</li>
-                    </ul>
-                    <Link href="/bedriftshelsetjeneste">
-                      <Button size="sm" variant="outline" className="mt-4">
-                        Les mer om BHT
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="bg-white rounded-lg p-6 border-2 border-green-200">
-              <h4 className="font-bold text-center mb-3">💰 Total verdi av medlemsfordeler:</h4>
-              <div className="grid md:grid-cols-2 gap-4 text-sm">
-                <div className="text-center p-3 bg-green-50 rounded-lg">
-                  <p className="font-semibold text-green-700">HMS-kurs (årlig)</p>
-                  <p className="text-2xl font-bold text-green-600">~ 2.000-5.000 kr</p>
-                  <p className="text-xs text-muted-foreground">Avhengig av antall kurs</p>
-                </div>
-                <div className="text-center p-3 bg-green-50 rounded-lg">
-                  <p className="font-semibold text-green-700">BHT fra HMS Nova</p>
-                  <p className="text-2xl font-bold text-green-600">Kommende</p>
-                  <p className="text-xs text-muted-foreground">Ett leverandørforhold for HMS + BHT + kurs</p>
-                </div>
-              </div>
-              <p className="text-center text-sm text-muted-foreground mt-4">
-                <strong>Totalt:</strong> Spar fra 2.000 kr årlig på kurs i tillegg til HMS Nova-abonnementet!<br />
-                <span className="text-xs">(Basert på minimum 2 HMS-kurs per år med 20% medlemsrabatt)</span>
-              </p>
-            </div>
-
-            <div className="text-center mt-6">
-              <p className="text-sm text-muted-foreground">
-                <strong>Hvordan aktivere?</strong> Kursrabatt aktiveres automatisk når du registrerer deg som HMS Nova-medlem. <br />
-                Oppgi ditt org.nr eller medlemsnummer ved bestilling av kurs. For BHT: registrer interesse på BHT-siden.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold mb-4">Kurs og bedriftshelsetjeneste</h2>
+            <p className="text-lg text-muted-foreground">
+              Abonnementet over er prisen på HMS-systemet. Kurs og BHT prises av den som leverer tjenesten.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Dokumentert opplæring og kurs</CardTitle>
+                <CardDescription>
+                  Kompetanse og kursbevis registreres i HMS Nova. Sertifiserte kurs bestilles hos KKS AS.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button variant="outline" asChild>
+                  <Link href="/hms-kurs">
+                    Les om opplæring og kurs
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Bedriftshelsetjeneste</CardTitle>
+                <CardDescription>
+                  HMS Nova er ikke godkjent BHT. Tjenesten tilbys gjennom Dr.Dropin, og prisen avtales der.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button variant="outline" asChild>
+                  <Link href="/bedriftshelsetjeneste">
+                    Les om BHT
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </section>
 
       {/* FAQ */}
@@ -535,80 +516,81 @@ export default function PriserPage() {
         </div>
       </section>
 
-      {/* Comparison */}
+      <FAQSection
+        faqs={priceFaqs}
+        title="Hva koster HMS-systemet?"
+        description="Prisen er 300 kr/mnd + mva, uansett antall ansatte."
+      />
+
       <section className="container mx-auto px-4 py-20 bg-muted/30">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Sammenlign med konkurrentene</h2>
-            <p className="text-muted-foreground">
-              Se hvordan HMS Nova står seg mot andre HMS-systemer
+            <h2 className="text-3xl font-bold mb-4">Ferdig HMS-system, med det dere allerede har</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Modulene for norsk HMS ligger klare. Risikovurderingen i Excel leses rad for rad,
+              og eksisterende avvik tar dere med som fil.
             </p>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse bg-card rounded-lg">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-4"></th>
-                  <th className="text-center p-4">
-                    <div className="font-bold text-primary">HMS Nova</div>
-                    <div className="text-sm text-muted-foreground">300 kr/mnd + mva</div>
-                  </th>
-                  <th className="text-center p-4">
-                    <div className="font-bold">Andre systemer</div>
-                    <div className="text-sm text-muted-foreground">Varierende priser</div>
-                  </th>
-                  <th className="text-center p-4">
-                    <div className="font-bold">Andre</div>
-                    <div className="text-sm text-muted-foreground">Fra 500+ kr/mnd</div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b">
-                  <td className="p-4 text-sm">Oppstartskostnad</td>
-                  <td className="p-4 text-center"><CheckCircle2 className="h-5 w-5 text-primary mx-auto" /></td>
-                  <td className="p-4 text-center text-muted-foreground">0 kr</td>
-                  <td className="p-4 text-center text-muted-foreground">20.000+ kr</td>
-                </tr>
-                <tr className="border-b bg-muted/30">
-                  <td className="p-4 text-sm">Ferdig HMS-håndbok</td>
-                  <td className="p-4 text-center"><CheckCircle2 className="h-5 w-5 text-primary mx-auto" /></td>
-                  <td className="p-4 text-center"><CheckCircle2 className="h-5 w-5 text-primary mx-auto" /></td>
-                  <td className="p-4 text-center"><X className="h-5 w-5 text-muted-foreground mx-auto" /></td>
-                </tr>
-                <tr className="border-b">
-                  <td className="p-4 text-sm">Digital signaturer</td>
-                  <td className="p-4 text-center"><CheckCircle2 className="h-5 w-5 text-primary mx-auto" /></td>
-                  <td className="p-4 text-center"><X className="h-5 w-5 text-muted-foreground mx-auto" /></td>
-                  <td className="p-4 text-center text-muted-foreground">Ekstrakostnad</td>
-                </tr>
-                <tr className="border-b bg-muted/30">
-                  <td className="p-4 text-sm">Risikovurdering (5x5 matrise)</td>
-                  <td className="p-4 text-center"><CheckCircle2 className="h-5 w-5 text-primary mx-auto" /></td>
-                  <td className="p-4 text-center"><CheckCircle2 className="h-5 w-5 text-primary mx-auto" /></td>
-                  <td className="p-4 text-center text-muted-foreground">Varierer</td>
-                </tr>
-                <tr className="border-b">
-                  <td className="p-4 text-sm">Brukere inkludert</td>
-                  <td className="p-4 text-center text-muted-foreground">Ubegrenset</td>
-                  <td className="p-4 text-center text-muted-foreground">Begrenset</td>
-                  <td className="p-4 text-center text-muted-foreground">Ekstrakostnad</td>
-                </tr>
-                <tr className="border-b bg-muted/30">
-                  <td className="p-4 text-sm">Norsk support</td>
-                  <td className="p-4 text-center"><CheckCircle2 className="h-5 w-5 text-primary mx-auto" /></td>
-                  <td className="p-4 text-center"><CheckCircle2 className="h-5 w-5 text-primary mx-auto" /></td>
-                  <td className="p-4 text-center text-muted-foreground">Varierer</td>
-                </tr>
-                <tr className="border-b">
-                  <td className="p-4 text-sm">Bindingstid</td>
-                  <td className="p-4 text-center text-muted-foreground">12 mnd</td>
-                  <td className="p-4 text-center text-muted-foreground">12 mnd krav</td>
-                  <td className="p-4 text-center text-muted-foreground">12-36 mnd krav</td>
-                </tr>
-              </tbody>
-            </table>
+          <div className="grid md:grid-cols-3 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Dette er med fra første dag</CardTitle>
+                <CardDescription>
+                  Arbeidsmiljøloven § 3-1 og internkontrollforskriften § 5 er dekket i modulene.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    HMS-håndbok tilpasset bransjen
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    Avvik, 5x5-risikovurdering og vernerunde
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    Stoffkartotek, varsling, SJA og digital signatur
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Risikovurdering fra Excel</CardTitle>
+                <CardDescription>
+                  Last opp .xlsx. Kolonnene i risikoregisteret leses inn.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ol className="space-y-2 text-sm text-muted-foreground list-decimal pl-4">
+                  <li>Last opp regnearket.</li>
+                  <li>Se forhåndsvisningen og velg radene.</li>
+                  <li>En godkjenner verifiserer før den kan godkjennes.</li>
+                </ol>
+                <p className="text-xs text-muted-foreground mt-4">
+                  Eldre .xls lagres som .xlsx først. PDF og Word blir et utkast som kontrolleres.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Avvik fra filen dere har</CardTitle>
+                <CardDescription>
+                  Registrer avviket og last opp Excel- eller PDF-filen som kilde.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Tittelen settes med en gang, og Excel- eller PDF-filen ligger på avviket
+                  som kilde. Resten fylles inn under behandlingen.
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>

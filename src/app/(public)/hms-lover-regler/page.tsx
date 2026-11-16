@@ -126,8 +126,7 @@ export default function HMSLoverReglerPage() {
                   Verneombudet må ha gjennomført lovpålagt 40-timers opplæring.
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  <strong>BHT-plikten:</strong> Alle bedrifter med 5+ ansatte er også pålagt å ha bedriftshelsetjeneste (BHT). 
-                  Nye krav til psykososialt arbeidsmiljø har også trådt i kraft.
+                  <strong>BHT-plikten:</strong> Arbeidsgiver skal ha godkjent bedriftshelsetjeneste når risikoforholdene tilsier det, jf. arbeidsmiljøloven § 3-3 og forskrift om organisering, ledelse og medvirkning kapittel 13. Det gjelder ikke automatisk alle bedrifter med 5 ansatte.
                 </p>
               </div>
 
@@ -205,7 +204,7 @@ export default function HMSLoverReglerPage() {
             <Card className="bg-primary text-primary-foreground border-0 inline-block">
               <CardContent className="p-8">
                 <Scale className="h-12 w-12 mx-auto mb-4" />
-                <h3 className="text-2xl font-bold mb-2">HMS Nova - fra 225 kr/mnd</h3>
+                <h3 className="text-2xl font-bold mb-2">HMS Nova</h3>
                 <p className="text-primary-foreground/90 mb-6">
                   Verktøy som hjelper deg med å organisere HMS-arbeidet etter lovens krav
                 </p>

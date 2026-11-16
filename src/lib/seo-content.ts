@@ -94,13 +94,13 @@ export const SEO_CONTENT = {
       "HMS Nova er Norges mest moderne HMS-system. Vi bygger trygghet gjennom digitalisering av HMS-arbeid. Med HMS Nova får bedrifter et komplett verktøy for risikovurdering, hendelsesrapportering, dokumenthåndtering og ISO 9001 compliance. Systemet erstatter Excel-ark og papirrot med en moderne, mobilbasert løsning.",
 
     howMuchCost:
-      "HMS Nova koster 300 kr/mnd (3 600 kr/år) med 12 måneders abonnement. Ubegrenset antall brukere inkludert. Ingen oppstartskostnader, alt inkludert. 20% rabatt på HMS-kurs for medlemmer. BHT tilbys av HMS Nova (under etablering).",
+      "HMS Nova koster 300 kr/mnd (3 600 kr/år) med 12 måneders abonnement. Ubegrenset antall brukere inkludert. Ingen oppstartskostnader, alt inkludert. Sertifiserte kurs bestilles hos KKS AS. Bedriftshelsetjeneste tilbys gjennom Dr.Dropin.",
 
     howDifferent:
       "HMS Nova skiller seg fra Grønn Jobb, Avonova og Kuba ved å være 100% digitalt og moderne. Vi har digital signatur inkludert (ikke ekstrakostnad), 12 måneders abonnement (300 kr/mnd), mobilapp med offline-støtte, og betydelig lavere priser. Vår visjon er enkel: HMS Nova bygger trygghet - ikke byråkrati.",
 
     isItApproved:
-      "HMS Nova følger alle krav i Arbeidsmiljøloven, Internkontrollforskriften og ISO 9001:2015. Systemet er bygget for å sikre full compliance med norsk lov og internasjonale standarder. HMS Nova etablerer seg som godkjent bedriftshelsetjeneste (BHT).",
+      "HMS Nova følger kravene i arbeidsmiljøloven, internkontrollforskriften og ISO 9001:2015. Systemet er et HMS-verktøy. HMS Nova er ikke en godkjent bedriftshelsetjeneste.",
   },
 
   // Call-to-action variations
@@ -123,9 +123,9 @@ export const SEO_CONTENT = {
   // Meta descriptions for different pages
   metaDescriptions: {
     home: "HMS Nova bygger trygghet. Få kontroll på HMS med digital signatur, automatiske påminnelser og mobilapp. 500+ norske bedrifter stoler på oss. Registrer bedrift.",
-    priser: "Transparente HMS-priser: 300 kr/mnd (12 mnd abonnement). Ingen oppstartskostnader. 20% rabatt på kurs. BHT fra HMS Nova under etablering. Se alle priser.",
-    kurs: "20% rabatt på HMS-kurs for medlemmer. Verneombud, førstehjelp, diisocyanater. HMS Nova AS. Fysisk, digitalt eller hybrid.",
-    bht: "HMS Nova etablerer seg som godkjent BHT. Minimum lovkrav, tilleggstjenester og kurs inkludert Diisocyanater. Ett sted for HMS og BHT.",
+    priser: "Transparente HMS-priser: 300 kr/mnd (12 mnd abonnement). Ingen oppstartskostnader. Se alle priser.",
+    kurs: "Dokumentert opplæring i HMS Nova. Sertifiserte kurs hos KKS AS. Kurspriser står på kksas.no.",
+    bht: "Bedriftshelsetjeneste gjennom Dr.Dropin. HMS Nova er ikke godkjent BHT og oppgir ikke en egen BHT-pris.",
   },
 } as const;
 

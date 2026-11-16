@@ -76,7 +76,7 @@ export function HmsTavleListContent({ initialData, canManage }: HmsTavleListCont
                   <span className="font-medium text-foreground">{tavler.length}</span> tavle(r)
                 </span>
                 <span>
-                  <span className="font-medium text-foreground">{todayCheckins}</span> innsjekk i dag
+                  <span className="font-medium text-foreground">{todayCheckins}</span> på plassen nå
                 </span>
                 <span>
                   Utløper{" "}
@@ -165,7 +165,7 @@ export function HmsTavleListContent({ initialData, canManage }: HmsTavleListCont
                       </span>
                       <span className="flex items-center gap-1">
                         <Users className="h-3.5 w-3.5" />
-                        {tavle._count.checkins} innsjekk
+                        {tavle.presentCount ?? 0} på plassen
                       </span>
                       {tavle.subcontractorPortal && (
                         <span className="flex items-center gap-1 text-green-600">

@@ -50,12 +50,38 @@ export interface TavleKpiData {
   daysSinceLastIncident: number | null;
 }
 
+/** Åpent avvik på tavlen. Uten beskrivelse og uten navn på involverte. */
+export interface TavleAvvikItem {
+  id: string;
+  reference: string | null;
+  title: string;
+  severity: number | null;
+  type: string;
+}
+
+/** Valgt risikovurdering, IK-HMS § 5 nr. 6. Kun titler og score, ikke eier. */
+export interface TavleRisikoData {
+  id: string;
+  title: string;
+  year: number;
+  open: number;
+  high: number;
+  items: Array<{ title: string; score: number }>;
+}
+
+export interface TavleSectionRef {
+  type: string;
+  config: unknown;
+}
+
 export interface TavleLiveData {
   sja: TavleSjaItem[];
   vernerunde: TavleVernerundeData | null;
   opplaring: TavleOpplaringData | null;
   aarshjul: TavleAarshjulData | null;
   kpi: TavleKpiData | null;
+  avvik: TavleAvvikItem[];
+  risiko: TavleRisikoData | null;
 }
 
 /** Antall dager framover et gyldighetsbevis regnes som «utløper snart». */
@@ -71,34 +97,53 @@ function toIso(value: Date | null | undefined): string | null {
  * Henter live-data for seksjonstypene som trenger det. Returnerer tomt objekt
  * for standalone-tavler, som i stedet viser manuelt registrerte tall.
  */
+function configRecord(config: unknown): Record<string, unknown> {
+  return config && typeof config === "object" && !Array.isArray(config)
+    ? (config as Record<string, unknown>)
+    : {};
+}
+
 export async function getTavleLiveData(params: {
   tenantId: string;
   projectId: string | null;
-  sectionTypes: ReadonlyArray<string>;
+  sections: ReadonlyArray<TavleSectionRef>;
 }): Promise<TavleLiveData> {
-  const { tenantId, projectId, sectionTypes } = params;
-  const trengs = new Set(sectionTypes);
+  const { tenantId, projectId, sections } = params;
+  const trengs = new Set(sections.map((section) => section.type));
   const tomt: TavleLiveData = {
     sja: [],
     vernerunde: null,
     opplaring: null,
     aarshjul: null,
     kpi: null,
+    avvik: [],
+    risiko: null,
   };
 
   const now = new Date();
+  const trengerKpi =
+    trengs.has("KPI_DASHBOARD") || trengs.has("AVVIK_STATISTIKK") || trengs.has("RUH_LISTE");
+  const trengerAvvik = trengs.has("AVVIK_STATISTIKK") || trengs.has("RUH_LISTE");
+  const risikoSeksjon = sections.find((section) => section.type === "RISIKOMATRISE");
+  const riskAssessmentId = risikoSeksjon
+    ? configRecord(risikoSeksjon.config).riskAssessmentId
+    : null;
 
-  const [sja, vernerunde, opplaring, aarshjul, kpi] = await Promise.all([
+  const [sja, vernerunde, opplaring, aarshjul, kpi, avvik, risiko] = await Promise.all([
     trengs.has("SJA_AKTIVE") ? hentSja(tenantId, projectId) : Promise.resolve(tomt.sja),
     trengs.has("VERNERUNDE_STATUS")
       ? hentVernerunde(tenantId, projectId, now)
       : Promise.resolve(null),
     trengs.has("OPPLARING_STATUS") ? hentOpplaring(tenantId, now) : Promise.resolve(null),
     trengs.has("HMS_PLAN_AARSHJUL") ? hentAarshjul(tenantId, now) : Promise.resolve(null),
-    trengs.has("KPI_DASHBOARD") ? hentKpi(tenantId, projectId, now) : Promise.resolve(null),
+    trengerKpi ? hentKpi(tenantId, projectId, now) : Promise.resolve(null),
+    trengerAvvik ? hentAvvik(tenantId, projectId) : Promise.resolve(tomt.avvik),
+    trengs.has("RISIKOMATRISE") && typeof riskAssessmentId === "string"
+      ? hentRisiko(tenantId, projectId, riskAssessmentId)
+      : Promise.resolve(null),
   ]);
 
-  return { sja, vernerunde, opplaring, aarshjul, kpi };
+  return { sja, vernerunde, opplaring, aarshjul, kpi, avvik, risiko };
 }
 
 async function hentSja(tenantId: string, projectId: string | null): Promise<TavleSjaItem[]> {
@@ -262,5 +307,80 @@ async function hentKpi(
     closedThisMonth,
     openMeasures,
     daysSinceLastIncident,
+  };
+}
+
+async function hentAvvik(tenantId: string, projectId: string | null): Promise<TavleAvvikItem[]> {
+  const rader = await prisma.incident.findMany({
+    where: {
+      tenantId,
+      ...(projectId ? { projectId } : {}),
+      status: { not: "CLOSED" },
+    },
+    orderBy: [{ severity: "desc" }, { occurredAt: "desc" }],
+    take: 8,
+    select: {
+      id: true,
+      avviksnummer: true,
+      title: true,
+      severity: true,
+      type: true,
+    },
+  });
+
+  return rader.map((rad) => ({
+    id: rad.id,
+    reference: rad.avviksnummer,
+    title: rad.title,
+    severity: rad.severity,
+    type: rad.type,
+  }));
+}
+
+async function hentRisiko(
+  tenantId: string,
+  projectId: string | null,
+  riskAssessmentId: string
+): Promise<TavleRisikoData | null> {
+  const vurdering = await prisma.riskAssessment.findFirst({
+    where: {
+      id: riskAssessmentId,
+      tenantId,
+      ...(projectId ? { OR: [{ projectId }, { projectId: null }] } : {}),
+    },
+    select: {
+      id: true,
+      title: true,
+      assessmentYear: true,
+      risks: {
+        where: { status: { not: "CLOSED" } },
+        orderBy: { score: "desc" },
+        take: 8,
+        select: { title: true, score: true },
+      },
+    },
+  });
+
+  if (!vurdering) return null;
+
+  const open = await prisma.risk.count({
+    where: { tenantId, riskAssessmentId: vurdering.id, status: { not: "CLOSED" } },
+  });
+  const high = await prisma.risk.count({
+    where: {
+      tenantId,
+      riskAssessmentId: vurdering.id,
+      status: { not: "CLOSED" },
+      score: { gte: 10 },
+    },
+  });
+
+  return {
+    id: vurdering.id,
+    title: vurdering.title,
+    year: vurdering.assessmentYear,
+    open,
+    high,
+    items: vurdering.risks.map((risk) => ({ title: risk.title, score: risk.score })),
   };
 }

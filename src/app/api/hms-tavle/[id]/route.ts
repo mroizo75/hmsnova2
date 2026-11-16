@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { getPermissions } from "@/lib/permissions";
 import { createErrorResponse, createSuccessResponse, handleApiError, ErrorCodes } from "@/lib/validations/api";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { emitTavleUpdate } from "@/lib/tavle-events";
 
 const updateSchema = z.object({
@@ -22,6 +23,10 @@ const updateSchema = z.object({
   clientName: z.string().max(255).optional().nullable(),
   // Sluttdato styrer når oversiktslisten kan slettes, jf. § 15 fjerde ledd
   workEndedAt: z.coerce.date().optional().nullable(),
+  projectId: z.string().min(1).nullable().optional(),
+  siteLatitude: z.number().gte(-90).lte(90).nullable().optional(),
+  siteLongitude: z.number().gte(-180).lte(180).nullable().optional(),
+  geofenceRadiusMeters: z.number().int().min(50).max(2000).nullable().optional(),
 });
 
 export async function GET(
@@ -89,14 +94,45 @@ export async function PATCH(
     const parsed = updateSchema.safeParse(body);
     if (!parsed.success) return createErrorResponse(ErrorCodes.VALIDATION_ERROR, parsed.error.issues[0].message, 400);
 
-    const tavle = await prisma.hmsTavle.update({
-      where: { id },
-      data: parsed.data as any,
-    });
+    if (parsed.data.projectId) {
+      const project = await prisma.project.findFirst({
+        where: { id: parsed.data.projectId, tenantId: session.user.tenantId },
+        select: { id: true },
+      });
+      if (!project) return createErrorResponse(ErrorCodes.NOT_FOUND, "Prosjektet finnes ikke", 404);
+    }
 
-    emitTavleUpdate(tavle.publicToken);
+    const latitude = parsed.data.siteLatitude !== undefined ? parsed.data.siteLatitude : existing.siteLatitude;
+    const longitude = parsed.data.siteLongitude !== undefined ? parsed.data.siteLongitude : existing.siteLongitude;
+    const radius =
+      parsed.data.geofenceRadiusMeters !== undefined
+        ? parsed.data.geofenceRadiusMeters
+        : existing.geofenceRadiusMeters;
+    if (radius != null && (latitude == null || longitude == null)) {
+      return createErrorResponse(
+        ErrorCodes.VALIDATION_ERROR,
+        "Geofence krever både posisjon og radius",
+        400
+      );
+    }
 
-    return createSuccessResponse(tavle);
+    try {
+      const tavle = await prisma.hmsTavle.update({
+        where: { id },
+        data: parsed.data,
+      });
+      emitTavleUpdate(tavle.publicToken);
+      return createSuccessResponse(tavle);
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        return createErrorResponse(
+          ErrorCodes.VALIDATION_ERROR,
+          "Prosjektet er allerede koblet til en annen tavle",
+          409
+        );
+      }
+      throw error;
+    }
   } catch (error) {
     return handleApiError(error);
   }

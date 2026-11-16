@@ -8,6 +8,7 @@ import { createMeasureSchema, updateMeasureSchema, completeMeasureSchema } from 
 import { resolveIncidentStage } from "@/lib/incident-stage";
 import { notifyTaskAssigned } from "@/lib/task-assignment-notice";
 import { IncidentStage } from "@prisma/client";
+import { AuditLog } from "@/lib/audit-log";
 
 async function getSessionContext() {
   const tenantContext = await getRequiredTenantContext();
@@ -462,6 +463,55 @@ export async function getMeasureStats(_tenantId: string) {
   } catch (error: any) {
     console.error("Get measure stats error:", error);
     return { success: false, error: error.message || "Kunne ikke hente statistikk" };
+  }
+}
+
+/**
+ * Setter tiltak som står som «ikke startet» til «pågår».
+ * Fullførte tiltak endres ikke. IK-HMS § 5 nr. 6: tiltaket er iverksatt og skal følges.
+ */
+export async function markPendingMeasuresInProgress(input: {
+  riskId?: string;
+  assessmentId?: string;
+}) {
+  try {
+    const { user, tenantId } = await getSessionContext();
+    if (!input.riskId && !input.assessmentId) {
+      return { success: false as const, error: "Velg en risiko eller en risikovurdering" };
+    }
+
+    const where = input.assessmentId
+      ? {
+          tenantId,
+          status: "PENDING" as const,
+          risk: { tenantId, riskAssessmentId: input.assessmentId },
+        }
+      : {
+          tenantId,
+          riskId: input.riskId,
+          status: "PENDING" as const,
+        };
+
+    const result = await prisma.measure.updateMany({
+      where,
+      data: { status: "IN_PROGRESS", updatedAt: new Date() },
+    });
+
+    await AuditLog.log(tenantId, user.id, "MEASURES_MARKED_IN_PROGRESS", "Measure", input.assessmentId ?? input.riskId ?? tenantId, {
+      riskId: input.riskId ?? null,
+      assessmentId: input.assessmentId ?? null,
+      count: result.count,
+    });
+
+    revalidatePath("/dashboard/risks");
+    revalidatePath("/dashboard/measures");
+    if (input.riskId) revalidatePath(`/dashboard/risks/${input.riskId}`);
+    if (input.assessmentId) revalidatePath(`/dashboard/risks/assessment/${input.assessmentId}`);
+    triggerRealtimeEvent(tenantId, "measure-updated");
+    return { success: true as const, count: result.count };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Kunne ikke oppdatere tiltakene";
+    return { success: false as const, error: message };
   }
 }
 

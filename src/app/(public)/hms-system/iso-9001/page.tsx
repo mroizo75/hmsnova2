@@ -41,10 +41,9 @@ const faqs = [
   {
     question: "Hva koster ISO 9001-sertifisering?",
     answer: `Kostnader:
-    • HMS Nova abonnement: Fra 225 kr/mnd (dekker systemkravet)
-    • Ekstern revisjon: 15 000-30 000 kr (engangskostnad)
-    • Årlig oppfølging: 8 000-15 000 kr/år
-    Totalt betydelig rimeligere enn mange tror, og investeringen betaler seg raskt.`,
+    • HMS Nova-abonnementet står på prissiden (300 kr/mnd + mva)
+    • Ekstern revisjon og årlig oppfølging avtales med sertifiseringsorganet
+    HMS Nova oppgir ikke pris på sertifiseringsorganets arbeid.`,
   },
 ];
 

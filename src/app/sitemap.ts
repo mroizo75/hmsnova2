@@ -225,19 +225,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly" as const,
       priority: 0.85,
     })),
-    // Legacy-sider (redirecter til /bransjer/*)
-    {
-      url: `${baseUrl}/beste-hms-system-sma-bedrifter`,
-      lastModified: currentDate,
-      changeFrequency: "monthly",
-      priority: 0.5,
-    },
-    {
-      url: `${baseUrl}/beste-hms-system-iso-9001`,
-      lastModified: currentDate,
-      changeFrequency: "monthly",
-      priority: 0.5,
-    },
   ];
 
   // Legg til publiserte blogginnlegg

@@ -20,7 +20,7 @@ export const faqDatabase = {
     {
       question: 'Hvor lang tid tar det å komme i gang?',
       answer:
-        'Du kommer i gang ved å registrere bedriften. Du har 14 dagers avtalt angrefrist. Oppsett og import av dokumenter tar typisk 30-60 minutter. Totalt: <strong>1-2 timer</strong> til du er operasjonell. Alternativt kan vi gjøre alt for deg med implementeringspakke fra 6.900 kr.',
+        'Du kommer i gang ved å registrere bedriften. Du har 14 dagers avtalt angrefrist. Oppsett og import av dokumenter tar typisk 30-60 minutter. Totalt: <strong>1-2 timer</strong> til du er operasjonell. Trenger dere hjelp til oppsettet, tar dere kontakt, så avtaler vi det.',
     },
     {
       question: 'Har dere gratis prøveperiode?',
@@ -69,12 +69,12 @@ export const faqDatabase = {
     {
       question: 'Hva koster implementeringshjelp?',
       answer:
-        '<strong>40% billigere enn tradisjonelle HMS-konsulenter:</strong><br><br>• <strong>Mikro (0-20 ansatte):</strong> 6.900 kr<br>• <strong>Små (21-50 ansatte):</strong> 9.900 kr<br>• <strong>Medium (51+ ansatte):</strong> 14.900 kr<br><br><strong>Inkludert:</strong> Oppsett av HMS Nova, import av eksisterende HMS-dokumenter, bransjespesifikke maler, digital organisasjonskart, og 2 timers live opplæring for ditt team.',
+        'Oppsett av HMS Nova kan dere gjøre selv etter registrering. Trenger dere hjelp med import av dokumenter og oppstart, tar dere kontakt. Vi oppgir ikke en fast implementeringspris på nettsiden.',
     },
     {
       question: 'Hjelper dere med migrering fra gammelt system?',
       answer:
-        'Ja! Migrering fra eksisterende HMS-system er inkludert i våre implementeringspakker (fra 6.900 kr). Vi hjelper med å: 1) Eksportere data fra gammelt system, 2) Importere til HMS Nova, 3) Verifisere at alt er korrekt, 4) Opplære teamet. Prosessen tar vanligvis 2-4 timer.',
+        'Ja. Ta kontakt, så hjelper vi med å eksportere fra det gamle systemet, importere til HMS Nova og kontrollere at innholdet stemmer. Omfang og pris avtales før vi starter.',
     },
     {
       question: 'Trenger vi opplæring?',
@@ -84,7 +84,7 @@ export const faqDatabase = {
     {
       question: 'Er implementering og opplæring inkludert?',
       answer:
-        '<strong>Nei, men du har to alternativer:</strong><br><br><strong>1) Gjør det selv:</strong> Registrer bedriften og sett opp HMS Nova med egne dokumenter og maler. Du har 14 dagers angrefrist.<br><br><strong>2) Vi gjør det for deg:</strong> Implementeringstjenester fra <strong>6.900 kr</strong> (0-20 ansatte) til 14.900 kr (51+ ansatte). 40% billigere enn tradisjonelle HMS-konsulenter. Inkluderer: komplett oppsett av systemet, import av eksisterende dokumenter, og 2 timers opplæring for teamet.',
+        '<strong>Oppsett er ikke inkludert i abonnementet som en egen tjeneste.</strong><br><br><strong>1) Gjør det selv:</strong> Registrer bedriften og sett opp HMS Nova med egne dokumenter og maler. Du har 14 dagers angrefrist.<br><br><strong>2) Vi gjør det for deg:</strong> Ta kontakt, så avtaler vi oppsett, import og en kort gjennomgang. Prisen avtales før arbeidet starter.',
     },
     {
       question: 'Hva skjer hvis vi vil slutte?',

@@ -22,6 +22,7 @@ import {
   getIncidentStatusColor,
 } from "@/features/incidents/schemas/incident.schema";
 import { canCloseIncident, getIncidentCloseBlockers } from "@/lib/incident-close-rules";
+import { isHealthcareTenant } from "@/lib/patient-reference";
 import {
   ArrowLeft,
   AlertTriangle,
@@ -342,6 +343,19 @@ export function IncidentDetailContent({
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
+              <h4 className="font-semibold mb-1 flex items-center gap-2">
+                <User className="h-4 w-4" />
+                {t("sections.whatHappened.registeredBy")}
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                {incident.reporterName ?? "Ukjent"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {t("sections.whatHappened.registeredAt", { date: formatDate(incident.createdAt) })}
+              </p>
+            </div>
+
+            <div>
               <h4 className="font-semibold mb-2">{t("sections.whatHappened.descriptionLabel")}</h4>
               <p className="text-sm whitespace-pre-wrap">{incident.description}</p>
             </div>
@@ -577,6 +591,8 @@ export function IncidentDetailContent({
                   currentInjuryDescription={incident.injuryDescription}
                   currentSuggestedActions={incident.suggestedActions}
                   currentTreatmentOtherText={incident.treatmentOtherText ?? null}
+                  showPatientReference={isHealthcareTenant(tenant ?? {})}
+                  currentPatientReference={incident.patientReference ?? null}
                   comments={incident.comments ?? []}
                   users={tenantUsers}
                   projects={tenantProjects}
@@ -607,6 +623,13 @@ export function IncidentDetailContent({
                 <CardContent className="pt-4 space-y-3 text-sm">
                   <p className="whitespace-pre-wrap">{incident.description}</p>
                   <div className="flex flex-wrap gap-4 text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <User className="h-3.5 w-3.5" />
+                      {t("sections.whatHappened.registeredBy")}: {incident.reporterName ?? "Ukjent"}
+                    </span>
+                    {incident.patientReference && (
+                      <span>Pasient-ID: {incident.patientReference}</span>
+                    )}
                     <span className="flex items-center gap-1">
                       <Clock className="h-3.5 w-3.5" />
                       {formatDate(incident.occurredAt)}

@@ -25,6 +25,7 @@ import {
 } from "@/lib/industry-packages";
 import { isMocDefaultIndustry } from "@/lib/moc-industry";
 import { provisionIndustryPackage } from "@/server/actions/industry-provision.actions";
+import { ensureTenantHandbook } from "@/server/actions/hms-handbok.actions";
 import { brregClient } from "@/lib/brreg";
 import { getSubIndustryFromNace } from "@/lib/nace-mapping";
 import {
@@ -308,6 +309,11 @@ export async function submitRegistrationRequest(formData: FormData) {
     }
 
     await provisionIndustryPackage(tenant.id);
+    try {
+      await ensureTenantHandbook(tenant.id);
+    } catch (error) {
+      console.error("Failed to seed handbook:", error);
+    }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://hmsnova.no";
     const fromEmail = process.env.RESEND_FROM_EMAIL ?? "HMS Nova <noreply@hmsnova.no>";

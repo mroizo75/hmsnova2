@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { HmsTavlePlan, HmsTavleSectionType, TavleDisplayMode } from "@prisma/client";
 import { cn } from "@/lib/utils";
-import { toImageUrl } from "@/features/hms-tavle/lib/image-url";
+import { toFileUrl, toImageUrl } from "@/features/hms-tavle/lib/image-url";
+import { personerPaaPlassen } from "@/features/hms-tavle/lib/presence";
+import { TavleQrMark, useBoardPath } from "@/features/hms-tavle/components/tavle-qr-mark";
 import {
   Shield,
   Phone,
@@ -52,15 +54,18 @@ import {
 import {
   ALLE_SNARVEIER,
   DEFAULT_SNARVEIER_CONFIG,
+  buildSnarveiHref,
   type SnarveiConfig,
 } from "@/features/hms-tavle/lib/snarveier-config";
 import { getLovkravItems } from "@/features/hms-tavle/lib/bransje-config";
 import type { GuestServiceStats } from "@/features/hms-tavle/lib/gjesteservice-stats";
 import type {
   TavleAarshjulData,
+  TavleAvvikItem,
   TavleKpiData,
   TavleLiveData,
   TavleOpplaringData,
+  TavleRisikoData,
   TavleSjaItem,
   TavleVernerundeData,
 } from "@/features/hms-tavle/lib/tavle-live-data";
@@ -260,10 +265,10 @@ function FixedSidebar({
         ) : (
           <span className="text-white/40 text-xs italic">Ikke satt</span>
         )}
-        {shaCfg.pdfUrl && (
-          <a href={shaCfg.pdfUrl} target="_blank" rel="noopener noreferrer"
+        {toFileUrl(shaCfg.pdfUrl) && (
+          <a href={toFileUrl(shaCfg.pdfUrl)} target="_blank" rel="noopener noreferrer"
             className="mt-2 flex items-center gap-1.5 text-blue-300 text-xs hover:text-white transition-colors border border-blue-500/30 rounded-lg px-2 py-1.5 bg-blue-900/20">
-            <FileText className="h-3.5 w-3.5 shrink-0" /> Åpne SHA-plan (PDF)
+            <FileText className="h-3.5 w-3.5 shrink-0" /> Åpne HMS-plan (PDF)
           </a>
         )}
       </div>
@@ -339,7 +344,16 @@ function SectionCard({
       return <MannskapslisteSection title={title} checkins={checkins} tavle={tavle} appUrl={appUrl} publicToken={publicToken} />;
     case "AVVIK_STATISTIKK":
     case "RUH_LISTE":
-      return <AvvikSection title={title} config={config} isAddon={isAddon} live={liveData?.kpi ?? null} />;
+      return (
+        <AvvikSection
+          title={title}
+          config={config}
+          isAddon={isAddon}
+          live={liveData?.kpi ?? null}
+          avvik={liveData?.avvik ?? []}
+          onlyRuh={type === "RUH_LISTE"}
+        />
+      );
     case "DOKUMENT_HUB":
       return <DokumentHubSection title={title} config={config} tavle={tavle} />;
     case "EKSTERN_LENKE":
@@ -365,9 +379,17 @@ function SectionCard({
     case "RIGGPLAN":
       return <RiggplanSection title={title} config={config} />;
     case "RISIKOMATRISE":
-      return <RisikomatriseSection title={title} config={config} />;
+      return <RisikomatriseSection title={title} config={config} live={liveData?.risiko ?? null} />;
     case "SNARVEIER":
-      return <SnarveierSection title={title} config={config} isAddon={isAddon} publicToken={publicToken} appUrl={appUrl} />;
+      return (
+        <SnarveierSection
+          title={title}
+          config={config}
+          isAddon={isAddon}
+          publicToken={publicToken}
+          projectId={tavle.projectId ?? tavle.project?.id ?? null}
+        />
+      );
     case "GJEST_SKJEMA":
       return <GjestSkjemaSection title={title} config={config} publicToken={publicToken} appUrl={appUrl} locale={locale} />;
     case "GJESTESERVICE_STATUS":
@@ -377,21 +399,15 @@ function SectionCard({
   }
 }
 
-function SnarveierSection({ title, config, isAddon, publicToken, appUrl }: {
-  title: string | null; config: any; isAddon: boolean; publicToken: string; appUrl: string;
+function SnarveierSection({ title, config, isAddon, publicToken, projectId }: {
+  title: string | null; config: any; isAddon: boolean; publicToken: string; projectId: string | null;
 }) {
   const shortcuts: SnarveiConfig[] = config?.shortcuts?.length > 0
     ? config.shortcuts
     : DEFAULT_SNARVEIER_CONFIG;
   const synlige = shortcuts.filter((s) => s.isVisible);
-  const getUrl = (s: SnarveiConfig): string | null => {
-    const def = ALLE_SNARVEIER.find((d) => d.id === s.id);
-    if (!def) return null;
-    if (def.id === "innsjekk") return `/tavle/${publicToken}/innsjekk`;
-    if (s.externalUrl) return s.externalUrl;
-    if (isAddon && def.hmsFunksjon) return def.hmsFunksjon; // relativ sti — samme domene
-    return null;
-  };
+  const getUrl = (s: SnarveiConfig): string | null =>
+    buildSnarveiHref(s, { isAddon, publicToken, projectId });
   const custom: Array<{ id: string; label: string; url: string; color: string; emoji?: string }> =
     config?.customShortcuts ?? [];
   const aktive = synlige.filter((s) => getUrl(s) !== null);
@@ -447,8 +463,8 @@ const CUSTOM_COLOR_MAP: Record<string, { cls: string; text: string }> = {
 };
 
 /** Kompakt snarveier-bar — full bredde, ikoner i en rad, brukt i kiosk-topp */
-function SnarveierKompaktBar({ config, isAddon, publicToken, appUrl: _appUrl }: {
-  config: any; isAddon: boolean; publicToken: string; appUrl: string;
+function SnarveierKompaktBar({ config, isAddon, publicToken, projectId }: {
+  config: any; isAddon: boolean; publicToken: string; projectId: string | null;
 }) {
   const shortcuts: SnarveiConfig[] = config?.shortcuts?.length > 0
     ? config.shortcuts
@@ -457,14 +473,8 @@ function SnarveierKompaktBar({ config, isAddon, publicToken, appUrl: _appUrl }: 
     config?.customShortcuts ?? [];
 
   const synlige = shortcuts.filter((s) => s.isVisible);
-  const getUrl = (s: SnarveiConfig): string | null => {
-    const def = ALLE_SNARVEIER.find((d) => d.id === s.id);
-    if (!def) return null;
-    if (def.id === "innsjekk") return `/tavle/${publicToken}/innsjekk`;
-    if (s.externalUrl) return s.externalUrl;
-    if (isAddon && def.hmsFunksjon) return def.hmsFunksjon;
-    return null;
-  };
+  const getUrl = (s: SnarveiConfig): string | null =>
+    buildSnarveiHref(s, { isAddon, publicToken, projectId });
   const aktive = synlige.filter((s) => getUrl(s) !== null);
   const harNoe = aktive.length > 0 || custom.length > 0;
   if (!harNoe) return null;
@@ -569,8 +579,8 @@ function BeredskapsSection({ title, config }: { title: string | null; config: an
             <p key={i} className="text-white text-sm">{step}</p>
           ))}
         </div>
-        {config?.pdfUrl && (
-          <a href={config.pdfUrl} target="_blank" rel="noopener noreferrer"
+        {toFileUrl(config?.pdfUrl) && (
+          <a href={toFileUrl(config.pdfUrl)} target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-2 text-blue-300 hover:text-white transition-colors">
             <FileText className="h-5 w-5" /> Se beredskapsplan (PDF)
           </a>
@@ -585,34 +595,49 @@ function BeredskapsSection({ title, config }: { title: string | null; config: an
 
 function ShaPlanSection({ title, config, tavle, isAddon }: { title: string | null; config: any; tavle: any; isAddon: boolean }) {
   const shaPlan = tavle.project?.constructionShaPlan;
-  const status = isAddon
-    ? (shaPlan?.status === "ACTIVE" ? "godkjent" : shaPlan ? "under-arbeid" : null)
-    : (config?.status as string | undefined);
+  const status = shaPlan
+    ? (shaPlan.status === "ACTIVE" ? "godkjent" : "under-arbeid")
+    : isAddon
+      ? null
+      : (config?.status as string | undefined);
+  const hmsPlan = typeof shaPlan?.ownHmsPlan === "string" ? shaPlan.ownHmsPlan.trim() : "";
+  const pdfUrl = toFileUrl(config?.pdfUrl);
 
   return (
-    <Wrapper icon={<ClipboardList className="h-6 w-6" />} title={title ?? "SHA-plan"} badge="§ 7+8">
+    <Wrapper icon={<ClipboardList className="h-6 w-6" />} title={title ?? "HMS-plan"} badge="SHA overordnet">
       <div className="space-y-3">
-        {/* Status */}
+        <p className="text-white/60 text-xs">
+          SHA-planen er overordnet (byggherreforskriften § 7 og § 8). Arbeidet styres etter HMS-planen
+          (arbeidsmiljøloven § 3-1).
+        </p>
         {status === "godkjent" ? (
-          <div className="flex items-center gap-3 text-xl font-bold rounded-xl p-3 bg-green-900/50 text-green-300">
-            <CheckCircle2 className="h-7 w-7" /> Godkjent og aktiv
+          <div className="flex items-center gap-3 text-lg font-bold rounded-xl p-3 bg-green-900/50 text-green-300">
+            <CheckCircle2 className="h-6 w-6" /> SHA-plan godkjent
             {config?.version && <span className="ml-auto text-white/50 text-sm font-normal">v{config.version}</span>}
           </div>
         ) : status === "under-arbeid" ? (
-          <div className="flex items-center gap-3 text-xl font-bold rounded-xl p-3 bg-yellow-900/50 text-yellow-300">
-            <AlertTriangle className="h-7 w-7" /> Under arbeid
+          <div className="flex items-center gap-3 text-lg font-bold rounded-xl p-3 bg-yellow-900/50 text-yellow-300">
+            <AlertTriangle className="h-6 w-6" /> SHA-plan under arbeid
           </div>
         ) : (
           <div className="flex items-center gap-3 text-lg rounded-xl p-3 bg-white/10 text-white/60">
-            <ClipboardList className="h-6 w-6" /> Ikke koblet til
+            <ClipboardList className="h-6 w-6" /> SHA-plan ikke koblet til
           </div>
         )}
 
-        {/* PDF-lenke alltid synlig, OVER bildet */}
-        {config?.pdfUrl && (
-          <a href={config.pdfUrl} target="_blank" rel="noopener noreferrer"
+        {hmsPlan ? (
+          <p className="text-white text-sm whitespace-pre-line line-clamp-6">{hmsPlan}</p>
+        ) : (
+          <p className="text-white/50 text-sm">HMS-planen er ikke lagt inn på prosjektet ennå.</p>
+        )}
+        {shaPlan?.shaIncorporated && (
+          <p className="text-green-300 text-xs">Relevante krav fra SHA-planen er tatt inn i HMS-planen.</p>
+        )}
+
+        {pdfUrl && (
+          <a href={pdfUrl} target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-2 text-blue-300 hover:text-white transition-colors text-sm bg-blue-900/30 border border-blue-500/30 rounded-lg px-3 py-2">
-            <FileText className="h-4 w-4 shrink-0" /> Åpne SHA-plan (PDF)
+            <FileText className="h-4 w-4 shrink-0" /> Åpne HMS-plan (PDF)
           </a>
         )}
 
@@ -630,42 +655,31 @@ function HeaderMannskapsBlock({
   checkins,
   publicToken,
   appUrl,
+  qrSize,
 }: {
   checkins: any[];
   publicToken: string;
   appUrl: string;
+  qrSize: number;
 }) {
-  const checkinUrl = `${appUrl}/tavle/${publicToken}/innsjekk`;
-  const [qrDataUrl, setQrDataUrl] = useState<string>("");
-
-  useEffect(() => {
-    import("qrcode").then((QRCode) => {
-      QRCode.toDataURL(checkinUrl, {
-        width: 96,
-        margin: 1,
-        color: { dark: "#0f172a", light: "#ffffff" },
-      }).then(setQrDataUrl);
-    });
-  }, [checkinUrl]);
+  const checkinUrl = useBoardPath(`/tavle/${publicToken}/innsjekk`, appUrl);
+  const paaPlassen = personerPaaPlassen(checkins);
 
   return (
     <div className="flex items-center gap-3 bg-white/10 rounded-xl border border-white/20 px-4 py-2">
-      {/* QR */}
-      <a href={checkinUrl} target="_blank" rel="noopener noreferrer" className="shrink-0 group">
-        {qrDataUrl ? (
-          <div className="bg-white rounded-lg p-1 group-hover:scale-105 transition-transform">
-            <img src={qrDataUrl} alt="QR innsjekk" className="w-12 h-12 block" />
-          </div>
-        ) : (
-          <div className="w-12 h-12 bg-white/10 rounded-lg animate-pulse" />
-        )}
+      <a href={checkinUrl} className="shrink-0">
+        <div className="bg-white p-1.5">
+          <TavleQrMark url={checkinUrl} size={qrSize} />
+        </div>
       </a>
 
       {/* Teller + label */}
       <div className="flex flex-col items-start">
-        <span className="text-white text-3xl font-black tabular-nums leading-none">{checkins.length}</span>
-        <span className="text-blue-300 text-xs leading-tight">innsjekket i dag</span>
-        <span className="text-white/40 text-[10px] leading-tight">Skann QR for innsjekk</span>
+        <span className="text-white text-3xl font-black tabular-nums leading-none">{paaPlassen.length}</span>
+        <span className="text-blue-300 text-xs leading-tight">på plassen nå</span>
+        <span className="text-white/70 text-[10px] leading-tight max-w-[140px] truncate">
+          {paaPlassen.length > 0 ? paaPlassen.slice(0, 3).map((c) => c.name).join(", ") : "Ingen innsjekket"}
+        </span>
       </div>
 
     </div>
@@ -675,22 +689,12 @@ function HeaderMannskapsBlock({
 function MannskapslisteSection({ title, checkins, tavle, appUrl, publicToken }: {
   title: string | null; checkins: any[]; tavle: any; appUrl: string; publicToken: string;
 }) {
-  const checkinUrl = `${appUrl}/tavle/${publicToken}/innsjekk`;
-  const [qrDataUrl, setQrDataUrl] = useState<string>("");
-
-  useEffect(() => {
-    import("qrcode").then((QRCode) => {
-      QRCode.toDataURL(checkinUrl, {
-        width: 160,
-        margin: 1,
-        color: { dark: "#0f172a", light: "#ffffff" },
-      }).then(setQrDataUrl);
-    });
-  }, [checkinUrl]);
+  const checkinUrl = useBoardPath(`/tavle/${publicToken}/innsjekk`, appUrl);
 
   // § 15 krever at listen viser hvem som faktisk er på plassen, ikke bare hvem
   // som har vært innom. Utsjekkede vises derfor nedtonet.
-  const paaPlassen = checkins.filter((c: any) => !c.checkedOutAt);
+  const paaPlassen = personerPaaPlassen(checkins);
+  const utsjekket = checkins.filter((c: { checkedOutAt?: string | null }) => c.checkedOutAt);
 
   return (
     <Wrapper icon={<Users className="h-6 w-6" />} title={title ?? "Mannskapsliste"} badge="§ 15">
@@ -701,13 +705,13 @@ function MannskapslisteSection({ title, checkins, tavle, appUrl, publicToken }: 
             <span className="text-white text-5xl font-black tabular-nums">{paaPlassen.length}</span>
             <span className="text-blue-300 text-sm mb-1.5">på plassen nå</span>
           </div>
-          {checkins.length > paaPlassen.length && (
+          {utsjekket.length > 0 && (
             <p className="text-white/50 text-xs">
-              {checkins.length} innsjekket i dag, {checkins.length - paaPlassen.length} utsjekket
+              {utsjekket.length} har sjekket ut i dag
             </p>
           )}
           <div className="grid grid-cols-1 gap-1.5 overflow-hidden max-h-40">
-            {checkins.slice(0, 10).map((c: any) => (
+            {paaPlassen.slice(0, 10).map((c: any) => (
               <div
                 key={c.id}
                 className={cn(
@@ -722,22 +726,18 @@ function MannskapslisteSection({ title, checkins, tavle, appUrl, publicToken }: 
               </div>
             ))}
           </div>
-          {checkins.length > 10 && (
-            <p className="text-white/50 text-xs">+{checkins.length - 10} til registrert</p>
+          {paaPlassen.length > 10 && (
+            <p className="text-white/50 text-xs">+{paaPlassen.length - 10} til på plassen</p>
           )}
         </div>
 
         {/* Høyre: QR-kode */}
         <div className="shrink-0 flex flex-col items-center gap-2">
-          {qrDataUrl ? (
-            <a href={checkinUrl} target="_blank" rel="noopener noreferrer" className="group">
-              <div className="bg-white rounded-xl p-2 shadow-lg group-hover:scale-105 transition-transform">
-                <img src={qrDataUrl} alt="QR innsjekk" className="w-28 h-28 block" />
-              </div>
-            </a>
-          ) : (
-            <div className="w-28 h-28 bg-white/10 rounded-xl animate-pulse" />
-          )}
+          <a href={checkinUrl} className="shrink-0">
+            <div className="bg-white p-1.5">
+              <TavleQrMark url={checkinUrl} size={160} />
+            </div>
+          </a>
           <p className="text-white/60 text-xs text-center leading-tight">Skann for<br />innsjekk</p>
         </div>
       </div>
@@ -745,8 +745,15 @@ function MannskapslisteSection({ title, checkins, tavle, appUrl, publicToken }: 
   );
 }
 
-function AvvikSection({ title, config, isAddon, live }: {
-  title: string | null; config: any; isAddon: boolean; live: TavleKpiData | null;
+const RUH_TYPER = new Set(["NESTEN", "ULYKKE", "FARLIG_SITUASJON", "YRKESSYKDOM", "SKADE"]);
+
+function AvvikSection({ title, config, isAddon, live, avvik, onlyRuh }: {
+  title: string | null;
+  config: any;
+  isAddon: boolean;
+  live: TavleKpiData | null;
+  avvik: TavleAvvikItem[];
+  onlyRuh: boolean;
 }) {
   // Add-on-tavler viser tall direkte fra HMS Nova, standalone viser manuelle tall.
   const kilde = isAddon && live
@@ -759,7 +766,8 @@ function AvvikSection({ title, config, isAddon, live }: {
     : config ?? {};
 
   const { openCount, criticalCount, closedThisMonth, lastUpdated } = kilde;
-  const hasData = openCount !== undefined || criticalCount !== undefined || closedThisMonth !== undefined;
+  const synligeAvvik = onlyRuh ? avvik.filter((item) => RUH_TYPER.has(item.type)) : avvik;
+  const hasData = Boolean(isAddon && live) || openCount !== undefined || criticalCount !== undefined || closedThisMonth !== undefined;
   return (
     <Wrapper
       icon={<AlertTriangle className="h-6 w-6" />}
@@ -784,6 +792,16 @@ function AvvikSection({ title, config, isAddon, live }: {
               <p className="text-white/60 text-[11px] sm:text-xs mt-1">Lukket mnd.</p>
             </div>
           </div>
+          {synligeAvvik.length > 0 && (
+            <ul className="space-y-1.5">
+              {synligeAvvik.slice(0, 6).map((item) => (
+                <li key={item.id} className="flex items-center gap-2 text-sm text-white/90">
+                  <span className="text-blue-300 text-xs shrink-0">{item.reference ?? item.type}</span>
+                  <span className="truncate">{item.title}</span>
+                </li>
+              ))}
+            </ul>
+          )}
           {lastUpdated && (
             <p className="text-white/40 text-xs text-right">
               Oppdatert: {new Date(lastUpdated).toLocaleDateString("nb-NO")}
@@ -806,8 +824,8 @@ function DokumentHubSection({ title, config, tavle }: { title: string | null; co
           <img src={toImageUrl(config.imageUrl)} alt="Dokument" className="w-full rounded-xl object-contain max-h-48 border border-white/10" />
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {config?.pdfUrl && (
-            <a href={config.pdfUrl} target="_blank" rel="noopener noreferrer"
+          {toFileUrl(config?.pdfUrl) && (
+            <a href={toFileUrl(config.pdfUrl)} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-3 bg-white/10 rounded-xl px-4 py-3 text-blue-200 hover:text-white hover:bg-white/20 transition-colors">
               <FileText className="h-5 w-5 shrink-0" />
               <span className="text-sm font-medium truncate">{config.description ?? "Dokument"}</span>
@@ -820,7 +838,7 @@ function DokumentHubSection({ title, config, tavle }: { title: string | null; co
               <span className="text-sm font-medium truncate">{item.label}</span>
             </a>
           ))}
-          {!config?.pdfUrl && items.length === 0 && (
+          {!toFileUrl(config?.pdfUrl) && items.length === 0 && (
             <p className="text-white/50 sm:col-span-2">Ingen dokumenter lagt til</p>
           )}
         </div>
@@ -835,7 +853,7 @@ function EksternLenkeSection({ title, tavle }: { title: string | null; tavle: an
     <Wrapper icon={<ExternalLink className="h-6 w-6" />} title={title ?? "Systemer og lenker"}>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {links.map((l: any) => (
-          <a key={l.id} href={l.url} target="_blank" rel="noopener noreferrer"
+          <a key={l.id} href={toFileUrl(l.url)} target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-3 bg-white/10 rounded-xl px-4 py-3 text-blue-200 hover:text-white hover:bg-white/20 transition-colors">
             <ExternalLink className="h-5 w-5 shrink-0" />
             <span className="text-sm font-medium truncate">{l.title}</span>
@@ -1317,8 +1335,8 @@ function FremdriftsplanSection({ title, config }: { title: string | null; config
             {new Date(config.startDate).toLocaleDateString("nb-NO")} – {new Date(config.endDate).toLocaleDateString("nb-NO")}
           </p>
         )}
-        {config?.pdfUrl && !config?.imageUrl && (
-          <a href={config.pdfUrl} target="_blank" rel="noopener noreferrer"
+        {toFileUrl(config?.pdfUrl) && !config?.imageUrl && (
+          <a href={toFileUrl(config.pdfUrl)} target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-2 text-blue-300 hover:text-white text-sm">
             <FileText className="h-4 w-4" /> Åpne fremdriftsplan (PDF)
           </a>
@@ -1328,19 +1346,40 @@ function FremdriftsplanSection({ title, config }: { title: string | null; config
   );
 }
 
-function RisikomatriseSection({ title, config }: { title: string | null; config: any }) {
+function RisikomatriseSection({ title, config, live }: {
+  title: string | null;
+  config: any;
+  live: TavleRisikoData | null;
+}) {
+  const pdfUrl = toFileUrl(config?.pdfUrl);
   return (
-    <Wrapper icon={<AlertTriangle className="h-6 w-6" />} title={title ?? "Risikomatrise"}>
+    <Wrapper icon={<AlertTriangle className="h-6 w-6" />} title={title ?? live?.title ?? "Risikovurdering"} badge="IK-HMS § 5">
       <div className="space-y-3">
-        {config?.imageUrl ? (
+        {live ? (
+          <>
+            <div className="grid grid-cols-2 gap-2">
+              <StatTile value={live.open} label="Åpne risikoer" tone="orange" />
+              <StatTile value={live.high} label="Score 10 eller høyere" tone="red" />
+            </div>
+            <ul className="space-y-1.5">
+              {live.items.map((item, index) => (
+                <li key={`${item.title}-${index}`} className="flex items-center justify-between gap-2 text-sm text-white/90">
+                  <span className="truncate">{item.title}</span>
+                  <span className="text-orange-300 tabular-nums shrink-0">{item.score}</span>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : config?.imageUrl ? (
           <img src={toImageUrl(config.imageUrl)} alt="Risikomatrise" className="w-full rounded-xl object-contain max-h-64 border border-white/10" />
-        ) : config?.pdfUrl ? (
-          <a href={config.pdfUrl} target="_blank" rel="noopener noreferrer"
+        ) : pdfUrl ? null : (
+          <p className="text-white/50 text-sm">Velg en risikovurdering fra HMS Nova under innstillinger.</p>
+        )}
+        {pdfUrl && (
+          <a href={pdfUrl} target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-2 text-blue-300 hover:text-white text-sm">
             <FileText className="h-4 w-4" /> Åpne risikomatrise (PDF)
           </a>
-        ) : (
-          <p className="text-white/50 text-sm">Last opp risikomatrise under innstillinger.</p>
         )}
         {config?.description && <p className="text-white/60 text-sm">{config.description}</p>}
       </div>
@@ -1365,18 +1404,10 @@ function GjestSkjemaSection({ title, config, publicToken, appUrl, locale = "nb" 
   title: string | null; config: any; publicToken: string; appUrl: string; locale?: "nb" | "en";
 }) {
   const isEn = locale === "en";
-  const meldingUrl = `${appUrl}/tavle/${publicToken}/melding${isEn ? "?lang=en" : ""}`;
-  const [qrDataUrl, setQrDataUrl] = useState<string>("");
-
-  useEffect(() => {
-    import("qrcode").then((QRCode) => {
-      QRCode.toDataURL(meldingUrl, {
-        width: 220,
-        margin: 1,
-        color: { dark: "#0f172a", light: "#ffffff" },
-      }).then(setQrDataUrl);
-    });
-  }, [meldingUrl]);
+  const meldingUrl = useBoardPath(
+    `/tavle/${publicToken}/melding${isEn ? "?lang=en" : ""}`,
+    appUrl
+  );
 
   const welcomeText: string =
     (isEn ? config?.welcomeTextEn ?? config?.welcomeText : config?.welcomeText) ??
@@ -1409,15 +1440,11 @@ function GjestSkjemaSection({ title, config, publicToken, appUrl, locale = "nb" 
         </div>
 
         <div className="shrink-0 flex flex-col items-center gap-2">
-          {qrDataUrl ? (
-            <a href={meldingUrl} target="_blank" rel="noopener noreferrer" className="group">
-              <div className="bg-white rounded-xl p-2 shadow-lg group-hover:scale-105 transition-transform">
-                <img src={qrDataUrl} alt={isEn ? "QR message" : "QR meld fra"} className="w-32 h-32 block" />
-              </div>
-            </a>
-          ) : (
-            <div className="w-32 h-32 bg-white/10 rounded-xl animate-pulse" />
-          )}
+          <a href={meldingUrl} className="shrink-0">
+            <div className="bg-white p-1.5">
+              <TavleQrMark url={meldingUrl} size={160} />
+            </div>
+          </a>
           <p className="text-white/60 text-xs text-center leading-tight">
             {isEn ? "Scan with\nyour phone" : "Skann med\nmobilen"}
           </p>
@@ -1556,9 +1583,9 @@ function RiggplanSection({ title, config }: { title: string | null; config: any 
             Rev. {new Date(config.updatedDate).toLocaleDateString("nb-NO")}
           </span>
         )}
-        {config?.pdfUrl && (
+        {toFileUrl(config?.pdfUrl) && (
           <a
-            href={config.pdfUrl}
+            href={toFileUrl(config.pdfUrl)}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1 text-blue-300 hover:text-white text-xs border border-blue-500/40 rounded px-2 py-1 bg-blue-900/30 transition-colors"
@@ -1812,6 +1839,7 @@ export function TavlePublicDisplay({ tavle, checkins, plan, publicToken, forceKi
                 checkins={checkins}
                 publicToken={publicToken}
                 appUrl={appUrl}
+                qrSize={168}
               />
             </div>
           )}
@@ -1854,7 +1882,7 @@ export function TavlePublicDisplay({ tavle, checkins, plan, publicToken, forceKi
                   config={snarveierSection.config}
                   isAddon={isAddon}
                   publicToken={publicToken}
-                  appUrl={appUrl}
+                  projectId={tavle.projectId ?? tavle.project?.id ?? null}
                 />
               </div>
             )}
@@ -1958,6 +1986,7 @@ export function TavlePublicDisplay({ tavle, checkins, plan, publicToken, forceKi
               checkins={checkins}
               publicToken={publicToken}
               appUrl={appUrl}
+              qrSize={112}
             />
           </div>
         )}

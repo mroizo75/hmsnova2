@@ -10,7 +10,15 @@ import { AuditLog } from "@/lib/audit-log";
 import { notifyUsersByRoles } from "@/server/actions/notification.actions";
 import type { HandbookVersionStatus } from "@prisma/client";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
-import { DEFAULT_HR_SECTIONS, DEFAULT_KS_SECTIONS, replaceTemplateVariables } from "@/lib/handbook-templates";
+import {
+  DEFAULT_HR_SECTIONS,
+  DEFAULT_KS_SECTIONS,
+  handbookVariablesFromTenant,
+  isUntouchedHandbookStub,
+  minimumHandbookSectionHtml,
+  replaceTemplateVariables,
+} from "@/lib/handbook-templates";
+import { BRANSJE_MODULES } from "@/lib/bransje-modules";
 import { canonicalHandbookCategory, type HandbookPart } from "@/lib/handbook-parts";
 import {
   chapterKeyForSection,
@@ -304,6 +312,28 @@ export type LiveHandbookStats = {
 
 // ── Hjelpefunksjoner ─────────────────────────────────────────────────────────
 
+function handbookSeedVariables(tenant: {
+  name: string;
+  orgNumber: string | null;
+  industry: string | null;
+  address: string | null;
+  postalCode: string | null;
+  city: string | null;
+  contactPerson: string | null;
+} | null) {
+  const industry = tenant?.industry ?? null;
+  return handbookVariablesFromTenant({
+    name: tenant?.name ?? "",
+    orgNumber: tenant?.orgNumber,
+    industry,
+    industryLabel: industry ? BRANSJE_MODULES[industry]?.label : null,
+    address: tenant?.address,
+    postalCode: tenant?.postalCode,
+    city: tenant?.city,
+    contactPerson: tenant?.contactPerson,
+  });
+}
+
 async function getOrCreateHandbook(tenantId: string) {
   const existing = await prisma.hmsHandbook.findUnique({
     where: { tenantId },
@@ -387,6 +417,12 @@ async function seedDefaultVersion(handbookId: string, tenantId: string) {
   }
 
   await ensureMissingDefaultSections(version.id, tenantId);
+  await upgradeUntouchedHandbookStubs(version.id, tenantId);
+}
+
+/** Fyller HMS-håndboken med minstekrav-tekst. Kalles ved registrering og ved første åpning. */
+export async function ensureTenantHandbook(tenantId: string) {
+  await getOrCreateHandbook(tenantId);
 }
 
 /** Legger inn manglende standardkapitler uten å overskrive eksisterende innhold. */
@@ -399,13 +435,18 @@ async function ensureMissingDefaultSections(versionId: string, tenantId: string)
 
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
-    select: { name: true, orgNumber: true, industry: true },
+    select: {
+      name: true,
+      orgNumber: true,
+      industry: true,
+      address: true,
+      postalCode: true,
+      city: true,
+      contactPerson: true,
+    },
   });
-  const variables: Record<string, string> = {
-    bedriftsnavn: tenant?.name ?? "",
-    orgNummer: tenant?.orgNumber ?? "",
-    bransje: tenant?.industry ?? "",
-  };
+  const variables = handbookSeedVariables(tenant);
+  const industry = tenant?.industry ?? null;
 
   const missing = [
     ...DEFAULT_KS_SECTIONS.map((s) => ({
@@ -424,7 +465,10 @@ async function ensureMissingDefaultSections(versionId: string, tenantId: string)
       sectionKey: s.sectionKey,
       sectionNumber: s.sectionNumber,
       title: s.title,
-      content: s.content,
+      content: replaceTemplateVariables(
+        minimumHandbookSectionHtml(s.sectionKey, industry) ?? s.content,
+        variables,
+      ),
       legalRef: s.legalRef,
       category: canonicalHandbookCategory(s.sectionKey) ?? "HMS",
       sortOrder: s.sortOrder,
@@ -467,6 +511,44 @@ async function syncHandbookPartCategories(versionId: string) {
     return [prisma.handbookSection.update({ where: { id: section.id }, data })];
   });
   if (updates.length > 0) await Promise.all(updates);
+}
+
+/** Erstatter urørt plassholdertekst med minstekrav. Egen tekst beholdes. */
+async function upgradeUntouchedHandbookStubs(versionId: string, tenantId: string) {
+  const sections = await prisma.handbookSection.findMany({
+    where: { versionId },
+    select: { id: true, sectionKey: true, content: true },
+  });
+  const stubs = sections.filter((section) =>
+    isUntouchedHandbookStub(section.sectionKey, section.content),
+  );
+  if (stubs.length === 0) return;
+
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: {
+      name: true,
+      orgNumber: true,
+      industry: true,
+      address: true,
+      postalCode: true,
+      city: true,
+      contactPerson: true,
+    },
+  });
+  const variables = handbookSeedVariables(tenant);
+  const industry = tenant?.industry ?? null;
+
+  await Promise.all(
+    stubs.map((section) => {
+      const html = minimumHandbookSectionHtml(section.sectionKey, industry);
+      if (!html) return Promise.resolve();
+      return prisma.handbookSection.update({
+        where: { id: section.id },
+        data: { content: replaceTemplateVariables(html, variables) },
+      });
+    }),
+  );
 }
 
 function buildSectionTree(sections: Array<{

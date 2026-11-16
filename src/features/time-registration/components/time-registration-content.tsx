@@ -7,7 +7,7 @@ import { startOfWeek, format } from "date-fns";
 import { nb } from "date-fns/locale";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, History, Users, CheckSquare, Wallet } from "lucide-react";
+import { Calendar, History, Users, CheckSquare, Wallet, Timer } from "lucide-react";
 import { WeekNavigation } from "./week-navigation";
 import { WeekSummary } from "./week-summary";
 import { WeekGrid } from "./week-grid";
@@ -17,6 +17,7 @@ import { ReportExportDropdown } from "./report-export-dropdown";
 import { DayTimesheetScreen } from "./day-timesheet-screen";
 import { TimesheetApprovalQueue } from "./timesheet-approval-queue";
 import { TimeBankPanel } from "./timebank-panel";
+import { OvertimePanel } from "./overtime-panel";
 import { ResourcePlanPanel } from "@/features/projects/components/resource-plan-panel";
 import { getWeekEntries, getAllUsersWeekSummary } from "@/server/actions/time-registration.actions";
 import { fetchTimeRegistrationData } from "@/server/queries/time-registration.queries";
@@ -29,6 +30,7 @@ interface TimeRegistrationContentProps {
   isAdmin: boolean;
   role: string;
   selectedProjectId?: string;
+  initialTab?: string;
 }
 
 export function TimeRegistrationContent({
@@ -36,9 +38,11 @@ export function TimeRegistrationContent({
   isAdmin,
   role,
   selectedProjectId,
+  initialTab,
 }: TimeRegistrationContentProps) {
   const t = useTranslations("timesheet");
   const queryClient = useQueryClient();
+  const [tab, setTab] = useState(initialTab === "overtime" ? "overtime" : "day");
   const [weekStart, setWeekStart] = useState(() =>
     startOfWeek(new Date(), { weekStartsOn: 1, locale: nb })
   );
@@ -132,7 +136,7 @@ export function TimeRegistrationContent({
         />
       </div>
 
-      <Tabs defaultValue="day" className="space-y-4">
+      <Tabs value={tab} onValueChange={setTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="day" className="gap-1.5">
             <Calendar className="h-4 w-4" />
@@ -160,6 +164,10 @@ export function TimeRegistrationContent({
           <TabsTrigger value="timebank" className="gap-1.5">
             <Wallet className="h-4 w-4" />
             {t("tabs.timebank")}
+          </TabsTrigger>
+          <TabsTrigger value="overtime" className="gap-1.5">
+            <Timer className="h-4 w-4" />
+            {t("tabs.overtime")}
           </TabsTrigger>
           {canSeeTeam && (
             <TabsTrigger value="team" className="gap-1.5">
@@ -276,6 +284,10 @@ export function TimeRegistrationContent({
 
         <TabsContent value="timebank">
           <TimeBankPanel canManage={canSeeTeam} />
+        </TabsContent>
+
+        <TabsContent value="overtime">
+          <OvertimePanel />
         </TabsContent>
 
         {canSeeTeam && (

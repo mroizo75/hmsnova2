@@ -11,6 +11,7 @@ import { RiskAssessmentItemList } from "@/features/risks/components/risk-assessm
 import { RiskAssessmentComplianceCard } from "@/features/risks/components/risk-assessment-compliance-card";
 import { RiskAssessmentDeleteButton } from "@/features/risks/components/risk-assessment-delete-button";
 import { RiskAssessmentTitleEditor } from "@/features/risks/components/risk-assessment-title-editor";
+import { MarkMeasuresInProgressButton } from "@/features/measures/components/mark-measures-in-progress-button";
 
 type AssessmentDetailData = NonNullable<Awaited<ReturnType<typeof fetchRiskAssessmentDetail>>>;
 
@@ -110,7 +111,12 @@ export function RiskAssessmentDetailContent({
 
       <Card>
         <CardHeader>
-          <CardTitle>Risikopunkter i denne vurderingen</CardTitle>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle>Risikopunkter i denne vurderingen</CardTitle>
+            {canEditAssessmentTitle && (
+              <MarkMeasuresInProgressButton assessmentId={assessment.id} />
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <RiskAssessmentItemList risks={assessment.risks} />

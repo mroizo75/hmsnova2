@@ -9,10 +9,12 @@ export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ formId: string }>;
+  searchParams: Promise<{ runde?: string }>;
 }
 
-export default async function WellbeingFillPage({ params }: PageProps) {
+export default async function WellbeingFillPage({ params, searchParams }: PageProps) {
   const { formId } = await params;
+  const { runde } = await searchParams;
   const session = await getServerSession(authOptions);
   const t = await getTranslations("dashboardWellbeingPage");
 
@@ -43,6 +45,43 @@ export default async function WellbeingFillPage({ params }: PageProps) {
     notFound();
   }
 
+  const activeRounds = await prisma.wellbeingRound.findMany({
+    where: { tenantId, formTemplateId: formId, status: "ACTIVE" },
+    select: { id: true },
+  });
+  const recipientRows = activeRounds.length
+    ? await prisma.wellbeingRoundRecipient.findMany({
+        where: {
+          userId,
+          roundId: { in: activeRounds.map((round) => round.id) },
+        },
+        select: { roundId: true, status: true },
+      })
+    : [];
+  const recipient = runde
+    ? recipientRows.find((row) => row.roundId === runde)
+    : recipientRows.find((row) => row.status === "PENDING") ?? recipientRows[0];
+
+  if (activeRounds.length > 0 && !recipient) {
+    return (
+      <div className="mx-auto max-w-lg space-y-2 py-10">
+        <h1 className="text-2xl font-bold">Kartleggingen er ikke sendt til deg</h1>
+        <p className="text-muted-foreground">
+          Administrator, HR eller HMS velger hvem som skal svare. Svarene som sendes inn, lagres uten navn.
+        </p>
+      </div>
+    );
+  }
+
+  if (recipient?.status === "ANSWERED") {
+    return (
+      <div className="mx-auto max-w-lg space-y-2 py-10">
+        <h1 className="text-2xl font-bold">Du har svart</h1>
+        <p className="text-muted-foreground">Svaret er lagret uten navn.</p>
+      </div>
+    );
+  }
+
   const form = {
     id: formTemplate.id,
     title: formTemplate.title,
@@ -66,6 +105,7 @@ export default async function WellbeingFillPage({ params }: PageProps) {
       form={form}
       userId={userId}
       tenantId={tenantId}
+      roundId={recipient?.roundId}
       returnUrl="/dashboard/wellbeing"
     />
   );

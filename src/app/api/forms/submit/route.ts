@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
     const valuesJson = formData.get("values") as string;
     const signature = formData.get("signature") as string | null;
     const inspectionId = formData.get("inspectionId") as string | null;
+    const roundId = formData.get("roundId") as string | null;
     const fieldCommentsJson = formData.get("fieldComments") as string | null;
     const inspectionFindingsJson = formData.get("inspectionFindings") as string | null;
 
@@ -418,6 +419,23 @@ export async function POST(request: NextRequest) {
         title: "Nytt skjema sendt inn",
         message: `${form.title} - venter på godkjenning`,
         link: `/dashboard/wellbeing`,
+      });
+    }
+
+    // Deltakelse merkes. Svaret er allerede lagret uten bruker.
+    if (status === "SUBMITTED" && form.category === "WELLBEING" && session.user.id) {
+      await prisma.wellbeingRoundRecipient.updateMany({
+        where: {
+          userId: session.user.id,
+          status: "PENDING",
+          round: {
+            tenantId: sessionTenantId,
+            formTemplateId: formId,
+            status: "ACTIVE",
+            ...(roundId ? { id: roundId } : {}),
+          },
+        },
+        data: { status: "ANSWERED", answeredAt: new Date() },
       });
     }
 

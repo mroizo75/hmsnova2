@@ -2,11 +2,14 @@
 
 import { prisma } from "@/lib/db";
 import { getTenantContextSafe } from "@/lib/tenant-context";
+import { syncOrgChartFromEmployees } from "@/server/org-chart-sync";
 
 export async function fetchOrgChartNodes() {
   const ctx = await getTenantContextSafe();
   if (!ctx) return [];
   const { tenantId } = ctx;
+
+  await syncOrgChartFromEmployees(tenantId);
 
   const nodes = await prisma.orgChartNode.findMany({
     where: { tenantId },

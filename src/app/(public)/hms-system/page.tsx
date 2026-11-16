@@ -20,12 +20,14 @@ import { FAQSection } from "@/components/faq-section";
 import { TrustBadges } from "@/components/trust-badges";
 
 export const metadata: Metadata = {
-  title: "HMS-system - Komplett guide og oversikt | HMS Nova",
-  description: "Alt du trenger å vite om HMS-systemer. Lær om risikovurdering, vernerunde, avvikshåndtering, digital signatur og ISO 9001. Komplett guide fra HMS Nova.",
-  keywords: "hms-system, hms system norge, hms programvare, hms software, digitalt hms, hms løsning",
+  title: "HMS-system til 300 kr/mnd | Ubegrenset brukere",
+  description:
+    "Et HMS-system samler lovpålagt HMS-arbeid. HMS Nova koster 300 kr/mnd + mva for ubegrenset antall brukere. Avvik, risikovurdering, vernerunde, stoffkartotek og digital signatur er inkludert.",
+  keywords: "hms system, hms-system, hms system pris, hms programvare, digitalt hms, hms løsning",
   openGraph: {
-    title: "HMS-system - Komplett guide og oversikt",
-    description: "Alt om HMS-systemer: Funksjoner, fordeler og hvordan velge riktig løsning for din bedrift.",
+    title: "HMS-system til 300 kr/mnd, ubegrenset antall brukere",
+    description:
+      "HMS Nova koster 300 kr/mnd + mva uansett antall ansatte. Avvik, risikovurdering, vernerunde og digital signatur er inkludert.",
   },
 };
 
@@ -158,35 +160,28 @@ const HMS_SYSTEM_TOPICS = [
 const faqs = [
   {
     question: "Hva er et HMS-system?",
-    answer: `Et HMS-system er et digitalt verktøy for å organisere og systematisere helse, miljø og sikkerhet (HMS) i bedrifter. 
-    HMS Nova er Norges mest moderne HMS-system som digitaliserer hele HMS-arbeidet - fra risikovurdering til hendelsesrapportering.
-    Systemet sikrer at bedriften oppfyller lovkrav i Arbeidsmiljøloven og Internkontrollforskriften.`,
-  },
-  {
-    question: "Hvorfor trenger bedrifter et HMS-system?",
-    answer: `Alle norske arbeidsgivere er pålagt å ha systematisk HMS-arbeid (internkontroll). 
-    Et digitalt HMS-system gjør dette enkelt ved å:
-    • Strukturere HMS-arbeidet
-    • Automatisere påminnelser
-    • Sikre dokumentasjon
-    • Spare tid (10+ timer/uke)
-    • Redusere risiko for bøter fra Arbeidstilsynet`,
+    answer:
+      "Et HMS-system er verktøyet arbeidsgiver bruker for systematisk helse-, miljø- og sikkerhetsarbeid etter arbeidsmiljøloven § 3-1 og internkontrollforskriften § 5. HMS Nova samler risikovurdering, avvik, vernerunde, dokumenter, stoffkartotek og varsling på ett sted.",
   },
   {
     question: "Hva koster et HMS-system?",
-    answer: `HMS Nova koster 300 kr/mnd + mva (3 600 kr/år + mva) med 12 måneders binding. 
-    Ubegrenset antall brukere inkludert. Digital signatur, mobilapp og alle funksjoner er inkludert i prisen. 
-    Ingen oppstartskostnader eller skjulte avgifter.`,
+    answer:
+      "HMS Nova koster 300 kr/mnd + mva, 3 600 kr/år + mva, med 12 måneders abonnement. Prisen er den samme for 5 og 20 ansatte, fordi antall brukere er ubegrenset. Avvik, risikovurdering, vernerunde, stoffkartotek, varsling og digital signatur er inkludert. AI-tillegg koster 49 kr/mnd + mva og er av som standard.",
   },
   {
-    question: "Hva er forskjellen på HMS Nova og konkurrentene?",
-    answer: `HMS Nova skiller seg ut ved å være:
-    • 100% digitalt og moderne (ikke legacy-system)
-    • Betydelig billigere (300 kr/mnd + mva vs 500-1200 kr/mnd hos konkurrentene)
-    • Ingen skjult ekstrakostnader for digital signatur
-    • Forutsigbar prismodell med 12 måneders binding
-    • Mobilapp med offline-støtte
-    • Norsk kundeservice`,
+    question: "Hva koster HMS-system for 5 ansatte?",
+    answer:
+      "300 kr/mnd + mva. HMS Nova tar ikke betalt per ansatt. Fem brukere koster det samme som tjue: 300 kr/mnd + mva, 3 600 kr/år + mva.",
+  },
+  {
+    question: "Hva koster HMS-system for 20 ansatte?",
+    answer:
+      "300 kr/mnd + mva. Prisen endres ikke når bedriften har 20 ansatte. Ubegrenset antall brukere er inkludert i de 300 kronene.",
+  },
+  {
+    question: "Hvorfor trenger bedrifter et HMS-system?",
+    answer:
+      "Arbeidsgiver skal arbeide systematisk med HMS, jf. arbeidsmiljøloven § 3-1 og internkontrollforskriften § 5. Systemet holder risikovurdering, tiltak, avvik og dokumentasjon samlet, slik at det kan vises fram ved tilsyn.",
   },
 ];
 
@@ -196,14 +191,16 @@ export default function HMSSystemPage() {
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-20 text-center">
         <Badge className="mb-4" variant="secondary">
-          Pillar Guide
+          300 kr/mnd + mva
         </Badge>
-        <h1 className="text-5xl font-bold mb-6">
-          HMS-system: Komplett guide
+        <h1 className="text-4xl md:text-5xl font-bold mb-6">
+          HMS-system til 300 kr per måned
         </h1>
         <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-          Alt du trenger å vite om HMS-systemer. Fra risikovurdering til ISO 9001-støtte.
-          Lær hvordan HMS Nova bygger trygghet i norske bedrifter.
+          Et HMS-system samler det lovpålagte HMS-arbeidet: risikovurdering, avvik,
+          vernerunde og dokumentasjon. HMS Nova koster 300 kr/mnd + mva for ubegrenset
+          antall brukere. Avvik, risikovurdering, vernerunde, stoffkartotek, varsling
+          og digital signatur er inkludert.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -228,19 +225,17 @@ export default function HMSSystemPage() {
             <CardContent className="p-8 prose prose-lg max-w-none">
               <h2 className="text-2xl font-bold mb-4">Hva er et HMS-system?</h2>
               <p>
-                Et <strong>HMS-system</strong> er en digital plattform som hjelper bedrifter med å:
+                Et HMS-system er arbeidsgivers verktøy for systematisk HMS etter
+                arbeidsmiljøloven § 3-1 og internkontrollforskriften § 5. Prisen hos
+                HMS Nova er 300 kr/mnd + mva, samme beløp for 5 og 20 ansatte.
               </p>
               <ul>
-                <li>Oppfylle lovkrav i Arbeidsmiljøloven og Internkontrollforskriften</li>
-                <li>Systematisere HMS-arbeid (helse, miljø og sikkerhet)</li>
-                <li>Forebygge ulykker og sykefravær</li>
-                <li>Dokumentere alt HMS-arbeid på ett sted</li>
-                <li>Spare tid på administrasjon (10+ timer per uke)</li>
+                <li>Risikovurdering med 5x5-matrise, jf. internkontrollforskriften § 5 punkt 6</li>
+                <li>Avvik og korrigerende tiltak, jf. internkontrollforskriften § 5 punkt 7 og 8</li>
+                <li>Vernerunde fra mobil, jf. arbeidsmiljøloven § 6-2</li>
+                <li>Stoffkartotek og eksponeringsregister</li>
+                <li>Varslingskanal og digital signatur, inkludert i de 300 kronene</li>
               </ul>
-              
-              <p className="text-lg font-semibold text-primary mt-6">
-                HMS Nova bygger trygghet ved å digitalisere hele HMS-arbeidet - fra små bedrifter til store konsern.
-              </p>
             </CardContent>
           </Card>
         </div>

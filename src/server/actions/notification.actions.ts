@@ -90,6 +90,21 @@ export async function createNotification(input: CreateNotificationInput) {
       return { success: true, skipped: true };
     }
 
+    const alreadySent = await prisma.notification.findFirst({
+      where: {
+        tenantId: input.tenantId,
+        userId: input.userId,
+        type: input.type,
+        title: input.title,
+        link: input.link ?? null,
+        createdAt: { gte: new Date(Date.now() - 2 * 60 * 1000) },
+      },
+      select: { id: true },
+    });
+    if (alreadySent) {
+      return { success: true, skipped: true };
+    }
+
     const notification = await prisma.notification.create({
       data: {
         tenantId: input.tenantId,
@@ -340,7 +355,14 @@ export async function notifyUsersByRoles(
       distinct: ["userId"],
     });
 
-    const promises = users.map((ut) =>
+    const seen = new Set<string>();
+    const promises = users
+      .filter((ut) => {
+        if (seen.has(ut.userId)) return false;
+        seen.add(ut.userId);
+        return true;
+      })
+      .map((ut) =>
       createNotification({
         tenantId,
         userId: ut.userId,

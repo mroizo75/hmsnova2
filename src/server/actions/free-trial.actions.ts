@@ -8,6 +8,7 @@ import { createGeneratedDocument, generateDocuments, importGeneratedDocumentsToT
 import type { CompleteGeneratorData } from "@/features/document-generator/schemas/generator.schema";
 import { getBindingPrice } from "@/lib/subscription";
 import { provisionIndustryPackage } from "@/server/actions/industry-provision.actions";
+import { ensureTenantHandbook } from "@/server/actions/hms-handbok.actions";
 import { isMocDefaultIndustry } from "@/lib/moc-industry";
 
 const freeTrialSignupSchema = z.object({
@@ -151,6 +152,11 @@ export async function createFreeTrialTenant(
     });
 
     await provisionIndustryPackage(tenant.id);
+    try {
+      await ensureTenantHandbook(tenant.id);
+    } catch (error) {
+      console.error("Failed to seed handbook:", error);
+    }
 
     const subscription = await prisma.subscription.create({
       data: {

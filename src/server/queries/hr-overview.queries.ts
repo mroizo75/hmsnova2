@@ -13,7 +13,7 @@ export type HrOverviewAttention = {
   href: string;
   title: string;
   meta: string;
-  kind: "absence" | "boarding" | "review";
+  kind: "absence" | "boarding" | "review" | "overtime";
 };
 
 export type HrSickFollowUp = {
@@ -30,6 +30,7 @@ export type HrSickFollowUp = {
 export type HrOverview = {
   employeeCount: number | null;
   pendingAbsences: number | null;
+  pendingOvertime: number | null;
   activeSickLeaves: number | null;
   activeOnboardings: number | null;
   activeOffboardings: number | null;
@@ -87,9 +88,11 @@ export async function fetchHrOverview(): Promise<HrOverview | null> {
     upcomingReviews,
     departmentCount,
     pendingAbsenceRows,
+    pendingOvertimeRows,
     boardingRows,
     reviewRows,
     sickFollowUpRows,
+    pendingOvertime,
   ] = await Promise.all([
     canPersonnel
       ? prisma.userTenant.count({
@@ -154,6 +157,18 @@ export async function fetchHrOverview(): Promise<HrOverview | null> {
           take: 5,
         })
       : Promise.resolve([]),
+    auth.permissions.canApproveAbsence
+      ? prisma.overtimeRequest.findMany({
+          where: {
+            tenantId: auth.tenantId,
+            status: "PENDING",
+            ...(visibleIds ? { userId: { in: visibleIds.length > 0 ? visibleIds : ["__none__"] } } : {}),
+          },
+          include: { user: { select: { name: true, email: true } } },
+          orderBy: { date: "asc" },
+          take: 5,
+        })
+      : Promise.resolve([]),
     canBoarding
       ? prisma.boarding.findMany({
           where: { ...boardingWhere, status: { in: ["NOT_STARTED", "IN_PROGRESS"] } },
@@ -193,9 +208,25 @@ export async function fetchHrOverview(): Promise<HrOverview | null> {
           take: 8,
         })
       : Promise.resolve([]),
+    auth.permissions.canApproveAbsence
+      ? prisma.overtimeRequest.count({
+          where: {
+            tenantId: auth.tenantId,
+            status: "PENDING",
+            ...(visibleIds ? { userId: { in: visibleIds.length > 0 ? visibleIds : ["__none__"] } } : {}),
+          },
+        })
+      : Promise.resolve(null),
   ]);
 
   const attention: HrOverviewAttention[] = [
+    ...pendingOvertimeRows.map((row) => ({
+      id: row.id,
+      href: "/dashboard/time-registration?tab=overtime",
+      title: row.user.name ?? row.user.email,
+      meta: `Overtid ${row.date.toISOString().slice(0, 10)} · ${row.hours} t`,
+      kind: "overtime" as const,
+    })),
     ...pendingAbsenceRows.map((row) => ({
       id: row.id,
       href: `/dashboard/fravaer/${row.id}`,
@@ -227,6 +258,7 @@ export async function fetchHrOverview(): Promise<HrOverview | null> {
   return {
     employeeCount,
     pendingAbsences,
+    pendingOvertime,
     activeSickLeaves,
     activeOnboardings: countFor("ONBOARDING"),
     activeOffboardings: countFor("OFFBOARDING"),

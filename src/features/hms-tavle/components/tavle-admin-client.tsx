@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   Monitor,
@@ -27,6 +28,7 @@ import {
   Upload,
   Image as ImageIcon,
   Zap,
+  MapPin,
 } from "lucide-react";
 import { PLAN_LABELS } from "@/features/hms-tavle/lib/tavle-plan-limits";
 import { TavleQrSection } from "./tavle-qr-section";
@@ -67,6 +69,8 @@ interface Props {
   appUrl: string;
   defaultTab?: string;
   teamMembers: { id: string; name: string }[];
+  prosjekter: { id: string; name: string }[];
+  risikovurderinger: { id: string; title: string; assessmentYear: number }[];
 }
 
 export function TavleAdminClient({
@@ -79,6 +83,8 @@ export function TavleAdminClient({
   appUrl,
   defaultTab,
   teamMembers,
+  prosjekter,
+  risikovurderinger,
 }: Props) {
   const router = useRouter();
   const [isPublic, setIsPublic] = useState(tavle.isPublic);
@@ -93,6 +99,12 @@ export function TavleAdminClient({
     tavle.workEndedAt ? new Date(tavle.workEndedAt).toISOString().slice(0, 10) : ""
   );
   const [savingSiteInfo, setSavingSiteInfo] = useState(false);
+  const [projectId, setProjectId] = useState<string>(tavle.projectId ?? "");
+  const [savingProject, setSavingProject] = useState(false);
+  const [geoLat, setGeoLat] = useState<string>(tavle.siteLatitude?.toString() ?? "");
+  const [geoLng, setGeoLng] = useState<string>(tavle.siteLongitude?.toString() ?? "");
+  const [geoRadius, setGeoRadius] = useState<string>(tavle.geofenceRadiusMeters?.toString() ?? "");
+  const [savingGeo, setSavingGeo] = useState(false);
 
   const tavleUrl = `${appUrl}/tavle/${tavle.publicToken}`;
   const portalUrl = tavle.subcontractorPortal
@@ -143,6 +155,74 @@ export function TavleAdminClient({
       toast.error("Kunne ikke lagre opplysningene");
     } finally {
       setSavingSiteInfo(false);
+    }
+  }
+
+  async function saveProject() {
+    setSavingProject(true);
+    try {
+      const res = await fetch(`/api/hms-tavle/${tavle.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId: projectId || null }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message ?? json.error ?? "Feil ved lagring");
+      toast.success(projectId ? "Tavlen er koblet til prosjektet" : "Prosjektkoblingen er fjernet");
+      router.refresh();
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Kunne ikke lagre prosjekt");
+    } finally {
+      setSavingProject(false);
+    }
+  }
+
+  function useCurrentPosition() {
+    if (!navigator.geolocation) {
+      toast.error("Nettleseren kan ikke hente posisjon");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setGeoLat(position.coords.latitude.toFixed(6));
+        setGeoLng(position.coords.longitude.toFixed(6));
+        if (!geoRadius) setGeoRadius("200");
+        toast.success("Posisjon hentet. Lagre for å slå på sperren.");
+      },
+      () => toast.error("Kunne ikke hente posisjon"),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+
+  async function saveGeofence(clear = false) {
+    setSavingGeo(true);
+    try {
+      const res = await fetch(`/api/hms-tavle/${tavle.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          clear
+            ? { siteLatitude: null, siteLongitude: null, geofenceRadiusMeters: null }
+            : {
+                siteLatitude: Number(geoLat),
+                siteLongitude: Number(geoLng),
+                geofenceRadiusMeters: Number(geoRadius),
+              }
+        ),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message ?? json.error ?? "Feil ved lagring");
+      if (clear) {
+        setGeoLat("");
+        setGeoLng("");
+        setGeoRadius("");
+      }
+      toast.success(clear ? "Posisjonssperre er slått av" : "Posisjonssperre er lagret");
+      router.refresh();
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Kunne ikke lagre posisjonssperre");
+    } finally {
+      setSavingGeo(false);
     }
   }
 
@@ -341,8 +421,11 @@ export function TavleAdminClient({
                   )}
                   <span className="text-sm">
                     {tavle.project.constructionShaPlan.status === "ACTIVE"
-                      ? "Godkjent og aktiv"
-                      : "Under arbeid"}
+                      ? "SHA-plan godkjent"
+                      : "SHA-plan under arbeid"}
+                    {tavle.project.constructionShaPlan.ownHmsPlan
+                      ? " · HMS-plan er lagt inn"
+                      : " · HMS-plan mangler"}
                   </span>
                 </div>
                 <Button size="sm" variant="outline" asChild>
@@ -387,6 +470,7 @@ export function TavleAdminClient({
             canManage={canManage}
             isAddon={isAddon}
             bransje={tavle.bransje}
+            risikovurderinger={risikovurderinger}
           />
         </TabsContent>
 
@@ -511,6 +595,78 @@ export function TavleAdminClient({
                 </label>
               )}
               <p className="text-xs text-muted-foreground">PNG, JPG eller SVG. Anbefalt: transparent bakgrunn, maks 2 MB.</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Prosjekt</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Avvik, SJA, SHA-plan og HMS-plan hentes fra prosjektet tavlen er koblet til.
+              </p>
+              <Select value={projectId || "none"} onValueChange={(value) => setProjectId(value === "none" ? "" : value)} disabled={!canManage}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Velg prosjekt" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Ikke koblet</SelectItem>
+                  {prosjekter.map((prosjekt) => (
+                    <SelectItem key={prosjekt.id} value={prosjekt.id}>
+                      {prosjekt.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {canManage && (
+                <Button size="sm" onClick={saveProject} disabled={savingProject}>
+                  {savingProject ? "Lagrer..." : "Lagre prosjekt"}
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <MapPin className="h-4 w-4" /> Posisjonssperre
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Når sperren er på, kan man bare sjekke inn innenfor radiusen. Forlater man området,
+                blir man sjekket ut. Posisjonen brukes der og da og lagres ikke.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="geo-lat">Breddegrad</Label>
+                  <Input id="geo-lat" value={geoLat} onChange={(e) => setGeoLat(e.target.value)} disabled={!canManage} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="geo-lng">Lengdegrad</Label>
+                  <Input id="geo-lng" value={geoLng} onChange={(e) => setGeoLng(e.target.value)} disabled={!canManage} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="geo-radius">Radius i meter</Label>
+                  <Input id="geo-radius" type="number" min={50} max={2000} value={geoRadius} onChange={(e) => setGeoRadius(e.target.value)} disabled={!canManage} />
+                </div>
+              </div>
+              {canManage && (
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" className="bg-transparent" onClick={useCurrentPosition}>
+                    Bruk der jeg står
+                  </Button>
+                  <Button size="sm" onClick={() => saveGeofence(false)} disabled={savingGeo || !geoLat || !geoLng || !geoRadius}>
+                    {savingGeo ? "Lagrer..." : "Lagre sperre"}
+                  </Button>
+                  {tavle.geofenceRadiusMeters && (
+                    <Button size="sm" variant="outline" className="bg-transparent" onClick={() => saveGeofence(true)} disabled={savingGeo}>
+                      Slå av
+                    </Button>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 

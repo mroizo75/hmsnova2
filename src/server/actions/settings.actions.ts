@@ -9,7 +9,7 @@ import { assertNoManagerCycle } from "@/lib/incident-notification-routing";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
 import { Role } from "@prisma/client";
 import { getInvitableRoles } from "@/lib/permissions";
-import { membershipRoles, parseExtraRoles, serializeExtraRoles } from "@/lib/extra-roles";
+import { extraRolesWithSelfHms, membershipRoles, parseExtraRoles, serializeExtraRoles } from "@/lib/extra-roles";
 import { aliasDashboardMenuHrefs } from "@/lib/legal-link-repair";
 import {
   importUsersIntoTenant,
@@ -457,17 +457,20 @@ export async function updateUserExtraRoles(userId: string, roles: string[]) {
     if (allowed.size === 0) {
       return { success: false, error: "Kun administratorer og HR kan endre roller" };
     }
-    if (userId === user.id) {
-      return { success: false, error: "Du kan ikke endre dine egne tilleggsroller" };
-    }
-
     const membership = await prisma.userTenant.findUnique({
       where: { userId_tenantId: { userId, tenantId } },
-      select: { role: true },
+      select: { role: true, extraRoles: true },
     });
     if (!membership) return { success: false, error: "Brukeren finnes ikke i bedriften" };
 
-    const next = parseExtraRoles(roles, membership.role).filter((role) => allowed.has(role));
+    const isSelf = userId === user.id;
+    if (isSelf && actor.role !== "ADMIN") {
+      return { success: false, error: "Du kan ikke endre dine egne tilleggsroller" };
+    }
+
+    const next = isSelf
+      ? extraRolesWithSelfHms(membership.extraRoles, membership.role, roles.includes("HMS"))
+      : parseExtraRoles(roles, membership.role).filter((role) => allowed.has(role));
     const keepsSafetyRole = membershipRoles(membership.role, next).includes("VERNEOMBUD");
     await prisma.userTenant.update({
       where: { userId_tenantId: { userId, tenantId } },

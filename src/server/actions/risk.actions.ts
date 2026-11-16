@@ -670,8 +670,9 @@ export async function addRiskAssessmentItem(input: z.input<typeof addRiskAssessm
             dueAt,
             responsibleId: validatedInput.ownerId,
             category: "MITIGATION",
-            followUpFrequency: "ANNUAL",
-          })),
+              followUpFrequency: "ANNUAL",
+              status: "IN_PROGRESS",
+            })),
         });
       }
 
@@ -988,6 +989,7 @@ export async function applyAiRiskSuggestions(input: {
               responsibleId: ownerCandidate.userId,
               category: "MITIGATION",
               followUpFrequency: "ANNUAL",
+              status: "IN_PROGRESS",
             })),
           });
         }

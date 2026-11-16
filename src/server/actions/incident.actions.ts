@@ -14,6 +14,7 @@ import {
   closeIncidentSchema,
   getIncidentStatusLabel,
 } from "@/features/incidents/schemas/incident.schema";
+import { isHealthcareTenant, normalizePatientReference } from "@/lib/patient-reference";
 
 /** IK-HMS § 5: funn fra vernerunde skal stå som lukket når det tilknyttede avviket er lukket. */
 async function syncInspectionFindingsForIncident(incidentId: string, status: "CLOSED" | "OPEN") {
@@ -615,6 +616,20 @@ export async function updateIncident(input: any) {
     }
     if (validated.treatmentOtherText !== undefined) {
       updateData.treatmentOtherText = sanitizeString(validated.treatmentOtherText);
+    }
+    if (validated.patientReference !== undefined) {
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { industry: true, naceCode: true },
+      });
+      if (!isHealthcareTenant(tenant ?? {})) {
+        return { success: false, error: "Pasient-ID brukes bare for helsevirksomheter" };
+      }
+      const patientReference = normalizePatientReference(validated.patientReference);
+      if (patientReference.ok === false) {
+        return { success: false, error: patientReference.error };
+      }
+      updateData.patientReference = patientReference.value;
     }
     if (validated.involvedPersons !== undefined) updateData.involvedPersons = sanitizeString(validated.involvedPersons);
     if (validated.injuryDescription !== undefined) updateData.injuryDescription = sanitizeString(validated.injuryDescription);

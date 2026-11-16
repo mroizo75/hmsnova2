@@ -11,6 +11,7 @@ import { normalizeProjectReference } from "@/lib/incident-project-reference";
 import { resolveIncidentStage } from "@/lib/incident-stage";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
 import { copyRolesForNewIncident } from "@/lib/incident-visibility";
+import { isHealthcareTenant, normalizePatientReference } from "@/lib/patient-reference";
 
 function parseBoolean(value: unknown): boolean | undefined {
   if (typeof value === "boolean") {
@@ -237,6 +238,11 @@ export async function PUT(
       status as IncidentStatus | undefined
     );
 
+    const patientReference = await resolvePatientReferenceUpdate(tenantId, body.patientReference);
+    if (patientReference.ok === false) {
+      return NextResponse.json({ error: patientReference.error }, { status: 400 });
+    }
+
     const incident = await prisma.incident.update({
       where: { id, tenantId },
       data: {
@@ -295,6 +301,7 @@ export async function PUT(
           typeof body.treatmentOtherText === "string"
             ? body.treatmentOtherText.trim() || null
             : undefined,
+        patientReference: patientReference.value,
       },
     });
 
@@ -359,4 +366,24 @@ export async function PUT(
         : error.message || "Intern feil ved oppdatering av avvik.";
     return NextResponse.json({ error: message }, { status: error?.code === "P2025" ? 404 : 500 });
   }
+}
+
+async function resolvePatientReferenceUpdate(
+  tenantId: string,
+  raw: unknown,
+): Promise<{ ok: true; value: string | null | undefined } | { ok: false; error: string }> {
+  if (raw === undefined) return { ok: true, value: undefined };
+  if (raw !== null && typeof raw !== "string") {
+    return { ok: false, error: "Pasient-ID er ugyldig." };
+  }
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { industry: true, naceCode: true },
+  });
+  if (!isHealthcareTenant(tenant ?? {})) {
+    return { ok: false, error: "Pasient-ID brukes bare for helsevirksomheter." };
+  }
+  const normalized = normalizePatientReference(typeof raw === "string" ? raw : null);
+  if (normalized.ok === false) return normalized;
+  return { ok: true, value: normalized.value };
 }

@@ -16,6 +16,7 @@ import { BASE_SIMPLE_MODULES, BRANSJE_MODULES } from "@/lib/bransje-modules";
 import { serializeWorkshopTypes } from "@/lib/automotive-workshop-types";
 import { menuPathsToWidgetIds } from "@/lib/menu-widget-sync";
 import type { Role } from "@prisma/client";
+import { syncOrgChartFromEmployees } from "@/server/org-chart-sync";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -207,49 +208,42 @@ type StepGroupDef = {
 
 const SETUP_STEP_GROUPS: StepGroupDef[] = [
   {
-    key: "grunnleggende",
-    title: "Grunnleggende",
-    legalRef: "IK-HMS § 5",
+    key: "lover-og-rutiner",
+    title: "Lover og rutiner",
+    legalRef: "IK-HMS § 5 nr. 1 og nr. 7",
     phase: "quick",
     steps: [
       {
-        key: "employees",
-        title: "Ansatte lagt til",
-        description: "Legg til minst én ansatt slik at de kan delta i HMS-arbeidet",
-        href: "/dashboard/brukere",
-        icon: "Users",
+        key: "regulatoryProfile",
+        title: "Veiviser for lover og rutiner",
+        description:
+          "Kartlegg hvilke lover som gjelder, og ta i bruk anbefalte rutiner (IK-HMS § 5 nr. 1 og nr. 7)",
+        href: "/dashboard/mitt-regelverk",
+        icon: "Scale",
         mandatory: true,
       },
       {
-        key: "orgChart",
-        title: "Organisasjonskart",
-        description: "Definer roller, ansvar og myndighet for HMS (IK-HMS § 5 nr. 5)",
-        href: "/dashboard/organisasjonskart",
-        icon: "Network",
+        key: "routinesActive",
+        title: "Minst 3 aktive rutiner",
+        description: "Rutinene fra veiviseren skal være aktive for virksomheten",
+        href: "/dashboard/rutiner",
+        icon: "FileCheck",
         mandatory: true,
       },
       {
-        key: "hmsPolicy",
-        title: "HMS-policy og mål",
-        description: "Fyll inn HMS-policy og mål i håndboken (IK-HMS § 5 nr. 1)",
-        href: "/dashboard/hms-handbok",
-        icon: "Landmark",
+        key: "routineAvvik",
+        title: "Avviksrutine finnes",
+        description: "Aktiv rutine med kategori AVVIK (IK-HMS § 5 nr. 7)",
+        href: "/dashboard/rutiner",
+        icon: "AlertTriangle",
         mandatory: true,
       },
       {
-        key: "handbook",
-        title: "HMS-håndbok",
-        description: "Fyll inn minst 3 seksjoner i HMS-håndboken",
-        href: "/dashboard/hms-handbok",
-        icon: "BookOpen",
-        mandatory: true,
-      },
-      {
-        key: "signatures",
-        title: "Håndbok signert",
-        description: "Dokumenter at ansatte har lest og forstått håndboken",
-        href: "/dashboard/hms-handbok",
-        icon: "PenLine",
+        key: "routineVarsling",
+        title: "Varslingsrutine finnes",
+        description: "Aktiv rutine med kategori VARSLING (arbeidsmiljøloven kap. 2 A)",
+        href: "/dashboard/rutiner",
+        icon: "Bell",
         mandatory: true,
       },
     ],
@@ -279,33 +273,57 @@ const SETUP_STEP_GROUPS: StepGroupDef[] = [
     ],
   },
   {
-    key: "rutiner",
-    title: "Rutiner",
-    legalRef: "IK-HMS § 5 nr. 7",
-    phase: "quick",
+    key: "ansatte",
+    title: "Ansatte og roller",
+    legalRef: "IK-HMS § 5 nr. 2 og nr. 5, AML § 6-1",
+    phase: "full",
     steps: [
       {
-        key: "routinesActive",
-        title: "Minst 3 aktive rutiner",
-        description: "Opprett og aktiver rutiner for virksomheten",
-        href: "/dashboard/rutiner",
-        icon: "FileCheck",
+        key: "employees",
+        title: "Ansatte lagt til",
+        description: "Legg til ansatte når dere er klare, slik at de kan delta i HMS-arbeidet",
+        href: "/dashboard/brukere",
+        icon: "Users",
         mandatory: true,
       },
       {
-        key: "routineAvvik",
-        title: "Avviksrutine finnes",
-        description: "Opprett en aktiv rutine med kategori AVVIK",
-        href: "/dashboard/rutiner",
-        icon: "AlertTriangle",
+        key: "orgChart",
+        title: "Organisasjonskart",
+        description: "Definer roller, ansvar og myndighet for HMS (IK-HMS § 5 nr. 5)",
+        href: "/dashboard/organisasjonskart",
+        icon: "Network",
         mandatory: true,
       },
       {
-        key: "routineVarsling",
-        title: "Varslingsrutine finnes",
-        description: "Opprett en aktiv rutine med kategori VARSLING (Varslerloven § 2–4)",
-        href: "/dashboard/rutiner",
-        icon: "Bell",
+        key: "hmsPolicy",
+        title: "HMS-policy og mål",
+        description: "Minstekrav er fylt inn. Juster mål og policy når de er vedtatt (IK-HMS § 5 nr. 4)",
+        href: "/dashboard/hms-handbok",
+        icon: "Landmark",
+        mandatory: true,
+      },
+      {
+        key: "handbook",
+        title: "HMS-håndbok",
+        description: "Håndboken er fylt ut med minstekrav. Tilpass teksten til virksomheten",
+        href: "/dashboard/hms-handbok",
+        icon: "BookOpen",
+        mandatory: true,
+      },
+      {
+        key: "signatures",
+        title: "Håndbok signert",
+        description: "Dokumenter at ansatte har lest og forstått håndboken",
+        href: "/dashboard/hms-handbok",
+        icon: "PenLine",
+        mandatory: true,
+      },
+      {
+        key: "verneombud",
+        title: "Verneombud utpekt",
+        description: "Velg verneombud, eller dokumenter skriftlig avtale om annen ordning (AML § 6-1)",
+        href: "/dashboard/brukere",
+        icon: "UserCheck",
         mandatory: true,
       },
     ],
@@ -330,38 +348,6 @@ const SETUP_STEP_GROUPS: StepGroupDef[] = [
         description: "Vurder behov via risikovurdering — anbefalt for virksomheter med overnatting/mange besøkende",
         href: "/dashboard/fire-drills",
         icon: "Siren",
-        mandatory: false,
-      },
-    ],
-  },
-  {
-    key: "dokumenter",
-    title: "Lovpålagte roller",
-    legalRef: "AML § 6-1",
-    phase: "full",
-    steps: [
-      {
-        key: "verneombud",
-        title: "Verneombud utpekt",
-        description: "Utpek verneombud eller dokumenter avtale om annen ordning (AML § 6-1)",
-        href: "/dashboard/brukere",
-        icon: "UserCheck",
-        mandatory: true,
-      },
-    ],
-  },
-  {
-    key: "regelverk",
-    title: "Virksomhetsprofil",
-    legalRef: "IK-HMS § 5 nr. 1–2",
-    phase: "full",
-    steps: [
-      {
-        key: "regulatoryProfile",
-        title: "Virksomhetsprofil utfylt",
-        description: "Kartlegg aktiviteter i Mitt regelverk for å treffe riktige lovkrav",
-        href: "/dashboard/mitt-regelverk",
-        icon: "Scale",
         mandatory: false,
       },
     ],
@@ -476,6 +462,8 @@ export async function getSetupGuideProgress(
 
     if (!tenant) return null;
     if (tenant.setupGuideHidden) return null;
+
+    await syncOrgChartFromEmployees(tenantId);
 
     const [
       employeeCount,

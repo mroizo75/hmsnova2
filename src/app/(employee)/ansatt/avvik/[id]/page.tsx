@@ -57,6 +57,12 @@ export default async function AnsattAvvikDetalj({
     notFound();
   }
 
+  const reporter = await prisma.user.findUnique({
+    where: { id: incident.reportedBy },
+    select: { name: true, email: true },
+  });
+  const reporterName = reporter?.name?.trim() || reporter?.email || "Ukjent";
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -98,6 +104,7 @@ export default async function AnsattAvvikDetalj({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
+          <p>Registrert av {reporterName}</p>
           <p className="whitespace-pre-wrap">{incident.description}</p>
           {incident.location && (
             <p className="text-muted-foreground">Sted: {incident.location}</p>

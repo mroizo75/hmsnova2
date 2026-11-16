@@ -14,6 +14,7 @@ import { purgeTenants } from "@/lib/purge-tenants";
 import { deleteTenantFiles } from "@/lib/storage";
 import { isMocDefaultIndustry } from "@/lib/moc-industry";
 import { standardSoftwareSubscription } from "@/lib/subscription";
+import { ensureTenantHandbook } from "@/server/actions/hms-handbok.actions";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "HMS Nova <noreply@hmsnova.no>";
@@ -145,6 +146,12 @@ export async function createCorporateGroup(data: {
     await prisma.corporateGroupTenant.create({
       data: { groupId: group.id, tenantId: parentTenant.id },
     });
+
+    try {
+      await ensureTenantHandbook(parentTenant.id);
+    } catch (error) {
+      console.error("Failed to seed handbook:", error);
+    }
   }
 
   // Opprett admin-bruker og send velkomst-e-post hvis kontakt-e-post er oppgitt
@@ -303,6 +310,12 @@ export async function adminCreateTenantForGroup(groupId: string, data: {
   await prisma.corporateGroupTenant.create({
     data: { groupId, tenantId: tenant.id },
   });
+
+  try {
+    await ensureTenantHandbook(tenant.id);
+  } catch (error) {
+    console.error("Failed to seed handbook:", error);
+  }
 
   let emailSent = false;
   if (data.contactEmail) {

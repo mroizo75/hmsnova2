@@ -1,9 +1,12 @@
 import { NextRequest } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { createErrorResponse, createSuccessResponse, handleApiError, ErrorCodes } from "@/lib/validations/api";
 import { z } from "zod";
 import { emitTavleUpdate } from "@/lib/tavle-events";
 import { normalizeOrgNr } from "@/features/hms-tavle/lib/oversiktsliste-config";
+import { isClearlyOutside, type SiteGeofence } from "@/features/hms-tavle/lib/geofence";
 import {
   checkRateLimitPolicy,
   createRateLimitResponse,
@@ -22,6 +25,9 @@ const checkinSchema = z.object({
   hmsCardNr: z.string().optional(),
   birthDate: z.string().optional(),
   phone: z.string().optional(),
+  latitude: z.number().gte(-90).lte(90).optional(),
+  longitude: z.number().gte(-180).lte(180).optional(),
+  accuracy: z.number().min(0).max(10_000).optional(),
 });
 
 const checkoutSchema = z.object({
@@ -81,16 +87,99 @@ export async function POST(
     const parsed = checkinSchema.safeParse(body);
     if (!parsed.success) return createErrorResponse(ErrorCodes.VALIDATION_ERROR, parsed.error.issues[0].message, 400);
 
+    const site: SiteGeofence | null =
+      tavle.geofenceRadiusMeters != null && tavle.siteLatitude != null && tavle.siteLongitude != null
+        ? {
+            latitude: tavle.siteLatitude,
+            longitude: tavle.siteLongitude,
+            radiusMeters: tavle.geofenceRadiusMeters,
+          }
+        : null;
+
+    if (site) {
+      if (parsed.data.latitude == null || parsed.data.longitude == null) {
+        return createErrorResponse(
+          ErrorCodes.VALIDATION_ERROR,
+          "Innsjekk krever at du er innenfor prosjektområdet",
+          400
+        );
+      }
+      const utenfor = isClearlyOutside(
+        { latitude: parsed.data.latitude, longitude: parsed.data.longitude },
+        parsed.data.accuracy ?? 0,
+        site
+      );
+      if (utenfor) {
+        return createErrorResponse(
+          ErrorCodes.FORBIDDEN,
+          "Du er utenfor prosjektområdet og kan ikke sjekke inn",
+          403
+        );
+      }
+    }
+
+    const session = await getServerSession(authOptions);
+    let userId: string | undefined;
+    let employer = parsed.data.employer;
+    let employerOrgNr = parsed.data.employerOrgNr;
+    let hmsCardNr = parsed.data.hmsCardNr;
+    let birthDate = parsed.data.birthDate;
+    let phone = parsed.data.phone;
+
+    if (session?.user?.id && session.user.tenantId === tavle.tenantId) {
+      userId = session.user.id;
+      const dbUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true, phone: true },
+      });
+      if (!phone && dbUser?.phone) phone = dbUser.phone;
+      if (tavle.projectId && dbUser?.name) {
+        const roster = await prisma.constructionRosterEntry.findFirst({
+          where: {
+            tenantId: tavle.tenantId,
+            projectId: tavle.projectId,
+            isActive: true,
+            fullName: dbUser.name,
+          },
+          select: {
+            employerName: true,
+            employerOrgNumber: true,
+            hmsCardNumber: true,
+            birthDate: true,
+          },
+        });
+        if (roster) {
+          employer = employer || roster.employerName;
+          employerOrgNr = employerOrgNr || roster.employerOrgNumber || undefined;
+          hmsCardNr = hmsCardNr || roster.hmsCardNumber || undefined;
+          birthDate = birthDate || roster.birthDate.toISOString().slice(0, 10);
+        }
+      }
+    }
+
     const today = new Date().toISOString().slice(0, 10);
+    const apen = await prisma.tavleCheckin.findFirst({
+      where: {
+        tavleId: tavle.id,
+        date: today,
+        checkedOutAt: null,
+        OR: [...(userId ? [{ userId }] : []), { name: parsed.data.name.trim() }],
+      },
+    });
+    if (apen) {
+      return createSuccessResponse({ checkin: apen, alreadyCheckedIn: true });
+    }
+
     const checkin = await prisma.tavleCheckin.create({
       data: {
         tavleId: tavle.id,
-        name: parsed.data.name,
-        employer: parsed.data.employer,
-        employerOrgNr: normalizeOrgNr(parsed.data.employerOrgNr),
-        hmsCardNr: parsed.data.hmsCardNr,
-        birthDate: parsed.data.birthDate,
-        phone: parsed.data.phone,
+        name: parsed.data.name.trim(),
+        employer,
+        employerOrgNr: normalizeOrgNr(employerOrgNr),
+        hmsCardNr,
+        birthDate,
+        phone,
+        userId,
         date: today,
       },
     });
