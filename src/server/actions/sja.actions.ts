@@ -8,6 +8,7 @@ import { getAuthContext } from "@/lib/server-authorization";
 import {
   createSjaSchema,
   updateSjaSchema,
+  correctSjaSchema,
   createSjaTemplateSchema,
   updateSjaTemplateSchema,
 } from "@/features/sja/schemas/sja.schema";
@@ -19,7 +20,7 @@ import {
   getRequiredCourseKeys,
 } from "@/features/sja/lib/sja-fse";
 import { createSjaRiskSnapshot } from "@/features/sja/lib/sja-risk-source";
-import { submittedSjaState } from "@/features/sja/lib/sja-submission";
+import { canCorrectSubmittedSja, submittedSjaState } from "@/features/sja/lib/sja-submission";
 import { createNotification } from "@/server/actions/notification.actions";
 import { roleMatchFilter } from "@/lib/extra-roles";
 import { getNotifyRolesForModule, parseModuleVisibilityConfig } from "@/lib/module-visibility";
@@ -884,6 +885,127 @@ export async function updateSjaAnalysis(input: any) {
     return { success: true, data: analysis };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke oppdatere SJA" };
+  }
+}
+
+export async function correctSjaContent(input: {
+  id: string;
+  title: string;
+  description?: string;
+  workLocation: string;
+  plannedDate: string | Date;
+  responsibleName: string;
+  participants: string;
+  additionalConditions?: string;
+  weatherConditions?: string;
+  workMethod?: string;
+  requiredEquipment?: string;
+  requiredPpe?: string;
+  personnelRequirements?: string;
+  safetyConditions?: string;
+  hazards: Array<{
+    activity: string;
+    hazard: string;
+    consequence?: string | null;
+    probability: number;
+    severity: number;
+    measures: string;
+    responsibleName?: string | null;
+    linkedRiskId?: string | null;
+  }>;
+}) {
+  try {
+    const { user, tenantId, auth } = await getSessionContext();
+    if (!auth.permissions.canApproveSja) {
+      return { success: false, error: "Bare leder, HMS-ansvarlig eller administrator kan rette en innsendt SJA" };
+    }
+
+    const validated = correctSjaSchema.parse({
+      ...input,
+      plannedDate: input.plannedDate ? new Date(input.plannedDate) : undefined,
+      description: input.description?.trim() || undefined,
+      additionalConditions: input.additionalConditions?.trim() || undefined,
+      weatherConditions: input.weatherConditions?.trim() || undefined,
+      workMethod: input.workMethod?.trim() || undefined,
+      requiredEquipment: input.requiredEquipment?.trim() || undefined,
+      requiredPpe: input.requiredPpe?.trim() || undefined,
+      personnelRequirements: input.personnelRequirements?.trim() || undefined,
+      safetyConditions: input.safetyConditions?.trim() || undefined,
+    });
+
+    const existing = await prisma.sjaAnalysis.findUnique({
+      where: { id: validated.id, tenantId },
+    });
+    if (!existing) return { success: false, error: "SJA ikke funnet" };
+    if (!canCorrectSubmittedSja(existing.status)) {
+      return { success: false, error: "Fullført eller kansellert SJA kan ikke endres" };
+    }
+
+    const riskSnapshots = await validateSjaRiskSources(
+      tenantId,
+      existing.sourceRiskAssessmentId,
+      validated.hazards,
+    );
+    const contentVersion = new Date();
+
+    await prisma.sjaHazard.deleteMany({ where: { sjaAnalysisId: validated.id } });
+    await prisma.sjaHazard.createMany({
+      data: validated.hazards.map((hazard, index) => ({
+        sjaAnalysisId: validated.id,
+        sortOrder: index,
+        activity: hazard.activity,
+        hazard: hazard.hazard,
+        consequence: hazard.consequence ?? null,
+        probability: hazard.probability,
+        severity: hazard.severity,
+        riskLevel: hazard.probability * hazard.severity,
+        measures: hazard.measures,
+        responsibleName: hazard.responsibleName ?? null,
+        linkedRiskId: hazard.linkedRiskId ?? null,
+        riskSnapshot: hazard.linkedRiskId
+          ? riskSnapshots.get(hazard.linkedRiskId) ?? Prisma.JsonNull
+          : Prisma.JsonNull,
+      })),
+    });
+
+    const analysis = await prisma.sjaAnalysis.update({
+      where: { id: validated.id, tenantId },
+      data: {
+        title: validated.title,
+        description: validated.description ?? null,
+        workLocation: validated.workLocation,
+        plannedDate: validated.plannedDate,
+        responsibleName: validated.responsibleName,
+        participants: validated.participants,
+        additionalConditions: validated.additionalConditions ?? null,
+        weatherConditions: validated.weatherConditions ?? null,
+        workMethod: validated.workMethod ?? null,
+        requiredEquipment: validated.requiredEquipment ?? null,
+        requiredPpe: validated.requiredPpe ?? null,
+        personnelRequirements: validated.personnelRequirements ?? null,
+        safetyConditions: validated.safetyConditions ?? null,
+        contentVersion,
+      },
+    });
+
+    await prisma.sjaParticipant.updateMany({
+      where: { sjaAnalysisId: analysis.id },
+      data: { acknowledgedAt: null, acknowledgedVersion: null },
+    });
+
+    AuditLog.log(tenantId, user.id, "SJA_CORRECTED", "SjaAnalysis", analysis.id, {
+      title: analysis.title,
+      status: analysis.status,
+    }).catch(() => {});
+
+    revalidatePath("/dashboard/sja");
+    revalidatePath(`/dashboard/sja/${analysis.id}`);
+    revalidatePath("/ansatt/sja");
+    triggerRealtimeEvent(tenantId, "sja-updated");
+    return { success: true, data: { id: analysis.id } };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Kunne ikke rette SJA";
+    return { success: false, error: message };
   }
 }
 

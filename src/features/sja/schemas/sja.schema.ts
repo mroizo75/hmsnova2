@@ -161,6 +161,24 @@ export const createSjaSchema = z.object({
   }
 });
 
+export const correctSjaSchema = z.object({
+  id: z.string().cuid(),
+  title: z.string().min(3, "Tittel må være minst 3 tegn"),
+  description: z.string().optional(),
+  workLocation: z.string().min(1, "Arbeidssted er påkrevd"),
+  plannedDate: z.date(),
+  responsibleName: z.string().min(1, "Ansvarlig er påkrevd"),
+  participants: z.string().min(1, "Deltakere er påkrevd"),
+  additionalConditions: z.string().optional(),
+  weatherConditions: z.string().optional(),
+  workMethod: z.string().optional(),
+  requiredEquipment: z.string().optional(),
+  requiredPpe: z.string().optional(),
+  personnelRequirements: z.string().optional(),
+  safetyConditions: z.string().optional(),
+  hazards: z.array(sjaHazardSchema).min(1, "Minst én fare må stå igjen"),
+});
+
 export const updateSjaSchema = z.object({
   id: z.string().cuid(),
   title: z.string().min(3).optional(),

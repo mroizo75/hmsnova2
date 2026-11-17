@@ -33,6 +33,8 @@ import { ResourceHistory } from "@/components/shared/resource-history";
 import { fetchSjaDetail } from "@/server/queries/sja.queries";
 import { MocRelatedCard } from "@/features/moc/components/moc-related-card";
 import { SjaPdfButton } from "@/features/sja/components/sja-pdf-button";
+import { canCorrectSubmittedSja } from "@/features/sja/lib/sja-submission";
+import { Button } from "@/components/ui/button";
 
 type SjaDetailData = NonNullable<Awaited<ReturnType<typeof fetchSjaDetail>>>;
 
@@ -96,7 +98,12 @@ export function SjaDetailContent({ initialData, history }: SjaDetailContentProps
             </Badge>
           </Link>
         )}
-        <div className="ml-auto">
+        <div className="ml-auto flex gap-2">
+          {analysis.canApproveSja && canCorrectSubmittedSja(analysis.status) && (
+            <Button variant="outline" asChild>
+              <Link href={`/dashboard/sja/${analysis.id}/rediger`}>Rett innhold</Link>
+            </Button>
+          )}
           <SjaPdfButton analysis={analysis} />
         </div>
       </div>
