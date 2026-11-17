@@ -70,6 +70,7 @@ export async function createReminders(config: ReminderConfig) {
     if (!shouldNotify) continue;
 
     // Hvis bruker ikke vil ha noen form for varsler, hopp over
+    if (userTenant.notificationsMuted) continue;
     if (!userTenant.notifyByEmail && !userTenant.notifyBySms) continue;
 
     // Beregn når påminnelsen skal sendes

@@ -19,6 +19,7 @@ import { applyTimeBankFactor, assertTimeBankBalance, nextTimeBankBalance, pickTi
 import { filterProductsByAndQuery, groupIdsWithDescendants, tokenizeProductQuery, uniqueProductCategories } from "@/lib/time/product-search";
 import { buildKmRegistration, type CarKind } from "@/lib/time/km-product";
 import type { ProjectUsageKind, TimeEntryType } from "@prisma/client";
+import { denyEmployeeTimeRegistration } from "@/server/time/employee-time-gate";
 
 function formatActionError(error: unknown, fallback: string): string {
   if (error instanceof Error) return error.message;
@@ -443,6 +444,10 @@ export async function submitDayTimesheet(input: {
     if (!ctx.permissions.canAccessTimeRegistration) {
       return { success: false as const, error: "Ingen tilgang til timeregistrering" };
     }
+    const hiddenFromEmployee = await denyEmployeeTimeRegistration(ctx);
+    if (hiddenFromEmployee) {
+      return { success: false as const, error: hiddenFromEmployee };
+    }
 
     const comment = input.comment.trim();
     if (comment.length < 2) {
@@ -624,6 +629,10 @@ export async function updateOwnTimesheetEntry(
   try {
     const ctx = await getAuthContext();
     if (!ctx) return { success: false as const, error: "Ikke autentisert" };
+    const hiddenFromEmployee = await denyEmployeeTimeRegistration(ctx);
+    if (hiddenFromEmployee) {
+      return { success: false as const, error: hiddenFromEmployee };
+    }
     const entry = await prisma.timeEntry.findFirst({ where: { id, tenantId: ctx.tenantId } });
     if (!entry) return { success: false as const, error: "Ikke funnet" };
     if (entry.userId !== ctx.userId) {
@@ -1168,6 +1177,10 @@ export async function addUsageToDay(input: {
     if (!ctx) return { success: false as const, error: "Ikke autentisert" };
     if (!ctx.permissions.canAccessTimeRegistration) {
       return { success: false as const, error: "Ingen tilgang til timeregistrering" };
+    }
+    const hiddenFromEmployee = await denyEmployeeTimeRegistration(ctx);
+    if (hiddenFromEmployee) {
+      return { success: false as const, error: hiddenFromEmployee };
     }
     if (input.quantity <= 0) {
       return { success: false as const, error: input.kind === "KM" ? "Antall km må være over 0" : "Antall må være større enn 0" };

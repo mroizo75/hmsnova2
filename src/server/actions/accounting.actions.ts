@@ -18,6 +18,9 @@ import { activityIdForTimeType } from "@/lib/accounting/timesheet";
 import { filterProductsByAndQuery } from "@/lib/time/product-search";
 import { buildKmRegistration, type CarKind } from "@/lib/time/km-product";
 import { jobKindAfterPromote } from "@/lib/accounting/job-kind";
+import { planTripletexEmployeeActivation } from "@/lib/accounting/employee-import-plan";
+import { inviteUserIntoTenant } from "@/lib/user-import";
+import { denyEmployeeTimeRegistration } from "@/server/time/employee-time-gate";
 
 function tripletexPublicErrorMessage(body?: string): string | null {
   if (!body) return null;
@@ -80,6 +83,7 @@ export async function getAccountingSettings() {
       tripletexTemplateProjectExternalId: true,
       accountingLastPullAt: true,
       timeRegistrationEnabled: true,
+      timeRegistrationVisibleToEmployees: true,
       absenceProjectId: true,
       absencePayrollTypes: true,
     },
@@ -316,6 +320,119 @@ export async function saveTripletexMapping(input: {
     return { success: true as const };
   } catch (error: unknown) {
     return { success: false as const, error: formatActionError(error, "Kunne ikke lagre mapping") };
+  }
+}
+
+export async function setTimeRegistrationVisibleToEmployees(visible: boolean) {
+  try {
+    const ctx = await requirePermission("canUpdateSettings");
+    await prisma.tenant.update({
+      where: { id: ctx.tenantId },
+      data: { timeRegistrationVisibleToEmployees: visible },
+    });
+    revalidatePath("/dashboard/settings");
+    revalidatePath("/ansatt");
+    revalidatePath("/ansatt/timeregistrering");
+    revalidatePath("/dashboard/time-registration");
+    return { success: true as const };
+  } catch (error: unknown) {
+    return { success: false as const, error: formatActionError(error, "Kunne ikke lagre synlighet") };
+  }
+}
+
+const MAX_EMPLOYEE_INVITES = 100;
+
+export async function activateTripletexEmployees() {
+  try {
+    const ctx = await requirePermission("canUpdateSettings");
+    const provider = await getAccountingProvider(ctx.tenantId);
+    if (!provider) {
+      return { success: false as const, error: "Tripletex er ikke koblet til" };
+    }
+
+    const [txEmployees, members, actor] = await Promise.all([
+      provider.listEmployees(),
+      prisma.userTenant.findMany({
+        where: { tenantId: ctx.tenantId },
+        select: {
+          userId: true,
+          externalEmployeeId: true,
+          employeeNumber: true,
+          user: { select: { email: true } },
+        },
+      }),
+      prisma.user.findUnique({
+        where: { id: ctx.userId },
+        select: { id: true, name: true, email: true },
+      }),
+    ]);
+    if (!actor) {
+      return { success: false as const, error: "Ikke autentisert" };
+    }
+
+    const plan = planTripletexEmployeeActivation({
+      employees: txEmployees,
+      members: members.map((member) => ({
+        userId: member.userId,
+        email: member.user.email.toLowerCase(),
+        externalEmployeeId: member.externalEmployeeId,
+        employeeNumber: member.employeeNumber,
+      })),
+    });
+
+    let invited = 0;
+    let linked = 0;
+    const errors: string[] = [];
+    const invites = plan.toInvite.slice(0, MAX_EMPLOYEE_INVITES);
+
+    for (const row of invites) {
+      const result = await inviteUserIntoTenant({
+        tenantId: ctx.tenantId,
+        actor,
+        data: {
+          email: row.email,
+          name: row.name,
+          role: "ANSATT",
+          employeeNumber: row.employeeNumber,
+        },
+      });
+      if (result.success === false) {
+        errors.push(`${row.email}: ${result.error}`);
+        continue;
+      }
+      await prisma.userTenant.updateMany({
+        where: { tenantId: ctx.tenantId, user: { email: row.email } },
+        data: { externalEmployeeId: row.externalId },
+      });
+      invited += 1;
+    }
+
+    for (const row of plan.toLink) {
+      await prisma.userTenant.update({
+        where: { userId_tenantId: { userId: row.userId, tenantId: ctx.tenantId } },
+        data: {
+          externalEmployeeId: row.externalId,
+          ...(row.fillEmployeeNumber ? { employeeNumber: row.employeeNumber } : {}),
+        },
+      });
+      linked += 1;
+    }
+
+    revalidatePath("/dashboard/settings");
+    revalidatePath("/dashboard/settings/users");
+    return {
+      success: true as const,
+      data: {
+        invited,
+        linked,
+        skippedNoEmail: plan.skippedNoEmail,
+        alreadyActive: plan.alreadyActive,
+        remaining: Math.max(0, plan.toInvite.length - invites.length),
+        errors,
+      },
+    };
+  } catch (error: unknown) {
+    return { success: false as const, error: formatActionError(error, "Kunne ikke aktivere ansatte") };
   }
 }
 
@@ -729,6 +846,10 @@ export async function addJobTimeEntry(input: {
     });
     if (!tenant?.timeRegistrationEnabled) {
       return { success: false as const, error: "Timeregistrering er ikke aktivert" };
+    }
+    const hiddenFromEmployee = await denyEmployeeTimeRegistration(ctx);
+    if (hiddenFromEmployee) {
+      return { success: false as const, error: hiddenFromEmployee };
     }
 
     const activityId = activityIdForTimeType(input.timeType, {

@@ -86,6 +86,10 @@ export async function createNotification(input: CreateNotificationInput) {
       return { success: false, error: "Brukeren er ikke medlem i valgt tenant" };
     }
 
+    if (userTenant.notificationsMuted) {
+      return { success: true, skipped: true };
+    }
+
     if (!isNotificationTypeEnabledForUser(input.type, userTenant)) {
       return { success: true, skipped: true };
     }

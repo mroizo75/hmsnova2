@@ -5,6 +5,7 @@ import { TimeEntryType } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { hoursToClock } from "@/lib/time/split-day";
+import { employeeMayUseTimeRegistration } from "@/lib/time/employee-time-access";
 import { createAbsence } from "@/server/actions/absence.actions";
 import { addUsageToDay, submitDayTimesheet } from "@/server/actions/timesheet.actions";
 
@@ -118,6 +119,7 @@ export async function GET() {
         select: {
           id: true,
           timeRegistrationEnabled: true,
+          timeRegistrationVisibleToEmployees: true,
           defaultKmRate: true,
           kmAllowanceTaxable: true,
           lunchBreakMinutes: true,
@@ -218,7 +220,11 @@ export async function GET() {
 
     return NextResponse.json(
       {
-        enabled: tenant?.timeRegistrationEnabled ?? false,
+        enabled: employeeMayUseTimeRegistration({
+          role: session.user.role ?? "ANSATT",
+          timeRegistrationEnabled: tenant?.timeRegistrationEnabled ?? false,
+          visibleToEmployees: tenant?.timeRegistrationVisibleToEmployees ?? true,
+        }),
         config: {
           defaultKmRate: tenant?.defaultKmRate ?? 4.5,
           kmAllowanceTaxable: tenant?.kmAllowanceTaxable ?? false,
@@ -347,12 +353,26 @@ export async function POST(request: NextRequest) {
       where: { id: session.user.tenantId },
       select: {
         timeRegistrationEnabled: true,
+        timeRegistrationVisibleToEmployees: true,
         defaultKmRate: true,
       },
     });
 
-    if (!tenant?.timeRegistrationEnabled) {
-      return NextResponse.json({ error: "Timeregistrering er ikke aktivert" }, { status: 403 });
+    if (
+      !employeeMayUseTimeRegistration({
+        role: session.user.role ?? "ANSATT",
+        timeRegistrationEnabled: tenant?.timeRegistrationEnabled ?? false,
+        visibleToEmployees: tenant?.timeRegistrationVisibleToEmployees ?? true,
+      })
+    ) {
+      return NextResponse.json(
+        {
+          error: tenant?.timeRegistrationEnabled
+            ? "Timeregistrering er ikke åpnet for ansatte"
+            : "Timeregistrering er ikke aktivert",
+        },
+        { status: 403 }
+      );
     }
 
     const project = await prisma.project.findFirst({

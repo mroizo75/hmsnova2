@@ -9,6 +9,7 @@ import { enqueueAccountingJob, ensureDefaultKmProducts, syncProjectToAccounting 
 import { isAccountingEnabled } from "@/lib/accounting/factory";
 import { canEnqueueTimesheetSync } from "@/lib/time/approval";
 import { getAuthContext } from "@/lib/server-authorization";
+import { denyEmployeeTimeRegistration } from "@/server/time/employee-time-gate";
 import { dayIndexInWeek, weekDateRange } from "@/lib/time/week-range";
 import {
   startOfWeek,
@@ -404,9 +405,13 @@ export async function createTimeEntry(input: {
   comment?: string;
 }) {
   try {
-    const { user, tenantId } = await getSessionContext();
+    const { user, tenantId, role } = await getSessionContext();
     if (tenantId !== input.tenantId) {
       return { success: false, error: "Ingen tilgang" };
+    }
+    const hiddenFromEmployee = await denyEmployeeTimeRegistration({ tenantId, role });
+    if (hiddenFromEmployee) {
+      return { success: false, error: hiddenFromEmployee };
     }
 
     const tenant = await prisma.tenant.findUnique({
@@ -632,8 +637,9 @@ export async function updateTimeEntry(
   input: { date?: Date; hours?: number; timeType?: string; comment?: string }
 ) {
   try {
-    const { user, tenantId } = await getSessionContext();
-    const role = user.tenants.find((t) => t.tenantId === tenantId)?.role;
+    const { user, tenantId, role } = await getSessionContext();
+    const hiddenFromEmployee = await denyEmployeeTimeRegistration({ tenantId, role });
+    if (hiddenFromEmployee) return { success: false, error: hiddenFromEmployee };
     const isAdmin = ["ADMIN", "HMS", "LEDER"].includes(role || "");
 
     const existing = await prisma.timeEntry.findUnique({
@@ -674,8 +680,9 @@ export async function updateTimeEntry(
 
 export async function deleteTimeEntry(id: string) {
   try {
-    const { user, tenantId } = await getSessionContext();
-    const role = user.tenants.find((t) => t.tenantId === tenantId)?.role;
+    const { user, tenantId, role } = await getSessionContext();
+    const hiddenFromEmployee = await denyEmployeeTimeRegistration({ tenantId, role });
+    if (hiddenFromEmployee) return { success: false, error: hiddenFromEmployee };
     const existing = await prisma.timeEntry.findUnique({
       where: { id, tenantId },
     });
@@ -718,9 +725,13 @@ export async function createMileageEntry(input: {
   comment?: string;
 }) {
   try {
-    const { user, tenantId } = await getSessionContext();
+    const { user, tenantId, role } = await getSessionContext();
     if (tenantId !== input.tenantId) {
       return { success: false, error: "Ingen tilgang" };
+    }
+    const hiddenFromEmployee = await denyEmployeeTimeRegistration({ tenantId, role });
+    if (hiddenFromEmployee) {
+      return { success: false, error: hiddenFromEmployee };
     }
 
     const tenant = await prisma.tenant.findUnique({
@@ -807,8 +818,9 @@ export async function updateMileageEntry(
   input: { date?: Date; kilometers?: number; ratePerKm?: number; comment?: string }
 ) {
   try {
-    const { user, tenantId } = await getSessionContext();
-    const role = user.tenants.find((t) => t.tenantId === tenantId)?.role;
+    const { user, tenantId, role } = await getSessionContext();
+    const hiddenFromEmployee = await denyEmployeeTimeRegistration({ tenantId, role });
+    if (hiddenFromEmployee) return { success: false, error: hiddenFromEmployee };
     const isAdmin = ["ADMIN", "HMS", "LEDER"].includes(role || "");
 
     const existing = await prisma.mileageEntry.findUnique({
@@ -853,13 +865,14 @@ export async function updateMileageEntry(
 
 export async function deleteMileageEntry(id: string) {
   try {
-    const { user, tenantId } = await getSessionContext();
+    const { user, tenantId, role } = await getSessionContext();
+    const hiddenFromEmployee = await denyEmployeeTimeRegistration({ tenantId, role });
+    if (hiddenFromEmployee) return { success: false, error: hiddenFromEmployee };
     const existing = await prisma.mileageEntry.findUnique({
       where: { id, tenantId },
     });
     if (!existing) return { success: false, error: "Registrering ikke funnet" };
 
-    const role = user.tenants.find((t) => t.tenantId === tenantId)?.role;
     if (existing.userId !== user.id && !["ADMIN", "HMS", "LEDER"].includes(role || "")) {
       return { success: false, error: "Du kan kun slette egne registreringer" };
     }
@@ -1086,6 +1099,8 @@ export async function upsertWeekEntry(input: {
 }) {
   try {
     const { user, tenantId, role } = await getSessionContext();
+    const hiddenFromEmployee = await denyEmployeeTimeRegistration({ tenantId, role });
+    if (hiddenFromEmployee) return { success: false, error: hiddenFromEmployee };
     const isAdmin = role === "ADMIN";
     const targetUserId = input.userId && isAdmin ? input.userId : user.id;
 

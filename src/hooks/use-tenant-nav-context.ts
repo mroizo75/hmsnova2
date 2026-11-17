@@ -10,6 +10,7 @@ interface TenantApiResponseItem {
   features?: string[];
   moduleVisibilityConfig?: ModuleVisibilityConfig | null;
   aiEnabled?: boolean;
+  timeRegistrationVisibleToEmployees?: boolean;
 }
 
 type TenantNavSnapshot = {
@@ -17,6 +18,7 @@ type TenantNavSnapshot = {
   moduleVisibility: ModuleVisibilityConfig | null;
   tenantIndustry: string | null;
   aiEnabled: boolean;
+  timeRegistrationVisibleToEmployees: boolean;
 };
 
 const emptySnapshot: TenantNavSnapshot = {
@@ -24,6 +26,7 @@ const emptySnapshot: TenantNavSnapshot = {
   moduleVisibility: null,
   tenantIndustry: null,
   aiEnabled: false,
+  timeRegistrationVisibleToEmployees: true,
 };
 
 const snapshotCache = new Map<string, { data: TenantNavSnapshot; expiresAt: number }>();
@@ -36,6 +39,7 @@ function toSnapshot(tenant: TenantApiResponseItem | undefined): TenantNavSnapsho
     moduleVisibility: tenant?.moduleVisibilityConfig ?? null,
     tenantIndustry: tenant?.industry ?? null,
     aiEnabled: Boolean(tenant?.aiEnabled),
+    timeRegistrationVisibleToEmployees: tenant?.timeRegistrationVisibleToEmployees !== false,
   };
 }
 
@@ -78,6 +82,7 @@ export function useTenantNavContext() {
   const [moduleVisibility, setModuleVisibility] = useState<ModuleVisibilityConfig | null>(null);
   const [tenantIndustry, setTenantIndustry] = useState<string | null>(null);
   const [aiEnabled, setAiEnabled] = useState(false);
+  const [timeRegistrationVisibleToEmployees, setTimeRegistrationVisibleToEmployees] = useState(true);
   const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
@@ -96,6 +101,7 @@ export function useTenantNavContext() {
       setModuleVisibility(snapshot.moduleVisibility);
       setTenantIndustry(snapshot.tenantIndustry);
       setAiEnabled(snapshot.aiEnabled);
+      setTimeRegistrationVisibleToEmployees(snapshot.timeRegistrationVisibleToEmployees);
     };
 
     if (!tenantId) {
@@ -114,5 +120,5 @@ export function useTenantNavContext() {
     };
   }, [session?.user?.tenantId, reloadToken]);
 
-  return { tenantFeatures, moduleVisibility, tenantIndustry, aiEnabled };
+  return { tenantFeatures, moduleVisibility, tenantIndustry, aiEnabled, timeRegistrationVisibleToEmployees };
 }

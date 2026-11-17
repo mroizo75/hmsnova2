@@ -68,6 +68,7 @@ export async function fetchUsers() {
     departmentId: ut.departmentId ?? null,
     extraRoles: ut.extraRoles ?? null,
     isChiefSafetyRep: ut.isChiefSafetyRep,
+    notificationsMuted: ut.notificationsMuted,
   }));
 
   const { getSubscriptionLimits } = await import("@/lib/subscription");

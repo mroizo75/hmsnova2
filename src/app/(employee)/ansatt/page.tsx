@@ -31,6 +31,7 @@ export default async function AnsattDashboard() {
       hmsContactPhone: true,
       hmsContactEmail: true,
       timeRegistrationEnabled: true,
+      timeRegistrationVisibleToEmployees: true,
       industry: true,
       dashboardLocked: true,
       lockedDashboardConfig: true,
@@ -54,6 +55,7 @@ export default async function AnsattDashboard() {
   visibleWidgets = filterEmployeeWidgetsForAccounting(visibleWidgets, {
     timeRegistrationEnabled: tenant?.timeRegistrationEnabled,
     accountingProvider: tenant?.accountingProvider,
+    visibleToEmployees: tenant?.timeRegistrationVisibleToEmployees,
   });
 
   if (tenant && !tenant.ruhModuleEnabled) {

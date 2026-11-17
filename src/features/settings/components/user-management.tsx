@@ -40,6 +40,7 @@ import {
   updateUserPosition,
   updateUserExtraRoles,
   updateChiefSafetyRep,
+  updateUserNotificationsMuted,
   assignManagerToUsers,
 } from "@/server/actions/settings.actions";
 import { assignUserDepartment } from "@/server/actions/department.actions";
@@ -63,6 +64,7 @@ interface UserManagementProps {
   departmentId: string | null;
   extraRoles: string | null;
   isChiefSafetyRep?: boolean;
+  notificationsMuted?: boolean;
   user: {
       id: string;
       name: string | null;
@@ -246,6 +248,28 @@ export function UserManagement({
         variant: "destructive",
         title: "Feil",
         description: result.error || "Kunne ikke oppdatere tilleggsroller",
+      });
+    }
+    setLoading(null);
+  };
+
+  const handleNotificationsMuted = async (userId: string, muted: boolean) => {
+    setLoading(userId);
+    const result = await updateUserNotificationsMuted(userId, muted);
+    if (result.success) {
+      toast({
+        title: muted ? "Varsler slått av" : "Varsler slått på",
+        description: muted
+          ? "Personen beholder tilgangen, men får ikke varsler eller e-post."
+          : "Personen får varsler igjen.",
+        className: "bg-green-50 border-green-200",
+      });
+      await refreshAfterSave();
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Feil",
+        description: result.error || "Kunne ikke oppdatere varsler",
       });
     }
     setLoading(null);
@@ -1042,6 +1066,16 @@ export function UserManagement({
                                     </label>
                                   );
                                 })}
+                              <label className="flex items-center gap-2 pt-1 text-xs">
+                                <Checkbox
+                                  checked={userTenant.notificationsMuted === true}
+                                  disabled={loading === userTenant.userId}
+                                  onCheckedChange={(checked) =>
+                                    handleNotificationsMuted(userTenant.userId, checked === true)
+                                  }
+                                />
+                                Ingen varsler
+                              </label>
                             </div>
                           </div>
                         ) : (
@@ -1070,6 +1104,18 @@ export function UserManagement({
                             )}
                             {userTenant.isChiefSafetyRep && (
                               <Badge className="bg-green-100 text-green-800 border-green-200">Hovedverneombud</Badge>
+                            )}
+                            {isAdmin && (
+                              <label className="flex items-center gap-2 pt-1 text-xs">
+                                <Checkbox
+                                  checked={userTenant.notificationsMuted === true}
+                                  disabled={loading === userTenant.userId}
+                                  onCheckedChange={(checked) =>
+                                    handleNotificationsMuted(userTenant.userId, checked === true)
+                                  }
+                                />
+                                Ingen varsler
+                              </label>
                             )}
                           </div>
                         )}

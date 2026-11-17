@@ -31,7 +31,7 @@ export function DashboardNav() {
   const { visibleNavItems, role, roles, permissions } = usePermissions();
   const { isSimpleMode, toggleMode } = useSimpleMode();
   const { simpleMenuItems } = useSimpleMenuConfig();
-  const { tenantFeatures, moduleVisibility, tenantIndustry } = useTenantNavContext();
+  const { tenantFeatures, moduleVisibility, tenantIndustry, timeRegistrationVisibleToEmployees } = useTenantNavContext();
   const { dashboardLocked } = useDashboardLock();
 
   const effectiveSimpleMode = isSimpleMode || dashboardLocked;
@@ -51,6 +51,7 @@ export function DashboardNav() {
         corporateGroupId: session?.user?.corporateGroupId,
         tenantRole: session?.user?.role,
       }),
+      timeRegistrationVisibleToEmployees,
     }),
     (item) => t(item.label),
   );

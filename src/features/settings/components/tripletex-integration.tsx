@@ -11,12 +11,16 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslations } from "next-intl";
 import { CheckCircle2, AlertCircle, Link2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { invalidateTenantNavCache } from "@/hooks/use-tenant-nav-context";
 import {
   connectTripletex,
   disconnectTripletex,
   saveTripletexMapping,
   mapTenantEmployee,
   refreshTripletexCatalog,
+  setTimeRegistrationVisibleToEmployees,
+  activateTripletexEmployees,
 } from "@/server/actions/accounting.actions";
 
 type Activity = { externalId: string; name: string; number?: string | null };
@@ -56,6 +60,7 @@ interface TripletexIntegrationProps {
   employees: Employee[];
   txEmployees: Array<{ externalId: string; firstName?: string | null; lastName?: string | null; email?: string | null }>;
   projects?: Array<{ id: string; name: string; externalProjectId?: string | null }>;
+  timeRegistrationVisibleToEmployees?: boolean;
 }
 
 export function TripletexIntegration({
@@ -72,6 +77,7 @@ export function TripletexIntegration({
   employees,
   txEmployees,
   projects = [],
+  timeRegistrationVisibleToEmployees = true,
 }: TripletexIntegrationProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -79,7 +85,13 @@ export function TripletexIntegration({
   const tAbsence = useTranslations("timesheet.absence");
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(false);
+  const [activating, setActivating] = useState(false);
+  const [employeesSeeTime, setEmployeesSeeTime] = useState(timeRegistrationVisibleToEmployees);
   const [mapState, setMapState] = useState(mapping);
+
+  useEffect(() => {
+    setEmployeesSeeTime(timeRegistrationVisibleToEmployees);
+  }, [timeRegistrationVisibleToEmployees]);
 
   useEffect(() => {
     setMapState(mapping);
@@ -158,6 +170,31 @@ export function TripletexIntegration({
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        <div className="flex items-start justify-between gap-4 rounded-md border p-3">
+          <div className="space-y-1">
+            <p className="text-sm font-medium">Timeregistrering synlig for ansatte</p>
+            <p className="text-xs text-muted-foreground">
+              Av når bedriften skal prøve Tripletex først. Administrator og leder kan fortsatt føre og
+              godkjenne timer. Skru på når ansattrollen skal se timeregistrering.
+            </p>
+          </div>
+          <Switch
+            checked={employeesSeeTime}
+            disabled={!isAdmin || loading}
+            aria-label="Timeregistrering synlig for ansatte"
+            onCheckedChange={async (next) => {
+              setEmployeesSeeTime(next);
+              const res = await setTimeRegistrationVisibleToEmployees(next);
+              if (!res.success) {
+                setEmployeesSeeTime(!next);
+                toast({ title: "Feil", description: res.error, variant: "destructive" });
+                return;
+              }
+              invalidateTenantNavCache();
+              await reloadSettings();
+            }}
+          />
+        </div>
         {!connected && (
           <div className="space-y-3">
             {consumerConfigured ? (
@@ -348,6 +385,41 @@ export function TripletexIntegration({
 
             <div className="space-y-2">
               <h3 className="text-sm font-medium">Ansatte i Tripletex</h3>
+              <p className="text-xs text-muted-foreground">
+                Henter navn, e-post og ansattnummer og sender invitasjon til dem som ikke finnes i HMS Nova.
+                Ansatte uten e-post blir stående.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="bg-transparent"
+                disabled={!isAdmin || activating}
+                onClick={async () => {
+                  setActivating(true);
+                  const res = await activateTripletexEmployees();
+                  setActivating(false);
+                  if (!res.success) {
+                    toast({ title: "Kunne ikke aktivere", description: res.error, variant: "destructive" });
+                    return;
+                  }
+                  const parts = [
+                    `${res.data.invited} invitert`,
+                    `${res.data.linked} koblet`,
+                    res.data.skippedNoEmail > 0 ? `${res.data.skippedNoEmail} uten e-post` : "",
+                    res.data.remaining > 0 ? `${res.data.remaining} gjenstår` : "",
+                  ].filter(Boolean);
+                  toast({
+                    title: "Ansatte fra Tripletex",
+                    description: res.data.errors[0]
+                      ? `${parts.join(", ")}. ${res.data.errors[0]}`
+                      : parts.join(", "),
+                    variant: res.data.errors.length > 0 ? "destructive" : "default",
+                  });
+                  await reloadSettings();
+                }}
+              >
+                {activating ? "Aktiverer…" : "Hent og aktiver ansatte"}
+              </Button>
               {employees.map((emp) => (
                 <div key={emp.userId} className="flex items-center gap-2 text-sm">
                   <span className="min-w-0 flex-1 truncate">

@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { getPermissions } from "@/lib/permissions";
 import { fetchTimeRegistrationData } from "@/server/queries/time-registration.queries";
 import { TimeRegistrationContent } from "@/features/time-registration/components/time-registration-content";
+import { prisma } from "@/lib/db";
+import { employeeMayUseTimeRegistration } from "@/lib/time/employee-time-access";
 
 interface TimeRegistrationPageProps {
   searchParams: Promise<{ projectId?: string; tab?: string }>;
@@ -23,6 +25,21 @@ export default async function TimeRegistrationPage({ searchParams }: TimeRegistr
   }
 
   const role = session.user.role!;
+  if (role === "ANSATT") {
+    const visibility = await prisma.tenant.findUnique({
+      where: { id: session.user.tenantId },
+      select: { timeRegistrationEnabled: true, timeRegistrationVisibleToEmployees: true },
+    });
+    if (
+      !employeeMayUseTimeRegistration({
+        role,
+        timeRegistrationEnabled: visibility?.timeRegistrationEnabled ?? false,
+        visibleToEmployees: visibility?.timeRegistrationVisibleToEmployees ?? true,
+      })
+    ) {
+      redirect("/ansatt");
+    }
+  }
   const isAdmin = ["ADMIN", "HMS", "LEDER"].includes(role);
   const { projectId, tab } = await searchParams;
 

@@ -50,7 +50,7 @@ export async function sendDigestEmails(type: "DAILY" | "WEEKLY" = "DAILY") {
       const user = userTenant.user;
 
       // Sjekk om brukeren vil ha digest-varsler (fra UserTenant - tenant-spesifikk)
-      if (!userTenant.notifyByEmail) continue;
+      if (userTenant.notificationsMuted || !userTenant.notifyByEmail) continue;
       if (type === "DAILY" && !userTenant.dailyDigest) continue;
       if (type === "WEEKLY" && !userTenant.weeklyDigest) continue;
 

@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
                 mocModuleEnabled: true,
                 ruhModuleEnabled: true,
                 timeRegistrationEnabled: true,
+                timeRegistrationVisibleToEmployees: true,
                 aiEnabled: true,
                 speechToTextEnabled: true,
               },
@@ -59,6 +60,7 @@ export async function GET(request: NextRequest) {
       ruhModuleEnabled: ut.tenant.ruhModuleEnabled,
       mocModuleEnabled: ut.tenant.mocModuleEnabled,
       timeRegistrationEnabled: ut.tenant.timeRegistrationEnabled,
+      timeRegistrationVisibleToEmployees: ut.tenant.timeRegistrationVisibleToEmployees,
       aiEnabled: ut.tenant.aiEnabled,
       speechToTextEnabled: ut.tenant.speechToTextEnabled,
     }));

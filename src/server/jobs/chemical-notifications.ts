@@ -65,7 +65,7 @@ export async function checkOutdatedSDS() {
       for (const userTenant of hmsUsers) {
         const user = userTenant.user;
 
-        if (!userTenant.notifyByEmail || !userTenant.notifyRisks) continue;
+        if (userTenant.notificationsMuted || !userTenant.notifyByEmail || !userTenant.notifyRisks) continue;
 
         // Opprett notifikasjon i systemet
         await createNotification({
@@ -171,7 +171,7 @@ export async function checkCMRAndSubstitution() {
       for (const userTenant of hmsUsers) {
         const user = userTenant.user;
 
-        if (!userTenant.notifyByEmail) continue;
+        if (userTenant.notificationsMuted || !userTenant.notifyByEmail) continue;
 
         const cmrCount = dangerousChemicals.filter(c => c.isCMR).length;
         const svhcCount = dangerousChemicals.filter(c => c.isSVHC).length;

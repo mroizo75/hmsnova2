@@ -4,10 +4,12 @@ import { ArrowLeft } from "lucide-react";
 import { NewJobForm } from "@/features/jobs/components/new-job-form";
 import { listCachedCustomers } from "@/server/actions/accounting.actions";
 import { getAuthContext } from "@/lib/server-authorization";
+import { denyEmployeeTimeRegistration } from "@/server/time/employee-time-gate";
 
 export default async function NyJobbPage() {
   const ctx = await getAuthContext();
   if (!ctx) redirect("/login");
+  if (await denyEmployeeTimeRegistration(ctx)) redirect("/ansatt");
   if (!ctx.permissions.canCreateFieldProject) redirect("/ansatt/jobber");
 
   const customers = await listCachedCustomers();

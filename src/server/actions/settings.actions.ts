@@ -492,6 +492,40 @@ export async function updateUserExtraRoles(userId: string, roles: string[]) {
   }
 }
 
+export async function updateUserNotificationsMuted(userId: string, notificationsMuted: boolean) {
+  try {
+    const { user, tenantId } = await getSessionContext();
+    const actor = user.tenants.find((item) => item.tenantId === tenantId);
+    if (!actor) return { success: false, error: "Ikke innlogget" };
+
+    const canManage = getInvitableRoles(actor.role).length > 0;
+    if (!canManage && userId !== user.id) {
+      return { success: false, error: "Kun administratorer kan endre varsler for andre" };
+    }
+
+    const membership = await prisma.userTenant.findUnique({
+      where: { userId_tenantId: { userId, tenantId } },
+      select: { id: true },
+    });
+    if (!membership) return { success: false, error: "Brukeren finnes ikke i bedriften" };
+
+    await prisma.userTenant.update({
+      where: { userId_tenantId: { userId, tenantId } },
+      data: { notificationsMuted },
+    });
+
+    await AuditLog.log(tenantId, user.id, "USER_NOTIFICATIONS_MUTED", "User", userId, {
+      notificationsMuted,
+    });
+    revalidatePath("/dashboard/brukere");
+    triggerRealtimeEvent(tenantId, "settings-updated");
+    return { success: true };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Kunne ikke oppdatere varsler";
+    return { success: false, error: message };
+  }
+}
+
 export async function updateChiefSafetyRep(userId: string, isChiefSafetyRep: boolean) {
   try {
     const { user, tenantId } = await getSessionContext();

@@ -33,7 +33,7 @@ export function MobileNav() {
   const { isSimpleMode, toggleMode } = useSimpleMode();
   const { simpleMenuItems } = useSimpleMenuConfig();
   const { dashboardLocked } = useDashboardLock();
-  const { tenantFeatures, moduleVisibility, tenantIndustry } = useTenantNavContext();
+  const { tenantFeatures, moduleVisibility, tenantIndustry, timeRegistrationVisibleToEmployees } = useTenantNavContext();
   const [open, setOpen] = useState(false);
 
   const effectiveSimpleMode = isSimpleMode || dashboardLocked;
@@ -53,6 +53,7 @@ export function MobileNav() {
         corporateGroupId: session?.user?.corporateGroupId,
         tenantRole: session?.user?.role,
       }),
+      timeRegistrationVisibleToEmployees,
     }),
     (item) => t(item.label),
   );

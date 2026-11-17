@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { denyEmployeeTimeRegistration } from "@/server/time/employee-time-gate";
 import { fetchFieldJobDetail } from "@/server/queries/field-jobs.queries";
 import { JobDetailContent } from "@/features/jobs/components/job-detail-content";
 
@@ -13,6 +14,9 @@ export default async function JobbDetailPage({
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.tenantId) redirect("/login");
+  if (await denyEmployeeTimeRegistration({ tenantId: session.user.tenantId, role: "ANSATT" })) {
+    redirect("/ansatt");
+  }
   const { id } = await params;
   const data = await fetchFieldJobDetail(id);
   if (!data) notFound();

@@ -290,6 +290,7 @@ function TripletexSettingsPane({ isAdmin }: { isAdmin: boolean }) {
       employees={s.employees}
       txEmployees={s.txEmployees}
       projects={s.projects}
+      timeRegistrationVisibleToEmployees={s.timeRegistrationVisibleToEmployees !== false}
     />
   );
 }

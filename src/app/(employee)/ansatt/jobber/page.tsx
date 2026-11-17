@@ -3,12 +3,16 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { denyEmployeeTimeRegistration } from "@/server/time/employee-time-gate";
 import { fetchFieldJobs } from "@/server/queries/field-jobs.queries";
 import { FieldJobsContent } from "@/features/jobs/components/field-jobs-content";
 
 export default async function AnsattJobberPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.tenantId) redirect("/login");
+  if (await denyEmployeeTimeRegistration({ tenantId: session.user.tenantId, role: "ANSATT" })) {
+    redirect("/ansatt");
+  }
 
   const data = await fetchFieldJobs();
 

@@ -43,6 +43,7 @@ export default async function EmployeeLayout({
           where: { id: session.user.tenantId },
           select: {
             timeRegistrationEnabled: true,
+            timeRegistrationVisibleToEmployees: true,
             dashboardLocked: true,
             lockedDashboardConfig: true,
             ruhModuleEnabled: true,
@@ -60,6 +61,7 @@ export default async function EmployeeLayout({
   allWidgets = filterEmployeeWidgetsForAccounting(allWidgets, {
     timeRegistrationEnabled: tenant?.timeRegistrationEnabled,
     accountingProvider: tenant?.accountingProvider,
+    visibleToEmployees: tenant?.timeRegistrationVisibleToEmployees,
   });
 
   if (tenant && !tenant.ruhModuleEnabled) {

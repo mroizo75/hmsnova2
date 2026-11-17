@@ -16,6 +16,8 @@ import { assignmentsOverlap } from "../src/lib/time/resource-overlap";
 import { findCustomerDuplicate } from "../src/lib/time/customer-duplicate";
 import { buildOrderInvoicePath } from "../src/lib/accounting/invoice";
 import { filterEmployeeWidgetsForAccounting } from "../src/lib/accounting/widgets";
+import { planTripletexEmployeeActivation } from "../src/lib/accounting/employee-import-plan";
+import { employeeMayUseTimeRegistration } from "../src/lib/time/employee-time-access";
 import { getTimeReportDateRange } from "../src/lib/time/report-range";
 import nb from "../src/i18n/messages/nb.json";
 import en from "../src/i18n/messages/en.json";
@@ -106,6 +108,50 @@ test("Timer og Jobber vises når tidsregistrering er på", () => {
     filtered.map((w) => w.id),
     ["emp-time", "emp-jobs", "emp-sja"]
   );
+});
+
+test("ansatt ser ikke timeregistrering før den er åpnet", () => {
+  assert.equal(
+    employeeMayUseTimeRegistration({
+      role: "ANSATT",
+      timeRegistrationEnabled: true,
+      visibleToEmployees: false,
+    }),
+    false
+  );
+  assert.equal(
+    employeeMayUseTimeRegistration({
+      role: "LEDER",
+      timeRegistrationEnabled: true,
+      visibleToEmployees: false,
+    }),
+    true
+  );
+  const widgets = [{ id: "emp-time" }, { id: "emp-jobs" }, { id: "emp-sja" }];
+  const hidden = filterEmployeeWidgetsForAccounting(widgets, {
+    timeRegistrationEnabled: true,
+    visibleToEmployees: false,
+  });
+  assert.deepEqual(hidden.map((widget) => widget.id), ["emp-sja"]);
+});
+
+test("Tripletex-ansatt med e-post aktiveres, uten e-post hoppes over", () => {
+  const plan = planTripletexEmployeeActivation({
+    employees: [
+      { externalId: "1", firstName: "Ada", lastName: "Nord", email: "Ada@Firma.no", employeeNumber: "10" },
+      { externalId: "2", firstName: "Bo", lastName: "Sør", email: null },
+      { externalId: "3", firstName: "Cia", lastName: "Berg", email: "cia@firma.no" },
+    ],
+    members: [
+      { userId: "u3", email: "cia@firma.no", externalEmployeeId: null, employeeNumber: null },
+    ],
+  });
+  assert.equal(plan.toInvite.length, 1);
+  assert.equal(plan.toInvite[0]?.email, "ada@firma.no");
+  assert.equal(plan.toInvite[0]?.name, "Ada Nord");
+  assert.equal(plan.toLink.length, 1);
+  assert.equal(plan.toLink[0]?.userId, "u3");
+  assert.equal(plan.skippedNoEmail, 1);
 });
 
 test("nb og en har timesheet-nøkler", () => {

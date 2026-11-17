@@ -110,7 +110,7 @@ async function sendCriticalReclassificationAlert(reclass: any) {
     });
 
     // Send e-post (bruker innstillinger fra userTenant)
-    if (user.email && userTenant.notifyByEmail) {
+    if (!userTenant.notificationsMuted && user.email && userTenant.notifyByEmail) {
       await sendEmail({
         to: user.email,
         subject: "🚨 KRITISK: Kjemikalie omklassifisert til CMR",
@@ -193,7 +193,7 @@ export async function checkAgingSDS() {
       for (const userTenant of hmsUsers) {
         const user = userTenant.user;
 
-        if (!user.email || !userTenant.weeklyDigest) continue;
+        if (userTenant.notificationsMuted || !user.email || !userTenant.weeklyDigest) continue;
 
         await sendEmail({
           to: user.email,
@@ -300,7 +300,7 @@ export async function sendSupplierUpdateRequests() {
       for (const userTenant of hmsUsers) {
         const user = userTenant.user;
 
-        if (!user.email) continue;
+        if (userTenant.notificationsMuted || !user.email) continue;
 
         await sendEmail({
           to: user.email,

@@ -429,6 +429,8 @@ model Tenant {
 
   // Timeregistrering (prosjekter, timer, kjøring)
   timeRegistrationEnabled             Boolean                        @default(false) // Aktiver modul per tenant
+  /// false = ANSATT ser ikke timeregistrering. Admin og leder kan fortsatt prøve den.
+  timeRegistrationVisibleToEmployees  Boolean                        @default(true)
   employeesCanCreateProjects          Boolean                        @default(true) // ANSATT kan opprette prosjekt fra timeliste/jobber
   weeklyHoursNorm                     Float                          @default(37.5) // Ordinær uke (timer)
   overtime50Multiplier                Float                          @default(1.5) // Overtid 50 % = 1.5x
@@ -988,6 +990,9 @@ model UserTenant {
   phone       String? // Telefonnummer for denne tenanten
 
   // Varslingsinnstillinger (per tenant)
+  /// Slår av alle varsler for personen uten å endre rollen. Brukes når IT har admin-tilgang.
+  /// IK-HMS § 5: oppfølging av avvik må fortsatt ligge hos noen andre.
+  notificationsMuted Boolean @default(false)
   notifyByEmail      Boolean @default(true) // Motta e-postvarsler
   notifyBySms        Boolean @default(false) // Motta SMS-varsler (krever phone)
   reminderDaysBefore Int     @default(1) // Hvor mange dager før hendelser skal varsles

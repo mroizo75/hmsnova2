@@ -144,7 +144,7 @@ async function sendSDSUpdateNotification(
   for (const userTenant of hmsUsers) {
     const user = userTenant.user;
 
-    if (!user.email || !userTenant.notifyByEmail) continue;
+    if (userTenant.notificationsMuted || !user.email || !userTenant.notifyByEmail) continue;
 
     // Bruk eksisterande sendEmail (Resend)
     await sendEmail({

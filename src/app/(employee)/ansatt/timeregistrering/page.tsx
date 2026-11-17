@@ -10,6 +10,8 @@ import {
 } from "@/server/actions/time-registration.actions";
 import { fetchTimeRegistrationData } from "@/server/queries/time-registration.queries";
 import { TimeRegistrationContent } from "@/features/time-registration/components/time-registration-content";
+import { prisma } from "@/lib/db";
+import { employeeMayUseTimeRegistration } from "@/lib/time/employee-time-access";
 
 interface AnsattTimeregistreringPageProps {
   searchParams: Promise<{ projectId?: string }>;
@@ -27,9 +29,19 @@ export default async function AnsattTimeregistreringPage({
 
   const tenantId = session.user.tenantId;
 
-  const configRes = await getTimeRegistrationConfig(tenantId);
+  const [configRes, visibility] = await Promise.all([
+    getTimeRegistrationConfig(tenantId),
+    prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { timeRegistrationVisibleToEmployees: true },
+    }),
+  ]);
   const config = configRes.success ? configRes.data : null;
-  const enabled = config?.timeRegistrationEnabled ?? false;
+  const enabled = employeeMayUseTimeRegistration({
+    role: "ANSATT",
+    timeRegistrationEnabled: config?.timeRegistrationEnabled ?? false,
+    visibleToEmployees: visibility?.timeRegistrationVisibleToEmployees ?? true,
+  });
 
   if (!enabled) {
     return (

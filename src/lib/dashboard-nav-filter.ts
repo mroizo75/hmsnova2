@@ -57,6 +57,7 @@ export function filterDashboardNavItems(opts: {
   isSimpleMode: boolean;
   simpleMenuItems: string[] | null;
   hasKonsernMenu?: boolean;
+  timeRegistrationVisibleToEmployees?: boolean;
   items?: DashboardNavItemConfig[];
 }): DashboardNavItemConfig[] {
   const industryHrefs = aliasDashboardMenuHrefs(getIndustrySimpleHrefs(opts.tenantIndustry)) ?? [];
@@ -65,6 +66,13 @@ export function filterDashboardNavItems(opts: {
 
   return items.filter((item) => {
     if (item.requiresKonsern && !opts.hasKonsernMenu) return false;
+    if (
+      item.permission === "timeRegistration" &&
+      opts.role === "ANSATT" &&
+      opts.timeRegistrationVisibleToEmployees === false
+    ) {
+      return false;
+    }
     if (!opts.visibleNavItems[item.permission]) return false;
     if (item.feature && !opts.tenantFeatures?.includes(item.feature)) return false;
     if (!isNavItemAllowedForIndustry(item.industries, opts.tenantIndustry)) return false;
