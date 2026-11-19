@@ -31,7 +31,7 @@ export interface TimeEntryForReport {
   clockTo?: string | null;
   approvalStatus?: string | null;
   project: { name: string; code: string | null };
-  user: { id: string; name: string | null; email: string };
+  user: { id: string; name: string | null; email: string; payCategoryLabel?: string | null };
   editedBy: { name: string | null } | null;
 }
 
@@ -106,6 +106,7 @@ export async function generateTimeRegistrationExcel(
     { header: "Kode", key: "code", width: 12 },
     { header: "Timer", key: "hours", width: 8 },
     { header: "Type", key: "type", width: 14 },
+    { header: "Lønnstype", key: "payCategory", width: 22 },
     { header: "Status", key: "status", width: 16 },
     { header: "Kommentar", key: "comment", width: 30 },
   ];
@@ -133,6 +134,7 @@ export async function generateTimeRegistrationExcel(
       code: e.project.code || "",
       hours: Math.round(e.hours * 10) / 10,
       type: TIME_TYPE_LABELS[e.timeType] || e.timeType,
+      payCategory: e.user.payCategoryLabel || "",
       status: e.approvalStatus ? APPROVAL_LABELS[e.approvalStatus] ?? e.approvalStatus : "",
       comment: e.comment || "",
     });
@@ -296,6 +298,7 @@ export async function generateTimeRegistrationExcel(
 
   const payrollRows: Array<{
     name: string;
+    payCategory: string;
     normalHours: number;
     overtime40: number;
     overtime50: number;
@@ -366,6 +369,9 @@ export async function generateTimeRegistrationExcel(
 
     payrollRows.push({
       name: String(name),
+      payCategory:
+        timeEntries.find((entry) => entry.user.id === uid)?.user.payCategoryLabel ||
+        "",
       normalHours,
       overtime40,
       overtime50,
@@ -383,6 +389,7 @@ export async function generateTimeRegistrationExcel(
 
   payrollSheet.columns = [
     { header: "Navn", key: "name", width: 24 },
+    { header: "Lønnstype", key: "payCategory", width: 22 },
     { header: "Ordinær t", key: "normalHours", width: 10 },
     { header: "Overtid 40% t", key: "overtime40", width: 12 },
     { header: "Overtid 50% t", key: "overtime50", width: 12 },
@@ -466,6 +473,7 @@ export async function generateTimeRegistrationPdf(
       clock,
       `${(Math.round(e.hours * 10) / 10).toFixed(1)} t`,
       TIME_TYPE_LABELS[e.timeType] ?? e.timeType,
+      e.user.payCategoryLabel || "",
     ];
   });
 
@@ -496,7 +504,7 @@ export async function generateTimeRegistrationPdf(
         content: timeRows.length > 0
           ? [{
               type: "table" as const,
-              headers: ["Dato", "Ansatt", "Prosjekt", "Fra–til", "Timer", "Type"],
+              headers: ["Dato", "Ansatt", "Prosjekt", "Fra–til", "Timer", "Type", "Lønnstype"],
               rows: [...timeRows, ["", "", "Sum timer", "", `${totalHours.toFixed(1)} t`, ""]],
             }]
           : [{ type: "paragraph" as const, text: "Ingen timer registrert i perioden." }],

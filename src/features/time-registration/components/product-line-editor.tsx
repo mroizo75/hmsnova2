@@ -42,6 +42,7 @@ export function ProductLineEditor({
   const t = useTranslations("timesheet");
   const [kind, setKind] = useState<"PRODUCT" | "MACHINE">("PRODUCT");
   const [groupId, setGroupId] = useState("");
+  const [groupQuery, setGroupQuery] = useState("");
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<ProductHit[]>([]);
   const [qtyByProduct, setQtyByProduct] = useState<Record<string, string>>({});
@@ -103,6 +104,12 @@ export function ProductLineEditor({
         ))}
       </div>
       {groups.length > 0 && (
+        <>
+        <Input
+          value={groupQuery}
+          onChange={(e) => setGroupQuery(e.target.value)}
+          placeholder={t("groupSearch")}
+        />
         <select
           className="h-10 w-full rounded-md border bg-transparent px-3 text-sm"
           value={groupId}
@@ -110,26 +117,41 @@ export function ProductLineEditor({
         >
           <option value="">{t("allGroups")}</option>
           {groups
-            .filter((group) => !group.parentExternalId)
-            .map((group) => (
-              <optgroup key={group.externalId} label={group.name}>
-                <option value={group.externalId}>{group.name}</option>
-                {groups
-                  .filter((child) => child.parentExternalId === group.externalId)
-                  .map((child) => (
-                    <option key={child.externalId} value={child.externalId}>
-                      {child.name}
-                    </option>
-                  ))}
-              </optgroup>
-            ))}
+            .filter((group) => {
+              const needle = groupQuery.trim().toLowerCase();
+              if (needle) return group.name.toLowerCase().includes(needle);
+              return !group.parentExternalId;
+            })
+            .map((group) =>
+              group.parentExternalId || groupQuery.trim() ? (
+                <option key={group.externalId} value={group.externalId}>
+                  {group.name}
+                </option>
+              ) : (
+                <optgroup key={group.externalId} label={group.name}>
+                  <option value={group.externalId}>{group.name}</option>
+                  {groups
+                    .filter((child) => child.parentExternalId === group.externalId)
+                    .map((child) => (
+                      <option key={child.externalId} value={child.externalId}>
+                        {child.name}
+                      </option>
+                    ))}
+                </optgroup>
+              )
+            )}
         </select>
+        </>
       )}
       <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("productSearch")} />
       <div className="space-y-1">
         {hits.slice(0, 8).map((product) => (
           <div key={product.externalId} className="flex items-center gap-2 rounded-md border px-2 py-2">
-            <ProductIcon id={product.externalId} hasImage={Boolean(product.imageDocumentId)} onOpen={setPreview} />
+            <ProductIcon
+              id={product.externalId}
+              hasImage={Boolean(product.imageDocumentId)}
+              onOpen={setPreview}
+            />
             <div className="min-w-0 flex-1 text-sm">
               <p className="truncate font-medium">{product.name}</p>
               <p className="text-xs text-muted-foreground">
@@ -197,11 +219,17 @@ function ProductIcon({
   hasImage: boolean;
   onOpen: (id: string) => void;
 }) {
-  if (!hasImage) return <Package className="h-8 w-8 shrink-0 text-muted-foreground" />;
+  const [failed, setFailed] = useState(false);
+  if (!hasImage || failed) return <Package className="h-8 w-8 shrink-0 text-muted-foreground" />;
   return (
     <button type="button" className="shrink-0" onClick={() => onOpen(id)}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={`/api/accounting/product-image/${id}`} alt="" className="h-8 w-8 rounded object-cover" />
+      <img
+        src={`/api/accounting/product-image/${id}`}
+        alt=""
+        className="h-8 w-8 rounded object-cover"
+        onError={() => setFailed(true)}
+      />
     </button>
   );
 }

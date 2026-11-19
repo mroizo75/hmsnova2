@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getPermissions } from "@/lib/permissions";
 import { getTimeReportDateRange } from "@/lib/time/report-range";
+import { payCategoryLabel } from "@/lib/time/pay-category";
 import {
   generateTimeRegistrationExcel,
   generateTimeRegistrationPdf,
@@ -93,6 +94,8 @@ export async function GET(request: NextRequest) {
           select: {
             userId: true,
             displayName: true,
+            payCategory: true,
+            overtimeEligible: true,
             user: { select: { name: true, email: true } },
           },
         }),
@@ -136,10 +139,16 @@ export async function GET(request: NextRequest) {
       filterParts.push(name);
     }
 
+    const payByUser = new Map(
+      userTenants.map((row) => [row.userId, payCategoryLabel(row)])
+    );
     const reportData = {
       tenantName: tenant.name,
       dateRange: { from, to },
-      timeEntries,
+      timeEntries: timeEntries.map((entry) => ({
+        ...entry,
+        user: { ...entry.user, payCategoryLabel: payByUser.get(entry.user.id) ?? "" },
+      })),
       mileageEntries,
       userDisplayNames,
       filterSummary: filterParts.length > 0 ? filterParts.join(" · ") : undefined,

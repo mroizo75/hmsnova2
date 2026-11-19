@@ -2,7 +2,6 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -152,17 +151,24 @@ export function RuhDetailContent({ initialData, ruhId }: RuhDetailContentProps) 
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {images.map((img: any) => (
-                    <div key={img.id} className="relative aspect-video rounded-lg overflow-hidden border">
-                      <Image
+                    <a
+                      key={img.id}
+                      href={`/api/files/${img.fileKey}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="relative block aspect-video overflow-hidden rounded-lg border"
+                    >
+                      {/* Brukeropplastede filer krever innlogging. next/image henter uten økt og viser ødelagt bilde. */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
                         src={`/api/files/${img.fileKey}`}
                         alt={img.name}
-                        fill
-                        className="object-cover"
+                        className="absolute inset-0 h-full w-full object-cover"
                       />
                       <p className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 truncate">
                         {img.name}
                       </p>
-                    </div>
+                    </a>
                   ))}
                 </div>
               </CardContent>

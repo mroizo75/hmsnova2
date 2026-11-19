@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getAuthContext, requirePermission } from "@/lib/server-authorization";
-import { enqueueAccountingJob, ensureDefaultKmProducts, ensureDefaultSalaryTypes, ensureProjectSyncedToAccounting, refreshAccountingProjectsIfStale, requeueAccountingJob } from "@/lib/accounting/sync";
-import { isAccountingEnabled } from "@/lib/accounting/factory";
+import { enqueueAccountingJob, ensureDefaultKmProducts, ensureDefaultSalaryTypes, ensureProjectSyncedToAccounting, pullAccountingMaster, requeueAccountingJob } from "@/lib/accounting/sync";
+import { getAccountingProvider, isAccountingEnabled } from "@/lib/accounting/factory";
 import {
   canRetrySyncJob,
   formatSyncSubject,
@@ -16,7 +16,9 @@ import { canEnqueueTimesheetSync, isTimesheetEditableByEmployee } from "@/lib/ti
 import { clocksOverlap, splitDayHours, type DayRules } from "@/lib/time/split-day";
 import { assignmentCoversDate } from "@/lib/time/resource-overlap";
 import { applyTimeBankFactor, assertTimeBankBalance, nextTimeBankBalance, pickTimeBankFactor } from "@/lib/time/timebank";
-import { filterProductsByAndQuery, groupIdsWithDescendants, tokenizeProductQuery, uniqueProductCategories } from "@/lib/time/product-search";
+import { filterProductsByAndQuery, groupIdsWithDescendants, hasProductSearch, tokenizeProductQuery, uniqueProductCategories } from "@/lib/time/product-search";
+import { overtimeAllowed, payCategoryLabel } from "@/lib/time/pay-category";
+import { drivingRoute } from "@/lib/time/driving-distance";
 import { buildKmRegistration, type CarKind } from "@/lib/time/km-product";
 import type { ProjectUsageKind, TimeEntryType } from "@prisma/client";
 import { denyEmployeeTimeRegistration } from "@/server/time/employee-time-gate";
@@ -130,6 +132,11 @@ async function enqueueUsageLinesForDay(input: {
   }
 }
 
+/** @db.Date sammenlignes som UTC-midnatt. Lokal middag treffer ikke raden i MySQL. */
+function calendarDate(iso: string): Date {
+  return new Date(`${iso.slice(0, 10)}T00:00:00.000Z`);
+}
+
 function revalidateTimesheet() {
   revalidatePath("/ansatt/timeregistrering");
   revalidatePath("/ansatt/jobber");
@@ -162,7 +169,7 @@ export async function getDayTimesheetContext(dateIso: string, projectId?: string
   const ctx = await getAuthContext();
   if (!ctx) return { success: false as const, error: "Ikke autentisert" };
 
-  const date = new Date(`${dateIso.slice(0, 10)}T12:00:00`);
+  const date = calendarDate(dateIso);
   const [projects, entries, usage, products, tenantSettings, salaryTypes, assignments, absences, customers] =
     await Promise.all([
       prisma.project.findMany({
@@ -313,15 +320,31 @@ export async function searchTimesheetProducts(
   if (!ctx) return [];
   const words = tokenizeProductQuery(query).slice(0, 6);
   const groupId = options?.groupExternalId || null;
-  const groupIds = groupId
-    ? groupIdsWithDescendants(
-        await prisma.accountingProductGroup.findMany({
-          where: { tenantId: ctx.tenantId },
-          select: { externalId: true, parentExternalId: true },
-        }),
-        groupId
-      )
-    : null;
+  if (!hasProductSearch(query, groupId)) return [];
+  const allGroups = await prisma.accountingProductGroup.findMany({
+    where: { tenantId: ctx.tenantId },
+    select: { externalId: true, parentExternalId: true, name: true },
+  });
+  const selectedGroup = groupId ? allGroups.find((group) => group.externalId === groupId) : null;
+  const selectedNameMatches =
+    Boolean(selectedGroup) && words.length > 0 && words.every((word) => selectedGroup!.name.toLowerCase().includes(word));
+  const nameMatchedGroups =
+    words.length > 0 && !groupId
+      ? allGroups.filter((group) => words.every((word) => group.name.toLowerCase().includes(word)))
+      : [];
+  const nameGroupIds = [
+    ...new Set(nameMatchedGroups.flatMap((group) => groupIdsWithDescendants(allGroups, group.externalId))),
+  ];
+  const nameGroupProducts =
+    nameGroupIds.length === 0
+      ? []
+      : (
+          await prisma.accountingProductGroupMember.findMany({
+            where: { tenantId: ctx.tenantId, groupExternalId: { in: nameGroupIds } },
+            select: { productExternalId: true },
+          })
+        ).map((row) => row.productExternalId);
+  const groupIds = groupId ? groupIdsWithDescendants(allGroups, groupId) : null;
   const memberIds = groupIds
     ? (
         await prisma.accountingProductGroupMember.findMany({
@@ -335,12 +358,18 @@ export async function searchTimesheetProducts(
       tenantId: ctx.tenantId,
       isInactive: false,
       ...(memberIds ? { externalId: { in: memberIds.length > 0 ? memberIds : ["__none__"] } } : {}),
-      AND: words.map((word) => ({
-        OR: [
-          { name: { contains: word } },
-          { number: { contains: word } },
-        ],
-      })),
+      ...(words.length > 0 && !selectedNameMatches
+        ? {
+            OR: [
+              {
+                AND: words.map((word) => ({
+                  OR: [{ name: { contains: word } }, { number: { contains: word } }],
+                })),
+              },
+              ...(nameGroupProducts.length > 0 ? [{ externalId: { in: nameGroupProducts } }] : []),
+            ],
+          }
+        : {}),
     },
     orderBy: [{ number: "asc" }, { name: "asc" }],
     take: 80,
@@ -359,12 +388,13 @@ export async function searchGeonorgeAddresses(query: string) {
   if (q.length < 3) return [];
   const url = new URL("https://ws.geonorge.no/adresser/v1/sok");
   url.searchParams.set("sok", q);
-  url.searchParams.set("treffPerSide", "6");
-  url.searchParams.set("asciiKompatibel", "true");
+  url.searchParams.set("treffPerSide", "8");
+  url.searchParams.set("fuzzy", "true");
   const res = await fetch(url.toString(), { cache: "no-store" });
   if (!res.ok) return [];
   const data = (await res.json()) as {
     adresser?: Array<{
+      adresseid?: string;
       adressetekst?: string;
       postnummer?: string;
       poststed?: string;
@@ -373,6 +403,7 @@ export async function searchGeonorgeAddresses(query: string) {
   };
   return (data.adresser ?? [])
     .map((row) => ({
+      id: row.adresseid ?? [row.adressetekst, row.postnummer].filter(Boolean).join("-"),
       label: [row.adressetekst, row.postnummer, row.poststed].filter(Boolean).join(", "),
       lat: row.representasjonspunkt?.lat ?? 0,
       lon: row.representasjonspunkt?.lon ?? 0,
@@ -385,6 +416,7 @@ export async function searchTimesheetCustomers(query: string) {
   const ctx = await getAuthContext();
   if (!ctx) return [];
   const words = tokenizeProductQuery(query).slice(0, 5);
+  if (words.length === 0) return [];
   return prisma.accountingCustomer.findMany({
     where: {
       tenantId: ctx.tenantId,
@@ -399,7 +431,7 @@ export async function searchTimesheetCustomers(query: string) {
   });
 }
 
-/** «Oppdater fra Tripletex»-knappen: tving ny prosjektsynk. */
+/** «Oppdater fra Tripletex»: kunder, varer, kontakter, lønn, avdelinger og prosjekter. */
 export async function syncTimesheetProjectsNow() {
   const ctx = await getAuthContext();
   if (!ctx) return { success: false as const, error: "Ikke autentisert" };
@@ -407,13 +439,30 @@ export async function syncTimesheetProjectsNow() {
     return { success: false as const, error: "Ingen tilgang til timeregistrering" };
   }
   try {
-    await refreshAccountingProjectsIfStale(ctx.tenantId, 0, { force: true });
-    return { success: true as const };
+    const provider = await getAccountingProvider(ctx.tenantId);
+    if (!provider) return { success: false as const, error: "Tripletex er ikke koblet til" };
+    const counts = await pullAccountingMaster(ctx.tenantId);
+    return { success: true as const, data: counts };
   } catch (error: unknown) {
     return {
       success: false as const,
-      error: formatActionError(error, "Kunne ikke hente prosjekter fra Tripletex"),
+      error: formatActionError(error, "Kunne ikke oppdatere fra Tripletex"),
     };
+  }
+}
+
+export async function routeTimesheetKm(input: {
+  from: { lat: number; lon: number };
+  to: { lat: number; lon: number };
+}) {
+  const ctx = await getAuthContext();
+  if (!ctx) return { success: false as const, error: "Ikke autentisert" };
+  try {
+    const route = await drivingRoute(input.from, input.to);
+    if (!route) return { success: false as const, error: "Fant ikke kjøreavstand" };
+    return { success: true as const, data: { km: route.km, points: route.points } };
+  } catch (error: unknown) {
+    return { success: false as const, error: formatActionError(error, "Fant ikke kjøreavstand") };
   }
 }
 
@@ -450,8 +499,8 @@ export async function submitDayTimesheet(input: {
     }
 
     const comment = input.comment.trim();
-    if (comment.length < 2) {
-      return { success: false as const, error: "Kommentar er påkrevd" };
+    if (!input.clockTo.trim()) {
+      return { success: false as const, error: "Fyll ut til-tidspunkt" };
     }
 
     const project = await prisma.project.findFirst({
@@ -467,7 +516,7 @@ export async function submitDayTimesheet(input: {
       };
     }
 
-    const date = new Date(`${input.date.slice(0, 10)}T12:00:00`);
+    const date = calendarDate(input.date);
     const rules = await loadDayRules(ctx.tenantId);
     const lunchMinutes = input.lunchMinutes ?? rules.lunchMinutes;
     // Timer allerede ført i dag (andre prosjekt) teller med når overtid beregnes.
@@ -480,6 +529,10 @@ export async function submitDayTimesheet(input: {
       },
       _sum: { hours: true },
     });
+    const membership = await prisma.userTenant.findUnique({
+      where: { userId_tenantId: { userId: ctx.userId, tenantId: ctx.tenantId } },
+      select: { payCategory: true, overtimeEligible: true },
+    });
     const segments = splitDayHours({
       date,
       clockFrom: input.clockFrom,
@@ -487,6 +540,10 @@ export async function submitDayTimesheet(input: {
       lunchMinutes,
       rules,
       priorNetHours: Number(prior._sum.hours ?? 0),
+      overtimeEligible: overtimeAllowed({
+        payCategory: membership?.payCategory,
+        overtimeEligible: membership?.overtimeEligible,
+      }),
     });
     if (segments.length === 0) {
       return { success: false as const, error: "Ugyldig fra–til" };
@@ -750,8 +807,14 @@ export async function listTimesheetApprovalQueue(input?: {
             date: { in: entries.map((entry) => entry.date) },
           },
         });
+  const payRows = await prisma.userTenant.findMany({
+    where: { tenantId: ctx.tenantId, userId: { in: [...new Set(entries.map((entry) => entry.userId))] } },
+    select: { userId: true, payCategory: true, overtimeEligible: true },
+  });
+  const payByUser = new Map(payRows.map((row) => [row.userId, payCategoryLabel(row)]));
   const rows = entries.map((entry) => ({
     ...entry,
+    payCategoryLabel: payByUser.get(entry.userId) ?? "",
     project: {
       name: entry.project.name,
       parentName: entry.project.parent?.name ?? null,
@@ -770,6 +833,7 @@ export async function reviseApprovalDay(input: {
   billingActivityId?: string | null;
   salaryTypeId?: string | null;
   usage?: Array<{ id: string; quantity: number; fromAddress?: string; toAddress?: string }>;
+  removeUsageIds?: string[];
 }) {
   try {
     const ctx = await requirePermission("canApproveTimesheet");
@@ -778,9 +842,6 @@ export async function reviseApprovalDay(input: {
     });
     if (entries.length === 0) return { success: false as const, error: "Ingen linjer å endre" };
     const comment = input.comment?.trim();
-    if (comment !== undefined && comment.length < 2) {
-      return { success: false as const, error: "Kommentar er påkrevd" };
-    }
     const first = entries[0];
     if (!first) return { success: false as const, error: "Ingen linjer å endre" };
     const clockFrom = input.clockFrom || first.clockFrom || "07:00";
@@ -796,6 +857,10 @@ export async function reviseApprovalDay(input: {
         lunchBreakMinutes: true,
       },
     });
+    const membership = await prisma.userTenant.findUnique({
+      where: { userId_tenantId: { userId: first.userId, tenantId: ctx.tenantId } },
+      select: { payCategory: true, overtimeEligible: true },
+    });
     const segments = splitDayHours({
       date: first.date,
       clockFrom,
@@ -808,6 +873,10 @@ export async function reviseApprovalDay(input: {
         saturdayOt50UntilHour: tenant?.saturdayOt50UntilHour ?? 12,
         lunchMinutes: tenant?.lunchBreakMinutes ?? 30,
       },
+      overtimeEligible: overtimeAllowed({
+        payCategory: membership?.payCategory,
+        overtimeEligible: membership?.overtimeEligible,
+      }),
     });
     for (const entry of entries) {
       const segment = segments.find((row) => row.timeType === entry.timeType);
@@ -824,6 +893,15 @@ export async function reviseApprovalDay(input: {
           salaryTypeId: input.salaryTypeId !== undefined && input.salaryTypeId ? input.salaryTypeId : entry.salaryTypeId,
           editedById: ctx.userId,
           editedAt: new Date(),
+        },
+      });
+    }
+    if (input.removeUsageIds && input.removeUsageIds.length > 0) {
+      await prisma.projectUsageLine.deleteMany({
+        where: {
+          id: { in: input.removeUsageIds },
+          tenantId: ctx.tenantId,
+          syncStatus: { not: "SYNCED" },
         },
       });
     }
@@ -1097,7 +1175,7 @@ export async function listAccountingSyncLog() {
         date: line?.date.toISOString().slice(0, 10) ?? null,
         product:
           line?.kind === "KM"
-            ? `${line.quantity} km · ${line.isPrivateCar ? "privatbil" : "firmabil"}`
+            ? `${line.quantity} km · ${line.isPrivateCar ? "privat servicebil" : "servicebil"}`
             : line?.productName,
         quantity: line?.kind === "KM" ? null : line?.quantity,
       });
@@ -1186,7 +1264,7 @@ export async function addUsageToDay(input: {
       return { success: false as const, error: input.kind === "KM" ? "Antall km må være over 0" : "Antall må være større enn 0" };
     }
 
-    const date = new Date(`${input.date.slice(0, 10)}T12:00:00`);
+    const date = calendarDate(input.date);
     const project = await prisma.project.findFirst({
       where: { id: input.projectId, tenantId: ctx.tenantId },
     });

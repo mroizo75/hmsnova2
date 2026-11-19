@@ -18,10 +18,12 @@ import {
   disconnectTripletex,
   saveTripletexMapping,
   mapTenantEmployee,
+  setEmployeeOvertimeEligible,
   refreshTripletexCatalog,
   setTimeRegistrationVisibleToEmployees,
   activateTripletexEmployees,
 } from "@/server/actions/accounting.actions";
+import { payCategoryLabel } from "@/lib/time/pay-category";
 
 type Activity = { externalId: string; name: string; number?: string | null };
 type Product = { externalId: string; name: string; number?: string | null; unit?: string | null };
@@ -31,6 +33,8 @@ type Employee = {
   email: string;
   employeeNumber: string | null;
   externalEmployeeId: string | null;
+  payCategory?: string | null;
+  overtimeEligible?: boolean;
 };
 
 interface TripletexIntegrationProps {
@@ -421,10 +425,27 @@ export function TripletexIntegration({
                 {activating ? "Aktiverer…" : "Hent og aktiver ansatte"}
               </Button>
               {employees.map((emp) => (
-                <div key={emp.userId} className="flex items-center gap-2 text-sm">
+                <div key={emp.userId} className="flex flex-wrap items-center gap-2 text-sm">
                   <span className="min-w-0 flex-1 truncate">
                     {emp.name ?? emp.email}
+                    {payCategoryLabel(emp) ? ` · ${payCategoryLabel(emp)}` : ""}
                   </span>
+                  <label className="flex items-center gap-1 text-xs">
+                    <input
+                      type="checkbox"
+                      checked={emp.payCategory === "MONTHLY" ? Boolean(emp.overtimeEligible) : true}
+                      disabled={!isAdmin || emp.payCategory !== "MONTHLY"}
+                      onChange={async (e) => {
+                        const res = await setEmployeeOvertimeEligible(emp.userId, e.target.checked);
+                        if (!res.success) {
+                          toast({ title: "Feil", description: res.error, variant: "destructive" });
+                          return;
+                        }
+                        await reloadSettings();
+                      }}
+                    />
+                    Overtid
+                  </label>
                   <select
                     className="h-9 rounded-md border bg-transparent px-2 text-sm"
                     value={emp.externalEmployeeId ?? ""}

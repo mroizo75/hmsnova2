@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, Suspense } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { startOfWeek, format } from "date-fns";
@@ -31,6 +31,8 @@ interface TimeRegistrationContentProps {
   role: string;
   selectedProjectId?: string;
   initialTab?: string;
+  initialDate?: string;
+  initialMode?: "work" | "absence";
 }
 
 export function TimeRegistrationContent({
@@ -39,6 +41,8 @@ export function TimeRegistrationContent({
   role,
   selectedProjectId,
   initialTab,
+  initialDate,
+  initialMode = "work",
 }: TimeRegistrationContentProps) {
   const t = useTranslations("timesheet");
   const queryClient = useQueryClient();
@@ -51,6 +55,8 @@ export function TimeRegistrationContent({
     queryKey: ["time-registration"],
     queryFn: () => fetchTimeRegistrationData(),
     initialData,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: weekData, refetch: refetchWeek } = useQuery({
@@ -177,10 +183,14 @@ export function TimeRegistrationContent({
           )}
         </TabsList>
 
-        <TabsContent value="day" forceMount className="data-[state=inactive]:hidden">
-          <Suspense fallback={<p className="text-sm text-muted-foreground">{t("loading")}</p>}>
-            <DayTimesheetScreen isEmployee={isEmployee} />
-          </Suspense>
+        <TabsContent value="day">
+          <DayTimesheetScreen
+            isEmployee={isEmployee}
+            initialDate={initialDate}
+            initialProjectId={selectedProjectId}
+            initialMode={initialMode}
+            active={tab === "day"}
+          />
         </TabsContent>
 
         <TabsContent value="week" className="space-y-4">

@@ -60,6 +60,12 @@ export class FikenAccountingAdapter implements AccountingProvider {
   listSalaryTypes(): never {
     throw new AccountingProviderNotImplementedError("Fiken");
   }
+  listDepartments(): never {
+    throw new AccountingProviderNotImplementedError("Fiken");
+  }
+  listEmployeePay(): never {
+    throw new AccountingProviderNotImplementedError("Fiken");
+  }
   listEmployees(): never {
     throw new AccountingProviderNotImplementedError("Fiken");
   }

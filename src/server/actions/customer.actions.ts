@@ -121,8 +121,8 @@ export async function createCustomerContact(input: {
     });
     const email = input.email?.trim().toLowerCase() ?? "";
     const phone = input.phone?.trim() ?? "";
-    if (!email || !phone) {
-      return { success: false as const, error: "Kontaktperson krever e-post og telefon" };
+    if (!phone) {
+      return { success: false as const, error: "Kontaktperson krever telefon" };
     }
     const dup = existing.find(
       (c) =>

@@ -17,6 +17,11 @@ export function projectDisplayLabel(p: PickableProject): string {
   return p.clientName ? `${withParent} · ${p.clientName}` : withParent;
 }
 
+/** Tomt søk skal ikke liste prosjektene. Minst to tegn, som kundesøk. */
+export function hasProjectSearch(query: string): boolean {
+  return query.trim().length >= 2;
+}
+
 /** AND-søk: alle ord må finnes i nummer, navn, kunde eller hovedprosjekt. */
 export function projectMatchesQuery(p: PickableProject, query: string): boolean {
   const words = tokenizeProductQuery(query);

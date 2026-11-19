@@ -105,7 +105,7 @@ export const PUBLIC_FEATURE_GROUPS: PublicFeatureGroup[] = [
       },
       {
         name: "Leverandører",
-        description: "Vurdering og oppfølging av leverandører. ISO 9001 kap. 8.4.",
+        description: "Vurdering, selvevaluering og oppfølging av leverandører. ISO 9001 kap. 8.4.",
         moduleHref: "/dashboard/leverandorer",
       },
       {

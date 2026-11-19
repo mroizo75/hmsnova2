@@ -114,6 +114,11 @@ model User {
   feedbackRecorded                CustomerFeedback[]             @relation("FeedbackRecorder")
   feedbackFollowUp                CustomerFeedback[]             @relation("FeedbackFollowUpOwner")
   suppliersApproved               Supplier[]                     @relation("SupplierApprover")
+  supplierEvaluationsRecorded     SupplierEvaluation[]           @relation("SupplierEvaluationAuthor")
+  supplierDocumentsCreated        SupplierDocument[]             @relation("SupplierDocumentAuthor")
+  supplierAssessmentsCreated      SupplierAssessment[]           @relation("SupplierAssessmentCreator")
+  supplierAssessmentsReviewed     SupplierAssessment[]           @relation("SupplierAssessmentReviewer")
+  supplierFormsEdited             SupplierFormTemplate[]         @relation("SupplierFormEditor")
   satisfactionSurveysCreated      SatisfactionSurvey[]           @relation("SatisfactionSurveyCreator")
   notifications                   Notification[]
   notificationPushTokens          NotificationPushToken[]
@@ -345,6 +350,10 @@ model Tenant {
   customerFeedbacks                   CustomerFeedback[]
   satisfactionSurvey                  SatisfactionSurvey?
   suppliers                           Supplier[]
+  supplierEvaluations                 SupplierEvaluation[]
+  supplierDocuments                   SupplierDocument[]
+  supplierAssessments                 SupplierAssessment[]
+  supplierFormTemplate                SupplierFormTemplate?
   incidents                           Incident[]
   incidentPeriodAnalyses              IncidentPeriodAnalysis[]
   trainings                           Training[]
@@ -416,6 +425,7 @@ model Tenant {
   accountingCustomers                 AccountingCustomer[]
   accountingProducts                  AccountingProduct[]
   accountingContacts                  AccountingContact[]
+  accountingDepartments               AccountingDepartment[]
   accountingSalaryTypes               AccountingSalaryType[]
   accountingActivities                AccountingActivity[]
   accountingProductGroups             AccountingProductGroup[]
@@ -988,6 +998,10 @@ model UserTenant {
   // Tenant-spesifikke brukerinnstillinger (kan være ulike per tenant)
   displayName String? // Visningsnavn i denne tenanten (kan være annerledes enn User.name)
   phone       String? // Telefonnummer for denne tenanten
+  /// Tripletex remunerationType: HOURLY (timelønn) eller MONTHLY (fastlønn).
+  payCategory      String?
+  /// Fastlønn med overtid når payCategory er MONTHLY og dette er på. Timelønn har alltid overtid.
+  overtimeEligible Boolean @default(true)
 
   // Varslingsinnstillinger (per tenant)
   /// Slår av alle varsler for personen uten å endre rollen. Brukes når IT har admin-tilgang.
@@ -2692,9 +2706,20 @@ model Supplier {
   name          String
   orgNumber     String?
   scope         String?              @db.Text
+  /// Kontakt som kravene etter ISO 9001:2015 pkt. 8.4.3 kommuniseres til.
+  contactName   String?
+  contactEmail  String?
+  contactPhone  String?
+  /// Arbeid hos virksomheten eller på felles arbeidsplass. AML § 2-2.
+  worksOnSite   Boolean              @default(false)
   status        SupplierStatus       @default(PENDING)
   criticality   SupplierCriticality  @default(MEDIUM)
+  /// ISO 9001:2015 pkt. 8.4.1: kriterier for vurdering, valg og re-evaluering.
   criteria      String?              @db.Text
+  /// ISO 9001:2015 pkt. 8.4.2: type og omfang av styring.
+  controls      String?              @db.Text
+  /// ISO 9001:2015 pkt. 8.4.3: krav som er kommunisert til leverandøren.
+  requirements  String?              @db.Text
   approvedById  String?
   approvedAt    DateTime?
   validUntil    DateTime?
@@ -2703,14 +2728,181 @@ model Supplier {
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
 
-  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  approvedBy User?      @relation("SupplierApprover", fields: [approvedById], references: [id], onDelete: SetNull)
-  audits     Audit[]
-  incidents  Incident[]
+  tenant      Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  approvedBy  User?                @relation("SupplierApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  audits      Audit[]
+  incidents   Incident[]
+  evaluations SupplierEvaluation[]
+  documents   SupplierDocument[]
+  assessments SupplierAssessment[]
 
   @@index([tenantId])
   @@index([status])
   @@index([nextReviewAt])
+}
+
+enum SupplierEvaluationMethod {
+  SELF_ASSESSMENT
+  AUDIT
+  PERFORMANCE
+  DOCUMENT_REVIEW
+}
+
+enum SupplierEvaluationOutcome {
+  APPROVED
+  CONDITIONAL
+  REJECTED
+  SUSPENDED
+}
+
+/// ISO 9001:2015 pkt. 8.4.1: dokumentert informasjon om vurdering og nødvendige tiltak.
+model SupplierEvaluation {
+  id           String                     @id @default(cuid())
+  tenantId     String
+  supplierId   String
+  method       SupplierEvaluationMethod
+  outcome      SupplierEvaluationOutcome
+  summary      String                     @db.Text
+  actions      String?                    @db.Text
+  evaluatedAt  DateTime
+  evaluatedById String
+  nextReviewAt DateTime?
+  assessmentId String?                    @unique
+  createdAt    DateTime                   @default(now())
+
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplier    Supplier            @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  evaluatedBy User                @relation("SupplierEvaluationAuthor", fields: [evaluatedById], references: [id], onDelete: Restrict)
+  assessment  SupplierAssessment? @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([supplierId])
+  @@index([evaluatedAt])
+}
+
+enum SupplierDocumentKind {
+  CERTIFICATE
+  INSURANCE
+  APPROVAL
+  COMPETENCE
+  OTHER
+}
+
+model SupplierDocument {
+  id          String               @id @default(cuid())
+  tenantId    String
+  supplierId  String
+  title       String
+  kind        SupplierDocumentKind
+  reference   String?
+  expiresAt   DateTime?
+  fileKey     String?
+  fileName    String?
+  mimeType    String?
+  notes       String?              @db.Text
+  createdById String
+  createdAt   DateTime             @default(now())
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplier  Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  createdBy User     @relation("SupplierDocumentAuthor", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([tenantId])
+  @@index([supplierId])
+  @@index([expiresAt])
+}
+
+enum SupplierAssessmentStatus {
+  SENT
+  ANSWERED
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
+/// Selvevaluering sendt til leverandøren. Svaret er underlag for pkt. 8.4.1.
+model SupplierAssessment {
+  id                   String                    @id @default(cuid())
+  tenantId             String
+  supplierId           String
+  token                String                    @unique
+  status               SupplierAssessmentStatus  @default(SENT)
+  dueAt                DateTime
+  sentAt               DateTime
+  sentToEmail          String
+  requirementsSnapshot String                    @db.Text
+  controlsSnapshot     String                    @db.Text
+  worksOnSite          Boolean                   @default(false)
+  respondentName       String?
+  respondentEmail      String?
+  confirmsRequirements Boolean?
+  competence           String?                   @db.Text
+  ownControls          String?                   @db.Text
+  subcontracting       String?                   @db.Text
+  certifications       String?                   @db.Text
+  recentDeviations     String?                   @db.Text
+  acceptsMonitoring    Boolean?
+  coordinationContact  String?
+  hmsSystem            String?                   @db.Text
+  answeredAt           DateTime?
+  reviewNote           String?                   @db.Text
+  reviewedById         String?
+  reviewedAt           DateTime?
+  reminderSentAt       DateTime?
+  /// Spørsmålene slik de var da skjemaet ble sendt. Senere endringer i malen endrer ikke utsendte skjema.
+  questionsSnapshot    String?                   @db.Text
+  /// Svarene slik leverandøren sendte dem inn.
+  answersSnapshot      String?                   @db.Text
+  createdById          String
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+
+  tenant     Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplier   Supplier            @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  createdBy  User                @relation("SupplierAssessmentCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  reviewedBy User?               @relation("SupplierAssessmentReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  evaluation SupplierEvaluation?
+
+  @@index([tenantId])
+  @@index([supplierId])
+  @@index([status])
+  @@index([dueAt])
+  @@index([token])
+}
+
+enum SupplierQuestionType {
+  TEXT
+  TEXTAREA
+  YES_NO
+}
+
+/// Ett selvevalueringsskjema per bedrift. Spørsmålene defineres av kunden.
+model SupplierFormTemplate {
+  id          String   @id @default(cuid())
+  tenantId    String   @unique
+  title       String   @default("Selvevaluering")
+  updatedById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant    Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  updatedBy User                   @relation("SupplierFormEditor", fields: [updatedById], references: [id], onDelete: Restrict)
+  questions SupplierFormQuestion[]
+
+  @@index([updatedById])
+}
+
+model SupplierFormQuestion {
+  id         String               @id @default(cuid())
+  templateId String
+  label      String               @db.VarChar(300)
+  helpText   String?              @db.Text
+  fieldType  SupplierQuestionType
+  required   Boolean              @default(true)
+  sortOrder  Int
+  template   SupplierFormTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([templateId, sortOrder])
 }
 
 // ISO 9001:2015 pkt. 9.1.2: offentlig lenke for innhenting av kundetilfredshet.
@@ -4927,6 +5119,9 @@ model Project {
   externalOrderId    String?
   parentId           String?
   contactExternalId  String?
+  contactName        String?
+  contactPhone       String?
+  departmentExternalId String?
   isAbsenceProject   Boolean       @default(false)
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
@@ -5422,6 +5617,20 @@ model AccountingContact {
 
   @@unique([tenantId, externalId])
   @@index([tenantId, customerExternalId])
+}
+
+model AccountingDepartment {
+  id         String   @id @default(cuid())
+  tenantId   String
+  externalId String
+  name       String
+  number     String?
+  updatedAt  DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, externalId])
+  @@index([tenantId])
 }
 
 model AccountingSalaryType {

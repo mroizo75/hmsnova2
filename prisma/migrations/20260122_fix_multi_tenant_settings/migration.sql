@@ -20,25 +20,13 @@ ALTER TABLE `UserTenant`
   ADD COLUMN `dailyDigest` BOOLEAN NOT NULL DEFAULT false,
   ADD COLUMN `weeklyDigest` BOOLEAN NOT NULL DEFAULT true;
 
--- Migrer eksisterende data fra User til UserTenant
+-- Varslingsfeltene fantes ikke på User i migrasjonshistorikken.
+-- UserTenant-kolonnene over har samme standardverdier, så kopien trenger bare navn og telefon.
 UPDATE `UserTenant` ut
 INNER JOIN `User` u ON ut.userId = u.id
-SET 
+SET
   ut.displayName = u.name,
-  ut.phone = u.phone,
-  ut.notifyByEmail = u.notifyByEmail,
-  ut.notifyBySms = u.notifyBySms,
-  ut.reminderDaysBefore = u.reminderDaysBefore,
-  ut.notifyMeetings = u.notifyMeetings,
-  ut.notifyInspections = u.notifyInspections,
-  ut.notifyAudits = u.notifyAudits,
-  ut.notifyMeasures = u.notifyMeasures,
-  ut.notifyIncidents = u.notifyIncidents,
-  ut.notifyDocuments = u.notifyDocuments,
-  ut.notifyTraining = u.notifyTraining,
-  ut.notifyRisks = u.notifyRisks,
-  ut.dailyDigest = u.dailyDigest,
-  ut.weeklyDigest = u.weeklyDigest;
+  ut.phone = u.phone;
 
 -- OBS: Vi beholder kolonnene på User-tabellen for nå for bakoverkompatibilitet
 -- De kan fjernes i en senere migrasjon når all kode er oppdatert

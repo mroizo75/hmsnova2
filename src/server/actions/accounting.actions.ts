@@ -135,6 +135,8 @@ export async function getAccountingSettings() {
         email: e.user.email,
         employeeNumber: e.employeeNumber,
         externalEmployeeId: e.externalEmployeeId,
+        payCategory: e.payCategory,
+        overtimeEligible: e.overtimeEligible,
       })),
       unmatchedCount: employees.filter((e) => !e.externalEmployeeId).length,
       projects,
@@ -436,6 +438,20 @@ export async function activateTripletexEmployees() {
   }
 }
 
+export async function setEmployeeOvertimeEligible(userId: string, overtimeEligible: boolean) {
+  try {
+    const ctx = await requirePermission("canUpdateSettings");
+    await prisma.userTenant.update({
+      where: { userId_tenantId: { userId, tenantId: ctx.tenantId } },
+      data: { overtimeEligible },
+    });
+    revalidatePath("/dashboard/settings");
+    return { success: true as const };
+  } catch (error: unknown) {
+    return { success: false as const, error: formatActionError(error, "Kunne ikke lagre overtid") };
+  }
+}
+
 export async function mapTenantEmployee(userId: string, externalEmployeeId: string) {
   try {
     const ctx = await requirePermission("canUpdateSettings");
@@ -453,18 +469,16 @@ export async function mapTenantEmployee(userId: string, externalEmployeeId: stri
 export async function listCachedCustomers(query?: string) {
   const ctx = await getAuthContext();
   if (!ctx) return [];
+  const trimmed = query?.trim() ?? "";
+  if (trimmed.length < 2) return [];
   return prisma.accountingCustomer.findMany({
     where: {
       tenantId: ctx.tenantId,
       isInactive: false,
-      ...(query
-        ? {
-            OR: [
-              { name: { contains: query } },
-              { organizationNumber: { contains: query } },
-            ],
-          }
-        : {}),
+      OR: [
+        { name: { contains: trimmed } },
+        { organizationNumber: { contains: trimmed } },
+      ],
     },
     orderBy: { name: "asc" },
     take: 50,
@@ -474,6 +488,7 @@ export async function listCachedCustomers(query?: string) {
 export async function listCachedProducts(query?: string) {
   const ctx = await getAuthContext();
   if (!ctx) return [];
+  if ((query?.trim() ?? "").length < 2) return [];
   const products = await prisma.accountingProduct.findMany({
     where: { tenantId: ctx.tenantId, isInactive: false },
     orderBy: { name: "asc" },
@@ -484,8 +499,8 @@ export async function listCachedProducts(query?: string) {
 
 export async function listFieldJobOptions() {
   const ctx = await getAuthContext();
-  if (!ctx) return { managers: [], templates: [], defaultTemplateId: null as string | null };
-  const [managers, templates, tenant] = await Promise.all([
+  if (!ctx) return { managers: [], templates: [], departments: [], defaultTemplateId: null as string | null };
+  const [managers, templates, departments, tenant] = await Promise.all([
     prisma.userTenant.findMany({
       where: { tenantId: ctx.tenantId, externalEmployeeId: { not: null } },
       include: { user: { select: { name: true, email: true } } },
@@ -496,6 +511,11 @@ export async function listFieldJobOptions() {
       select: { name: true, externalProjectId: true },
       orderBy: { name: "asc" },
       take: 200,
+    }),
+    prisma.accountingDepartment.findMany({
+      where: { tenantId: ctx.tenantId },
+      select: { externalId: true, name: true },
+      orderBy: { name: "asc" },
     }),
     prisma.tenant.findUnique({
       where: { id: ctx.tenantId },
@@ -516,6 +536,7 @@ export async function listFieldJobOptions() {
     templates: ordered
       .filter((row): row is { name: string; externalProjectId: string } => Boolean(row.externalProjectId))
       .map((row) => ({ externalId: row.externalProjectId, name: row.name })),
+    departments,
     defaultTemplateId,
   };
 }
@@ -528,6 +549,9 @@ export async function createFieldJob(input: {
   jobKind?: "SERVICE" | "HMS";
   parentId?: string;
   contactExternalId?: string;
+  contactName?: string;
+  contactPhone?: string;
+  departmentExternalId?: string;
   reference?: string;
   startDate?: string;
   projectManagerId?: string;
@@ -552,7 +576,16 @@ export async function createFieldJob(input: {
 
     const name = input.name.trim();
     if (name.length < 2) {
-      return { success: false as const, error: "Skriv hva som skal gjøres" };
+      return { success: false as const, error: "Skriv prosjektnavn" };
+    }
+    const accountingOn = isAccountingEnabled(tenant?.accountingProvider);
+    if (accountingOn && !input.priceTemplateExternalId?.trim()) {
+      return { success: false as const, error: "Velg malprosjekt å hente priser fra" };
+    }
+    const contactName = input.contactName?.trim() ?? "";
+    const contactPhone = input.contactPhone?.trim() ?? "";
+    if (!input.contactExternalId && !(contactName && contactPhone)) {
+      return { success: false as const, error: "Kontaktperson med telefon er påkrevd" };
     }
 
     let clientName: string | null = null;
@@ -601,6 +634,9 @@ export async function createFieldJob(input: {
         externalCustomerId,
         parentId,
         contactExternalId: input.contactExternalId || null,
+        contactName: contactName || null,
+        contactPhone: contactPhone || null,
+        departmentExternalId: input.departmentExternalId || null,
         projectManagerId: input.projectManagerId || null,
         createdById: ctx.userId,
       },

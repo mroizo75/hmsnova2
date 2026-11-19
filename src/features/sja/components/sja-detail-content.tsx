@@ -27,7 +27,6 @@ import {
   Zap,
   ClipboardList,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { ResourceHistory } from "@/components/shared/resource-history";
 import { fetchSjaDetail } from "@/server/queries/sja.queries";
@@ -296,17 +295,24 @@ export function SjaDetailContent({ initialData, history }: SjaDetailContentProps
                   {analysis.attachments
                     .filter((a: any) => a.mime.startsWith("image/"))
                     .map((img: any) => (
-                      <div key={img.id} className="relative aspect-video rounded-lg overflow-hidden border">
-                        <Image
+                      <a
+                        key={img.id}
+                        href={`/api/files/${img.fileKey}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="relative block aspect-video overflow-hidden rounded-lg border"
+                      >
+                        {/* Brukeropplastede filer krever innlogging. next/image henter uten økt og viser ødelagt bilde. */}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
                           src={`/api/files/${img.fileKey}`}
                           alt={img.name}
-                          fill
-                          className="object-cover"
+                          className="absolute inset-0 h-full w-full object-cover"
                         />
                         <p className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 truncate">
                           {img.name}
                         </p>
-                      </div>
+                      </a>
                     ))}
                 </div>
               </CardContent>

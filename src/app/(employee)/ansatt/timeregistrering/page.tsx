@@ -14,7 +14,7 @@ import { prisma } from "@/lib/db";
 import { employeeMayUseTimeRegistration } from "@/lib/time/employee-time-access";
 
 interface AnsattTimeregistreringPageProps {
-  searchParams: Promise<{ projectId?: string }>;
+  searchParams: Promise<{ projectId?: string; date?: string; mode?: string }>;
 }
 
 export default async function AnsattTimeregistreringPage({
@@ -67,7 +67,7 @@ export default async function AnsattTimeregistreringPage({
   }
 
   const initialData = await fetchTimeRegistrationData();
-  const { projectId } = await searchParams;
+  const { projectId, date, mode } = await searchParams;
 
   return (
     <div className="space-y-6">
@@ -84,6 +84,8 @@ export default async function AnsattTimeregistreringPage({
         isAdmin={false}
         role="ANSATT"
         selectedProjectId={projectId}
+        initialDate={date}
+        initialMode={mode === "absence" ? "absence" : "work"}
       />
     </div>
   );

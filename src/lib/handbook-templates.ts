@@ -715,10 +715,11 @@ export const DEFAULT_KS_SECTIONS: HandbookHrSectionDef[] = [
     moduleLink: "/dashboard/leverandorer",
     content: `<h3>Styring av leverandører</h3>
 <p>Varer og tjenester som påvirker kvaliteten på det {{bedriftsnavn}} leverer, skal kjøpes fra leverandører som kan oppfylle kravene, jf. ISO 9001:2015 pkt. 8.4.</p>
-<h3>Vurdering</h3>
-<p>Før innkjøp av kritiske varer eller tjenester vurderes leverandøren ut fra kravene til leveransen, tidligere erfaring og eventuelle lovpålagte godkjenninger. Vurderingen tilpasses risiko og omfang.</p>
-<h3>Oppfølging</h3>
-<p>Feil fra leverandør registreres som avvik. Gjentakende feil tas opp med leverandøren og vurderes på nytt før neste innkjøp.</p>`,
+<h3>Krav og styring</h3>
+<p>Før innkjøp skal kravene til leveransen, kompetansen og hvordan leveransen kontrolleres, være kjent for leverandøren. Styringen tilpasses risiko og omfang, jf. ISO 9001:2015 pkt. 8.4.2 og 8.4.3.</p>
+<h3>Vurdering og re-evaluering</h3>
+<p>Vurderingen dokumenteres i leverandørregisteret. Den kan bygge på selvevaluering, dokumentasjon, tidligere leveranser eller leverandørrevisjon. Godkjente leverandører vurderes på nytt innen avtalt dato. Feil fra leverandør registreres som avvik, og nødvendige tiltak følges opp.</p>
+<p>Når leverandøren arbeider hos {{bedriftsnavn}} eller på en felles arbeidsplass, avklares samordning etter arbeidsmiljøloven § 2-2.</p>`,
   },
 ];
 

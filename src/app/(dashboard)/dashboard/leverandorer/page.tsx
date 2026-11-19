@@ -33,14 +33,19 @@ export default async function SuppliersPage() {
           <div>
             <h1 className="text-3xl font-bold">Leverandører</h1>
             <p className="text-muted-foreground">
-              Godkjenning, kriterier, evaluering og re-evaluering (ISO 9001:2015 pkt. 8.4).
+              Godkjenning, krav, selvevaluering og re-evaluering (ISO 9001:2015 pkt. 8.4).
             </p>
           </div>
           <PageHelpDialog content={helpContent.suppliers} />
         </div>
-        <Button asChild>
-          <Link href="/dashboard/leverandorer/ny">Ny leverandør</Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild variant="outline">
+            <Link href="/dashboard/leverandorer/skjema">Selvevalueringsskjema</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/dashboard/leverandorer/ny">Ny leverandør</Link>
+          </Button>
+        </div>
       </div>
 
       {suppliers.length === 0 ? (
@@ -55,6 +60,7 @@ export default async function SuppliersPage() {
                 <th className="px-4 py-3 font-medium">Kritikalitet</th>
                 <th className="px-4 py-3 font-medium">Ytelse</th>
                 <th className="px-4 py-3 font-medium">Re-evaluering</th>
+              <th className="px-4 py-3 font-medium">Oppfølging</th>
               </tr>
             </thead>
             <tbody>
@@ -81,6 +87,7 @@ export default async function SuppliersPage() {
                     ) : null}
                   </td>
                   <td className="px-4 py-3">{formatDate(supplier.nextReviewAt)}</td>
+                  <td className="px-4 py-3">{supplier.followUp ?? "–"}</td>
                 </tr>
               ))}
             </tbody>

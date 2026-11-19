@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { NewJobForm } from "@/features/jobs/components/new-job-form";
-import { listCachedCustomers } from "@/server/actions/accounting.actions";
 import { getAuthContext } from "@/lib/server-authorization";
 import { denyEmployeeTimeRegistration } from "@/server/time/employee-time-gate";
 
@@ -11,8 +10,6 @@ export default async function NyJobbPage() {
   if (!ctx) redirect("/login");
   if (await denyEmployeeTimeRegistration(ctx)) redirect("/ansatt");
   if (!ctx.permissions.canCreateFieldProject) redirect("/ansatt/jobber");
-
-  const customers = await listCachedCustomers();
 
   return (
     <div className="space-y-4">
@@ -24,7 +21,7 @@ export default async function NyJobbPage() {
         Jobber
       </Link>
       <h1 className="text-2xl font-bold">Ny jobb</h1>
-      <NewJobForm customers={customers} />
+      <NewJobForm />
     </div>
   );
 }

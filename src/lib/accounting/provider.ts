@@ -7,6 +7,8 @@ import type {
   AccountingCustomerDto,
   AccountingEmployeeDto,
   AccountingProductDto,
+  AccountingDepartmentDto,
+  AccountingEmployeePayDto,
   AccountingSalaryTypeDto,
   AccountingProjectDto,
   CreateAccountingContactInput,
@@ -33,6 +35,8 @@ export interface AccountingProvider {
   getProductImage(externalId: string): Promise<{ bytes: Uint8Array; contentType: string } | null>;
   listActivities(): Promise<AccountingActivityDto[]>;
   listSalaryTypes(): Promise<AccountingSalaryTypeDto[]>;
+  listDepartments(): Promise<AccountingDepartmentDto[]>;
+  listEmployeePay(): Promise<AccountingEmployeePayDto[]>;
   listEmployees(): Promise<AccountingEmployeeDto[]>;
   listProjects(): Promise<AccountingProjectDto[]>;
   /** Id-er for avsluttede prosjekter. Brukes til å ta dem ut av timelisten, uten å laste hele prosjektet. */

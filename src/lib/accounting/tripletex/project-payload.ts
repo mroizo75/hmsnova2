@@ -36,6 +36,7 @@ export function buildTripletexProjectPayload(
     description?: string | null;
     reference?: string | null;
     contactExternalId?: string | null;
+    departmentExternalId?: string | null;
     projectManagerExternalId?: string | null;
     markUpOrderLines?: number | null;
     markUpFeesEarned?: number | null;
@@ -46,6 +47,7 @@ export function buildTripletexProjectPayload(
   const parentId = tripletexNumericId(input.parentExternalId);
   const managerId = tripletexNumericId(input.projectManagerExternalId ?? projectManagerId);
   const contactId = tripletexNumericId(input.contactExternalId);
+  const departmentId = tripletexNumericId(input.departmentExternalId);
 
   const body: Record<string, unknown> = {
     name: input.name,
@@ -58,6 +60,7 @@ export function buildTripletexProjectPayload(
   if (parentId) body.mainProject = { id: parentId };
   if (managerId) body.projectManager = { id: managerId };
   if (contactId) body.contact = { id: contactId };
+  if (departmentId) body.department = { id: departmentId };
   if (input.description) body.description = input.description;
   if (input.reference) body.reference = input.reference;
   if (input.markUpOrderLines != null) body.markUpOrderLines = input.markUpOrderLines;

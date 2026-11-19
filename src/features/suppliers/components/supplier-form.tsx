@@ -23,9 +23,15 @@ export interface SupplierFormValues {
   name: string;
   orgNumber: string;
   scope: string;
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
+  worksOnSite: boolean;
   status: SupplierStatusValue;
   criticality: SupplierCriticalityValue;
   criteria: string;
+  controls: string;
+  requirements: string;
   nextReviewAt: string;
   validUntil: string;
   notes: string;
@@ -35,9 +41,15 @@ const emptyValues: SupplierFormValues = {
   name: "",
   orgNumber: "",
   scope: "",
+  contactName: "",
+  contactEmail: "",
+  contactPhone: "",
+  worksOnSite: false,
   status: "PENDING",
   criticality: "MEDIUM",
   criteria: "",
+  controls: "",
+  requirements: "",
   nextReviewAt: "",
   validUntil: "",
   notes: "",
@@ -72,7 +84,7 @@ export function SupplierForm({ initial }: { initial?: SupplierFormValues }) {
         <CardHeader>
           <CardTitle>Leverandør</CardTitle>
           <CardDescription>
-            Godkjenning, kriterier og re-evaluering etter ISO 9001:2015 pkt. 8.4. Evaluering skjer som leverandørrevisjon, og feil som kvalitetsavvik.
+            Kriterier, styring og krav som kommuniseres til leverandøren (ISO 9001:2015 pkt. 8.4). Godkjenning krever også e-post og dato for re-evaluering.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -90,6 +102,24 @@ export function SupplierForm({ initial }: { initial?: SupplierFormValues }) {
             <Label htmlFor="scope">Hva leveres</Label>
             <Textarea id="scope" name="scope" rows={3} defaultValue={values.scope} />
           </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="contactName">Kontaktperson</Label>
+              <Input id="contactName" name="contactName" defaultValue={values.contactName} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contactEmail">E-post</Label>
+              <Input id="contactEmail" name="contactEmail" type="email" defaultValue={values.contactEmail} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contactPhone">Telefon</Label>
+              <Input id="contactPhone" name="contactPhone" defaultValue={values.contactPhone} />
+            </div>
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="worksOnSite" value="on" defaultChecked={values.worksOnSite} />
+            Arbeider hos oss eller på felles arbeidsplass (AML § 2-2)
+          </label>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
@@ -123,13 +153,33 @@ export function SupplierForm({ initial }: { initial?: SupplierFormValues }) {
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="criteria">Kriterier</Label>
+            <Label htmlFor="criteria">Kriterier for vurdering og valg</Label>
             <Textarea
               id="criteria"
               name="criteria"
               rows={4}
               defaultValue={values.criteria}
-              placeholder="Krav til leveransen, dokumentasjon og tidligere erfaring"
+              placeholder="Hva leverandøren vurderes på, for eksempel erfaring, dokumentasjon og tidligere leveranser"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="controls">Type og omfang av styring</Label>
+            <Textarea
+              id="controls"
+              name="controls"
+              rows={3}
+              defaultValue={values.controls}
+              placeholder="Hvordan leveransen følges opp, for eksempel mottakskontroll, revisjon eller selvevaluering"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="requirements">Krav som er kommunisert</Label>
+            <Textarea
+              id="requirements"
+              name="requirements"
+              rows={4}
+              defaultValue={values.requirements}
+              placeholder="Krav til produkt, kompetanse, dokumentasjon og eventuell verifikasjon hos leverandøren"
             />
           </div>
           <div className="grid gap-4 md:grid-cols-2">

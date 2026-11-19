@@ -5,7 +5,7 @@ export type CarKind = "COMPANY" | "PRIVATE";
  * Privatbil: kilometergodtgjørelse, trekkfri 3,50 kr/km i 2026
  * (forskrift 7. nov 2025 nr. 2216 § 4). Overskudd over trekkfri sats
  * er skattepliktig hvis bedriften bruker høyere sats.
- * Firmabil: skatteloven § 5-13 — ingen km-godtgjørelse til ansatt;
+ * Servicebil: skatteloven § 5-13 — ingen km-godtgjørelse til ansatt;
  * km kan likevel faktureres kunden.
  */
 export function kmProductExternalId(input: {
@@ -88,7 +88,7 @@ export function buildKmRegistration(input: {
     isPrivateCar,
     kmTaxable,
     productExternalId,
-    productName: input.productName ?? (isPrivateCar ? "Km privatbil" : "Km firmabil"),
+    productName: input.productName ?? (isPrivateCar ? "Km privat servicebil" : "Km servicebil"),
     unitPrice: input.productPrice ?? input.defaultKmRate ?? null,
     createMileage: isPrivateCar,
   };

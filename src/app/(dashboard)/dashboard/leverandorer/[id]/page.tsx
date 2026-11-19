@@ -6,9 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SupplierForm, type SupplierFormValues } from "@/features/suppliers/components/supplier-form";
 import { SupplierLinks } from "@/features/suppliers/components/supplier-links";
+import { SupplierAssessments } from "@/features/suppliers/components/supplier-assessments";
+import { SupplierDocuments } from "@/features/suppliers/components/supplier-documents";
+import { SupplierEvaluations } from "@/features/suppliers/components/supplier-evaluations";
 import {
+  legacyAssessmentLines,
+  parseSupplierAnswers,
   SUPPLIER_STATUS_LABELS,
+  summaryFromLines,
+  type SupplierAssessmentStatusValue,
   type SupplierCriticalityValue,
+  type SupplierDocumentKindValue,
+  type SupplierEvaluationMethodValue,
+  type SupplierEvaluationOutcomeValue,
   type SupplierStatusValue,
 } from "@/lib/supplier-management";
 import { getSupplier, listSupplierLinkOptions } from "@/server/queries/supplier.queries";
@@ -36,19 +46,33 @@ export default async function SupplierDetailPage({ params }: { params: Promise<{
   const supplier = await getSupplier(id);
   if (!supplier) notFound();
   const options = await listSupplierLinkOptions(id);
+  const now = new Date();
 
   const initial: SupplierFormValues = {
     id: supplier.id,
     name: supplier.name,
     orgNumber: supplier.orgNumber ?? "",
     scope: supplier.scope ?? "",
+    contactName: supplier.contactName ?? "",
+    contactEmail: supplier.contactEmail ?? "",
+    contactPhone: supplier.contactPhone ?? "",
+    worksOnSite: supplier.worksOnSite,
     status: supplier.status as SupplierStatusValue,
     criticality: supplier.criticality as SupplierCriticalityValue,
     criteria: supplier.criteria ?? "",
+    controls: supplier.controls ?? "",
+    requirements: supplier.requirements ?? "",
     nextReviewAt: ymd(supplier.nextReviewAt),
     validUntil: ymd(supplier.validUntil),
     notes: supplier.notes ?? "",
   };
+
+  const canSend =
+    supplier.questionCount > 0 &&
+    Boolean(supplier.contactEmail) &&
+    (supplier.criteria ?? "").trim().length >= 10 &&
+    (supplier.requirements ?? "").trim().length >= 10 &&
+    (supplier.controls ?? "").trim().length >= 10;
 
   return (
     <div className="space-y-6">
@@ -60,6 +84,7 @@ export default async function SupplierDetailPage({ params }: { params: Promise<{
             {supplier.performance.score === null
               ? ` · ${supplier.performance.label}`
               : ` · Ytelse ${supplier.performance.label} (${supplier.performance.score})`}
+            {supplier.reviewOverdue ? " · re-evaluering forfalt" : ""}
             {supplier.approvedAt
               ? ` · Godkjent ${formatDate(supplier.approvedAt)}${supplier.approvedBy?.name ? ` av ${supplier.approvedBy.name}` : ""}`
               : ""}
@@ -73,7 +98,7 @@ export default async function SupplierDetailPage({ params }: { params: Promise<{
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Evalueringer</CardTitle>
+            <CardTitle>Leverandørrevisjoner</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             {supplier.audits.length === 0 ? <p className="text-muted-foreground">Ingen revisjoner er koblet.</p> : null}
@@ -82,7 +107,11 @@ export default async function SupplierDetailPage({ params }: { params: Promise<{
                 <Link href={`/dashboard/audits/${audit.id}`} className="hover:underline">
                   {audit.title}
                 </Link>
-                <span className="text-muted-foreground"> · {formatDate(audit.scheduledDate)}</span>
+                <span className="text-muted-foreground">
+                  {" "}
+                  · {formatDate(audit.scheduledDate)}
+                  {audit.findings.length > 0 ? ` · ${audit.findings.length} åpne funn` : ""}
+                </span>
               </p>
             ))}
           </CardContent>
@@ -104,6 +133,97 @@ export default async function SupplierDetailPage({ params }: { params: Promise<{
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Selvevaluering</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SupplierAssessments
+            supplierId={supplier.id}
+            contactEmail={supplier.contactEmail ?? ""}
+            canSend={canSend}
+            questionCount={supplier.questionCount}
+            assessments={supplier.assessments
+              .filter((assessment) => assessment.status !== "CANCELLED")
+              .map((assessment) => {
+                const lines =
+                  parseSupplierAnswers(assessment.answersSnapshot) ??
+                  (assessment.respondentName
+                    ? legacyAssessmentLines({
+                        respondentName: assessment.respondentName,
+                        respondentEmail: assessment.respondentEmail ?? "",
+                        confirmsRequirements: assessment.confirmsRequirements ?? false,
+                        competence: assessment.competence ?? "",
+                        ownControls: assessment.ownControls ?? "",
+                        subcontracting: assessment.subcontracting ?? "",
+                        certifications: assessment.certifications ?? "",
+                        recentDeviations: assessment.recentDeviations ?? "",
+                        acceptsMonitoring: assessment.acceptsMonitoring ?? false,
+                        coordinationContact: assessment.coordinationContact ?? "",
+                        hmsSystem: assessment.hmsSystem ?? "",
+                        worksOnSite: assessment.worksOnSite,
+                      })
+                    : []);
+                return {
+                  id: assessment.id,
+                  status: assessment.status as SupplierAssessmentStatusValue,
+                  dueAt: assessment.dueAt.toISOString(),
+                  sentAt: assessment.sentAt.toISOString(),
+                  sentToEmail: assessment.sentToEmail,
+                  respondentName: assessment.respondentName,
+                  respondentEmail: assessment.respondentEmail,
+                  answers: lines.map((line) => ({ label: line.label, value: line.value })),
+                  suggestedSummary: assessment.respondentName
+                    ? summaryFromLines(assessment.respondentName, assessment.respondentEmail ?? "", lines)
+                    : "",
+                };
+              })}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Vurderinger</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SupplierEvaluations
+            supplierId={supplier.id}
+            evaluations={supplier.evaluations.map((evaluation) => ({
+              id: evaluation.id,
+              method: evaluation.method as SupplierEvaluationMethodValue,
+              outcome: evaluation.outcome as SupplierEvaluationOutcomeValue,
+              summary: evaluation.summary,
+              actions: evaluation.actions,
+              evaluatedAt: evaluation.evaluatedAt.toISOString(),
+              nextReviewAt: evaluation.nextReviewAt?.toISOString() ?? null,
+              evaluatedByName: evaluation.evaluatedBy.name,
+            }))}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Dokumentasjon</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SupplierDocuments
+            supplierId={supplier.id}
+            documents={supplier.documents.map((document) => ({
+              id: document.id,
+              title: document.title,
+              kind: document.kind as SupplierDocumentKindValue,
+              reference: document.reference,
+              expiresAt: document.expiresAt?.toISOString() ?? null,
+              fileKey: document.fileKey,
+              fileName: document.fileName,
+              expired: Boolean(document.expiresAt && document.expiresAt < new Date(now.getFullYear(), now.getMonth(), now.getDate())),
+            }))}
+          />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

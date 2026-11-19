@@ -6,32 +6,59 @@ import type { AccountingProvider } from "./provider";
 import { activityIdForTimeType, pickDefaultTimesheetActivities } from "./timesheet";
 import { canEnqueueTimesheetSync } from "@/lib/time/approval";
 import { pickTripletexEmployeeId } from "./employee-map";
-import { upsertActivities, upsertContacts, upsertCustomers, upsertProducts, upsertSalaryTypes, replaceProductGroups } from "./cache";
+import { upsertActivities, upsertContacts, upsertCustomers, upsertDepartments, upsertProducts, upsertSalaryTypes, replaceProductGroups } from "./cache";
 import { upsertPulledProjects } from "./project-pull";
 import { kmProductExternalId, pickDefaultKmProducts } from "@/lib/time/km-product";
 import { earliestIsoDate, isoDateOnly, projectStartNeedsMove } from "./tripletex/project-payload";
 
-export async function pullAccountingMaster(tenantId: string): Promise<void> {
-  const provider = await getAccountingProvider(tenantId);
-  if (!provider) return;
+export type AccountingPullCounts = {
+  customers: number;
+  products: number;
+  contacts: number;
+  projects: number;
+  salaryTypes: number;
+  groups: number;
+  departments: number;
+  employees: number;
+};
 
-  const [customers, products, salaryTypes, contacts, projects, activities, groups, members] = await Promise.all([
-    provider.listCustomers().catch(() => []),
-    provider.listProducts().catch(() => []),
-    provider.listSalaryTypes().catch(() => []),
-    provider.listContacts().catch(() => []),
-    provider.listProjects().catch(() => []),
-    provider.listActivities().catch(() => []),
-    provider.listProductGroups().catch(() => []),
-    provider.listProductGroupMembers().catch(() => []),
-  ]);
+export async function pullAccountingMaster(tenantId: string): Promise<AccountingPullCounts> {
+  const provider = await getAccountingProvider(tenantId);
+  if (!provider) {
+    return {
+      customers: 0,
+      products: 0,
+      contacts: 0,
+      projects: 0,
+      salaryTypes: 0,
+      groups: 0,
+      departments: 0,
+      employees: 0,
+    };
+  }
+
+  const [customers, products, salaryTypes, contacts, projects, activities, groups, members, departments, employeePay] =
+    await Promise.all([
+      provider.listCustomers(),
+      provider.listProducts(),
+      provider.listSalaryTypes(),
+      provider.listContacts(),
+      provider.listProjects(),
+      provider.listActivities(),
+      provider.listProductGroups(),
+      provider.listProductGroupMembers(),
+      provider.listDepartments(),
+      provider.listEmployeePay(),
+    ]);
   await upsertCustomers(tenantId, customers);
   await upsertProducts(tenantId, products);
   await upsertSalaryTypes(tenantId, salaryTypes);
   await upsertContacts(tenantId, contacts);
   await upsertActivities(tenantId, activities);
+  await upsertDepartments(tenantId, departments);
   await replaceProductGroups(tenantId, groups, members);
   await upsertPulledProjects(tenantId, projects);
+  const employees = await applyEmployeePay(tenantId, employeePay);
   if (projects.length > 0) {
     lastProjectPullAt.set(tenantId, Date.now());
     await closePulledProjects(tenantId, provider);
@@ -41,6 +68,42 @@ export async function pullAccountingMaster(tenantId: string): Promise<void> {
     where: { id: tenantId },
     data: { accountingLastPullAt: new Date() },
   });
+  return {
+    customers: customers.length,
+    products: products.length,
+    contacts: contacts.length,
+    projects: projects.length,
+    salaryTypes: salaryTypes.length,
+    groups: groups.length,
+    departments: departments.length,
+    employees,
+  };
+}
+
+async function applyEmployeePay(
+  tenantId: string,
+  rows: Array<{ employeeExternalId: string; payCategory: "HOURLY" | "MONTHLY" }>
+): Promise<number> {
+  if (rows.length === 0) return 0;
+  const members = await prisma.userTenant.findMany({
+    where: { tenantId, externalEmployeeId: { in: rows.map((row) => row.employeeExternalId) } },
+    select: { id: true, externalEmployeeId: true, payCategory: true },
+  });
+  let updated = 0;
+  for (const member of members) {
+    const row = rows.find((item) => item.employeeExternalId === member.externalEmployeeId);
+    if (!row) continue;
+    const categoryChanged = member.payCategory !== row.payCategory;
+    await prisma.userTenant.update({
+      where: { id: member.id },
+      data: {
+        payCategory: row.payCategory,
+        ...(categoryChanged ? { overtimeEligible: row.payCategory !== "MONTHLY" } : {}),
+      },
+    });
+    updated += 1;
+  }
+  return updated;
 }
 
 const catalogPulls = new Map<string, Promise<void>>();
@@ -49,21 +112,26 @@ export async function pullAccountingCatalog(tenantId: string): Promise<void> {
   const provider = await getAccountingProvider(tenantId);
   if (!provider) return;
 
-  const [customers, products, salaryTypes, contacts, activities, groups, members] = await Promise.all([
-    provider.listCustomers().catch(() => []),
-    provider.listProducts().catch(() => []),
-    provider.listSalaryTypes().catch(() => []),
-    provider.listContacts().catch(() => []),
-    provider.listActivities().catch(() => []),
-    provider.listProductGroups().catch(() => []),
-    provider.listProductGroupMembers().catch(() => []),
-  ]);
+  const [customers, products, salaryTypes, contacts, activities, groups, members, departments, employeePay] =
+    await Promise.all([
+      provider.listCustomers(),
+      provider.listProducts(),
+      provider.listSalaryTypes(),
+      provider.listContacts(),
+      provider.listActivities(),
+      provider.listProductGroups(),
+      provider.listProductGroupMembers(),
+      provider.listDepartments(),
+      provider.listEmployeePay(),
+    ]);
   await upsertCustomers(tenantId, customers);
   await upsertProducts(tenantId, products);
   await upsertSalaryTypes(tenantId, salaryTypes);
   await upsertContacts(tenantId, contacts);
   await upsertActivities(tenantId, activities);
+  await upsertDepartments(tenantId, departments);
   await replaceProductGroups(tenantId, groups, members);
+  await applyEmployeePay(tenantId, employeePay);
   await ensureDefaultKmProducts(tenantId);
   await prisma.tenant.update({
     where: { id: tenantId },
@@ -567,6 +635,7 @@ async function dispatchJob(
       customerExternalId: String(data.customerExternalId ?? project.externalCustomerId ?? "") || null,
       parentExternalId,
       contactExternalId: project.contactExternalId,
+      departmentExternalId: project.departmentExternalId,
       projectManagerExternalId: managerExternalId,
       description: project.description,
       location: project.location,
@@ -709,7 +778,7 @@ async function dispatchJob(
         });
       }
     }
-    const carLabel = line.kind === "KM" ? (line.isPrivateCar ? "privatbil" : "firmabil") : null;
+    const carLabel = line.kind === "KM" ? (line.isPrivateCar ? "privat servicebil" : "servicebil") : null;
     const orderDate = line.date.toISOString().slice(0, 10);
     await ensureProjectCoversDate(provider, {
       tenantId,
@@ -734,7 +803,7 @@ async function dispatchJob(
     let travelExternalId = line.travelExternalId;
     if (line.kind === "KM" && line.isPrivateCar && !travelExternalId) {
       if (!line.fromAddress || !line.toAddress) {
-        throw new Error("Kjøring med privatbil krever fra- og til-adresse");
+        throw new Error("Kjøring med privat servicebil krever fra- og til-adresse");
       }
       const user = await prisma.user.findUnique({
         where: { id: line.userId },

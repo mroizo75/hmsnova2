@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
-import { Car, CheckCircle2, Package, RefreshCw, Wrench } from "lucide-react";
+import { CheckCircle2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,9 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { nextDefaultClock } from "@/lib/time/split-day";
+import type { getDayTimesheetContext } from "@/server/actions/timesheet.actions";
 import {
-  getDayTimesheetContext,
-  searchGeonorgeAddresses,
   submitDayTimesheet,
   syncTimesheetProjectsNow,
   updateOwnTimesheetEntry,
@@ -30,58 +29,44 @@ import {
 import { ProjectPicker } from "./project-picker";
 import { DayAbsenceForm } from "./day-absence-form";
 import { NewFieldJobDialog } from "@/features/jobs/components/new-field-job-dialog";
+import { RouteMap } from "./route-map";
 
-type UsageKind = "PRODUCT" | "MACHINE";
 type CarKind = "COMPANY" | "PRIVATE";
-
-type Entry = {
-  id: string;
-  hours: number;
-  timeType: string;
-  comment: string | null;
-  rejectionReason?: string | null;
-  approvalStatus: string;
-  clockFrom: string | null;
-  clockTo: string | null;
-  project: { name: string };
-};
-
-type SavedUsage = {
-  id: string;
-  kind: UsageKind | "KM";
-  productName: string;
-  quantity: number;
-  comment: string | null;
-  isPrivateCar: boolean;
-  kmTaxable: boolean;
-  syncStatus: string;
-};
+type AddressHit = { id: string; label: string; lat: number; lon: number };
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function UsageIcon({ kind, className }: { kind: UsageKind | "KM"; className?: string }) {
-  if (kind === "KM") return <Car className={className} />;
-  if (kind === "MACHINE") return <Wrench className={className} />;
-  return <Package className={className} />;
-}
-
-export function DayTimesheetScreen({ isEmployee = false }: { isEmployee?: boolean }) {
+export function DayTimesheetScreen({
+  isEmployee = false,
+  initialDate,
+  initialProjectId = "",
+  initialMode = "work",
+  active = true,
+}: {
+  isEmployee?: boolean;
+  initialDate?: string;
+  initialProjectId?: string;
+  initialMode?: "work" | "absence";
+  active?: boolean;
+}) {
   const t = useTranslations("timesheet");
   const locale = useLocale();
   const dateLocale = locale === "en" ? "en-US" : "nb-NO";
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [date, setDate] = useState(searchParams.get("date") || todayIso());
-  const [clockFrom, setClockFrom] = useState("07:00");
-  const [clockTo, setClockTo] = useState("15:30");
-  const [lunchMinutes, setLunchMinutes] = useState(30);
-  const [projectId, setProjectId] = useState(searchParams.get("projectId") || "");
+  const [date, setDate] = useState(initialDate || todayIso());
+  const [clockFrom, setClockFrom] = useState("");
+  const [clockTo, setClockTo] = useState("");
+  const [lunchMinutes, setLunchMinutes] = useState(0);
+  const [dayReady, setDayReady] = useState(false);
+  const [projectId, setProjectId] = useState(initialProjectId);
   const [comment, setComment] = useState("");
-  const [carKind, setCarKind] = useState<CarKind | "">("");
+  const [carKind, setCarKind] = useState<CarKind>("COMPANY");
+  const [ownServiceCar, setOwnServiceCar] = useState(false);
+  const kmTouched = useRef(false);
   const [kilometers, setKilometers] = useState("");
   const [travelComment, setTravelComment] = useState("");
   const [fromAddress, setFromAddress] = useState("");
@@ -89,22 +74,61 @@ export function DayTimesheetScreen({ isEmployee = false }: { isEmployee?: boolea
   const [pendingLines, setPendingLines] = useState<PendingProductLine[]>([]);
   const [loading, setLoading] = useState(false);
   const [ctx, setCtx] = useState<Awaited<ReturnType<typeof getDayTimesheetContext>> | null>(null);
-  const [mode, setMode] = useState<"work" | "absence">(
-    searchParams.get("mode") === "absence" ? "absence" : "work"
-  );
+  const [mode, setMode] = useState<"work" | "absence">(initialMode);
   const [submittedNotice, setSubmittedNotice] = useState<{ hours: string; date: string } | null>(null);
-  const [fromHits, setFromHits] = useState<Array<{ label: string; lat: number; lon: number }>>([]);
-  const [toHits, setToHits] = useState<Array<{ label: string; lat: number; lon: number }>>([]);
+  const [fromHits, setFromHits] = useState<AddressHit[]>([]);
+  const [toHits, setToHits] = useState<AddressHit[]>([]);
+  const [fromSearchNote, setFromSearchNote] = useState<"empty" | "error" | null>(null);
+  const [toSearchNote, setToSearchNote] = useState<"empty" | "error" | null>(null);
   const [fromPoint, setFromPoint] = useState<{ lat: number; lon: number } | null>(null);
   const [toPoint, setToPoint] = useState<{ lat: number; lon: number } | null>(null);
+  const [routePoints, setRoutePoints] = useState<Array<{ lat: number; lon: number }>>([]);
   const [syncingProjects, setSyncingProjects] = useState(false);
   const noticeRef = useRef<HTMLDivElement>(null);
+  const addressTimers = useRef<{ from?: ReturnType<typeof setTimeout>; to?: ReturnType<typeof setTimeout> }>({});
+  const addressSeq = useRef({ from: 0, to: 0 });
+
+  function scheduleAddressSearch(
+    which: "from" | "to",
+    value: string,
+    setHits: (hits: AddressHit[]) => void,
+    setNote: (note: "empty" | "error" | null) => void
+  ) {
+    if (addressTimers.current[which]) clearTimeout(addressTimers.current[which]);
+    const query = value.trim();
+    if (query.length < 3) {
+      setHits([]);
+      setNote(null);
+      return;
+    }
+    const seq = ++addressSeq.current[which];
+    addressTimers.current[which] = setTimeout(() => {
+      const params = new URLSearchParams({ kind: "addresses", q: query });
+      fetch(`/api/time-registration/live?${params}`)
+        .then((response) => response.json())
+        .then((hits: AddressHit[]) => {
+          if (addressSeq.current[which] !== seq) return;
+          const rows = Array.isArray(hits) ? hits : [];
+          setHits(rows);
+          setNote(rows.length === 0 ? "empty" : null);
+        })
+        .catch(() => {
+          if (addressSeq.current[which] !== seq) return;
+          setHits([]);
+          setNote("error");
+        });
+    }, 300);
+  }
 
   async function reloadDay(nextDate = date, nextProjectId = projectId) {
-    const res = await getDayTimesheetContext(nextDate, nextProjectId || undefined);
+    setDayReady(false);
+    const params = new URLSearchParams({ kind: "day", date: nextDate });
+    if (nextProjectId) params.set("projectId", nextProjectId);
+    const res = (await fetch(`/api/time-registration/live?${params}`).then((response) =>
+      response.json()
+    )) as Awaited<ReturnType<typeof getDayTimesheetContext>>;
     setCtx(res);
     if (res.success) {
-      // Neste blokk starter der forrige registrering sluttet (krav 7).
       const next = nextDefaultClock({
         entries: res.data.entries,
         dayStartHour: res.data.dayStartHour,
@@ -120,6 +144,7 @@ export function DayTimesheetScreen({ isEmployee = false }: { isEmployee?: boolea
       } else if (!nextProjectId && res.data.suggestedProjectId && activeIds.has(res.data.suggestedProjectId)) {
         setProjectId(res.data.suggestedProjectId);
       }
+      setDayReady(true);
     }
   }
 
@@ -131,23 +156,53 @@ export function DayTimesheetScreen({ isEmployee = false }: { isEmployee?: boolea
       toast({ title: t("error"), description: res.error, variant: "destructive" });
       return;
     }
-    toast({ title: t("projectsSynced") });
+    toast({
+      title: t("projectsSynced"),
+      description: t("syncResult", {
+        customers: res.data.customers,
+        products: res.data.products,
+        projects: res.data.projects,
+        contacts: res.data.contacts,
+      }),
+    });
     await reloadDay();
   }
 
   useEffect(() => {
-    reloadDay(date, searchParams.get("projectId") || projectId);
+    if (!fromPoint || !toPoint || kmTouched.current) return;
+    let cancelled = false;
+    const params = new URLSearchParams({
+      kind: "route",
+      fromLat: String(fromPoint.lat),
+      fromLon: String(fromPoint.lon),
+      toLat: String(toPoint.lat),
+      toLon: String(toPoint.lon),
+    });
+    fetch(`/api/time-registration/live?${params}`)
+      .then((response) => response.json())
+      .then((res: { success?: boolean; data?: { km: number; points: Array<{ lat: number; lon: number }> } }) => {
+        if (cancelled || !res.success || !res.data) return;
+        setKilometers(String(res.data.km));
+        setRoutePoints(res.data.points);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [fromPoint, toPoint]);
+
+  useEffect(() => {
+    if (!active) return;
+    reloadDay(date, projectId);
     setSubmittedNotice(null);
-    // Datoen styrer innlastingen. Kladd i feltene beholdes når fanen bare skjules.
+    // Ny visning av fanen henter dagen på nytt, så en lagret stempling ikke kan sendes inn igjen.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date]);
+  }, [active, date]);
 
   const projects: Array<PickableProject & { externalProjectId?: string | null }> = ctx?.success
     ? ctx.data.projects
     : [];
   const projectSyncError = ctx?.success ? ctx.data.projectSyncError : null;
-  const entries: Entry[] = ctx?.success ? ctx.data.entries : [];
-  const savedUsage: SavedUsage[] = ctx?.success ? ctx.data.usage ?? [] : [];
   const canCreateFieldProject = ctx?.success ? Boolean(ctx.data.canCreateFieldProject) : false;
   const assignedToday = ctx?.success ? ctx.data.assignedProjects ?? [] : [];
   const assignedIds = new Set<string>(assignedToday.map((p: { id: string }) => p.id));
@@ -204,14 +259,15 @@ export function DayTimesheetScreen({ isEmployee = false }: { isEmployee?: boolea
       quantity: line.quantity,
       comment: line.comment,
     }));
-    if (km > 0 && carKind) {
+    const effectiveCarKind: CarKind = carKind === "COMPANY" && ownServiceCar ? "PRIVATE" : carKind;
+    if (km > 0 && effectiveCarKind) {
       usageLines.push({
         kind: "KM",
         productExternalId: "km",
         quantity: km,
         comment: travelComment.trim() || undefined,
-        isPrivateCar: carKind === "PRIVATE",
-        carKind,
+        isPrivateCar: effectiveCarKind === "PRIVATE",
+        carKind: effectiveCarKind,
         fromAddress: fromAddress.trim(),
         toAddress: toAddress.trim(),
       });
@@ -244,12 +300,16 @@ export function DayTimesheetScreen({ isEmployee = false }: { isEmployee?: boolea
     setComment("");
     setPendingLines([]);
     setKilometers("");
-    setCarKind("");
+    setCarKind("COMPANY");
+    setOwnServiceCar(false);
     setTravelComment("");
     setFromAddress("");
     setToAddress("");
     setFromPoint(null);
     setToPoint(null);
+    setClockFrom(clockTo);
+    setClockTo("");
+    setLunchMinutes(0);
     router.refresh();
     await queryClient.invalidateQueries({ queryKey: ["time-registration-week"] });
     await queryClient.invalidateQueries({ queryKey: ["time-registration"] });
@@ -455,7 +515,7 @@ export function DayTimesheetScreen({ isEmployee = false }: { isEmployee?: boolea
           </div>
         )}
         <div className="space-y-1">
-          <Label>{t("comment")} *</Label>
+          <Label>{t("comment")}</Label>
           {commentPresets.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {commentPresets.map((preset) => (
@@ -480,19 +540,87 @@ export function DayTimesheetScreen({ isEmployee = false }: { isEmployee?: boolea
             <p className="font-medium">{t("travel")}</p>
             <p className="text-xs text-muted-foreground">{t("travelHelp")}</p>
             <div className="flex gap-2">
-              {(["COMPANY", "PRIVATE"] as const).map((kind) => (
-                <Button
-                  key={kind}
-                  type="button"
-                  size="sm"
-                  variant={carKind === kind ? "default" : "outline"}
-                  className={carKind === kind ? "" : "bg-transparent"}
-                  onClick={() => setCarKind(kind)}
-                >
-                  {kind === "PRIVATE" ? t("privateCar") : t("companyCar")}
-                </Button>
-              ))}
+              <Button
+                type="button"
+                size="sm"
+                variant={carKind === "COMPANY" ? "default" : "outline"}
+                className={carKind === "COMPANY" ? "" : "bg-transparent"}
+                onClick={() => setCarKind("COMPANY")}
+              >
+                {t("companyCar")}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={carKind === "PRIVATE" ? "default" : "outline"}
+                className={carKind === "PRIVATE" ? "" : "bg-transparent"}
+                onClick={() => {
+                  setCarKind("PRIVATE");
+                  setOwnServiceCar(false);
+                }}
+              >
+                {t("privateCar")}
+              </Button>
             </div>
+            {carKind === "COMPANY" && (
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={ownServiceCar}
+                  onChange={(e) => setOwnServiceCar(e.target.checked)}
+                />
+                {t("privateServiceCar")}
+              </label>
+            )}
+            <p className="text-xs text-muted-foreground">{t("addressRegisterHint")}</p>
+            <AddressField
+              label={t("fromAddress")}
+              value={fromAddress}
+              hits={fromHits}
+              note={fromSearchNote ? t(fromSearchNote === "empty" ? "addressSearchEmpty" : "addressSearchFailed") : null}
+              onChange={(value) => {
+                setFromAddress(value);
+                setFromPoint(null);
+                setRoutePoints([]);
+                setFromSearchNote(null);
+                scheduleAddressSearch("from", value, setFromHits, setFromSearchNote);
+              }}
+              onPick={(hit) => {
+                kmTouched.current = false;
+                setFromAddress(hit.label);
+                setFromPoint({ lat: hit.lat, lon: hit.lon });
+                setFromHits([]);
+                setFromSearchNote(null);
+              }}
+            />
+            <AddressField
+              label={t("toAddress")}
+              value={toAddress}
+              hits={toHits}
+              note={toSearchNote ? t(toSearchNote === "empty" ? "addressSearchEmpty" : "addressSearchFailed") : null}
+              onChange={(value) => {
+                setToAddress(value);
+                setToPoint(null);
+                setRoutePoints([]);
+                setToSearchNote(null);
+                scheduleAddressSearch("to", value, setToHits, setToSearchNote);
+              }}
+              onPick={(hit) => {
+                kmTouched.current = false;
+                setToAddress(hit.label);
+                setToPoint({ lat: hit.lat, lon: hit.lon });
+                setToHits([]);
+                setToSearchNote(null);
+              }}
+            />
+            {fromPoint && toPoint && (
+              <RouteMap from={fromPoint} to={toPoint} path={routePoints} label={t("travelMap")} />
+            )}
+            <Input
+              value={travelComment}
+              onChange={(e) => setTravelComment(e.target.value)}
+              placeholder={t("travelComment")}
+            />
             <div className="space-y-1">
               <Label htmlFor="timesheet-km">{t("kilometers")}</Label>
               <Input
@@ -502,60 +630,14 @@ export function DayTimesheetScreen({ isEmployee = false }: { isEmployee?: boolea
                 step="1"
                 inputMode="decimal"
                 value={kilometers}
-                onChange={(e) => setKilometers(e.target.value)}
+                onChange={(e) => {
+                  kmTouched.current = true;
+                  setKilometers(e.target.value);
+                }}
                 placeholder={t("kilometersPlaceholder")}
               />
+              <p className="text-xs text-muted-foreground">{t("kilometersAuto")}</p>
             </div>
-            <AddressField
-              label={t("fromAddress")}
-              value={fromAddress}
-              hits={fromHits}
-              onChange={(value) => {
-                setFromAddress(value);
-                setFromPoint(null);
-                if (value.trim().length < 3) {
-                  setFromHits([]);
-                  return;
-                }
-                searchGeonorgeAddresses(value).then(setFromHits);
-              }}
-              onPick={(hit) => {
-                setFromAddress(hit.label);
-                setFromPoint({ lat: hit.lat, lon: hit.lon });
-                setFromHits([]);
-              }}
-            />
-            <AddressField
-              label={t("toAddress")}
-              value={toAddress}
-              hits={toHits}
-              onChange={(value) => {
-                setToAddress(value);
-                setToPoint(null);
-                if (value.trim().length < 3) {
-                  setToHits([]);
-                  return;
-                }
-                searchGeonorgeAddresses(value).then(setToHits);
-              }}
-              onPick={(hit) => {
-                setToAddress(hit.label);
-                setToPoint({ lat: hit.lat, lon: hit.lon });
-                setToHits([]);
-              }}
-            />
-            {fromPoint && toPoint && (
-              <iframe
-                title={t("travel")}
-                className="h-40 w-full rounded-md border"
-                src={`https://www.openstreetmap.org/export/embed.html?bbox=${Math.min(fromPoint.lon, toPoint.lon) - 0.02},${Math.min(fromPoint.lat, toPoint.lat) - 0.02},${Math.max(fromPoint.lon, toPoint.lon) + 0.02},${Math.max(fromPoint.lat, toPoint.lat) + 0.02}&layer=mapnik&marker=${fromPoint.lat},${fromPoint.lon}`}
-              />
-            )}
-            <Input
-              value={travelComment}
-              onChange={(e) => setTravelComment(e.target.value)}
-              placeholder={t("travelComment")}
-            />
           </CardContent>
         </Card>
 
@@ -570,55 +652,10 @@ export function DayTimesheetScreen({ isEmployee = false }: { isEmployee?: boolea
           </CardContent>
         </Card>
 
-        <Button type="submit" className="w-full h-11" disabled={loading || !projectId}>
+        <Button type="submit" className="w-full h-11" disabled={loading || !dayReady || !projectId || !clockTo}>
           {loading ? t("saving") : t("submitDay")}
         </Button>
       </form>
-      )}
-
-      {mode === "work" && (
-      <div className="space-y-2">
-        <p className="font-medium">{t("todayEntries")}</p>
-        {entries.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t("noEntries")}</p>
-        ) : (
-          entries.map((e) => (
-            <Card key={e.id}>
-              <CardContent className="flex items-center justify-between gap-2 py-3">
-                <div>
-                  <p className="text-sm font-medium">
-                    {e.hours} t · {e.project.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {e.clockFrom}–{e.clockTo} · {e.comment}
-                  </p>
-                  {e.rejectionReason && (
-                    <p className="text-xs text-red-600">{t("rejectedWith")}: {e.rejectionReason}</p>
-                  )}
-                </div>
-                <Badge variant="outline" className="bg-transparent">
-                  {statusLabel[e.approvalStatus as keyof typeof statusLabel] ?? e.approvalStatus}
-                </Badge>
-              </CardContent>
-            </Card>
-          ))
-        )}
-        {savedUsage.map((line) => (
-          <Card key={line.id}>
-            <CardContent className="flex items-center justify-between gap-2 py-3">
-              <p className="flex items-center gap-2 text-sm">
-                <UsageIcon kind={line.kind} className="h-4 w-4" />
-                {line.kind === "KM"
-                  ? `${t("travel")} · ${line.quantity} km · ${line.isPrivateCar ? t("privateCar") : t("companyCar")}`
-                  : `${line.productName} · ${line.quantity}`}
-              </p>
-              <Badge variant="outline" className="bg-transparent">
-                {statusLabel[line.syncStatus as keyof typeof statusLabel] ?? line.syncStatus}
-              </Badge>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
       )}
     </div>
   );
@@ -658,24 +695,26 @@ function AddressField({
   label,
   value,
   hits,
+  note,
   onChange,
   onPick,
 }: {
   label: string;
   value: string;
-  hits: Array<{ label: string; lat: number; lon: number }>;
+  hits: AddressHit[];
+  note: string | null;
   onChange: (value: string) => void;
-  onPick: (hit: { label: string; lat: number; lon: number }) => void;
+  onPick: (hit: AddressHit) => void;
 }) {
   return (
     <div className="space-y-1">
       <Label>{label}</Label>
-      <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={label} />
+      <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={label} autoComplete="off" />
       {hits.length > 0 && (
         <div className="max-h-40 space-y-1 overflow-y-auto">
           {hits.map((hit) => (
             <button
-              key={hit.label}
+              key={hit.id}
               type="button"
               className="w-full rounded-md border px-3 py-2 text-left text-sm hover:bg-muted"
               onClick={() => onPick(hit)}
@@ -685,6 +724,7 @@ function AddressField({
           ))}
         </div>
       )}
+      {note && hits.length === 0 && <p className="text-xs text-muted-foreground">{note}</p>}
     </div>
   );
 }

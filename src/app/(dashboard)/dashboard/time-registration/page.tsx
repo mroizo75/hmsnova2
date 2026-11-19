@@ -8,7 +8,7 @@ import { prisma } from "@/lib/db";
 import { employeeMayUseTimeRegistration } from "@/lib/time/employee-time-access";
 
 interface TimeRegistrationPageProps {
-  searchParams: Promise<{ projectId?: string; tab?: string }>;
+  searchParams: Promise<{ projectId?: string; tab?: string; date?: string; mode?: string }>;
 }
 
 export default async function TimeRegistrationPage({ searchParams }: TimeRegistrationPageProps) {
@@ -41,7 +41,7 @@ export default async function TimeRegistrationPage({ searchParams }: TimeRegistr
     }
   }
   const isAdmin = ["ADMIN", "HMS", "LEDER"].includes(role);
-  const { projectId, tab } = await searchParams;
+  const { projectId, tab, date, mode } = await searchParams;
 
   const initialData = await fetchTimeRegistrationData();
 
@@ -53,6 +53,8 @@ export default async function TimeRegistrationPage({ searchParams }: TimeRegistr
         role={role}
         selectedProjectId={projectId}
         initialTab={tab}
+        initialDate={date}
+        initialMode={mode === "absence" ? "absence" : "work"}
       />
     </div>
   );

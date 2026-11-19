@@ -6,6 +6,7 @@ import { Check, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
+  hasProjectSearch,
   projectDisplayLabel,
   searchPickableProjects,
   type PickableProject,
@@ -39,7 +40,11 @@ export function ProjectPicker({
   }, [value]);
 
   const selected = projects.find((p) => p.id === value) ?? null;
-  const results = useMemo(() => searchPickableProjects(projects, query), [projects, query]);
+  const searching = hasProjectSearch(query);
+  const results = useMemo(
+    () => (searching ? searchPickableProjects(projects, query) : []),
+    [projects, query, searching]
+  );
   const assigned = results.filter((p) => assignedIds.has(p.id));
   const others = results.filter((p) => !assignedIds.has(p.id));
 
@@ -128,7 +133,9 @@ export function ProjectPicker({
         )}
       </div>
       <div className="max-h-80 space-y-1 overflow-y-auto">
-        {results.length === 0 ? (
+        {!searching ? (
+          <p className="px-1 py-2 text-sm text-muted-foreground">{t("projectSearchStart")}</p>
+        ) : results.length === 0 ? (
           <p className="px-1 py-2 text-sm text-muted-foreground">{t("projectSearchEmpty")}</p>
         ) : (
           <>
@@ -145,9 +152,11 @@ export function ProjectPicker({
           </>
         )}
       </div>
-      <p className="px-1 text-xs text-muted-foreground">
-        {t("projectCount", { count: results.length, total: projects.length })}
-      </p>
+      {searching && (
+        <p className="px-1 text-xs text-muted-foreground">
+          {t("projectCount", { count: results.length, total: projects.length })}
+        </p>
+      )}
     </div>
   );
 }

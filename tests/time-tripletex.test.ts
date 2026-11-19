@@ -1,9 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { canEnqueueTimesheetSync } from "../src/lib/time/approval";
-import { productMatchesAndQuery } from "../src/lib/time/product-search";
+import { hasProductSearch, productMatchesAndQuery } from "../src/lib/time/product-search";
+import { hasProjectSearch, searchPickableProjects } from "../src/lib/time/project-search";
+import { buildKmRegistration } from "../src/lib/time/km-product";
+import { overtimeAllowed, payCategoryLabel } from "../src/lib/time/pay-category";
 import { clocksOverlap, nextDefaultClock, splitDayHours } from "../src/lib/time/split-day";
-import { groupApprovalDays } from "../src/lib/time/approval-groups";
+import { approvalOrderLabel, approvalSupplementLabel, groupApprovalDays, matchesApprovalFilter, serviceDrivingKm } from "../src/lib/time/approval-groups";
 import { groupIdsWithDescendants, isMachineProduct } from "../src/lib/time/product-search";
 import {
   buildTripletexCustomerBody,
@@ -195,9 +198,81 @@ test("neste stempling starter der forrige sluttet, kant i kant er lov", () => {
     lunchMinutes: 30,
   });
   assert.equal(next.clockFrom, "15:30");
+  assert.equal(next.clockTo, "");
   assert.equal(next.lunchMinutes, 0);
   assert.equal(clocksOverlap("07:00", "15:30", "15:30", "16:30"), false);
   assert.equal(clocksOverlap("07:00", "15:30", "15:00", "16:00"), true);
+});
+
+test("etter full dag går neste blokk bare til overtid", () => {
+  const segments = splitDayHours({
+    date: new Date("2026-09-09T12:00:00"),
+    clockFrom: "16:30",
+    clockTo: "18:30",
+    lunchMinutes: 0,
+    rules,
+    priorNetHours: 9,
+  });
+  assert.equal(segments.some((segment) => segment.timeType === "NORMAL"), false);
+  assert.equal(segments.find((segment) => segment.timeType === "OVERTIME_50")?.hours, 2);
+});
+
+test("fastlønn uten overtid blir ordinær tid", () => {
+  const segments = splitDayHours({
+    date: new Date("2026-09-09T12:00:00"),
+    clockFrom: "07:00",
+    clockTo: "20:00",
+    lunchMinutes: 30,
+    rules,
+    overtimeEligible: false,
+  });
+  assert.equal(segments.length, 1);
+  assert.equal(segments[0]?.timeType, "NORMAL");
+  assert.equal(overtimeAllowed({ payCategory: "MONTHLY", overtimeEligible: false }), false);
+  assert.equal(overtimeAllowed({ payCategory: "MONTHLY", overtimeEligible: true }), true);
+  assert.equal(payCategoryLabel({ payCategory: "HOURLY", overtimeEligible: true }), "Timelønn");
+  assert.equal(payCategoryLabel({ payCategory: "MONTHLY", overtimeEligible: true }), "Fastlønn med overtid");
+});
+
+test("tomt varesøk uten gruppe gir ingen treff", () => {
+  assert.equal(hasProductSearch(""), false);
+  assert.equal(hasProductSearch("  "), false);
+  assert.equal(hasProductSearch("", "group-1"), true);
+});
+
+test("prosjektlisten er tom til søket har minst to tegn", () => {
+  const projects = [
+    { id: "1", name: "Demo prosjekt", code: "DEM-2026", clientName: "Equinor ASA", parentId: null },
+  ];
+  assert.equal(hasProjectSearch(""), false);
+  assert.equal(hasProjectSearch("d"), false);
+  assert.equal(hasProjectSearch("de"), true);
+  assert.equal(searchPickableProjects(projects, "equinor").length, 1);
+  assert.equal(searchPickableProjects(projects, "zzz").length, 0);
+});
+
+test("servicebil og privat servicebil går til ulikt regnskap", () => {
+  const service = buildKmRegistration({
+    carKind: "COMPANY",
+    tenantKmAllowanceTaxable: true,
+    taxableProductId: "tax",
+    nonTaxableProductId: "free",
+    defaultKmRate: 4.5,
+  });
+  const privateService = buildKmRegistration({
+    carKind: "PRIVATE",
+    tenantKmAllowanceTaxable: false,
+    taxableProductId: "tax",
+    nonTaxableProductId: "free",
+    defaultKmRate: 4.5,
+  });
+  assert.equal(service.createMileage, false);
+  assert.equal(service.isPrivateCar, false);
+  assert.equal(service.productName, "Km servicebil");
+  assert.equal(privateService.createMileage, true);
+  assert.equal(privateService.isPrivateCar, true);
+  assert.equal(privateService.kmTaxable, false);
+  assert.equal(privateService.productName, "Km privat servicebil");
 });
 
 test("timeart sendes uten hourlyRate fra Nova", () => {
@@ -284,6 +359,62 @@ test("godkjenning samler ordinær tid og overtid på ett kort", () => {
   assert.equal(days[0]?.normal, 7.5);
   assert.equal(days[0]?.ot50, 1);
   assert.deepEqual(days[0]?.entryIds, ["a", "b"]);
+});
+
+test("servicebil er kjøring, ikke tillegg", () => {
+  const usage = [
+    {
+      id: "p",
+      userId: "u",
+      projectId: "p",
+      date: "2026-11-18",
+      kind: "PRODUCT",
+      productName: "Sveis",
+      quantity: 1,
+      fromAddress: null,
+      toAddress: null,
+    },
+    {
+      id: "k",
+      userId: "u",
+      projectId: "p",
+      date: "2026-11-18",
+      kind: "KM",
+      productName: "Km servicebil",
+      quantity: 13,
+      isPrivateCar: false,
+      fromAddress: "A",
+      toAddress: "B",
+    },
+    {
+      id: "priv",
+      userId: "u",
+      projectId: "p",
+      date: "2026-11-18",
+      kind: "KM",
+      productName: "Km privat servicebil",
+      quantity: 4,
+      isPrivateCar: true,
+      fromAddress: "A",
+      toAddress: "B",
+    },
+  ];
+  assert.equal(approvalSupplementLabel(usage), "4 km");
+  assert.equal(approvalOrderLabel(usage), "1 Sveis");
+  assert.equal(serviceDrivingKm(usage), 13);
+  const day = {
+    normal: 8,
+    ot50: 0,
+    ot100: 1,
+    activityIds: ["faktura"],
+    usage,
+  };
+  assert.equal(matchesApprovalFilter(day, "work"), true);
+  assert.equal(matchesApprovalFilter(day, "overtime"), true);
+  assert.equal(matchesApprovalFilter(day, "allowance"), true);
+  assert.equal(matchesApprovalFilter(day, "order"), true);
+  assert.equal(matchesApprovalFilter({ ...day, normal: 0, ot50: 0, ot100: 0, usage: [] }, "work"), false);
+  assert.equal(matchesApprovalFilter(day, "all", "annen"), false);
 });
 
 test("produktgruppefilter tar med undergrupper", () => {

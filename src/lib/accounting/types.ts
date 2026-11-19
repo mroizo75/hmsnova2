@@ -33,6 +33,17 @@ export type AccountingProductGroupMemberDto = {
   groupExternalId: string;
 };
 
+export type AccountingDepartmentDto = {
+  externalId: string;
+  name: string;
+  number?: string | null;
+};
+
+export type AccountingEmployeePayDto = {
+  employeeExternalId: string;
+  payCategory: "HOURLY" | "MONTHLY";
+};
+
 export type AccountingContactDto = {
   externalId: string;
   customerExternalId: string;
@@ -114,6 +125,7 @@ export type CreateAccountingProjectInput = {
   description?: string | null;
   location?: string | null;
   reference?: string | null;
+  departmentExternalId?: string | null;
   markUpOrderLines?: number | null;
   markUpFeesEarned?: number | null;
 };

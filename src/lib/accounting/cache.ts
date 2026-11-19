@@ -170,6 +170,25 @@ export async function upsertActivities(
   }
 }
 
+export async function upsertDepartments(
+  tenantId: string,
+  rows: Array<{ externalId: string; name: string; number?: string | null }>
+) {
+  for (const row of rows) {
+    if (!row.externalId || !row.name) continue;
+    await prisma.accountingDepartment.upsert({
+      where: { tenantId_externalId: { tenantId, externalId: row.externalId } },
+      create: {
+        tenantId,
+        externalId: row.externalId,
+        name: row.name,
+        number: row.number ?? null,
+      },
+      update: { name: row.name, number: row.number ?? null },
+    });
+  }
+}
+
 export async function replaceProductGroups(
   tenantId: string,
   groups: Array<{ externalId: string; name: string; parentExternalId?: string | null }>,

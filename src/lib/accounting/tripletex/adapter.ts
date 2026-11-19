@@ -3,7 +3,9 @@ import type {
   AccountingActivityDto,
   AccountingContactDto,
   AccountingCustomerDto,
+  AccountingDepartmentDto,
   AccountingEmployeeDto,
+  AccountingEmployeePayDto,
   AccountingProductDto,
   AccountingProductGroupDto,
   AccountingProductGroupMemberDto,
@@ -21,7 +23,8 @@ import type {
 } from "../types";
 import { buildOrderInvoicePath } from "../invoice";
 import { mergedTimesheetHours, timesheetKeysMatch } from "../timesheet";
-import { paginatedGet, TripletexClient } from "./client";
+import { paginatedGet, TripletexApiError, TripletexClient } from "./client";
+import { payCategoryFromRemuneration } from "@/lib/time/pay-category";
 import {
   buildTripletexOrderLinePayload,
   buildTripletexOrderPayload,
@@ -50,16 +53,59 @@ type TxProduct = TxId & {
   priceIncludingVatCurrency?: number;
   isStockItem?: boolean;
   isInactive?: boolean;
-  image?: { id?: number };
+  image?: { id?: number } | number | null;
 };
+
+function imageContentType(bytes: Uint8Array, fallback: string): string {
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
+  if (bytes.length >= 4 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+    return "image/png";
+  }
+  if (bytes.length >= 3 && bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) return "image/gif";
+  if (
+    bytes.length >= 12 &&
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  ) {
+    return "image/webp";
+  }
+  return fallback.startsWith("image/") ? fallback : "application/octet-stream";
+}
+
+function productImageId(image: TxProduct["image"]): string | null {
+  if (image == null) return null;
+  if (typeof image === "number") return String(image);
+  return image.id != null ? String(image.id) : null;
+}
 type TxContact = TxId & {
   firstName?: string;
   lastName?: string;
   email?: string;
   phoneNumber?: string;
+  phoneNumberMobile?: string;
+  phoneNumberWork?: string;
   isInactive?: boolean;
   customer?: TxId;
 };
+
+function contactPhone(contact: {
+  phoneNumberMobile?: string | null;
+  phoneNumberWork?: string | null;
+  phoneNumber?: string | null;
+}): string | null {
+  const mobile = contact.phoneNumberMobile?.trim();
+  if (mobile) return mobile;
+  const work = contact.phoneNumberWork?.trim();
+  if (work) return work;
+  const legacy = contact.phoneNumber?.trim();
+  return legacy || null;
+}
 type TxSalaryType = TxId & {
   name?: string;
   number?: string;
@@ -109,7 +155,7 @@ function mapTxProduct(p: TxProduct): AccountingProductDto {
     categoryName: p.productCategory?.name ?? null,
     priceExclVat: p.priceExcludingVatCurrency ?? null,
     priceInclVat: p.priceIncludingVatCurrency ?? null,
-    imageDocumentId: p.image?.id != null ? idStr(p.image.id) : null,
+    imageDocumentId: productImageId(p.image),
     isStockItem: Boolean(p.isStockItem),
     isInactive: Boolean(p.isInactive),
   };
@@ -239,7 +285,7 @@ export class TripletexAdapter implements AccountingProvider {
     const rows = await paginatedGet<TxContact>(
       this.client,
       path,
-      "id,firstName,lastName,email,phoneNumber,isInactive,customer(id)"
+      "id,firstName,lastName,email,phoneNumberMobile,phoneNumberWork,isInactive,customer(id)"
     );
     return rows
       .filter((c) => c.customer?.id)
@@ -249,7 +295,7 @@ export class TripletexAdapter implements AccountingProvider {
         firstName: c.firstName ?? null,
         lastName: c.lastName ?? null,
         email: c.email ?? null,
-        phone: c.phoneNumber ?? null,
+        phone: contactPhone(c),
         isInactive: Boolean(c.isInactive),
       }));
   }
@@ -262,7 +308,7 @@ export class TripletexAdapter implements AccountingProvider {
         firstName: input.firstName,
         lastName: input.lastName ?? undefined,
         email: input.email ?? undefined,
-        phoneNumber: input.phone ?? undefined,
+        phoneNumberMobile: input.phone ?? undefined,
       }),
     });
     const c = created.value;
@@ -273,17 +319,23 @@ export class TripletexAdapter implements AccountingProvider {
       firstName: c.firstName ?? input.firstName,
       lastName: c.lastName ?? input.lastName ?? null,
       email: c.email ?? input.email ?? null,
-      phone: c.phoneNumber ?? input.phone ?? null,
+      phone: contactPhone(c) || input.phone?.trim() || null,
       isInactive: Boolean(c.isInactive),
     };
   }
 
   async listSalaryTypes(): Promise<AccountingSalaryTypeDto[]> {
-    const rows = await paginatedGet<TxSalaryType>(
-      this.client,
-      "/salaryType",
-      "id,name,number,isInactive"
-    );
+    let rows: TxSalaryType[];
+    try {
+      rows = await paginatedGet<TxSalaryType>(
+        this.client,
+        "/salary/type?isInactive=false",
+        "id,name,number"
+      );
+    } catch (error: unknown) {
+      if (error instanceof TripletexApiError && (error.status === 403 || error.status === 404)) return [];
+      throw error;
+    }
     return rows.map((s) => ({
       externalId: idStr(s.id),
       name: s.name ?? "",
@@ -302,6 +354,63 @@ export class TripletexAdapter implements AccountingProvider {
       externalId: idStr(a.id),
       name: a.name ?? "",
       number: a.number ?? null,
+    }));
+  }
+
+  async listDepartments(): Promise<AccountingDepartmentDto[]> {
+    let rows: Array<TxId & { name?: string; departmentNumber?: string; number?: string; isInactive?: boolean }>;
+    try {
+      rows = await paginatedGet(
+        this.client,
+        "/department",
+        "id,name,isInactive"
+      );
+    } catch (error: unknown) {
+      if (error instanceof TripletexApiError && (error.status === 400 || error.status === 404)) return [];
+      throw error;
+    }
+    return rows
+      .filter((row) => row.id && !row.isInactive)
+      .map((row) => ({
+        externalId: idStr(row.id),
+        name: row.name ?? "",
+        number: row.departmentNumber ?? row.number ?? null,
+      }))
+      .filter((row) => row.name);
+  }
+
+  async listEmployeePay(): Promise<AccountingEmployeePayDto[]> {
+    const today = new Date().toISOString().slice(0, 10);
+    let rows: Array<{
+      employee?: { id?: number };
+      startDate?: string;
+      endDate?: string | null;
+      employmentDetails?: { remunerationType?: string };
+    }>;
+    try {
+      rows = await paginatedGet(
+        this.client,
+        "/employee/employment",
+        "id,employee(id),startDate,endDate,employmentDetails(remunerationType)"
+      );
+    } catch (error: unknown) {
+      if (error instanceof TripletexApiError && (error.status === 400 || error.status === 404)) return [];
+      throw error;
+    }
+    const byEmployee = new Map<string, { start: string; payCategory: "HOURLY" | "MONTHLY" }>();
+    for (const row of rows) {
+      const employeeExternalId = idStr(row.employee?.id);
+      if (!employeeExternalId) continue;
+      if (row.endDate && row.endDate < today) continue;
+      const payCategory = payCategoryFromRemuneration(row.employmentDetails?.remunerationType);
+      if (!payCategory) continue;
+      const start = row.startDate ?? "";
+      const current = byEmployee.get(employeeExternalId);
+      if (!current || start > current.start) byEmployee.set(employeeExternalId, { start, payCategory });
+    }
+    return [...byEmployee.entries()].map(([employeeExternalId, value]) => ({
+      employeeExternalId,
+      payCategory: value.payCategory,
     }));
   }
 
@@ -515,7 +624,14 @@ export class TripletexAdapter implements AccountingProvider {
   async getProductImage(externalId: string): Promise<{ bytes: Uint8Array; contentType: string } | null> {
     const product = await this.getProduct(externalId);
     if (!product?.imageDocumentId) return null;
-    return this.client.requestBuffer(`/document/${product.imageDocumentId}/content`);
+    try {
+      const document = await this.client.requestBuffer(`/document/${product.imageDocumentId}/content`);
+      if (!document) return null;
+      return { bytes: document.bytes, contentType: imageContentType(document.bytes, document.contentType) };
+    } catch (error: unknown) {
+      if (!(error instanceof TripletexApiError)) throw error;
+      return null;
+    }
   }
 
   async listMileageRateTypes(): Promise<Array<{ externalId: string; name: string }>> {
@@ -565,29 +681,50 @@ export class TripletexAdapter implements AccountingProvider {
   async copyProjectPricing(sourceExternalId: string, targetExternalId: string): Promise<void> {
     const targetId = Number(targetExternalId);
     const sourceQuery = encodeURIComponent(sourceExternalId);
-    const [rates, specific, activities, template] = await Promise.all([
+    const [rates, specific, activities, sourceProject] = await Promise.all([
       paginatedGet<Record<string, unknown>>(
         this.client,
         `/project/hourlyRates?projectId=${sourceQuery}`,
         "id,activity(id),employee(id),hourlyRate,hourlyCost,startDate"
-      ).catch(() => []),
+      ),
       paginatedGet<Record<string, unknown>>(
         this.client,
         `/project/hourlyRates/projectSpecificRates?projectId=${sourceQuery}`,
         "id,activity(id),employee(id),hourlyRate,hourlyCost,startDate"
-      ).catch(() => []),
+      ),
       paginatedGet<Record<string, unknown>>(
         this.client,
         `/project/projectActivity?projectId=${sourceQuery}`,
         "id,activity(id),startDate,endDate"
-      ).catch(() => []),
-      this.client
-        .request<TxValue<Record<string, unknown>>>(`/project/template/${sourceExternalId}?fields=markUpOrderLines,markUpFeesEarned`)
-        .catch(() => null),
+      ),
+      this.client.request<TxValue<Record<string, unknown>>>(
+        `/project/${sourceExternalId}?fields=markUpOrderLines,markUpFeesEarned`
+      ),
     ]);
 
-    const markup = template?.value;
-    if (markup && (markup.markUpOrderLines != null || markup.markUpFeesEarned != null)) {
+    let projectPrices: Array<Record<string, unknown>> = [];
+    try {
+      const prices = await paginatedGet<Record<string, unknown>>(
+        this.client,
+        `/product/price?projectId=${sourceQuery}`,
+        "id,product(id),priceExcludingVatCurrency,fromDate,project(id)"
+      );
+      projectPrices = prices.filter((row) => {
+        const project = row.project as { id?: number } | undefined;
+        return project?.id != null && String(project.id) === sourceExternalId;
+      });
+    } catch (error: unknown) {
+      if (!(error instanceof TripletexApiError) || (error.status !== 400 && error.status !== 404 && error.status !== 422)) {
+        throw error;
+      }
+    }
+
+    const markup = sourceProject.value;
+    const hasMarkup = Boolean(markup && (markup.markUpOrderLines != null || markup.markUpFeesEarned != null));
+    if (rates.length === 0 && specific.length === 0 && activities.length === 0 && !hasMarkup && projectPrices.length === 0) {
+      throw new Error("Malprosjektet har ingen timepriser, aktiviteter eller påslag å kopiere");
+    }
+    if (hasMarkup && markup) {
       await this.client.request(`/project/${targetExternalId}`, {
         method: "PUT",
         body: JSON.stringify({
@@ -624,6 +761,21 @@ export class TripletexAdapter implements AccountingProvider {
       await this.client.request("/project/projectActivity/list", {
         method: "POST",
         body: JSON.stringify(activities.map(retarget)),
+      });
+    }
+    for (const row of projectPrices) {
+      const product = row.product as { id?: number } | undefined;
+      if (!product?.id) continue;
+      await this.client.request("/product/price", {
+        method: "POST",
+        body: JSON.stringify({
+          product: { id: product.id },
+          project: { id: targetId },
+          ...(row.priceExcludingVatCurrency != null
+            ? { priceExcludingVatCurrency: row.priceExcludingVatCurrency }
+            : {}),
+          ...(row.fromDate ? { fromDate: row.fromDate } : {}),
+        }),
       });
     }
   }

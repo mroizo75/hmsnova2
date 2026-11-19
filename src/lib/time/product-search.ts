@@ -1,3 +1,8 @@
+/** Tomt søk uten valgt varegruppe skal ikke liste katalogen. */
+export function hasProductSearch(query: string, groupExternalId?: string | null): boolean {
+  return tokenizeProductQuery(query).length > 0 || Boolean(groupExternalId);
+}
+
 export function tokenizeProductQuery(query: string): string[] {
   return query
     .trim()

@@ -1659,11 +1659,14 @@ export const helpContent: Record<string, HelpContent> = {
         heading: "Hva registreres?",
         emoji: "📦",
         content:
-          "Registeret holder status, kriterier, kritikalitet og dato for re-evaluering. Leverandørrevisjon er evalueringen. Kvalitetsavvik er ytelsen.",
+          "Registeret holder kriterier, type og omfang av styring, kravene som er kommunisert, kontakt og dato for re-evaluering. Selvevaluering, dokumentasjon, leverandørrevisjon og erfaring fra leveranser lagres som vurderinger. Kvalitetsavvik og åpne revisjonsfunn inngår i ytelsen.",
       },
     ],
     isoStandards: ["ISO 9001:2015 pkt. 8.4 – Styring av eksternt leverte prosesser, produkter og tjenester"],
-    tips: ["Godkjente og betinget godkjente leverandører skal ha kriterier og en dato for neste vurdering."],
+    tips: [
+      "Definer spørsmålene under Selvevalueringsskjema. Skjemaet sendes fra leverandørkortet, og svaret lagres der.",
+      "Godkjente og betinget godkjente leverandører skal ha kriterier, styring, kommuniserte krav, e-post og en dato for neste vurdering.",
+    ],
   },
 
   feedback: {

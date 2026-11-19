@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import {
   AlertCircle,
@@ -12,13 +12,29 @@ import {
   Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { groupApprovalDays } from "@/lib/time/approval-groups";
+import {
+  approvalOrderLabel,
+  approvalSupplementLabel,
+  groupApprovalDays,
+  isoWeekNumber,
+  matchesApprovalFilter,
+  serviceDrivingKm,
+  type ApprovalHourFilter,
+} from "@/lib/time/approval-groups";
 import {
   approveTimesheetEntries,
   listAccountingSyncLog,
@@ -68,6 +84,7 @@ function ApprovalDayEditor({
   const t = useTranslations("timesheet");
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [projectId, setProjectId] = useState(day.projectId);
   const [clockFrom, setClockFrom] = useState(day.clockFrom ?? "");
   const [clockTo, setClockTo] = useState(day.clockTo ?? "");
@@ -78,91 +95,235 @@ function ApprovalDayEditor({
   const [usage, setUsage] = useState(
     day.usage.map((line) => ({
       id: line.id,
+      kind: line.kind,
+      productName: line.productName,
+      isPrivateCar: Boolean(line.isPrivateCar),
       quantity: String(line.quantity),
       fromAddress: line.fromAddress ?? "",
       toAddress: line.toAddress ?? "",
     }))
   );
-  if (!open) {
-    return (
-      <Button type="button" size="sm" variant="outline" className="bg-transparent" onClick={() => setOpen(true)}>
+  const [removedIds, setRemovedIds] = useState<string[]>([]);
+
+  function openEditor() {
+    setProjectId(day.projectId);
+    setClockFrom(day.clockFrom ?? "");
+    setClockTo(day.clockTo ?? "");
+    setLunch(String(day.lunchMinutes));
+    setComment(day.comment ?? "");
+    setActivityId("");
+    setSalaryTypeId("");
+    setUsage(
+      day.usage.map((line) => ({
+        id: line.id,
+        kind: line.kind,
+        productName: line.productName,
+        isPrivateCar: Boolean(line.isPrivateCar),
+        quantity: String(line.quantity),
+        fromAddress: line.fromAddress ?? "",
+        toAddress: line.toAddress ?? "",
+      }))
+    );
+    setRemovedIds([]);
+    setOpen(true);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <Button type="button" size="sm" variant="outline" className="bg-transparent" onClick={openEditor}>
         {t("editDay")}
       </Button>
-    );
-  }
-  return (
-    <div className="grid gap-2 rounded-md border p-2">
-      <Label className="text-xs">{t("project")}</Label>
-      <select className="h-10 rounded-md border bg-transparent px-2 text-sm" value={projectId} onChange={(e) => setProjectId(e.target.value)}>
-        {projects.map((project) => (
-          <option key={project.id} value={project.id}>{project.name}</option>
-        ))}
-      </select>
-      <div className="grid grid-cols-3 gap-2">
-        <Input type="time" value={clockFrom} onChange={(e) => setClockFrom(e.target.value)} />
-        <Input type="time" value={clockTo} onChange={(e) => setClockTo(e.target.value)} />
-        <Input inputMode="numeric" value={lunch} onChange={(e) => setLunch(e.target.value)} />
-      </div>
-      <Input value={comment} onChange={(e) => setComment(e.target.value)} />
-      <select className="h-10 rounded-md border bg-transparent px-2 text-sm" value={activityId} onChange={(e) => setActivityId(e.target.value)}>
-        <option value="">{t("activity")}</option>
-        {activities.map((activity) => (
-          <option key={activity.externalId} value={activity.externalId}>{activity.name}</option>
-        ))}
-      </select>
-      <select className="h-10 rounded-md border bg-transparent px-2 text-sm" value={salaryTypeId} onChange={(e) => setSalaryTypeId(e.target.value)}>
-        <option value="">{t("salaryType")}</option>
-        {salaryTypes.map((salary) => (
-          <option key={salary.externalId} value={salary.externalId}>{salary.name}</option>
-        ))}
-      </select>
-      {usage.map((line, index) => (
-        <div key={line.id} className="grid grid-cols-3 gap-2">
-          <Input
-            inputMode="decimal"
-            value={line.quantity}
-            onChange={(e) => setUsage((rows) => rows.map((row, i) => i === index ? { ...row, quantity: e.target.value } : row))}
-          />
-          <Input
-            value={line.fromAddress}
-            onChange={(e) => setUsage((rows) => rows.map((row, i) => i === index ? { ...row, fromAddress: e.target.value } : row))}
-          />
-          <Input
-            value={line.toAddress}
-            onChange={(e) => setUsage((rows) => rows.map((row, i) => i === index ? { ...row, toAddress: e.target.value } : row))}
-          />
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{t("editDay")}</DialogTitle>
+          <DialogDescription>
+            {day.userName} · {day.projectName}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4">
+          <div className="grid gap-2">
+            <Label>{t("project")}</Label>
+            <select
+              className="h-10 rounded-md border bg-transparent px-3 text-sm"
+              value={projectId}
+              onChange={(e) => setProjectId(e.target.value)}
+            >
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-2">
+              <Label>{t("from")}</Label>
+              <Input type="time" value={clockFrom} onChange={(e) => setClockFrom(e.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <Label>{t("to")}</Label>
+              <Input type="time" value={clockTo} onChange={(e) => setClockTo(e.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <Label>{t("lunch")}</Label>
+              <Input inputMode="numeric" value={lunch} onChange={(e) => setLunch(e.target.value)} />
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <Label>{t("comment")}</Label>
+            <Input value={comment} onChange={(e) => setComment(e.target.value)} />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label>{t("activity")}</Label>
+              <select
+                className="h-10 rounded-md border bg-transparent px-3 text-sm"
+                value={activityId}
+                onChange={(e) => setActivityId(e.target.value)}
+              >
+                <option value="">{t("activity")}</option>
+                {activities.map((activity) => (
+                  <option key={activity.externalId} value={activity.externalId}>
+                    {activity.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="grid gap-2">
+              <Label>{t("salaryType")}</Label>
+              <select
+                className="h-10 rounded-md border bg-transparent px-3 text-sm"
+                value={salaryTypeId}
+                onChange={(e) => setSalaryTypeId(e.target.value)}
+              >
+                <option value="">{t("salaryType")}</option>
+                {salaryTypes.map((salary) => (
+                  <option key={salary.externalId} value={salary.externalId}>
+                    {salary.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {usage.length > 0 && (
+            <div className="grid gap-3">
+              <p className="text-sm font-medium">{t("usage")}</p>
+              {usage
+                .filter((line) => !removedIds.includes(line.id))
+                .map((line) => (
+                <div key={line.id} className="grid gap-3 rounded-md border p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium">{line.productName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {line.kind === "KM"
+                          ? line.isPrivateCar
+                            ? t("drivingPrivate")
+                            : t("drivingService")
+                          : line.kind === "MACHINE"
+                            ? t("kind.MACHINE")
+                            : t("kind.PRODUCT")}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="bg-transparent"
+                      onClick={() => setRemovedIds((ids) => [...ids, line.id])}
+                    >
+                      {t("removeLine")}
+                    </Button>
+                  </div>
+                  <div className={line.kind === "KM" ? "grid gap-3 sm:grid-cols-3" : "grid gap-3 sm:max-w-xs"}>
+                    <div className="grid gap-2">
+                      <Label>{line.kind === "KM" ? t("kilometers") : t("unit")}</Label>
+                      <Input
+                        inputMode="decimal"
+                        value={line.quantity}
+                        onChange={(e) =>
+                          setUsage((rows) =>
+                            rows.map((row) => (row.id === line.id ? { ...row, quantity: e.target.value } : row))
+                          )
+                        }
+                      />
+                    </div>
+                    {line.kind === "KM" && (
+                      <>
+                        <div className="grid gap-2">
+                          <Label>{t("fromAddress")}</Label>
+                          <Input
+                            value={line.fromAddress}
+                            onChange={(e) =>
+                              setUsage((rows) =>
+                                rows.map((row) => (row.id === line.id ? { ...row, fromAddress: e.target.value } : row))
+                              )
+                            }
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label>{t("toAddress")}</Label>
+                          <Input
+                            value={line.toAddress}
+                            onChange={(e) =>
+                              setUsage((rows) =>
+                                rows.map((row) => (row.id === line.id ? { ...row, toAddress: e.target.value } : row))
+                              )
+                            }
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      ))}
-      <Button
-        type="button"
-        size="sm"
-        onClick={async () => {
-          const res = await reviseApprovalDay({
-            entryIds: day.entryIds,
-            projectId,
-            clockFrom,
-            clockTo,
-            lunchMinutes: Number(lunch),
-            comment,
-            billingActivityId: activityId || null,
-            salaryTypeId: salaryTypeId || null,
-            usage: usage.map((line) => ({
-              id: line.id,
-              quantity: Number(line.quantity.replace(",", ".")),
-              fromAddress: line.fromAddress,
-              toAddress: line.toAddress,
-            })),
-          });
-          toast({ title: res.success ? t("saved") : res.error, variant: res.success ? "default" : "destructive" });
-          if (res.success) {
-            setOpen(false);
-            await onSaved();
-          }
-        }}
-      >
-        {t("saveComment")}
-      </Button>
-    </div>
+        <DialogFooter>
+          <Button type="button" variant="outline" className="bg-transparent" onClick={() => setOpen(false)}>
+            {t("cancel")}
+          </Button>
+          <Button
+            type="button"
+            disabled={saving}
+            onClick={async () => {
+              setSaving(true);
+              const res = await reviseApprovalDay({
+                entryIds: day.entryIds,
+                projectId,
+                clockFrom,
+                clockTo,
+                lunchMinutes: Number(lunch),
+                comment,
+                billingActivityId: activityId || null,
+                salaryTypeId: salaryTypeId || null,
+                usage: usage
+                  .filter((line) => !removedIds.includes(line.id))
+                  .map((line) => ({
+                    id: line.id,
+                    quantity: Number(line.quantity.replace(",", ".")),
+                    fromAddress: line.fromAddress,
+                    toAddress: line.toAddress,
+                  })),
+                removeUsageIds: removedIds,
+              });
+              setSaving(false);
+              toast({
+                title: res.success ? t("saved") : res.error,
+                variant: res.success ? "default" : "destructive",
+              });
+              if (res.success) {
+                setOpen(false);
+                await onSaved();
+              }
+            }}
+          >
+            {t("saveComment")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -182,30 +343,6 @@ function hoursLabel(value: number, locale: string) {
   });
 }
 
-function payLabel(
-  day: ReturnType<typeof groupApprovalDays>[number],
-  t: (key: string) => string,
-  locale: string
-) {
-  const parts: string[] = [];
-  if (day.normal) parts.push(`${hoursLabel(day.normal, locale)} ${t("ordinary")}`);
-  if (day.ot50) parts.push(`${hoursLabel(day.ot50, locale)} ${t("overtime50")}`);
-  if (day.ot100) parts.push(`${hoursLabel(day.ot100, locale)} ${t("overtime100")}`);
-  return parts.join(" · ");
-}
-
-function extraLabel(
-  day: ReturnType<typeof groupApprovalDays>[number],
-  t: (key: string) => string
-) {
-  return day.usage
-    .map((line) =>
-      line.kind === "KM"
-        ? `${line.quantity} km`
-        : `${line.quantity} ${line.kind === "MACHINE" ? t("kind.MACHINE") : t("kind.PRODUCT")}`
-    )
-    .join(", ");
-}
 
 function formatDay(value: string | Date, locale: string) {
   const date = typeof value === "string" ? new Date(value) : value;
@@ -243,6 +380,8 @@ export function TimesheetApprovalQueue() {
   const [employeeId, setEmployeeId] = useState("");
   const [projectFilter, setProjectFilter] = useState("");
   const [hideApproved, setHideApproved] = useState(true);
+  const [hourFilter, setHourFilter] = useState<ApprovalHourFilter>("all");
+  const [activityFilter, setActivityFilter] = useState("");
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<string[]>([]);
   const pageSize = 50;
@@ -279,6 +418,7 @@ export function TimesheetApprovalQueue() {
     if (hideApproved && (day.status === "APPROVED" || day.status === "SYNCED")) return false;
     if (employeeId && day.userId !== employeeId) return false;
     if (projectFilter && day.projectId !== projectFilter) return false;
+    if (!matchesApprovalFilter(day, hourFilter, activityFilter)) return false;
     const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
     if (words.length === 0) return true;
     const main = day.parentName ?? day.projectName;
@@ -289,7 +429,12 @@ export function TimesheetApprovalQueue() {
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, pageCount - 1);
   const visible = filtered.slice(safePage * pageSize, safePage * pageSize + pageSize);
-  const totalHours = filtered.reduce((sum, day) => sum + day.normal + day.ot50 + day.ot100, 0);
+  const totalHours = filtered.reduce((sum, day) => {
+    if (hourFilter === "work") return sum + day.normal;
+    if (hourFilter === "overtime") return sum + day.ot50 + day.ot100;
+    return sum + day.normal + day.ot50 + day.ot100;
+  }, 0);
+  const pauseHours = filtered.reduce((sum, day) => sum + day.lunchMinutes, 0) / 60;
   const waiting = filtered.filter((day) => day.status === "SUBMITTED" || day.status === "SYNC_ERROR").length;
   const selectedDays = filtered.filter((day) => selected.includes(day.key));
   const selectedIds = selectedDays
@@ -368,6 +513,33 @@ export function TimesheetApprovalQueue() {
                 <option key={project.id} value={project.id}>{project.name}</option>
               ))}
             </select>
+            <select
+              className="h-10 rounded-md border bg-transparent px-2 text-sm"
+              value={hourFilter}
+              onChange={(e) => {
+                setHourFilter(e.target.value as ApprovalHourFilter);
+                setPage(0);
+              }}
+            >
+              <option value="all">{t("approvalAllHours")}</option>
+              <option value="work">{t("colWork")}</option>
+              <option value="overtime">{t("approvalOvertime")}</option>
+              <option value="allowance">{t("colExtra")}</option>
+              <option value="order">{t("approvalOrder")}</option>
+            </select>
+            <select
+              className="h-10 rounded-md border bg-transparent px-2 text-sm"
+              value={activityFilter}
+              onChange={(e) => {
+                setActivityFilter(e.target.value);
+                setPage(0);
+              }}
+            >
+              <option value="">{t("approvalAllActivities")}</option>
+              {(data.activities ?? []).map((activity) => (
+                <option key={activity.externalId} value={activity.externalId}>{activity.name}</option>
+              ))}
+            </select>
             <label className="flex h-10 items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -383,6 +555,7 @@ export function TimesheetApprovalQueue() {
           <p className="text-sm text-muted-foreground">
             {t("approvalSummary", {
               hours: hoursLabel(totalHours, locale),
+              pause: hoursLabel(pauseHours, locale),
               projects: new Set(filtered.map((day) => day.projectId)).size,
               employees: new Set(filtered.map((day) => day.userId)).size,
               waiting,
@@ -436,8 +609,11 @@ export function TimesheetApprovalQueue() {
                       <th className="py-2 pr-3">{t("project")}</th>
                       <th className="py-2 pr-3">{t("colSubproject")}</th>
                       <th className="py-2 pr-3">{t("colTime")}</th>
-                      <th className="py-2 pr-3">{t("colHours")}</th>
-                      <th className="py-2 pr-3">{t("colPay")}</th>
+                      <th className="py-2 pr-3">{t("colWork")}</th>
+                      <th className="py-2 pr-3">{t("colPause")}</th>
+                      <th className="py-2 pr-3">{t("colOt50")}</th>
+                      <th className="py-2 pr-3">{t("colOt100")}</th>
+                      <th className="py-2 pr-3">{t("colPayCategory")}</th>
                       <th className="py-2 pr-3">{t("colExtra")}</th>
                       <th className="py-2 pr-3">{t("colComment")}</th>
                       <th className="py-2 pr-3">{t("colStatus")}</th>
@@ -445,12 +621,21 @@ export function TimesheetApprovalQueue() {
                     </tr>
                   </thead>
                   <tbody>
-                    {visible.map((day) => {
+                    {visible.map((day, index) => {
                       const main = day.parentName ?? day.projectName;
                       const sub = day.parentName ? day.projectName : "";
+                      const order = approvalOrderLabel(day.usage);
                       const canAct = day.status === "SUBMITTED" || day.status === "SYNC_ERROR";
+                      const week = isoWeekNumber(day.date);
+                      const previousWeek = index > 0 ? isoWeekNumber(visible[index - 1]?.date ?? day.date) : 0;
                       return (
-                        <tr key={day.key} className="border-b align-top">
+                        <Fragment key={day.key}>
+                        {week !== previousWeek && (
+                          <tr className="bg-muted/50">
+                            <td colSpan={15} className="py-2 pr-3 font-medium">{t("weekLabel", { week })}</td>
+                          </tr>
+                        )}
+                        <tr className="border-b align-top">
                           <td className="py-2 pr-2">
                             <input
                               type="checkbox"
@@ -464,14 +649,25 @@ export function TimesheetApprovalQueue() {
                           </td>
                           <td className="py-2 pr-3 whitespace-nowrap">{formatDay(day.date, locale)}</td>
                           <td className="py-2 pr-3">{day.userName}</td>
-                          <td className="py-2 pr-3">{main}</td>
+                          <td className="py-2 pr-3">
+                            {main}
+                            {order && <p className="text-xs text-muted-foreground">{order}</p>}
+                          </td>
                           <td className="py-2 pr-3">{sub}</td>
                           <td className="py-2 pr-3 whitespace-nowrap">
                             {day.clockFrom ? `${day.clockFrom}–${day.clockTo}` : ""}
+                            {serviceDrivingKm(day.usage) > 0 && (
+                              <p className="text-xs text-muted-foreground">
+                                {t("serviceDriving", { km: hoursLabel(serviceDrivingKm(day.usage), locale) })}
+                              </p>
+                            )}
                           </td>
-                          <td className="py-2 pr-3">{hoursLabel(day.normal + day.ot50 + day.ot100, locale)}</td>
-                          <td className="py-2 pr-3">{payLabel(day, t, locale)}</td>
-                          <td className="py-2 pr-3">{extraLabel(day, t)}</td>
+                          <td className="py-2 pr-3">{hoursLabel(day.normal, locale)}</td>
+                          <td className="py-2 pr-3">{day.lunchMinutes ? hoursLabel(day.lunchMinutes / 60, locale) : ""}</td>
+                          <td className="py-2 pr-3">{day.ot50 ? hoursLabel(day.ot50, locale) : ""}</td>
+                          <td className="py-2 pr-3">{day.ot100 ? hoursLabel(day.ot100, locale) : ""}</td>
+                          <td className="py-2 pr-3">{day.payCategoryLabel}</td>
+                          <td className="py-2 pr-3">{approvalSupplementLabel(day.usage)}</td>
                           <td className="max-w-[16rem] py-2 pr-3">{day.comment}</td>
                           <td className="py-2 pr-3">
                             <Badge variant="outline" className="bg-transparent">
@@ -508,6 +704,7 @@ export function TimesheetApprovalQueue() {
                             )}
                           </td>
                         </tr>
+                        </Fragment>
                       );
                     })}
                   </tbody>

@@ -12,7 +12,7 @@ export type SplitSegment = {
 };
 
 export function parseClockToHours(clock: string): number | null {
-  const match = clock.trim().match(/^(\d{1,2})(?::(\d{2}))?$/);
+  const match = clock.trim().match(/^(\d{1,2})(?::(\d{2}))?(?::\d{2})?$/);
   if (!match) return null;
   const hours = Number(match[1]);
   const minutes = Number(match[2] ?? "0");
@@ -58,6 +58,8 @@ export function splitDayHours(input: {
   rules: DayRules;
   /** Netto timer allerede ført samme dag (andre prosjekt/blokker). Brukes for riktig overtid. */
   priorNetHours?: number;
+  /** Fastlønn uten overtid: hele blokken blir ordinær tid. */
+  overtimeEligible?: boolean;
 }): SplitSegment[] {
   const from = parseClockToHours(input.clockFrom);
   const to = parseClockToHours(input.clockTo);
@@ -65,8 +67,13 @@ export function splitDayHours(input: {
   const net = netWorkedHours(from, to, input.lunchMinutes);
   if (net <= 0) return [];
 
-  const weekday = input.date.getDay();
   const segments: SplitSegment[] = [];
+  if (input.overtimeEligible === false) {
+    pushSegment(segments, "NORMAL", net);
+    return segments;
+  }
+
+  const weekday = input.date.getDay();
 
   if (weekday === 0) {
     pushSegment(segments, "OVERTIME_100", net);
@@ -91,7 +98,8 @@ export function splitDayHours(input: {
       ? weekdayNormHours(input.rules)
       : weekdayNormHours({ ...input.rules, lunchMinutes: input.lunchMinutes });
   const priorOvertime = Math.max(0, prior - normalCap);
-  const normal = Math.min(net, Math.max(0, normalCap - prior));
+  const dayAlreadyFull = prior >= normalCap || from >= input.rules.dayEndHour;
+  const normal = dayAlreadyFull ? 0 : Math.min(net, Math.max(0, normalCap - prior));
   pushSegment(segments, "NORMAL", normal);
   let overtime = Math.round((net - normal) * 100) / 100;
   const ot50Left = Math.max(0, input.rules.overtime50CapHours - priorOvertime);
@@ -124,8 +132,7 @@ export function nextDefaultClock(input: {
     };
   }
   const from = Math.max(...ends);
-  const to = input.dayEndHour > from ? input.dayEndHour : Math.min(from + 1, 23.75);
-  return { clockFrom: hoursToClock(from), clockTo: hoursToClock(to), lunchMinutes: 0 };
+  return { clockFrom: hoursToClock(from), clockTo: "", lunchMinutes: 0 };
 }
 
 /** Kant i kant (slutt 15:30, neste start 15:30) er lov. Ekte overlapp er ikke det. */

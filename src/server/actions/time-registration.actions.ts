@@ -788,7 +788,7 @@ export async function createMileageEntry(input: {
           date: new Date(input.date),
           kind: "KM",
           productExternalId: productId || "km",
-          productName: "Km privatbil",
+          productName: "Km privat servicebil",
           quantity: input.kilometers,
           unitPrice: rate,
           comment: input.comment?.trim() || null,

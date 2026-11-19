@@ -8,22 +8,44 @@ import { AuditLog } from "@/lib/audit-log";
 import { requirePermission } from "@/lib/server-authorization";
 import {
   SUPPLIER_CRITICALITIES,
+  SUPPLIER_EVALUATION_OUTCOMES,
+  SUPPLIER_MANUAL_METHODS,
   SUPPLIER_STATUSES,
-  approvalRequiresCriteria,
+  normalizeEmail,
   normalizeOrgNumber,
+  outcomeFromStatus,
+  statusChangeSummary,
+  statusFromOutcome,
+  validateEvaluationRecord,
   validateSupplierApproval,
+  type SupplierEvaluationMethodValue,
+  type SupplierEvaluationOutcomeValue,
 } from "@/lib/supplier-management";
 
 const supplierSchema = z.object({
   name: z.string().trim().min(2, "Navn må være minst 2 tegn").max(200),
   orgNumber: z.string().trim().max(20).optional().or(z.literal("")),
   scope: z.string().trim().max(4000).optional().or(z.literal("")),
+  contactName: z.string().trim().max(200).optional().or(z.literal("")),
+  contactEmail: z.string().trim().max(200).optional().or(z.literal("")),
+  contactPhone: z.string().trim().max(40).optional().or(z.literal("")),
+  worksOnSite: z.string().optional().or(z.literal("")),
   status: z.enum(SUPPLIER_STATUSES),
   criticality: z.enum(SUPPLIER_CRITICALITIES),
   criteria: z.string().trim().max(8000).optional().or(z.literal("")),
+  controls: z.string().trim().max(8000).optional().or(z.literal("")),
+  requirements: z.string().trim().max(8000).optional().or(z.literal("")),
   nextReviewAt: z.string().optional().or(z.literal("")),
   validUntil: z.string().optional().or(z.literal("")),
   notes: z.string().trim().max(8000).optional().or(z.literal("")),
+});
+
+const evaluationSchema = z.object({
+  method: z.enum(SUPPLIER_MANUAL_METHODS),
+  outcome: z.enum(SUPPLIER_EVALUATION_OUTCOMES),
+  summary: z.string().trim().min(10, "Vurderingen må beskrive hva som er gjennomgått.").max(8000),
+  actions: z.string().trim().max(8000).optional().or(z.literal("")),
+  nextReviewAt: z.string().optional().or(z.literal("")),
 });
 
 function formatActionError(error: unknown, fallback: string): string {
@@ -40,47 +62,86 @@ function parseDate(value: string | undefined): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function toData(input: z.infer<typeof supplierSchema>, userId: string) {
+function toData(input: z.infer<typeof supplierSchema>, userId: string, existingApprovedAt: Date | null, existingApprovedById: string | null, previousStatus: string | null) {
   const nextReviewAt = parseDate(input.nextReviewAt);
   const validUntil = parseDate(input.validUntil);
   const criteria = input.criteria?.trim() || null;
+  const controls = input.controls?.trim() || null;
+  const requirements = input.requirements?.trim() || null;
+  const contactEmail = normalizeEmail(input.contactEmail ?? "");
   const check = validateSupplierApproval({
     status: input.status,
     criteria: criteria ?? "",
+    controls: controls ?? "",
+    requirements: requirements ?? "",
+    contactEmail: contactEmail ?? "",
     nextReviewAt,
     now: new Date(),
   });
   if (check.ok === false) {
     throw new Error(check.message);
   }
-  const approved = approvalRequiresCriteria(input.status);
+  const approved = input.status === "APPROVED" || input.status === "CONDITIONAL";
+  const keepApproval = approved && previousStatus === input.status && existingApprovedAt;
   return {
     name: input.name.trim(),
     orgNumber: normalizeOrgNumber(input.orgNumber ?? ""),
     scope: input.scope?.trim() || null,
+    contactName: input.contactName?.trim() || null,
+    contactEmail,
+    contactPhone: input.contactPhone?.trim() || null,
+    worksOnSite: input.worksOnSite === "on" || input.worksOnSite === "true",
     status: input.status,
     criticality: input.criticality,
     criteria,
+    controls,
+    requirements,
     nextReviewAt,
     validUntil,
     notes: input.notes?.trim() || null,
-    approvedById: approved ? userId : null,
-    approvedAt: approved ? new Date() : null,
+    approvedById: approved ? (keepApproval ? existingApprovedById : userId) : null,
+    approvedAt: approved ? (keepApproval ? existingApprovedAt : new Date()) : null,
   };
+}
+
+function revalidateSupplier(id?: string) {
+  revalidatePath("/dashboard/leverandorer");
+  if (id) revalidatePath(`/dashboard/leverandorer/${id}`);
 }
 
 export async function createSupplier(formData: FormData) {
   try {
     const context = await requirePermission("canCreateAudits");
     const parsed = supplierSchema.parse(Object.fromEntries(formData.entries()));
+    const data = toData(parsed, context.userId, null, null, null);
     const supplier = await prisma.supplier.create({
-      data: { tenantId: context.tenantId, ...toData(parsed, context.userId) },
+      data: { tenantId: context.tenantId, ...data },
     });
+    const outcome = outcomeFromStatus(supplier.status);
+    if (outcome) {
+      await prisma.supplierEvaluation.create({
+        data: {
+          tenantId: context.tenantId,
+          supplierId: supplier.id,
+          method: "DOCUMENT_REVIEW",
+          outcome,
+          summary: statusChangeSummary({
+            status: supplier.status,
+            criteria: supplier.criteria ?? "",
+            controls: supplier.controls ?? "",
+            requirements: supplier.requirements ?? "",
+          }),
+          evaluatedAt: new Date(),
+          evaluatedById: context.userId,
+          nextReviewAt: supplier.nextReviewAt,
+        },
+      });
+    }
     AuditLog.log(context.tenantId, context.userId, "SUPPLIER_CREATED", "Supplier", supplier.id, {
       name: supplier.name,
       status: supplier.status,
     }).catch(() => {});
-    revalidatePath("/dashboard/leverandorer");
+    revalidateSupplier(supplier.id);
     return { success: true as const, id: supplier.id };
   } catch (error: unknown) {
     return { success: false as const, error: formatActionError(error, "Kunne ikke lagre leverandør") };
@@ -92,22 +153,103 @@ export async function updateSupplier(id: string, formData: FormData) {
     const context = await requirePermission("canCreateAudits");
     const existing = await prisma.supplier.findFirst({
       where: { id, tenantId: context.tenantId },
-      select: { id: true },
+      select: { id: true, status: true, approvedAt: true, approvedById: true },
     });
     if (!existing) return { success: false as const, error: "Leverandør ikke funnet" };
     const parsed = supplierSchema.parse(Object.fromEntries(formData.entries()));
+    const data = toData(parsed, context.userId, existing.approvedAt, existing.approvedById, existing.status);
     const supplier = await prisma.supplier.update({
       where: { id },
-      data: toData(parsed, context.userId),
+      data,
     });
+    const outcome = outcomeFromStatus(supplier.status);
+    if (outcome && existing.status !== supplier.status) {
+      await prisma.supplierEvaluation.create({
+        data: {
+          tenantId: context.tenantId,
+          supplierId: supplier.id,
+          method: "DOCUMENT_REVIEW",
+          outcome,
+          summary: statusChangeSummary({
+            status: supplier.status,
+            criteria: supplier.criteria ?? "",
+            controls: supplier.controls ?? "",
+            requirements: supplier.requirements ?? "",
+          }),
+          evaluatedAt: new Date(),
+          evaluatedById: context.userId,
+          nextReviewAt: supplier.nextReviewAt,
+        },
+      });
+    }
     AuditLog.log(context.tenantId, context.userId, "SUPPLIER_UPDATED", "Supplier", supplier.id, {
       status: supplier.status,
     }).catch(() => {});
-    revalidatePath("/dashboard/leverandorer");
-    revalidatePath(`/dashboard/leverandorer/${id}`);
+    revalidateSupplier(id);
     return { success: true as const, id: supplier.id };
   } catch (error: unknown) {
     return { success: false as const, error: formatActionError(error, "Kunne ikke oppdatere leverandør") };
+  }
+}
+
+export async function recordSupplierEvaluation(supplierId: string, formData: FormData) {
+  try {
+    const context = await requirePermission("canCreateAudits");
+    const supplier = await prisma.supplier.findFirst({
+      where: { id: supplierId, tenantId: context.tenantId },
+      select: { id: true, criteria: true, controls: true, requirements: true, contactEmail: true },
+    });
+    if (!supplier) return { success: false as const, error: "Leverandør ikke funnet" };
+    const parsed = evaluationSchema.parse(Object.fromEntries(formData.entries()));
+    const nextReviewAt = parseDate(parsed.nextReviewAt);
+    const check = validateEvaluationRecord({
+      outcome: parsed.outcome,
+      summary: parsed.summary,
+      nextReviewAt,
+      now: new Date(),
+    });
+    if (check.ok === false) return { success: false as const, error: check.message };
+    const approval = validateSupplierApproval({
+      status: parsed.outcome,
+      criteria: supplier.criteria ?? "",
+      controls: supplier.controls ?? "",
+      requirements: supplier.requirements ?? "",
+      contactEmail: supplier.contactEmail ?? "",
+      nextReviewAt,
+      now: new Date(),
+    });
+    if (approval.ok === false) return { success: false as const, error: approval.message };
+
+    const outcome = parsed.outcome as SupplierEvaluationOutcomeValue;
+    const approved = outcome === "APPROVED" || outcome === "CONDITIONAL";
+    await prisma.$transaction([
+      prisma.supplierEvaluation.create({
+        data: {
+          tenantId: context.tenantId,
+          supplierId: supplier.id,
+          method: parsed.method as SupplierEvaluationMethodValue,
+          outcome,
+          summary: parsed.summary.trim(),
+          actions: parsed.actions?.trim() || null,
+          evaluatedAt: new Date(),
+          evaluatedById: context.userId,
+          nextReviewAt,
+        },
+      }),
+      prisma.supplier.update({
+        where: { id: supplier.id },
+        data: {
+          status: statusFromOutcome(outcome),
+          nextReviewAt,
+          approvedById: approved ? context.userId : null,
+          approvedAt: approved ? new Date() : null,
+        },
+      }),
+    ]);
+    revalidateSupplier(supplierId);
+    return { success: true as const };
+  } catch (error: unknown) {
+    return { success: false as const, error: formatActionError(error, "Kunne ikke lagre vurderingen") };
   }
 }
 
@@ -125,7 +267,7 @@ export async function linkSupplierAudit(supplierId: string, auditId: string) {
       return { success: false as const, error: "Leverandørrevisjonen finnes ikke" };
     }
     await prisma.audit.update({ where: { id: audit.id }, data: { supplierId: supplier.id } });
-    revalidatePath(`/dashboard/leverandorer/${supplierId}`);
+    revalidateSupplier(supplierId);
     return { success: true as const };
   } catch (error: unknown) {
     return { success: false as const, error: formatActionError(error, "Kunne ikke koble revisjon") };
@@ -146,7 +288,7 @@ export async function linkSupplierIncident(supplierId: string, incidentId: strin
       return { success: false as const, error: "Kvalitetsavviket finnes ikke" };
     }
     await prisma.incident.update({ where: { id: incident.id }, data: { supplierId: supplier.id } });
-    revalidatePath(`/dashboard/leverandorer/${supplierId}`);
+    revalidateSupplier(supplierId);
     return { success: true as const };
   } catch (error: unknown) {
     return { success: false as const, error: formatActionError(error, "Kunne ikke koble avvik") };

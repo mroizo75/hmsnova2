@@ -1,6 +1,14 @@
 import { prisma } from "@/lib/db";
 import { ANNUAL_HMS_PLAN_STEPS } from "@/lib/annual-hms-plan-steps";
 import { createNotification, notifyUsersByRole, notifyUsersByRoles } from "@/server/actions/notification.actions";
+import { sendEmail } from "@/lib/email";
+import {
+  isAssessmentOverdue,
+  isDocumentExpired,
+  isReviewOverdue,
+  supplierAssessmentEmail,
+  supplierAssessmentUrl,
+} from "@/lib/supplier-management";
 import { addDays, addMonths, subDays, startOfDay, endOfDay, differenceInDays } from "date-fns";
 import { daysUntil, expiryDigestMessage, pickCurrentTrainings } from "@/features/training/lib/current-training";
 import { roleMatchFilter } from "@/lib/extra-roles";
@@ -74,6 +82,7 @@ export async function runScheduledAlerts(): Promise<TenantAlertSummary[]> {
       checkInspectionFindings(tenant.id),
       checkConstructionDailyRosterControl(tenant.id),
       checkRoutineReviews(tenant.id),
+      checkSupplierFollowUp(tenant.id),
       checkEmployeeReviewsDue(tenant.id),
       checkSickLeaveFollowUps(tenant.id),
       checkBoardingTasks(tenant.id),
@@ -1713,4 +1722,111 @@ async function checkCompetenceGaps(tenantId: string): Promise<AlertResult> {
     count: criticalUsers.length,
     notifications,
   };
+}
+
+async function checkSupplierFollowUp(tenantId: string): Promise<AlertResult> {
+  const now = new Date();
+  let notifications = 0;
+  let followedUp = 0;
+  const horizon = endOfDay(addDays(now, 14));
+  const documentHorizon = endOfDay(addDays(now, 30));
+
+  const suppliers = await prisma.supplier.findMany({
+    where: {
+      tenantId,
+      OR: [
+        { status: { in: ["APPROVED", "CONDITIONAL"] }, nextReviewAt: { lte: horizon } },
+        { documents: { some: { expiresAt: { lte: documentHorizon } } } },
+        { assessments: { some: { status: { in: ["SENT", "ANSWERED"] } } } },
+      ],
+    },
+    select: {
+      id: true,
+      name: true,
+      status: true,
+      nextReviewAt: true,
+      tenant: { select: { name: true } },
+      documents: { select: { expiresAt: true } },
+      assessments: {
+        where: { status: { in: ["SENT", "ANSWERED"] } },
+        select: { id: true, status: true, dueAt: true, sentToEmail: true, token: true, reminderSentAt: true },
+      },
+    },
+  });
+
+  for (const supplier of suppliers) {
+    const reviewOverdue =
+      (supplier.status === "APPROVED" || supplier.status === "CONDITIONAL") &&
+      isReviewOverdue(supplier.nextReviewAt, now);
+    const reviewSoon =
+      (supplier.status === "APPROVED" || supplier.status === "CONDITIONAL") &&
+      supplier.nextReviewAt !== null &&
+      supplier.nextReviewAt <= horizon;
+    const expiredDocuments = supplier.documents.filter((document) => isDocumentExpired(document.expiresAt, now)).length;
+    const expiringDocuments = supplier.documents.filter(
+      (document) => document.expiresAt && document.expiresAt <= documentHorizon && !isDocumentExpired(document.expiresAt, now),
+    ).length;
+    const answers = supplier.assessments.filter((assessment) => assessment.status === "ANSWERED");
+    const overdue = supplier.assessments.filter((assessment) => isAssessmentOverdue(assessment.dueAt, assessment.status, now));
+    const reasons: string[] = [];
+    if (answers.length > 0) reasons.push("selvevaluering venter på behandling");
+    if (overdue.length > 0) reasons.push("selvevaluering er ikke besvart innen fristen");
+    else if (
+      supplier.assessments.some(
+        (item) => item.status === "SENT" && item.dueAt <= endOfDay(addDays(now, 3)),
+      )
+    ) {
+      reasons.push("selvevaluering forfaller snart");
+    }
+    if (reviewOverdue) reasons.push("re-evaluering er forfalt");
+    else if (reviewSoon) reasons.push("re-evaluering nærmer seg");
+    if (expiredDocuments > 0) reasons.push("dokumentasjon er utløpt");
+    else if (expiringDocuments > 0) reasons.push("dokumentasjon utløper snart");
+
+    if (reasons.length > 0) {
+      followedUp += 1;
+      const recent = await prisma.notification.findFirst({
+        where: {
+          tenantId,
+          type: "SYSTEM_ALERT",
+          link: `/dashboard/leverandorer/${supplier.id}`,
+          createdAt: { gt: subDays(now, 7) },
+        },
+        select: { id: true },
+      });
+      if (!recent) {
+        await notifyUsersByRoles(tenantId, ["ADMIN", "HMS"], {
+          type: "SYSTEM_ALERT",
+          title: `Leverandør til oppfølging: ${supplier.name}`,
+          message: `${supplier.name}: ${reasons.join(", ")}. ISO 9001 pkt. 8.4.`,
+          link: `/dashboard/leverandorer/${supplier.id}`,
+        });
+        notifications += 1;
+      }
+    }
+
+    for (const assessment of supplier.assessments.filter(
+      (item) => item.status === "SENT" && item.dueAt <= endOfDay(addDays(now, 3)),
+    )) {
+      if (assessment.reminderSentAt && assessment.reminderSentAt > subDays(now, 7)) continue;
+      try {
+        const message = supplierAssessmentEmail({
+          tenantName: supplier.tenant.name,
+          supplierName: supplier.name,
+          dueAt: assessment.dueAt,
+          url: supplierAssessmentUrl(assessment.token),
+          reminder: true,
+        });
+        await sendEmail({ to: assessment.sentToEmail, subject: message.subject, html: message.html });
+        await prisma.supplierAssessment.update({
+          where: { id: assessment.id },
+          data: { reminderSentAt: now },
+        });
+      } catch {
+        // Neste kjøring prøver igjen. Adressen logges ikke.
+      }
+    }
+  }
+
+  return { type: "SUPPLIER_FOLLOW_UP", count: followedUp, notifications };
 }
