@@ -12,12 +12,18 @@ interface OrgChartContentProps {
 }
 
 export function OrgChartContent({ initialData, canManage }: OrgChartContentProps) {
-  const { data: nodes } = useQuery({
+  const { data } = useQuery({
     queryKey: ["settings", "org-chart"],
     queryFn: () => fetchOrgChartNodes(),
     initialData,
     initialDataUpdatedAt: 0,
   });
 
-  return <OrgChartTree nodes={nodes} canManage={canManage} />;
+  return (
+    <OrgChartTree
+      nodes={data?.nodes ?? initialData.nodes}
+      manual={data?.manual ?? initialData.manual}
+      canManage={canManage}
+    />
+  );
 }

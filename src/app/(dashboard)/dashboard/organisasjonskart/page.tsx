@@ -29,7 +29,7 @@ export default async function OrgChartPage() {
             Organisasjonskart
           </h1>
           <p className="mt-1 text-sm text-muted-foreground sm:text-base">
-            Oppdateres automatisk fra ansatte og avdelinger. Administrator er daglig leder (AML § 3-1, IK-HMS § 5 nr. 5).
+            Avdeling, avdelingsleder og øvrige i avdelingen. Kan følge ansatte automatisk, eller bygges selv (AML § 3-1, IK-HMS § 5 nr. 5).
           </p>
         </div>
       </div>

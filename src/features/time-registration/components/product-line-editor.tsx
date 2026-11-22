@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Package, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { searchTimesheetProducts } from "@/server/actions/timesheet.actions";
 
 export type ProductHit = {
@@ -46,7 +46,7 @@ export function ProductLineEditor({
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<ProductHit[]>([]);
   const [qtyByProduct, setQtyByProduct] = useState<Record<string, string>>({});
-  const [preview, setPreview] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{ id: string; name: string; number: string | null } | null>(null);
 
   useEffect(() => {
     const handle = setTimeout(() => {
@@ -149,7 +149,10 @@ export function ProductLineEditor({
           <div key={product.externalId} className="flex items-center gap-2 rounded-md border px-2 py-2">
             <ProductIcon
               id={product.externalId}
+              name={product.name}
+              number={product.number}
               hasImage={Boolean(product.imageDocumentId)}
+              size="lg"
               onOpen={setPreview}
             />
             <div className="min-w-0 flex-1 text-sm">
@@ -182,7 +185,14 @@ export function ProductLineEditor({
       </div>
       {lines.map((line, index) => (
         <div key={`${line.productExternalId}-${index}`} className="flex items-center gap-2 text-sm">
-          <ProductIcon id={line.productExternalId} hasImage={Boolean(line.imageDocumentId)} onOpen={setPreview} />
+          <ProductIcon
+            id={line.productExternalId}
+            name={line.name}
+            number={line.number}
+            hasImage={Boolean(line.imageDocumentId)}
+            size="sm"
+            onOpen={setPreview}
+          />
           <span className="min-w-0 flex-1 truncate">
             {line.name}
             {line.number ? ` · ${line.number}` : ""} · {line.quantity} {line.unit ?? ""}
@@ -201,8 +211,16 @@ export function ProductLineEditor({
       <Dialog open={Boolean(preview)} onOpenChange={(open) => !open && setPreview(null)}>
         <DialogContent className="max-w-lg">
           {preview && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={`/api/accounting/product-image/${preview}`} alt="" className="max-h-[70vh] w-full object-contain" />
+            <>
+              <DialogTitle>{preview.name}</DialogTitle>
+              {preview.number ? <p className="text-sm text-muted-foreground">{preview.number}</p> : null}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`/api/accounting/product-image/${preview.id}`}
+                alt={preview.name}
+                className="max-h-[70vh] w-full object-contain"
+              />
+            </>
           )}
         </DialogContent>
       </Dialog>
@@ -212,22 +230,35 @@ export function ProductLineEditor({
 
 function ProductIcon({
   id,
+  name,
+  number,
   hasImage,
+  size,
   onOpen,
 }: {
   id: string;
+  name: string;
+  number: string | null;
   hasImage: boolean;
-  onOpen: (id: string) => void;
+  size: "sm" | "lg";
+  onOpen: (product: { id: string; name: string; number: string | null }) => void;
 }) {
+  const t = useTranslations("timesheet");
   const [failed, setFailed] = useState(false);
-  if (!hasImage || failed) return <Package className="h-8 w-8 shrink-0 text-muted-foreground" />;
+  const box = size === "lg" ? "h-20 w-20" : "h-10 w-10";
+  if (!hasImage || failed) return <Package className={`${box} shrink-0 text-muted-foreground`} />;
   return (
-    <button type="button" className="shrink-0" onClick={() => onOpen(id)}>
+    <button
+      type="button"
+      className="shrink-0"
+      aria-label={t("viewProductImage", { name })}
+      onClick={() => onOpen({ id, name, number })}
+    >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={`/api/accounting/product-image/${id}`}
         alt=""
-        className="h-8 w-8 rounded object-cover"
+        className={`${box} rounded border object-contain`}
         onError={() => setFailed(true)}
       />
     </button>

@@ -1,12 +1,15 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DocumentList } from "@/features/documents/components/document-list";
+import { PendingApprovalsPanel } from "@/features/documents/components/pending-approvals-panel";
 import { AlertTriangle, FileText } from "lucide-react";
 import { isDocumentAttention } from "@/lib/document-attention";
 import { useTranslations } from "next-intl";
 import { fetchDocuments } from "@/server/queries/document.queries";
+import { cn } from "@/lib/utils";
 
 type DocumentData = NonNullable<Awaited<ReturnType<typeof fetchDocuments>>>;
 
@@ -25,18 +28,43 @@ export function DocumentsContent({ initialData }: DocumentsContentProps) {
 
   if (!data) return null;
 
-  const { documents, tenantId, currentUserId } = data;
+  const { documents, tenantId, currentUserId, canApproveDocuments } = data;
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const showingPending = searchParams.get("status") === "DRAFT";
+  const pending = documents.filter((d: { status: string }) => d.status === "DRAFT");
 
   const stats = {
     total: documents.length,
     attention: documents.filter((d: any) => isDocumentAttention(d)).length,
-    draft: documents.filter((d: any) => d.status === "DRAFT").length,
+    draft: pending.length,
     approved: documents.filter((d: any) => d.status === "APPROVED").length,
     archived: documents.filter((d: any) => d.status === "ARCHIVED").length,
   };
 
+  const togglePending = () => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (showingPending) params.delete("status");
+    else params.set("status", "DRAFT");
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  };
+
   return (
     <>
+      <PendingApprovalsPanel
+        documents={pending.map((document: any) => ({
+          id: document.id,
+          title: document.title,
+          kind: document.kind,
+          version: document.version,
+          owner: document.owner ?? null,
+        }))}
+        currentUserId={currentUserId}
+        canApprove={Boolean(canApproveDocuments)}
+      />
+
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -56,12 +84,23 @@ export function DocumentsContent({ initialData }: DocumentsContentProps) {
             <div className="text-2xl font-bold text-destructive">{stats.attention}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={togglePending}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              togglePending();
+            }
+          }}
+          className={cn("h-full cursor-pointer", showingPending && "border-amber-400")}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{t("stats.draft")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.draft}</div>
+            <div className="text-2xl font-bold text-amber-700">{stats.draft}</div>
           </CardContent>
         </Card>
         <Card>
@@ -82,7 +121,12 @@ export function DocumentsContent({ initialData }: DocumentsContentProps) {
         </Card>
       </div>
 
-      <DocumentList documents={documents} tenantId={tenantId} currentUserId={currentUserId} />
+      <DocumentList
+        documents={documents}
+        tenantId={tenantId}
+        currentUserId={currentUserId}
+        canApprove={Boolean(canApproveDocuments)}
+      />
     </>
   );
 }

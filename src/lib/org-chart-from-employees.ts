@@ -5,7 +5,7 @@ import { getRoleDisplayName } from "@/lib/permissions";
 /**
  * Bygger organisasjonskart fra ansatte og avdelinger.
  * Linjen følger AML § 3-1 og IK-HMS § 5 nr. 5:
- * daglig leder øverst, avdelingsledere under, ansatte i avdelingen under sin leder.
+ * daglig leder øverst, deretter avdeling, avdelingsleder og øvrige i avdelingen.
  * Verneombud vises etter AML § 6-1, uten å erstatte linjelederen.
  */
 
@@ -36,6 +36,7 @@ export type OrgChartDraftNode = {
   name: string | null;
   department: string | null;
   sortOrder: number;
+  kind: "PERSON" | "DEPARTMENT";
 };
 
 const STAFF_ORDER: Role[] = [
@@ -137,6 +138,7 @@ export function buildOrgChartFromEmployees(
       name: leader.name,
       department: null,
       sortOrder: 0,
+      kind: "PERSON",
     });
     placedUsers.add(dagligLederId);
   } else {
@@ -147,6 +149,7 @@ export function buildOrgChartFromEmployees(
       name: null,
       department: null,
       sortOrder: 0,
+      kind: "PERSON",
     });
   }
 
@@ -160,11 +163,23 @@ export function buildOrgChartFromEmployees(
       name: person.name,
       department: departmentName(person, deptById, leading),
       sortOrder,
+      kind: "PERSON",
     });
     placedUsers.add(person.userId);
   }
 
   function walkDepartment(department: OrgChartSourceDepartment, parentAnchor: string) {
+    const deptKey = `dept:${department.id}`;
+    nodes.push({
+      key: deptKey,
+      parentKey: parentAnchor,
+      title: department.name,
+      name: null,
+      department: department.name,
+      sortOrder: 10 + department.sortOrder,
+      kind: "DEPARTMENT",
+    });
+
     const leaderId =
       department.leaderId &&
       department.leaderId !== dagligLederId &&
@@ -172,25 +187,15 @@ export function buildOrgChartFromEmployees(
         ? department.leaderId
         : null;
 
-    let anchor = parentAnchor;
+    let peopleAnchor = deptKey;
     if (leaderId) {
-      anchor = `user:${leaderId}`;
-      addPerson(byUser.get(leaderId)!, parentAnchor, 100 + department.sortOrder);
-    } else if (department.leaderId !== dagligLederId) {
-      anchor = `dept:${department.id}`;
-      nodes.push({
-        key: anchor,
-        parentKey: parentAnchor,
-        title: department.name,
-        name: null,
-        department: null,
-        sortOrder: 100 + department.sortOrder,
-      });
+      peopleAnchor = `user:${leaderId}`;
+      addPerson(byUser.get(leaderId)!, deptKey, 0);
     }
-    anchors.set(department.id, anchor);
+    anchors.set(department.id, peopleAnchor);
 
     for (const child of childrenByParent.get(department.id) ?? []) {
-      walkDepartment(child, anchor);
+      walkDepartment(child, deptKey);
     }
   }
 
@@ -220,7 +225,7 @@ export function buildOrgChartFromEmployees(
     const staffRank = STAFF_ORDER.findIndex((role) => hasRole(person, role));
     const sortOrder =
       parentKey === rootKey && staffRank >= 0 && !leadingByUser.has(person.userId)
-        ? 10 + staffRank
+        ? 80 + staffRank
         : 200 + nodes.length;
     addPerson(person, parentKey, sortOrder);
     stack.delete(userId);

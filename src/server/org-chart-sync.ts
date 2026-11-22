@@ -11,6 +11,7 @@ type StoredNode = {
   name: string | null;
   department: string | null;
   sortOrder: number;
+  kind: string;
 };
 
 function signatureFromStored(nodes: StoredNode[]): string {
@@ -27,7 +28,7 @@ function signatureFromStored(nodes: StoredNode[]): string {
     return children
       .map(
         (node) =>
-          `${node.sortOrder}|${node.title}|${node.name ?? ""}|${node.department ?? ""}>[${walk(node.id)}]`,
+          `${node.sortOrder}|${node.kind}|${node.title}|${node.name ?? ""}|${node.department ?? ""}>[${walk(node.id)}]`,
       )
       .join(";");
   };
@@ -48,7 +49,7 @@ function signatureFromDrafts(nodes: OrgChartDraftNode[]): string {
     return children
       .map(
         (node) =>
-          `${node.sortOrder}|${node.title}|${node.name ?? ""}|${node.department ?? ""}>[${walk(node.key)}]`,
+          `${node.sortOrder}|${node.kind}|${node.title}|${node.name ?? ""}|${node.department ?? ""}>[${walk(node.key)}]`,
       )
       .join(";");
   };
@@ -57,6 +58,12 @@ function signatureFromDrafts(nodes: OrgChartDraftNode[]): string {
 
 /** Holder organisasjonskartet lik linjen i personalregisteret. Skriver bare når noe er endret. */
 export async function syncOrgChartFromEmployees(tenantId: string): Promise<void> {
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { orgChartManual: true },
+  });
+  if (tenant?.orgChartManual) return;
+
   const [memberships, departments, existing] = await Promise.all([
     prisma.userTenant.findMany({
       where: { tenantId },
@@ -87,6 +94,7 @@ export async function syncOrgChartFromEmployees(tenantId: string): Promise<void>
         name: true,
         department: true,
         sortOrder: true,
+        kind: true,
       },
     }),
   ]);
@@ -120,6 +128,7 @@ export async function syncOrgChartFromEmployees(tenantId: string): Promise<void>
           name: node.name,
           department: node.department,
           sortOrder: node.sortOrder,
+          kind: node.kind,
         },
       });
       idByKey.set(node.key, created.id);

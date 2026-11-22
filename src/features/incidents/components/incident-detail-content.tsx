@@ -43,6 +43,8 @@ import {
 import { cn } from "@/lib/utils";
 import { fetchIncidentDetail } from "@/server/queries/incident-detail.queries";
 import { inspectionSourcesFromFindings } from "@/features/incidents/lib/inspection-source";
+import { imagesFromInspectionFindings } from "@/lib/inspection-image-keys";
+import { ImageGallery } from "@/components/shared/image-gallery";
 import { MocRelatedCard } from "@/features/moc/components/moc-related-card";
 
 type IncidentDetailData = NonNullable<Awaited<ReturnType<typeof fetchIncidentDetail>>>;
@@ -179,6 +181,7 @@ export function IncidentDetailContent({
   const completedSteps = getCompletedSteps(incident);
   const currentActiveStep = activeStep ?? getActiveStep(incident);
   const isClosed = incident.status === "CLOSED";
+  const inspectionImages = imagesFromInspectionFindings(incident.inspectionFindings);
 
   return (
     <>
@@ -502,6 +505,13 @@ export function IncidentDetailContent({
               </div>
             )}
 
+            {inspectionImages.length > 0 && (
+              <div>
+                <h4 className="font-semibold mb-2">Bilder fra vernerunden</h4>
+                <ImageGallery images={inspectionImages} />
+              </div>
+            )}
+
             {incident.attachments && incident.attachments.length > 0 && (
               <div className="rounded-lg border-2 border-primary/20 bg-primary/5 p-4">
                 <h4 className="font-semibold mb-3 flex items-center gap-2">
@@ -716,7 +726,7 @@ export function IncidentDetailContent({
               </div>
             ) : (
               <>
-                <MeasureList measures={incident.measures} />
+                <MeasureList measures={incident.measures} showPhotos />
                 {incident.measures.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground">
                     <p>{t("sections.measures.empty")}</p>

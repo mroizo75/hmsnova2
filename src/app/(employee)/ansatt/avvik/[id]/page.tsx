@@ -11,6 +11,8 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { EmployeeIncidentCommentForm } from "@/features/incidents/components/employee-incident-comment-form";
 import { inspectionSourcesFromFindings } from "@/features/incidents/lib/inspection-source";
+import { imagesFromInspectionFindings } from "@/lib/inspection-image-keys";
+import { ImageGallery } from "@/components/shared/image-gallery";
 
 export default async function AnsattAvvikDetalj({
   params,
@@ -34,6 +36,7 @@ export default async function AnsattAvvikDetalj({
       equipmentApproval: { select: { name: true } },
       inspectionFindings: {
         select: {
+          imageKeys: true,
           inspection: { select: { id: true, title: true, type: true } },
         },
       },
@@ -106,6 +109,7 @@ export default async function AnsattAvvikDetalj({
         <CardContent className="space-y-3 text-sm">
           <p>Registrert av {reporterName}</p>
           <p className="whitespace-pre-wrap">{incident.description}</p>
+          <ImageGallery images={imagesFromInspectionFindings(incident.inspectionFindings)} />
           {incident.location && (
             <p className="text-muted-foreground">Sted: {incident.location}</p>
           )}

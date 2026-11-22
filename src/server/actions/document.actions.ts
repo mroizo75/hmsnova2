@@ -9,7 +9,7 @@ import {
 } from "@/features/documents/schemas/document.schema";
 import { getStorage, generateFileKey } from "@/lib/storage";
 import { DocStatus } from "@prisma/client";
-import { requirePermission, requireResourceAccess } from "@/lib/server-authorization";
+import { getAuthContext, requirePermission, requireResourceAccess } from "@/lib/server-authorization";
 import { calculateNextReviewDate, parseDateInput } from "@/lib/document-utils";
 import { convertDocumentToPDF } from "@/lib/adobe-pdf";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
@@ -66,6 +66,24 @@ async function notifyReadConfirmation(document: {
       }).catch(() => undefined),
     ),
   );
+}
+
+async function notifyPendingApproval(document: {
+  id: string;
+  tenantId: string;
+  title: string;
+  version: string;
+  ownerId: string | null;
+}) {
+  if (!document.ownerId) return;
+  await createNotification({
+    tenantId: document.tenantId,
+    userId: document.ownerId,
+    type: "SYSTEM_ALERT",
+    title: "Dokument til godkjenning",
+    message: `«${document.title}» (${document.version}) venter på deg som prosesseier. Du finner det under Oversikt og Dokumenter.`,
+    link: `/dashboard/documents/${document.id}`,
+  }).catch(() => undefined);
 }
 
 const sanitizeText = (value?: string | null) => {
@@ -340,7 +358,9 @@ export async function createDocument(formData: FormData) {
     );
 
     revalidatePath(`/dashboard/documents`);
+    revalidatePath("/dashboard");
     triggerRealtimeEvent(validated.tenantId, "document-updated");
+    await notifyPendingApproval(document);
     return { success: true, data: document };
   } catch (error: any) {
     console.error("Create document error:", error);
@@ -454,7 +474,15 @@ export async function uploadNewVersion(formData: FormData) {
 
     revalidatePath(`/dashboard/documents`);
     revalidatePath(`/dashboard/documents/${documentId}`);
+    revalidatePath("/dashboard");
     triggerRealtimeEvent(document.tenantId, "document-updated");
+    await notifyPendingApproval({
+      id: updatedDocument.id,
+      tenantId: updatedDocument.tenantId,
+      title: updatedDocument.title,
+      version: updatedDocument.version,
+      ownerId: updatedDocument.ownerId,
+    });
     return { success: true, data: updatedDocument };
   } catch (error: any) {
     console.error("Upload new version error:", error);
@@ -610,6 +638,14 @@ export async function updateDocument(input: any) {
     ) {
       await notifyReadConfirmation(updated);
     }
+    if (
+      updated.status === "DRAFT" &&
+      updated.ownerId &&
+      updated.ownerId !== document.ownerId
+    ) {
+      await notifyPendingApproval(updated);
+    }
+    revalidatePath("/dashboard");
     return { success: true, data: updated };
   } catch (error: any) {
     console.error("Update document error:", error);
@@ -619,8 +655,10 @@ export async function updateDocument(input: any) {
 
 export async function approveDocument(input: any) {
   try {
-    // Sjekk tilgang til å godkjenne
-    const context = await requirePermission("canApproveDocuments");
+    const context = await getAuthContext();
+    if (!context) {
+      return { success: false, error: "Ikke autentisert" };
+    }
 
     const validated = approveDocumentSchema.parse(input);
 
@@ -629,8 +667,13 @@ export async function approveDocument(input: any) {
       include: { versions: { orderBy: { createdAt: "desc" }, take: 1 } },
     });
 
-    if (!document) {
+    if (!document || document.tenantId !== context.tenantId) {
       return { success: false, error: "Dokument ikke funnet" };
+    }
+
+    const isProcessOwner = document.ownerId === context.userId;
+    if (!context.permissions.canApproveDocuments && !isProcessOwner) {
+      return { success: false, error: "Bare prosesseier, administrator eller HMS kan godkjenne" };
     }
 
     const reviewIntervalMonths = document.reviewIntervalMonths ?? 12;
@@ -672,6 +715,7 @@ export async function approveDocument(input: any) {
 
     revalidatePath(`/dashboard/documents`);
     revalidatePath(`/dashboard/documents/${validated.id}`);
+    revalidatePath("/dashboard");
     revalidatePath("/ansatt");
     revalidatePath("/ansatt/dokumenter");
     triggerRealtimeEvent(document.tenantId, "document-updated");

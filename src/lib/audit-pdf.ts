@@ -27,7 +27,7 @@ interface AuditData {
   findings: Array<{
     id: string;
     findingType: string;
-    clause: string;
+    clause: string | null;
     description: string;
     evidence: string;
     requirement: string;
@@ -123,10 +123,10 @@ export async function generateAuditReport(audit: AuditData): Promise<Buffer> {
       content: [
         {
           type: "table",
-          headers: ["#", "Klausul", "Type", "Beskrivelse", "Status"],
+          headers: ["#", "Kravreferanse", "Type", "Beskrivelse", "Status"],
           rows: audit.findings.map((f, i) => [
             i + 1,
-            f.clause,
+            f.clause || "–",
             FINDING_TYPE_LABELS[f.findingType] ?? f.findingType,
             f.description.length > 70 ? f.description.substring(0, 70) + "…" : f.description,
             f.status,
@@ -142,7 +142,7 @@ export async function generateAuditReport(audit: AuditData): Promise<Buffer> {
           type: "keyvalue" as const,
           pairs: [
             [`${i + 1}. ${FINDING_TYPE_LABELS[f.findingType] ?? f.findingType}`, ""],
-            ["ISO-klausul", f.clause],
+            ["Kravreferanse", f.clause || "–"],
             ["Krav", f.requirement],
             ["Beskrivelse", f.description],
             ["Bevis/Observasjon", f.evidence],

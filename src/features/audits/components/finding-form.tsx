@@ -47,7 +47,7 @@ export function FindingForm({ auditId, users, trigger }: FindingFormProps) {
     const data = {
       auditId,
       findingType: formData.get("findingType") as string,
-      clause: formData.get("clause") as string,
+      clause: String(formData.get("clause") ?? ""),
       description: formData.get("description") as string,
       evidence: formData.get("evidence") as string,
       requirement: formData.get("requirement") as string,
@@ -90,7 +90,7 @@ export function FindingForm({ auditId, users, trigger }: FindingFormProps) {
         <DialogHeader>
           <DialogTitle>Registrer revisjonsfunn</DialogTitle>
           <DialogDescription>
-            ISO 9001: Dokumenter funn, avvik og observasjoner fra revisjonen
+            Dokumenter funn, avvik og observasjoner. Kravreferansen er valgfri.
           </DialogDescription>
         </DialogHeader>
 
@@ -112,19 +112,23 @@ export function FindingForm({ auditId, users, trigger }: FindingFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="clause">ISO 9001 Klausul *</Label>
-              <Select name="clause" required disabled={loading}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Velg klausul" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ISO_9001_CLAUSES.map((c) => (
-                    <SelectItem key={c.clause} value={c.clause}>
-                      {c.clause} - {c.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="clause">Kravreferanse</Label>
+              <Input
+                id="clause"
+                name="clause"
+                list="requirement-references"
+                maxLength={191}
+                placeholder="For eksempel ISO 9001 pkt. 8.4, AML § 2-2 eller internt krav"
+                disabled={loading}
+              />
+              <datalist id="requirement-references">
+                {ISO_9001_CLAUSES.map((item) => (
+                  <option key={item.clause} value={`${item.clause} ${item.title}`} />
+                ))}
+              </datalist>
+              <p className="text-sm text-muted-foreground">
+                Valgfritt. Funn kan gjelde en ISO-klausul, et annet standardkrav, lov, internt krav eller kundekrav.
+              </p>
             </div>
           </div>
 
@@ -163,7 +167,7 @@ export function FindingForm({ auditId, users, trigger }: FindingFormProps) {
               id="requirement"
               name="requirement"
               rows={2}
-              placeholder="Hvilket krav i ISO 9001 eller interne prosedyrer er ikke oppfylt?"
+              placeholder="Hvilket krav er ikke oppfylt?"
               required
               disabled={loading}
               minLength={10}

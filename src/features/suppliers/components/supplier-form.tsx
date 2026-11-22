@@ -11,7 +11,6 @@ import { useToast } from "@/hooks/use-toast";
 import {
   SUPPLIER_CRITICALITIES,
   SUPPLIER_CRITICALITY_LABELS,
-  SUPPLIER_STATUSES,
   SUPPLIER_STATUS_LABELS,
   type SupplierCriticalityValue,
   type SupplierStatusValue,
@@ -33,7 +32,6 @@ export interface SupplierFormValues {
   controls: string;
   requirements: string;
   nextReviewAt: string;
-  validUntil: string;
   notes: string;
 }
 
@@ -51,9 +49,14 @@ const emptyValues: SupplierFormValues = {
   controls: "",
   requirements: "",
   nextReviewAt: "",
-  validUntil: "",
   notes: "",
 };
+
+function formatIsoDate(value: string): string {
+  const [year, month, day] = value.split("-");
+  if (!year || !month || !day) return value;
+  return `${Number(day)}.${Number(month)}.${year}`;
+}
 
 export function SupplierForm({ initial }: { initial?: SupplierFormValues }) {
   const values = initial ?? emptyValues;
@@ -84,7 +87,7 @@ export function SupplierForm({ initial }: { initial?: SupplierFormValues }) {
         <CardHeader>
           <CardTitle>Leverandør</CardTitle>
           <CardDescription>
-            Kriterier, styring og krav som kommuniseres til leverandøren (ISO 9001:2015 pkt. 8.4). Godkjenning krever også e-post og dato for re-evaluering.
+            Kriterier, styring og krav som kommuniseres til leverandøren (ISO 9001:2015 pkt. 8.4). Status og dato for re-evaluering settes når en vurdering lagres.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -120,22 +123,16 @@ export function SupplierForm({ initial }: { initial?: SupplierFormValues }) {
             <input type="checkbox" name="worksOnSite" value="on" defaultChecked={values.worksOnSite} />
             Arbeider hos oss eller på felles arbeidsplass (AML § 2-2)
           </label>
+          <p className="text-sm text-muted-foreground">
+            {values.id
+              ? `Status: ${SUPPLIER_STATUS_LABELS[values.status]}. Den følger siste vurdering og endres ikke her.${
+                  values.nextReviewAt
+                    ? ` Gjeldende re-evaluering er ${formatIsoDate(values.nextReviewAt)}.`
+                    : " Ingen dato for re-evaluering er satt."
+                }`
+              : "Ny leverandør står som Til vurdering til den første vurderingen er lagret."}
+          </p>
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <select
-                id="status"
-                name="status"
-                defaultValue={values.status}
-                className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm"
-              >
-                {SUPPLIER_STATUSES.map((status) => (
-                  <option key={status} value={status}>
-                    {SUPPLIER_STATUS_LABELS[status]}
-                  </option>
-                ))}
-              </select>
-            </div>
             <div className="space-y-2">
               <Label htmlFor="criticality">Kritikalitet</Label>
               <select
@@ -181,16 +178,6 @@ export function SupplierForm({ initial }: { initial?: SupplierFormValues }) {
               defaultValue={values.requirements}
               placeholder="Krav til produkt, kompetanse, dokumentasjon og eventuell verifikasjon hos leverandøren"
             />
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="nextReviewAt">Neste re-evaluering</Label>
-              <Input id="nextReviewAt" name="nextReviewAt" type="date" defaultValue={values.nextReviewAt} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="validUntil">Gyldig til</Label>
-              <Input id="validUntil" name="validUntil" type="date" defaultValue={values.validUntil} />
-            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="notes">Notat</Label>

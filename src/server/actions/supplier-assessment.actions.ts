@@ -10,6 +10,7 @@ import { requirePermission } from "@/lib/server-authorization";
 import {
   SUPPLIER_EVALUATION_OUTCOMES,
   serializeSupplierQuestions,
+  standardSupplierQuestions,
   statusFromOutcome,
   supplierAssessmentEmail,
   supplierAssessmentUrl,
@@ -94,16 +95,16 @@ export async function sendSupplierAssessment(supplierId: string, formData: FormD
       where: { tenantId: context.tenantId },
       include: { questions: { orderBy: { sortOrder: "asc" } } },
     });
-    if (!form || form.questions.length === 0) {
-      return { success: false as const, error: "Definer spørsmålene i skjemaet før det sendes." };
-    }
-    const questions: SupplierQuestion[] = form.questions.map((question) => ({
-      id: question.id,
-      label: question.label,
-      helpText: question.helpText ?? "",
-      fieldType: question.fieldType,
-      required: question.required,
-    }));
+    const questions: SupplierQuestion[] =
+      form && form.questions.length > 0
+        ? form.questions.map((question) => ({
+            id: question.id,
+            label: question.label,
+            helpText: question.helpText ?? "",
+            fieldType: question.fieldType,
+            required: question.required,
+          }))
+        : standardSupplierQuestions();
 
     await prisma.supplierAssessment.updateMany({
       where: { supplierId: supplier.id, status: "SENT" },

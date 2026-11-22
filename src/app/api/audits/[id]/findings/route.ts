@@ -83,7 +83,7 @@ export async function POST(
       data: {
         auditId: audit.id,
         findingType: data.findingType || "OBSERVATION",
-        clause: data.clause,
+        clause: typeof data.clause === "string" && data.clause.trim() ? data.clause.trim().slice(0, 191) : null,
         description: data.description,
         evidence: data.evidence,
         requirement: data.requirement,

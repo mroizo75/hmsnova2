@@ -64,6 +64,7 @@ export async function fetchIncidentDetail(id: string) {
       inspectionFindings: {
         select: {
           id: true,
+          imageKeys: true,
           inspection: {
             select: { id: true, title: true, type: true, scheduledDate: true },
           },

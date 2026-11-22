@@ -35,9 +35,11 @@ function formatDate(value: string | null): string {
 
 export function SupplierEvaluations({
   supplierId,
+  currentNextReviewAt,
   evaluations,
 }: {
   supplierId: string;
+  currentNextReviewAt: string | null;
   evaluations: SupplierEvaluationView[];
 }) {
   const router = useRouter();
@@ -65,7 +67,10 @@ export function SupplierEvaluations({
 
   return (
     <div className="space-y-6">
-      {evaluations.length === 0 ? <p className="text-sm text-muted-foreground">Ingen vurderinger er registrert.</p> : null}
+      <p className="text-sm text-muted-foreground">
+        Gjeldende re-evaluering: {currentNextReviewAt ? formatDate(currentNextReviewAt) : "ikke satt"}. Datoen settes her når vurderingen lagres, og det er denne listen og varslene bruker.
+      </p>
+      {evaluations.length === 0 ? <p className="text-sm text-muted-foreground">Ingen vurderinger er registrert. Leverandøren står som Til vurdering til den første vurderingen er lagret.</p> : null}
       <div className="space-y-3">
         {evaluations.map((evaluation) => (
           <div key={evaluation.id} className="rounded-md border p-4 text-sm">
@@ -75,7 +80,6 @@ export function SupplierEvaluations({
             <p className="text-muted-foreground">
               {formatDate(evaluation.evaluatedAt)}
               {evaluation.evaluatedByName ? ` · ${evaluation.evaluatedByName}` : ""}
-              {evaluation.nextReviewAt ? ` · neste ${formatDate(evaluation.nextReviewAt)}` : ""}
             </p>
             <p className="mt-2 whitespace-pre-wrap">{evaluation.summary}</p>
             {evaluation.actions ? <p className="mt-2 whitespace-pre-wrap">Tiltak: {evaluation.actions}</p> : null}
@@ -108,6 +112,7 @@ export function SupplierEvaluations({
           <div className="space-y-2">
             <Label htmlFor="eval-next">Neste re-evaluering</Label>
             <Input id="eval-next" name="nextReviewAt" type="date" />
+            <p className="text-xs text-muted-foreground">Dette blir leverandørens gjeldende dato, og status settes til resultatet over.</p>
           </div>
         </div>
         <div className="space-y-2">

@@ -101,6 +101,7 @@ export interface DashboardNavItemConfig {
 
 export const DASHBOARD_NAV_CONFIG: DashboardNavItemConfig[] = [
   { href: "/dashboard", label: "nav.dashboard", permission: "dashboard", defaultSimple: true, coreHub: "oversikt" },
+  { href: "/dashboard/nyheter", label: "nav.nyheter", permission: "dashboard", defaultSimple: true, alwaysShow: true, coreHub: "oversikt" },
   { href: "/dashboard/meldinger", label: "nav.meldinger", permission: "dashboard", defaultSimple: false, alwaysShow: true, requiresKonsern: true, coreHub: "oversikt" },
   { href: "/dashboard/hms-cockpit", label: "nav.hmsCockpit", permission: "hmsCockpit", defaultSimple: true, coreHub: "oversikt" },
   { href: "/dashboard/hms-tavle", label: "nav.hmsTavle", permission: "hmsTavle", defaultSimple: true, coreHub: "oversikt" },

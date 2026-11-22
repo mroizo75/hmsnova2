@@ -19,6 +19,7 @@ import {
   createEmptyInspectionFinding,
   type InspectionFindingDraft,
 } from "@/lib/inspection-findings";
+import { ImageGallery } from "@/components/shared/image-gallery";
 
 function isImageFile(file: File): boolean {
   return file.type.startsWith("image/");
@@ -936,7 +937,7 @@ export function FormFiller({
                           <Label className="text-xs">Bilder (valgfritt)</Label>
                           <input
                             ref={(el) => {
-                              findingImageInputRefs.current[uploadKey] = el;
+                              findingImageInputRefs.current[`${uploadKey}-gallery`] = el;
                             }}
                             type="file"
                             accept="image/*"
@@ -952,43 +953,64 @@ export function FormFiller({
                             }
                             disabled={uploadingFindingKey === uploadKey}
                           />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="bg-transparent"
-                            onClick={() => findingImageInputRefs.current[uploadKey]?.click()}
+                          <input
+                            ref={(el) => {
+                              findingImageInputRefs.current[`${uploadKey}-camera`] = el;
+                            }}
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            className="hidden"
+                            onChange={(event) =>
+                              uploadInlineFindingImages(
+                                field.id,
+                                field.label,
+                                findingIndex,
+                                event.target.files,
+                              )
+                            }
                             disabled={uploadingFindingKey === uploadKey}
-                          >
-                            <Camera className="h-4 w-4 mr-2" />
-                            {uploadingFindingKey === uploadKey ? "Laster opp..." : "Legg til bilde"}
-                          </Button>
+                          />
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="bg-transparent"
+                              onClick={() => findingImageInputRefs.current[`${uploadKey}-camera`]?.click()}
+                              disabled={uploadingFindingKey === uploadKey}
+                            >
+                              <Camera className="h-4 w-4 mr-2" />
+                              {uploadingFindingKey === uploadKey ? "Laster opp..." : "Ta bilde"}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="bg-transparent"
+                              onClick={() => findingImageInputRefs.current[`${uploadKey}-gallery`]?.click()}
+                              disabled={uploadingFindingKey === uploadKey}
+                            >
+                              <ImageIcon className="h-4 w-4 mr-2" />
+                              Fra galleriet
+                            </Button>
+                          </div>
                           {draft.imageKeys.length > 0 && (
-                            <div className="grid grid-cols-3 gap-2">
-                              {draft.imageKeys.map((imageKey) => (
-                                <div key={imageKey} className="relative">
-                                  <img
-                                    src={`/api/inspections/images/${imageKey}`}
-                                    alt="Funnbilde"
-                                    className="h-20 w-full rounded border object-cover"
-                                  />
-                                  <button
-                                    type="button"
-                                    className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white"
-                                    onClick={() =>
-                                      removeInlineFindingImage(
-                                        field.id,
-                                        field.label,
-                                        findingIndex,
-                                        imageKey,
-                                      )
-                                    }
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
+                            <ImageGallery
+                              images={draft.imageKeys.map((imageKey) => ({
+                                key: imageKey,
+                                src: `/api/inspections/images/${imageKey}`,
+                                alt: "Funnbilde",
+                              }))}
+                              onRemove={(imageKey) =>
+                                removeInlineFindingImage(
+                                  field.id,
+                                  field.label,
+                                  findingIndex,
+                                  imageKey,
+                                )
+                              }
+                            />
                           )}
                         </div>
                       </div>

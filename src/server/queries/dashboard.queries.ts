@@ -40,7 +40,7 @@ export async function fetchDashboardData() {
   const tenantId = selectedMembership.tenantId;
   const userRole = selectedMembership.role;
 
-  const [documents, risks, incidents, measures, audits, trainings, goals, inspections, forms, routines] = await Promise.all([
+  const [documents, risks, incidents, measures, audits, trainings, goals, inspections, forms, routines, pendingDocuments] = await Promise.all([
     permissions.canReadDocuments
       ? prisma.document.findMany({ where: { tenantId, ...distributableDocumentsWhere } })
       : [],
@@ -107,6 +107,22 @@ export async function fetchDashboardData() {
         nextReviewAt: true,
       },
     }),
+    prisma.document.findMany({
+          where: {
+            tenantId,
+            status: "DRAFT",
+            ...distributableDocumentsWhere,
+            ...(permissions.canReadDocuments ? {} : { ownerId: user.id }),
+          },
+          select: {
+            id: true,
+            title: true,
+            kind: true,
+            version: true,
+            owner: { select: { id: true, name: true, email: true } },
+          },
+          orderBy: { createdAt: "desc" },
+        }),
   ]);
 
   const now = new Date();
@@ -224,6 +240,13 @@ export async function fetchDashboardData() {
       level: "critical" as const,
     },
     {
+      id: "documents-pending-approval",
+      title: "Dokumenter til godkjenning",
+      count: pendingDocuments.length,
+      href: "/dashboard/documents?status=DRAFT",
+      level: "warning" as const,
+    },
+    {
       id: "documents-attention",
       title: "Dokumenter til gjennomgang",
       count: documentsNeedingAttention.length,
@@ -271,6 +294,9 @@ export async function fetchDashboardData() {
 
   return JSON.parse(JSON.stringify({
     userName: user.name || user.email,
+    currentUserId: user.id,
+    canApproveDocuments: permissions.canApproveDocuments,
+    pendingApprovals: pendingDocuments,
     moduleCounts,
     statusItems,
     weeklyTrendData,

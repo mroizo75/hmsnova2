@@ -4,6 +4,7 @@ import {
   isAssessmentOverdue,
   isDocumentExpired,
   isReviewOverdue,
+  standardSupplierQuestions,
   supplierFollowUp,
   supplierPerformance,
 } from "@/lib/supplier-management";
@@ -142,9 +143,10 @@ export async function getSupplier(id: string) {
   });
   if (!supplier) return null;
 
-  const questionCount = await prisma.supplierFormQuestion.count({
+  const savedQuestionCount = await prisma.supplierFormQuestion.count({
     where: { template: { tenantId: context.tenantId } },
   });
+  const questionCount = savedQuestionCount || standardSupplierQuestions().length;
   const openDeviations = supplier.incidents.filter((incident) => incident.status !== "CLOSED").length;
   const expiredDocuments = supplier.documents.filter((document) => isDocumentExpired(document.expiresAt, now)).length;
   const overdueAssessments = supplier.assessments.filter((assessment) =>

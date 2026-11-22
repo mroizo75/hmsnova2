@@ -10,11 +10,8 @@ import {
   SUPPLIER_CRITICALITIES,
   SUPPLIER_EVALUATION_OUTCOMES,
   SUPPLIER_MANUAL_METHODS,
-  SUPPLIER_STATUSES,
   normalizeEmail,
   normalizeOrgNumber,
-  outcomeFromStatus,
-  statusChangeSummary,
   statusFromOutcome,
   validateEvaluationRecord,
   validateSupplierApproval,
@@ -30,13 +27,10 @@ const supplierSchema = z.object({
   contactEmail: z.string().trim().max(200).optional().or(z.literal("")),
   contactPhone: z.string().trim().max(40).optional().or(z.literal("")),
   worksOnSite: z.string().optional().or(z.literal("")),
-  status: z.enum(SUPPLIER_STATUSES),
   criticality: z.enum(SUPPLIER_CRITICALITIES),
   criteria: z.string().trim().max(8000).optional().or(z.literal("")),
   controls: z.string().trim().max(8000).optional().or(z.literal("")),
   requirements: z.string().trim().max(8000).optional().or(z.literal("")),
-  nextReviewAt: z.string().optional().or(z.literal("")),
-  validUntil: z.string().optional().or(z.literal("")),
   notes: z.string().trim().max(8000).optional().or(z.literal("")),
 });
 
@@ -62,45 +56,20 @@ function parseDate(value: string | undefined): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function toData(input: z.infer<typeof supplierSchema>, userId: string, existingApprovedAt: Date | null, existingApprovedById: string | null, previousStatus: string | null) {
-  const nextReviewAt = parseDate(input.nextReviewAt);
-  const validUntil = parseDate(input.validUntil);
-  const criteria = input.criteria?.trim() || null;
-  const controls = input.controls?.trim() || null;
-  const requirements = input.requirements?.trim() || null;
-  const contactEmail = normalizeEmail(input.contactEmail ?? "");
-  const check = validateSupplierApproval({
-    status: input.status,
-    criteria: criteria ?? "",
-    controls: controls ?? "",
-    requirements: requirements ?? "",
-    contactEmail: contactEmail ?? "",
-    nextReviewAt,
-    now: new Date(),
-  });
-  if (check.ok === false) {
-    throw new Error(check.message);
-  }
-  const approved = input.status === "APPROVED" || input.status === "CONDITIONAL";
-  const keepApproval = approved && previousStatus === input.status && existingApprovedAt;
+function toData(input: z.infer<typeof supplierSchema>) {
   return {
     name: input.name.trim(),
     orgNumber: normalizeOrgNumber(input.orgNumber ?? ""),
     scope: input.scope?.trim() || null,
     contactName: input.contactName?.trim() || null,
-    contactEmail,
+    contactEmail: normalizeEmail(input.contactEmail ?? ""),
     contactPhone: input.contactPhone?.trim() || null,
     worksOnSite: input.worksOnSite === "on" || input.worksOnSite === "true",
-    status: input.status,
     criticality: input.criticality,
-    criteria,
-    controls,
-    requirements,
-    nextReviewAt,
-    validUntil,
+    criteria: input.criteria?.trim() || null,
+    controls: input.controls?.trim() || null,
+    requirements: input.requirements?.trim() || null,
     notes: input.notes?.trim() || null,
-    approvedById: approved ? (keepApproval ? existingApprovedById : userId) : null,
-    approvedAt: approved ? (keepApproval ? existingApprovedAt : new Date()) : null,
   };
 }
 
@@ -113,30 +82,9 @@ export async function createSupplier(formData: FormData) {
   try {
     const context = await requirePermission("canCreateAudits");
     const parsed = supplierSchema.parse(Object.fromEntries(formData.entries()));
-    const data = toData(parsed, context.userId, null, null, null);
     const supplier = await prisma.supplier.create({
-      data: { tenantId: context.tenantId, ...data },
+      data: { tenantId: context.tenantId, status: "PENDING", ...toData(parsed) },
     });
-    const outcome = outcomeFromStatus(supplier.status);
-    if (outcome) {
-      await prisma.supplierEvaluation.create({
-        data: {
-          tenantId: context.tenantId,
-          supplierId: supplier.id,
-          method: "DOCUMENT_REVIEW",
-          outcome,
-          summary: statusChangeSummary({
-            status: supplier.status,
-            criteria: supplier.criteria ?? "",
-            controls: supplier.controls ?? "",
-            requirements: supplier.requirements ?? "",
-          }),
-          evaluatedAt: new Date(),
-          evaluatedById: context.userId,
-          nextReviewAt: supplier.nextReviewAt,
-        },
-      });
-    }
     AuditLog.log(context.tenantId, context.userId, "SUPPLIER_CREATED", "Supplier", supplier.id, {
       name: supplier.name,
       status: supplier.status,
@@ -153,35 +101,14 @@ export async function updateSupplier(id: string, formData: FormData) {
     const context = await requirePermission("canCreateAudits");
     const existing = await prisma.supplier.findFirst({
       where: { id, tenantId: context.tenantId },
-      select: { id: true, status: true, approvedAt: true, approvedById: true },
+      select: { id: true },
     });
     if (!existing) return { success: false as const, error: "Leverandør ikke funnet" };
     const parsed = supplierSchema.parse(Object.fromEntries(formData.entries()));
-    const data = toData(parsed, context.userId, existing.approvedAt, existing.approvedById, existing.status);
     const supplier = await prisma.supplier.update({
       where: { id },
-      data,
+      data: toData(parsed),
     });
-    const outcome = outcomeFromStatus(supplier.status);
-    if (outcome && existing.status !== supplier.status) {
-      await prisma.supplierEvaluation.create({
-        data: {
-          tenantId: context.tenantId,
-          supplierId: supplier.id,
-          method: "DOCUMENT_REVIEW",
-          outcome,
-          summary: statusChangeSummary({
-            status: supplier.status,
-            criteria: supplier.criteria ?? "",
-            controls: supplier.controls ?? "",
-            requirements: supplier.requirements ?? "",
-          }),
-          evaluatedAt: new Date(),
-          evaluatedById: context.userId,
-          nextReviewAt: supplier.nextReviewAt,
-        },
-      });
-    }
     AuditLog.log(context.tenantId, context.userId, "SUPPLIER_UPDATED", "Supplier", supplier.id, {
       status: supplier.status,
     }).catch(() => {});

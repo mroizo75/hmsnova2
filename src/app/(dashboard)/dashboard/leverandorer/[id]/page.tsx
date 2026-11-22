@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SupplierForm, type SupplierFormValues } from "@/features/suppliers/components/supplier-form";
 import { SupplierLinks } from "@/features/suppliers/components/supplier-links";
 import { SupplierAssessments } from "@/features/suppliers/components/supplier-assessments";
@@ -63,12 +63,10 @@ export default async function SupplierDetailPage({ params }: { params: Promise<{
     controls: supplier.controls ?? "",
     requirements: supplier.requirements ?? "",
     nextReviewAt: ymd(supplier.nextReviewAt),
-    validUntil: ymd(supplier.validUntil),
     notes: supplier.notes ?? "",
   };
 
   const canSend =
-    supplier.questionCount > 0 &&
     Boolean(supplier.contactEmail) &&
     (supplier.criteria ?? "").trim().length >= 10 &&
     (supplier.requirements ?? "").trim().length >= 10 &&
@@ -85,6 +83,7 @@ export default async function SupplierDetailPage({ params }: { params: Promise<{
               ? ` · ${supplier.performance.label}`
               : ` · Ytelse ${supplier.performance.label} (${supplier.performance.score})`}
             {supplier.reviewOverdue ? " · re-evaluering forfalt" : ""}
+            {supplier.nextReviewAt ? ` · Re-evaluering ${formatDate(supplier.nextReviewAt)}` : " · Ingen dato for re-evaluering"}
             {supplier.approvedAt
               ? ` · Godkjent ${formatDate(supplier.approvedAt)}${supplier.approvedBy?.name ? ` av ${supplier.approvedBy.name}` : ""}`
               : ""}
@@ -190,6 +189,7 @@ export default async function SupplierDetailPage({ params }: { params: Promise<{
         <CardContent>
           <SupplierEvaluations
             supplierId={supplier.id}
+            currentNextReviewAt={supplier.nextReviewAt?.toISOString() ?? null}
             evaluations={supplier.evaluations.map((evaluation) => ({
               id: evaluation.id,
               method: evaluation.method as SupplierEvaluationMethodValue,
@@ -207,6 +207,9 @@ export default async function SupplierDetailPage({ params }: { params: Promise<{
       <Card>
         <CardHeader>
           <CardTitle>Dokumentasjon</CardTitle>
+          <CardDescription>
+            Utløpsdatoen gjelder dokumentet, for eksempel et sertifikat eller en forsikring. Den er ikke leverandørens godkjenningsdato.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <SupplierDocuments

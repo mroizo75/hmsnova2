@@ -11,7 +11,7 @@ export default async function FillChecklistPage({ params }: { params: Promise<{ 
   return (
     <ChecklistFill
       checklist={checklist}
-      resultHref={(runId) => `/dashboard/sjekklister/${id}/innsendinger/${runId}`}
+      resultPath={`/dashboard/sjekklister/${id}/innsendinger`}
     />
   );
 }

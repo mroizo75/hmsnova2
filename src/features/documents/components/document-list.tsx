@@ -44,6 +44,7 @@ interface DocumentListProps {
   documents: DocumentWithMeta[];
   tenantId: string;
   currentUserId?: string;
+  canApprove?: boolean;
 }
 
 const statusVariants: Record<string, "default" | "secondary" | "destructive"> = {
@@ -59,7 +60,7 @@ const formatDate = (value: string | Date | null | undefined, locale: string) => 
   return date.toLocaleDateString(locale === "en" ? "en-US" : "nb-NO");
 };
 
-export function DocumentList({ documents, tenantId, currentUserId }: DocumentListProps) {
+export function DocumentList({ documents, tenantId, currentUserId, canApprove = false }: DocumentListProps) {
   const t = useTranslations("dashboardDocumentsList");
   const locale = useLocale();
   const router = useRouter();
@@ -68,10 +69,12 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
   const sort = parseDocumentSort(searchParams.get("sort"));
-  const sortedDocuments = useMemo(
-    () => [...documents].sort((a, b) => compareDocuments(a, b, sort)),
-    [documents, sort],
-  );
+  const statusFilter = searchParams.get("status");
+  const sortedDocuments = useMemo(() => {
+    const filtered =
+      statusFilter === "DRAFT" ? documents.filter((document) => document.status === "DRAFT") : documents;
+    return [...filtered].sort((a, b) => compareDocuments(a, b, sort));
+  }, [documents, sort, statusFilter]);
 
   const handleSortChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -250,6 +253,13 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
               <TableCell>{doc.version}</TableCell>
               <TableCell>
                 <Badge variant={statusVariants[doc.status]}>{t(`status.${doc.status}`)}</Badge>
+                {doc.status === "DRAFT" && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {doc.owner?.name || doc.owner?.email
+                      ? t("waitingOn", { name: doc.owner.name || doc.owner.email })
+                      : t("waitingUnassigned")}
+                  </p>
+                )}
               </TableCell>
               <TableCell>
                 {doc.owner?.name || doc.owner?.email ? (
@@ -341,7 +351,7 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
                     </Link>
                   </Button>
                   
-                  {doc.status === "DRAFT" && (
+                  {doc.status === "DRAFT" && (canApprove || doc.owner?.id === currentUserId) && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -412,9 +422,18 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
                       </div>
                     </div>
                   </div>
-                  <Badge variant={statusVariants[doc.status]} className="shrink-0">
-                    {t(`status.${doc.status}`)}
-                  </Badge>
+                  <div className="shrink-0 text-right">
+                    <Badge variant={statusVariants[doc.status]}>
+                      {t(`status.${doc.status}`)}
+                    </Badge>
+                    {doc.status === "DRAFT" && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {doc.owner?.name || doc.owner?.email
+                          ? t("waitingOn", { name: doc.owner.name || doc.owner.email })
+                          : t("waitingUnassigned")}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
             <div className="flex flex-wrap gap-2">
@@ -513,7 +532,7 @@ export function DocumentList({ documents, tenantId, currentUserId }: DocumentLis
                       </Link>
                     </Button>
                     
-                    {doc.status === "DRAFT" && (
+                    {doc.status === "DRAFT" && (canApprove || doc.owner?.id === currentUserId) && (
                       <Button
                         variant="default"
                         size="sm"

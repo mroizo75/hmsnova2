@@ -105,6 +105,7 @@
     "comment": "Kommentar",
     "usage": "Maskin og vare",
     "productSearch": "Søk produkt (alle ord må treffe)",
+    "viewProductImage": "Se bilde av {name}",
     "selectProduct": "Velg produkt",
     "unit": "Enhet",
     "addLine": "Legg til linje",
@@ -411,7 +412,8 @@
     "bhtNattarbeid": "BHT og nattarbeid",
     "hmsHandbok": "Kvalitet, HMS og personal",
     "meldinger": "Meldinger",
-    "templates": "Malbibliotek"
+    "templates": "Malbibliotek",
+    "nyheter": "Nyheter"
   },
   "auth": {
     "login": "Logg inn",
@@ -3862,9 +3864,19 @@
     "stats": {
       "total": "Totalt",
       "attention": "Trenger oppfølging",
-      "draft": "Utkast",
+      "draft": "Til godkjenning",
       "approved": "Godkjent",
       "archived": "Arkivert"
+    },
+    "pending": {
+      "title": "Til godkjenning",
+      "description": "Prosedyrer og andre dokumenter som venter på prosesseier. ISO 9001:2015 punkt 7.5 krever godkjenning før dokumentet tas i bruk.",
+      "waitingOnYou": "Venter på deg",
+      "waitingOn": "Venter på {name}",
+      "unassigned": "Ingen prosesseier",
+      "unassignedHelp": "Administrator eller HMS må godkjenne, eller sett en prosesseier på dokumentet.",
+      "open": "Åpne",
+      "approve": "Godkjenn"
     }
   },
   "dashboardAuditsPage": {
@@ -4372,10 +4384,17 @@
     },
     "status": {
       "title": "Status",
-      "draft": "Utkast",
+      "draft": "Til godkjenning",
       "underReview": "Under gjennomgang",
       "approved": "Godkjent",
       "obsolete": "Utgått"
+    },
+    "pending": {
+      "title": "Til godkjenning",
+      "waitingOnYou": "Dette dokumentet venter på deg som prosesseier.",
+      "waitingOn": "Sendt til {name} for godkjenning.",
+      "unassigned": "Ingen prosesseier er satt. Administrator eller HMS kan godkjenne.",
+      "approve": "Godkjenn"
     },
     "documentType": {
       "title": "Dokumenttype"
@@ -4385,7 +4404,7 @@
     },
     "details": {
       "title": "Dokumentdetaljer",
-      "owner": "Eier",
+      "owner": "Prosesseier",
       "created": "Opprettet {date}",
       "approvedBy": "Godkjent av",
       "lastUpdated": "Sist oppdatert",
@@ -5109,10 +5128,12 @@
       "OTHER": "Annet"
     },
     "status": {
-      "DRAFT": "Utkast",
+      "DRAFT": "Til godkjenning",
       "APPROVED": "Godkjent",
       "ARCHIVED": "Arkivert"
     },
+    "waitingOn": "Venter på {name}",
+    "waitingUnassigned": "Ingen prosesseier",
     "roles": {
       "ADMIN": "Admin",
       "HMS": "HMS",
@@ -5182,7 +5203,8 @@
   },
   "dashboardDocumentForm": {
     "title": "Last opp nytt dokument",
-    "description": "Dokumentet vil få status UTKAST og må godkjennes før bruk",
+    "description": "Dokumentet sendes til prosesseier og må godkjennes før bruk",
+    "ownerHelp": "Prosesseier er den som skal godkjenne. Dokumentet vises under Til godkjenning på Dokumenter og på Oversikt, merket med hvem det venter på.",
     "none": "Ingen",
     "global": "Global",
     "templateSelected": "Mal valgt",
@@ -5240,8 +5262,8 @@
     "fileHelp": "Støttede formater: PDF, Word, Excel, TXT • Maks 50 MB",
     "important": {
       "title": "ℹ️ Viktig informasjon",
-      "i1": "Dokumentet får status <strong>UTKAST</strong> etter opplasting",
-      "i2": "Må <strong>godkjennes</strong> av HMS-leder/Admin før bruk",
+      "i1": "Dokumentet får status <strong>Til godkjenning</strong> og sendes til prosesseier",
+      "i2": "Prosesseier, administrator eller HMS godkjenner før dokumentet tas i bruk (ISO 9001:2015 punkt 7.5)",
       "i3": "Alle versjoner lagres permanent for sporbarhet"
     },
     "actions": {
@@ -5326,6 +5348,7 @@
       "i2": "For å endre selve filen, bruk <strong>\"Last opp ny versjon\"</strong>",
       "i3": "Status og godkjenning endres ikke her"
     },
+    "ownerHelp": "Bytter du prosesseier på et dokument som venter, sendes det til den nye personen.",
     "actions": {
       "saving": "Lagrer...",
       "saveChanges": "Lagre endringer",
@@ -5365,7 +5388,7 @@
     "selectedFile": "Valgt: {name} ({size} KB)",
     "important": {
       "title": "⚠️ Viktig",
-      "i1": "Dokumentet får status <strong>UTKAST</strong> og må godkjennes på nytt",
+      "i1": "Dokumentet settes til <strong>Til godkjenning</strong> og sendes til prosesseier på nytt",
       "i2": "Gammel versjon lagres permanent i historikken",
       "i3": "Endringskommentar er <strong>påkrevd</strong> (HMS-compliance)"
     },

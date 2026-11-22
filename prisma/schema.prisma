@@ -122,6 +122,8 @@ model User {
   satisfactionSurveysCreated      SatisfactionSurvey[]           @relation("SatisfactionSurveyCreator")
   notifications                   Notification[]
   notificationPushTokens          NotificationPushToken[]
+  productUpdatesCreated           ProductUpdate[]     @relation("ProductUpdateAuthor")
+  productUpdateReads              ProductUpdateRead[]
   scheduledReminders              ScheduledReminder[]            @relation("UserReminders")
   hmsAnnualPlanCompletions        HmsAnnualPlanCompletion[]
   formSubmissions                 FormSubmission[]
@@ -325,6 +327,8 @@ model Tenant {
 
   // Servicetilbud
   serviceOfferDismissed Boolean @default(false) // Skjuler "Vi kan hjelpe"-linjen i veiviseren
+  /// true = organisasjonskartet er bygget manuelt og skal ikke overskrives fra ansatte
+  orgChartManual        Boolean @default(false)
 
   users                               UserTenant[]
   departments                         Department[]
@@ -1228,6 +1232,7 @@ model OrgChartNode {
   title      String // Stillingstittel / rolle (f.eks. "Daglig leder")
   name       String? // Navn på person i rollen
   department String? // Avdeling
+  kind       String   @default("PERSON") // PERSON | DEPARTMENT
   sortOrder  Int      @default(0) // Rekkefølge blant søsken
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -2712,6 +2717,7 @@ model Supplier {
   contactPhone  String?
   /// Arbeid hos virksomheten eller på felles arbeidsplass. AML § 2-2.
   worksOnSite   Boolean              @default(false)
+  /// Følger resultatet av siste vurdering. PENDING når ingen vurdering er lagret.
   status        SupplierStatus       @default(PENDING)
   criticality   SupplierCriticality  @default(MEDIUM)
   /// ISO 9001:2015 pkt. 8.4.1: kriterier for vurdering, valg og re-evaluering.
@@ -2722,7 +2728,9 @@ model Supplier {
   requirements  String?              @db.Text
   approvedById  String?
   approvedAt    DateTime?
+  /// Beholdt for eldre data. Utløp for sertifikat og forsikring ligger på SupplierDocument.expiresAt.
   validUntil    DateTime?
+  /// Gjeldende dato for re-evaluering. Settes av siste vurdering (ISO 9001:2015 pkt. 8.4.1).
   nextReviewAt  DateTime?
   notes         String?              @db.Text
   createdAt     DateTime             @default(now())
@@ -2940,7 +2948,8 @@ model AuditFinding {
   id               String        @id @default(cuid())
   auditId          String
   findingType      FindingType // ISO 9001: Større/mindre avvik, observasjon
-  clause           String // ISO 9001 klausul (f.eks. "7.2", "9.1")
+  /// Valgfri kravreferanse: ISO-klausul, annet standardkrav, lov, internt krav eller kundekrav.
+  clause           String?
   description      String        @db.Text // Beskrivelse av funn
   evidence         String        @db.Text // ISO 9001: Bevis/observasjon
   requirement      String        @db.Text // Hvilket krav er ikke oppfylt
@@ -4471,6 +4480,53 @@ model NotificationPushToken {
   @@index([expoPushToken])
 }
 
+// Produktnyheter fra HMS Nova. Samme tekst til alle bedrifter.
+// Innholdet skal ikke nevne kundenavn. Lesing lagres per bruker, ikke per bedrift.
+model ProductUpdate {
+  id                   String              @id @default(cuid())
+  kind                 ProductUpdateKind
+  title                String
+  body                 String              @db.Text
+  status               ProductUpdateStatus @default(DRAFT)
+  publishedAt          DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  createdById          String
+  notifiedAt           DateTime?
+  notifiedTenantCount  Int                 @default(0)
+
+  createdBy User                @relation("ProductUpdateAuthor", fields: [createdById], references: [id], onDelete: Restrict)
+  reads     ProductUpdateRead[]
+
+  @@index([status, publishedAt])
+}
+
+model ProductUpdateRead {
+  id       String   @id @default(cuid())
+  updateId String
+  userId   String
+  readAt   DateTime @default(now())
+
+  update ProductUpdate @relation(fields: [updateId], references: [id], onDelete: Cascade)
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([updateId, userId])
+  @@index([userId])
+}
+
+enum ProductUpdateKind {
+  NEW_FEATURE
+  IMPROVEMENT
+  PLANNED
+  FIX
+}
+
+enum ProductUpdateStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 enum NotificationType {
   // Avvik/Hendelser
   NEW_INCIDENT // Nytt avvik
@@ -4602,6 +4658,9 @@ enum NotificationType {
   OVERTIME_REQUESTED
   OVERTIME_DECIDED
   WELLBEING_ASSIGNED // Psykososial kartlegging sendt til ansatt, AML § 4-3
+
+  // Produktnyhet. Nye verdier bakerst, slik MySQL kan utvide ENUM in-place.
+  PRODUCT_NEWS
 }
 
 // ============================================

@@ -52,7 +52,12 @@ export const updateAuditSchema = z.object({
 export const createFindingSchema = z.object({
   auditId: z.string().cuid(),
   findingType: z.enum(["MAJOR_NC", "MINOR_NC", "OBSERVATION", "STRENGTH"]),
-  clause: z.string().min(1, "ISO 9001 klausul må spesifiseres"),
+  clause: z
+    .string()
+    .trim()
+    .max(191, "Kravreferansen kan være maks 191 tegn")
+    .optional()
+    .or(z.literal("")),
   description: z.string().min(20, "Beskrivelse må være minst 20 tegn"),
   evidence: z.string().min(10, "Bevis må være minst 10 tegn"),
   requirement: z.string().min(10, "Krav må være minst 10 tegn"),

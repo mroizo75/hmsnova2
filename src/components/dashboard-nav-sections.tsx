@@ -15,6 +15,7 @@ import {
   type DashboardNavHubGroup,
 } from "@/lib/dashboard-nav-hub-groups";
 import type { CoreHub, DashboardNavItemConfig } from "@/lib/dashboard-nav-config";
+import { ProductUpdateNavBadge } from "@/features/product-updates/components/product-update-nav-badge";
 
 function NavItemLink({
   item,
@@ -41,7 +42,8 @@ function NavItemLink({
       )}
     >
       <Icon className="h-4 w-4 shrink-0" />
-      <span className="truncate">{t(item.label)}</span>
+      <span className="min-w-0 flex-1 truncate">{t(item.label)}</span>
+      {item.href === "/dashboard/nyheter" ? <ProductUpdateNavBadge active={isActive} /> : null}
     </Link>
   );
 }

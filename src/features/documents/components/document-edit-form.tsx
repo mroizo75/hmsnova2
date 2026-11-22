@@ -247,6 +247,7 @@ export function DocumentEditForm({ document, owners, templates, returnTo = "/das
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">{t("ownerHelp")}</p>
             </div>
 
             <div className="space-y-2">

@@ -29,8 +29,10 @@ import { enUS, nb } from "date-fns/locale";
 import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { displayedFindingStatus } from "@/lib/inspection-finding-status";
+import { imagesFromInspectionFindings } from "@/lib/inspection-image-keys";
 import { moveInspectionFindingCheckpoint } from "@/server/actions/inspection.actions";
 import { resolveCheckpointFieldId } from "@/features/inspections/lib/move-checkpoint";
+import { ImageGallery } from "@/components/shared/image-gallery";
 
 interface Finding {
   id: string;
@@ -286,7 +288,7 @@ export function InspectionFindingList({
   return (
     <div className="space-y-4">
       {findings.map((finding) => {
-        const images = finding.imageKeys ? JSON.parse(finding.imageKeys) : [];
+        const images = imagesFromInspectionFindings([finding]);
         const shownStatus = displayedFindingStatus(finding.status, finding.linkedIncident?.status);
         
         return (
@@ -346,16 +348,9 @@ export function InspectionFindingList({
               )}
 
               {images.length > 0 && (
-                <div className="grid grid-cols-3 gap-2">
-                  {images.map((imageKey: string, idx: number) => (
-                    <img
-                      key={idx}
-                      src={`/api/inspections/images/${imageKey}`}
-                      alt={t("imageAlt")}
-                      className="w-full h-24 object-cover rounded border"
-                    />
-                  ))}
-                </div>
+                <ImageGallery
+                  images={images.map((image) => ({ ...image, alt: t("imageAlt") }))}
+                />
               )}
 
               {finding.resolutionNotes && (

@@ -105,6 +105,7 @@
     "comment": "Comment",
     "usage": "Machine and goods",
     "productSearch": "Search product (all words must match)",
+    "viewProductImage": "View image of {name}",
     "selectProduct": "Select product",
     "unit": "Unit",
     "addLine": "Add line",
@@ -411,7 +412,8 @@
     "bhtNattarbeid": "Occupational health and night work",
     "hmsHandbok": "Quality, HSE and staff",
     "meldinger": "Messages",
-    "templates": "Template library"
+    "templates": "Template library",
+    "nyheter": "News"
   },
   "auth": {
     "login": "Login",
@@ -3862,9 +3864,19 @@
     "stats": {
       "total": "Total",
       "attention": "Needs follow-up",
-      "draft": "Draft",
+      "draft": "Awaiting approval",
       "approved": "Approved",
       "archived": "Archived"
+    },
+    "pending": {
+      "title": "Awaiting approval",
+      "description": "Procedures and other documents waiting for the process owner. ISO 9001:2015 clause 7.5 requires approval before use.",
+      "waitingOnYou": "Waiting for you",
+      "waitingOn": "Waiting for {name}",
+      "unassigned": "No process owner",
+      "unassignedHelp": "An administrator or HSE manager must approve, or assign a process owner.",
+      "open": "Open",
+      "approve": "Approve"
     }
   },
   "dashboardAuditsPage": {
@@ -4372,10 +4384,17 @@
     },
     "status": {
       "title": "Status",
-      "draft": "Draft",
+      "draft": "Awaiting approval",
       "underReview": "Under review",
       "approved": "Approved",
       "obsolete": "Obsolete"
+    },
+    "pending": {
+      "title": "Awaiting approval",
+      "waitingOnYou": "This document is waiting for you as process owner.",
+      "waitingOn": "Sent to {name} for approval.",
+      "unassigned": "No process owner is set. An administrator or HSE manager can approve it.",
+      "approve": "Approve"
     },
     "documentType": {
       "title": "Document type"
@@ -4385,7 +4404,7 @@
     },
     "details": {
       "title": "Document details",
-      "owner": "Owner",
+      "owner": "Process owner",
       "created": "Created {date}",
       "approvedBy": "Approved by",
       "lastUpdated": "Last updated",
@@ -5465,10 +5484,12 @@
       "OTHER": "Other"
     },
     "status": {
-      "DRAFT": "Draft",
+      "DRAFT": "Awaiting approval",
       "APPROVED": "Approved",
       "ARCHIVED": "Archived"
     },
+    "waitingOn": "Waiting for {name}",
+    "waitingUnassigned": "No process owner",
     "roles": {
       "ADMIN": "Admin",
       "HMS": "HSE manager",
@@ -5538,7 +5559,8 @@
   },
   "dashboardDocumentForm": {
     "title": "Upload new document",
-    "description": "The document will get status DRAFT and must be approved before use",
+    "description": "The document is sent to the process owner and must be approved before use",
+    "ownerHelp": "The process owner is the person who approves. It shows under Awaiting approval on Documents and on Overview, marked with who it is waiting for.",
     "none": "None",
     "global": "Global",
     "templateSelected": "Template selected",
@@ -5596,8 +5618,8 @@
     "fileHelp": "Supported formats: PDF, Word, Excel, TXT • Max 50 MB",
     "important": {
       "title": "ℹ️ Important information",
-      "i1": "The document gets status <strong>DRAFT</strong> after upload",
-      "i2": "Must be <strong>approved</strong> by HSE manager/Admin before use",
+      "i1": "The document is set to <strong>Awaiting approval</strong> and sent to the process owner",
+      "i2": "The process owner, an administrator or HSE approves before the document is used (ISO 9001:2015 clause 7.5)",
       "i3": "All versions are stored permanently for traceability"
     },
     "actions": {
@@ -5682,6 +5704,7 @@
       "i2": "To change the file itself, use <strong>\"Upload new version\"</strong>",
       "i3": "Status and approval are not changed here"
     },
+    "ownerHelp": "Changing the process owner on a document that is waiting sends it to the new person.",
     "actions": {
       "saving": "Saving...",
       "saveChanges": "Save changes",
@@ -5721,7 +5744,7 @@
     "selectedFile": "Selected: {name} ({size} KB)",
     "important": {
       "title": "⚠️ Important",
-      "i1": "Document gets status <strong>DRAFT</strong> and must be approved again",
+      "i1": "The document is set to <strong>Awaiting approval</strong> and sent to the process owner again",
       "i2": "Old version is stored permanently in history",
       "i3": "Change comment is <strong>required</strong> (HSE compliance)"
     },

@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { VoiceTextarea } from "@/components/ai/voice-textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Plus, Sparkles, X } from "lucide-react";
+import { Camera, Plus, Sparkles } from "lucide-react";
+import { ImageGallery } from "@/components/shared/image-gallery";
 import { generateAiInspectionSummary } from "@/server/actions/ai-assistant.actions";
 import { useTranslations } from "next-intl";
 import {
@@ -537,24 +538,14 @@ export function InspectionChecklist({ inspectionId, checklist }: InspectionCheck
                           </label>
                         </div>
                         {finding.imageKeys.length > 0 && (
-                          <div className="grid grid-cols-3 gap-2">
-                            {finding.imageKeys.map((imageKey) => (
-                              <div key={imageKey} className="relative">
-                                <img
-                                  src={`/api/inspections/images/${imageKey}`}
-                                  alt={t("imageAlt")}
-                                  className="h-20 w-full rounded border object-cover"
-                                />
-                                <button
-                                  type="button"
-                                  className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white"
-                                  onClick={() => removeFindingImage(index, findingIndex, imageKey)}
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
+                          <ImageGallery
+                            images={finding.imageKeys.map((imageKey) => ({
+                              key: imageKey,
+                              src: `/api/inspections/images/${imageKey}`,
+                              alt: t("imageAlt"),
+                            }))}
+                            onRemove={(imageKey) => void removeFindingImage(index, findingIndex, imageKey)}
+                          />
                         )}
                       </div>
                     </div>

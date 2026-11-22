@@ -32,9 +32,9 @@ export default async function SupplierFormPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Selvevalueringsskjema</h1>
+          <h1 className="text-3xl font-bold">Standardskjema</h1>
           <p className="text-muted-foreground">
-            Spørsmålene dere definerer her, sendes fra leverandørkortet. Svarene lagres på leverandøren.
+            Ett skjema for alle leverandører. Spørsmålene redigeres her én gang og sendes fra leverandørkortet. Svarene lagres på leverandøren.
           </p>
         </div>
         <Button asChild variant="outline">
@@ -45,7 +45,9 @@ export default async function SupplierFormPage() {
         <CardHeader>
           <CardTitle>{template?.title ?? "Selvevaluering"}</CardTitle>
           <CardDescription>
-            Forslaget dekker ISO 9001 pkt. 8.4. Endre, slett eller legg til spørsmål. Arbeider leverandøren hos dere, bør skjemaet også spørre om samordning etter arbeidsmiljøloven § 2-2. Allerede utsendte skjema beholder spørsmålene de ble sendt med.
+            {template
+              ? "Dette er bedriftens standardskjema. Allerede utsendte skjema beholder spørsmålene de ble sendt med."
+              : "Forslaget under er standarden til dere lagrer egne spørsmål. Det brukes for alle leverandører uten at det må redigeres per leverandør. Arbeider leverandøren hos dere, bør skjemaet også spørre om samordning etter arbeidsmiljøloven § 2-2."}
           </CardDescription>
         </CardHeader>
         <CardContent>

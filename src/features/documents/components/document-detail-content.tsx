@@ -1,15 +1,20 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import { Clock, CheckCircle2, Calendar, User, Tag, Download, Users } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { getPermissions } from "@/lib/permissions";
+import { ownerDisplayName } from "@/lib/document-approvals";
 import { DocumentSignatureSection } from "@/features/documents/components/document-signature-section";
 import { DocumentConfirmReadButton } from "@/features/documents/components/document-confirm-read-button";
-import { Clock, CheckCircle2, Calendar, User, Tag, Download, Users } from "lucide-react";
-import { useTranslations } from "next-intl";
 import { fetchDocumentDetail } from "@/server/queries/document.queries";
-import { getPermissions } from "@/lib/permissions";
+import { approveDocument } from "@/server/actions/document.actions";
 
 type DocumentDetailData = NonNullable<Awaited<ReturnType<typeof fetchDocumentDetail>>>;
 
@@ -56,6 +61,12 @@ export function DocumentDetailContent({ initialData, locale, kindLabels }: Docum
 
   const { document, currentUserId, userRole, confirmationStatus, myConfirmation } = data;
   const permissions = getPermissions(userRole as any);
+  const router = useRouter();
+  const { toast } = useToast();
+  const [approving, setApproving] = useState(false);
+  const ownerName = ownerDisplayName(document.owner);
+  const waitingOnYou = document.owner?.id === currentUserId;
+  const mayApprove = permissions.canApproveDocuments || waitingOnYou;
 
   const statusLabels: Record<string, string> = {
     DRAFT: t("status.draft"),
@@ -64,8 +75,43 @@ export function DocumentDetailContent({ initialData, locale, kindLabels }: Docum
     OBSOLETE: t("status.obsolete"),
   };
 
+  const handleApprove = async () => {
+    setApproving(true);
+    const result = await approveDocument({ id: document.id, approvedBy: currentUserId });
+    if (result.success) {
+      toast({ title: "Dokument godkjent", description: `«${document.title}» er nå aktivert.` });
+      router.refresh();
+    } else {
+      toast({ variant: "destructive", title: "Godkjenning feilet", description: result.error || "Kunne ikke godkjenne" });
+    }
+    setApproving(false);
+  };
+
   return (
     <>
+      {document.status === "DRAFT" && (
+        <Card className="border-amber-300 bg-amber-50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">{t("pending.title")}</CardTitle>
+            <CardDescription>
+              {waitingOnYou
+                ? t("pending.waitingOnYou")
+                : ownerName
+                  ? t("pending.waitingOn", { name: ownerName })
+                  : t("pending.unassigned")}
+            </CardDescription>
+          </CardHeader>
+          {mayApprove && (
+            <CardContent>
+              <Button onClick={handleApprove} disabled={approving}>
+                <CheckCircle2 className="mr-2 h-4 w-4" />
+                {t("pending.approve")}
+              </Button>
+            </CardContent>
+          )}
+        </Card>
+      )}
+
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="pb-3">

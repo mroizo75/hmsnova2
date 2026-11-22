@@ -4,6 +4,18 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requirePermission, getAuthContext } from "@/lib/server-authorization";
 import { triggerRealtimeEvent } from "@/lib/pusher-server";
+import { syncOrgChartFromEmployees } from "@/server/org-chart-sync";
+
+async function lockOrgChart(tenantId: string) {
+  await prisma.tenant.update({
+    where: { id: tenantId },
+    data: { orgChartManual: true },
+  });
+}
+
+function nodeKind(kind: string | undefined): "PERSON" | "DEPARTMENT" {
+  return kind === "DEPARTMENT" ? "DEPARTMENT" : "PERSON";
+}
 
 export async function getOrgChart() {
   try {
@@ -29,6 +41,7 @@ export async function createOrgChartNode(input: {
   name?: string | null;
   department?: string | null;
   sortOrder?: number;
+  kind?: "PERSON" | "DEPARTMENT";
 }) {
   try {
     const context = await requirePermission("canManageUsers");
@@ -54,8 +67,10 @@ export async function createOrgChartNode(input: {
         name: input.name?.trim() || null,
         department: input.department?.trim() || null,
         sortOrder: input.sortOrder ?? 0,
+        kind: nodeKind(input.kind),
       },
     });
+    await lockOrgChart(context.tenantId);
 
     revalidatePath("/dashboard/organisasjonskart");
     revalidatePath("/dashboard");
@@ -73,6 +88,7 @@ export async function updateOrgChartNode(input: {
   name?: string | null;
   department?: string | null;
   sortOrder?: number;
+  kind?: "PERSON" | "DEPARTMENT";
 }) {
   try {
     const context = await requirePermission("canManageUsers");
@@ -94,6 +110,7 @@ export async function updateOrgChartNode(input: {
     if (input.name !== undefined) updateData.name = input.name?.trim() || null;
     if (input.department !== undefined) updateData.department = input.department?.trim() || null;
     if (input.sortOrder !== undefined) updateData.sortOrder = input.sortOrder;
+    if (input.kind !== undefined) updateData.kind = nodeKind(input.kind);
     if (Object.prototype.hasOwnProperty.call(input, "parentId")) {
       updateData.parentId = input.parentId ?? null;
     }
@@ -102,6 +119,7 @@ export async function updateOrgChartNode(input: {
       where: { id: input.id },
       data: updateData,
     });
+    await lockOrgChart(context.tenantId);
 
     revalidatePath("/dashboard/organisasjonskart");
     revalidatePath("/dashboard");
@@ -136,6 +154,7 @@ export async function deleteOrgChartNode(id: string) {
     await prisma.orgChartNode.delete({
       where: { id },
     });
+    await lockOrgChart(context.tenantId);
 
     revalidatePath("/dashboard/organisasjonskart");
     revalidatePath("/dashboard");
@@ -143,5 +162,25 @@ export async function deleteOrgChartNode(id: string) {
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message || "Kunne ikke slette node" };
+  }
+}
+
+export async function setOrgChartManual(manual: boolean) {
+  try {
+    const context = await requirePermission("canManageUsers");
+    await prisma.tenant.update({
+      where: { id: context.tenantId },
+      data: { orgChartManual: manual },
+    });
+    if (!manual) {
+      await syncOrgChartFromEmployees(context.tenantId);
+    }
+    revalidatePath("/dashboard/organisasjonskart");
+    revalidatePath("/dashboard");
+    triggerRealtimeEvent(context.tenantId, "settings-updated");
+    return { success: true as const };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Kunne ikke endre organisasjonskartet";
+    return { success: false as const, error: message };
   }
 }

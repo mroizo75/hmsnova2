@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Upload, X, MapPin, AlertTriangle, CheckCircle } from "lucide-react";
+import { Camera, ImageIcon, MapPin, AlertTriangle, CheckCircle } from "lucide-react";
+import { ImageGallery } from "@/components/shared/image-gallery";
 import { useTranslations } from "next-intl";
 import { enqueueSafe, isNetworkError, isAvailable, type OfflineQueueEntry } from "@/lib/offline-queue";
 
@@ -268,10 +269,18 @@ export function MobileFindingForm({ inspectionId, onSuccess }: MobileFindingForm
                 type="file"
                 accept="image/*"
                 capture="environment"
-                multiple
                 onChange={handleImageCapture}
                 className="hidden"
                 id="camera-input"
+                disabled={uploadingImage}
+              />
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageCapture}
+                className="hidden"
+                id="gallery-input"
                 disabled={uploadingImage}
               />
               <label htmlFor="camera-input">
@@ -285,27 +294,24 @@ export function MobileFindingForm({ inspectionId, onSuccess }: MobileFindingForm
                   </p>
                 </div>
               </label>
+              <label htmlFor="gallery-input">
+                <div className="rounded-lg border border-dashed p-4 text-center cursor-pointer">
+                  <ImageIcon className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
+                  <p className="text-sm font-medium">Fra galleriet</p>
+                </div>
+              </label>
 
               {images.length > 0 && (
-                <div className="grid grid-cols-2 gap-3 mt-4">
-                  {images.map((imageKey) => (
-                    <div key={imageKey} className="relative group aspect-square">
-                      <img
-                        src={`/api/inspections/images/${imageKey}`}
-                        alt={t("imageAlt")}
-                        className="w-full h-full object-cover rounded-lg border-2 border-gray-200"
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2 h-8 w-8 opacity-90"
-                        onClick={() => removeImage(imageKey)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
+                <div className="mt-4">
+                  <ImageGallery
+                    columns="grid-cols-2"
+                    images={images.map((imageKey) => ({
+                      key: imageKey,
+                      src: `/api/inspections/images/${imageKey}`,
+                      alt: t("imageAlt"),
+                    }))}
+                    onRemove={(imageKey) => void removeImage(imageKey)}
+                  />
                 </div>
               )}
             </div>

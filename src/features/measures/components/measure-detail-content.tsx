@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { MeasureEditForm } from "@/features/measures/components/measure-edit-form";
+import { MeasurePhotos } from "@/features/measures/components/measure-photos";
 import { getMeasureStatusLabel, getMeasureStatusColor } from "@/features/measures/schemas/measure.schema";
 import { fetchMeasureDetail } from "@/server/queries/measure-detail.queries";
 
@@ -39,6 +40,7 @@ export function MeasureDetailContent({ initialData, measureId }: MeasureDetailCo
       )}
 
       <MeasureEditForm measure={measure} users={tenantUsers} />
+      <MeasurePhotos measureId={measure.id} />
     </>
   );
 }

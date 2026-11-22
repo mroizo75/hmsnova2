@@ -26,10 +26,10 @@ const CHOICES: Array<{ value: ChecklistResponseValue; label: string; selected: s
 
 export function ChecklistFill({
   checklist,
-  resultHref,
+  resultPath,
 }: {
   checklist: ChecklistFillData;
-  resultHref: (runId: string) => string;
+  resultPath: string;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -127,7 +127,7 @@ export function ChecklistFill({
         toast({ title: "Kunne ikke sende inn", description: result.error, variant: "destructive" });
         return;
       }
-      router.push(resultHref(result.runId));
+      router.push(`${resultPath}/${result.runId}`);
       router.refresh();
     });
   }

@@ -70,18 +70,6 @@ export function approvalRequiresCriteria(status: string): boolean {
   return status === "APPROVED" || status === "CONDITIONAL";
 }
 
-export function outcomeFromStatus(status: string): SupplierEvaluationOutcomeValue | null {
-  if (
-    status === "APPROVED" ||
-    status === "CONDITIONAL" ||
-    status === "REJECTED" ||
-    status === "SUSPENDED"
-  ) {
-    return status;
-  }
-  return null;
-}
-
 export function statusFromOutcome(outcome: SupplierEvaluationOutcomeValue): SupplierStatusValue {
   return outcome;
 }
@@ -245,6 +233,14 @@ export interface SupplierAnswerLine {
   questionId: string;
   label: string;
   value: string;
+}
+
+/** Standardspørsmål som brukes for alle leverandører til bedriften lagrer sitt eget skjema. */
+export function standardSupplierQuestions(): SupplierQuestion[] {
+  return defaultSupplierQuestions().map((question, index) => ({
+    id: `standard-${index + 1}`,
+    ...question,
+  }));
 }
 
 export function defaultSupplierQuestions(): SupplierQuestionDraft[] {
@@ -449,23 +445,6 @@ export function legacySupplierQuestions(worksOnSite: boolean): SupplierQuestion[
     );
   }
   return questions;
-}
-
-export function statusChangeSummary(input: {
-  status: string;
-  criteria: string;
-  controls: string;
-  requirements: string;
-}): string {
-  const label = SUPPLIER_STATUS_LABELS[input.status as SupplierStatusValue] ?? input.status;
-  return [
-    `Status satt til ${label}.`,
-    input.criteria.trim() ? `Kriterier: ${input.criteria.trim()}` : "",
-    input.controls.trim() ? `Styring: ${input.controls.trim()}` : "",
-    input.requirements.trim() ? `Krav kommunisert: ${input.requirements.trim()}` : "",
-  ]
-    .filter(Boolean)
-    .join("\n");
 }
 
 export function normalizeOrgNumber(value: string): string | null {

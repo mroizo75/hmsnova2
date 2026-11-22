@@ -32,6 +32,7 @@ import {
   ListTodo,
   Lock,
   Mail,
+  Megaphone,
   MessageSquare,
   Monitor,
   Moon,
@@ -52,6 +53,7 @@ import {
 
 export const DASHBOARD_NAV_ICONS: Record<string, LucideIcon> = {
   "/dashboard": LayoutDashboard,
+  "/dashboard/nyheter": Megaphone,
   "/dashboard/meldinger": Mail,
   "/dashboard/hms-handbok": BookOpen,
   "/dashboard/documents": FileText,

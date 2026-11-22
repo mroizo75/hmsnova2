@@ -40,7 +40,7 @@ export default async function SuppliersPage() {
         </div>
         <div className="flex gap-2">
           <Button asChild variant="outline">
-            <Link href="/dashboard/leverandorer/skjema">Selvevalueringsskjema</Link>
+            <Link href="/dashboard/leverandorer/skjema">Standardskjema</Link>
           </Button>
           <Button asChild>
             <Link href="/dashboard/leverandorer/ny">Ny leverandør</Link>

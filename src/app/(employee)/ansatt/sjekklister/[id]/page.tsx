@@ -11,7 +11,7 @@ export default async function EmployeeFillChecklistPage({ params }: { params: Pr
   return (
     <ChecklistFill
       checklist={checklist}
-      resultHref={(runId) => `/ansatt/sjekklister/${id}/resultat/${runId}`}
+      resultPath={`/ansatt/sjekklister/${id}/resultat`}
     />
   );
 }

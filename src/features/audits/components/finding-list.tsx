@@ -143,7 +143,7 @@ export function FindingList({ findings }: FindingListProps) {
                     <div className="flex items-center gap-2">
                       <Badge className={typeColor}>{typeLabel}</Badge>
                       <Badge className={statusColor}>{statusLabel}</Badge>
-                      <Badge variant="outline">{t("clause", { value: finding.clause })}</Badge>
+                      {finding.clause ? <Badge variant="outline">{finding.clause}</Badge> : null}
                       {isOverdue && (
                         <Badge variant="destructive" className="flex items-center gap-1">
                           <AlertTriangle className="h-3 w-3" />

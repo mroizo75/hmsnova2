@@ -25,6 +25,7 @@ import bcrypt from "bcryptjs";
 import type { Role } from "@prisma/client";
 import { parseExtraRoles } from "@/lib/extra-roles";
 import { tenantStatusBlocksAccess } from "@/lib/tenant-access";
+import { touchUserPresence } from "@/lib/presence";
 
 const prismaAdapter = PrismaAdapter(prisma);
 
@@ -189,17 +190,17 @@ export const authOptions: NextAuthOptions = {
           );
         }
 
-        // SUCCESS: Reset failed attempts og lockout (håndter null-verdier)
-        if ((user.failedLoginAttempts || 0) > 0 || user.lockedUntil) {
-          await prisma.user.update({
-            where: { id: user.id },
-            data: {
-              failedLoginAttempts: 0,
-              lockedUntil: null,
-              lastLoginAttempt: new Date(),
-            },
-          });
-        }
+        // Vellykket innlogging skal alltid telle som sist innlogget.
+        // Feltet ble tidligere bare skrevet ved feil forsøk eller etter lås.
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            failedLoginAttempts: 0,
+            lockedUntil: null,
+            lastLoginAttempt: new Date(),
+            lastSeenAt: new Date(),
+          },
+        });
 
         if (!user.isSuperAdmin && !user.isSupport && user.tenants.length === 0) {
           const groupMembership = await prisma.corporateGroupUser.findFirst({
@@ -354,6 +355,15 @@ export const authOptions: NextAuthOptions = {
         }
         
         if (dbUser) {
+          if (isAzureAdLogin) {
+            await prisma.user.update({
+              where: { id: dbUser.id },
+              data: {
+                lastLoginAttempt: new Date(),
+                lastSeenAt: new Date(),
+              },
+            });
+          }
           token.isSuperAdmin = dbUser.isSuperAdmin;
           token.isSupport = dbUser.isSupport || false;
           token.hasMultipleTenants = dbUser.tenants.length > 1;
@@ -511,6 +521,10 @@ export const authOptions: NextAuthOptions = {
             token.hasConfidentialInbox = false;
           }
         }
+      }
+
+      if (token.id) {
+        await touchUserPresence(token.id as string);
       }
       
       return token;

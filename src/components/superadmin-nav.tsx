@@ -27,6 +27,7 @@ import {
   BookOpen,
   Brain,
   Menu,
+  Megaphone,
   Wrench,
   Heart,
 } from "lucide-react";
@@ -52,6 +53,7 @@ const allNavItems = [
   { href: "/admin/intelligence", label: "Intelligence", icon: Brain, supportAccess: false },
   { href: "/admin/blog", label: "Blogg & SEO", icon: Newspaper, supportAccess: false },
   { href: "/admin/newsletter", label: "Nyhetsbrev", icon: FileText, supportAccess: false },
+  { href: "/admin/nyheter", label: "Nyheter", icon: Megaphone, supportAccess: false },
   { href: "/admin/users", label: "Brukere", icon: Users, supportAccess: false },
   { href: "/admin/settings", label: "Innstillinger", icon: Settings, supportAccess: false },
 ];

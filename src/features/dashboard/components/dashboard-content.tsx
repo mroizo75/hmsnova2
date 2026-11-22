@@ -28,6 +28,9 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
         weeklyTrendData: data.weeklyTrendData,
         recentIncidents: data.recentIncidents,
         visibleNavItems: data.visibleNavItems,
+        pendingApprovals: data.pendingApprovals ?? [],
+        currentUserId: data.currentUserId ?? "",
+        canApproveDocuments: Boolean(data.canApproveDocuments),
       }}
       dashboardLocked={data.dashboardLocked}
       setupGuideProgress={data.setupGuideProgress}

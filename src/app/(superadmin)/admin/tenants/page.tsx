@@ -30,46 +30,28 @@ import {
   parsePageParam,
   tenantDetailHref,
 } from "@/lib/admin-list-url";
+import { getTenantEngagement, latestTenantActivity } from "@/lib/tenant-engagement";
+import { AI_ADDON_NET_MONTHLY_NOK, getTenantAiSource } from "@/lib/ai-addon";
 import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
 const ITEMS_PER_PAGE = 25;
 
-function getActivityLevel(
-  lastLogin: Date | null,
-  recentIncidents: number,
-  recentDocuments: number,
-) {
-  const now = new Date();
-  const daysSinceLogin = lastLogin
-    ? Math.floor((now.getTime() - new Date(lastLogin).getTime()) / (1000 * 60 * 60 * 24))
-    : 999;
-
-  const totalActivity = recentIncidents + recentDocuments;
-
-  if (daysSinceLogin <= 7 && totalActivity >= 3) {
-    return { level: "high", label: "Aktiv", color: "text-green-600", bg: "bg-green-600" };
-  }
-  if (daysSinceLogin <= 14 && totalActivity >= 1) {
-    return { level: "medium", label: "Moderat", color: "text-yellow-600", bg: "bg-yellow-500" };
-  }
-  if (daysSinceLogin <= 30) {
-    return { level: "low", label: "Lav aktivitet", color: "text-orange-500", bg: "bg-orange-500" };
-  }
-  return { level: "inactive", label: "Inaktiv", color: "text-destructive", bg: "bg-destructive" };
-}
-
 export default async function TenantsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; search?: string; invoice?: string }>;
+  searchParams: Promise<{ page?: string; search?: string; invoice?: string; ai?: string }>;
 }) {
   const params = await searchParams;
   const currentPage = parsePageParam(params.page);
   const searchTerm = params.search?.trim() || "";
   const invoiceFilter = params.invoice === "yes" || params.invoice === "no" ? params.invoice : "";
-  const listExtra = invoiceFilter ? { invoice: invoiceFilter } : undefined;
+  const aiFilter = params.ai === "self" || params.ai === "included" ? params.ai : "";
+  const listExtra = {
+    ...(invoiceFilter ? { invoice: invoiceFilter } : {}),
+    ...(aiFilter ? { ai: aiFilter } : {}),
+  };
 
   const session = await getServerSession(authOptions);
   const currentUser = session?.user?.email
@@ -101,12 +83,22 @@ export default async function TenantsPage({
         ? { manualInvoiced: false }
         : {};
 
-  const searchFilter: Prisma.TenantWhereInput = { AND: [textFilter, invoiceWhere] };
+  const selfAiWhere: Prisma.TenantWhereInput = {
+    aiEnabled: true,
+    aiIncludedInAgreement: false,
+  };
+  const includedAiWhere: Prisma.TenantWhereInput = { aiIncludedInAgreement: true };
+  const aiWhere: Prisma.TenantWhereInput =
+    aiFilter === "self" ? selfAiWhere : aiFilter === "included" ? includedAiWhere : {};
 
-  const [totalItems, invoicedCount, notInvoicedCount] = await Promise.all([
+  const searchFilter: Prisma.TenantWhereInput = { AND: [textFilter, invoiceWhere, aiWhere] };
+
+  const [totalItems, invoicedCount, notInvoicedCount, selfAiCount, includedAiCount] = await Promise.all([
     prisma.tenant.count({ where: searchFilter }),
-    prisma.tenant.count({ where: { AND: [textFilter, { manualInvoiced: true }] } }),
-    prisma.tenant.count({ where: { AND: [textFilter, { manualInvoiced: false }] } }),
+    prisma.tenant.count({ where: { AND: [textFilter, { manualInvoiced: true }, aiWhere] } }),
+    prisma.tenant.count({ where: { AND: [textFilter, { manualInvoiced: false }, aiWhere] } }),
+    prisma.tenant.count({ where: { AND: [textFilter, invoiceWhere, selfAiWhere] } }),
+    prisma.tenant.count({ where: { AND: [textFilter, invoiceWhere, includedAiWhere] } }),
   ]);
   const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
 
@@ -128,6 +120,7 @@ export default async function TenantsPage({
           user: {
             select: {
               lastLoginAttempt: true,
+              lastSeenAt: true,
             },
           },
         },
@@ -178,15 +171,11 @@ export default async function TenantsPage({
   );
 
   const enrichedTenants = tenants.map((tenant) => {
-    const lastLogin = tenant.users.reduce<Date | null>((latest, ut) => {
-      const login = ut.user.lastLoginAttempt;
-      if (!login) return latest;
-      return !latest || login > latest ? login : latest;
-    }, null);
+    const lastLogin = latestTenantActivity(tenant.users.map((ut) => ut.user));
 
     const recentIncidents = recentIncidentMap.get(tenant.id) || 0;
     const recentDocuments = recentDocumentMap.get(tenant.id) || 0;
-    const activity = getActivityLevel(lastLogin, recentIncidents, recentDocuments);
+    const activity = getTenantEngagement(lastLogin, recentIncidents, recentDocuments);
 
     return {
       ...tenant,
@@ -234,11 +223,11 @@ export default async function TenantsPage({
             <div>
               <CardTitle>Alle bedrifter ({totalItems})</CardTitle>
               <CardDescription>
-                Klikk på en bedrift for å se detaljer. Aktivitet er basert på siste 30 dager.
+                Klikk på en bedrift for å se detaljer. Sist inne er siste gang noen i bedriften var i systemet. Engasjement ser på det sammen med avvik og dokumenter siste 30 dager.
                 {isSuperAdmin && (
                   <span className="mt-2 flex flex-wrap gap-2">
                     <Link
-                      href={buildListHref(searchTerm, undefined)}
+                      href={buildListHref(searchTerm, { ai: aiFilter || undefined })}
                       className={`rounded-full border px-2.5 py-0.5 text-xs ${
                         !invoiceFilter ? "border-primary bg-primary text-primary-foreground" : "text-muted-foreground"
                       }`}
@@ -246,7 +235,7 @@ export default async function TenantsPage({
                       Alle ({invoicedCount + notInvoicedCount})
                     </Link>
                     <Link
-                      href={buildListHref(searchTerm, "no")}
+                      href={buildListHref(searchTerm, { invoice: "no", ai: aiFilter || undefined })}
                       className={`rounded-full border px-2.5 py-0.5 text-xs ${
                         invoiceFilter === "no"
                           ? "border-primary bg-primary text-primary-foreground"
@@ -256,7 +245,7 @@ export default async function TenantsPage({
                       Ikke fakturert ({notInvoicedCount})
                     </Link>
                     <Link
-                      href={buildListHref(searchTerm, "yes")}
+                      href={buildListHref(searchTerm, { invoice: "yes", ai: aiFilter || undefined })}
                       className={`rounded-full border px-2.5 py-0.5 text-xs ${
                         invoiceFilter === "yes"
                           ? "border-primary bg-primary text-primary-foreground"
@@ -264,6 +253,32 @@ export default async function TenantsPage({
                       }`}
                     >
                       Fakturert ({invoicedCount})
+                    </Link>
+                    <Link
+                      href={buildListHref(searchTerm, {
+                        invoice: invoiceFilter || undefined,
+                        ai: aiFilter === "self" ? undefined : "self",
+                      })}
+                      className={`rounded-full border px-2.5 py-0.5 text-xs ${
+                        aiFilter === "self"
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      AI selv ({selfAiCount})
+                    </Link>
+                    <Link
+                      href={buildListHref(searchTerm, {
+                        invoice: invoiceFilter || undefined,
+                        ai: aiFilter === "included" ? undefined : "included",
+                      })}
+                      className={`rounded-full border px-2.5 py-0.5 text-xs ${
+                        aiFilter === "included"
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      AI i avtale ({includedAiCount})
                     </Link>
                   </span>
                 )}
@@ -288,7 +303,7 @@ export default async function TenantsPage({
                   {isSuperAdmin && <TableHead>Abonnement</TableHead>}
                   {isSuperAdmin && <TableHead>AI</TableHead>}
                   {isSuperAdmin && <TableHead className="text-center">Brukere</TableHead>}
-                  {isSuperAdmin && <TableHead>Siste innlogging</TableHead>}
+                  {isSuperAdmin && <TableHead>Sist inne</TableHead>}
                   <TableHead className="text-center">Aktivitet (30d)</TableHead>
                   <TableHead>Engasjement</TableHead>
                   {isSuperAdmin && <TableHead>Fakturert</TableHead>}
@@ -383,10 +398,12 @@ export default async function TenantsPage({
                     )}
                     {isSuperAdmin && (
                       <TableCell>
-                        <AdminAiIncludedSwitch
+                        <TenantAiCell
                           tenantId={tenant.id}
                           tenantName={tenant.name}
-                          included={tenant.aiIncludedInAgreement}
+                          aiEnabled={tenant.aiEnabled}
+                          aiIncludedInAgreement={tenant.aiIncludedInAgreement}
+                          aiAddonActivatedAt={tenant.aiAddonActivatedAt}
                         />
                       </TableCell>
                     )}
@@ -472,8 +489,55 @@ export default async function TenantsPage({
   );
 }
 
-function buildListHref(search: string, invoice?: "yes" | "no") {
-  return buildAdminListUrl("/admin/tenants", 1, search || undefined, invoice ? { invoice } : undefined);
+function buildListHref(
+  search: string,
+  filters: { invoice?: "yes" | "no"; ai?: "self" | "included" } = {},
+) {
+  return buildAdminListUrl("/admin/tenants", 1, search || undefined, {
+    invoice: filters.invoice,
+    ai: filters.ai,
+  });
+}
+
+function TenantAiCell({
+  tenantId,
+  tenantName,
+  aiEnabled,
+  aiIncludedInAgreement,
+  aiAddonActivatedAt,
+}: {
+  tenantId: string;
+  tenantName: string;
+  aiEnabled: boolean;
+  aiIncludedInAgreement: boolean;
+  aiAddonActivatedAt: Date | null;
+}) {
+  const source = getTenantAiSource({ aiEnabled, aiIncludedInAgreement });
+
+  return (
+    <div className="space-y-1.5">
+      {source === "self" ? (
+        <div>
+          <Badge variant="secondary">Selvvalgt</Badge>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {AI_ADDON_NET_MONTHLY_NOK} kr/mnd + mva
+          </p>
+          {aiAddonActivatedAt && (
+            <p className="text-xs text-muted-foreground">
+              fra {aiAddonActivatedAt.toLocaleDateString("no-NO")}
+            </p>
+          )}
+        </div>
+      ) : source === "off" ? (
+        <p className="text-xs text-muted-foreground">Ikke aktiv</p>
+      ) : null}
+      <AdminAiIncludedSwitch
+        tenantId={tenantId}
+        tenantName={tenantName}
+        included={aiIncludedInAgreement}
+      />
+    </div>
+  );
 }
 
 function formatDaysAgo(date: Date): string {

@@ -61,7 +61,7 @@ export function AdminAiIncludedSwitch({
         }}
       />
       <span className="text-xs text-muted-foreground whitespace-nowrap">
-        {checked ? "Inkludert" : "—"}
+        {checked ? "I avtale" : "Avtale"}
       </span>
     </div>
   );

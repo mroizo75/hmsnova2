@@ -37,6 +37,18 @@ export function shouldBillAiAddon(input: {
   return input.aiEnabled && !input.aiIncludedInAgreement;
 }
 
+export type TenantAiSource = "self" | "agreement" | "off";
+
+/** Selvvalgt tillegg faktureres. Avtaleoverstyring går foran. */
+export function getTenantAiSource(input: {
+  aiEnabled: boolean;
+  aiIncludedInAgreement?: boolean;
+}): TenantAiSource {
+  if (input.aiIncludedInAgreement) return "agreement";
+  if (input.aiEnabled) return "self";
+  return "off";
+}
+
 export function buildSubscriptionInvoiceTotals(input: {
   subscriptionGrossAmount: number;
   aiEnabled: boolean;

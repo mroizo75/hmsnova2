@@ -284,7 +284,7 @@ export async function createFinding(input: any) {
       data: {
         auditId: validated.auditId,
         findingType: validated.findingType,
-        clause: validated.clause,
+        clause: validated.clause?.trim() || null,
         description: validated.description,
         evidence: validated.evidence,
         requirement: validated.requirement,

@@ -22,7 +22,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Upload, X } from "lucide-react";
+import { Plus, Upload } from "lucide-react";
+import { ImageGallery } from "@/components/shared/image-gallery";
 import { format } from "date-fns";
 import { useTranslations } from "next-intl";
 
@@ -277,25 +278,15 @@ export function InspectionFindingForm({ inspectionId, users }: InspectionFinding
             </div>
 
             {images.length > 0 && (
-              <div className="grid grid-cols-3 gap-2 mt-2">
-                {images.map((imageKey) => (
-                  <div key={imageKey} className="relative group">
-                    <img
-                      src={`/api/inspections/images/${imageKey}`}
-                      alt={t("imageAlt")}
-                      className="w-full h-24 object-cover rounded"
-                    />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => removeImage(imageKey)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
+              <div className="mt-2">
+                <ImageGallery
+                  images={images.map((imageKey) => ({
+                    key: imageKey,
+                    src: `/api/inspections/images/${imageKey}`,
+                    alt: t("imageAlt"),
+                  }))}
+                  onRemove={(imageKey) => void removeImage(imageKey)}
+                />
               </div>
             )}
           </div>

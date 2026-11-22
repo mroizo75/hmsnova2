@@ -20,6 +20,7 @@ import {
   createOrgChartNode,
   updateOrgChartNode,
   deleteOrgChartNode,
+  setOrgChartManual,
 } from "@/server/actions/org-chart.actions";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, Building2, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
@@ -33,11 +34,26 @@ interface OrgNode {
   name: string | null;
   department: string | null;
   sortOrder: number;
+  kind: "PERSON" | "DEPARTMENT";
 }
 
 interface OrgChartTreeProps {
   nodes: OrgNode[];
+  manual: boolean;
   canManage: boolean;
+}
+
+function boxTone(node: Pick<OrgNode, "title" | "kind">): "line" | "department" | "safety" {
+  if (node.kind !== "DEPARTMENT" && /verneombud/i.test(node.title)) return "safety";
+  if (node.kind === "DEPARTMENT") return "department";
+  return "line";
+}
+
+function boxClass(node: Pick<OrgNode, "title" | "kind">): string {
+  const tone = boxTone(node);
+  if (tone === "safety") return "bg-[#9a3412]";
+  if (tone === "department") return "bg-[#1e3a5f]";
+  return "bg-[#2b6f7e]";
 }
 
 interface TreeNode extends OrgNode {
@@ -178,10 +194,12 @@ function ChartBox({
   return (
     <div className="org-chart-node">
       <div className="group relative inline-flex flex-col items-center">
-        <div className="relative min-w-[140px] max-w-[200px] rounded-lg bg-[#2b6f7e] px-5 py-3 text-center text-white shadow-md transition-shadow hover:shadow-lg">
+        <div className={`relative min-w-[140px] max-w-[200px] rounded-lg px-5 py-3 text-center text-white shadow-md transition-shadow hover:shadow-lg ${boxClass(node)}`}>
           <p className="text-sm font-semibold leading-tight">{node.title}</p>
           {node.name ? <p className="mt-0.5 text-xs text-white/80">{node.name}</p> : null}
-          {node.department ? <p className="mt-0.5 text-[10px] text-white/60">{node.department}</p> : null}
+          {node.kind !== "DEPARTMENT" && node.department ? (
+            <p className="mt-0.5 text-[10px] text-white/60">{node.department}</p>
+          ) : null}
 
           {canManage ? (
             <div className="absolute -top-3 left-1/2 z-10 hidden -translate-x-1/2 items-center gap-0.5 rounded-full border bg-white px-1 py-0.5 shadow-lg group-hover:flex">
@@ -220,38 +238,44 @@ function MobileOrgNode({
   isRoot?: boolean;
 }) {
   const { isPending, handleDelete } = useNodeDelete(node);
-  const subtitle = [node.name, node.department].filter(Boolean).join(" · ");
+  const subtitle = [node.name, node.kind === "DEPARTMENT" ? null : node.department].filter(Boolean).join(" · ");
 
   return (
-    <li className={isRoot ? "mobile-org-root" : undefined}>
-      <div className="mobile-org-box flex items-center gap-1.5 rounded-md bg-[#2b6f7e] px-2.5 py-1.5 text-white shadow-sm">
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold leading-tight">{node.title}</p>
-          {subtitle ? (
-            <p className="mt-0.5 truncate text-[11px] leading-tight text-white/80">{subtitle}</p>
+    <li className={`${isRoot ? "mobile-org-root" : "mobile-org-item"}${node.children.length > 0 ? " mobile-org-has-children" : ""}`}>
+      <div className="mobile-org-head">
+        <div className="mobile-org-gutter" aria-hidden="true" />
+        <div className={`mobile-org-box flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-2.5 py-2 text-white shadow-sm ${boxClass(node)}`}>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold leading-tight">{node.title}</p>
+            {subtitle ? (
+              <p className="mt-0.5 truncate text-xs leading-tight text-white/80">{subtitle}</p>
+            ) : null}
+          </div>
+          {canManage ? (
+            <NodeActions
+              node={node}
+              allNodes={allNodes}
+              isPending={isPending}
+              onDelete={handleDelete}
+              onTeal
+            />
           ) : null}
         </div>
-        {canManage ? (
-          <NodeActions
-            node={node}
-            allNodes={allNodes}
-            isPending={isPending}
-            onDelete={handleDelete}
-            onTeal
-          />
-        ) : null}
       </div>
       {node.children.length > 0 ? (
-        <ul>
-          {node.children.map((child) => (
-            <MobileOrgNode
-              key={child.id}
-              node={child}
-              canManage={canManage}
-              allNodes={allNodes}
-            />
-          ))}
-        </ul>
+        <div className="mobile-org-branch">
+          <div className="mobile-org-gutter" aria-hidden="true" />
+          <ul className="mobile-org-children">
+            {node.children.map((child) => (
+              <MobileOrgNode
+                key={child.id}
+                node={child}
+                canManage={canManage}
+                allNodes={allNodes}
+              />
+            ))}
+          </ul>
+        </div>
       ) : null}
     </li>
   );
@@ -274,6 +298,7 @@ function NodeDialog({
   const [title, setTitle] = useState(editNode?.title ?? "");
   const [name, setName] = useState(editNode?.name ?? "");
   const [department, setDepartment] = useState(editNode?.department ?? "");
+  const [kind, setKind] = useState<"PERSON" | "DEPARTMENT">(editNode?.kind ?? "PERSON");
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const refresh = useRefreshOrgChart();
@@ -287,14 +312,16 @@ function NodeDialog({
         ? await updateOrgChartNode({
             id: editNode.id,
             title: title.trim(),
-            name: name.trim() || null,
+            name: kind === "DEPARTMENT" ? null : name.trim() || null,
             department: department.trim() || null,
+            kind,
           })
         : await createOrgChartNode({
             parentId: parentId ?? null,
             title: title.trim(),
-            name: name.trim() || null,
+            name: kind === "DEPARTMENT" ? null : name.trim() || null,
             department: department.trim() || null,
+            kind,
           });
 
       if (result.success) {
@@ -305,6 +332,7 @@ function NodeDialog({
           setTitle("");
           setName("");
           setDepartment("");
+          setKind("PERSON");
         }
       } else {
         toast({ title: "Feil", description: result.error, variant: "destructive" });
@@ -319,6 +347,7 @@ function NodeDialog({
         setTitle(editNode.title);
         setName(editNode.name ?? "");
         setDepartment(editNode.department ?? "");
+        setKind(editNode.kind ?? "PERSON");
       }
     }}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
@@ -334,7 +363,22 @@ function NodeDialog({
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="node-title">Stillingstittel / Rolle *</Label>
+              <Label htmlFor="node-kind">Type</Label>
+              <select
+                id="node-kind"
+                value={kind}
+                onChange={(e) => setKind(e.target.value === "DEPARTMENT" ? "DEPARTMENT" : "PERSON")}
+                className="flex h-11 w-full rounded-md border border-input bg-transparent px-3 text-sm sm:h-9"
+              >
+                <option value="PERSON">Person / rolle</option>
+                <option value="DEPARTMENT">Avdeling</option>
+              </select>
+              <p className="text-[11px] text-muted-foreground">
+                Skriv Verneombud i tittelen for å få egen farge på boksen.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="node-title">{kind === "DEPARTMENT" ? "Avdelingsnavn *" : "Stillingstittel / Rolle *"}</Label>
               <Input
                 id="node-title"
                 value={title}
@@ -343,24 +387,28 @@ function NodeDialog({
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="node-name">Navn på person</Label>
-              <Input
-                id="node-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="F.eks. Ola Nordmann"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="node-dept">Avdeling</Label>
-              <Input
-                id="node-dept"
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-                placeholder="F.eks. Drift, Administrasjon"
-              />
-            </div>
+            {kind === "PERSON" ? (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="node-name">Navn på person</Label>
+                  <Input
+                    id="node-name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="F.eks. Ola Nordmann"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="node-dept">Avdeling</Label>
+                  <Input
+                    id="node-dept"
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                    placeholder="F.eks. Drift, Administrasjon"
+                  />
+                </div>
+              </>
+            ) : null}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
@@ -469,65 +517,126 @@ const chartStyles = `
   }
 
   .mobile-org-tree,
-  .mobile-org-tree ul {
+  .mobile-org-children {
     list-style: none;
     margin: 0;
     padding: 0;
+    min-width: 0;
+    width: 100%;
   }
 
-  .mobile-org-tree {
-    --org-line: #1e5a66;
-    --org-line-w: 3px;
-    --org-gutter: 18px;
+  .mobile-org-head,
+  .mobile-org-branch {
+    display: flex;
+    align-items: stretch;
+    min-width: 0;
   }
 
-  .mobile-org-tree > li + li {
-    margin-top: 10px;
+  .mobile-org-children {
+    flex: 1;
   }
 
-  .mobile-org-tree ul {
-    margin-left: 10px;
-  }
-
-  .mobile-org-tree li {
+  .mobile-org-gutter {
     position: relative;
+    width: 28px;
+    flex: none;
   }
 
-  .mobile-org-tree li li {
-    padding-top: 8px;
-    padding-left: var(--org-gutter);
+  .mobile-org-root > .mobile-org-head > .mobile-org-gutter,
+  .mobile-org-root > .mobile-org-branch > .mobile-org-gutter {
+    display: none;
   }
 
-  .mobile-org-tree li li::before {
+  .mobile-org-children > .mobile-org-item > .mobile-org-head {
+    padding-top: 10px;
+  }
+
+  .mobile-org-children > .mobile-org-item > .mobile-org-head > .mobile-org-gutter::before,
+  .mobile-org-children > .mobile-org-item > .mobile-org-branch > .mobile-org-gutter::before {
     content: "";
     position: absolute;
     left: 0;
     top: 0;
-    width: var(--org-line-w);
-    height: 100%;
-    background: var(--org-line);
-    border-radius: 1px;
+    bottom: 0;
+    width: 4px;
+    background-color: #1e5a66;
   }
 
-  .mobile-org-tree li li:last-child::before {
-    height: 20px;
+  .mobile-org-children > .mobile-org-item:first-child > .mobile-org-head > .mobile-org-gutter::before {
+    top: 50%;
   }
 
-  .mobile-org-tree li li::after {
+  .mobile-org-children > .mobile-org-item:last-child > .mobile-org-head > .mobile-org-gutter::before {
+    bottom: 50%;
+  }
+
+  .mobile-org-children > .mobile-org-item.mobile-org-has-children:last-child > .mobile-org-head > .mobile-org-gutter::before {
+    bottom: 0;
+  }
+
+  .mobile-org-children > .mobile-org-item > .mobile-org-head > .mobile-org-gutter::after {
     content: "";
     position: absolute;
     left: 0;
-    top: 20px;
-    width: var(--org-gutter);
-    height: var(--org-line-w);
-    background: var(--org-line);
-    border-radius: 1px;
+    top: 50%;
+    width: 28px;
+    height: 4px;
+    background-color: #1e5a66;
+    transform: translateY(-50%);
   }
 `;
 
 // ─── Main export ─────────────────────────────────────
 
-export function OrgChartTree({ nodes, canManage }: OrgChartTreeProps) {
+function ChartModeControl({ manual }: { manual: boolean }) {
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
+  const refresh = useRefreshOrgChart();
+
+  function toggle() {
+    if (
+      manual &&
+      !confirm("Kartet bygges på nytt fra ansatte og avdelinger. Dine egne bokser blir erstattet.")
+    ) {
+      return;
+    }
+    startTransition(async () => {
+      const result = await setOrgChartManual(!manual);
+      if (!result.success) {
+        toast({ title: "Feil", description: result.error, variant: "destructive" });
+        return;
+      }
+      toast({
+        title: manual ? "Automatisk kart" : "Eget kart",
+        description: manual
+          ? "Kartet følger ansatte og avdelinger igjen."
+          : "Automatikken er skrudd av. Du kan bygge kartet selv.",
+      });
+      refresh();
+    });
+  }
+
+  return (
+    <div className="mb-4 flex flex-col gap-2 rounded-lg border bg-muted/40 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-sm text-muted-foreground">
+        {manual
+          ? "Du styrer kartet selv. Endringer i ansatte oppdaterer det ikke."
+          : "Kartet følger ansatte og avdelinger. Avdeling øverst, leder under, øvrige under lederen."}
+      </p>
+      <Button
+        type="button"
+        variant="outline"
+        className="bg-transparent sm:shrink-0"
+        disabled={isPending}
+        onClick={toggle}
+      >
+        {manual ? "Følg ansatte igjen" : "Bygg kartet selv"}
+      </Button>
+    </div>
+  );
+}
+
+export function OrgChartTree({ nodes, manual, canManage }: OrgChartTreeProps) {
   const tree = buildTree(nodes);
   const isEmpty = tree.length === 0;
   const [scale, setScale] = useState(1);
@@ -542,8 +651,9 @@ export function OrgChartTree({ nodes, canManage }: OrgChartTreeProps) {
             <Building2 className="h-14 w-14 mx-auto text-muted-foreground/50 mb-4" />
             <h3 className="text-lg font-semibold mb-2">Ingen ansatte i kartet ennå</h3>
             <p className="mx-auto mb-6 max-w-md text-sm text-muted-foreground">
-              Kartet fylles automatisk når ansatte og avdelinger er lagt inn. Administrator blir daglig leder, ledere ligger under, og ansatte samles i avdelingene sine.
+              Kartet fylles automatisk når ansatte og avdelinger er lagt inn. Avdelingen ligger øverst, avdelingsleder under, og de andre i avdelingen under lederen.
             </p>
+            {canManage ? <ChartModeControl manual={manual} /> : null}
             {canManage && (
               <div className="flex flex-col items-center justify-center gap-2 sm:flex-row">
                 <NodeDialog
@@ -562,6 +672,7 @@ export function OrgChartTree({ nodes, canManage }: OrgChartTreeProps) {
       ) : (
         <Card>
           <CardContent className="px-3 pb-6 pt-4 sm:px-6 sm:pb-8 sm:pt-6">
+            {canManage ? <ChartModeControl manual={manual} /> : null}
             {canManage ? (
               <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
                 <NodeDialog
@@ -619,9 +730,20 @@ export function OrgChartTree({ nodes, canManage }: OrgChartTreeProps) {
               </div>
             </div>
 
-            <p className="mt-6 text-center text-xs text-muted-foreground">
-              Kartet følger ansatte, roller og avdelinger. Endringer der vises her automatisk.
-            </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-sm bg-[#1e3a5f]" />
+                Avdeling
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-sm bg-[#2b6f7e]" />
+                Linje
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-sm bg-[#9a3412]" />
+                Verneombud
+              </span>
+            </div>
           </CardContent>
         </Card>
       )}

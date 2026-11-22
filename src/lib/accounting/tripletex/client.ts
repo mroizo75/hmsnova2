@@ -9,6 +9,7 @@ type SessionCache = {
 };
 
 const sessionCache = new Map<string, SessionCache>();
+const sessionCreates = new Map<string, Promise<string>>();
 
 export type TripletexRequestFn = (
   path: string,
@@ -52,6 +53,10 @@ export function tripletexSessionCreateUrl(input: {
   return `${input.baseUrl.replace(/\/$/, "")}/token/session/:create?${params.toString()}`;
 }
 
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function createSessionOnBase(input: {
   consumerToken: string;
   employeeToken: string;
@@ -59,20 +64,33 @@ async function createSessionOnBase(input: {
   fetchImpl: typeof fetch;
   baseUrl: string;
 }): Promise<{ token: string; expirationDate?: string; baseUrl: string }> {
-  const res = await input.fetchImpl(
-    tripletexSessionCreateUrl({
-      baseUrl: input.baseUrl,
-      consumerToken: input.consumerToken,
-      employeeToken: input.employeeToken,
-      expirationDate: input.expirationDate,
-    }),
-    { method: "PUT", headers: { Accept: "application/json" } }
-  );
+  let lastError: TripletexApiError | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const res = await input.fetchImpl(
+      tripletexSessionCreateUrl({
+        baseUrl: input.baseUrl,
+        consumerToken: input.consumerToken,
+        employeeToken: input.employeeToken,
+        expirationDate: input.expirationDate,
+      }),
+      { method: "PUT", headers: { Accept: "application/json" } }
+    );
 
-  const body = await res.text();
-  if (!res.ok) {
-    throw new TripletexApiError(`Kunne ikke opprette Tripletex-sesjon (${res.status})`, res.status, body);
+    const body = await res.text();
+    if (res.status === 429 || res.status === 503) {
+      lastError = new TripletexApiError(`Kunne ikke opprette Tripletex-sesjon (${res.status})`, res.status, body);
+      await delay(200 * (attempt + 1));
+      continue;
+    }
+    if (!res.ok) {
+      throw new TripletexApiError(`Kunne ikke opprette Tripletex-sesjon (${res.status})`, res.status, body);
+    }
+    return parseSessionBody(body, input.baseUrl);
   }
+  throw lastError ?? new TripletexApiError("Kunne ikke opprette Tripletex-sesjon", 503);
+}
+
+function parseSessionBody(body: string, baseUrl: string): { token: string; expirationDate?: string; baseUrl: string } {
 
   let json: { value?: { token?: string; expirationDate?: string } };
   try {
@@ -84,7 +102,7 @@ async function createSessionOnBase(input: {
   if (!token) {
     throw new TripletexApiError("Tripletex returnerte ikke sesjonstoken", 500, body);
   }
-  return { token, expirationDate: json.value?.expirationDate, baseUrl: input.baseUrl };
+  return { token, expirationDate: json.value?.expirationDate, baseUrl };
 }
 
 export async function createSessionToken(input: {
@@ -139,6 +157,9 @@ function sessionCreateHint(error: TripletexApiError, bases: string[]): string {
     }
     return "Ugyldig consumer- eller employee-token. For testkonto: lim inn employee-tokenet fra Tripletex (ikke TRIPELTEX_TOKEN fra .env).";
   }
+  if (error.status === 429) {
+    return "Tripletex tar ikke imot flere tilkoblinger akkurat nå. Vent et øyeblikk og lim inn tokenet på nytt.";
+  }
   if (error.status >= 500) {
     return "Tripletex svarte med serverfeil ved sesjon. Sjekk at testkonto treffer api-test.tripletex.tech, ikke tripletex.no.";
   }
@@ -177,26 +198,45 @@ export class TripletexClient {
 
   async getSessionToken(force = false): Promise<string> {
     const cacheKey = this.sessionKey();
-    const cached = sessionCache.get(cacheKey);
-    if (!force && cached && cached.expiresAt > Date.now() + 60_000) {
-      this.resolvedBaseUrl = cached.baseUrl;
-      return cached.token;
+    if (!force) {
+      const cached = sessionCache.get(cacheKey);
+      if (cached && cached.expiresAt > Date.now() + 60_000) {
+        this.resolvedBaseUrl = cached.baseUrl;
+        return cached.token;
+      }
     }
 
-    const created = await createSessionToken({
-      consumerToken: this.consumerToken(),
-      employeeToken: this.employeeToken,
-      fetchImpl: this.fetchImpl,
-      baseUrl: this.resolvedBaseUrl ?? undefined,
-    });
-    this.resolvedBaseUrl = created.baseUrl;
+    // Tripletex gjør forrige sesjon ugyldig når en ny opprettes for samme employee-token.
+    // Parallelle kall fra flere bedrifter må derfor dele én pågående opprettelse per bedrift.
+    const pending = sessionCreates.get(cacheKey);
+    if (pending) {
+      const token = await pending;
+      const cached = sessionCache.get(cacheKey);
+      if (cached) this.resolvedBaseUrl = cached.baseUrl;
+      return token;
+    }
 
-    const expiresAt = created.expirationDate
-      ? new Date(created.expirationDate).getTime()
-      : Date.now() + 24 * 60 * 60 * 1000;
+    const create = (async () => {
+      const created = await createSessionToken({
+        consumerToken: this.consumerToken(),
+        employeeToken: this.employeeToken,
+        fetchImpl: this.fetchImpl,
+        baseUrl: this.resolvedBaseUrl ?? undefined,
+      });
+      this.resolvedBaseUrl = created.baseUrl;
+      const expiresAt = created.expirationDate
+        ? new Date(created.expirationDate).getTime()
+        : Date.now() + 24 * 60 * 60 * 1000;
+      sessionCache.set(cacheKey, { token: created.token, expiresAt, baseUrl: created.baseUrl });
+      return created.token;
+    })();
 
-    sessionCache.set(cacheKey, { token: created.token, expiresAt, baseUrl: created.baseUrl });
-    return created.token;
+    sessionCreates.set(cacheKey, create);
+    try {
+      return await create;
+    } finally {
+      if (sessionCreates.get(cacheKey) === create) sessionCreates.delete(cacheKey);
+    }
   }
 
   async request<T>(path: string, init?: RequestInit): Promise<T> {

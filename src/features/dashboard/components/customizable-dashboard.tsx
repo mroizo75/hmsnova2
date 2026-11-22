@@ -47,6 +47,8 @@ import Link from "next/link";
 import { SetupGuide } from "@/features/onboarding/components/setup-guide";
 import type { SetupGuideProgress } from "@/server/actions/onboarding.actions";
 import { TavlePromoBanner } from "@/features/hms-tavle/components/tavle-promo-banner";
+import { PendingApprovalsPanel } from "@/features/documents/components/pending-approvals-panel";
+import type { PendingApprovalDocument } from "@/lib/document-approvals";
 
 type WidgetConfig = DashboardWidgetConfig;
 
@@ -69,6 +71,9 @@ interface DashboardData {
     status: string;
   }>;
   visibleNavItems?: Record<string, boolean | undefined>;
+  pendingApprovals?: PendingApprovalDocument[];
+  currentUserId?: string;
+  canApproveDocuments?: boolean;
 }
 
 interface CustomizableDashboardProps {
@@ -309,6 +314,14 @@ export function CustomizableDashboard({ data, dashboardLocked = false, setupGuid
       )}
 
       {showTavleBanner && <TavlePromoBanner />}
+
+      {(data.pendingApprovals?.length ?? 0) > 0 && data.currentUserId && (
+        <PendingApprovalsPanel
+          documents={data.pendingApprovals ?? []}
+          currentUserId={data.currentUserId}
+          canApprove={Boolean(data.canApproveDocuments)}
+        />
+      )}
 
       {/* Verktøylinje */}
       <div className="flex items-center justify-between">

@@ -17,6 +17,7 @@ import { Pencil, Trash2, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { deleteMeasure } from "@/server/actions/measure.actions";
 import { getMeasureStatusLabel, getMeasureStatusColor } from "@/features/measures/schemas/measure.schema";
+import { MeasurePhotos } from "@/features/measures/components/measure-photos";
 import { useToast } from "@/hooks/use-toast";
 import type { ActionEffectiveness, Measure } from "@prisma/client";
 
@@ -33,9 +34,10 @@ interface MeasureWithSources extends Measure {
 interface MeasureListProps {
   measures: MeasureWithSources[];
   showSourceBadges?: boolean;
+  showPhotos?: boolean;
 }
 
-export function MeasureList({ measures, showSourceBadges }: MeasureListProps) {
+export function MeasureList({ measures, showSourceBadges, showPhotos = false }: MeasureListProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
@@ -138,6 +140,7 @@ export function MeasureList({ measures, showSourceBadges }: MeasureListProps) {
                         {measure.description}
                       </p>
                     )}
+                    {showPhotos && <MeasurePhotos measureId={measure.id} compact />}
                     {showSourceBadges && (
                       <div className="flex flex-wrap gap-1 mt-1">
                         {measure.risk && (
@@ -282,6 +285,7 @@ export function MeasureList({ measures, showSourceBadges }: MeasureListProps) {
                     {measure.description ? (
                       <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{measure.description}</p>
                     ) : null}
+                    {showPhotos ? <MeasurePhotos measureId={measure.id} compact /> : null}
                     {showSourceBadges && (
                       <div className="flex flex-wrap gap-1 mt-1">
                         {measure.risk && (

@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { distributableDocumentsWhere } from "@/lib/document-module-scope";
 import { documentVisibleToRole } from "@/features/documents/lib/read-confirmation";
+import { getPermissions } from "@/lib/permissions";
 
 export async function fetchDocuments() {
   const user = await getCurrentUser();
@@ -32,10 +33,13 @@ export async function fetchDocuments() {
     },
   });
 
+  const permissions = getPermissions(userTenant.role, userTenant.extraRoles);
+
   return JSON.parse(JSON.stringify({
     documents,
     tenantId: userTenant.tenantId,
     currentUserId: user.id,
+    canApproveDocuments: permissions.canApproveDocuments,
   }));
 }
 
@@ -84,7 +88,7 @@ export async function fetchDocumentDetail(id: string) {
         select: { name: true, email: true },
       },
       owner: {
-        select: { name: true, email: true },
+        select: { id: true, name: true, email: true },
       },
     },
   });

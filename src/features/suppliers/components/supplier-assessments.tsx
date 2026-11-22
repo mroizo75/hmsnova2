@@ -110,11 +110,9 @@ export function SupplierAssessments({
     <div className="space-y-6">
       <form onSubmit={send} className="space-y-3">
         <p className="text-sm text-muted-foreground">
-          {questionCount === 0
-            ? "Definer spørsmålene før skjemaet kan sendes."
-            : contactEmail
-              ? `Skjemaet med ${questionCount} spørsmål sendes til ${contactEmail}. Kravene og styringen som står på leverandøren, følger med.`
-              : "Registrer e-post, krav og styring før skjemaet kan sendes."}
+          {contactEmail
+            ? `Standardskjemaet med ${questionCount} spørsmål gjelder alle leverandører og sendes til ${contactEmail}. Endre spørsmålene ett sted, ikke per leverandør.`
+            : "Registrer e-post, krav og styring før skjemaet kan sendes."}
         </p>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="space-y-2">
@@ -125,7 +123,7 @@ export function SupplierAssessments({
             {busy === "send" ? "Sender…" : "Send selvevaluering"}
           </Button>
           <Button asChild variant="outline">
-            <Link href="/dashboard/leverandorer/skjema">Rediger spørsmål</Link>
+            <Link href="/dashboard/leverandorer/skjema">Standardskjema</Link>
           </Button>
         </div>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -177,6 +175,7 @@ export function SupplierAssessments({
                   <div className="space-y-2">
                     <Label htmlFor={`next-${assessment.id}`}>Neste re-evaluering</Label>
                     <Input id={`next-${assessment.id}`} name="nextReviewAt" type="date" />
+                    <p className="text-xs text-muted-foreground">Dette blir leverandørens gjeldende dato, og status settes til resultatet.</p>
                   </div>
                 </div>
                 <div className="space-y-2">
