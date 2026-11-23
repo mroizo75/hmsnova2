@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ClipboardCheck, AlertCircle, TrendingUp, Bell, ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { FAQSection } from "@/components/faq-section";
+import { getCanonicalUrl } from "@/lib/seo-config";
 
 export const metadata: Metadata = {
-  title: "Avvikshåndtering - Registrer og følg opp avvik | HMS Nova",
-  description: "Digital avvikshåndtering med registrering fra mobil. Automatisk oppfølging, lær av nestenulykker og ISO 9001-compliance. Registrer bedrift.",
-  keywords: "avvikshåndtering, avviksmelding, hendelsesrapportering, nestenulykke, hms avvik",
+  title: "Avvikshåndtering og avvikssystem",
+  description: "Avvikssystem for å registrere, følge opp og lukke avvik. Melding fra mobil, tiltak med frist og sporbar historikk. Inkludert i HMS Nova.",
+  keywords: "avvikshåndtering, avvik system, avviksmelding, avviksbehandling, hms avvik",
+  alternates: { canonical: getCanonicalUrl("/hms-system/avvikshandtering") },
 };
 
 const faqs = [

@@ -7,7 +7,7 @@ import { AlertTriangle, CheckCircle2, TrendingUp, Shield, ArrowRight, ArrowLeft 
 import { FAQSection } from "@/components/faq-section";
 
 export const metadata: Metadata = {
-  title: "Risikovurdering - 5x5 Matrise & Digital Analyse | HMS Nova",
+  title: "Risikovurdering - 5x5 Matrise & Digital Analyse",
   description: "Profesjonell risikovurdering med 5x5 matrise (ISO 9001). Digital og effektiv med automatisk oppfølging av tiltak og mobilapp. 14 dagers angrefrist, deretter 12 måneders binding.",
   keywords: "risikovurdering, risikoanalyse, 5x5 matrise, risikomatrise, hms risikovurdering, digital risikovurdering, risikovurdering mal",
   openGraph: {

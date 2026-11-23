@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { SITE_CONFIG, getCanonicalUrl, ROBOTS_CONFIG } from "@/lib/seo-config";
 
 export const metadata: Metadata = {
-  title: "HMS-blogg - Artikler om HMS, arbeidsmiljø og sikkerhet | HMS Nova",
+  title: "HMS-blogg - Artikler om HMS, arbeidsmiljø og sikkerhet",
   description:
     "Les fagartikler om HMS, arbeidsmiljø, risikovurdering, ISO 9001 og internkontroll. Oppdatert kunnskap fra HMS Nova sine eksperter.",
   keywords:

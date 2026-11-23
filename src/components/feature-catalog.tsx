@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PUBLIC_FEATURE_GROUPS } from "@/lib/public-feature-catalog";
+import { featurePublicPath, PUBLIC_FEATURE_GROUPS } from "@/lib/public-feature-catalog";
 
 export function FeatureCatalog() {
   return (
@@ -36,13 +36,16 @@ export function FeatureCatalog() {
                   <li key={feature.name} className="flex gap-2.5">
                     <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
                     <div className="min-w-0">
-                      {feature.href ? (
-                        <Link href={feature.href} className="font-medium hover:text-primary">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Link href={featurePublicPath(feature)} className="font-medium hover:text-primary">
                           {feature.name}
                         </Link>
-                      ) : (
-                        <p className="font-medium leading-snug">{feature.name}</p>
-                      )}
+                        {feature.name === "AI-assistent" || feature.name === "Tale-til-tekst" ? (
+                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                            +49 kr/mnd
+                          </span>
+                        ) : null}
+                      </div>
                       <p className="text-sm leading-relaxed text-muted-foreground">{feature.description}</p>
                     </div>
                   </li>

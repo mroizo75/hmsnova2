@@ -9,7 +9,7 @@ import { MultipleStructuredData } from "@/components/seo/structured-data";
 import { getBreadcrumbSchema, getCanonicalUrl, getOpenGraphDefaults, getTwitterDefaults } from "@/lib/seo-config";
 
 export const metadata: Metadata = {
-  title: "Varsling - Anonym varslingskanal for arbeidsplassen | HMS Nova",
+  title: "Varsling - Anonym varslingskanal for arbeidsplassen",
   description: "Lovpålagt varslingskanal etter AML kapittel 2A. Anonym og trygg varsling av kritikkverdige forhold. Sporbar saksbehandling og full GDPR-compliance.",
   keywords: "varsling, varslingskanal, whistleblowing, anonym varsling, AML 2A, varsle om kritikkverdige forhold, varslingsrutiner, arbeidsmiljøloven varsling",
   alternates: { canonical: getCanonicalUrl("/hms-system/varsling") },

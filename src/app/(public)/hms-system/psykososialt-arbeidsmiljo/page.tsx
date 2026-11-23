@@ -9,7 +9,7 @@ import { MultipleStructuredData } from "@/components/seo/structured-data";
 import { getBreadcrumbSchema, getCanonicalUrl, getOpenGraphDefaults, getTwitterDefaults } from "@/lib/seo-config";
 
 export const metadata: Metadata = {
-  title: "Psykososialt arbeidsmiljø - Pulsundersøkelse og trivselskartlegging | HMS Nova",
+  title: "Psykososialt arbeidsmiljø - Pulsundersøkelse og trivselskartlegging",
   description: "Kartlegg psykososialt arbeidsmiljø med anonyme pulsundersøkelser. Oppfyll AML § 4-3 med digital trivselsmåling, trendrapporter og handlingsplaner. Fra 300 kr/mnd.",
   keywords: "psykososialt arbeidsmiljø, arbeidsmiljøundersøkelse, trivselsmåling, pulsundersøkelse, AML 4-3, medarbeiderundersøkelse, psykososial risikovurdering",
   alternates: { canonical: getCanonicalUrl("/hms-system/psykososialt-arbeidsmiljo") },

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 
 export const metadata: Metadata = {
-  title: "Gratis ISO 9001-sjekkliste | Alle 27 krav | HMS Nova",
+  title: "Gratis ISO 9001-sjekkliste | Alle 27 krav",
   description:
     "Last ned ISO 9001-sjekkliste med alle 27 krav fra ISO 9001:2015. Sjekk om deres kvalitetssystem er klart for sertifisering. Inkluderer dokumentasjonsliste, tips til implementering og mal for internrevisjon. Registrer HMS Nova med 14 dagers angrefrist, deretter 12 måneders binding.",
   keywords: [

@@ -23,8 +23,7 @@ export default async function BloggPage() {
         </Badge>
         <h1 className="text-5xl md:text-6xl font-bold mb-6">HMS Nova Blogg</h1>
         <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-          Praktiske artikler om HMS, arbeidsmiljø og sikkerhet. Vi deler kunnskap
-          som bygger trygghet i norske bedrifter.
+          Praktiske artikler om HMS, arbeidsmiljø og sikkerhet for norske bedrifter.
         </p>
       </section>
 

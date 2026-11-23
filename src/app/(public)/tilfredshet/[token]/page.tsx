@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+
+export const metadata: Metadata = {
+  title: "Tilbakemelding",
+  robots: { index: false, follow: false },
+};
 import { prisma } from "@/lib/db";
 import { SatisfactionForm } from "@/features/feedback/components/satisfaction-form";
 

@@ -370,11 +370,12 @@ export const PUBLIC_FEATURE_GROUPS: PublicFeatureGroup[] = [
       },
       {
         name: "Tale-til-tekst",
-        description: "Diktering i mobilappen, så avvik og notater skrives uten tastatur.",
+        description: "Diktering av avvik og notater. Følger med AI-tillegget på 49 kr/mnd + mva.",
       },
       {
         name: "AI-assistent",
-        description: "Utkast og forslag til avvik, SJA, vernerunde, brannøvelse og beredskap.",
+        description:
+          "Valgfrie forslag til risikovurdering, avvik, SJA og beredskap. 49 kr/mnd + mva, og av til en administrator slår det på.",
       },
       {
         name: "API",
@@ -392,3 +393,31 @@ export const PUBLIC_FEATURE_COUNT = PUBLIC_FEATURE_GROUPS.reduce(
 export const PUBLIC_FEATURE_NAMES = PUBLIC_FEATURE_GROUPS.flatMap((group) =>
   group.features.map((feature) => feature.name)
 );
+
+export function featureSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/æ/g, "ae")
+    .replace(/ø/g, "o")
+    .replace(/å/g, "a")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/** Offentlig adresse. Eksisterende artikkelsider beholder sin URL. */
+export function featurePublicPath(feature: PublicFeature): string {
+  if (feature.href) return feature.href;
+  return `/funksjoner/${featureSlug(feature.name)}`;
+}
+
+export function featuresWithDedicatedPages(): Array<PublicFeature & { groupTitle: string; path: string }> {
+  return PUBLIC_FEATURE_GROUPS.flatMap((group) =>
+    group.features
+      .filter((feature) => !feature.href)
+      .map((feature) => ({
+        ...feature,
+        groupTitle: group.title,
+        path: featurePublicPath(feature),
+      }))
+  );
+}

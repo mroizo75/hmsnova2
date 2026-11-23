@@ -87,10 +87,10 @@ export const BlogNewsletterEmail = ({
 
             {/* CTA Section */}
             <Section style={ctaSection}>
-              <Heading style={h2}>HMS Nova bygger trygghet 🛡️</Heading>
+              <Heading style={h2}>HMS-systemet er allerede skrevet</Heading>
               <Text style={text}>
-                Visste du at HMS Nova er Norges mest moderne HMS-system? 
-                Med digital signatur, mobilapp og ISO 9001 compliance.
+                KS-, HMS- og personalhåndbok ligger inne med standardtekst.
+                300 kr/mnd eks. mva, ubegrenset antall brukere.
               </Text>
               <Button
                 href={`${baseUrl}/registrer-bedrift`}

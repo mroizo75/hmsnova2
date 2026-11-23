@@ -35,7 +35,7 @@ import {
 import { MultipleStructuredData } from "@/components/seo/structured-data";
 
 export const metadata: Metadata = {
-  title: "HMS-system for alle bransjer | HMS Nova",
+  title: "HMS-system for alle bransjer",
   description: "HMS Nova er tilpasset 16 bransjer med bransjespesifikke moduler, maler og lovkrav. Bygg og anlegg, helse, hotell, transport, industri og flere. Fra 300 kr/mnd.",
   keywords: "hms system bransjer, hms bygg, hms helse, hms restaurant, hms transport, hms industri, hms kontor, bransjetilpasset hms",
   alternates: { canonical: getCanonicalUrl("/bransjer") },

@@ -9,7 +9,7 @@ import { MultipleStructuredData } from "@/components/seo/structured-data";
 import { getBreadcrumbSchema, getCanonicalUrl, getOpenGraphDefaults, getTwitterDefaults } from "@/lib/seo-config";
 
 export const metadata: Metadata = {
-  title: "Stoffkartotek og eksponeringsregister - Digital kjemikaliestyring | HMS Nova",
+  title: "Stoffkartotek og eksponeringsregister - Digital kjemikaliestyring",
   description: "Digitalt stoffkartotek med sikkerhetsdatablad og lovpålagt eksponeringsregister. Oppfyll forskrift om tiltaksverdier og AML § 4-5. Alle kjemikalier samlet i ett system.",
   keywords: "stoffkartotek, eksponeringsregister, sikkerhetsdatablad, kjemikalieregister, SDS, kjemisk helsefare, tiltaksverdier, grenseverdier, AML 4-5",
   alternates: { canonical: getCanonicalUrl("/hms-system/stoffkartotek") },

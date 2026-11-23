@@ -10,7 +10,7 @@ export const faqDatabase = {
     {
       question: 'Hva koster HMS Nova?',
       answer:
-        'HMS Nova koster <strong>300 kr/mnd</strong> (3 600 kr/år) med 12 måneders abonnement. Prisen inkluderer ALT: ubegrenset antall brukere, alle funksjoner, digital signatur, mobilapp, og norsk support. Ingen skjulte kostnader eller oppsettsgebyr.',
+        'HMS Nova koster <strong>300 kr/mnd + mva</strong> (3 600 kr/år + mva) med 12 måneders abonnement. Ubegrenset antall brukere, håndbøker med standardtekst, dokumenter, risiko, avvik og norsk support er inkludert. AI-tillegg er 49 kr/mnd + mva og er av til en administrator slår det på.',
     },
     {
       question: 'Støtter HMS Nova ISO 9001?',
@@ -116,7 +116,20 @@ export const faqDatabase = {
 export function getFAQsForPage(pageType: string): FAQItem[] {
   switch (pageType) {
     case 'home':
-      return [...faqDatabase.general, ...faqDatabase.comparison.slice(0, 2)];
+      return [
+        ...faqDatabase.general,
+        ...faqDatabase.comparison.slice(0, 2),
+        {
+          question: 'Må vi skrive HMS-håndboken selv?',
+          answer:
+            'Nei. KS-, HMS- og personalhåndbok kommer med standardtekst, i tråd med ISO 9001, ISO 45001 og internkontrollforskriften. Veiviseren henter lover og forskrifter for bransjen og legger inn standardrutiner. Dere endrer det som er spesielt for egen bedrift.',
+        },
+        {
+          question: 'Kan vi ta med HMS-arbeidet vi allerede har laget?',
+          answer:
+            'Ja. Risikovurdering kan lastes opp som PDF, Word eller Excel. Du ser utkastet og bekrefter punktene før de lagres. Ansatte importeres fra CSV eller Excel, og personaldata kan hentes fra PowerOffice. Egne dokumenter lastes opp i dokumentstyringen. Det som mangler, dekkes av standardteksten. Trenger dere hjelp med hele flyttingen, tar dere kontakt. Omfang og pris avtales før vi starter.',
+        },
+      ];
     case 'pricing':
       return [
         faqDatabase.general[1], // Hva koster

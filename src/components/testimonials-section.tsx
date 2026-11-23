@@ -123,7 +123,7 @@ export function TestimonialsSection({
       {showLink && (
         <div className="text-center mt-12">
           <Link 
-            href="/anmeldelser" 
+            href="/team" 
             className="text-primary hover:underline font-semibold"
           >
             Les alle kundeomtaler →

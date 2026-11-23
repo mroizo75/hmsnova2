@@ -1,7 +1,7 @@
 {
-  "name": "HMS Nova - Norges beste HMS-system",
+  "name": "HMS Nova",
   "short_name": "HMS Nova",
-  "description": "HMS Nova bygger trygghet gjennom moderne HMS-styring. Digital signatur, 7 roller, ISO 9001 compliant.",
+  "description": "HMS-systemet er allerede skrevet. 300 kr/mnd eks. mva, ubegrenset antall brukere.",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
@@ -20,8 +20,8 @@
       "purpose": "maskable"
     }
   ],
-  "theme_color": "#16a34a",
-  "background_color": "#ffffff",
+  "theme_color": "#0B6E4F",
+  "background_color": "#F6F5F1",
   "display": "standalone",
   "start_url": "/dashboard",
   "scope": "/",

@@ -28,6 +28,7 @@ import { provisionIndustryPackage } from "@/server/actions/industry-provision.ac
 import { ensureTenantHandbook } from "@/server/actions/hms-handbok.actions";
 import { brregClient } from "@/lib/brreg";
 import { getSubIndustryFromNace } from "@/lib/nace-mapping";
+import { AI_ADDON_BILLING_EMAIL, AI_ADDON_NET_MONTHLY_NOK } from "@/lib/ai-addon";
 import {
   CONTRACT_BINDING_LABEL,
   CONTRACT_DOCUMENT_VERSION,
@@ -128,6 +129,7 @@ export async function submitRegistrationRequest(formData: FormData) {
       acceptedBinding: formData.get("acceptedBinding") as string,
       registrationSource: (formData.get("registrationSource") as string) || "registrer-bedrift",
     };
+    const wantsAi = formData.get("aiAddon") === "true";
 
     const validated = registrationSchema.parse(data);
     const normalizedIndustry = normalizeIndustryValue(validated.industry);
@@ -135,7 +137,10 @@ export async function submitRegistrationRequest(formData: FormData) {
       normalizedIndustry === "agriculture" && validated.farmType
         ? `Gårdstype: ${validated.farmType}`
         : undefined;
-    const mergedNotes = [validated.notes || "", farmTypeNote || ""]
+    const aiNote = wantsAi
+      ? `AI-assistent slått på ved registrering (+${AI_ADDON_NET_MONTHLY_NOK} kr/mnd eks. mva).`
+      : "";
+    const mergedNotes = [validated.notes || "", farmTypeNote || "", aiNote]
       .filter((part) => part.trim().length > 0)
       .join("\n");
 
@@ -212,6 +217,9 @@ export async function submitRegistrationRequest(formData: FormData) {
           onboardingCompletedAt: new Date(),
           registrationType: "STANDARD",
           mocModuleEnabled: isMocDefaultIndustry(normalizedIndustry),
+          aiEnabled: wantsAi,
+          speechToTextEnabled: wantsAi,
+          aiAddonActivatedAt: wantsAi ? acceptedAt : undefined,
           termsAcceptedAt: acceptedAt,
           angrerrettInfoAt: acceptedAt,
           contractAcceptedIp: ipAddress,
@@ -407,9 +415,17 @@ export async function submitRegistrationRequest(formData: FormData) {
             postalCode: validated.postalCode || undefined,
             city: validated.city || undefined,
             notes: mergedNotes || undefined,
-            tenantId: tenant.id,
+            tenantId: result.tenant.id,
           }),
         });
+        if (wantsAi) {
+          await resend.emails.send({
+            from: process.env.RESEND_FROM_EMAIL ?? "HMS Nova <noreply@hmsnova.no>",
+            to: AI_ADDON_BILLING_EMAIL,
+            subject: `HMS Nova AI aktivert ved registrering: ${validated.companyName}`,
+            html: `<p>${validated.companyName} (org.nr. ${validated.orgNumber}) registrerte seg med AI-assistenten på. Tillegget er ${AI_ADDON_NET_MONTHLY_NOK} kr/mnd eks. mva.</p>`,
+          });
+        }
       } catch (emailError) {
         console.error("Failed to send admin notification:", emailError);
       }

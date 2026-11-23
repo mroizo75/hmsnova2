@@ -2,6 +2,7 @@ import { MetadataRoute } from "next";
 import { SITE_CONFIG } from "@/lib/seo-config";
 import { prisma } from "@/lib/db";
 import { getAllBransjeSlugs } from "@/lib/bransje-public-data";
+import { featuresWithDedicatedPages } from "@/lib/public-feature-catalog";
 
 /**
  * Dynamisk sitemap for HMS Nova
@@ -86,10 +87,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     },
     {
-      url: `${baseUrl}/anmeldelser`,
+      url: `${baseUrl}/hms-system-for-sma-bedrifter`,
       lastModified: currentDate,
       changeFrequency: "monthly",
-      priority: 0.7,
+      priority: 0.8,
     },
     {
       url: `${baseUrl}/team`,
@@ -109,6 +110,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "yearly",
       priority: 0.3,
     },
+    {
+      url: `${baseUrl}/funksjoner`,
+      lastModified: currentDate,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    ...featuresWithDedicatedPages().map((feature) => ({
+      url: `${baseUrl}${feature.path}`,
+      lastModified: currentDate,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
     {
       url: `${baseUrl}/hms-system`,
       lastModified: currentDate,

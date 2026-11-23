@@ -33,9 +33,11 @@ interface RegisterDialogProps {
   trigger?: React.ReactNode;
   children?: React.ReactNode;
   onOpenChange?: (open: boolean) => void;
+  /** Når priskortet har AI på, aktiveres tillegget på den nye bedriften. */
+  aiAddon?: boolean;
 }
 
-export function RegisterDialog({ trigger, children, onOpenChange }: RegisterDialogProps) {
+export function RegisterDialog({ trigger, children, onOpenChange, aiAddon = false }: RegisterDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
@@ -159,11 +161,13 @@ export function RegisterDialog({ trigger, children, onOpenChange }: RegisterDial
           <DialogTitle className="text-lg sm:text-xl md:text-2xl">Registrer bedrift</DialogTitle>
           <DialogDescription id="register-description" className="text-xs sm:text-sm">
             Fyll ut skjemaet og opprett konto. 14 dagers angrefrist, deretter 12 måneders binding.
+            {aiAddon ? " AI-assistenten slås på med en gang og koster 49 kr/mnd eks. mva i tillegg." : ""}
           </DialogDescription>
         </DialogHeader>
         
         <ScrollArea className="max-h-[calc(90vh-140px)] px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 md:pb-6">
           <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4 md:space-y-5">
+            {aiAddon ? <input type="hidden" name="aiAddon" value="true" /> : null}
             {/* Organisasjonsnummer - FØRST for Brreg-validering */}
             <div className="space-y-2">
               <Label htmlFor="orgNumber" className="text-xs sm:text-sm font-medium">

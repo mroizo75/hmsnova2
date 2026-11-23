@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 
 export const metadata: Metadata = {
-  title: "Gratis vernerunde-guide | Sjekklister og maler | HMS Nova",
+  title: "Gratis vernerunde-guide | Sjekklister og maler",
   description:
     "Last ned vernerunde-guide med sjekklister, malerdokumenter og steg-for-steg veiledning. Gjennomfør effektive vernerunder og oppfyll krav til systematisk HMS-arbeid. Digital vernerunde-modul i HMS Nova med 14 dagers angrefrist, deretter 12 måneders binding.",
   keywords: [

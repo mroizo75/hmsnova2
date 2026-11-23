@@ -7,7 +7,7 @@ import { Users, Smartphone, CheckCircle2, Calendar, ArrowRight, ArrowLeft } from
 import { FAQSection } from "@/components/faq-section";
 
 export const metadata: Metadata = {
-  title: "Vernerunde - Digital Vernerunde på Mobil | HMS Nova",
+  title: "Vernerunde - Digital Vernerunde på Mobil",
   description: "Digital vernerunde som fungerer offline. Mobilapp for byggeplasser med automatisk rapportering. Lovpålagt og tidsbesparende. Registrer bedrift.",
   keywords: "vernerunde, digital vernerunde, vernerunde mal, sikkerhetsinspeksjon, verneombud, hms vernerunde",
 };

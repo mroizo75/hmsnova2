@@ -7,7 +7,7 @@ import { FileText, Lock, Search, History, ArrowRight, ArrowLeft, FolderOpen } fr
 import { FAQSection } from "@/components/faq-section";
 
 export const metadata: Metadata = {
-  title: "Dokumenthåndtering - Sentral lagring av HMS-dokumenter | HMS Nova",
+  title: "Dokumenthåndtering - Sentral lagring av HMS-dokumenter",
   description: "Digital dokumenthåndtering med sentral lagring, versjonshistorikk, tilgangsstyring og søk. ISO 9001-compliance. Registrer bedrift.",
   keywords: "dokumenthåndtering, hms dokumenter, dokumentstyring, digital arkivering, versjonskontr oll",
 };

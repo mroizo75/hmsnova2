@@ -68,6 +68,9 @@ next-env.d.ts
 # scripts (internal testing and utilities)
 /scripts/
 
+# Arkiv av utdaterte sider. Skal ikke med i git eller i bygget.
+/gammelt/
+
 # documentation (should not be committed)
 /docs/
 

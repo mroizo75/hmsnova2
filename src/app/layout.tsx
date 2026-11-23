@@ -34,14 +34,11 @@ export const metadata: Metadata = {
     canonical: SITE_CONFIG.url,
     languages: {
       "nb-NO": SITE_CONFIG.url,
-      "nn-NO": `${SITE_CONFIG.url}/nn`,
-      "en": `${SITE_CONFIG.url}/en`,
     },
   },
   openGraph: {
     type: "website",
     locale: SITE_CONFIG.locale,
-    alternateLocale: ["nn_NO", "en_US"],
     url: SITE_CONFIG.url,
     siteName: SITE_CONFIG.name,
     title: `${SITE_CONFIG.name} - ${SITE_CONFIG.tagline}`,

@@ -18,17 +18,23 @@ import {
 } from "lucide-react";
 import { FAQSection } from "@/components/faq-section";
 import { TrustBadges } from "@/components/trust-badges";
+import { getCanonicalUrl, getOpenGraphDefaults, getTwitterDefaults } from "@/lib/seo-config";
 
 export const metadata: Metadata = {
   title: "HMS-system til 300 kr/mnd | Ubegrenset brukere",
   description:
     "Et HMS-system samler lovpålagt HMS-arbeid. HMS Nova koster 300 kr/mnd + mva for ubegrenset antall brukere. Avvik, risikovurdering, vernerunde, stoffkartotek og digital signatur er inkludert.",
   keywords: "hms system, hms-system, hms system pris, hms programvare, digitalt hms, hms løsning",
-  openGraph: {
-    title: "HMS-system til 300 kr/mnd, ubegrenset antall brukere",
-    description:
-      "HMS Nova koster 300 kr/mnd + mva uansett antall ansatte. Avvik, risikovurdering, vernerunde og digital signatur er inkludert.",
-  },
+  alternates: { canonical: getCanonicalUrl("/hms-system") },
+  openGraph: getOpenGraphDefaults(
+    "HMS-system til 300 kr/mnd, ubegrenset antall brukere",
+    "HMS Nova koster 300 kr/mnd eks. mva uansett antall ansatte. Avvik, risikovurdering, vernerunde og digital signatur er inkludert.",
+    "/hms-system"
+  ),
+  twitter: getTwitterDefaults(
+    "HMS-system til 300 kr/mnd, ubegrenset antall brukere",
+    "HMS Nova koster 300 kr/mnd eks. mva uansett antall ansatte."
+  ),
 };
 
 // Content clusters - disse sidene skal lenke hit og tilbake
@@ -200,7 +206,11 @@ export default function HMSSystemPage() {
           Et HMS-system samler det lovpålagte HMS-arbeidet: risikovurdering, avvik,
           vernerunde og dokumentasjon. HMS Nova koster 300 kr/mnd + mva for ubegrenset
           antall brukere. Avvik, risikovurdering, vernerunde, stoffkartotek, varsling
-          og digital signatur er inkludert.
+          og digital signatur er inkludert. For virksomheter med få ansatte, se{" "}
+          <Link href="/hms-system-for-sma-bedrifter" className="underline">
+            HMS-system for små bedrifter
+          </Link>
+          .
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">

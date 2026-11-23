@@ -9,7 +9,7 @@ import { MultipleStructuredData } from "@/components/seo/structured-data";
 import { getBreadcrumbSchema, getCanonicalUrl, getOpenGraphDefaults, getTwitterDefaults } from "@/lib/seo-config";
 
 export const metadata: Metadata = {
-  title: "SJA - Sikker Jobb Analyse | Digital SJA-skjema | HMS Nova",
+  title: "SJA-skjema og sikker jobb analyse",
   description: "Digital Sikker Jobb Analyse (SJA) for risikofylte arbeidsoperasjoner. Identifiser farer, vurder risiko og dokumenter tiltak før arbeidet starter. Oppfyll forskriftskrav.",
   keywords: "SJA, sikker jobb analyse, SJA skjema, sikker jobb analyse mal, risikovurdering enkeltoppgave, SJA bygg, SJA offshore, farlig arbeid",
   alternates: { canonical: getCanonicalUrl("/hms-system/sja") },

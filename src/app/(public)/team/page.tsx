@@ -7,7 +7,7 @@ import { ArrowRight, Users } from "lucide-react";
 import { getAllTeamMembers } from "@/lib/team";
 
 export const metadata: Metadata = {
-  title: "Vårt team | HMS Nova",
+  title: "Vårt team",
   description: "Møt teamet bak HMS Nova – HMS-eksperter, salg og HMS leder som hjelper norske bedrifter med trygghet og kvalitet.",
   openGraph: {
     title: "Vårt team | HMS Nova",

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 
 export const metadata: Metadata = {
-  title: "Gratis risikovurdering-mal | 5x5 matrise | HMS Nova",
+  title: "Gratis risikovurdering-mal | 5x5 matrise",
   description:
     "Last ned risikovurdering-mal i Excel-format. 5x5 risikomatrise med automatisk fargekoding, tiltaksplan og veiledning. Oppfyller krav fra Arbeidsmiljøloven §3-1. Digital risikovurdering i HMS Nova med 14 dagers angrefrist, deretter 12 måneders binding.",
   keywords: [

@@ -1,10 +1,6 @@
 /**
- * HMS Nova SEO Configuration
- * 
- * Fokusområder:
- * - "HMS Nova bygger trygghet" som kjerneverdi
- * - Overgå konkurrenter (Grønn Jobb, Avonova, Kuba)
- * - Optimalisert for både tradisjonelle søkemotorer og AI (ChatGPT, Perplexity, etc.)
+ * HMS Nova SEO-konfigurasjon.
+ * Offentlig tekst skal beskrive produktet: ferdige håndbøker, 300 kr/mnd eks. mva.
  */
 
 import { AI_ADDON_NET_MONTHLY_NOK } from "./ai-addon";
@@ -15,8 +11,9 @@ const normalizedBaseUrl = rawBaseUrl.startsWith("http") ? rawBaseUrl : `https://
 
 export const SITE_CONFIG = {
   name: "HMS Nova",
-  tagline: "HMS Nova bygger trygghet",
-  description: "Norges mest moderne HMS-system. Byggjer trygghet gjennom digitalisering, automatisering og ISO 9001 compliance. Fra små bedrifter til store konsern.",
+  tagline: "HMS-systemet er allerede skrevet",
+  description:
+    "Hele HMS-systemet er allerede skrevet. KS-, HMS- og personalhåndbok med standardtekst etter ISO 9001, ISO 45001 og internkontrollforskriften. 300 kr/mnd eks. mva, ubegrenset antall brukere.",
   url: normalizedBaseUrl,
   locale: "nb_NO",
   contactPhone: "+47 41 87 40 10",
@@ -84,7 +81,7 @@ export const ORGANIZATION_SCHEMA = {
   name: SITE_CONFIG.name,
   slogan: SITE_CONFIG.tagline,
   url: SITE_CONFIG.url,
-  logo: `${SITE_CONFIG.url}/opengraph-image`,
+  logo: `${SITE_CONFIG.url}/logo-nova.png`,
   description: SITE_CONFIG.description,
   telephone: SITE_CONFIG.contactPhone,
   email: SITE_CONFIG.contactEmail,
@@ -147,7 +144,7 @@ export const SOFTWARE_PRODUCT_SCHEMA = {
     "@type": "AggregateOffer",
     priceCurrency: "NOK",
     lowPrice: "300",
-    highPrice: "300",
+    highPrice: "349",
     priceSpecification: {
       "@type": "UnitPriceSpecification",
       price: "300",
@@ -156,7 +153,8 @@ export const SOFTWARE_PRODUCT_SCHEMA = {
     },
   },
   featureList: PUBLIC_FEATURE_NAMES,
-  description: "HMS Nova bygger trygghet. Norges mest moderne HMS-system med full ISO 9001 compliance, digital signatur og mobilapp.",
+  description:
+    "HMS-system med ferdige KS-, HMS- og personalhåndbøker. 300 kr/mnd eks. mva per bedrift, ubegrenset antall brukere. Valgfritt AI-tillegg 49 kr/mnd eks. mva.",
   screenshot: `${SITE_CONFIG.url}/opengraph-image`,
 } as const;
 
@@ -170,7 +168,7 @@ export const FAQ_SCHEMA = {
       name: "Hva er HMS Nova?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "HMS Nova er Norges mest moderne HMS-system. Vi bygger trygghet gjennom digitalisering av HMS-arbeid. Med HMS Nova får bedrifter et komplett verktøy for risikovurdering, hendelsesrapportering, dokumenthåndtering og ISO 9001 compliance.",
+        text: "HMS Nova er et HMS-system der KS-, HMS- og personalhåndboken allerede er skrevet. Standardteksten følger ISO 9001, ISO 45001 og internkontrollforskriften. Bedriften fyller inn egne opplysninger, risikovurdering og ansatte.",
       },
     },
     {
@@ -178,15 +176,15 @@ export const FAQ_SCHEMA = {
       name: "Hva koster HMS Nova?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "HMS Nova koster 300 kr/mnd + mva (3 600 kr/år + mva) med 12 måneders abonnement. Prisen er den samme for 5 og 20 ansatte. Ubegrenset antall brukere er inkludert. AI-tillegg er 49 kr/mnd + mva og er av som standard.",
+        text: "HMS Nova koster 300 kr/mnd eks. mva (3 600 kr/år) per bedrift. Ubegrenset antall brukere er inkludert. AI-tillegg er 49 kr/mnd eks. mva og er av som standard. 14 dagers angrefrist, deretter 12 måneders binding og 3 måneders oppsigelse.",
       },
     },
     {
       "@type": "Question",
-      name: "Er HMS Nova godkjent av Arbeidstilsynet?",
+      name: "Er HMS Nova en godkjent bedriftshelsetjeneste?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "HMS Nova følger alle krav i Arbeidsmiljøloven, Internkontrollforskriften og ISO 9001:2015. Systemet er bygget for å sikre full compliance med norsk lov og internasjonale standarder.",
+        text: "Nei. HMS Nova er et HMS-system. Bedriftshelsetjeneste tilbys gjennom Dr.Dropin. Håndbøkene følger ISO 9001, ISO 45001, internkontrollforskriften og arbeidsmiljøloven.",
       },
     },
     {
@@ -207,10 +205,10 @@ export const FAQ_SCHEMA = {
     },
     {
       "@type": "Question",
-      name: "Hvordan skiller HMS Nova seg fra Grønn Jobb, Avonova og Kuba?",
+      name: "Hva er inkludert i prisen?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "HMS Nova er 100% digitalt og moderne. Vi har digital signatur inkludert (ikke ekstrakostnad), 12 måneders abonnement (300 kr/mnd), mobilapp med offline-støtte, og betydelig lavere priser. Vår visjon er enkel: HMS Nova bygger trygghet - ikke byråkrati.",
+        text: "Prisen er 300 kr/mnd eks. mva per bedrift, med ubegrenset antall brukere og digital signatur inkludert. Håndbøkene ligger inne med standardtekst. AI er et tillegg på 49 kr/mnd eks. mva og er av til den slås på.",
       },
     },
   ],
@@ -231,89 +229,95 @@ export const getBreadcrumbSchema = (items: Array<{ name: string; url: string }>)
 // Page-spesifikke metadata templates
 export const PAGE_METADATA = {
   home: {
-    title: "HMS Nova - Norges Mest Moderne HMS-system | HMS Nova Bygger Trygghet",
-    description: "HMS Nova bygger trygghet. 300 kr/mnd, ubegrenset brukere, digital signatur inkludert, ISO 9001-støtte og 14 dagers angrefrist. Registrer bedrift i dag.",
+    title: "HMS-systemet er allerede skrevet | HMS Nova",
+    description:
+      "Hele HMS-systemet er allerede skrevet. KS-, HMS- og personalhåndbok med standardtekst etter ISO 9001, ISO 45001 og internkontrollforskriften. 300 kr/mnd eks. mva. AI 49 kr/mnd.",
     keywords: [...PRIMARY_KEYWORDS, ...SECONDARY_KEYWORDS.slice(0, 10)].join(", "),
   },
   priser: {
-    title: "Priser - HMS Nova | 300 kr/mnd | Ingen Skjulte Kostnader",
-    description: `Transparente priser: 300 kr/mnd (3 600 kr/år) med 12 mnd abonnement. Valgfritt AI-tillegg ${AI_ADDON_NET_MONTHLY_NOK} kr/mnd + mva. Ubegrenset brukere, digital signatur inkludert og 0 kr oppstart.`,
+    title: "HMS-system pris – 300 kr/mnd",
+    description: `300 kr/mnd eks. mva (3 600 kr/år) per bedrift, ubegrenset brukere. Valgfritt AI-tillegg ${AI_ADDON_NET_MONTHLY_NOK} kr/mnd eks. mva. 0 kr i oppstart.`,
     keywords: "hms system pris, hms programvare kostnad, billig hms system, hms system alle bedrifter, beste hms system pris",
   },
   kurs: {
-    title: "HMS-kurs og dokumentert opplæring | HMS Nova",
+    title: "HMS-kurs og dokumentert opplæring",
     description: "HMS Nova dokumenterer opplæring og kompetanse. Sertifiserte kurs bestilles hos KKS AS. Ingen egne kurspriser på denne siden.",
     keywords: "hms kurs, dokumentert opplæring, kompetansematrise, kks as, lovpålagt hms opplæring",
   },
   bht: {
-    title: "Bedriftshelsetjeneste (BHT) via Dr.Dropin | HMS Nova",
+    title: "Bedriftshelsetjeneste via Dr.Dropin",
     description: "HMS Nova er ikke godkjent BHT. Bedriftshelsetjeneste tilbys gjennom Dr.Dropin. Pris og avtale avtales med Dr.Dropin.",
     keywords: "bedriftshelsetjeneste, BHT, Dr.Dropin, arbeidsmiljøloven § 3-3",
   },
   komplettPakke: {
-    title: "Bedriftshelsetjeneste (BHT) via Dr.Dropin | HMS Nova",
+    title: "Bedriftshelsetjeneste via Dr.Dropin",
     description: "HMS Nova er ikke godkjent BHT. Bedriftshelsetjeneste tilbys gjennom Dr.Dropin. Pris og avtale avtales med Dr.Dropin.",
     keywords: "bedriftshelsetjeneste, BHT, Dr.Dropin",
   },
   handbook: {
-    title: "HMS-håndbok - Digital & Oppdatert | HMS Nova",
+    title: "HMS-håndbok - Digital & Oppdatert",
     description: "Ferdig HMS-håndbok tilpasset din bedrift. Alltid oppdatert med lovkrav, digital signatur og versjonskontroll. Spar uker med arbeid. Registrer bedrift.",
     keywords: "hms håndbok, digital hms håndbok, hms dokumentasjon, arbeidsmiljøhåndbok",
   },
   risikovurdering: {
-    title: "Risikovurdering - 5x5 Matrise & Analyse | HMS Nova",
+    title: "Risikovurdering - 5x5 Matrise & Analyse",
     description: "Profesjonell risikovurdering med 5x5 matrise (ISO 9001). Enkelt å bruke med automatisk oppfølging. Bestå revisjoner med glans. 14 dagers angrefrist, deretter 12 måneders binding.",
     keywords: "risikovurdering, risikoanalyse, 5x5 matrise, risikostyring, hms risikovurdering",
   },
   vernerunde: {
-    title: "Vernerunde-guide - Digital Vernerunde på Mobil | HMS Nova",
+    title: "Vernerunde-guide - Digital Vernerunde på Mobil",
     description: "Digital vernerunde på mobil som fungerer offline. Automatisk rapportering, perfekt for byggeplasser. Spar timer hver uke. Registrer bedrift.",
     keywords: "vernerunde, digital vernerunde, vernerunde mal, sikkerhetsinspeksjon, bygningsvernerunde",
   },
   lover: {
-    title: "HMS Lover & Regler - Arbeidsmiljøloven & ISO 9001 | HMS Nova",
+    title: "HMS Lover & Regler - Arbeidsmiljøloven & ISO 9001",
     description: "Komplett oversikt over HMS-lover i Norge. Arbeidsmiljøloven, internkontrollforskriften og ISO 9001. Oppdatert 2026. Les mer om dine plikter.",
     keywords: "arbeidsmiljøloven, internkontrollforskriften, iso 9001, hms lovverk, arbeidstilsynet regler",
   },
   iso: {
-    title: "ISO 9001 Sjekkliste - Gratis Last Ned | HMS Nova",
+    title: "ISO 9001 Sjekkliste - Gratis Last Ned",
     description: "Gratis ISO 9001 sjekkliste for full compliance med kvalitetsstyringsstandarden. HMS Nova har innebygd ISO 9001-støtte. Last ned nå.",
     keywords: "iso 9001 sjekkliste, iso 9001 compliance, kvalitetsstyring, iso sertifisering",
   },
   psykososialt: {
-    title: "Psykososialt arbeidsmiljø - Pulsundersøkelse og trivselskartlegging | HMS Nova",
+    title: "Psykososialt arbeidsmiljø - Pulsundersøkelse og trivselskartlegging",
     description: "Kartlegg psykososialt arbeidsmiljø med anonyme pulsundersøkelser. Oppfyll AML § 4-3 med digital trivselsmåling, trendrapporter og handlingsplaner.",
     keywords: "psykososialt arbeidsmiljø, arbeidsmiljøundersøkelse, trivselsmåling, pulsundersøkelse, AML 4-3, medarbeiderundersøkelse",
   },
   stoffkartotek: {
-    title: "Stoffkartotek og eksponeringsregister - Digital kjemikaliestyring | HMS Nova",
+    title: "Stoffkartotek og eksponeringsregister - Digital kjemikaliestyring",
     description: "Digitalt stoffkartotek med sikkerhetsdatablad og lovpålagt eksponeringsregister. Oppfyll forskrift om tiltaksverdier og AML § 4-5.",
     keywords: "stoffkartotek, eksponeringsregister, sikkerhetsdatablad, kjemikalieregister, SDS, AML 4-5, tiltaksverdier",
   },
   varsling: {
-    title: "Varsling - Anonym varslingskanal for arbeidsplassen | HMS Nova",
+    title: "Varsling - Anonym varslingskanal for arbeidsplassen",
     description: "Lovpålagt varslingskanal etter AML kapittel 2A. Anonym og trygg varsling av kritikkverdige forhold. Sporbar saksbehandling.",
     keywords: "varsling, varslingskanal, whistleblowing, anonym varsling, AML 2A, kritikkverdige forhold, varslingsrutiner",
   },
   konsern: {
-    title: "Konsern HMS-løsning - Administrer HMS på tvers av selskaper | HMS Nova",
+    title: "Konsern HMS-løsning - Administrer HMS på tvers av selskaper",
     description: "HMS-løsning for konsern og kjeder. Samlet HMS-score, innholdsdistribusjon og rapportering på tvers av datterselskaper.",
     keywords: "konsern HMS, HMS konsernløsning, HMS kjede, multi-tenant HMS, HMS flere selskaper, sentralisert HMS",
   },
   sja: {
-    title: "SJA - Sikker Jobb Analyse | Digital SJA-skjema | HMS Nova",
+    title: "SJA - Sikker Jobb Analyse | Digital SJA-skjema",
     description: "Digital Sikker Jobb Analyse (SJA) for risikofylte arbeidsoperasjoner. Identifiser farer, vurder risiko og dokumenter tiltak før arbeidet starter.",
     keywords: "SJA, sikker jobb analyse, SJA skjema, SJA mal, risikovurdering enkeltoppgave, SJA bygg, farlig arbeid",
   },
 } as const;
 
 // Open Graph defaults
+function withSiteName(title: string) {
+  if (title.includes(SITE_CONFIG.name)) return title;
+  return `${title} | ${SITE_CONFIG.name}`;
+}
+
 export const getOpenGraphDefaults = (
   title: string,
   description: string,
   path: string = ""
 ) => ({
-  title,
+  title: withSiteName(title),
   description,
   url: `${SITE_CONFIG.url}${path}`,
   siteName: SITE_CONFIG.name,
@@ -321,10 +325,9 @@ export const getOpenGraphDefaults = (
   type: "website" as const,
 });
 
-// Twitter Card defaults
 export const getTwitterDefaults = (title: string, description: string) => ({
   card: "summary_large_image" as const,
-  title,
+  title: withSiteName(title),
   description,
   creator: "@hmsnova",
 });

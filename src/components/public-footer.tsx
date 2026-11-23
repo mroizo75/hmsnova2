@@ -54,7 +54,7 @@ export function PublicFooter() {
                 </Link>
               </li>
               <li>
-                <Link href="/#funksjoner" className="text-muted-foreground hover:text-foreground transition-colors">
+                <Link href="/funksjoner" className="text-muted-foreground hover:text-foreground transition-colors">
                   Alle funksjoner
                 </Link>
               </li>
@@ -91,11 +91,6 @@ export function PublicFooter() {
               <li>
                 <Link href="/hva-er-hms-nova" className="text-muted-foreground hover:text-foreground transition-colors">
                   Om HMS Nova
-                </Link>
-              </li>
-              <li>
-                <Link href="/anmeldelser" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Kundeomtaler
                 </Link>
               </li>
               <li>

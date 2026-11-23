@@ -12,6 +12,7 @@ interface PageProps {
 
 export const metadata = {
   title: "Tilbud fra HMS Nova",
+  robots: { index: false, follow: false },
 };
 
 async function getOffer(token: string) {

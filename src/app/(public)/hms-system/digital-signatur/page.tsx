@@ -7,7 +7,7 @@ import { FileCheck, Shield, Clock, CheckCircle2, ArrowRight, ArrowLeft, Smartpho
 import { FAQSection } from "@/components/faq-section";
 
 export const metadata: Metadata = {
-  title: "Digital signatur - Elektronisk godkjenning av HMS-dokumenter | HMS Nova",
+  title: "Digital signatur - Elektronisk godkjenning av HMS-dokumenter",
   description: "Digital signatur inkludert i HMS Nova. Lovlig og bindende, sign på mobil, spar timer hver uke. Økt etterlevelse og ISO 9001. Registrer bedrift.",
   keywords: "digital signatur, elektronisk signatur, digital godkjenning, hms digital signatur, signere dokumenter digitalt",
 };

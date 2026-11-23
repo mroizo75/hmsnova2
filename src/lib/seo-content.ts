@@ -1,12 +1,12 @@
 /**
  * SEO-optimalisert content for HMS Nova
- * Fokus på "HMS Nova bygger trygghet" og keywords
+ * Offentlig tekst om HMS Nova. Pris: 300 kr/mnd eks. mva.
  */
 
 export const SEO_CONTENT = {
   // Hero headlines - optimalisert for søk og konvertering
   headlines: {
-    main: "HMS Nova Bygger Trygghet - Norges Mest Moderne HMS-system",
+    main: "Hele HMS-systemet er allerede skrevet",
     alternative: [
       "Digital HMS-løsning som Faktisk Fungerer i Praksis",
       "Fra Papirrot til Digital Trygghet på 5 Minutter",
@@ -16,7 +16,7 @@ export const SEO_CONTENT = {
 
   // Value propositions med keywords
   valueProps: {
-    primary: "HMS Nova bygger trygghet gjennom digitalisering. Få kontroll på HMS-arbeid med digital signatur, automatiske påminnelser, mobilapp og ISO 9001 compliance.",
+    primary: "KS-, HMS- og personalhåndbok er allerede skrevet. 300 kr/mnd eks. mva per bedrift, ubegrenset antall brukere.",
     secondary: [
       "Erstatt Excel-ark og papirrot med et moderne HMS-system",
       "500+ norske bedrifter stoler på HMS Nova",
@@ -28,7 +28,7 @@ export const SEO_CONTENT = {
   benefits: {
     safety: {
       title: "Trygghet først",
-      description: "HMS Nova bygger trygghet i alt vi gjør. Fra risikovurdering til hendelsesrapportering - sikkerhet er alltid prioritet nummer én.",
+      description: "Risikovurdering, avvik og håndbøker ligger i samme system, med standardtekst som utgangspunkt.",
     },
     compliance: {
       title: "Full compliance",
@@ -72,7 +72,7 @@ export const SEO_CONTENT = {
     },
     {
       feature: "Pris",
-      hmsnova: "Fra 250 kr/mnd (3.000 kr/år)",
+      hmsnova: "300 kr/mnd eks. mva (3 600 kr/år)",
       competitors: "Fra 7.080-12.000 kr/år",
       benefit: "Best verdi for pengene - ubegrenset brukere",
     },
@@ -81,9 +81,8 @@ export const SEO_CONTENT = {
   // Trust builders
   trustSignals: [
     "500+ norske bedrifter stoler på HMS Nova",
-    "ISO 9001 compliant fra dag én",
-    "Godkjent av norske revisorer",
-    "Data lagres trygt innenfor EU/EØS (GDPR-compliant)",
+    "Standardtekst etter ISO 9001, ISO 45001 og internkontrollforskriften",
+    "Data lagres i EU/EØS",
     "14 dagers angrefrist",
     "Norsk kundesupport",
   ],
@@ -91,13 +90,13 @@ export const SEO_CONTENT = {
   // FAQ content optimalisert for featured snippets
   faqContent: {
     whatIsHmsNova:
-      "HMS Nova er Norges mest moderne HMS-system. Vi bygger trygghet gjennom digitalisering av HMS-arbeid. Med HMS Nova får bedrifter et komplett verktøy for risikovurdering, hendelsesrapportering, dokumenthåndtering og ISO 9001 compliance. Systemet erstatter Excel-ark og papirrot med en moderne, mobilbasert løsning.",
+      "HMS Nova er et HMS-system der KS-, HMS- og personalhåndboken allerede er skrevet. Standardteksten følger ISO 9001, ISO 45001 og internkontrollforskriften. Bedriften fyller inn egne opplysninger, risikovurdering og ansatte.",
 
     howMuchCost:
-      "HMS Nova koster 300 kr/mnd (3 600 kr/år) med 12 måneders abonnement. Ubegrenset antall brukere inkludert. Ingen oppstartskostnader, alt inkludert. Sertifiserte kurs bestilles hos KKS AS. Bedriftshelsetjeneste tilbys gjennom Dr.Dropin.",
+      "HMS Nova koster 300 kr/mnd eks. mva (3 600 kr/år) per bedrift. Ubegrenset antall brukere. Ingen oppstartskostnad. Sertifiserte kurs bestilles hos KKS AS. Bedriftshelsetjeneste tilbys gjennom Dr.Dropin.",
 
     howDifferent:
-      "HMS Nova skiller seg fra Grønn Jobb, Avonova og Kuba ved å være 100% digitalt og moderne. Vi har digital signatur inkludert (ikke ekstrakostnad), 12 måneders abonnement (300 kr/mnd), mobilapp med offline-støtte, og betydelig lavere priser. Vår visjon er enkel: HMS Nova bygger trygghet - ikke byråkrati.",
+      "Prisen er 300 kr/mnd eks. mva per bedrift, med ubegrenset antall brukere og digital signatur inkludert. Håndbøkene ligger inne med standardtekst. AI er et tillegg på 49 kr/mnd eks. mva og er av til den slås på.",
 
     isItApproved:
       "HMS Nova følger kravene i arbeidsmiljøloven, internkontrollforskriften og ISO 9001:2015. Systemet er et HMS-verktøy. HMS Nova er ikke en godkjent bedriftshelsetjeneste.",
@@ -112,17 +111,11 @@ export const SEO_CONTENT = {
   },
 
   // Social proof
-  testimonials: [
-    {
-      quote: "HMS Nova bygger trygghet - ikke bare dokumentasjon. Best HMS-system vi har brukt.",
-      author: "Norske bedrifter",
-      rating: 4.9,
-    },
-  ],
+  testimonials: [],
 
   // Meta descriptions for different pages
   metaDescriptions: {
-    home: "HMS Nova bygger trygghet. Få kontroll på HMS med digital signatur, automatiske påminnelser og mobilapp. 500+ norske bedrifter stoler på oss. Registrer bedrift.",
+    home: "Hele HMS-systemet er allerede skrevet. KS-, HMS- og personalhåndbok med standardtekst. 300 kr/mnd eks. mva, ubegrenset antall brukere.",
     priser: "Transparente HMS-priser: 300 kr/mnd (12 mnd abonnement). Ingen oppstartskostnader. Se alle priser.",
     kurs: "Dokumentert opplæring i HMS Nova. Sertifiserte kurs hos KKS AS. Kurspriser står på kksas.no.",
     bht: "Bedriftshelsetjeneste gjennom Dr.Dropin. HMS Nova er ikke godkjent BHT og oppgir ikke en egen BHT-pris.",
@@ -131,7 +124,7 @@ export const SEO_CONTENT = {
 
 // Long-tail keyword phrases for content
 export const LONG_TAIL_KEYWORDS = [
-  "hms system som bygger trygghet",
+  "hms system for små bedrifter",
   "digital hms løsning for norske bedrifter",
   "hms system med mobilapp offline",
   "hms system 12 måneder binding",

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 
 export const metadata: Metadata = {
-  title: "Gratis oversikt over HMS-lover og regler | HMS Nova",
+  title: "Gratis oversikt over HMS-lover og regler",
   description:
     "Last ned oversikt over de viktigste HMS-lovene og forskriftene. Forstå Arbeidsmiljøloven, HMS-forskriften og nye regler. Inkluderer verneombud-plikten, BHT-krav og psykososialt arbeidsmiljø. HMS Nova følger lovgivningen – 14 dagers angrefrist, deretter 12 måneders binding.",
   keywords: [

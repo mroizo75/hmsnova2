@@ -28,7 +28,7 @@ export function PublicNav() {
               Hjem
             </Link>
             <Link
-              href="/#funksjoner"
+              href="/funksjoner"
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               Funksjoner
@@ -114,7 +114,7 @@ export function PublicNav() {
               Hjem
             </Link>
             <Link
-              href="/#funksjoner"
+              href="/funksjoner"
               className="flex min-h-11 items-center py-3 text-sm font-medium text-muted-foreground hover:text-foreground"
               onClick={() => setMobileMenuOpen(false)}
             >

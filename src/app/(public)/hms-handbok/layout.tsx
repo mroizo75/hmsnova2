@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Gratis HMS-håndbok | Last ned nå | HMS Nova",
+  title: "Gratis HMS-håndbok | Last ned nå",
   description:
     "Last ned HMS-håndbok tilpasset din bransje. Over 50 sider med HMS-prosedyrer, maler og sjekklister. Oppfyller krav fra Arbeidsmiljøloven. Registrer bedrift med 14 dagers angrefrist, deretter 12 måneders binding.",
   keywords: [

@@ -10,7 +10,7 @@ import { MultipleStructuredData } from "@/components/seo/structured-data";
 import { getBreadcrumbSchema, getCanonicalUrl, getOpenGraphDefaults, getTwitterDefaults } from "@/lib/seo-config";
 
 export const metadata: Metadata = {
-  title: "Konsern HMS-løsning - Administrer HMS på tvers av selskaper | HMS Nova",
+  title: "Konsern HMS-løsning - Administrer HMS på tvers av selskaper",
   description: "HMS-løsning for konsern og kjeder. Samlet HMS-score, innholdsdistribusjon, rapportering på tvers av datterselskaper og sentralisert styring. Fra 300 kr/mnd per bedrift.",
   keywords: "konsern HMS, HMS konsernløsning, HMS kjede, multi-tenant HMS, HMS flere selskaper, konsern rapportering, HMS datterselskap, sentralisert HMS",
   alternates: { canonical: getCanonicalUrl("/hms-system/konsern") },
@@ -70,8 +70,9 @@ export default function KonsernPage() {
             <Badge className="mb-4" variant="secondary">For konsern og kjeder</Badge>
             <h1 className="text-5xl font-bold mb-6">HMS-løsning for konsern</h1>
             <p className="text-xl text-muted-foreground mb-8">
-              Administrer HMS på tvers av datterselskaper fra én portal. Samlet HMS-score,
-              innholdsdistribusjon og rapportering — uten å miste kontroll.
+              Konsernportalen i HMS Nova samler flere selskaper i én oversikt.
+              Hvert selskap betaler 300 kr/mnd eks. mva. Portalen er inkludert, uten egen konsernpris.
+              Dere ser HMS-score, sender ut rutiner og rapporterer avvik, risiko og kompetanse på tvers.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Button asChild size="lg"><Link href="/registrer-bedrift">Registrer bedrift<ArrowRight className="ml-2 h-5 w-5" /></Link></Button>
