@@ -7,7 +7,7 @@ import { AdminProductUpdates } from "@/features/product-updates/components/admin
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Nyheter | HMS Nova",
+  title: "Systembeskjeder | HMS Nova",
 };
 
 export default async function AdminProductUpdatesPage() {

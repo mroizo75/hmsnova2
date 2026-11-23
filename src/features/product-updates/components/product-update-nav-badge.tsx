@@ -35,7 +35,7 @@ export function ProductUpdateNavBadge({ active }: { active: boolean }) {
         "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold",
         active ? "bg-primary-foreground text-primary" : "bg-primary text-primary-foreground",
       )}
-      aria-label={`${count} uleste nyheter`}
+      aria-label={`${count} uleste systembeskjeder`}
     >
       {count > 9 ? "9+" : count}
     </span>

@@ -9,18 +9,41 @@ import { prisma } from "@/lib/db";
 import { getAuthContext } from "@/lib/server-authorization";
 import {
   PRODUCT_UPDATE_KINDS,
-  productUpdateExcerpt,
+  parseOsloDateTimeLocal,
+  productUpdateNotificationMessage,
   productUpdateNotificationTitle,
 } from "@/lib/product-updates";
 import { notifyUsersByRoles } from "@/server/actions/notification.actions";
 
 const kindSchema = z.enum(PRODUCT_UPDATE_KINDS);
 
-const draftSchema = z.object({
-  kind: kindSchema,
-  title: z.string().trim().min(3, "Tittel må være minst 3 tegn").max(120, "Tittel kan være maks 120 tegn"),
-  body: z.string().trim().min(10, "Teksten må være minst 10 tegn").max(2000, "Teksten kan være maks 2000 tegn"),
-});
+const draftSchema = z
+  .object({
+    kind: kindSchema,
+    title: z.string().trim().min(3, "Tittel må være minst 3 tegn").max(120, "Tittel kan være maks 120 tegn"),
+    body: z.string().trim().min(10, "Teksten må være minst 10 tegn").max(2000, "Teksten kan være maks 2000 tegn"),
+    scheduledAt: z.string().trim().optional().nullable(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.kind !== "PLANNED") return;
+    if (!value.scheduledAt) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Velg dag og klokkeslett for oppgraderingen",
+        path: ["scheduledAt"],
+      });
+      return;
+    }
+    try {
+      parseOsloDateTimeLocal(value.scheduledAt);
+    } catch {
+      ctx.addIssue({
+        code: "custom",
+        message: "Ugyldig dag eller klokkeslett",
+        path: ["scheduledAt"],
+      });
+    }
+  });
 
 function formatActionError(error: unknown, fallback: string): string {
   if (error instanceof ZodError) {
@@ -38,7 +61,7 @@ async function requireSuperAdmin() {
     select: { id: true, isSuperAdmin: true },
   });
   if (!user?.isSuperAdmin) {
-    throw new Error("Kun superadmin kan publisere nyheter");
+    throw new Error("Kun superadmin kan publisere systembeskjeder");
   }
   return user;
 }
@@ -61,7 +84,7 @@ export async function listProductUpdatesAdmin() {
     });
     return { success: true as const, data: JSON.parse(JSON.stringify(updates)) };
   } catch (error) {
-    return { success: false as const, error: formatActionError(error, "Kunne ikke hente nyheter") };
+    return { success: false as const, error: formatActionError(error, "Kunne ikke hente systembeskjeder") };
   }
 }
 
@@ -70,17 +93,27 @@ export async function saveProductUpdateDraft(input: {
   kind: ProductUpdateKind;
   title: string;
   body: string;
+  scheduledAt?: string | null;
 }) {
   try {
     const admin = await requireSuperAdmin();
-    const data = draftSchema.parse(input);
+    const parsed = draftSchema.parse(input);
+    const data = {
+      kind: parsed.kind,
+      title: parsed.title,
+      body: parsed.body,
+      scheduledAt:
+        parsed.kind === "PLANNED" && parsed.scheduledAt
+          ? parseOsloDateTimeLocal(parsed.scheduledAt)
+          : null,
+    };
 
     if (input.id) {
       const existing = await prisma.productUpdate.findUnique({
         where: { id: input.id },
         select: { status: true },
       });
-      if (!existing) return { success: false as const, error: "Nyheten ble ikke funnet" };
+      if (!existing) return { success: false as const, error: "Systembeskjeden ble ikke funnet" };
       if (existing.status !== "DRAFT") {
         return { success: false as const, error: "Bare utkast kan endres" };
       }
@@ -108,9 +141,12 @@ export async function publishProductUpdate(id: string) {
   try {
     await requireSuperAdmin();
     const update = await prisma.productUpdate.findUnique({ where: { id } });
-    if (!update) return { success: false as const, error: "Nyheten ble ikke funnet" };
+    if (!update) return { success: false as const, error: "Systembeskjeden ble ikke funnet" };
     if (update.status !== "DRAFT") {
-      return { success: false as const, error: "Nyheten er allerede publisert" };
+      return { success: false as const, error: "Systembeskjeden er allerede publisert" };
+    }
+    if (update.kind === "PLANNED" && !update.scheduledAt) {
+      return { success: false as const, error: "Velg dag og klokkeslett for oppgraderingen" };
     }
 
     const tenants = await prisma.tenant.findMany({
@@ -119,7 +155,7 @@ export async function publishProductUpdate(id: string) {
     });
 
     const title = productUpdateNotificationTitle(update.kind, update.title);
-    const message = productUpdateExcerpt(update.body);
+    const message = productUpdateNotificationMessage(update.body, update.scheduledAt);
     let notified = 0;
 
     for (const tenant of tenants) {
@@ -156,9 +192,9 @@ export async function archiveProductUpdate(id: string) {
       where: { id },
       select: { status: true },
     });
-    if (!update) return { success: false as const, error: "Nyheten ble ikke funnet" };
+    if (!update) return { success: false as const, error: "Systembeskjeden ble ikke funnet" };
     if (update.status !== "PUBLISHED") {
-      return { success: false as const, error: "Bare publiserte nyheter kan arkiveres" };
+      return { success: false as const, error: "Bare publiserte systembeskjeder kan arkiveres" };
     }
     await prisma.productUpdate.update({
       where: { id },
@@ -178,7 +214,7 @@ export async function deleteProductUpdateDraft(id: string) {
       where: { id },
       select: { status: true },
     });
-    if (!update) return { success: false as const, error: "Nyheten ble ikke funnet" };
+    if (!update) return { success: false as const, error: "Systembeskjeden ble ikke funnet" };
     if (update.status !== "DRAFT") {
       return { success: false as const, error: "Bare utkast kan slettes" };
     }
@@ -196,6 +232,7 @@ const publicSelect = {
   title: true,
   body: true,
   publishedAt: true,
+  scheduledAt: true,
 } as const;
 
 export async function openProductUpdateFeed() {
@@ -221,11 +258,23 @@ export async function openProductUpdateFeed() {
     });
   }
 
+  const now = Date.now();
+  const ordered = [...updates].sort((left, right) => {
+    const leftUpcoming = left.scheduledAt && left.scheduledAt.getTime() >= now ? 0 : 1;
+    const rightUpcoming = right.scheduledAt && right.scheduledAt.getTime() >= now ? 0 : 1;
+    if (leftUpcoming !== rightUpcoming) return leftUpcoming - rightUpcoming;
+    if (leftUpcoming === 0 && left.scheduledAt && right.scheduledAt) {
+      return left.scheduledAt.getTime() - right.scheduledAt.getTime();
+    }
+    return (right.publishedAt?.getTime() ?? 0) - (left.publishedAt?.getTime() ?? 0);
+  });
+
   return {
     success: true as const,
-    data: updates.map((update) => ({
+    data: ordered.map((update) => ({
       ...update,
       publishedAt: update.publishedAt?.toISOString() ?? null,
+      scheduledAt: update.scheduledAt?.toISOString() ?? null,
     })),
   };
 }

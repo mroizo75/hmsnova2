@@ -4488,6 +4488,8 @@ model ProductUpdate {
   title                String
   body                 String              @db.Text
   status               ProductUpdateStatus @default(DRAFT)
+  /// Når oppgraderingen skjer. Påkrevd for planlagte oppgraderinger.
+  scheduledAt          DateTime?
   publishedAt          DateTime?
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
