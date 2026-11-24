@@ -668,6 +668,27 @@ export type HandbookHrSectionDef = {
 
 export const DEFAULT_KS_SECTIONS: HandbookHrSectionDef[] = [
   {
+    sectionKey: "ks-prosesser",
+    sectionNumber: "1.2",
+    title: "Prosesser i styringssystemet",
+    legalRef: "ISO 9001:2015 pkt. 4.4 og 4.3",
+    sortOrder: 0,
+    moduleLink: "/dashboard/prosesser",
+    content: `<h3>Prosesser i styringssystemet</h3>
+<p>{{bedriftsnavn}} fastsetter prosessene som trengs i styringssystemet, og samspillet mellom dem, jf. ISO 9001:2015 pkt. 4.4.</p>
+<p>For hver prosess som er i bruk skal det fremgå:</p>
+<ul>
+  <li>formål, nødvendige innganger og forventede resultater</li>
+  <li>rekkefølge og hvilke prosesser resultatet går videre til</li>
+  <li>kriterier, metoder og hvordan prosessen følges opp</li>
+  <li>ressurser og hvem som er prosesseier</li>
+  <li>risiko og muligheter som er vurdert</li>
+  <li>når prosessen sist ble vurdert, og hva som ble endret</li>
+</ul>
+<p>Prosessene ligger i prosessregisteret. Forslagene for ledelse, salg, utforming, innkjøp, levering, installasjon og oppstart, HMS og kompetanse er et utgangspunkt. Virksomheten tilpasser dem, slår sammen det som er samme prosess, eller merker en prosess som utenfor omfang med begrunnelse, jf. ISO 9001:2015 pkt. 4.3. En prosess settes aktiv først når punktene over er fylt ut.</p>
+<p>Arbeidsmåten i den enkelte prosessen kan knyttes til en rutine. Dokumentert informasjon beholdes i det omfanget som trengs for å styre prosessene og for å kunne vise at de er gjennomført som planlagt, jf. ISO 9001:2015 pkt. 4.4.2.</p>`,
+  },
+  {
     sectionKey: "ks-policy",
     sectionNumber: "1",
     title: "Kvalitetspolicy og mål",

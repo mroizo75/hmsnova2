@@ -113,14 +113,15 @@ export default function HomePage() {
             <h1 className="my-[18px] max-w-[560px] font-[family-name:var(--font-display)] text-[40px] font-extrabold leading-[1.02] tracking-[-0.035em] lg:my-[22px] lg:text-[clamp(44px,6vw,72px)] lg:leading-none">
               Hele HMS-systemet er allerede skrevet.{" "}
               <br className="hidden lg:block" />
-              <span className="text-[#0B6E4F]">Du fyller bare inn bedriften.</span>
+              <span className="text-[#0B6E4F]">Følg veiviseren, så er du klar.</span>
             </h1>
             <p className="mt-4 max-w-xl text-[17px] leading-relaxed text-[#46534D] lg:hidden">
-              KS-, HMS- og Personalhåndboka er ferdig utfylt etter ISO 9001, ISO 45001 og internkontrollforskriften. Følg veiviseren – så er du i gang.
+              Bedriften settes inn i teksten. Følg veiviseren, så er HMS-verktøyet klart. Egen tekst kan du skrive inn etterpå.
             </p>
             <p className="mt-6 hidden max-w-xl text-[19px] leading-relaxed text-[#46534D] lg:block">
-              KS-, HMS- og Personalhåndboka er ferdig utfylt med standardtekst etter ISO 9001, ISO 45001 og
-              internkontrollforskriften. Følg veiviseren, gjør risikovurderingen – og inviter de ansatte. Ferdig.
+              KS-, HMS- og Personalhåndboka kommer med standardtekst etter ISO 9001, ISO 45001 og
+              internkontrollforskriften. Bedriften settes inn i teksten. Følg veiviseren, så er HMS-verktøyet klart.
+              Egen tekst kan du skrive inn etterpå.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <RegisterDialog>

@@ -1,5 +1,5 @@
 import { isTripletexSessionKeyForTenant, tripletexSessionCacheKey } from "../security";
-import { getTripletexConsumerToken, tripletexApiBaseCandidates } from "./env";
+import { getTripletexApplicationName, getTripletexConsumerToken, tripletexApiBaseCandidates } from "./env";
 import { tripletexValidationSummary } from "./project-payload";
 
 type SessionCache = {
@@ -17,6 +17,8 @@ export type TripletexRequestFn = (
 ) => Promise<Response>;
 
 export class TripletexApiError extends Error {
+  customerMessage?: string;
+
   constructor(
     message: string,
     public readonly status: number,
@@ -142,26 +144,34 @@ export async function createSessionToken(input: {
   }
 
   if (lastError) {
-    lastError.message = sessionCreateHint(lastError, bases);
+    lastError.customerMessage = explainTripletexSessionFailure(lastError);
     throw lastError;
   }
   throw new TripletexApiError("Kunne ikke opprette Tripletex-sesjon", 500);
 }
 
-function sessionCreateHint(error: TripletexApiError, bases: string[]): string {
-  const triedTest = bases.some((b) => b.includes("api-test.tripletex.tech"));
-  const onlyProd = bases.length === 1 && !triedTest;
+function readableTripletexDetail(body?: string): string | null {
+  const summary = tripletexValidationSummary(body);
+  if (!summary) return null;
+  const trimmed = summary.replace(/\s+/g, " ").trim();
+  if (trimmed.length === 0 || trimmed.length > 240) return null;
+  if (/^(unauthorized|validation failed|ikke autorisert)$/i.test(trimmed)) return null;
+  return trimmed;
+}
+
+/** Tekst kunden skal se når brukernøkkelen ikke kan åpne en sesjon. */
+export function explainTripletexSessionFailure(error: TripletexApiError): string {
+  const detail = readableTripletexDetail(error.body);
+  const cause = detail ? ` Tripletex sier: ${detail}.` : "";
   if (error.status === 401 || error.status === 403 || error.status === 400 || error.status === 422) {
-    if (onlyProd) {
-      return "Tokenet ble avvist av Tripletex. Testkonto-tokens virker bare mot api-test.tripletex.tech — sett TRIPLETEX_API_BASE=https://api-test.tripletex.tech/v2 og lim inn employee-tokenet, ikke consumer-tokenet.";
-    }
-    return "Ugyldig consumer- eller employee-token. For testkonto: lim inn employee-tokenet fra Tripletex (ikke TRIPELTEX_TOKEN fra .env).";
+    const app = getTripletexApplicationName();
+    return `Tripletex godtok ikke brukernøkkelen.${cause} Lag nøkkelen på nytt under Min profil → API-tilgang → Ny nøkkel. Huk av tilpasset oppsett og skriv «${app}» i feltet for applikasjonsnavn. Navnet må være helt likt. Kopier nøkkelen med en gang den vises.`;
   }
   if (error.status === 429) {
-    return "Tripletex tar ikke imot flere tilkoblinger akkurat nå. Vent et øyeblikk og lim inn tokenet på nytt.";
+    return "Tripletex tar ikke imot flere tilkoblinger akkurat nå. Vent et øyeblikk og lim inn nøkkelen på nytt.";
   }
   if (error.status >= 500) {
-    return "Tripletex svarte med serverfeil ved sesjon. Sjekk at testkonto treffer api-test.tripletex.tech, ikke tripletex.no.";
+    return `Tripletex svarte med en serverfeil da nøkkelen skulle sjekkes.${cause} Prøv igjen om litt. Hvis det fortsetter, er nøkkelen trolig laget i et annet Tripletex-miljø enn det HMS Nova er koblet til.`;
   }
   return error.message;
 }

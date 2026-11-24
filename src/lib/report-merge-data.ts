@@ -4,6 +4,7 @@
  */
 
 import type { PdfContent, PdfReportConfig, PdfSection } from "@/lib/pdf-brand";
+import { buildPdfImageHtml } from "@/lib/pdf-images";
 
 export const REPORT_TEMPLATES_DIR = "templates/reports";
 export const HMS_NOVA_REPORT_TEMPLATE = "HMS_Nova_Mal.docx";
@@ -160,6 +161,8 @@ export function contentToBlock(content: PdfContent): MergeBlock {
       };
     case "signature-block":
       return { ...emptyBlock(), kind: "signatures", html: buildHtmlSignatures(content.signatures) };
+    case "images":
+      return { ...emptyBlock(), kind: "html", html: buildPdfImageHtml(content.items) };
     case "page-break":
       return { ...emptyBlock(), kind: "pagebreak" };
     default:

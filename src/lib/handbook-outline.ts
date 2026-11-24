@@ -72,6 +72,7 @@ export const OTHER_HANDBOOK_CHAPTER = {
 /** Faste nummer. sortOrder har mellomrom slik at 2.a kan ligge mellom 2.1 og 2.2. */
 export const STANDARD_HANDBOOK_OUTLINE: Record<string, { number: string; sortOrder: number }> = {
   s2c: { number: "1.1", sortOrder: 110 },
+  "ks-prosesser": { number: "1.2", sortOrder: 120 },
   "ks-policy": { number: "2.1", sortOrder: 210 },
   s1: { number: "2.2", sortOrder: 220 },
   s2: { number: "2.3", sortOrder: 230 },

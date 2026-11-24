@@ -9,6 +9,9 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getPermissions } from "@/lib/permissions";
 import { generateBrandedPdf, type PdfSection } from "@/lib/pdf-brand";
+import { toPdfJpeg } from "@/lib/pdf-images";
+import { getStorage } from "@/lib/storage";
+import { normalizeStorageKey } from "@/lib/storage-key";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
 import type { Role } from "@prisma/client";
@@ -63,6 +66,10 @@ export async function GET(
       },
       tenant: {
         select: { name: true, orgNumber: true, address: true, logoUrl: true },
+      },
+      attachments: {
+        orderBy: { createdAt: "asc" },
+        select: { name: true, fileKey: true },
       },
     },
   });
@@ -157,6 +164,32 @@ export async function GET(
     sections.push({
       title: "Læringspunkter",
       content: [{ type: "paragraph", text: incident.lessonsLearned }],
+    });
+  }
+
+  // IK-HMS § 5 nr. 7: bildene dokumenterer det som er avdekket.
+  if (incident.attachments.length > 0) {
+    const storage = getStorage();
+    const images: { name: string; dataUrl: string; width: number; height: number }[] = [];
+    const unreadable: string[] = [];
+    for (const attachment of incident.attachments) {
+      const bytes = await storage.get(normalizeStorageKey(attachment.fileKey));
+      const image = bytes ? await toPdfJpeg(bytes) : null;
+      if (image) {
+        images.push({ name: attachment.name, ...image });
+      } else {
+        unreadable.push(attachment.name);
+      }
+    }
+    sections.push({
+      title: "Vedlegg",
+      legalRef: "IK-HMS § 5 nr. 7",
+      content: [
+        ...images.map((item) => ({ type: "images" as const, items: [item] })),
+        ...(unreadable.length > 0
+          ? [{ type: "paragraph" as const, text: `Kunne ikke vises i PDF:\n${unreadable.join("\n")}` }]
+          : []),
+      ],
     });
   }
 

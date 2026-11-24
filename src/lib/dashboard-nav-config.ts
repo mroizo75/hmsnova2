@@ -117,6 +117,7 @@ export const DASHBOARD_NAV_CONFIG: DashboardNavItemConfig[] = [
   { href: "/konfidensielt", label: "nav.confidentialTasks", permission: "confidentialTasks", defaultSimple: true, alwaysShow: true, coreHub: "avvikTiltak" },
 
   { href: "/dashboard/hms-handbok", label: "nav.hmsHandbok", permission: "hmsHandbok", defaultSimple: true, coreHub: "dokumenter" },
+  { href: "/dashboard/prosesser", label: "nav.processes", permission: "documents", defaultSimple: true, alwaysShow: true, coreHub: "dokumenter" },
   { href: "/dashboard/leverandorer", label: "nav.suppliers", permission: "audits", defaultSimple: false, coreHub: "dokumenter" },
   { href: "/dashboard/documents", label: "nav.documents", permission: "documents", defaultSimple: true, coreHub: "dokumenter" },
   { href: "/dashboard/rutiner", label: "nav.routines", permission: "routines", defaultSimple: true, coreHub: "dokumenter" },

@@ -11,6 +11,7 @@ import fs from "fs";
 import path from "path";
 import { generatePdfFromTemplate, htmlToPdf } from "@/lib/adobe-pdf";
 import { getStorage } from "@/lib/storage";
+import { buildPdfImageHtml } from "@/lib/pdf-images";
 import { buildReportMergeData, HMS_NOVA_REPORT_TEMPLATE } from "@/lib/report-merge-data";
 import { fitLogoToSlot, HMS_LOGO_SLOT, TENANT_LOGO_SLOT } from "@/lib/report-logo";
 
@@ -82,6 +83,7 @@ export type PdfContent =
   | { type: "status-badge"; label: string; status: "ok" | "warning" | "danger" | "info" }
   | { type: "signature-block"; signatures: { name: string; date: string; comment?: string }[] }
   | { type: "alert"; text: string; severity: "info" | "warning" | "danger" }
+  | { type: "images"; items: { name: string; dataUrl: string; width: number; height: number }[] }
   | { type: "page-break" };
 
 export type PdfSection = {
@@ -248,6 +250,17 @@ const CSS = `
     color: #1e293b;
     line-height: 1.6;
     white-space: pre-wrap;
+  }
+  .pdf-image {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 4px 0 14px;
+  }
+  .pdf-image-caption {
+    font-size: 10px;
+    color: #475569;
+    margin-bottom: 4px;
   }
 
   /* Rikt HTML-innhold */
@@ -452,6 +465,9 @@ function buildContent(content: PdfContent[]): string {
             .join("");
           return `<table class="sig-table"><tr>${cards}</tr></table>`;
         }
+
+        case "images":
+          return `<div class="pdf-images">${buildPdfImageHtml(c.items).replaceAll("<p>", '<p class="pdf-image-caption">').replaceAll("<img ", '<img class="pdf-image" ')}</div>`;
 
         case "page-break":
           return `<div class="page-break"></div>`;
@@ -766,6 +782,34 @@ async function generateFallbackPdf(config: PdfReportConfig): Promise<Buffer> {
         pdf.setFontSize(8);
         pdf.text(`${content.label}: ${content.status.toUpperCase()}`, margin, y);
         y += 5;
+      } else if (content.type === "images") {
+        for (const item of content.items) {
+          pdf.setFontSize(8);
+          pdf.setTextColor(80);
+          const caption = pdf.splitTextToSize(item.name, contentW);
+          checkPageBreak(caption.length * 4 + 8);
+          pdf.text(caption, margin, y);
+          y += caption.length * 4 + 2;
+          pdf.setTextColor(0);
+          if (!item.dataUrl.startsWith("data:image/jpeg;base64,") || item.width <= 0 || item.height <= 0) {
+            continue;
+          }
+          const ratio = item.width / item.height;
+          let drawW = contentW;
+          let drawH = drawW / ratio;
+          const maxH = 110;
+          if (drawH > maxH) {
+            drawH = maxH;
+            drawW = drawH * ratio;
+          }
+          checkPageBreak(drawH + 4);
+          try {
+            pdf.addImage(item.dataUrl, "JPEG", margin, y, drawW, drawH);
+            y += drawH + 6;
+          } catch {
+            y += 2;
+          }
+        }
       } else if (content.type === "page-break") {
         pdf.addPage();
         y = margin;

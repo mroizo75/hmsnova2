@@ -89,6 +89,7 @@ export function TripletexIntegration({
   const tAbsence = useTranslations("timesheet.absence");
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
   const [activating, setActivating] = useState(false);
   const [employeesSeeTime, setEmployeesSeeTime] = useState(timeRegistrationVisibleToEmployees);
   const [mapState, setMapState] = useState(mapping);
@@ -108,9 +109,11 @@ export function TripletexIntegration({
 
   async function handleConnect() {
     setLoading(true);
+    setConnectError(null);
     const res = await connectTripletex(token);
     if (!res.success) {
       setLoading(false);
+      setConnectError(res.error);
       toast({ title: "Kunne ikke koble til", description: res.error, variant: "destructive" });
       return;
     }
@@ -203,18 +206,9 @@ export function TripletexIntegration({
           <div className="space-y-3">
             {consumerConfigured ? (
               <p className="text-sm text-muted-foreground">
-                Integrasjonen {applicationName} er klar på serveren. Lim inn{" "}
-                <strong>employee token</strong> for testkontoen (ikke consumer-tokenet som ligger i
-                .env). Testkonto treffer Tripletex sitt testmiljø automatisk. Se{" "}
-                <a
-                  href="https://developer.tripletex.no/docs/documentation/authentication-and-tokens/"
-                  className="underline"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Tripletex-dokumentasjonen
-                </a>
-                .
+                Lim inn brukernøkkelen fra Tripletex. Den lages under Min profil → API-tilgang → Ny
+                nøkkel. Huk av tilpasset oppsett og skriv <strong>{applicationName}</strong> i feltet for
+                applikasjonsnavn. Navnet må være helt likt. Nøkkelen vises bare én gang.
               </p>
             ) : (
               <p className="text-sm text-destructive">
@@ -222,7 +216,7 @@ export function TripletexIntegration({
                 kobles før det er lagt inn.
               </p>
             )}
-            <Label htmlFor="tx-token">Employee token (selskapseid integrasjonsnøkkel fra Tripletex)</Label>
+            <Label htmlFor="tx-token">Brukernøkkel fra Tripletex</Label>
             <Input
               id="tx-token"
               type="password"
@@ -237,6 +231,11 @@ export function TripletexIntegration({
             >
               {loading ? "Kobler til…" : "Koble til Tripletex"}
             </Button>
+            {connectError ? (
+              <p className="text-sm text-destructive" role="alert">
+                {connectError}
+              </p>
+            ) : null}
           </div>
         )}
 

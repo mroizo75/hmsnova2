@@ -148,6 +148,9 @@ model User {
   tavleCheckins                   TavleCheckin[]
   exposureRegisters               ExposureRegister[]             @relation("ExposureRegisterEmployee")
   routinesResponsible             Routine[]                      @relation("RoutineResponsible")
+  ownedQmsProcesses               QmsProcess[]                   @relation("QmsProcessOwner")
+  qmsProcessesCreated             QmsProcess[]                   @relation("QmsProcessCreatedBy")
+  qmsProcessesUpdated             QmsProcess[]                   @relation("QmsProcessUpdatedBy")
   electroComplianceCreated        ElectroComplianceDeclaration[] @relation("ElectroComplianceCreatedBy")
   routineUploadedDocumentsCreated RoutineUploadedDocument[]      @relation("RoutineUploadedDocumentCreatedBy")
   documentSignatures              DocumentSignature[]            @relation("DocumentSignatures")
@@ -389,6 +392,9 @@ model Tenant {
   routineTemplates                    RoutineTemplate[]
   routines                            Routine[]
   routineFolders                      RoutineFolder[]
+  qmsProcesses                        QmsProcess[]
+  qmsProcessSteps                     QmsProcessStep[]
+  qmsProcessLinks                     QmsProcessLink[]
   managementReviews                   ManagementReview[] // Ledelsens gjennomgang
   meetings                            Meeting[] // AMU/VO møter
   whistleblowings                     Whistleblowing[] // Varslinger
@@ -3681,6 +3687,7 @@ model Routine {
   equipmentLinks   EquipmentRoutineLink[]
   fireDrills       FireDrill[]       @relation("FireDrillRoutine")
   mocLinks         MocRoutineLink[]
+  qmsProcesses     QmsProcess[]
 
   @@index([tenantId])
   @@index([folderId])
@@ -3696,6 +3703,103 @@ enum RoutineStatus {
   DRAFT
   NEEDS_REVIEW
   ARCHIVED
+}
+
+/// ISO 9001:2015 pkt. 4.4: prosessene i styringssystemet, rekkefølge og samspill.
+enum QmsProcessKind {
+  STYRENDE
+  HOVED
+  STOTTE
+}
+
+enum QmsProcessStatus {
+  DRAFT
+  ACTIVE
+  OUT_OF_SCOPE
+  ARCHIVED
+}
+
+model QmsProcess {
+  id                    String           @id @default(cuid())
+  tenantId              String
+  /// Stabil nøkkel for forslag som er lagt inn. Tom for prosesser bedriften lager selv.
+  sourceKey             String?
+  name                  String
+  kind                  QmsProcessKind
+  status                QmsProcessStatus @default(DRAFT)
+  sortOrder             Int              @default(0)
+  /// ISO 9001:2015 pkt. 4.4.1: formålet med prosessen.
+  purpose               String?          @db.Text
+  /// ISO 9001:2015 pkt. 4.4.1 a: nødvendige innganger.
+  inputs                String?          @db.Text
+  /// ISO 9001:2015 pkt. 4.4.1 a: forventede resultater.
+  outputs               String?          @db.Text
+  /// ISO 9001:2015 pkt. 4.4.1 c: kriterier, metoder og oppfølging.
+  criteria              String?          @db.Text
+  /// ISO 9001:2015 pkt. 4.4.1 d: ressurser.
+  resources             String?          @db.Text
+  /// ISO 9001:2015 pkt. 4.4.1 f: risiko og muligheter.
+  risksAndOpportunities String?          @db.Text
+  /// ISO 9001:2015 pkt. 4.3: begrunnelse når prosessen er utenfor omfang.
+  scopeReason           String?          @db.Text
+  /// ISO 9001:2015 pkt. 4.4.1 g: resultat av siste vurdering.
+  evaluationNote        String?          @db.Text
+  lastEvaluatedAt       DateTime?
+  nextReviewAt          DateTime?
+  ownerId               String?
+  routineId             String?
+  moduleHref            String?
+  createdById           String
+  updatedById           String?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  tenant    Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  owner     User?                @relation("QmsProcessOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  routine   Routine?             @relation(fields: [routineId], references: [id], onDelete: SetNull)
+  createdBy User                 @relation("QmsProcessCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedBy User?                @relation("QmsProcessUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  steps     QmsProcessStep[]
+  outgoing  QmsProcessLink[]     @relation("QmsProcessFrom")
+  incoming  QmsProcessLink[]     @relation("QmsProcessTo")
+
+  @@unique([tenantId, sourceKey])
+  @@index([tenantId])
+  @@index([ownerId])
+  @@index([routineId])
+  @@index([status])
+  @@index([nextReviewAt])
+}
+
+model QmsProcessStep {
+  id          String @id @default(cuid())
+  tenantId    String
+  processId   String
+  sortOrder   Int
+  title       String
+  description String? @db.Text
+
+  tenant  Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  process QmsProcess @relation(fields: [processId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([processId])
+}
+
+/// ISO 9001:2015 pkt. 4.4.1 b: resultatet fra én prosess er inngang til den neste.
+model QmsProcessLink {
+  id            String @id @default(cuid())
+  tenantId      String
+  fromProcessId String
+  toProcessId   String
+
+  tenant      Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  fromProcess QmsProcess @relation("QmsProcessFrom", fields: [fromProcessId], references: [id], onDelete: Cascade)
+  toProcess   QmsProcess @relation("QmsProcessTo", fields: [toProcessId], references: [id], onDelete: Cascade)
+
+  @@unique([fromProcessId, toProcessId])
+  @@index([tenantId])
+  @@index([toProcessId])
 }
 
 model FormFieldValue {

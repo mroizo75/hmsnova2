@@ -1651,6 +1651,25 @@ export const helpContent: Record<string, HelpContent> = {
     ],
   },
 
+  processes: {
+    title: "Prosesser",
+    description: "Prosessene i styringssystemet og samspillet mellom dem (ISO 9001:2015 pkt. 4.4)",
+    sections: [
+      {
+        heading: "Hva skal ligge her?",
+        emoji: "🗺️",
+        content:
+          "Registeret viser prosessene bedriften trenger for å styre kvalitet og HMS: formål, innganger, resultater, steg, prosesseier, kriterier, ressurser, risiko og hvilken prosess resultatet går videre til. Forslagene er utkast. De skal tilpasses før de settes aktive. En prosess som ikke gjelder, merkes utenfor omfang med begrunnelse.",
+      },
+    ],
+    isoStandards: ["ISO 9001:2015 pkt. 4.4 – Ledelsessystem for kvalitet og dets prosesser", "ISO 9001:2015 pkt. 4.3 – Omfang"],
+    tips: [
+      "Sett prosesseier og dato for neste vurdering før prosessen merkes aktiv.",
+      "Knytt utførelsen til rutinen som allerede beskriver arbeidet.",
+      "Utforming eller installasjon merkes utenfor omfang når bedriften ikke gjør det.",
+    ],
+  },
+
   suppliers: {
     title: "Leverandører",
     description: "Godkjenning og oppfølging av leverandører (ISO 9001:2015 pkt. 8.4)",

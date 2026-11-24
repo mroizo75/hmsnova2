@@ -44,6 +44,7 @@ function tripletexPublicErrorMessage(body?: string): string | null {
 
 function formatActionError(error: unknown, fallback: string): string {
   if (error instanceof TripletexApiError) {
+    if (error.customerMessage) return error.customerMessage;
     const fromBody = tripletexPublicErrorMessage(error.body);
     if (fromBody) return fromBody;
     if (error.message && !error.message.startsWith("Tripletex API-feil")) {

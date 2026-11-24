@@ -21,6 +21,7 @@ const nextConfig: NextConfig = {
   serverExternalPackages: [
     "@adobe/pdfservices-node-sdk",
     "fflate",
+    "file-type",
     "jspdf",
     "jspdf-autotable",
     "log4js",

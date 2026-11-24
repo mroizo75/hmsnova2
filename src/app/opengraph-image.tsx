@@ -39,7 +39,7 @@ export default async function Image() {
             Hele HMS-systemet er allerede skrevet.
           </div>
           <div style={{ fontSize: 36, fontWeight: 800, color: "#0B6E4F", marginTop: 16 }}>
-            Du fyller bare inn bedriften.
+            Følg veiviseren, så er du klar.
           </div>
         </div>
         <div style={{ display: "flex", fontSize: 24, color: "#46534D" }}>

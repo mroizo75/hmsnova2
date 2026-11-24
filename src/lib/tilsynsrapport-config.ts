@@ -117,6 +117,7 @@ export const TILSYN_TYPES: TilsynTypeConfig[] = [
     legalBasis: "Verkstedforskriften §§ 15–18. PKK-forskriften §§ 13–15 dersom virksomheten er kontrollorgan.",
     sectionKeys: [
       "ks-policy",
+      "ks-prosesser",
       "ks-leverandor",
       "ks-kunder",
       "s2",   // § 16 a organisering og roller
@@ -136,7 +137,7 @@ export const TILSYN_TYPES: TilsynTypeConfig[] = [
     description: "Hele styringssystemet: kvalitet, HMS og personal, til egenkontroll eller ekstern revisjon",
     legalBasis: "ISO 9001:2015, IK-HMS § 5, AML kap. 3, 10, 12, 14 og 15",
     sectionKeys: [
-      "ks-policy", "ks-kunder", "ks-leverandor",
+      "ks-policy", "ks-prosesser", "ks-kunder", "ks-leverandor",
       "s1", "s2", "s2b", "s2c", "s3", "s4", "s5", "s6", "s7", "s8",
       "s9", "s10", "s11", "s11b", "s12", "s13", "s14", "s15",
       "hr-arbeidsforhold", "hr-arbeidstid", "hr-ferie", "hr-sykefravaer",

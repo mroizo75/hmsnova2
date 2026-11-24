@@ -19,7 +19,7 @@ export const HANDBOOK_PART_LABELS: Record<HandbookPart, string> = {
 };
 
 export const HANDBOOK_PART_DESCRIPTIONS: Record<HandbookPart, string> = {
-  KS: "Kvalitetspolicy, kunder og leverandører (ISO 9001:2015).",
+  KS: "Kvalitetspolicy, prosesser, kunder og leverandører (ISO 9001:2015).",
   HMS: "Internkontroll for helse, miljø og sikkerhet (IK-HMS § 5).",
   HR: "Arbeidsavtale, arbeidstid, ferie og personvern.",
 };
