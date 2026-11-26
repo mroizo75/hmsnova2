@@ -9,6 +9,7 @@ import {
 } from "@/features/documents/schemas/document.schema";
 import { getStorage, generateFileKey } from "@/lib/storage";
 import { DocStatus } from "@prisma/client";
+import { ZodError } from "zod";
 import { getAuthContext, requirePermission, requireResourceAccess } from "@/lib/server-authorization";
 import { calculateNextReviewDate, parseDateInput } from "@/lib/document-utils";
 import { convertDocumentToPDF } from "@/lib/adobe-pdf";
@@ -20,6 +21,16 @@ import {
   isDistributableDocumentKind,
   isModuleOwnedDocumentCategory,
 } from "@/lib/document-module-scope";
+import { approvalNotificationUserIds } from "@/lib/document-approvals";
+import { roleMatchFilter } from "@/lib/extra-roles";
+
+function formatActionError(error: unknown, fallback: string): string {
+  if (error instanceof ZodError) {
+    return error.issues.map((issue) => issue.message).join(". ");
+  }
+  if (error instanceof Error) return error.message;
+  return fallback;
+}
 
 // Helper: Logg til audit log
 async function logAudit(
@@ -68,22 +79,46 @@ async function notifyReadConfirmation(document: {
   );
 }
 
-async function notifyPendingApproval(document: {
-  id: string;
-  tenantId: string;
-  title: string;
-  version: string;
-  ownerId: string | null;
-}) {
-  if (!document.ownerId) return;
-  await createNotification({
-    tenantId: document.tenantId,
-    userId: document.ownerId,
-    type: "SYSTEM_ALERT",
-    title: "Dokument til godkjenning",
-    message: `«${document.title}» (${document.version}) venter på deg som prosesseier. Du finner det under Oversikt og Dokumenter.`,
-    link: `/dashboard/documents/${document.id}`,
-  }).catch(() => undefined);
+async function notifyPendingApproval(
+  document: {
+    id: string;
+    tenantId: string;
+    title: string;
+    version: string;
+    ownerId: string | null;
+  },
+  actorUserId: string,
+) {
+  const approvers = document.ownerId
+    ? []
+    : await prisma.userTenant.findMany({
+        where: {
+          tenantId: document.tenantId,
+          ...roleMatchFilter(["ADMIN", "HMS"]),
+        },
+        select: { userId: true },
+      });
+  const recipientIds = approvalNotificationUserIds({
+    ownerId: document.ownerId,
+    actorUserId,
+    approverUserIds: approvers.map((row) => row.userId),
+  });
+  const message = document.ownerId
+    ? `«${document.title}» (${document.version}) venter på godkjenning. Du finner det under Oversikt og Dokumenter.`
+    : `«${document.title}» (${document.version}) har ingen prosesseier og venter på administrator eller HMS. Du finner det under Oversikt og Dokumenter.`;
+
+  await Promise.all(
+    recipientIds.map((userId) =>
+      createNotification({
+        tenantId: document.tenantId,
+        userId,
+        type: "SYSTEM_ALERT",
+        title: "Dokument til godkjenning",
+        message,
+        link: `/dashboard/documents/${document.id}`,
+      }).catch(() => undefined),
+    ),
+  );
 }
 
 const sanitizeText = (value?: string | null) => {
@@ -211,6 +246,7 @@ export async function createDocument(formData: FormData) {
     const file = fileEntry as Blob & { name: string };
     const validated = createDocumentSchema.parse({
       ...data,
+      tenantId: context.tenantId,
       ownerId: ownerIdRaw,
       templateId: templateIdRaw,
       reviewIntervalMonths: reviewIntervalValue,
@@ -360,11 +396,11 @@ export async function createDocument(formData: FormData) {
     revalidatePath(`/dashboard/documents`);
     revalidatePath("/dashboard");
     triggerRealtimeEvent(validated.tenantId, "document-updated");
-    await notifyPendingApproval(document);
+    await notifyPendingApproval(document, context.userId);
     return { success: true, data: document };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Create document error:", error);
-    return { success: false, error: "Kunne ikke opprette dokument" };
+    return { success: false, error: formatActionError(error, "Kunne ikke opprette dokument") };
   }
 }
 
@@ -476,13 +512,16 @@ export async function uploadNewVersion(formData: FormData) {
     revalidatePath(`/dashboard/documents/${documentId}`);
     revalidatePath("/dashboard");
     triggerRealtimeEvent(document.tenantId, "document-updated");
-    await notifyPendingApproval({
-      id: updatedDocument.id,
-      tenantId: updatedDocument.tenantId,
-      title: updatedDocument.title,
-      version: updatedDocument.version,
-      ownerId: updatedDocument.ownerId,
-    });
+    await notifyPendingApproval(
+      {
+        id: updatedDocument.id,
+        tenantId: updatedDocument.tenantId,
+        title: updatedDocument.title,
+        version: updatedDocument.version,
+        ownerId: updatedDocument.ownerId,
+      },
+      context.userId,
+    );
     return { success: true, data: updatedDocument };
   } catch (error: any) {
     console.error("Upload new version error:", error);
@@ -638,12 +677,8 @@ export async function updateDocument(input: any) {
     ) {
       await notifyReadConfirmation(updated);
     }
-    if (
-      updated.status === "DRAFT" &&
-      updated.ownerId &&
-      updated.ownerId !== document.ownerId
-    ) {
-      await notifyPendingApproval(updated);
+    if (updated.status === "DRAFT" && updated.ownerId !== document.ownerId) {
+      await notifyPendingApproval(updated, context.userId);
     }
     revalidatePath("/dashboard");
     return { success: true, data: updated };

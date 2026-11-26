@@ -56,22 +56,7 @@ export default async function DashboardPage() {
     !tenant.startpakkeCompleted &&
     tenant.onboardingStatus !== "COMPLETED"
   ) {
-    const checkTenantId = selectedMembership.tenantId;
-    const incidentCount = await prisma.incident.count({ where: { tenantId: checkTenantId } });
-    const hasExistingData =
-      incidentCount > 0 ||
-      (await prisma.document.count({ where: { tenantId: checkTenantId } })) > 0 ||
-      (await prisma.risk.count({ where: { tenantId: checkTenantId } })) > 0 ||
-      (await prisma.routine.count({ where: { tenantId: checkTenantId } })) > 0;
-
-    if (hasExistingData) {
-      await prisma.tenant.update({
-        where: { id: checkTenantId },
-        data: { startpakkeCompleted: true },
-      });
-    } else {
-      redirect("/dashboard/welcome");
-    }
+    redirect("/dashboard/welcome");
   }
 
   await prisma.$executeRawUnsafe(`

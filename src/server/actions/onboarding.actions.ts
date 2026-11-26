@@ -12,7 +12,8 @@ import { AuditLog } from "@/lib/audit-log";
 import { createOnboardingInvoice } from "@/server/actions/invoice.actions";
 import { standardSoftwareSubscription } from "@/lib/subscription";
 import { provisionIndustryPackage } from "@/server/actions/industry-provision.actions";
-import { BASE_SIMPLE_MODULES, BRANSJE_MODULES } from "@/lib/bransje-modules";
+import { BASE_SIMPLE_MODULES, BRANSJE_MODULES, menuHrefsForSetup } from "@/lib/bransje-modules";
+import { DASHBOARD_NAV_CONFIG } from "@/lib/dashboard-nav-config";
 import { serializeWorkshopTypes } from "@/lib/automotive-workshop-types";
 import { menuPathsToWidgetIds } from "@/lib/menu-widget-sync";
 import type { Role } from "@prisma/client";
@@ -99,13 +100,23 @@ export async function completeStartpakkeSetup(
       return { success: false, error: "Ukjent bransje" };
     }
 
+    const tenantRecord = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { slug: true },
+    });
+    const menuHrefs = menuHrefsForSetup(
+      tenantRecord?.slug,
+      bransjeConfig.modules,
+      DASHBOARD_NAV_CONFIG.map((item) => item.href),
+    );
+
     const serializedSubIndustry =
       bransje === "automotive" ? serializeWorkshopTypes(subIndustry ?? []) : undefined;
 
     await prisma.tenant.update({
       where: { id: tenantId },
       data: {
-        simpleMenuItems: bransjeConfig.modules,
+        simpleMenuItems: menuHrefs,
         industry: bransje,
         onboardingStatus: "IN_PROGRESS",
         setupGuideHidden: false,
@@ -123,7 +134,7 @@ export async function completeStartpakkeSetup(
       data: { startpakkeCompleted: true },
     });
 
-    const widgetIds = menuPathsToWidgetIds(bransjeConfig.modules);
+    const widgetIds = menuPathsToWidgetIds(menuHrefs);
     await prisma.dashboardConfig.upsert({
       where: {
         userId_tenantId: { userId: session.user.id, tenantId },
@@ -179,11 +190,20 @@ export async function skipStartpakke(tenantId: string): Promise<{ success: boole
       return { success: false };
     }
 
+    const tenantRecord = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { slug: true },
+    });
+
     await prisma.tenant.update({
       where: { id: tenantId },
       data: {
         startpakkeCompleted: true,
-        simpleMenuItems: BASE_SIMPLE_MODULES,
+        simpleMenuItems: menuHrefsForSetup(
+          tenantRecord?.slug,
+          BASE_SIMPLE_MODULES,
+          DASHBOARD_NAV_CONFIG.map((item) => item.href),
+        ),
       },
     });
 

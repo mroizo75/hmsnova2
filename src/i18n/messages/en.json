@@ -1436,7 +1436,7 @@
     "empty": "No documents available yet",
     "kind": {
       "LAW": "⚖️ Laws and regulations",
-      "PROCEDURE": "📋 Procedure (ISO 9001)",
+      "PROCEDURE": "📋 Procedure",
       "CHECKLIST": "✅ Checklist",
       "FORM": "📝 Form",
       "SDS": "⚠️ Safety Data Sheet (SDS)",
@@ -1697,7 +1697,7 @@
     },
     "kind": {
       "LAW": "⚖️ Laws and regulations",
-      "PROCEDURE": "📋 Procedure (ISO 9001)",
+      "PROCEDURE": "📋 Procedure",
       "CHECKLIST": "✅ Checklist",
       "FORM": "📝 Form",
       "SDS": "⚠️ Safety Data Sheet (SDS)",
@@ -4425,7 +4425,7 @@
     },
     "kinds": {
       "LAW": "Laws and regulations",
-      "PROCEDURE": "Procedure (ISO 9001)",
+      "PROCEDURE": "Procedure",
       "CHECKLIST": "Checklist",
       "FORM": "Form",
       "SDS": "Safety data sheet (SDS)",
@@ -5478,7 +5478,7 @@
     },
     "kind": {
       "LAW": "Laws and regulations",
-      "PROCEDURE": "Procedure (ISO 9001)",
+      "PROCEDURE": "Procedure",
       "CHECKLIST": "Checklist",
       "FORM": "Form",
       "SDS": "Safety data sheet (SDS)",
@@ -5561,8 +5561,8 @@
   },
   "dashboardDocumentForm": {
     "title": "Upload new document",
-    "description": "The document is sent to the process owner and must be approved before use",
-    "ownerHelp": "The process owner is the person who approves. It shows under Awaiting approval on Documents and on Overview, marked with who it is waiting for.",
+    "description": "The document must be approved before use. The process owner, or an administrator and HSE lead, is notified.",
+    "ownerHelp": "The process owner approves and is notified. If you choose None, administrators and HSE leads are notified. The document shows under Awaiting approval on Documents and on Overview.",
     "none": "None",
     "global": "Global",
     "templateSelected": "Template selected",
@@ -5586,7 +5586,7 @@
     "kinds": {
       "LAW": "Laws and regulations",
       "PLAN": "HSE handbook / Plan",
-      "PROCEDURE": "Procedure (ISO 9001)",
+      "PROCEDURE": "Procedure",
       "CHECKLIST": "Checklist",
       "FORM": "Form",
       "SDS": "Safety data sheet (SDS)",
@@ -5674,7 +5674,7 @@
     "kinds": {
       "LAW": "Laws and regulations",
       "PLAN": "HSE handbook / Plan",
-      "PROCEDURE": "Procedure (ISO 9001)",
+      "PROCEDURE": "Procedure",
       "CHECKLIST": "Checklist",
       "FORM": "Form",
       "SDS": "Safety data sheet (SDS)",

@@ -1,6 +1,5 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DocumentList } from "@/features/documents/components/document-list";
@@ -9,6 +8,7 @@ import { AlertTriangle, FileText } from "lucide-react";
 import { isDocumentAttention } from "@/lib/document-attention";
 import { useTranslations } from "next-intl";
 import { fetchDocuments } from "@/server/queries/document.queries";
+import { useServerQuery } from "@/hooks/use-server-query";
 import { cn } from "@/lib/utils";
 
 type DocumentData = NonNullable<Awaited<ReturnType<typeof fetchDocuments>>>;
@@ -20,7 +20,7 @@ interface DocumentsContentProps {
 export function DocumentsContent({ initialData }: DocumentsContentProps) {
   const t = useTranslations("dashboardDocumentsPage");
 
-  const { data } = useQuery({
+  const { data } = useServerQuery({
     queryKey: ["documents"],
     queryFn: () => fetchDocuments(),
     initialData,

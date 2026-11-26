@@ -32,7 +32,6 @@ import {
 import fs from "fs";
 import path from "path";
 import { Readable } from "stream";
-import { REPORT_TEMPLATES_DIR } from "@/lib/report-merge-data";
 
 const ADOBE_CLIENT_ID = process.env.ADOBE_CLIENT_ID;
 const ADOBE_CLIENT_SECRET = process.env.ADOBE_CLIENT_SECRET;
@@ -42,7 +41,8 @@ if (!ADOBE_CLIENT_ID) {
 }
 
 export function getReportTemplatePath(filename: string): string {
-  return path.join(process.cwd(), REPORT_TEMPLATES_DIR, filename);
+  // Mappen må stå som literal. En variabel her gjør at Turbopack tar med hele prosjektet.
+  return path.join(process.cwd(), "templates/reports", filename);
 }
 
 /**

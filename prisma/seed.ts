@@ -1,10 +1,21 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { menuHrefsForSetup, TEST_TENANT_SLUG } from "../src/lib/bransje-modules";
+import { DASHBOARD_NAV_CONFIG } from "../src/lib/dashboard-nav-config";
 import { getIndustryPackage } from "../src/lib/industry-packages";
 import { getGlobalFormTemplateLibrary } from "../src/lib/form-template-library";
 import { getGlobalRoutineTemplateLibrary } from "../src/lib/routine-template-library";
 import { toIndustryScopeJson } from "../src/lib/industry-scope";
 import { seedIncidentSubcategories } from "./seed-incident-subcategories";
+
+/** Alle menypunkter, så testbedriften kan åpne hver funksjon. */
+function allTestMenuHrefs(): string[] {
+  return menuHrefsForSetup(
+    TEST_TENANT_SLUG,
+    [],
+    DASHBOARD_NAV_CONFIG.map((item) => item.href),
+  );
+}
 
 const prisma = new PrismaClient();
 
@@ -136,21 +147,39 @@ async function main() {
     );
   }
 
-  // Opprett test tenant
+  // Opprett test tenant. Veiviseren nullstilles hver seed, slik at admin kan gå stegene på nytt.
+  const testMenuHrefs = allTestMenuHrefs();
+  const wizardReset = {
+    industry: null,
+    subIndustry: null,
+    startpakkeCompleted: false,
+    setupGuideHidden: false,
+    serviceOfferDismissed: false,
+    onboardingStatus: "NOT_STARTED" as const,
+    onboardingCompletedAt: null,
+    simpleMenuItems: testMenuHrefs,
+    aiEnabled: true,
+    speechToTextEnabled: true,
+    mocModuleEnabled: true,
+    ruhModuleEnabled: true,
+    timeRegistrationEnabled: true,
+    timeRegistrationVisibleToEmployees: true,
+    hmsAnnualPlanEnabled: true,
+  };
   const tenant = await prisma.tenant.upsert({
     where: { slug: "test-bedrift" },
-    update: {},
+    update: wizardReset,
     create: {
       name: "Test Bedrift AS",
       orgNumber: "123456789",
       slug: "test-bedrift",
       status: "ACTIVE",
-      industry: "construction",
       contactEmail: "post@testbedrift.no",
       contactPhone: "12345678",
       address: "Testveien 1",
       city: "Oslo",
       postalCode: "0123",
+      ...wizardReset,
       subscription: {
         create: {
           plan: "PROFESSIONAL",
@@ -162,6 +191,11 @@ async function main() {
         },
       },
     },
+  });
+
+  await prisma.tenantActivityProfile.updateMany({
+    where: { tenantId: tenant.id },
+    data: { completedAt: null },
   });
 
   console.log("✅ Tenant opprettet:", tenant.name);
@@ -334,6 +368,12 @@ async function main() {
         },
       },
     },
+  });
+
+  await prisma.userTenant.upsert({
+    where: { userId_tenantId: { userId: adminUser.id, tenantId: tenant.id } },
+    update: { role: "ADMIN" },
+    create: { userId: adminUser.id, tenantId: tenant.id, role: "ADMIN" },
   });
 
   console.log("✅ Admin bruker opprettet:", adminUser.email);
@@ -1866,13 +1906,13 @@ async function main() {
   console.log("🔒 Varslinger:               1 (med 4 meldinger)");
   console.log("💬 Tilbakemeldinger:         4");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  await seedEmptyAutomotiveWorkshop();
   console.log("\n📝 Test pålogginger:");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.log("🛡️  Superadmin:     superadmin@hmsnova.com / superadmin123");
   console.log("🎧 Support:        support@hmsnova.com / support123");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.log("👤 Admin:          admin@test.no / admin123");
+  console.log("   (veiviseren er nullstilt – start på /dashboard/welcome)");
   console.log("⚡ HMS-ansvarlig:  hms@test.no / hms123");
   console.log("👔 Leder:          leder@test.no / leder123");
   console.log("🛡️  Verneombud:    vern@test.no / vern123");
@@ -1881,14 +1921,12 @@ async function main() {
   console.log("🏥 BHT:            bht@test.no / bht123");
   console.log("📋 Revisor:        revisor@test.no / revisor123");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  console.log("🔧 Test Bilverksted: admin@bilverksted.test / verksted123");
-  console.log("   (tom tenant – kjør veiviseren fra /dashboard/welcome)");
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.log("\n🔗 Varslingssiden for Test Bedrift AS:");
   console.log("   https://hmsnova.com/varsling/test-bedrift");
   console.log("   Tilgangskode for sporing: ABC123DEF456GHIJ");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
+  await removeLegacyWorkshopSeed();
   await seedIncidentSubcategories(prisma);
 }
 
@@ -2478,7 +2516,7 @@ async function seedGlobalRoutineTemplates() {
   console.log(`✅ Globale rutinemaler oppdatert: ${created} opprettet, ${updated} oppdatert`);
 }
 
-async function seedEmptyAutomotiveWorkshop() {
+async function removeLegacyWorkshopSeed() {
   if (process.env.NODE_ENV === "production") {
     return;
   }
@@ -2490,68 +2528,16 @@ async function seedEmptyAutomotiveWorkshop() {
 
   if (existing) {
     await prisma.tenant.delete({ where: { id: existing.id } });
-    console.log("♻️  Slettet eksisterende Test Bilverksted AS (cascade) for ny veiviser-test");
+    console.log("♻️  Fjernet Test Bilverksted AS");
   }
 
-  const workshopTenant = await prisma.tenant.create({
-    data: {
-      name: "Test Bilverksted AS",
-      orgNumber: "998877665",
-      slug: "test-bilverksted",
-      status: "ACTIVE",
-      industry: null,
-      subIndustry: null,
-      startpakkeCompleted: false,
-      setupGuideHidden: false,
-      onboardingStatus: "NOT_STARTED",
-      contactEmail: "post@testbilverksted.no",
-      contactPhone: "99887766",
-      address: "Verkstedveien 1",
-      city: "Oslo",
-      postalCode: "0150",
-      subscription: {
-        create: {
-          plan: "PROFESSIONAL",
-          price: 1990,
-          billingInterval: "MONTHLY",
-          status: "ACTIVE",
-          currentPeriodStart: new Date(),
-          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        },
-      },
-    },
-  });
-
-  const hashedPassword = await bcrypt.hash("verksted123", 10);
-  const workshopAdmin = await prisma.user.upsert({
+  const workshopAdmin = await prisma.user.findUnique({
     where: { email: "admin@bilverksted.test" },
-    update: {
-      password: hashedPassword,
-      emailVerified: new Date(),
-      failedLoginAttempts: 0,
-      lockedUntil: null,
-    },
-    create: {
-      email: "admin@bilverksted.test",
-      name: "Verksted Admin",
-      password: hashedPassword,
-      emailVerified: new Date(),
-    },
+    select: { id: true, tenants: { select: { id: true } } },
   });
-
-  await prisma.userTenant.upsert({
-    where: {
-      userId_tenantId: { userId: workshopAdmin.id, tenantId: workshopTenant.id },
-    },
-    update: { role: "ADMIN" },
-    create: {
-      userId: workshopAdmin.id,
-      tenantId: workshopTenant.id,
-      role: "ADMIN",
-    },
-  });
-
-  console.log("✅ Tom test-tenant opprettet:", workshopTenant.name, "–", workshopAdmin.email);
+  if (workshopAdmin && workshopAdmin.tenants.length === 0) {
+    await prisma.user.delete({ where: { id: workshopAdmin.id } });
+  }
 }
 
 main()

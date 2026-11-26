@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,12 +50,14 @@ const NO_TEMPLATE_VALUE = "__none_template__";
 export function DocumentForm({ tenantId, owners, templates }: DocumentFormProps) {
   const t = useTranslations("dashboardDocumentForm");
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [requiresReadConfirmation, setRequiresReadConfirmation] = useState(false);
   const [selectedOwner, setSelectedOwner] = useState<string>(NO_OWNER_VALUE);
+  const [selectedKind, setSelectedKind] = useState<string>("PROCEDURE");
   const [selectedTemplate, setSelectedTemplate] = useState<string>(NO_TEMPLATE_VALUE);
   const [reviewInterval, setReviewInterval] = useState("12");
   const [reviewIntervalTouched, setReviewIntervalTouched] = useState(false);
@@ -118,6 +121,7 @@ export function DocumentForm({ tenantId, owners, templates }: DocumentFormProps)
 
     const formData = new FormData(e.currentTarget);
     formData.append("tenantId", tenantId);
+    formData.set("kind", selectedKind);
     formData.append("changeComment", t("defaultChangeComment"));
     formData.delete("ownerId");
     formData.delete("templateId");
@@ -146,6 +150,8 @@ export function DocumentForm({ tenantId, owners, templates }: DocumentFormProps)
         });
         router.push("/dashboard/documents");
         router.refresh();
+        await queryClient.invalidateQueries({ queryKey: ["documents"] });
+        await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       } else {
         toast({
           variant: "destructive",
@@ -196,7 +202,13 @@ export function DocumentForm({ tenantId, owners, templates }: DocumentFormProps)
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="kind">{t("fields.kind")}</Label>
-              <Select name="kind" required disabled={loading}>
+              <Select
+                name="kind"
+                required
+                value={selectedKind}
+                onValueChange={setSelectedKind}
+                disabled={loading}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder={t("placeholders.kind")} />
                 </SelectTrigger>

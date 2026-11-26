@@ -93,7 +93,7 @@ export function AssignmentDetailEditor({ assignment, profiles, canEdit }: Assign
       notes: String(form.get("notes") ?? ""),
     });
     setSaving(false);
-    if (!result.success) {
+    if (result.success === false) {
       toast({ variant: "destructive", title: "Oppdraget ble ikke oppdatert", description: result.error });
       return;
     }

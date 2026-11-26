@@ -88,7 +88,7 @@ export function AssignmentForm({ users, workplaces, profiles, projects }: Assign
       notes: String(form.get("notes") ?? ""),
     });
     setSaving(false);
-    if (!result.success) {
+    if (result.success === false) {
       toast({ variant: "destructive", title: "Oppdraget ble ikke opprettet", description: result.error });
       return;
     }

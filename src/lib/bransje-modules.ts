@@ -2,6 +2,27 @@
  * Grunnleggende HMS-moduler som ALLTID vises i enkel meny, uansett bransje.
  * Dette er minimumssettet som dekker AML § 3-1 og IK-HMS § 5.
  */
+export const TEST_TENANT_SLUG = "test-bedrift";
+
+/**
+ * Testbedriften skal kunne åpne alle funksjoner også etter at veiviseren er fullført.
+ * Andre bedrifter får bare modulene for valgt bransje.
+ */
+export function menuHrefsForSetup(
+  slug: string | null | undefined,
+  bransjeModules: string[],
+  extraHrefs: string[] = [],
+): string[] {
+  if (slug !== TEST_TENANT_SLUG) return bransjeModules;
+  return [
+    ...new Set([
+      ...bransjeModules,
+      ...extraHrefs,
+      ...Object.values(BRANSJE_MODULES).flatMap((config) => config.modules),
+    ]),
+  ];
+}
+
 export const BASE_SIMPLE_MODULES: string[] = [
   "/dashboard",
   "/dashboard/hms-handbok",

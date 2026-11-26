@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { DASHBOARD_NAV_CONFIG, CORE_HUB_ORDER, PINNED_FOOTER_HUB } from "../src/lib/dashboard-nav-config";
 import { filterDashboardNavItems, sortDashboardNavItems, isDashboardNavHrefActive } from "../src/lib/dashboard-nav-filter";
-import { BRANSJE_MODULES } from "../src/lib/bransje-modules";
+import { BRANSJE_MODULES, menuHrefsForSetup } from "../src/lib/bransje-modules";
 import { getPermissions, getVisibleNavItems } from "../src/lib/permissions";
 import { groupNavItemsByHub, partitionNavHubGroups, parseNavHubOpenState, isNavHubOpen } from "../src/lib/dashboard-nav-hub-groups";
 
@@ -245,6 +245,19 @@ test("nav-hubber forblir åpne til brukeren lukker dem", () => {
   assert.deepEqual(parseNavHubOpenState(null), {});
   assert.deepEqual(parseNavHubOpenState("{"), {});
   assert.deepEqual(parseNavHubOpenState(JSON.stringify({ hr: false, unknown: true })), { hr: false });
+});
+
+test("testbedriften beholder alle funksjoner etter veiviseren", () => {
+  const chosen = BRANSJE_MODULES.construction.modules;
+  const hrefs = menuHrefsForSetup("test-bedrift", chosen, ["/dashboard/oppdrag"]);
+  assert.ok(hrefs.includes("/dashboard/oppdrag"));
+  assert.ok(hrefs.includes("/dashboard/ik-mat"));
+  assert.ok(hrefs.includes(chosen[0]));
+});
+
+test("andre bedrifter får bare modulene for valgt bransje", () => {
+  const chosen = BRANSJE_MODULES.hospitality.modules;
+  assert.deepEqual(menuHrefsForSetup("annen-bedrift", chosen, ["/dashboard/oppdrag"]), chosen);
 });
 
 test("nav-aktivitet treffer undersider uten å treffe søskenruter", () => {

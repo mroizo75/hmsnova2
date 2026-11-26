@@ -1436,7 +1436,7 @@
     "empty": "Ingen dokumenter tilgjengelig ennå",
     "kind": {
       "LAW": "⚖️ Lover og regler",
-      "PROCEDURE": "📋 Prosedyre (ISO 9001)",
+      "PROCEDURE": "📋 Prosedyre",
       "CHECKLIST": "✅ Sjekkliste",
       "FORM": "📝 Skjema",
       "SDS": "⚠️ Sikkerhetsdatablad (SDS)",
@@ -1697,7 +1697,7 @@
     },
     "kind": {
       "LAW": "⚖️ Lover og regler",
-      "PROCEDURE": "📋 Prosedyre (ISO 9001)",
+      "PROCEDURE": "📋 Prosedyre",
       "CHECKLIST": "✅ Sjekkliste",
       "FORM": "📝 Skjema",
       "SDS": "⚠️ Sikkerhetsdatablad (SDS)",
@@ -4425,7 +4425,7 @@
     },
     "kinds": {
       "LAW": "Lover og regler",
-      "PROCEDURE": "Prosedyre (ISO 9001)",
+      "PROCEDURE": "Prosedyre",
       "CHECKLIST": "Sjekkliste",
       "FORM": "Skjema",
       "SDS": "Sikkerhetsdatablad (SDS)",
@@ -5122,7 +5122,7 @@
     },
     "kind": {
       "LAW": "Lover og regler",
-      "PROCEDURE": "Prosedyre (ISO 9001)",
+      "PROCEDURE": "Prosedyre",
       "CHECKLIST": "Sjekkliste",
       "FORM": "Skjema",
       "SDS": "Sikkerhetsdatablad (SDS)",
@@ -5205,8 +5205,8 @@
   },
   "dashboardDocumentForm": {
     "title": "Last opp nytt dokument",
-    "description": "Dokumentet sendes til prosesseier og må godkjennes før bruk",
-    "ownerHelp": "Prosesseier er den som skal godkjenne. Dokumentet vises under Til godkjenning på Dokumenter og på Oversikt, merket med hvem det venter på.",
+    "description": "Dokumentet må godkjennes før bruk. Prosesseier, eller administrator og HMS, får varsel.",
+    "ownerHelp": "Prosesseier skal godkjenne og får varsel. Velger du Ingen, varsles administrator og HMS. Dokumentet vises under Til godkjenning på Dokumenter og på Oversikt.",
     "none": "Ingen",
     "global": "Global",
     "templateSelected": "Mal valgt",
@@ -5230,7 +5230,7 @@
     "kinds": {
       "LAW": "Lover og regler",
       "PLAN": "HMS-håndbok / Plan",
-      "PROCEDURE": "Prosedyre (ISO 9001)",
+      "PROCEDURE": "Prosedyre",
       "CHECKLIST": "Sjekkliste",
       "FORM": "Skjema",
       "SDS": "Sikkerhetsdatablad (SDS)",
@@ -5318,7 +5318,7 @@
     "kinds": {
       "LAW": "Lover og regler",
       "PLAN": "HMS-håndbok / Plan",
-      "PROCEDURE": "Prosedyre (ISO 9001)",
+      "PROCEDURE": "Prosedyre",
       "CHECKLIST": "Sjekkliste",
       "FORM": "Skjema",
       "SDS": "Sikkerhetsdatablad (SDS)",

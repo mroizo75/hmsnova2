@@ -1,8 +1,8 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { CustomizableDashboard } from "@/features/dashboard/components/customizable-dashboard";
 import { fetchDashboardData } from "@/server/queries/dashboard.queries";
+import { useServerQuery } from "@/hooks/use-server-query";
 
 type DashboardData = NonNullable<Awaited<ReturnType<typeof fetchDashboardData>>>;
 
@@ -11,7 +11,7 @@ interface DashboardContentProps {
 }
 
 export function DashboardContent({ initialData }: DashboardContentProps) {
-  const { data } = useQuery({
+  const { data } = useServerQuery({
     queryKey: ["dashboard"],
     queryFn: () => fetchDashboardData(),
     initialData,

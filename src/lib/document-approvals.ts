@@ -21,6 +21,24 @@ export type PendingApprovalGroup = {
   documents: PendingApprovalDocument[];
 };
 
+/** Hvem som skal ha varsel når et dokument venter på godkjenning. */
+export function approvalNotificationUserIds(input: {
+  ownerId: string | null;
+  actorUserId: string | null;
+  approverUserIds: string[];
+}): string[] {
+  const ids = new Set<string>();
+  if (input.ownerId) {
+    ids.add(input.ownerId);
+  } else {
+    for (const id of input.approverUserIds) {
+      if (id) ids.add(id);
+    }
+  }
+  if (input.actorUserId) ids.add(input.actorUserId);
+  return [...ids];
+}
+
 export function ownerDisplayName(owner: ApprovalOwner | null | undefined): string | null {
   if (!owner) return null;
   const name = owner.name?.trim();
