@@ -13,6 +13,7 @@ import { OfflineSyncBannerWrapper } from "@/components/offline-sync-banner-wrapp
 import { widgetIdsToMenuPaths } from "@/lib/menu-widget-sync";
 import { aliasDashboardMenuHrefs } from "@/lib/legal-link-repair";
 import { PendingReadConfirmations } from "@/features/documents/components/pending-read-confirmations";
+import { AdvisorChatSlot } from "@/features/hms-ai/components/advisor-chat-slot";
 export default async function DashboardLayout({
   children,
 }: {
@@ -122,6 +123,7 @@ export default async function DashboardLayout({
             {children}
           </div>
         </main>
+        <AdvisorChatSlot />
         <Toaster />
       </div>
     </DashboardProviders>

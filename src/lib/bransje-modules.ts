@@ -21,6 +21,16 @@ export const BASE_SIMPLE_MODULES: string[] = [
  * Alle lister starter med BASE_SIMPLE_MODULES + bransje-spesifikke tillegg.
  * Speiler Industry-enum i prisma/schema.prisma.
  */
+const staffingModules = [
+  ...BASE_SIMPLE_MODULES,
+  "/dashboard/oppdrag",
+  "/dashboard/time-registration",
+  "/dashboard/onboarding",
+  "/dashboard/personalarkiv",
+  "/dashboard/hr",
+  "/dashboard/fravaer",
+];
+
 export const BRANSJE_MODULES: Record<
   string,
   { label: string; modules: string[]; description: string }
@@ -222,6 +232,19 @@ export const BRANSJE_MODULES: Record<
     modules: [
       ...BASE_SIMPLE_MODULES,
     ],
+  },
+
+  // ── Bemanningsbyrå ────────────────────────────────────────────────────
+  // Nøkkelen staffing er bransjeverdien i registrering. bemanning er alias.
+  staffing: {
+    label: "Bemanning og vikar",
+    description: "Utleie av medarbeidere. Oppdrag, kompetanse og innføring hos innleier.",
+    modules: staffingModules,
+  },
+  bemanning: {
+    label: "Bemanning og vikar",
+    description: "Utleie av medarbeidere. Oppdrag, kompetanse og innføring hos innleier.",
+    modules: staffingModules,
   },
 
   // ── Annet ─────────────────────────────────────────────────────────────

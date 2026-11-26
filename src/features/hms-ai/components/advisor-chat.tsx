@@ -26,6 +26,11 @@ export function AdvisorChat() {
     const text = input.trim()
     if (!text || loading) return
 
+    const history = messages
+      .filter((msg) => msg.role === "user" || msg.role === "assistant")
+      .slice(-8)
+      .map((msg) => ({ role: msg.role, content: msg.content }))
+
     setInput("")
     setMessages((prev) => [...prev, { role: "user", content: text }])
     setLoading(true)
@@ -34,7 +39,7 @@ export function AdvisorChat() {
       const res = await fetch("/api/hms-cockpit/advisor", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: text, history }),
       })
 
       const data = await res.json()
@@ -63,7 +68,7 @@ export function AdvisorChat() {
     return (
       <Button
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 rounded-full h-14 w-14 shadow-lg z-50"
+        className="fixed bottom-24 right-4 z-50 h-14 w-14 rounded-full shadow-lg lg:bottom-6 lg:right-6"
         size="icon"
       >
         <MessageCircle className="h-6 w-6" />
@@ -72,7 +77,7 @@ export function AdvisorChat() {
   }
 
   return (
-    <Card className="fixed bottom-6 right-6 w-96 h-[500px] shadow-2xl z-50 flex flex-col">
+    <Card className="fixed bottom-24 right-4 z-50 flex h-[min(500px,70dvh)] w-[min(24rem,calc(100vw-2rem))] flex-col shadow-2xl lg:bottom-6 lg:right-6">
       <CardHeader className="pb-2 flex-row items-center justify-between">
         <div className="flex items-center gap-2">
           <Bot className="h-5 w-5 text-primary" />
@@ -93,8 +98,8 @@ export function AdvisorChat() {
           {messages.length === 0 && (
             <div className="text-center text-sm text-muted-foreground py-8">
               <Bot className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
-              <p>Hei! Spør meg om HMS-status,</p>
-              <p>forbedringsforslag eller regelverk.</p>
+              <p>Jeg svarer bare på HMS for denne virksomheten.</p>
+              <p>Spør om status, oppgaver eller regelverk.</p>
               <div className="mt-3 space-y-1">
                 {[
                   "Hva bør vi fokusere på?",

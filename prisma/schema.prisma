@@ -182,6 +182,8 @@ model User {
   competenceRatings               EmployeeCompetenceRating[]     @relation("CompetenceRatingSubject")
   competenceRatingsGiven          EmployeeCompetenceRating[]     @relation("CompetenceRatingAssessor")
   hazardousWasteDeliveries        HazardousWasteDelivery[]       @relation("HazardousWasteDeclaredBy")
+  staffingAssignments             Assignment[]                   @relation("AssignmentEmployee")
+  staffingAssignmentsCreated      Assignment[]                   @relation("AssignmentCreatedBy")
   personnelDocuments              PersonnelDocument[]            @relation("PersonnelEmployee")
   personnelDocumentsUploaded      PersonnelDocument[]            @relation("PersonnelUploadedBy")
   whistleblowGrantsReceived       WhistleblowAccessGrant[]       @relation("WhistleblowGrantGrantee")
@@ -480,6 +482,8 @@ model Tenant {
   hmsTavler                           HmsTavle[]
   tavleSubscription                   HmsTavleSubscription?
   projects                            Project[]
+  clientWorkplaces                    ClientWorkplace[]
+  staffingAssignments                 Assignment[]
   constructionShaPlans                ConstructionShaPlan[]
   constructionPreNotifications        ConstructionPreNotification[]
   constructionRosterEntries           ConstructionRosterEntry[]
@@ -2183,6 +2187,8 @@ model Incident {
   departmentId             String?
   // Prosjektkobling (valgfritt – AML § 3-1 systematisk HMS per arbeidssted)
   projectId                String?
+  // Utleieoppdrag hos innleier (AML § 2-2 samordning, § 3-1 arbeidssted)
+  assignmentId             String?
   // Fritekst prosjektnummer/referanse for sporbarhet når prosjektet ikke er registrert
   projectReference         String?
   // FuA § 13-4: avvik på arbeidsutstyr med godkjenning
@@ -2208,6 +2214,7 @@ model Incident {
   risk               Risk?               @relation("IncidentRiskReference", fields: [riskReferenceId], references: [id])
   department         Department?         @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   project            Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  assignment         Assignment?         @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
   equipmentApproval  EquipmentApproval?  @relation(fields: [equipmentApprovalId], references: [id], onDelete: SetNull)
   supplier           Supplier?           @relation(fields: [supplierId], references: [id], onDelete: SetNull)
   relatedRoutine     Routine?            @relation("IncidentRelatedRoutine", fields: [relatedRoutineId], references: [id], onDelete: SetNull)
@@ -2227,6 +2234,7 @@ model Incident {
   @@index([riskReferenceId])
   @@index([departmentId])
   @@index([projectId])
+  @@index([assignmentId])
   @@index([equipmentApprovalId])
   @@index([supplierId])
   @@index([relatedRoutineId])
@@ -2454,6 +2462,7 @@ model SjaAnalysis {
   approvedByName String?
   approvedAt     DateTime?
   projectId      String?
+  assignmentId   String?
   sourceRiskAssessmentId String?
 
   createdAt DateTime @default(now())
@@ -2464,6 +2473,7 @@ model SjaAnalysis {
   participantRecords SjaParticipant[]
   attachments Attachment[] @relation("SjaAttachments")
   project     Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  assignment  Assignment?  @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
   sourceRiskAssessment RiskAssessment? @relation("SjaSourceRiskAssessment", fields: [sourceRiskAssessmentId], references: [id], onDelete: SetNull)
   mocLinks    MocSjaLink[]
 
@@ -2473,6 +2483,7 @@ model SjaAnalysis {
   @@index([plannedDate])
   @@index([createdById])
   @@index([projectId])
+  @@index([assignmentId])
   @@index([sourceRiskAssessmentId])
 }
 
@@ -5313,6 +5324,7 @@ model Project {
   checklistRuns               ChecklistRun[]
   hmsTavle                    HmsTavle?
   resourceAssignments         ResourceAssignment[]
+  staffingAssignments         Assignment[]
   absences                    Absence[]
   managementOfChanges         ManagementOfChange[]
 
@@ -5831,6 +5843,77 @@ model ResourceAssignment {
   @@index([tenantId, startDate])
   @@index([userId, startDate])
   @@index([projectId])
+}
+
+/// Innleier og arbeidsstedet der utleid medarbeider jobber. AML § 2-2.
+model ClientWorkplace {
+  id             String   @id @default(cuid())
+  tenantId       String
+  name           String
+  orgNumber      String?
+  contactName    String?
+  contactPhone   String?
+  contactEmail   String?
+  address        String?
+  /// Bransje på arbeidsstedet, ikke byråets egen bransje.
+  industry       String?
+  siteLeaderName String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assignments Assignment[]
+
+  @@index([tenantId])
+  @@index([tenantId, name])
+}
+
+enum AssignmentStatus {
+  PLANLAGT
+  KLAR
+  UTPLASSERT
+  AVSLUTTET
+}
+
+/// Utleieoppdrag: medarbeider hos en innleier i en periode.
+/// Kompetanseport og innføring skal være på plass før UTPLASSERT. AML § 3-2, § 2-2.
+model Assignment {
+  id                   String           @id @default(cuid())
+  tenantId             String
+  userId               String
+  projectId            String?
+  clientWorkplaceId    String
+  competenceProfileId  String?
+  roleTitle            String?
+  status               AssignmentStatus @default(PLANLAGT)
+  startDate            DateTime         @db.Date
+  endDate              DateTime?        @db.Date
+  /// Innføring på arbeidsstedet: clientRules, emergencyExits, ppe, reportsTo, employeeConfirmed.
+  induction            Json?
+  inductionCompletedAt DateTime?
+  coordinationNoted    Boolean          @default(false)
+  coordinationAt       DateTime?
+  coordinationContact  String?
+  clientRiskReceived   Boolean          @default(false)
+  notes                String?          @db.Text
+  createdById          String
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  tenant             Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user               User               @relation("AssignmentEmployee", fields: [userId], references: [id], onDelete: Restrict)
+  createdBy          User               @relation("AssignmentCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  project            Project?           @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  clientWorkplace    ClientWorkplace    @relation(fields: [clientWorkplaceId], references: [id], onDelete: Restrict)
+  competenceProfile  CompetenceProfile? @relation(fields: [competenceProfileId], references: [id], onDelete: SetNull)
+  incidents          Incident[]
+  sjaAnalyses        SjaAnalysis[]
+
+  @@index([tenantId, status])
+  @@index([userId])
+  @@index([projectId])
+  @@index([clientWorkplaceId])
+  @@index([competenceProfileId])
 }
 
 enum TimeBankEntryKind {
@@ -8183,6 +8266,7 @@ model CompetenceProfile {
   requirements CompetenceRequirement[]
   users        UserCompetenceProfile[]
   statements   CompetenceStatement[]
+  assignments  Assignment[]
   createdAt    DateTime                @default(now())
   updatedAt    DateTime                @updatedAt
 

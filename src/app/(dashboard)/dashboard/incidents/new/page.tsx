@@ -15,6 +15,8 @@ type PageSearchParams =
   | Promise<{
       type?: IncidentType;
       projectId?: string;
+      assignmentId?: string;
+      oppdrag?: string;
       equipmentId?: string;
       tablet?: string;
       template?: "homeVisitRisk" | "violenceThreat" | "infectionExposure";
@@ -22,6 +24,8 @@ type PageSearchParams =
   | {
       type?: IncidentType;
       projectId?: string;
+      assignmentId?: string;
+      oppdrag?: string;
       equipmentId?: string;
       tablet?: string;
       template?: "homeVisitRisk" | "violenceThreat" | "infectionExposure";
@@ -64,6 +68,8 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
     : (searchParams as {
         type?: IncidentType;
         projectId?: string;
+        assignmentId?: string;
+        oppdrag?: string;
         equipmentId?: string;
         tablet?: string;
         template?: "homeVisitRisk" | "violenceThreat" | "infectionExposure";
@@ -140,6 +146,7 @@ export default async function NewIncidentPage({ searchParams }: { searchParams?:
     type: resolvedSearchParams?.type ?? preset?.type,
     departmentId: selectedMembership.departmentId ?? undefined,
     projectId: resolvedSearchParams?.projectId,
+    assignmentId: resolvedSearchParams?.oppdrag ?? resolvedSearchParams?.assignmentId,
     equipmentId: resolvedSearchParams?.equipmentId,
     title: preset ? tForm(preset.titleKey) : undefined,
     description: preset ? tForm(preset.descriptionKey) : undefined,

@@ -397,6 +397,16 @@ export async function createSjaAnalysis(input: any) {
       }
     }
 
+    if (validated.assignmentId) {
+      const assignment = await prisma.assignment.findFirst({
+        where: { id: validated.assignmentId, tenantId },
+        select: { id: true },
+      });
+      if (!assignment) {
+        return { success: false, error: "Oppdrag ikke funnet for valgt tenant" };
+      }
+    }
+
     const tenantSettings = await prisma.tenant.findUnique({
       where: { id: validated.tenantId },
       select: { sjaApprovalRequired: true, moduleVisibilityConfig: true },
@@ -438,6 +448,7 @@ export async function createSjaAnalysis(input: any) {
         requiresSecondPerson: validated.requiresSecondPerson,
         secondPersonException: validated.secondPersonException ?? null,
         projectId: validated.projectId ?? null,
+        assignmentId: validated.assignmentId ?? null,
         submittedAt: new Date(),
         signedByNames: validated.participants,
         status: submitted.status,
@@ -489,6 +500,10 @@ export async function createSjaAnalysis(input: any) {
     revalidatePath("/dashboard/sja");
     if (validated.projectId) {
       revalidatePath(`/dashboard/projects/${validated.projectId}`);
+    }
+    if (validated.assignmentId) {
+      revalidatePath(`/dashboard/oppdrag/${validated.assignmentId}`);
+      revalidatePath("/dashboard/sja");
     }
     revalidatePath("/ansatt/sja");
     triggerRealtimeEvent(tenantId, "sja-updated");
@@ -552,6 +567,15 @@ export async function saveSjaDraft(input: any) {
 
     const title = String(input.title ?? "").trim() || `Utkast — ${new Date().toLocaleDateString("nb-NO")}`;
     const workLocation = String(input.workLocation ?? "").trim() || "Ikke angitt";
+    if (input.assignmentId) {
+      const assignment = await prisma.assignment.findFirst({
+        where: { id: String(input.assignmentId), tenantId },
+        select: { id: true },
+      });
+      if (!assignment) {
+        return { success: false, error: "Oppdrag ikke funnet for valgt tenant" };
+      }
+    }
     const plannedDate = input.plannedDate ? new Date(input.plannedDate) : new Date();
 
     const hazards = (input.hazards ?? [])
@@ -630,6 +654,9 @@ export async function saveSjaDraft(input: any) {
             ? String(input.secondPersonException).trim()
             : null,
           projectId: input.projectId || null,
+          ...(typeof input.assignmentId === "string" && input.assignmentId
+            ? { assignmentId: input.assignmentId }
+            : {}),
           sourceRiskAssessmentId,
           contentVersion: new Date(),
           updatedAt: new Date(),
@@ -682,6 +709,7 @@ export async function saveSjaDraft(input: any) {
           ? String(input.secondPersonException).trim()
           : null,
         projectId: input.projectId || null,
+        assignmentId: input.assignmentId || null,
         status: SjaStatus.DRAFT,
         conclusion: SjaConclusion.NOT_DECIDED,
         hazards:

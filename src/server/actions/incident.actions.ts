@@ -140,6 +140,7 @@ const normalizeSuggestedMeasures = (value: unknown): string[] => {
 const assertTenantScopedRelations = async (input: {
   tenantId: string;
   projectId?: string | null;
+  assignmentId?: string | null;
   departmentId?: string | null;
   riskReferenceId?: string | null;
   reportedForUserId?: string | null;
@@ -165,6 +166,16 @@ const assertTenantScopedRelations = async (input: {
     });
     if (!project) {
       throw new Error("Prosjekt finnes ikke i valgt tenant");
+    }
+  }
+
+  if (input.assignmentId) {
+    const assignment = await prisma.assignment.findFirst({
+      where: { id: input.assignmentId, tenantId: input.tenantId },
+      select: { id: true },
+    });
+    if (!assignment) {
+      throw new Error("Oppdrag finnes ikke i valgt tenant");
     }
   }
 
@@ -395,6 +406,7 @@ export async function createIncident(input: any) {
     await assertTenantScopedRelations({
       tenantId,
       projectId: validated.projectId ?? null,
+      assignmentId: validated.assignmentId ?? null,
       departmentId: validated.departmentId ?? null,
       riskReferenceId: validated.riskReferenceId ?? null,
       reportedForUserId: validated.reportedForUserId ?? null,
@@ -443,6 +455,7 @@ export async function createIncident(input: any) {
         departmentId: validated.departmentId ?? null,
         // Prosjektkobling
         projectId,
+        assignmentId: validated.assignmentId ?? null,
         projectReference,
         // Underkategorier
         subcategoryKeys: validated.subcategoryKeys?.length
@@ -569,6 +582,7 @@ export async function updateIncident(input: any) {
     await assertTenantScopedRelations({
       tenantId,
       projectId: validated.projectId,
+      assignmentId: validated.assignmentId,
       riskReferenceId: validated.riskReferenceId,
     });
     
@@ -606,6 +620,7 @@ export async function updateIncident(input: any) {
     if (validated.responseDeadline !== undefined) updateData.responseDeadline = validated.responseDeadline ?? null;
     if (validated.customerSatisfaction !== undefined) updateData.customerSatisfaction = validated.customerSatisfaction ?? null;
     if (validated.projectId !== undefined) updateData.projectId = validated.projectId ?? null;
+    if (validated.assignmentId !== undefined) updateData.assignmentId = validated.assignmentId ?? null;
     if (validated.projectReference !== undefined) {
       updateData.projectReference = normalizeProjectReference(validated.projectReference);
     }

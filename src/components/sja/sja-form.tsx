@@ -128,6 +128,7 @@ interface SjaFormProps {
   currentUserId: string;
   userName: string;
   projectId?: string;
+  assignmentId?: string;
   projects?: Array<{
     id: string;
     name: string;
@@ -171,6 +172,7 @@ export function SjaForm({
   currentUserId,
   userName,
   projectId,
+  assignmentId,
   projects = [],
   risks = [],
   riskAssessments = [],
@@ -580,6 +582,7 @@ export function SjaForm({
     const payload = {
       tenantId,
       projectId: selectedProjectId === "__none__" ? undefined : selectedProjectId,
+      assignmentId,
       title: formData.get("title") as string,
       description: formText(formData, "description"),
       workLocation: formData.get("workLocation") as string,
@@ -705,6 +708,7 @@ export function SjaForm({
         id: draftId || undefined,
         tenantId,
         projectId: selectedProjectId === "__none__" ? undefined : selectedProjectId,
+      assignmentId,
         title: titleEl?.value || "",
         description: descriptionEl?.value || "",
         workLocation: workLocationEl?.value || "",

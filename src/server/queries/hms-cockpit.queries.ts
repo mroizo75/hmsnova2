@@ -60,14 +60,11 @@ export async function fetchHmsCockpitData() {
       }),
     ]);
 
-  const hasOpenAiKey = !!process.env.OPENAI_API_KEY;
-
   return JSON.parse(JSON.stringify({
     latestScore,
     scoreHistory,
     activeSuggestions,
     recentLogs,
     activePatterns,
-    hasOpenAiKey,
   }));
 }

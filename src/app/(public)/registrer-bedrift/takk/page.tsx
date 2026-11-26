@@ -93,11 +93,11 @@ export default function TakkPage() {
               <h3 className="font-semibold mb-3">Har du spørsmål i mellomtiden?</h3>
               <div className="flex flex-col sm:flex-row gap-4 justify-center text-sm">
                 <a
-                  href="mailto:support@hmsnova.com"
+                  href="mailto:post@hmsnova.no"
                   className="inline-flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground"
                 >
                   <Mail className="h-4 w-4" />
-                  support@hmsnova.com
+                  post@hmsnova.no
                 </a>
                 <a
                   href="tel:+4741874010"

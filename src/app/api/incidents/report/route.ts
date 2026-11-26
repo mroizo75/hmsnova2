@@ -98,6 +98,8 @@ export async function POST(request: NextRequest) {
     const departmentId =
       rawDepartmentId && rawDepartmentId !== "__none__" ? rawDepartmentId : null;
     const projectId = (formData.get("projectId") as string | null) || null;
+    const rawAssignmentId = (formData.get("assignmentId") as string | null)?.trim() || null;
+    const assignmentId = rawAssignmentId && rawAssignmentId !== "__none__" ? rawAssignmentId : null;
     const projectReference = normalizeProjectReference(formData.get("projectReference"));
     const rawEquipmentId = (formData.get("equipmentApprovalId") as string | null)?.trim() || null;
     const equipmentApprovalId =
@@ -202,6 +204,18 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    let validatedAssignmentId: string | null = null;
+    if (assignmentId) {
+      const assignment = await prisma.assignment.findFirst({
+        where: { id: assignmentId, tenantId },
+        select: { id: true },
+      });
+      if (!assignment) {
+        return NextResponse.json({ error: "Oppdrag ikke funnet" }, { status: 400 });
+      }
+      validatedAssignmentId = assignment.id;
+    }
+
     let validatedEquipmentId: string | null = null;
     if (equipmentApprovalId) {
       const equipment = await prisma.equipmentApproval.findFirst({
@@ -239,6 +253,7 @@ export async function POST(request: NextRequest) {
         subcategoryKeys,
         departmentId: validatedDepartmentId,
         projectId: validatedProjectId,
+        assignmentId: validatedAssignmentId,
         projectReference,
         equipmentApprovalId: validatedEquipmentId,
         customerName,

@@ -37,6 +37,7 @@ const aiVerificationSchema = z.object({
 export const createSjaSchema = z.object({
   tenantId: z.string().cuid(),
   projectId: z.string().cuid().nullish(),
+  assignmentId: z.string().cuid().nullish(),
   title: z.string().min(3, "Tittel må være minst 3 tegn"),
   description: z.string().nullish(),
   workLocation: z.string().min(1, "Arbeidssted er påkrevd"),

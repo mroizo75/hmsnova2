@@ -72,6 +72,7 @@ export function ReportIncidentForm({
     location?: string;
     immediateAction?: string;
     projectId?: string;
+    assignmentId?: string;
     departmentId?: string;
     equipmentId?: string;
   };
@@ -235,6 +236,9 @@ export function ReportIncidentForm({
     }
     if (projectId !== NO_PROJECT) {
       formData.set("projectId", projectId);
+    }
+    if (defaultValues?.assignmentId) {
+      formData.set("assignmentId", defaultValues.assignmentId);
     }
     if (equipmentId !== NO_EQUIPMENT) {
       formData.set("equipmentApprovalId", equipmentId);

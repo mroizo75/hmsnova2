@@ -44,7 +44,7 @@ export function getDocumentDeliveryEmail({
   downloadLinks,
 }: DocumentDeliveryEmailProps): { subject: string; html: string } {
   const dashboardUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://hmsnova.no";
-  const supportEmail = process.env.SUPPORT_EMAIL ?? "post@hmsnova.no";
+  const supportEmail = "post@hmsnova.no";
   const logoBase64 = getLogoBase64();
 
   const html = `
@@ -252,7 +252,7 @@ export function getActivationEmail({
 }: ActivationEmailProps): string {
   const logoBase64 = getLogoBase64();
   const dashboardUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://hmsnova.no";
-  const supportEmail = process.env.SUPPORT_EMAIL ?? "post@hmsnova.no";
+  const supportEmail = "post@hmsnova.no";
 
   return `
 <!DOCTYPE html>
@@ -348,7 +348,7 @@ export function getContractAcceptanceEmail({
 }: ContractAcceptanceEmailProps): string {
   const logoBase64 = getLogoBase64();
   const dashboardUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://hmsnova.no";
-  const supportEmail = process.env.SUPPORT_EMAIL ?? "post@hmsnova.no";
+  const supportEmail = "post@hmsnova.no";
   const formatDate = (date: Date) =>
     date.toLocaleDateString("nb-NO", { day: "2-digit", month: "long", year: "numeric" });
 
@@ -437,7 +437,7 @@ export function getCustomerWelcomeEmail({
 }: CustomerWelcomeEmailProps): string {
   const logoBase64 = getLogoBase64();
   const dashboardUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://hmsnova.no";
-  const supportEmail = process.env.SUPPORT_EMAIL ?? "post@hmsnova.no";
+  const supportEmail = "post@hmsnova.no";
 
   return `
 <!DOCTYPE html>

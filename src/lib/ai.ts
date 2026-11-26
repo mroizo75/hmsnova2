@@ -7,6 +7,7 @@ import { createHash } from "crypto";
 import { Redis } from "@upstash/redis";
 import { prisma } from "@/lib/db";
 import { retrieveRelevantContext, formatContextForPrompt } from "@/lib/ai-knowledge-base";
+import { composeHmsSystemPrompt, resolveAiCacheScope, sanitizeChatHistory } from "@/lib/hms-ai-policy";
 
 const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
 const hasUpstashConfig = Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
@@ -104,10 +105,14 @@ interface GenerateAIResponseOptions {
   tenantId?: string;
   /** Hopp over tenant.aiEnabled. Brukes kun av interne kall som har egen autorisering. */
   skipTenantAiGate?: boolean;
-  /** Overstyr standard HMS-systemprompt. */
+  /** Oppgaveprompt. Det faste HMS-gjerdet legges alltid foran og kan ikke fjernes. */
   systemPrompt?: string;
   /** Søkefritekst mot AI-kunnskapsbasen (RAG - lovtekst/rutinemaler). Gir mer presise, lovforankrede svar. Utelates hvis ikke satt. */
   ragQuery?: string;
+  /** Tidligere bruker- og assistantsvar. Systemrolle fra klienten tas ikke med. */
+  history?: unknown;
+  /** Svaret bygger på data fra én tenant og skal ikke deles via global cache. */
+  includesTenantContext?: boolean;
 }
 
 /** Henter RAG-kontekst trygt - feil her skal aldri stoppe selve AI-kallet, kun gi mindre presist svar. */
@@ -241,6 +246,21 @@ async function checkAndTrackBudget(scope: string, estimatedCostUsd: number): Pro
   }
 }
 
+function defaultHmsTaskPrompt(ragContext: string): string {
+  return `Du er en erfaren HMS-rådgiver og yrkeshygieniker som jobber for en godkjent bedriftshelsetjeneste i Norge. 
+Du gir faglige råd basert på norsk arbeidsmiljølovgivning (AML), forskrift om organisering, ledelse og medvirkning, 
+internkontrollforskriften, og BHT-forskriften. Svar alltid på norsk. Vær konkret og praktisk orientert.${
+    ragContext ? `\n\n${ragContext}` : ""
+  }`;
+}
+
+function guardedSystemPrompt(taskPrompt: string | undefined, ragContext: string): string {
+  const task = taskPrompt?.trim()
+    ? `${taskPrompt.trim()}${ragContext ? `\n\n${ragContext}` : ""}`
+    : defaultHmsTaskPrompt(ragContext);
+  return composeHmsSystemPrompt(task);
+}
+
 /**
  * Generer AI-respons via OpenAI API
  */
@@ -261,28 +281,29 @@ export async function generateAIResponse(
   }
 
   const ragContext = await buildRagContextBlock(options?.ragQuery);
-  const defaultSystemPrompt = `Du er en erfaren HMS-rådgiver og yrkeshygieniker som jobber for en godkjent bedriftshelsetjeneste i Norge. 
-Du gir faglige råd basert på norsk arbeidsmiljølovgivning (AML), forskrift om organisering, ledelse og medvirkning, 
-internkontrollforskriften, og BHT-forskriften. Svar alltid på norsk. Vær konkret og praktisk orientert.${
-    ragContext ? `\n\n${ragContext}` : ""
-  }`;
-  const systemPrompt = options?.systemPrompt ?? defaultSystemPrompt;
+  const systemPrompt = guardedSystemPrompt(options?.systemPrompt, ragContext);
+  const history = sanitizeChatHistory(options?.history);
 
   const messages: ChatMessage[] = [
     {
       role: "system",
       content: systemPrompt,
     },
+    ...history.map((turn) => ({ role: turn.role, content: turn.content })),
     {
       role: "user",
       content: prompt,
     },
   ];
 
-  const cacheScope = options?.cacheScope || "global";
+  const cacheScope = resolveAiCacheScope({
+    cacheScope: options?.cacheScope,
+    tenantId: options?.tenantId,
+    includesTenantContext: options?.includesTenantContext,
+  });
   const rateLimitScope = options?.rateLimitScope || "global";
   const budgetScope = options?.budgetScope || "global";
-  const payloadFingerprint = `${model}:${prompt}:${options?.ragQuery ?? ""}`;
+  const payloadFingerprint = `${model}:${prompt}:${options?.ragQuery ?? ""}:${JSON.stringify(history)}`;
   const payloadHash = hashValue(payloadFingerprint);
   const cacheKey = `ai:cache:${cacheScope}:${payloadHash}`;
 
@@ -364,11 +385,7 @@ export async function generateAIResponseWithVision(
   }
 
   const ragContext = await buildRagContextBlock(options?.ragQuery);
-  const systemPrompt = `Du er en erfaren HMS-rådgiver og yrkeshygieniker som jobber for en godkjent bedriftshelsetjeneste i Norge. 
-Du gir faglige råd basert på norsk arbeidsmiljølovgivning (AML), forskrift om organisering, ledelse og medvirkning, 
-internkontrollforskriften, og BHT-forskriften. Svar alltid på norsk. Vær konkret og praktisk orientert.${
-    ragContext ? `\n\n${ragContext}` : ""
-  }`;
+  const systemPrompt = guardedSystemPrompt(options?.systemPrompt, ragContext);
 
   const messages: ChatMessage[] = [
     {
@@ -381,7 +398,11 @@ internkontrollforskriften, og BHT-forskriften. Svar alltid på norsk. Vær konkr
     },
   ];
 
-  const cacheScope = options?.cacheScope || "global";
+  const cacheScope = resolveAiCacheScope({
+    cacheScope: options?.cacheScope,
+    tenantId: options?.tenantId,
+    includesTenantContext: options?.includesTenantContext,
+  });
   const rateLimitScope = options?.rateLimitScope || "global";
   const budgetScope = options?.budgetScope || "global";
   const visionFingerprint = `${model}:${textPrompt}:${options?.ragQuery ?? ""}:${images.map((i) => `${i.mime}:${i.base64.length}:${hashValue(i.base64.slice(0, 4096))}`).join("|")}`;

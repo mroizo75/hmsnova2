@@ -54,7 +54,8 @@ export type NavPermission =
   | "benchmark"
   | "hmsCockpit"
   | "templates"
-  | "checklists";
+  | "checklists"
+  | "assignments";
 
 /**
  * Arbeidsflyt-gruppering for menyen. Endrer kun IA/gruppering – ingen
@@ -156,6 +157,7 @@ export const DASHBOARD_NAV_CONFIG: DashboardNavItemConfig[] = [
   { href: "/dashboard/bht-nattarbeid", label: "nav.bhtNattarbeid", permission: "bhtNattarbeid", defaultSimple: false, coreHub: "skjema" },
 
   { href: "/dashboard/projects", label: "nav.projects", permission: "incidents", defaultSimple: true, coreHub: "organisasjon" },
+  { href: "/dashboard/oppdrag", label: "nav.assignments", permission: "assignments", defaultSimple: false, coreHub: "organisasjon" },
   { href: "/dashboard/time-registration", label: "nav.timeRegistration", permission: "timeRegistration", defaultSimple: true, coreHub: "organisasjon" },
   { href: "/dashboard/training", label: "nav.training", permission: "training", defaultSimple: true, coreHub: "organisasjon" },
   { href: "/dashboard/meetings", label: "nav.meetings", permission: "meetings", defaultSimple: false, coreHub: "organisasjon" },

@@ -45,6 +45,7 @@ export const createIncidentSchema = z.object({
   departmentId: z.string().cuid().optional(),
   // Prosjektkobling
   projectId: z.string().cuid().optional(),
+  assignmentId: z.string().cuid().optional(),
   // FuA § 13-4: avvik på arbeidsutstyr med godkjenning
   equipmentApprovalId: z.string().cuid().optional(),
   // Fritekst prosjektnummer/adresse for oppdrag som ikke er registrert som prosjekt
@@ -94,6 +95,7 @@ export const updateIncidentSchema = z.object({
   customerSatisfaction: z.number().int().min(1).max(5).optional().nullable(),
   // Prosjektkobling
   projectId: z.string().cuid().optional().nullable(),
+  assignmentId: z.string().cuid().optional().nullable(),
   projectReference: z.string().max(PROJECT_REFERENCE_MAX_LENGTH).optional().nullable(),
   // Underkategorier
   subcategoryKeys: z.array(z.string()).optional(),

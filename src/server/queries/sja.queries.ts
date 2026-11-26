@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/db";
 import { getAuthContext } from "@/lib/server-authorization";
 
-export async function fetchSjaList() {
+export async function fetchSjaList(options?: { assignmentId?: string }) {
   const auth = await getAuthContext();
   if (!auth) return { analyses: [], templates: [] };
   const { permissions, tenantId, userId } = auth;
@@ -16,10 +16,11 @@ export async function fetchSjaList() {
   }
 
   const ownerFilter = canReadAll ? {} : { createdById: userId };
+  const assignmentFilter = options?.assignmentId ? { assignmentId: options.assignmentId } : {};
 
   const [analyses, templates] = await Promise.all([
     prisma.sjaAnalysis.findMany({
-      where: { tenantId, ...ownerFilter },
+      where: { tenantId, ...ownerFilter, ...assignmentFilter },
       include: {
         hazards: { select: { id: true, riskLevel: true } },
       },

@@ -21,7 +21,6 @@ import { ScoreRadar } from "@/features/hms-ai/components/score-radar";
 import { ScoreTrendChart } from "@/features/hms-ai/components/score-trend-chart";
 import { SuggestionCard } from "@/features/hms-ai/components/suggestion-card";
 import { ImprovementTimeline } from "@/features/hms-ai/components/improvement-timeline";
-import { AdvisorChat } from "@/features/hms-ai/components/advisor-chat";
 import { fetchHmsCockpitData } from "@/server/queries/hms-cockpit.queries";
 
 type CockpitData = NonNullable<Awaited<ReturnType<typeof fetchHmsCockpitData>>>;
@@ -272,7 +271,6 @@ export function HmsCockpitContent({ initialData }: HmsCockpitContentProps) {
         </CardContent>
       </Card>
 
-      {data.hasOpenAiKey && <AdvisorChat />}
     </>
   );
 }

@@ -397,7 +397,7 @@ export async function submitRegistrationRequest(formData: FormData) {
       try {
         await resend.emails.send({
           from: process.env.RESEND_FROM_EMAIL ?? "HMS Nova <noreply@hmsnova.no>",
-          to: "kenneth@kksas.no",
+          to: AI_ADDON_BILLING_EMAIL,
           subject: `🎯 Ny kunde registrert: ${validated.companyName}`,
           html: getAdminNotificationEmail({
             companyName: validated.companyName,

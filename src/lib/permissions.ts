@@ -1449,6 +1449,7 @@ export function getVisibleNavItems(role: Role, extraRoles?: string | readonly Ro
     risks: perms.canReadRisks,
     riskRegister: perms.canReadRisks,
     incidents: perms.canReadIncidents || perms.canCreateIncidents,
+    assignments: perms.canReadIncidents,
     hseStatistics: perms.canReadIncidents || perms.canCreateIncidents,
     ruh: perms.canReadRuh || perms.canCreateRuh,
     sja: perms.canReadSja || perms.canCreateSja,

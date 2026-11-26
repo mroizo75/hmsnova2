@@ -224,6 +224,11 @@ export default async function TenantsPage({
               <CardTitle>Alle bedrifter ({totalItems})</CardTitle>
               <CardDescription>
                 Klikk på en bedrift for å se detaljer. Sist inne er siste gang noen i bedriften var i systemet. Engasjement ser på det sammen med avvik og dokumenter siste 30 dager.
+                {isSuperAdmin && selfAiCount > 0 && (
+                  <span className="mt-1 block font-medium text-foreground">
+                    {selfAiCount} {selfAiCount === 1 ? "bedrift har" : "bedrifter har"} skrudd på AI selv og skal faktureres {AI_ADDON_NET_MONTHLY_NOK} kr/mnd + mva. Det er ikke det samme som å legge AI inn i avtalen.
+                  </span>
+                )}
                 {isSuperAdmin && (
                   <span className="mt-2 flex flex-wrap gap-2">
                     <Link
@@ -265,7 +270,7 @@ export default async function TenantsPage({
                           : "text-muted-foreground"
                       }`}
                     >
-                      AI selv ({selfAiCount})
+                      AI å fakturere ({selfAiCount})
                     </Link>
                     <Link
                       href={buildListHref(searchTerm, {
@@ -302,6 +307,7 @@ export default async function TenantsPage({
                   {isSuperAdmin && <TableHead>Avtale</TableHead>}
                   {isSuperAdmin && <TableHead>Abonnement</TableHead>}
                   {isSuperAdmin && <TableHead>AI</TableHead>}
+                  {isSuperAdmin && <TableHead>AI i avtale</TableHead>}
                   {isSuperAdmin && <TableHead className="text-center">Brukere</TableHead>}
                   {isSuperAdmin && <TableHead>Sist inne</TableHead>}
                   <TableHead className="text-center">Aktivitet (30d)</TableHead>
@@ -398,12 +404,19 @@ export default async function TenantsPage({
                     )}
                     {isSuperAdmin && (
                       <TableCell>
-                        <TenantAiCell
-                          tenantId={tenant.id}
-                          tenantName={tenant.name}
+                        <TenantAiStatus
                           aiEnabled={tenant.aiEnabled}
                           aiIncludedInAgreement={tenant.aiIncludedInAgreement}
                           aiAddonActivatedAt={tenant.aiAddonActivatedAt}
+                        />
+                      </TableCell>
+                    )}
+                    {isSuperAdmin && (
+                      <TableCell>
+                        <AdminAiIncludedSwitch
+                          tenantId={tenant.id}
+                          tenantName={tenant.name}
+                          included={tenant.aiIncludedInAgreement}
                         />
                       </TableCell>
                     )}
@@ -499,45 +512,43 @@ function buildListHref(
   });
 }
 
-function TenantAiCell({
-  tenantId,
-  tenantName,
+function TenantAiStatus({
   aiEnabled,
   aiIncludedInAgreement,
   aiAddonActivatedAt,
 }: {
-  tenantId: string;
-  tenantName: string;
   aiEnabled: boolean;
   aiIncludedInAgreement: boolean;
   aiAddonActivatedAt: Date | null;
 }) {
   const source = getTenantAiSource({ aiEnabled, aiIncludedInAgreement });
 
-  return (
-    <div className="space-y-1.5">
-      {source === "self" ? (
-        <div>
-          <Badge variant="secondary">Selvvalgt</Badge>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {AI_ADDON_NET_MONTHLY_NOK} kr/mnd + mva
+  if (source === "self") {
+    return (
+      <div>
+        <Badge>Skal faktureres</Badge>
+        <p className="mt-1 text-xs font-medium">
+          {AI_ADDON_NET_MONTHLY_NOK} kr/mnd + mva
+        </p>
+        {aiAddonActivatedAt && (
+          <p className="text-xs text-muted-foreground">
+            på siden {aiAddonActivatedAt.toLocaleDateString("no-NO")}
           </p>
-          {aiAddonActivatedAt && (
-            <p className="text-xs text-muted-foreground">
-              fra {aiAddonActivatedAt.toLocaleDateString("no-NO")}
-            </p>
-          )}
-        </div>
-      ) : source === "off" ? (
-        <p className="text-xs text-muted-foreground">Ikke aktiv</p>
-      ) : null}
-      <AdminAiIncludedSwitch
-        tenantId={tenantId}
-        tenantName={tenantName}
-        included={aiIncludedInAgreement}
-      />
-    </div>
-  );
+        )}
+      </div>
+    );
+  }
+
+  if (source === "agreement") {
+    return (
+      <div>
+        <Badge variant="secondary">I avtale</Badge>
+        <p className="mt-1 text-xs text-muted-foreground">Ikke fakturer AI</p>
+      </div>
+    );
+  }
+
+  return <p className="text-xs text-muted-foreground">Ikke aktiv</p>;
 }
 
 function formatDaysAgo(date: Date): string {

@@ -155,7 +155,7 @@ async function notifySupportInbox(input: {
   preview: string;
 }) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "https://hmsnova.no";
-  const supportInbox = process.env.SUPPORT_EMAIL ?? "post@hmsnova.no";
+  const supportInbox = "post@hmsnova.no";
   const staff = await prisma.user.findMany({
     where: {
       OR: [{ isSupport: true }, { isSuperAdmin: true }],

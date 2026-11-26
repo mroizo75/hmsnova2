@@ -12,16 +12,17 @@ type IncidentData = Awaited<ReturnType<typeof fetchIncidents>>;
 interface IncidentsContentProps {
   initialData: IncidentData;
   kilde?: string;
+  assignmentId?: string;
 }
 
 const RUH_TYPES = new Set(["ULYKKE", "NESTEN", "FARLIG_SITUASJON", "YRKESSYKDOM"]);
 
-export function IncidentsContent({ initialData, kilde }: IncidentsContentProps) {
+export function IncidentsContent({ initialData, kilde, assignmentId }: IncidentsContentProps) {
   const t = useTranslations("dashboardIncidentsPage");
 
   const { data: incidents } = useServerQuery({
-    queryKey: ["incidents", kilde ?? "alle"],
-    queryFn: () => fetchIncidents({ kilde }),
+    queryKey: ["incidents", kilde ?? "alle", assignmentId ?? "alle"],
+    queryFn: () => fetchIncidents({ kilde, assignmentId }),
     initialData,
   });
 

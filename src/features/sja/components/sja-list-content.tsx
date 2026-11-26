@@ -27,15 +27,16 @@ type SjaListData = Awaited<ReturnType<typeof fetchSjaList>>;
 interface SjaListContentProps {
   initialData: SjaListData;
   canManageTemplates: boolean;
+  assignmentId?: string;
 }
 
-export function SjaListContent({ initialData, canManageTemplates }: SjaListContentProps) {
+export function SjaListContent({ initialData, canManageTemplates, assignmentId }: SjaListContentProps) {
   const t = useTranslations("dashboardSjaPage");
   const locale = useLocale();
 
   const { data } = useQuery({
-    queryKey: ["sja"],
-    queryFn: () => fetchSjaList(),
+    queryKey: ["sja", assignmentId ?? "alle"],
+    queryFn: () => fetchSjaList({ assignmentId }),
     initialData,
   });
 

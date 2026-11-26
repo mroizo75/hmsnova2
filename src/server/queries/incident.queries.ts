@@ -6,7 +6,7 @@ import { incidentPassesSafetyQualityFilter } from "@/lib/incident-visibility";
 import { loadViewerIncidentAccess } from "@/server/lib/incident-access";
 import type { IncidentType } from "@prisma/client";
 
-export async function fetchIncidents(options?: { kilde?: string }) {
+export async function fetchIncidents(options?: { kilde?: string; assignmentId?: string }) {
   const auth = await getAuthContext();
   if (!auth) return [];
   const { permissions, tenantId, userId, role, departmentId } = auth;
@@ -24,9 +24,10 @@ export async function fetchIncidents(options?: { kilde?: string }) {
   if (!where) return [];
 
   const sourceFilter = options?.kilde === "ik-mat" ? { projectReference: "IK-MAT" } : {};
+  const assignmentFilter = options?.assignmentId ? { assignmentId: options.assignmentId } : {};
 
   const incidents = await prisma.incident.findMany({
-    where: { ...(where as object), ...sourceFilter },
+    where: { ...(where as object), ...sourceFilter, ...assignmentFilter },
     include: {
       measures: true,
       risk: {

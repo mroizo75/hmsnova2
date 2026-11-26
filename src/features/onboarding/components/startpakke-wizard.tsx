@@ -34,6 +34,7 @@ import {
   ShoppingCart,
   Tractor,
   Monitor,
+  Users,
   Wrench,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -62,6 +63,7 @@ const BRANSJE_OPTIONS: { id: string; label: string; description: string; icon: R
   { id: "retail", label: "Handel og service", description: "Butikker, kjeder, service og kundebehandling", icon: <ShoppingCart className="h-6 w-6" /> },
   { id: "agriculture", label: "Landbruk", description: "Gårdsdrift, skogbruk, dyrehold og planteproduksjon", icon: <Tractor className="h-6 w-6" /> },
   { id: "technology", label: "Teknologi og IT", description: "Programvare, IT-drift, konsulentvirksomhet og kontor", icon: <Monitor className="h-6 w-6" /> },
+  { id: "staffing", label: "Bemanning og vikar", description: "Utleie av medarbeidere, med oppdrag, kompetanse og innføring hos innleier", icon: <Users className="h-6 w-6" /> },
   { id: "other", label: "Annen bransje", description: "Øvrige virksomheter – standard HMS-moduler aktiveres", icon: <Building2 className="h-6 w-6" /> },
 ];
 
@@ -93,6 +95,12 @@ const MODULE_LABELS: Record<string, string> = {
   "/dashboard/transport": "Transport",
   "/dashboard/utstyr": "Utstyr med godkjenning",
   "/dashboard/bht-nattarbeid": "BHT og nattarbeid",
+  "/dashboard/oppdrag": "Oppdrag",
+  "/dashboard/time-registration": "Timeregistrering",
+  "/dashboard/onboarding": "Onboarding",
+  "/dashboard/personalarkiv": "Personalarkiv",
+  "/dashboard/hr": "HR",
+  "/dashboard/fravaer": "Fravær og ferie",
   "/dashboard/annual-hms-plan": "Årlig HMS-plan",
   "/dashboard/settings": "Innstillinger",
 };

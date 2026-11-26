@@ -9,7 +9,7 @@ import { SjaTemplatePicker } from "@/components/sja/sja-template-picker";
 import { getAuthContext } from "@/lib/server-authorization";
 
 interface PageProps {
-  searchParams: Promise<{ mal?: string; projectId?: string; utenMal?: string }>;
+  searchParams: Promise<{ mal?: string; projectId?: string; utenMal?: string; oppdrag?: string }>;
 }
 
 export default async function NewSjaPage({ searchParams }: PageProps) {
@@ -23,7 +23,7 @@ export default async function NewSjaPage({ searchParams }: PageProps) {
     redirect("/login");
   }
 
-  const { mal: templateId, projectId, utenMal } = await searchParams;
+  const { mal: templateId, projectId, utenMal, oppdrag } = await searchParams;
 
   const [project, projects, template, risks, riskAssessments, allTemplates, memberships, training] = await Promise.all([
     projectId
@@ -255,6 +255,7 @@ export default async function NewSjaPage({ searchParams }: PageProps) {
               currentUserId={session.user.id}
               userName={session.user.name || session.user.email || "Bruker"}
               projectId={safeProjectId}
+              assignmentId={oppdrag}
               projects={projects}
               risks={risks}
               riskAssessments={riskAssessments}

@@ -14,10 +14,10 @@ import { fetchIncidents } from "@/server/queries/incident.queries";
 export default async function IncidentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ kilde?: string }>;
+  searchParams: Promise<{ kilde?: string; oppdrag?: string }>;
 }) {
   const t = await getTranslations("dashboardIncidentsPage");
-  const { kilde } = await searchParams;
+  const { kilde, oppdrag } = await searchParams;
   const isIkMat = kilde === "ik-mat";
 
   const auth = await getAuthContext();
@@ -34,7 +34,7 @@ export default async function IncidentsPage({
   const showOwnOnlyNotice = !canReadAll && canReadOwn;
   const showCreateOnlyNotice = !canReadAll && !canReadOwn && canCreate;
 
-  const initialIncidents = await fetchIncidents({ kilde });
+  const initialIncidents = await fetchIncidents({ kilde, assignmentId: oppdrag });
 
   return (
     <div className="space-y-6">
@@ -50,6 +50,14 @@ export default async function IncidentsPage({
             {isIkMat && (
               <p className="text-xs text-muted-foreground mt-1">
                 <Link href="/dashboard/ik-mat" className="hover:underline">Tilbake til IK-mat</Link>
+                {" · "}
+                <Link href="/dashboard/incidents" className="hover:underline">Alle avvik</Link>
+              </p>
+            )}
+            {oppdrag && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Viser avvik knyttet til valgt oppdrag.{" "}
+                <Link href="/dashboard/oppdrag" className="hover:underline">Tilbake til oppdrag</Link>
                 {" · "}
                 <Link href="/dashboard/incidents" className="hover:underline">Alle avvik</Link>
               </p>
@@ -85,7 +93,7 @@ export default async function IncidentsPage({
         </Alert>
       )}
 
-      <IncidentsContent initialData={initialIncidents} kilde={kilde} />
+      <IncidentsContent initialData={initialIncidents} kilde={kilde} assignmentId={oppdrag} />
 
       <div className="rounded-lg bg-blue-50 border border-blue-200 p-6">
         <h3 className="font-semibold text-blue-900 mb-3">{t("iso.title")}</h3>

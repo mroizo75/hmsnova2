@@ -14,8 +14,13 @@ import { prisma } from "@/lib/db";
 import { fetchSjaList } from "@/server/queries/sja.queries";
 import { SjaListContent } from "@/features/sja/components/sja-list-content";
 
-export default async function SjaDashboardPage() {
+export default async function SjaDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ oppdrag?: string }>;
+}) {
   const t = await getTranslations("dashboardSjaPage");
+  const { oppdrag } = await searchParams;
 
   const auth = await getAuthContext();
   const { permissions } = auth;
@@ -32,7 +37,7 @@ export default async function SjaDashboardPage() {
   const showCreateOnlyNotice = !canReadAll && !canReadOwn && canCreate;
 
   const [initialData, tenant] = await Promise.all([
-    fetchSjaList(),
+    fetchSjaList({ assignmentId: oppdrag }),
     prisma.tenant.findUnique({
       where: { id: auth.tenantId },
       select: { sjaApprovalRequired: true },
@@ -51,6 +56,14 @@ export default async function SjaDashboardPage() {
           <p className="text-muted-foreground">
             {t("description")}
           </p>
+          {oppdrag && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Viser SJA knyttet til valgt oppdrag.{" "}
+              <Link href="/dashboard/oppdrag" className="hover:underline">Tilbake til oppdrag</Link>
+              {" · "}
+              <Link href="/dashboard/sja" className="hover:underline">Alle SJA</Link>
+            </p>
+          )}
         </div>
         <Button asChild>
           <Link href="/dashboard/sja/new">
@@ -84,6 +97,7 @@ export default async function SjaDashboardPage() {
       <SjaListContent
         initialData={initialData}
         canManageTemplates={permissions.canApproveSja}
+        assignmentId={oppdrag}
       />
     </div>
   );
