@@ -1,5 +1,6 @@
 import {
   Home,
+  ListTodo,
   FileText,
   AlertCircle,
   Beaker,
@@ -69,6 +70,17 @@ export const EMPLOYEE_WIDGET_REGISTRY: EmployeeWidgetDefinition[] = [
     borderColor: "border-red-300",
     adminWidgetId: "incidents",
     showInBottomNav: true,
+  },
+  {
+    id: "emp-measures",
+    label: "Mine tiltak",
+    description: "Tiltak som er tildelt deg",
+    icon: ListTodo,
+    href: "/ansatt/tiltak",
+    color: "text-amber-700",
+    bgColor: "bg-amber-100",
+    borderColor: "border-amber-300",
+    adminWidgetId: "actions",
   },
   {
     id: "emp-routines",

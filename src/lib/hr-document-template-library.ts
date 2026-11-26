@@ -6,7 +6,12 @@
  * - Midlertidig ansettelse: AML § 14-9 (grunnlag)
  * - Sluttattest: AML § 15-15 (rett til attest)
  * - Jobbtilbud: Ikke lovpålagt, men samsvarer med § 14-6 for konsistens
+ * - Ferieoverføring: ferieloven § 7 (3) første punktum (skriftlig avtale, maks 12 virkedager).
+ *   Sykdom og foreldrepermisjon overføres av loven, jf. § 7 (3) andre punktum og § 9.
  */
+
+/** Lovbestemt tak for avtalt overføring. Ferieloven § 7 (3) første punktum. */
+export const MAX_AGREED_VACATION_TRANSFER_WEEKDAYS = 12;
 
 export interface HrDocumentTemplateEntry {
   name: string;
@@ -208,6 +213,50 @@ const sluttattestHtml = `<h2>Sluttattest</h2>
   </tr>
 </table>`;
 
+// Ferieloven § 7 (3): skriftlig avtale, inntil 12 virkedager. Avtale ut over
+// dette kan ikke inngås. Virkedag inkluderer lørdag, jf. § 5 (1).
+// Sykdom og foreldrepermisjon (§ 9 nr. 1 og 2) overføres uten denne avtalen
+// og uten 12-dagers taket, jf. § 7 (3) andre punktum.
+const ferieoverforingHtml = `<h2>Avtale om overføring av ferie</h2>
+<p><em>I henhold til ferieloven § 7 (3) første punktum</em></p>
+
+<h3>1. Parter</h3>
+<p><strong>Arbeidsgiver:</strong> {{bedriftsnavn}}, org.nr. {{orgNummer}}, {{adresse}}</p>
+<p><strong>Arbeidstaker:</strong> {{ansattNavn}}, født {{ansattFodselsdato}}, stilling {{stillingstittel}}</p>
+
+<h3>2. Avtalen</h3>
+<p>Partene er enige om å overføre <strong>{{antallVirkedager}}</strong> virkedager ferie fra ferieåret {{feriear}} til ferieåret {{nesteFeriear}}.</p>
+<p>Avtalen gjelder lovbestemt ferie. Den kan ikke omfatte mer enn 12 virkedager. Overføring ut over 12 virkedager kan ikke avtales, og arbeidsgiver kan ikke pålegge overføring av mer enn 12 virkedager. Arbeidstaker har ikke krav på overføring; begge parter må være enige.</p>
+<p>Virkedager er alle dager som ikke er søndager eller lovbestemte helge- og høytidsdager, og inkluderer derfor lørdag. For en vanlig femdagers arbeidsuke tilsvarer 12 virkedager to uker.</p>
+<p>Eventuell ferie ut over de lovbestemte 25 virkedagene, for eksempel etter tariffavtale, følger den avtalen og omfattes ikke av dette taket med mindre partene uttrykkelig tar den med her: <em>[Angi eventuelt tariffdager, eller stryk]</em>.</p>
+
+<h3>3. Det denne avtalen ikke gjelder</h3>
+<p>Ferie som ikke er avviklet på grunn av sykdom eller foreldrepermisjon, overføres av loven til neste ferieår uten skriftlig avtale og uten begrensning til 12 virkedager, jf. ferieloven § 7 (3) andre punktum og § 9 nr. 1 og 2.</p>
+<p>Forskuddsferie krever egen skriftlig avtale og er også begrenset til 12 virkedager, jf. ferieloven § 7 (3) første punktum.</p>
+
+<h3>4. Underskrift</h3>
+<p>Avtalen er inngått {{avtaleDato}}.</p>
+<table>
+  <tr>
+    <td style="width:50%"><p>____________________________</p><p>Arbeidsgiver: {{dagligLeder}}</p></td>
+    <td style="width:50%"><p>____________________________</p><p>Arbeidstaker: {{ansattNavn}}</p></td>
+  </tr>
+</table>`;
+
+const FERIEOVERFORING_VARIABLES = [
+  "bedriftsnavn",
+  "orgNummer",
+  "adresse",
+  "dagligLeder",
+  "ansattNavn",
+  "ansattFodselsdato",
+  "stillingstittel",
+  "feriear",
+  "nesteFeriear",
+  "antallVirkedager",
+  "avtaleDato",
+] as const;
+
 export function getHrDocumentTemplateLibrary(): HrDocumentTemplateEntry[] {
   return [
     {
@@ -252,6 +301,17 @@ export function getHrDocumentTemplateLibrary(): HrDocumentTemplateEntry[] {
       variables: [...SHARED_VARIABLES],
       industryScope: ["all"],
       legalReference: "AML § 15-15",
+      defaultReviewIntervalMonths: 12,
+    },
+    {
+      name: "Avtale om overføring av ferie",
+      category: "HR",
+      description:
+        "Skriftlig avtale om overføring av inntil 12 virkedager ferie til neste ferieår, jf. ferieloven § 7 (3). Sykdom og foreldrepermisjon overføres etter loven og skal ikke føres på denne avtalen.",
+      bodyHtml: ferieoverforingHtml,
+      variables: [...FERIEOVERFORING_VARIABLES],
+      industryScope: ["all"],
+      legalReference: "Ferieloven § 7 (3), jf. § 5 (1) og § 9",
       defaultReviewIntervalMonths: 12,
     },
   ];

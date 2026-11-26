@@ -779,7 +779,7 @@ export const DEFAULT_HR_SECTIONS: HandbookHrSectionDef[] = [
     sectionKey: "hr-ferie",
     sectionNumber: "3",
     title: "Ferie og feriepenger",
-    legalRef: "Ferieloven",
+    legalRef: "Ferieloven § 5, § 6, § 7 (3), § 9",
     sortOrder: 21,
     moduleLink: "/dashboard/fravaer",
     content: `<h3>Ferierett</h3>
@@ -787,7 +787,10 @@ export const DEFAULT_HR_SECTIONS: HandbookHrSectionDef[] = [
 <h3>Feriepenger</h3>
 <p>Feriepenger opptjenes i opptjeningsåret og utbetales i ferieåret i tråd med ferieloven. Sats og beregningsgrunnlag fremgår av lønnsslipp og eventuelt tariffavtale.</p>
 <h3>Søknad og godkjenning</h3>
-<p>Ferie søkes i fraværsmodulen og godkjennes av nærmeste leder. Tidspunktet fastsettes etter drøfting, jf. ferieloven § 6.</p>`,
+<p>Ferie søkes i fraværsmodulen og godkjennes av nærmeste leder. Tidspunktet fastsettes etter drøfting, jf. ferieloven § 6.</p>
+<h3>Overføring til neste ferieår</h3>
+<p>Hovedregelen er at ferien avvikles i ferieåret. Arbeidsgiver og arbeidstaker kan skriftlig avtale å overføre inntil 12 virkedager til neste ferieår, jf. ferieloven § 7 (3). Avtalen krever enighet fra begge parter. Overføring ut over 12 virkedager kan ikke avtales. Virkedager inkluderer lørdag. Malen «Avtale om overføring av ferie» brukes før årsskiftet.</p>
+<p>Ferie som ikke kunne tas ut på grunn av sykdom eller foreldrepermisjon, overføres etter ferieloven § 7 (3) andre punktum og § 9, uten denne avtalen og uten taket på 12 virkedager. Tariffavtale kan gi gunstigere regler for ferie ut over lovens 25 virkedager.</p>`,
   },
   {
     sectionKey: "hr-sykefravaer",

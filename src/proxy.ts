@@ -4,6 +4,7 @@ import { getToken } from "next-auth/jwt";
 import { prisma } from "@/lib/db";
 import { canAccessKonsernPortal } from "@/lib/konsern-access";
 import { tenantStatusBlocksAccess } from "@/lib/tenant-access";
+import { employeeMeasureRedirect } from "@/lib/measure-assignee-path";
 import {
   checkRateLimitPolicy,
   createRateLimitResponse,
@@ -193,6 +194,16 @@ export async function proxy(request: NextRequest) {
 
     const blocked = await blockedTenantResponse(request, token, pathname);
     if (blocked) return blocked;
+
+    const extraRoles = Array.isArray(token.extraRoles) ? token.extraRoles.map(String) : [];
+    const measureTarget = employeeMeasureRedirect(
+      pathname,
+      typeof token.role === "string" ? token.role : null,
+      extraRoles,
+    );
+    if (measureTarget) {
+      return applySecurityHeaders(NextResponse.redirect(new URL(measureTarget, publicOrigin(request))));
+    }
 
     // Konsern-bruker uten tenant: redirect til konsern-dashboard
     if (

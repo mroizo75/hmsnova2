@@ -38,6 +38,7 @@ export const PERSONNEL_CATEGORY_LEGAL: Record<PersonnelCategory, string> = {
 
 export function personnelCategoryFromHrTemplate(name: string): PersonnelCategory {
   const normalized = name.toLowerCase();
+  if (normalized.includes("overføring av ferie")) return "AMENDMENT";
   if (normalized.includes("sluttattest") || normalized.includes("attest")) {
     return "CERTIFICATE";
   }
@@ -48,6 +49,11 @@ export function personnelCategoryFromHrTemplate(name: string): PersonnelCategory
     return "CORRESPONDENCE";
   }
   return "OTHER";
+}
+
+export function personnelLegalRefForHrTemplate(name: string): string {
+  if (name.toLowerCase().includes("overføring av ferie")) return "Ferieloven § 7 (3)";
+  return PERSONNEL_CATEGORY_LEGAL[personnelCategoryFromHrTemplate(name)];
 }
 
 export function canAccessPersonnelFile(opts: {

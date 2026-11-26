@@ -21,13 +21,13 @@ export function AdminOnlineBadge() {
       )}
       title={
         safe
-          ? "Ingen kunder er inne. Trygt å oppgradere."
-          : `${count} kunde${count === 1 ? "" : "r"} er inne. Vent med oppgradering.`
+          ? "Ingen kunder er aktive. Trygt å oppgradere."
+          : `${count} kunde${count === 1 ? "" : "r"} er aktiv${count === 1 ? "" : "e"}. Vent med oppgradering.`
       }
     >
       <Circle className={cn("h-2 w-2 fill-current", safe ? "text-green-600" : "text-amber-600")} />
       <span className="font-medium">
-        {count} inne nå
+        {count} aktive
       </span>
     </div>
   );

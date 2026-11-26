@@ -16,10 +16,19 @@ import {
   type UpdatePersonnelDocumentInput,
 } from "@/features/personnel/schemas/personnel.schema";
 import {
-  PERSONNEL_CATEGORY_LEGAL,
   canAccessPersonnelFile,
   personnelCategoryFromHrTemplate,
+  personnelLegalRefForHrTemplate,
 } from "@/features/personnel/lib/personnel-categories";
+import {
+  defaultHrMergeValues,
+  hrMergeFields,
+  mergeHrDocumentHtml,
+  templateVariableKeys,
+  validateHrMergeValues,
+  type HrMergeContext,
+  type HrMergeField,
+} from "@/lib/hr-document-merge";
 import { isHrDocumentCategory } from "@/lib/document-module-scope";
 import { generateDocumentPdf } from "@/lib/pdf-brand";
 import { buildDocumentTemplatePdfSections, slugifyDocumentTitle } from "@/lib/template-copy";
@@ -48,9 +57,103 @@ async function canAccessEmployeeFolder(auth: AuthContext, employeeId: string): P
   });
 }
 
+async function loadHrMergeContext(tenantId: string, userId: string): Promise<HrMergeContext | null> {
+  const [tenant, membership] = await Promise.all([
+    prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: {
+        name: true,
+        orgNumber: true,
+        address: true,
+        postalCode: true,
+        city: true,
+        contactPerson: true,
+      },
+    }),
+    prisma.userTenant.findUnique({
+      where: { userId_tenantId: { userId, tenantId } },
+      include: {
+        user: { select: { name: true, email: true } },
+        hrProfile: { select: { dateOfBirth: true, startedAt: true } },
+        orgDepartment: { select: { name: true } },
+      },
+    }),
+  ]);
+  if (!tenant || !membership) return null;
+
+  return {
+    tenantName: tenant.name,
+    orgNumber: tenant.orgNumber,
+    address: tenant.address,
+    postalCode: tenant.postalCode,
+    city: tenant.city,
+    contactPerson: tenant.contactPerson,
+    employeeName: membership.user.name ?? membership.user.email,
+    dateOfBirth: membership.hrProfile?.dateOfBirth ?? null,
+    position: membership.position,
+    workplace: membership.orgDepartment?.name ?? membership.department,
+    startedAt: membership.hrProfile?.startedAt ?? null,
+  };
+}
+
+export async function getHrDocumentMergeFields(input: {
+  userId: string;
+  templateId: string;
+}): Promise<{ success: true; data: { fields: HrMergeField[] } } | { success: false; error: string }> {
+  try {
+    const auth = await getAuthContext();
+    if (!auth?.permissions.canUploadPersonnelFile) {
+      return { success: false, error: "Du har ikke tilgang til å laste opp til personalarkivet" };
+    }
+
+    const userId = input.userId.trim();
+    const templateId = input.templateId.trim();
+    if (!userId || !templateId) {
+      return { success: false, error: "Ansatt og mal er påkrevd" };
+    }
+
+    const membership = await prisma.userTenant.findUnique({
+      where: { userId_tenantId: { userId, tenantId: auth.tenantId } },
+      select: { departmentId: true },
+    });
+    if (!membership) return { success: false, error: "Ansatt ikke funnet i denne bedriften" };
+
+    const allowed = canAccessPersonnelFile({
+      viewerId: auth.userId,
+      employeeId: userId,
+      canReadOwn: auth.permissions.canReadOwnPersonnelFile,
+      canReadAll: auth.permissions.canReadAllPersonnelFiles,
+      canReadDepartment: auth.permissions.canReadDepartmentPersonnelFiles,
+      viewerDepartmentId: auth.departmentId,
+      employeeDepartmentId: membership.departmentId,
+    });
+    if (!allowed) return { success: false, error: "Du har ikke tilgang til denne personalmappen" };
+
+    const template = await prisma.documentTemplate.findFirst({
+      where: {
+        id: templateId,
+        OR: [{ tenantId: auth.tenantId }, { isGlobal: true, tenantId: null }],
+      },
+    });
+    if (!template || !isHrDocumentCategory(template.category)) {
+      return { success: false, error: "HR-mal ikke funnet" };
+    }
+
+    const context = await loadHrMergeContext(auth.tenantId, userId);
+    if (!context) return { success: false, error: "Ansatt ikke funnet i denne bedriften" };
+
+    const keys = templateVariableKeys(template.variables, template.bodyHtml);
+    return { success: true, data: { fields: hrMergeFields(keys, defaultHrMergeValues(keys, context)) } };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Kunne ikke hente feltene i malen";
+    return { success: false, error: message };
+  }
+}
+
 export async function createPersonnelDocumentFromTemplate(input: {
   userId: string;
   templateId: string;
+  values?: Record<string, string>;
 }) {
   try {
     const auth = await getAuthContext();
@@ -95,12 +198,28 @@ export async function createPersonnelDocumentFromTemplate(input: {
       return { success: false as const, error: "HR-mal ikke funnet" };
     }
 
-    const tenant = await prisma.tenant.findUnique({
-      where: { id: auth.tenantId },
-      select: { name: true, orgNumber: true, address: true, logoUrl: true },
-    });
+    const [tenant, mergeContext] = await Promise.all([
+      prisma.tenant.findUnique({
+        where: { id: auth.tenantId },
+        select: { name: true, orgNumber: true, address: true, logoUrl: true },
+      }),
+      loadHrMergeContext(auth.tenantId, userId),
+    ]);
+    if (!mergeContext) {
+      return { success: false as const, error: "Ansatt ikke funnet i denne bedriften" };
+    }
+
+    const keys = templateVariableKeys(template.variables, template.bodyHtml);
+    const values = defaultHrMergeValues(keys, mergeContext);
+    for (const key of keys) {
+      const override = input.values?.[key];
+      if (typeof override === "string") values[key] = override.trim();
+    }
+    const mergeError = validateHrMergeValues(keys, values);
+    if (mergeError) return { success: false as const, error: mergeError };
 
     const category = personnelCategoryFromHrTemplate(template.name);
+    const legalRef = personnelLegalRefForHrTemplate(template.name);
     const employeeName = membership.user.name ?? membership.user.email;
     const title = `${template.name} – ${employeeName}`;
     const pdfBuffer = await generateDocumentPdf({
@@ -114,10 +233,10 @@ export async function createPersonnelDocumentFromTemplate(input: {
         logoUrl: tenant?.logoUrl,
       },
       generatedBy: auth.userEmail,
-      legalReference: PERSONNEL_CATEGORY_LEGAL[category],
+      legalReference: legalRef,
       sections: buildDocumentTemplatePdfSections({
         description: template.description,
-        bodyHtml: template.bodyHtml,
+        bodyHtml: template.bodyHtml ? mergeHrDocumentHtml(template.bodyHtml, keys, values) : null,
         pdcaGuidance: template.pdcaGuidance,
       }),
     });
@@ -137,7 +256,7 @@ export async function createPersonnelDocumentFromTemplate(input: {
         fileName,
         mime: "application/pdf",
         fileSize: pdfBuffer.length,
-        legalRef: PERSONNEL_CATEGORY_LEGAL[category],
+        legalRef,
         uploadedById: auth.userId,
       },
     });

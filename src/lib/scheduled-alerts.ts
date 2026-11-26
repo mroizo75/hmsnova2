@@ -359,7 +359,7 @@ async function checkOverdueMeasures(tenantId: string): Promise<AlertResult> {
         type: "MEASURE_OVERDUE",
         title: "🚨 Tiltak forfalt!",
         message: `Tiltaket "${measure.title}" er ${daysOverdue} dager forbi fristen. Vennligst fullfør eller oppdater status.`,
-        link: `/dashboard/actions`,
+        link: `/ansatt/tiltak/${measure.id}`,
       });
       notifications++;
     }
@@ -402,7 +402,7 @@ async function checkUpcomingMeasures(tenantId: string): Promise<AlertResult> {
         type: "MEASURE_DUE_SOON",
         title: "⏰ Tiltak forfaller snart",
         message: `Tiltaket "${measure.title}" forfaller om ${daysUntil} dag${daysUntil !== 1 ? "er" : ""}.`,
-        link: `/dashboard/actions`,
+        link: `/ansatt/tiltak/${measure.id}`,
       });
       notifications++;
     }

@@ -66,6 +66,17 @@ export default async function AnsattDashboard() {
     visibleWidgets = visibleWidgets.filter((w) => w.id !== "emp-moc");
   }
 
+  const myMeasures = await prisma.measure.findMany({
+    where: {
+      tenantId: session.user.tenantId,
+      responsibleId: session.user.id,
+      status: { in: ["PENDING", "IN_PROGRESS", "OVERDUE"] },
+    },
+    orderBy: { dueAt: "asc" },
+    take: 8,
+    select: { id: true, title: true, dueAt: true, status: true },
+  });
+
   const hrWidgets = visibleWidgets.filter((widget) => EMPLOYEE_HR_WIDGET_IDS.has(widget.id));
   const otherWidgets = visibleWidgets.filter((widget) => !EMPLOYEE_HR_WIDGET_IDS.has(widget.id));
 
@@ -179,24 +190,29 @@ export default async function AnsattDashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-              <div className="flex items-center gap-3">
-                <div className="h-2 w-2 rounded-full bg-yellow-500"></div>
-                <div>
-                  <p className="font-medium text-sm">{t("tasks.item.title")}</p>
-                  <p className="text-xs text-muted-foreground">{t("tasks.item.deadline")}</p>
-                </div>
-              </div>
-              <Badge variant="outline" className="bg-white">
-                {t("tasks.item.status")}
-              </Badge>
+          {myMeasures.length === 0 ? (
+            <p className="py-4 text-center text-sm text-muted-foreground">{t("tasks.empty")}</p>
+          ) : (
+            <div className="space-y-3">
+              {myMeasures.map((measure) => (
+                <Link
+                  key={measure.id}
+                  href={`/ansatt/tiltak/${measure.id}`}
+                  className="flex items-center justify-between rounded-lg border border-yellow-200 bg-yellow-50 p-3"
+                >
+                  <div>
+                    <p className="text-sm font-medium">{measure.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Frist {new Date(measure.dueAt).toLocaleDateString("nb-NO")}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="bg-white">
+                    {measure.status === "IN_PROGRESS" ? "Pågår" : "Ikke startet"}
+                  </Badge>
+                </Link>
+              ))}
             </div>
-
-            <div className="text-center py-4 text-sm text-muted-foreground">
-              {t("tasks.empty")}
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 

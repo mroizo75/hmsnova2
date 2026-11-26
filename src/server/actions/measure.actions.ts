@@ -215,7 +215,7 @@ export async function createMeasure(input: any) {
         type: "MEASURE_ASSIGNED",
         title: "Du har fått et tiltak",
         message: `«${measure.title}» er tildelt deg og har frist ${due}.`,
-        link: "/dashboard/actions",
+        link: `/ansatt/tiltak/${measure.id}`,
       });
     }
     
@@ -301,7 +301,7 @@ export async function updateMeasure(input: any) {
         type: "MEASURE_ASSIGNED",
         title: "Du har fått et tiltak",
         message: `«${measure.title}» er tildelt deg og har frist ${due}.`,
-        link: "/dashboard/actions",
+        link: `/ansatt/tiltak/${measure.id}`,
       });
     }
 
@@ -395,6 +395,83 @@ export async function completeMeasure(input: any) {
   } catch (error: any) {
     console.error("Complete measure error:", error);
     return { success: false, error: error.message || "Kunne ikke fullføre tiltak" };
+  }
+}
+
+/** Den som er tildelt tiltaket kan oppdatere fremdriften. IK-HMS § 5 nr. 6. Effekt vurderes senere. */
+export async function reportOwnMeasureProgress(input: {
+  id: string;
+  status: "IN_PROGRESS" | "DONE";
+  note?: string;
+}) {
+  try {
+    const { user, tenantId } = await getSessionContext();
+    if (input.status !== "IN_PROGRESS" && input.status !== "DONE") {
+      return { success: false, error: "Ugyldig status" };
+    }
+    const note = input.note?.trim() ?? "";
+    if (input.status === "DONE" && note.length < 10) {
+      return { success: false, error: "Skriv kort hva som er gjort, minst 10 tegn" };
+    }
+
+    const existing = await prisma.measure.findFirst({
+      where: { id: input.id, tenantId, responsibleId: user.id },
+    });
+    if (!existing) {
+      return { success: false, error: "Tiltaket er ikke tildelt deg" };
+    }
+    if (existing.status === "DONE") {
+      return { success: false, error: "Tiltaket er allerede fullført" };
+    }
+
+    const measure = await prisma.measure.update({
+      where: { id: existing.id },
+      data: {
+        status: input.status,
+        completedAt: input.status === "DONE" ? new Date() : null,
+        effectiveness: "NOT_EVALUATED",
+        effectivenessNote: input.status === "DONE" ? note : existing.effectivenessNote,
+      },
+    });
+
+    if (input.status === "DONE" && measure.incidentId) {
+      const incidentMeasures = await prisma.measure.findMany({
+        where: { incidentId: measure.incidentId, tenantId },
+      });
+      const incident = await prisma.incident.findFirst({
+        where: { id: measure.incidentId, tenantId },
+        select: { status: true },
+      });
+      if (incident && incident.status !== "CLOSED") {
+        await prisma.incident.update({
+          where: { id: measure.incidentId, tenantId },
+          data: {
+            stage: incidentMeasures.every((item) => item.status === "DONE")
+              ? IncidentStage.ACTIONS_COMPLETE
+              : IncidentStage.ACTIONS_DEFINED,
+          },
+        });
+      }
+    }
+
+    await prisma.auditLog.create({
+      data: {
+        tenantId,
+        userId: user.id,
+        action: input.status === "DONE" ? "MEASURE_COMPLETED" : "MEASURE_UPDATED",
+        resource: `Measure:${measure.id}`,
+        metadata: JSON.stringify({ title: measure.title, status: input.status }),
+      },
+    });
+
+    revalidatePath("/ansatt/tiltak");
+    revalidatePath(`/ansatt/tiltak/${measure.id}`);
+    revalidatePath("/dashboard/actions");
+    triggerRealtimeEvent(tenantId, "measure-updated", { id: measure.id });
+    return { success: true };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Kunne ikke oppdatere tiltaket";
+    return { success: false, error: message };
   }
 }
 
